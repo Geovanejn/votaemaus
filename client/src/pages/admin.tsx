@@ -169,6 +169,7 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/elections/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
       toast({
         title: "Eleição criada com sucesso!",
         description: "A nova eleição está ativa agora",
@@ -212,6 +213,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections/active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
       toast({
         title: "Eleição finalizada!",
         description: "A eleição foi arquivada no histórico",

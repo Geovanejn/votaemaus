@@ -373,6 +373,14 @@ export class SQLiteStorage implements IStorage {
       if (topCandidates.length === 2) {
         // Keep only these top 2 candidates, remove all others
         const candidateIds = topCandidates.map((c: any) => c.id);
+        
+        // FIRST: Delete votes from candidates that will be removed (to avoid foreign key constraint)
+        db.prepare(`
+          DELETE FROM votes 
+          WHERE position_id = ? AND election_id = ? AND candidate_id NOT IN (?, ?)
+        `).run(position.position_id, position.election_id, candidateIds[0], candidateIds[1]);
+        
+        // THEN: Delete the candidates themselves
         db.prepare(`
           DELETE FROM candidates 
           WHERE position_id = ? AND election_id = ? AND id NOT IN (?, ?)

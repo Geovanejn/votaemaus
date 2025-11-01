@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import { sendCongratulationsEmail } from "./email";
 import type {
   User,
   InsertUser,
@@ -304,6 +305,31 @@ export class SQLiteStorage implements IStorage {
     // Mark the election_position as completed
     db.prepare("UPDATE election_positions SET status = 'completed', closed_at = datetime('now') WHERE election_id = ? AND position_id = ?")
       .run(electionId, positionId);
+    
+    // Send congratulations email to the elected candidate
+    try {
+      const candidateStmt = db.prepare(`
+        SELECT c.name, c.email, p.name as position_name
+        FROM candidates c
+        JOIN positions p ON c.position_id = p.id
+        WHERE c.id = ?
+      `);
+      const candidateData = candidateStmt.get(candidateId) as { name: string; email: string; position_name: string } | undefined;
+      
+      if (candidateData) {
+        // Send email asynchronously (don't wait for it)
+        sendCongratulationsEmail(
+          candidateData.name,
+          candidateData.email,
+          candidateData.position_name,
+          scrutiny
+        ).catch(error => {
+          console.error("Failed to send congratulations email:", error);
+        });
+      }
+    } catch (error) {
+      console.error("Error preparing congratulations email:", error);
+    }
   }
 
   // Election Positions management

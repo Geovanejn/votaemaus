@@ -40,7 +40,7 @@ import { useLocation } from "wouter";
 import type { Election, Position, CandidateWithDetails, ElectionResults } from "@shared/schema";
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
 import ImageCropDialog from "@/components/ImageCropDialog";
-import logoUrl from "@assets/EMAÚS v3 sem fundo_1762029245059.png";
+import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
@@ -1507,6 +1507,16 @@ export default function AdminPage() {
             })}
         />
       )}
+
+      {/* Footer with UMP Emaús Logo */}
+      <div className="mt-8 mb-4 flex justify-center">
+        <img 
+          src={logoUrl} 
+          alt="UMP Emaús" 
+          className="h-12 opacity-60"
+          data-testid="img-logo-footer-admin"
+        />
+      </div>
     </div>
   );
 }

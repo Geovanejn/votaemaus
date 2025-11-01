@@ -20,45 +20,10 @@ import {
   getGravatarUrl,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
-import { Resend } from "resend";
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+import { sendVerificationEmail } from "./email";
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
-  if (!resend) {
-    console.log(`[EMAIL DISABLED] Verification code for ${email}: ${code}`);
-    return false;
-  }
-  
-  try {
-    await resend.emails.send({
-      from: "Emaús Vota <suporte@emausvota.com.br>" ,
-      to: email,
-      subject: "Seu código de verificação - Emaús Vota",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #FFA500;">Emaús Vota</h2>
-          <p>Olá,</p>
-          <p>Seu código de verificação é:</p>
-          <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
-            <h1 style="color: #FFA500; font-size: 32px; letter-spacing: 8px; margin: 0;">${code}</h1>
-          </div>
-          <p>Este código expira em 15 minutos.</p>
-          <p>Se você não solicitou este código, ignore este email.</p>
-          <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px;">UMP Emaús - Sistema de Votação</p>
-        </div>
-      `,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return false;
-  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

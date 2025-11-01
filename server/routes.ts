@@ -431,6 +431,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/elections/:id/positions/check-tie", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const electionId = parseInt(req.params.id);
+      const activePosition = storage.getActiveElectionPosition(electionId);
+      
+      if (!activePosition) {
+        return res.json({ hasTie: false, candidates: [] });
+      }
+      
+      const tieCheck = storage.checkThirdScrutinyTie(activePosition.id);
+      
+      // If there's a tie, get candidate details
+      if (tieCheck.hasTie) {
+        const candidates = storage.getCandidatesByPosition(activePosition.positionId, electionId);
+        const tiedCandidates = tieCheck.candidates.map(tc => {
+          const candidate = candidates.find(c => c.id === tc.candidateId);
+          return {
+            ...tc,
+            name: candidate?.name || '',
+            email: candidate?.email || '',
+          };
+        });
+        
+        res.json({ hasTie: true, candidates: tiedCandidates, electionPositionId: activePosition.id });
+      } else {
+        res.json({ hasTie: false, candidates: [] });
+      }
+    } catch (error) {
+      console.error("Check tie error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao verificar empate" 
+      });
+    }
+  });
+
+  app.post("/api/elections/:id/positions/resolve-tie", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const electionId = parseInt(req.params.id);
+      const { electionPositionId, winnerId } = req.body;
+      
+      if (!electionPositionId || !winnerId) {
+        return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      storage.resolveThirdScrutinyTie(electionPositionId, winnerId);
+      res.json({ message: "Empate resolvido com sucesso" });
+    } catch (error) {
+      console.error("Resolve tie error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Erro ao resolver empate" 
+      });
+    }
+  });
+
   app.post("/api/elections/:id/positions/open-next", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
@@ -605,7 +659,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/members/non-admins", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const members = storage.getAllMembers(true); // Exclude admins
-      const membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      let membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      
+      // If electionId is provided, exclude members who already won a position in this election
+      const electionId = req.query.electionId ? parseInt(req.query.electionId as string) : null;
+      if (electionId) {
+        const winners = storage.getElectionWinners(electionId);
+        const winnerUserIds = new Set(winners.map(w => w.userId));
+        membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
+      }
+      
       res.json(membersWithoutPasswords);
     } catch (error) {
       console.error("Get non-admin members error:", error);

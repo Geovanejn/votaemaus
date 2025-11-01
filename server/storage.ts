@@ -252,11 +252,18 @@ export class SQLiteStorage implements IStorage {
   }
 
   finalizeElection(id: number): void {
-    // Clear all candidates and votes for this election
+    // Clear all data for this election in the correct order (respecting foreign keys)
+    // 1. First delete votes (references candidates)
     db.prepare(`
       DELETE FROM votes WHERE election_id = ?
     `).run(id);
     
+    // 2. Delete election_winners (references candidates)
+    db.prepare(`
+      DELETE FROM election_winners WHERE election_id = ?
+    `).run(id);
+    
+    // 3. Now we can safely delete candidates
     db.prepare(`
       DELETE FROM candidates WHERE election_id = ?
     `).run(id);
@@ -813,6 +820,83 @@ export class SQLiteStorage implements IStorage {
       // Complete this position
       this.completePosition(activePosition.id);
     }
+    // Note: If no winner and scrutiny is 3, admin will need to manually break the tie
+  }
+
+  checkThirdScrutinyTie(electionPositionId: number): { hasTie: boolean; candidates: Array<{ candidateId: number; voteCount: number }> } {
+    const position = this.getElectionPositionById(electionPositionId);
+    if (!position || position.currentScrutiny !== 3) {
+      return { hasTie: false, candidates: [] };
+    }
+
+    // Get present count for this position
+    const presentCount = this.getPresentCountForPosition(electionPositionId);
+    if (presentCount === 0) {
+      return { hasTie: false, candidates: [] };
+    }
+
+    // Check if all present members have voted
+    const totalVotesStmt = db.prepare(
+      "SELECT COUNT(DISTINCT voter_id) as count FROM votes WHERE position_id = ? AND election_id = ? AND scrutiny_round = 3"
+    );
+    const totalVotesResult = totalVotesStmt.get(position.positionId, position.electionId) as { count: number };
+    
+    if (totalVotesResult.count < presentCount) {
+      return { hasTie: false, candidates: [] }; // Not all votes are in yet
+    }
+
+    // Get vote counts for all candidates in 3rd scrutiny
+    const votesStmt = db.prepare(`
+      SELECT candidate_id, COUNT(*) as vote_count
+      FROM votes 
+      WHERE position_id = ? AND election_id = ? AND scrutiny_round = 3
+      GROUP BY candidate_id
+      ORDER BY vote_count DESC
+    `);
+    const results = votesStmt.all(position.positionId, position.electionId) as Array<{ candidate_id: number; vote_count: number }>;
+
+    if (results.length >= 2) {
+      const topVotes = results[0].vote_count;
+      
+      // Get ALL candidates with the top vote count (could be 2, 3, or more)
+      const tiedCandidates = results.filter(r => r.vote_count === topVotes);
+      
+      // If more than 1 candidate has the top votes, it's a tie
+      if (tiedCandidates.length > 1) {
+        return {
+          hasTie: true,
+          candidates: tiedCandidates.map(c => ({
+            candidateId: c.candidate_id,
+            voteCount: c.vote_count
+          }))
+        };
+      }
+    }
+
+    return { hasTie: false, candidates: [] };
+  }
+
+  resolveThirdScrutinyTie(electionPositionId: number, winnerId: number): void {
+    const position = this.getElectionPositionById(electionPositionId);
+    if (!position) {
+      throw new Error("Cargo não encontrado");
+    }
+
+    // Verify it's actually a tie scenario
+    const tieCheck = this.checkThirdScrutinyTie(electionPositionId);
+    if (!tieCheck.hasTie) {
+      throw new Error("Não há empate para resolver neste cargo");
+    }
+
+    // Verify the winner is one of the tied candidates
+    const isValidWinner = tieCheck.candidates.some(c => c.candidateId === winnerId);
+    if (!isValidWinner) {
+      throw new Error("O candidato escolhido não está entre os empatados");
+    }
+
+    // Set the winner
+    this.setWinner(position.electionId, winnerId, position.positionId, 3);
+    this.completePosition(electionPositionId);
   }
 
   hasUserVoted(voterId: number, positionId: number, electionId: number, scrutinyRound: number): boolean {

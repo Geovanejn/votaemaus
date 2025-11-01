@@ -87,22 +87,11 @@ export default function AdminPage() {
     staleTime: 30000,
   });
 
-  // Non-admin members for candidate selection
-  const { data: nonAdminMembers = [] } = useQuery<Array<{ id: number; fullName: string; email: string }>>({
-    queryKey: ["/api/members/non-admins"],
+  // Non-admin members for candidate selection (excluding winners from current election)
+  const { data: availableMembers = [] } = useQuery<Array<{ id: number; fullName: string; email: string }>>({
+    queryKey: activeElection ? ["/api/members/non-admins", { electionId: activeElection.id }] : ["/api/members/non-admins"],
     enabled: isAddCandidateOpen, // Only fetch when dialog is open
   });
-
-  // Winners of current election
-  const { data: electionWinners = [] } = useQuery<Array<{ userId: number; positionId: number; candidateId: number; wonAtScrutiny: number }>>({
-    queryKey: ["/api/elections", activeElection?.id, "winners"],
-    enabled: !!activeElection && isAddCandidateOpen,
-  });
-
-  // Filter out winners from available members
-  const availableMembers = nonAdminMembers.filter(m => 
-    !electionWinners.some(w => w.userId === m.id)
-  );
 
   // Election results for scrutiny management
   const { data: results } = useQuery<ElectionResults | null>({
@@ -401,18 +390,20 @@ export default function AdminPage() {
     },
   });
 
-  const setWinnerMutation = useMutation({
-    mutationFn: async (data: { electionId: number; candidateId: number; positionId: number }) => {
-      return await apiRequest("PATCH", `/api/elections/${data.electionId}/set-winner`, {
-        candidateId: data.candidateId,
-        positionId: data.positionId,
+  const resolveTieMutation = useMutation({
+    mutationFn: async (data: { electionId: number; electionPositionId: number; winnerId: number }) => {
+      return await apiRequest("POST", `/api/elections/${data.electionId}/positions/resolve-tie`, {
+        electionPositionId: data.electionPositionId,
+        winnerId: data.winnerId,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       toast({
         title: "Vencedor definido!",
-        description: "O vencedor foi escolhido com sucesso",
+        description: "O empate foi resolvido com sucesso",
       });
     },
     onError: (error: Error) => {
@@ -517,7 +508,7 @@ export default function AdminPage() {
       return;
     }
 
-    const selectedMember = nonAdminMembers.find(m => m.id === parseInt(selectedMemberId));
+    const selectedMember = availableMembers.find((m: { id: number; fullName: string; email: string }) => m.id === parseInt(selectedMemberId));
     if (!selectedMember) return;
 
     addCandidateMutation.mutate({
@@ -980,21 +971,28 @@ export default function AdminPage() {
                                 </p>
                               </div>
                               <div className="space-y-2">
-                                {position.candidates
-                                  .sort((a, b) => b.voteCount - a.voteCount)
-                                  .slice(0, 2)
-                                  .map(candidate => (
+                                {(() => {
+                                  // Get all candidates sorted by votes
+                                  const sorted = position.candidates.sort((a, b) => b.voteCount - a.voteCount);
+                                  if (sorted.length === 0) return [];
+                                  
+                                  // Get the top vote count
+                                  const topVotes = sorted[0].voteCount;
+                                  
+                                  // Return ALL candidates with the top vote count (all tied candidates)
+                                  return sorted.filter(c => c.voteCount === topVotes);
+                                })().map(candidate => (
                                     <Button
                                       key={candidate.candidateId}
                                       variant="outline"
                                       className="w-full justify-between"
-                                      onClick={() => setWinnerMutation.mutate({
+                                      onClick={() => resolveTieMutation.mutate({
                                         electionId: activeElection.id,
-                                        candidateId: candidate.candidateId,
-                                        positionId: position.positionId,
+                                        electionPositionId: activePosition.id,
+                                        winnerId: candidate.candidateId,
                                       })}
-                                      disabled={setWinnerMutation.isPending}
-                                      data-testid={`button-set-winner-${candidate.candidateId}`}
+                                      disabled={resolveTieMutation.isPending}
+                                      data-testid={`button-resolve-tie-${candidate.candidateId}`}
                                     >
                                       <span>{candidate.candidateName}</span>
                                       <span className="text-xs text-muted-foreground">{candidate.voteCount} votos</span>

@@ -52,6 +52,7 @@ export default function AdminPage() {
   const [newMember, setNewMember] = useState({
     fullName: "",
     email: "",
+    photoUrl: "",
   });
   
   const exportImageRef = useRef<ExportResultsImageHandle>(null);
@@ -252,7 +253,7 @@ export default function AdminPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: async (member: { fullName: string; email: string }) => {
+    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string }) => {
       return await apiRequest("POST", "/api/admin/members", member);
     },
     onSuccess: () => {
@@ -262,7 +263,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "" });
+      setNewMember({ fullName: "", email: "", photoUrl: "" });
     },
     onError: (error: Error) => {
       toast({
@@ -524,6 +525,17 @@ export default function AdminPage() {
     });
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewMember({ ...newMember, photoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddMember = () => {
     if (!newMember.fullName || !newMember.email) {
       toast({
@@ -537,6 +549,7 @@ export default function AdminPage() {
     addMemberMutation.mutate({
       fullName: newMember.fullName,
       email: newMember.email,
+      photoUrl: newMember.photoUrl || undefined,
     });
   };
 
@@ -1310,6 +1323,26 @@ export default function AdminPage() {
                 }
                 data-testid="input-member-email"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="member-photo">Foto do Membro (Opcional)</Label>
+              <Input
+                id="member-photo"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                data-testid="input-member-photo"
+              />
+              {newMember.photoUrl && (
+                <div className="mt-2 flex justify-center">
+                  <img
+                    src={newMember.photoUrl}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-full border-2 border-primary"
+                  />
+                </div>
+              )}
             </div>
 
             <Button

@@ -15,7 +15,7 @@ The frontend is built with **React 18** and **TypeScript**, using **Vite** for d
 The backend uses **Express.js** on **Node.js** with **TypeScript** for RESTful API endpoints. Authentication is email-based with 6-digit verification codes and **JWT** for stateless sessions. **bcrypt.js** is used for admin password hashing. Role-based access control is implemented via `isAdmin` and `isMember` flags. The API is organized into domains like `/api/auth`, `/api/admin`, `/api/elections`, and `/api/vote`. The database layer uses **Better-SQLite3** for development, with **Drizzle ORM** configured for PostgreSQL. The schema includes tables for `users`, `positions`, `elections`, `candidates`, `votes`, `verification_codes`, and `election_winners`, enforcing business logic constraints like one active election at a time, one vote per user per position, and a three-round scrutiny system.
 
 ### UI/UX Decisions
-The system features a responsive UI following civic tech design principles, ensuring clarity during the voting process. It includes a Portuguese language interface and custom UMP Emaús branding with a primary orange color (`#FFA500`). The results display is real-time, with automatic polling, smart sorting, and visual hierarchies to highlight leading and elected candidates. An "Export Results" feature allows admins to generate professional, institutional images of election results in various aspect ratios (9:16 for Stories, 4:5 for Feed) using custom user-provided assets, typography, and precise spacing.
+The system features a responsive UI following civic tech design principles, ensuring clarity during the voting process. It includes a Portuguese language interface and custom UMP Emaús branding with a primary orange color (`#FFA500`). The results display is real-time, with automatic polling, smart sorting, and visual hierarchies to highlight leading and elected candidates. An "Export Results" feature allows admins to generate professional, institutional images of election results in various aspect ratios (9:16 for Stories, 4:5 for Feed) using custom user-provided assets, typography, and precise spacing. Member photo uploads include a circular crop tool powered by **react-easy-crop**, allowing admins to position and zoom images for consistent circular avatars throughout the system. The admin members page includes a footer with the UMP Emaús logo.
 
 ### Feature Specifications
 Key features include:
@@ -29,7 +29,8 @@ Key features include:
 - Per-position election control, allowing individual positions to open/close.
 - Automatic majority-based closing for positions.
 - Three-round scrutiny voting system with tie-resolution.
-- Generation of shareable election results images.
+- Generation of shareable election results images with circular candidate photos.
+- Circular image crop tool for member photo uploads with zoom and positioning controls.
 - Full mobile optimization.
 
 ## External Dependencies
@@ -40,6 +41,7 @@ Key features include:
 ### UI Component Libraries
 - **@radix-ui/**: Accessible component primitives for building the UI.
 - **lucide-react**: Icon library for consistent iconography across the application.
+- **react-easy-crop**: Interactive image cropping component for circular member photo uploads.
 
 ### Database
 - **better-sqlite3**: Used for local SQLite database development.

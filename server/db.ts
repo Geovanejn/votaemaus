@@ -25,6 +25,7 @@ export function initializeDatabase() {
       full_name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
+      photo_url TEXT,
       is_admin INTEGER NOT NULL DEFAULT 0,
       is_member INTEGER NOT NULL DEFAULT 1
     );
@@ -228,6 +229,15 @@ export function initializeDatabase() {
     if (!attendanceColumnNames.includes('election_position_id')) {
       sqlite.exec("ALTER TABLE election_attendance ADD COLUMN election_position_id INTEGER REFERENCES election_positions(id)");
       console.log("Added election_position_id column to election_attendance table");
+    }
+
+    // Check and add photo_url column to users table
+    const usersColumns = sqlite.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    const usersColumnNames = usersColumns.map(col => col.name);
+    
+    if (!usersColumnNames.includes('photo_url')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN photo_url TEXT");
+      console.log("Added photo_url column to users table");
     }
 
     // Migration: Add UNIQUE constraint to candidates table to prevent duplicates

@@ -19,6 +19,7 @@ export const users = sqliteTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  photoUrl: text("photo_url"),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   isMember: integer("is_member", { mode: "boolean" }).notNull().default(true),
 });
@@ -207,6 +208,7 @@ export type RegisterData = z.infer<typeof registerSchema>;
 export const addMemberSchema = z.object({
   fullName: z.string().min(2, "Nome completo é obrigatório"),
   email: z.string().email("Email inválido"),
+  photoUrl: z.string().optional(),
 });
 
 export type AddMemberData = z.infer<typeof addMemberSchema>;

@@ -182,6 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: validatedData.fullName,
         email: validatedData.email,
         password: Math.random().toString(36),
+        photoUrl: validatedData.photoUrl,
         isAdmin: false,
         isMember: true,
       } as any);
@@ -653,10 +654,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const candidates = storage.getCandidatesByPosition(positionId, electionId);
-      const candidatesWithPhotos = candidates.map(candidate => ({
-        ...candidate,
-        photoUrl: getGravatarUrl(candidate.email),
-      }));
+      const candidatesWithPhotos = candidates.map(candidate => {
+        const user = storage.getUserById(candidate.userId);
+        return {
+          ...candidate,
+          photoUrl: user?.photoUrl || getGravatarUrl(candidate.email),
+        };
+      });
       
       res.json(candidatesWithPhotos);
     } catch (error) {
@@ -729,10 +733,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const results = storage.getLatestElectionResults();
       if (results) {
-        // Add Gravatar URLs to candidates
+        // Add photo URLs to candidates (custom photo or Gravatar)
         results.positions.forEach(position => {
           position.candidates.forEach(candidate => {
-            candidate.photoUrl = getGravatarUrl(candidate.candidateEmail);
+            const user = storage.getUserByEmail(candidate.candidateEmail);
+            candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
           });
         });
       }
@@ -754,10 +759,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
 
-      // Add Gravatar URLs to candidates
+      // Add photo URLs to candidates (custom photo or Gravatar)
       results.positions.forEach(position => {
         position.candidates.forEach(candidate => {
-          candidate.photoUrl = getGravatarUrl(candidate.candidateEmail);
+          const user = storage.getUserByEmail(candidate.candidateEmail);
+          candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
         });
       });
 
@@ -794,7 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           positionId: w.positionId,
           positionName: position?.name || '',
           candidateName: user?.fullName || '',
-          photoUrl: user?.email ? getGravatarUrl(user.email) : undefined,
+          photoUrl: user?.photoUrl || (user?.email ? getGravatarUrl(user.email) : undefined),
           voteCount: candidateResults?.voteCount || 0,
           wonAtScrutiny: w.wonAtScrutiny
         };

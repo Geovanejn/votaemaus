@@ -94,6 +94,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      photoUrl: row.photo_url,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -109,6 +110,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      photoUrl: row.photo_url,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -116,12 +118,13 @@ export class SQLiteStorage implements IStorage {
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, is_admin, is_member) VALUES (?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, photo_url, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
       user.email,
       user.password,
+      user.photoUrl || null,
       user.isAdmin ? 1 : 0,
       user.isMember ? 1 : 0
     ) as any;
@@ -131,6 +134,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      photoUrl: row.photo_url,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -148,6 +152,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      photoUrl: row.photo_url,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     }));

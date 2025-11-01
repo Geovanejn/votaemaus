@@ -543,9 +543,49 @@ export default function AdminPage() {
 
       const reader = new FileReader();
       reader.onload = (event) => {
-        const imageSrc = event.target?.result as string;
-        setImageToCrop(imageSrc);
-        setIsCropDialogOpen(true);
+        const img = new Image();
+        img.onload = () => {
+          // Redimensionar se a imagem for muito grande
+          const MAX_SIZE = 2000;
+          let width = img.width;
+          let height = img.height;
+
+          // Se a imagem for maior que MAX_SIZE, redimensiona mantendo aspect ratio
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            } else {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          // Criar canvas e redimensionar
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para data URL com boa qualidade
+            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            setImageToCrop(resizedDataUrl);
+            setIsCropDialogOpen(true);
+          }
+        };
+
+        img.onerror = () => {
+          toast({
+            title: "Erro ao carregar imagem",
+            description: "Não foi possível processar a imagem",
+            variant: "destructive",
+          });
+        };
+
+        img.src = event.target?.result as string;
       };
       
       reader.onerror = () => {

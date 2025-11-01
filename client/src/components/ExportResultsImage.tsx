@@ -169,43 +169,56 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
             bottom: is916 ? "-50px" : "-40px",
             left: "50%",
             transform: "translateX(-50%)",
-            width: is916 ? "120px" : "90px",
-            height: is916 ? "120px" : "90px",
+            width: is916 ? "128px" : "96px",
+            height: is916 ? "128px" : "96px",
             borderRadius: "50%",
-            backgroundColor: "#F5F5F5",
-            overflow: "hidden",
-            border: is916 ? "4px solid #FFFFFF" : "3px solid #FFFFFF",
+            backgroundColor: "#FFFFFF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           }}
         >
-          {winner.photoUrl ? (
-            <img
-              src={winner.photoUrl}
-              alt={winner.candidateName}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: is916 ? "40px" : "30px",
-                fontWeight: "800",
-                color: "#999999",
-                backgroundColor: "#F5F5F5",
-              }}
-            >
-              {winner.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-            </div>
-          )}
+          <div
+            style={{
+              width: is916 ? "120px" : "90px",
+              height: is916 ? "120px" : "90px",
+              borderRadius: "50%",
+              backgroundColor: "#F5F5F5",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            {winner.photoUrl ? (
+              <img
+                src={winner.photoUrl}
+                alt={winner.candidateName}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center",
+                  borderRadius: "50%",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: is916 ? "40px" : "30px",
+                  fontWeight: "800",
+                  color: "#999999",
+                  backgroundColor: "#F5F5F5",
+                }}
+              >
+                {winner.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

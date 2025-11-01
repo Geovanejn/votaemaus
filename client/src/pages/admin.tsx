@@ -39,6 +39,8 @@ import {
 import { useLocation } from "wouter";
 import type { Election, Position, CandidateWithDetails, ElectionResults } from "@shared/schema";
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
+import ImageCropDialog from "@/components/ImageCropDialog";
+import logoUrl from "@assets/EMAÚS v3 sem fundo_1762029245059.png";
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
@@ -60,6 +62,8 @@ export default function AdminPage() {
   const [isForceCloseDialogOpen, setIsForceCloseDialogOpen] = useState(false);
   const [forceCloseReason, setForceCloseReason] = useState("");
   const [forceClosePositionId, setForceClosePositionId] = useState<number | null>(null);
+  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState("");
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
@@ -528,7 +532,6 @@ export default function AdminPage() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check if file is an image
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Arquivo inválido",
@@ -540,52 +543,9 @@ export default function AdminPage() {
 
       const reader = new FileReader();
       reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          // Maximum dimensions for the photo
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          
-          let width = img.width;
-          let height = img.height;
-          
-          // Calculate new dimensions maintaining aspect ratio
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = Math.round((width * MAX_HEIGHT) / height);
-              height = MAX_HEIGHT;
-            }
-          }
-          
-          // Create canvas and resize image
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Convert to JPEG with 85% quality to reduce file size
-            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            setNewMember({ ...newMember, photoUrl: resizedDataUrl });
-          }
-        };
-        
-        img.onerror = () => {
-          toast({
-            title: "Erro ao carregar imagem",
-            description: "Não foi possível processar a imagem",
-            variant: "destructive",
-          });
-        };
-        
-        img.src = event.target?.result as string;
+        const imageSrc = event.target?.result as string;
+        setImageToCrop(imageSrc);
+        setIsCropDialogOpen(true);
       };
       
       reader.onerror = () => {
@@ -598,6 +558,10 @@ export default function AdminPage() {
       
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImage: string) => {
+    setNewMember({ ...newMember, photoUrl: croppedImage });
   };
 
   const handleAddMember = () => {
@@ -1214,6 +1178,15 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Footer with logo */}
+            <div className="flex justify-center items-center py-8 mt-8 border-t border-border">
+              <img
+                src={logoUrl}
+                alt="UMP Emaús"
+                className="w-32 h-32 object-contain opacity-80"
+              />
+            </div>
           </div>
         )}
           </TabsContent>
@@ -1466,6 +1439,14 @@ export default function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={isCropDialogOpen}
+        onOpenChange={setIsCropDialogOpen}
+        imageSrc={imageToCrop}
+        onCropComplete={handleCropComplete}
+      />
 
       {/* Export Results Component (hidden, used for image generation) */}
       {activeElection && results && electionPositions.every(p => p.status === "completed") && (

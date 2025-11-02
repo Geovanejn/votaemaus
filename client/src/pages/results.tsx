@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
 
 interface Winner {
   positionId: number;
@@ -405,6 +406,16 @@ export default function ResultsPage() {
           aspectRatio={aspectRatio}
         />
       )}
+
+      {/* Footer with UMP Emaús Logo */}
+      <div className="mt-8 mb-4 flex justify-center">
+        <img 
+          src={logoUrl} 
+          alt="UMP Emaús" 
+          className="h-48 transition-opacity"
+          data-testid="img-logo-footer-results"
+        />
+      </div>
     </div>
   );
 }

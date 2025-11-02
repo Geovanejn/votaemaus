@@ -5,13 +5,16 @@ import path from "path";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Read logo and convert to base64 for email embedding
+// Logo optimized to 32KB (from 160KB) for better email compatibility with Gmail
 let logoBase64 = "";
 try {
-  // Use the same logo from login page (client/public/logo.png)
   const logoPath = path.join(process.cwd(), "client", "public", "logo.png");
   const logoBuffer = fs.readFileSync(logoPath);
   logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-  console.log("✓ Logo loaded successfully for email embedding from:", logoPath);
+  const sizeKB = Math.round(logoBuffer.length / 1024);
+  const base64SizeKB = Math.round((logoBuffer.toString('base64').length) / 1024);
+  console.log(`✓ Logo loaded successfully for email embedding from: ${logoPath}`);
+  console.log(`  Original size: ${sizeKB}KB, Base64 size: ${base64SizeKB}KB`);
 } catch (error) {
   console.error("Error loading logo for email:", error);
   console.error("Attempted path:", path.join(process.cwd(), "client", "public", "logo.png"));

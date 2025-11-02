@@ -4,17 +4,16 @@ import path from "path";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Read logo and convert to base64 for email embedding
-// Logo optimized to 32KB (from 160KB) for better email compatibility with Gmail
-let logoBase64 = "";
+// Read logo for CID embedding (Content-ID attachment method for Gmail compatibility)
+// This method is more reliable than base64 data URIs which Gmail blocks
+let logoBuffer: Buffer | null = null;
+let logoPath = "";
 try {
-  const logoPath = path.join(process.cwd(), "client", "public", "logo.png");
-  const logoBuffer = fs.readFileSync(logoPath);
-  logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+  logoPath = path.join(process.cwd(), "client", "public", "logo.png");
+  logoBuffer = fs.readFileSync(logoPath);
   const sizeKB = Math.round(logoBuffer.length / 1024);
-  const base64SizeKB = Math.round((logoBuffer.toString('base64').length) / 1024);
-  console.log(`✓ Logo loaded successfully for email embedding from: ${logoPath}`);
-  console.log(`  Original size: ${sizeKB}KB, Base64 size: ${base64SizeKB}KB`);
+  console.log(`✓ Logo loaded successfully for CID email embedding from: ${logoPath}`);
+  console.log(`  Logo size: ${sizeKB}KB (will be attached via CID for Gmail compatibility)`);
 } catch (error) {
   console.error("Error loading logo for email:", error);
   console.error("Attempted path:", path.join(process.cwd(), "client", "public", "logo.png"));
@@ -68,7 +67,8 @@ export async function sendCongratulationsEmail(
   const scrutinyLabel = ordinals[scrutinyRound - 1] || `${scrutinyRound}º`;
   
   try {
-    await resend.emails.send({
+    // Prepare email payload with CID-embedded logo (Gmail-compatible method)
+    const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
       to: candidateEmail,
       subject: `🎉 Parabéns! Você foi eleito(a) - Emaús Vota`,
@@ -115,7 +115,7 @@ export async function sendCongratulationsEmail(
 
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="UMP Emaús" style="max-width: 200px; height: auto; margin-bottom: 15px;" />` : ''}
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 200px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
               UMP Emaús - Sistema de Votação
             </p>
@@ -125,7 +125,20 @@ export async function sendCongratulationsEmail(
           </div>
         </div>
       `,
-    });
+    };
+
+    // Add logo as CID attachment for Gmail compatibility (not blocked like base64)
+    if (logoBuffer) {
+      emailPayload.attachments = [
+        {
+          content: logoBuffer.toString('base64'),
+          filename: 'logo.png',
+          contentId: 'logo-emaus',
+        },
+      ];
+    }
+
+    await resend.emails.send(emailPayload);
     
     console.log(`✓ Congratulations email sent to ${candidateName} (${candidateEmail}) for ${positionName}`);
     return true;

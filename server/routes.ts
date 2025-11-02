@@ -627,14 +627,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let membersWithoutPasswords = members.map(({ password, ...user }) => user);
       
       // If electionId is provided, exclude members who already won a position in this election
-      // and filter only members who are present
+      // or who are already candidates in any position, and filter only members who are present
       const electionId = req.query.electionId ? parseInt(req.query.electionId as string) : null;
       if (electionId) {
         const winners = storage.getElectionWinners(electionId);
         const winnerUserIds = new Set(winners.map(w => w.userId));
         
-        // Filter by winners
-        membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
+        // Get all candidates for this election
+        const allCandidates = storage.getCandidatesByElection(electionId);
+        const candidateUserIds = new Set(allCandidates.map(c => c.userId));
+        
+        // Filter by winners and candidates
+        membersWithoutPasswords = membersWithoutPasswords.filter(m => 
+          !winnerUserIds.has(m.id) && !candidateUserIds.has(m.id)
+        );
         
         // Filter by presence - only include members who are present
         membersWithoutPasswords = membersWithoutPasswords.filter(m => 

@@ -40,7 +40,6 @@ import { useLocation } from "wouter";
 import type { Election, Position, CandidateWithDetails, ElectionResults } from "@shared/schema";
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
 import ImageCropDialog from "@/components/ImageCropDialog";
-import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
 
 export default function AdminPage() {
   const { user, logout } = useAuth();
@@ -89,7 +88,7 @@ export default function AdminPage() {
 
   // Non-admin members for candidate selection (excluding winners from current election)
   const { data: availableMembers = [] } = useQuery<Array<{ id: number; fullName: string; email: string }>>({
-    queryKey: activeElection ? ["/api/members/non-admins", { electionId: activeElection.id }] : ["/api/members/non-admins"],
+    queryKey: activeElection ? [`/api/members/non-admins?electionId=${activeElection.id}`] : ["/api/members/non-admins"],
     enabled: isAddCandidateOpen, // Only fetch when dialog is open
   });
 
@@ -1216,15 +1215,6 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Footer with logo */}
-            <div className="flex justify-center items-center py-8 mt-8 border-t border-border">
-              <img
-                src={logoUrl}
-                alt="UMP Emaús"
-                className="w-32 h-32 object-contain opacity-80"
-              />
-            </div>
           </div>
         )}
           </TabsContent>
@@ -1507,16 +1497,6 @@ export default function AdminPage() {
             })}
         />
       )}
-
-      {/* Footer with UMP Emaús Logo */}
-      <div className="mt-8 mb-4 flex justify-center">
-        <img 
-          src={logoUrl} 
-          alt="UMP Emaús" 
-          className="h-12 opacity-60"
-          data-testid="img-logo-footer-admin"
-        />
-      </div>
     </div>
   );
 }

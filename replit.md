@@ -7,7 +7,8 @@ Emaús Vota is a full-stack web application designed to manage elections for a c
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2, 2025)
-- **Fixed candidate registration bug**: Corrected the `/api/members/non-admins` endpoint to properly exclude members who are already registered as candidates in any position of the current election. Previously, the system only excluded members who had already won a position, which allowed members to be added as candidates to multiple positions. Since a member can only assume one position, the logic now filters out both winners AND existing candidates from the available members list.
+- **Fixed available members query**: Corrected the frontend query to properly pass the `electionId` parameter as a query string to the `/api/members/non-admins` endpoint. Previously, the query was passing the parameter as an object in the queryKey array, which was being converted to `[object Object]` instead of a proper query string. This prevented the backend from filtering out members who had already won positions in the current election. The fix now properly constructs the URL with query parameters (e.g., `/api/members/non-admins?electionId=123`), ensuring that elected members do not appear in the candidate selection list for subsequent positions.
+- **Removed footer logos**: Removed the UMP Emaús logo footers from the admin and member pages for a cleaner interface. The logos are still present in the login page and export results feature where they make sense.
 
 ## System Architecture
 

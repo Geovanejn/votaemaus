@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,8 +16,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (isAdmin) {
+        setLocation("/admin");
+      } else {
+        setLocation("/vote");
+      }
+    }
+  }, [isAuthenticated, isAdmin, authLoading, setLocation]);
 
   const emailForm = useForm<RequestCodeData>({
     resolver: zodResolver(requestCodeSchema),
@@ -226,9 +237,12 @@ export default function LoginPage() {
             </CardContent>
           </Card>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-1">
             <p className="text-sm text-muted-foreground">
               Código válido por 15 minutos
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Após o login, sua sessão fica ativa por 1 hora
             </p>
           </div>
         </div>

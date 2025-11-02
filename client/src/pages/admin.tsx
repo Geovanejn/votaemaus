@@ -89,7 +89,17 @@ export default function AdminPage() {
 
   // Non-admin members for candidate selection (excluding winners from current election)
   const { data: availableMembers = [] } = useQuery<Array<{ id: number; fullName: string; email: string }>>({
-    queryKey: activeElection ? [`/api/members/non-admins?electionId=${activeElection.id}`] : ["/api/members/non-admins"],
+    queryKey: ["/api/members/non-admins", { electionId: activeElection?.id }],
+    queryFn: async () => {
+      const url = activeElection 
+        ? `/api/members/non-admins?electionId=${activeElection.id}` 
+        : "/api/members/non-admins";
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!response.ok) throw new Error("Failed to fetch members");
+      return response.json();
+    },
     enabled: isAddCandidateOpen, // Only fetch when dialog is open
   });
 

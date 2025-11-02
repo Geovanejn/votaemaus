@@ -354,6 +354,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
       toast({
         title: "Próximo cargo aberto!",
         description: "Votação iniciada para o próximo cargo",
@@ -376,6 +377,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
       toast({
         title: "Cargo aberto!",
         description: "Votação iniciada para o cargo selecionado",
@@ -401,6 +403,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
       toast({
         title: "Vencedor definido!",
         description: "O empate foi resolvido com sucesso",
@@ -425,6 +428,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
       toast({
         title: "Cargo fechado manualmente",
         description: "O cargo foi encerrado com sucesso",

@@ -1322,7 +1322,7 @@ export default function AdminPage() {
                 <SelectContent>
                   {availableMembers.length === 0 ? (
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      Todos os membros já foram eleitos ou são admins
+                      Nenhum membro disponível. Verifique se há membros presentes na lista de presença.
                     </div>
                   ) : (
                     availableMembers.map((member) => (

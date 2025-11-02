@@ -1504,7 +1504,7 @@ export default function AdminPage() {
         <img 
           src={logoUrl} 
           alt="UMP Emaús" 
-          className="h-24 transition-opacity"
+          className="h-48 transition-opacity"
           data-testid="img-logo-footer-admin"
         />
       </div>

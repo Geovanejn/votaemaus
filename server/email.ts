@@ -112,7 +112,7 @@ export async function sendCongratulationsEmail(
 
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="UMP Emaús" style="height: 48px; opacity: 0.6; margin-bottom: 15px;" />` : ''}
+            ${logoBase64 ? `<img src="${logoBase64}" alt="UMP Emaús" style="max-width: 200px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
               UMP Emaús - Sistema de Votação
             </p>

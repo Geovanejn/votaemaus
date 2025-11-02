@@ -8,8 +8,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2, 2025)
 - **Fixed available members query**: Corrected the frontend query to properly pass the `electionId` parameter as a query string to the `/api/members/non-admins` endpoint. Previously, the query was passing the parameter as an object in the queryKey array, which was being converted to `[object Object]` instead of a proper query string. This prevented the backend from filtering out members who had already won positions in the current election. The fix now properly constructs the URL with query parameters (e.g., `/api/members/non-admins?electionId=123`), ensuring that elected members do not appear in the candidate selection list for subsequent positions.
-- **Updated footer logos**: Added the UMP Emaús logo to the footer of both admin and member (vote) pages at h-24 size with full opacity (no transparency) for better visibility and branding consistency.
-- **Fixed congratulations email logo**: Changed the email template to use the same logo from the login page (`client/public/logo.png`) instead of the attached assets folder. The logo now loads successfully on server startup and is properly embedded as base64 in congratulations emails.
+- **Increased footer logos to 100% larger**: Changed the UMP Emaús logo size in the footer of both admin and member (vote) pages from h-24 to h-48 (100% increase) for better visibility and branding impact.
+- **Fixed and enlarged congratulations email logo**: Updated the congratulations email template to use `max-width: 200px; height: auto;` instead of fixed height, removing the reduced opacity. The logo now displays larger and clearer in emails. The logo continues to load from `client/public/logo.png` and is properly embedded as base64.
 - **Added debug logging**: Added comprehensive logging to the `/api/members/non-admins` endpoint and `getElectionWinners` database query to help debug issues with winner filtering.
 
 ## System Architecture

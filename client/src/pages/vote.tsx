@@ -292,7 +292,7 @@ export default function VotePage() {
           <img 
             src={logoUrl} 
             alt="UMP Emaús" 
-            className="h-12"
+            className="h-12 opacity-60"
             data-testid="img-logo-footer"
           />
         </div>

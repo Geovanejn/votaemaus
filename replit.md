@@ -8,7 +8,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2, 2025)
 - **Fixed available members query**: Corrected the frontend query to properly pass the `electionId` parameter as a query string to the `/api/members/non-admins` endpoint. Previously, the query was passing the parameter as an object in the queryKey array, which was being converted to `[object Object]` instead of a proper query string. This prevented the backend from filtering out members who had already won positions in the current election. The fix now properly constructs the URL with query parameters (e.g., `/api/members/non-admins?electionId=123`), ensuring that elected members do not appear in the candidate selection list for subsequent positions.
-- **Removed footer logos**: Removed the UMP Emaús logo footers from the admin and member pages for a cleaner interface. The logos are still present in the login page and export results feature where they make sense.
+- **Added footer logos**: Added the UMP Emaús logo to the footer of both admin and member (vote) pages for better branding consistency across the application. The logos have a subtle opacity and hover effect for a polished look.
+- **Fixed congratulations email logo**: Corrected the file path for the logo in the congratulations email template. Changed from using `process.cwd()` to an absolute path (`/home/runner/workspace/attached_assets/...`) to ensure the logo file is found and properly embedded as base64 in the email. The logo now loads successfully on server startup, as confirmed by the log message.
 
 ## System Architecture
 

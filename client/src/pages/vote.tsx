@@ -9,6 +9,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { CheckCircle, LogOut, Vote, ChartBar } from "lucide-react";
 import { useLocation } from "wouter";
 import type { Election, Position } from "@shared/schema";
+import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
 
 type CandidateWithEmail = {
   id: number;
@@ -284,6 +285,16 @@ export default function VotePage() {
               Ver Resultados
             </Button>
           </div>
+        </div>
+
+        {/* Footer with UMP Emaús Logo */}
+        <div className="mt-8 mb-4 flex justify-center">
+          <img 
+            src={logoUrl} 
+            alt="UMP Emaús" 
+            className="h-16 opacity-50 hover:opacity-70 transition-opacity"
+            data-testid="img-logo-footer-vote"
+          />
         </div>
       </div>
     </div>

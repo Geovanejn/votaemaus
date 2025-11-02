@@ -7,11 +7,14 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // Read logo and convert to base64 for email embedding
 let logoBase64 = "";
 try {
-  const logoPath = path.join(process.cwd(), "attached_assets", "EMAÚS v3 sem fundo_1762038215610.png");
+  // Use absolute path to ensure file is found
+  const logoPath = path.join("/home/runner/workspace", "attached_assets", "EMAÚS v3 sem fundo_1762038215610.png");
   const logoBuffer = fs.readFileSync(logoPath);
   logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+  console.log("✓ Logo loaded successfully for email embedding");
 } catch (error) {
   console.error("Error loading logo for email:", error);
+  console.error("Attempted path:", path.join("/home/runner/workspace", "attached_assets", "EMAÚS v3 sem fundo_1762038215610.png"));
 }
 
 export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {

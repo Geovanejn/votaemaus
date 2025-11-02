@@ -1097,7 +1097,9 @@ export class SQLiteStorage implements IStorage {
       WHERE ew.election_id = ?
     `);
     
-    return stmt.all(electionId) as any[];
+    const results = stmt.all(electionId) as any[];
+    console.log(`[DB] getElectionWinners for election ${electionId}:`, results);
+    return results;
   }
 
   createVerificationCode(data: InsertVerificationCode): VerificationCode {

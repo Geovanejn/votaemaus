@@ -633,13 +633,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const winners = storage.getElectionWinners(electionId);
         const winnerUserIds = new Set(winners.map(w => w.userId));
         
+        console.log(`[DEBUG] Election ID: ${electionId}`);
+        console.log(`[DEBUG] Winners found:`, winners);
+        console.log(`[DEBUG] Winner User IDs:`, Array.from(winnerUserIds));
+        console.log(`[DEBUG] Total members before filtering:`, membersWithoutPasswords.length);
+        
         // Filter by winners
         membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
+        
+        console.log(`[DEBUG] Members after winner filter:`, membersWithoutPasswords.length);
         
         // Filter by presence - only include members who are present
         membersWithoutPasswords = membersWithoutPasswords.filter(m => 
           storage.isMemberPresent(electionId, m.id)
         );
+        
+        console.log(`[DEBUG] Members after presence filter:`, membersWithoutPasswords.length);
       }
       
       res.json(membersWithoutPasswords);

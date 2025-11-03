@@ -288,45 +288,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/members/:id/president", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const memberId = parseInt(req.params.id);
-      
-      if (isNaN(memberId)) {
-        return res.status(400).json({ message: "ID inválido" });
-      }
-
-      const { isPresident } = req.body;
-      
-      if (typeof isPresident !== 'boolean') {
-        return res.status(400).json({ message: "isPresident deve ser um booleano" });
-      }
-
-      if (isPresident) {
-        const allMembers = storage.getAllMembers();
-        for (const member of allMembers) {
-          if (member.isPresident) {
-            storage.updateUser(member.id, { isPresident: false });
-          }
-        }
-      }
-
-      const updatedUser = storage.updateUser(memberId, { isPresident });
-      
-      if (!updatedUser) {
-        return res.status(404).json({ message: "Membro não encontrado" });
-      }
-
-      const { password, ...userWithoutPassword } = updatedUser;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      console.error("Update president error:", error);
-      res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Erro ao atualizar presidente" 
-      });
-    }
-  });
-
   app.delete("/api/admin/members/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const memberId = parseInt(req.params.id);

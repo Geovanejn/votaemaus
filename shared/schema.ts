@@ -24,7 +24,6 @@ export const users = sqliteTable("users", {
   birthdate: text("birthdate"),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   isMember: integer("is_member", { mode: "boolean" }).notNull().default(true),
-  isPresident: integer("is_president", { mode: "boolean" }).notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({

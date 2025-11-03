@@ -75,6 +75,10 @@ export default function AdminPage() {
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState("");
   const [cropContext, setCropContext] = useState<"add" | "edit">("add");
+  const [isPresidentDialogOpen, setIsPresidentDialogOpen] = useState(false);
+  const [selectedPresidentId, setSelectedPresidentId] = useState("");
+  const [pendingPdfElectionId, setPendingPdfElectionId] = useState<number | null>(null);
+  const [pdfAction, setPdfAction] = useState<"finalize" | "download">("download");
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
@@ -93,7 +97,7 @@ export default function AdminPage() {
     staleTime: 10000,
   });
 
-  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; isPresident?: boolean; photoUrl?: string; birthdate?: string }>>({
+  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string }>>({
     queryKey: ["/api/members"],
     staleTime: 30000,
   });
@@ -461,27 +465,6 @@ export default function AdminPage() {
     },
   });
 
-  const setPresidentMutation = useMutation({
-    mutationFn: async ({ memberId, isPresident }: { memberId: number; isPresident: boolean }) => {
-      return await apiRequest("PATCH", `/api/admin/members/${memberId}/president`, { isPresident });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
-      toast({
-        title: variables.isPresident ? "Presidente definido!" : "Presidente removido!",
-        description: variables.isPresident 
-          ? "O membro foi marcado como presidente em exercício" 
-          : "O membro não é mais presidente em exercício",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro ao atualizar presidente",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const forceClosePositionMutation = useMutation({
     mutationFn: async (data: { electionId: number; electionPositionId: number; reason: string }) => {
@@ -532,45 +515,28 @@ export default function AdminPage() {
   };
 
   const handleFinalizeElection = async () => {
-    if (!activeElection || !token) return;
+    if (!activeElection) return;
     if (confirm("Tem certeza que deseja finalizar a eleição? Um PDF de auditoria será gerado automaticamente. A eleição será arquivada no histórico e não poderá mais ser modificada.")) {
-      try {
-        const response = await fetch(`/api/elections/${activeElection.id}/audit`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Erro ao buscar dados de auditoria da eleição");
-        }
-        
-        const auditData = await response.json();
-        
-        await generateElectionAuditPDF(auditData);
-        
-        toast({
-          title: "PDF gerado!",
-          description: "O relatório de auditoria foi baixado automaticamente",
-        });
-        
-        setTimeout(() => {
-          finalizeElectionMutation.mutate(activeElection.id);
-        }, 500);
-      } catch (error) {
-        toast({
-          title: "Erro ao gerar PDF",
-          description: error instanceof Error ? error.message : "Não foi possível gerar o relatório de auditoria",
-          variant: "destructive",
-        });
-      }
+      setPendingPdfElectionId(activeElection.id);
+      setPdfAction("finalize");
+      setIsPresidentDialogOpen(true);
     }
   };
 
   const handleDownloadAuditPDF = async (electionId: number) => {
-    if (!token) return;
+    setPendingPdfElectionId(electionId);
+    setPdfAction("download");
+    setIsPresidentDialogOpen(true);
+  };
+
+  const handleGeneratePdfWithPresident = async () => {
+    if (!token || !pendingPdfElectionId || !selectedPresidentId) return;
+    
+    const selectedPresident = members.find(m => m.id === parseInt(selectedPresidentId));
+    if (!selectedPresident) return;
     
     try {
-      const response = await fetch(`/api/elections/${electionId}/audit`, {
+      const response = await fetch(`/api/elections/${pendingPdfElectionId}/audit`, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -581,12 +547,24 @@ export default function AdminPage() {
       }
       
       const auditData = await response.json();
+      auditData.presidentName = selectedPresident.fullName;
+      
       await generateElectionAuditPDF(auditData);
       
       toast({
         title: "PDF gerado!",
         description: "O relatório de auditoria foi baixado com sucesso",
       });
+      
+      setIsPresidentDialogOpen(false);
+      setSelectedPresidentId("");
+      setPendingPdfElectionId(null);
+      
+      if (pdfAction === "finalize" && activeElection) {
+        setTimeout(() => {
+          finalizeElectionMutation.mutate(activeElection.id);
+        }, 500);
+      }
     } catch (error) {
       toast({
         title: "Erro ao gerar PDF",
@@ -1427,7 +1405,6 @@ export default function AdminPage() {
                           <tr className="border-b border-border bg-muted/50">
                             <th className="text-left px-6 py-3 font-semibold text-sm">Nome</th>
                             <th className="text-left px-6 py-3 font-semibold text-sm">Email</th>
-                            <th className="text-center px-6 py-3 font-semibold text-sm">Presidente</th>
                             <th className="text-right px-6 py-3 font-semibold text-sm">Ações</th>
                           </tr>
                         </thead>
@@ -1440,27 +1417,6 @@ export default function AdminPage() {
                             >
                               <td className="px-6 py-4" data-testid={`text-member-name-${member.id}`}>{member.fullName}</td>
                               <td className="px-6 py-4 text-muted-foreground">{member.email}</td>
-                              <td className="px-6 py-4 text-center">
-                                <div className="flex items-center justify-center">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={member.isPresident || false}
-                                      onChange={(e) => {
-                                        setPresidentMutation.mutate({
-                                          memberId: member.id,
-                                          isPresident: e.target.checked
-                                        });
-                                      }}
-                                      className="w-4 h-4 accent-primary"
-                                      data-testid={`checkbox-president-${member.id}`}
-                                    />
-                                    <span className="text-xs text-muted-foreground">
-                                      {member.isPresident ? "Sim" : "Não"}
-                                    </span>
-                                  </label>
-                                </div>
-                              </td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex gap-2 justify-end">
                                   <Button
@@ -1859,6 +1815,65 @@ export default function AdminPage() {
                 data-testid="button-confirm-force-close"
               >
                 {forceClosePositionMutation.isPending ? "Fechando..." : "Confirmar Fechamento"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* President Selection Dialog for PDF Generation */}
+      <Dialog open={isPresidentDialogOpen} onOpenChange={setIsPresidentDialogOpen}>
+        <DialogContent data-testid="dialog-select-president">
+          <DialogHeader>
+            <DialogTitle>Selecionar Presidente</DialogTitle>
+            <DialogDescription>
+              Selecione o membro que assinará como Presidente em Exercício no relatório de auditoria.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="president-select">Presidente em Exercício</Label>
+              <Select
+                value={selectedPresidentId}
+                onValueChange={setSelectedPresidentId}
+              >
+                <SelectTrigger id="president-select" data-testid="select-president">
+                  <SelectValue placeholder="Selecione um membro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem 
+                      key={member.id} 
+                      value={member.id.toString()}
+                      data-testid={`select-president-option-${member.id}`}
+                    >
+                      {member.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsPresidentDialogOpen(false);
+                  setSelectedPresidentId("");
+                  setPendingPdfElectionId(null);
+                }}
+                className="flex-1"
+                data-testid="button-cancel-president-selection"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleGeneratePdfWithPresident}
+                className="flex-1"
+                disabled={!selectedPresidentId}
+                data-testid="button-generate-pdf"
+              >
+                Gerar PDF
               </Button>
             </div>
           </div>

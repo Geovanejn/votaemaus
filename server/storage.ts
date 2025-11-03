@@ -80,6 +80,10 @@ export interface IStorage {
   getLatestElectionResults(): ElectionResults | null;
   getElectionWinners(electionId: number): Array<{ userId: number; positionId: number; candidateId: number; wonAtScrutiny: number }>;
   
+  getVoterAttendance(electionId: number): Array<any>;
+  getVoteTimeline(electionId: number): Array<any>;
+  getElectionAuditData(electionId: number): any | null;
+  
   createVerificationCode(data: InsertVerificationCode): VerificationCode;
   getValidVerificationCode(email: string, code: string): VerificationCode | null;
   deleteVerificationCodesByEmail(email: string): void;
@@ -1241,6 +1245,66 @@ export class SQLiteStorage implements IStorage {
   deleteVerificationCodesByEmail(email: string): void {
     const stmt = db.prepare("DELETE FROM verification_codes WHERE email = ?");
     stmt.run(email);
+  }
+
+  getVoterAttendance(electionId: number): Array<any> {
+    const stmt = db.prepare(`
+      SELECT 
+        u.id as voterId,
+        u.full_name as voterName,
+        u.email as voterEmail,
+        MIN(v.created_at) as firstVoteAt,
+        COUNT(DISTINCT v.position_id) as totalVotes
+      FROM votes v
+      JOIN users u ON v.voter_id = u.id
+      WHERE v.election_id = ?
+      GROUP BY u.id, u.full_name, u.email
+      ORDER BY u.full_name
+    `);
+    return stmt.all(electionId) as any[];
+  }
+
+  getVoteTimeline(electionId: number): Array<any> {
+    const stmt = db.prepare(`
+      SELECT 
+        v.voter_id as voterId,
+        u.full_name as voterName,
+        u.email as voterEmail,
+        p.name as positionName,
+        c.name as candidateName,
+        v.scrutiny_round as scrutinyRound,
+        v.created_at as votedAt
+      FROM votes v
+      JOIN users u ON v.voter_id = u.id
+      JOIN positions p ON v.position_id = p.id
+      JOIN candidates c ON v.candidate_id = c.id
+      WHERE v.election_id = ?
+      ORDER BY v.created_at ASC
+    `);
+    return stmt.all(electionId) as any[];
+  }
+
+  getElectionAuditData(electionId: number): any | null {
+    const results = this.getElectionResults(electionId);
+    if (!results) return null;
+
+    const election = this.getElectionById(electionId);
+    if (!election) return null;
+
+    const positions = this.getElectionPositions(electionId);
+    const completedPositions = positions.filter((p: any) => p.status === 'completed');
+
+    return {
+      results,
+      electionMetadata: {
+        createdAt: election.createdAt,
+        closedAt: election.closedAt || null,
+        totalPositions: positions.length,
+        completedPositions: completedPositions.length,
+      },
+      voterAttendance: this.getVoterAttendance(electionId),
+      voteTimeline: this.getVoteTimeline(electionId),
+    };
   }
 }
 

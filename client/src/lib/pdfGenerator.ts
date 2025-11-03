@@ -1,8 +1,10 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { ElectionResults } from "@shared/schema";
+import type { ElectionResults, ElectionAuditData } from "@shared/schema";
 
-export function generateElectionAuditPDF(electionResults: ElectionResults): void {
+export function generateElectionAuditPDF(electionResults: ElectionResults | ElectionAuditData): void {
+  const results = 'results' in electionResults ? electionResults.results : electionResults;
+  const auditData = 'results' in electionResults ? electionResults : null;
   const doc = new jsPDF();
   
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -33,16 +35,44 @@ export function generateElectionAuditPDF(electionResults: ElectionResults): void
   
   doc.text(`Gerado em: ${generationDate}`, margin, yPosition);
   yPosition += 7;
-  doc.text(`Eleição: ${electionResults.electionName}`, margin, yPosition);
+  doc.text(`Eleição: ${results.electionName}`, margin, yPosition);
   yPosition += 7;
-  doc.text(`Total de Membros Presentes: ${electionResults.presentCount}`, margin, yPosition);
+  doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
   yPosition += 12;
 
-  const completedPositions = electionResults.positions.filter(p => p.status === "completed");
+  if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Lista de Votantes", margin, yPosition);
+    yPosition += 10;
+
+    const voterData = auditData.voterAttendance.map((v: any) => [
+      v.voterName,
+      v.voterEmail,
+      v.totalVotes.toString(),
+      new Date(v.firstVoteAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }),
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [["Nome", "Email", "Votos", "Primeiro Voto"]],
+      body: voterData,
+      theme: "striped",
+      headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 9, cellPadding: 3 },
+      margin: { left: margin, right: margin },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+    doc.addPage();
+    yPosition = margin;
+  }
+
+  const completedPositions = results.positions.filter(p => p.status === "completed");
 
   if (completedPositions.length === 0) {
     doc.text("Nenhum cargo foi concluído nesta eleição.", margin, yPosition);
-    doc.save(`Auditoria_${electionResults.electionName.replace(/\s+/g, "_")}.pdf`);
+    doc.save(`Auditoria_${results.electionName.replace(/\s+/g, "_")}.pdf`);
     return;
   }
 
@@ -120,6 +150,6 @@ export function generateElectionAuditPDF(electionResults: ElectionResults): void
   yPosition += 5;
   doc.text("Representa o registro oficial dos resultados da eleição.", margin, yPosition);
 
-  const fileName = `Auditoria_${electionResults.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
+  const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
   doc.save(fileName);
 }

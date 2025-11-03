@@ -289,3 +289,33 @@ export type ElectionResults = {
     }>;
   }>;
 };
+
+export type VoterActivity = {
+  voterId: number;
+  voterName: string;
+  voterEmail: string;
+  positionName: string;
+  candidateName: string;
+  scrutinyRound: number;
+  votedAt: string;
+};
+
+export type VoterAttendance = {
+  voterId: number;
+  voterName: string;
+  voterEmail: string;
+  firstVoteAt: string;
+  totalVotes: number;
+};
+
+export type ElectionAuditData = {
+  results: ElectionResults;
+  electionMetadata: {
+    createdAt: string;
+    closedAt?: string;
+    totalPositions: number;
+    completedPositions: number;
+  };
+  voterAttendance: VoterAttendance[];
+  voteTimeline: VoterActivity[];
+};

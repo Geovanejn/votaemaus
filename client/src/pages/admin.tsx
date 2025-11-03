@@ -49,13 +49,22 @@ export default function AdminPage() {
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
   const [isCreateElectionOpen, setIsCreateElectionOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedPositionId, setSelectedPositionId] = useState("");
   const [newMember, setNewMember] = useState({
     fullName: "",
     email: "",
     photoUrl: "",
+    birthdate: "",
   });
+  const [editingMember, setEditingMember] = useState<{
+    id: number;
+    fullName: string;
+    email: string;
+    photoUrl?: string;
+    birthdate?: string;
+  } | null>(null);
   
   const exportImageRef = useRef<ExportResultsImageHandle>(null);
   const [exportAspectRatio, setExportAspectRatio] = useState<"9:16" | "4:5">("9:16");
@@ -291,6 +300,28 @@ export default function AdminPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao remover membro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMemberMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string }> }) => {
+      return await apiRequest("PATCH", `/api/admin/members/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+      toast({
+        title: "Membro atualizado!",
+        description: "Os dados do membro foram atualizados com sucesso",
+      });
+      setIsEditMemberOpen(false);
+      setEditingMember(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar membro",
         description: error.message,
         variant: "destructive",
       });
@@ -623,6 +654,7 @@ export default function AdminPage() {
       fullName: newMember.fullName,
       email: newMember.email,
       photoUrl: newMember.photoUrl || undefined,
+      birthdate: newMember.birthdate || undefined,
     });
   };
 
@@ -630,6 +662,34 @@ export default function AdminPage() {
     if (confirm("Tem certeza que deseja remover este membro?")) {
       deleteMemberMutation.mutate(memberId);
     }
+  };
+
+  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string }) => {
+    setEditingMember(member);
+    setIsEditMemberOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMember) return;
+
+    if (!editingMember.fullName || !editingMember.email) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Nome e email são obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateMemberMutation.mutate({
+      id: editingMember.id,
+      data: {
+        fullName: editingMember.fullName,
+        email: editingMember.email,
+        photoUrl: editingMember.photoUrl,
+        birthdate: editingMember.birthdate,
+      },
+    });
   };
 
   const isLoading = loadingElection || loadingPositions || loadingCandidates;
@@ -1178,15 +1238,24 @@ export default function AdminPage() {
                                 {member.email}
                               </p>
                             </div>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteMember(member.id)}
-                              data-testid={`button-delete-member-${member.id}`}
-                              className="shrink-0"
-                            >
-                              Remover
-                            </Button>
+                            <div className="flex gap-2 shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditMember(member)}
+                                data-testid={`button-edit-member-${member.id}`}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteMember(member.id)}
+                                data-testid={`button-delete-member-${member.id}`}
+                              >
+                                Remover
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1212,14 +1281,24 @@ export default function AdminPage() {
                               <td className="px-6 py-4" data-testid={`text-member-name-${member.id}`}>{member.fullName}</td>
                               <td className="px-6 py-4 text-muted-foreground">{member.email}</td>
                               <td className="px-6 py-4 text-right">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteMember(member.id)}
-                                  data-testid={`button-delete-member-${member.id}`}
-                                >
-                                  Remover
-                                </Button>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditMember(member)}
+                                    data-testid={`button-edit-member-${member.id}`}
+                                  >
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDeleteMember(member.id)}
+                                    data-testid={`button-delete-member-${member.id}`}
+                                  >
+                                    Remover
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1433,6 +1512,83 @@ export default function AdminPage() {
             >
               {addMemberMutation.isPending ? "Cadastrando..." : "Cadastrar Membro"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditMemberOpen} onOpenChange={(open) => {
+        setIsEditMemberOpen(open);
+        if (!open) setEditingMember(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Dados do Membro</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do membro cadastrado
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-name">Nome Completo</Label>
+              <Input
+                id="edit-member-name"
+                placeholder="Nome completo do membro"
+                value={editingMember?.fullName || ""}
+                onChange={(e) =>
+                  setEditingMember(editingMember ? { ...editingMember, fullName: e.target.value } : null)
+                }
+                data-testid="input-edit-member-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-email">Email</Label>
+              <Input
+                id="edit-member-email"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={editingMember?.email || ""}
+                onChange={(e) =>
+                  setEditingMember(editingMember ? { ...editingMember, email: e.target.value } : null)
+                }
+                data-testid="input-edit-member-email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-birthdate">Data de Nascimento (Opcional)</Label>
+              <Input
+                id="edit-member-birthdate"
+                type="date"
+                value={editingMember?.birthdate || ""}
+                onChange={(e) =>
+                  setEditingMember(editingMember ? { ...editingMember, birthdate: e.target.value } : null)
+                }
+                data-testid="input-edit-member-birthdate"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditMemberOpen(false);
+                  setEditingMember(null);
+                }}
+                className="flex-1"
+                data-testid="button-cancel-edit"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                className="flex-1"
+                disabled={updateMemberMutation.isPending}
+                data-testid="button-save-edit"
+              >
+                {updateMemberMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

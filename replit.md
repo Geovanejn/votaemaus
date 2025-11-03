@@ -7,6 +7,7 @@ Emaús Vota is a full-stack web application designed to manage elections for a c
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 3, 2025)
+- **Implemented PDF audit report generation system**: Created a complete election audit reporting feature with automatic PDF generation. Added secure `/api/elections/:id/audit` endpoint (admin-only with authenticateToken and requireAdmin middleware) that returns comprehensive audit data including voter attendance (names, emails, vote counts, timestamps), vote timeline, and full election results. The PDF generation automatically triggers when finalizing an election and includes election metadata, complete voter list, results for each position with vote counts and percentages, scrutiny rounds, and elected winners. Also added a standalone "Download Audit PDF" button in the election history tab, allowing admins to re-download audit reports for archived elections at any time. Uses jsPDF and jspdf-autotable libraries for professional PDF formatting with proper pagination, headers, and institutional branding.
 - **Implemented complete member data editing functionality**: Added full photo upload capability to the member edit dialog in the admin panel. Admins can now edit all member information including name, email, birthdate, and photo. The photo editing uses the same circular crop tool as member registration, ensuring consistent avatar appearance. Added separate handlers (`handleEditPhotoUpload`) and context tracking (`cropContext` state) to distinguish between adding and editing photos, ensuring the cropped image updates the correct member object.
 - **Verified and fixed password authentication system**: The system already had a complete password authentication implementation. Fixed a critical bug where the frontend was sending only `password` instead of both `password` and `confirmPassword` to the `/api/auth/set-password` endpoint. The system now works as intended: first-time users login with email verification code, are prompted to set a password after first login (if hasPassword is false), and can use email+password for subsequent logins. The login page includes a toggle to switch between code and password authentication methods.
 - **Implemented auto-logout with reload on session expiration**: Added automatic session management that tracks login timestamp and triggers logout after 2 hours (matching JWT token expiration). When the session expires, the system clears all authentication data, sets an expiration flag, and reloads the page. Users are redirected to the login page with a toast notification explaining the session expired. The system also prevents expired sessions from auto-loading on page refresh by checking the timestamp before restoring authentication state. Updated login page text to correctly show "2 horas" session duration.
@@ -32,16 +33,19 @@ The system features a responsive UI following civic tech design principles, ensu
 ### Feature Specifications
 Key features include:
 - Email-based authentication with 6-digit verification codes and JWT tokens.
+- Password-based authentication for returning users after first login.
+- Auto-logout with page reload after 2-hour session expiration.
 - Role-based access control (admin/member).
 - Election management (create, close, archive elections).
 - Candidate registration and management.
 - Secure voting with duplicate prevention.
 - Real-time results display with vote counts and percentages.
-- Admin panel for member registration and attendance confirmation.
+- Admin panel for member registration, editing, and attendance confirmation.
 - Per-position election control, allowing individual positions to open/close.
 - Automatic majority-based closing for positions.
 - Three-round scrutiny voting system with tie-resolution.
 - Generation of shareable election results images with circular candidate photos.
+- PDF audit report generation with voter attendance, vote timeline, and complete election results.
 - Circular image crop tool for member photo uploads with zoom and positioning controls.
 - Full mobile optimization.
 

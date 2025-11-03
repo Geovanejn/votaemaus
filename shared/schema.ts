@@ -183,6 +183,7 @@ export type VerificationCode = typeof verificationCodes.$inferSelect;
 // Auth schemas
 export const requestCodeSchema = z.object({
   email: z.string().email("Email inválido"),
+  isPasswordReset: z.boolean().optional(),
 });
 
 export type RequestCodeData = z.infer<typeof requestCodeSchema>;

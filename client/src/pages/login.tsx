@@ -32,6 +32,7 @@ type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
 export default function LoginPage() {
   const [step, setStep] = useState<"email" | "code" | "password">("password");
   const [email, setEmail] = useState("");
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
@@ -100,12 +101,27 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/request-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, isPasswordReset }),
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Erro ao solicitar código");
+      }
+
+      const result = await response.json();
+
+      // Check if user already has a password set and this is NOT a password reset
+      if (result.hasPassword && !isPasswordReset) {
+        setStep("password");
+        passwordForm.setValue("email", data.email);
+        emailForm.reset();
+        toast({
+          title: "Você já possui senha cadastrada",
+          description: "Use a opção 'Esqueceu a senha?' se não lembrar da sua senha.",
+          variant: "default",
+        });
+        return;
       }
 
       setEmail(data.email);
@@ -114,7 +130,9 @@ export default function LoginPage() {
 
       toast({
         title: "Código enviado!",
-        description: "Verifique seu email e digite o código de 6 dígitos",
+        description: isPasswordReset 
+          ? "Código de recuperação enviado! Verifique seu email." 
+          : "Verifique seu email e digite o código de 6 dígitos",
       });
     } catch (error) {
       toast({
@@ -385,6 +403,7 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => {
                           setStep("email");
+                          setIsPasswordReset(true);
                           passwordForm.reset();
                           toast({
                             title: "Recuperar senha",
@@ -427,6 +446,7 @@ export default function LoginPage() {
                       className="w-full"
                       onClick={() => {
                         setStep("email");
+                        setIsPasswordReset(false);
                         passwordForm.reset();
                       }}
                       disabled={isLoading}

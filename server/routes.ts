@@ -74,6 +74,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Este e-mail não está cadastrado no sistema. Entre em contato com o administrador." });
       }
 
+      // Check if user already has a password set and this is NOT a password reset request
+      if (user.hasPassword && !validatedData.isPasswordReset) {
+        return res.json({ 
+          message: "Usuário já possui senha cadastrada",
+          hasPassword: true 
+        });
+      }
+
       storage.deleteVerificationCodesByEmail(validatedData.email);
 
       const code = generateVerificationCode();
@@ -91,7 +99,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[FALLBACK] Código de verificação para ${validatedData.email}: ${code}`);
       }
 
-      res.json({ message: "Código enviado para seu email" });
+      res.json({ 
+        message: "Código enviado para seu email",
+        hasPassword: user.hasPassword 
+      });
     } catch (error) {
       console.error("Request code error:", error);
       res.status(400).json({ 

@@ -3,21 +3,41 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { requestCodeSchema, verifyCodeSchema, type RequestCodeData, type VerifyCodeData, type AuthResponse } from "@shared/schema";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { UserCircle, Mail, KeyRound } from "lucide-react";
+import { UserCircle, Mail, KeyRound, Lock } from "lucide-react";
+
+const setPasswordSchema = z.object({
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+const passwordLoginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Digite sua senha"),
+});
+
+type SetPasswordData = z.infer<typeof setPasswordSchema>;
+type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
 
 export default function LoginPage() {
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [email, setEmail] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
+  const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -42,6 +62,22 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       code: "",
+    },
+  });
+
+  const passwordForm = useForm<PasswordLoginData>({
+    resolver: zodResolver(passwordLoginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const setPasswordForm = useForm<SetPasswordData>({
+    resolver: zodResolver(setPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -93,6 +129,14 @@ export default function LoginPage() {
       }
 
       const result: AuthResponse = await response.json();
+
+      // Check if user needs to set password
+      if (!result.user.hasPassword) {
+        setPendingUser(result);
+        setShowSetPasswordDialog(true);
+        return;
+      }
+
       login(result.user, result.token);
 
       toast({
@@ -109,6 +153,91 @@ export default function LoginPage() {
       toast({
         title: "Erro ao verificar código",
         description: error instanceof Error ? error.message : "Código inválido ou expirado",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onPasswordLogin = async (data: PasswordLoginData) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/login-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao fazer login");
+      }
+
+      const result: AuthResponse = await response.json();
+      login(result.user, result.token);
+
+      toast({
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo, ${result.user.fullName}`,
+      });
+
+      if (result.user.isAdmin) {
+        setLocation("/admin");
+      } else {
+        setLocation("/vote");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao fazer login",
+        description: error instanceof Error ? error.message : "Email ou senha incorretos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSetPassword = async (data: SetPasswordData) => {
+    if (!pendingUser) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${pendingUser.token}`,
+        },
+        body: JSON.stringify({ password: data.password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao definir senha");
+      }
+
+      // Update user with hasPassword = true
+      const updatedUser = { ...pendingUser.user, hasPassword: true };
+      login(updatedUser, pendingUser.token);
+
+      toast({
+        title: "Senha definida com sucesso!",
+        description: "Agora você pode fazer login com email e senha",
+      });
+
+      setShowSetPasswordDialog(false);
+      setPendingUser(null);
+
+      if (updatedUser.isAdmin) {
+        setLocation("/admin");
+      } else {
+        setLocation("/vote");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao definir senha",
+        description: error instanceof Error ? error.message : "Tente novamente",
         variant: "destructive",
       });
     } finally {
@@ -147,6 +276,11 @@ export default function LoginPage() {
                     <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
                     Entrar
                   </>
+                ) : step === "password" ? (
+                  <>
+                    <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
+                    Entrar com Senha
+                  </>
                 ) : (
                   <>
                     <KeyRound className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -157,6 +291,8 @@ export default function LoginPage() {
               <CardDescription className="text-sm">
                 {step === "email" 
                   ? "Digite seu email para receber o código de verificação" 
+                  : step === "password"
+                  ? "Digite seu email e senha para acessar"
                   : `Código enviado para ${email}`}
               </CardDescription>
             </CardHeader>
@@ -187,6 +323,85 @@ export default function LoginPage() {
                   >
                     {isLoading ? "Enviando..." : "Enviar Código"}
                   </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Ou</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setStep("password")}
+                    data-testid="button-switch-password"
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    Entrar com senha
+                  </Button>
+                </form>
+              ) : step === "password" ? (
+                <form onSubmit={passwordForm.handleSubmit(onPasswordLogin)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password-email">Email</Label>
+                    <Input
+                      id="password-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      data-testid="input-password-email"
+                      {...passwordForm.register("email")}
+                    />
+                    {passwordForm.formState.errors.email && (
+                      <p className="text-sm text-destructive">
+                        {passwordForm.formState.errors.email.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••"
+                      data-testid="input-password"
+                      {...passwordForm.register("password")}
+                    />
+                    {passwordForm.formState.errors.password && (
+                      <p className="text-sm text-destructive">
+                        {passwordForm.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                      data-testid="button-login-password"
+                    >
+                      {isLoading ? "Entrando..." : "Entrar"}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setStep("email");
+                        passwordForm.reset();
+                      }}
+                      disabled={isLoading}
+                      data-testid="button-back-to-email"
+                    >
+                      Voltar
+                    </Button>
+                  </div>
                 </form>
               ) : (
                 <form onSubmit={codeForm.handleSubmit(onVerifyCode)} className="space-y-4">
@@ -247,6 +462,67 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showSetPasswordDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowSetPasswordDialog(false);
+          setPendingUser(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Defina sua Senha</DialogTitle>
+            <DialogDescription>
+              Este é seu primeiro acesso. Crie uma senha para facilitar logins futuros.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={setPasswordForm.handleSubmit(onSetPassword)} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nova Senha</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="••••••"
+                data-testid="input-new-password"
+                {...setPasswordForm.register("password")}
+              />
+              {setPasswordForm.formState.errors.password && (
+                <p className="text-sm text-destructive">
+                  {setPasswordForm.formState.errors.password.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 6 caracteres
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmar Senha</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="••••••"
+                data-testid="input-confirm-password"
+                {...setPasswordForm.register("confirmPassword")}
+              />
+              {setPasswordForm.formState.errors.confirmPassword && (
+                <p className="text-sm text-destructive">
+                  {setPasswordForm.formState.errors.confirmPassword.message}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+              data-testid="button-submit-password"
+            >
+              {isLoading ? "Salvando..." : "Definir Senha"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -209,7 +209,10 @@ export default function LoginPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${pendingUser.token}`,
         },
-        body: JSON.stringify({ password: data.password }),
+        body: JSON.stringify({ 
+          password: data.password,
+          confirmPassword: data.confirmPassword 
+        }),
       });
 
       if (!response.ok) {

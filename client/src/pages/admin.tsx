@@ -93,7 +93,7 @@ export default function AdminPage() {
     staleTime: 10000,
   });
 
-  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string }>>({
+  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; isPresident?: boolean; photoUrl?: string; birthdate?: string }>>({
     queryKey: ["/api/members"],
     staleTime: 30000,
   });
@@ -461,6 +461,28 @@ export default function AdminPage() {
     },
   });
 
+  const setPresidentMutation = useMutation({
+    mutationFn: async ({ memberId, isPresident }: { memberId: number; isPresident: boolean }) => {
+      return await apiRequest("PATCH", `/api/admin/members/${memberId}/president`, { isPresident });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+      toast({
+        title: variables.isPresident ? "Presidente definido!" : "Presidente removido!",
+        description: variables.isPresident 
+          ? "O membro foi marcado como presidente em exercício" 
+          : "O membro não é mais presidente em exercício",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar presidente",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const forceClosePositionMutation = useMutation({
     mutationFn: async (data: { electionId: number; electionPositionId: number; reason: string }) => {
       return await apiRequest("POST", `/api/elections/${data.electionId}/positions/${data.electionPositionId}/force-close`, {
@@ -524,7 +546,7 @@ export default function AdminPage() {
         
         const auditData = await response.json();
         
-        generateElectionAuditPDF(auditData);
+        await generateElectionAuditPDF(auditData);
         
         toast({
           title: "PDF gerado!",
@@ -559,7 +581,7 @@ export default function AdminPage() {
       }
       
       const auditData = await response.json();
-      generateElectionAuditPDF(auditData);
+      await generateElectionAuditPDF(auditData);
       
       toast({
         title: "PDF gerado!",
@@ -1405,6 +1427,7 @@ export default function AdminPage() {
                           <tr className="border-b border-border bg-muted/50">
                             <th className="text-left px-6 py-3 font-semibold text-sm">Nome</th>
                             <th className="text-left px-6 py-3 font-semibold text-sm">Email</th>
+                            <th className="text-center px-6 py-3 font-semibold text-sm">Presidente</th>
                             <th className="text-right px-6 py-3 font-semibold text-sm">Ações</th>
                           </tr>
                         </thead>
@@ -1417,6 +1440,27 @@ export default function AdminPage() {
                             >
                               <td className="px-6 py-4" data-testid={`text-member-name-${member.id}`}>{member.fullName}</td>
                               <td className="px-6 py-4 text-muted-foreground">{member.email}</td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={member.isPresident || false}
+                                      onChange={(e) => {
+                                        setPresidentMutation.mutate({
+                                          memberId: member.id,
+                                          isPresident: e.target.checked
+                                        });
+                                      }}
+                                      className="w-4 h-4 accent-primary"
+                                      data-testid={`checkbox-president-${member.id}`}
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                      {member.isPresident ? "Sim" : "Não"}
+                                    </span>
+                                  </label>
+                                </div>
+                              </td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex gap-2 justify-end">
                                   <Button
@@ -1467,18 +1511,19 @@ export default function AdminPage() {
                       {electionHistory.map((election) => (
                         <Card key={election.id} className="hover-elevate" data-testid={`card-election-${election.id}`}>
                           <CardHeader>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                               <div>
                                 <CardTitle className="text-lg">{election.name}</CardTitle>
                                 <CardDescription className="text-sm">
                                   Finalizada em {new Date(election.closedAt || '').toLocaleDateString('pt-BR')}
                                 </CardDescription>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex flex-col gap-2 md:flex-row">
                                 <Button
                                   variant="outline"
                                   onClick={() => handleDownloadAuditPDF(election.id)}
                                   data-testid={`button-download-pdf-${election.id}`}
+                                  className="w-full md:w-auto"
                                 >
                                   <Download className="w-4 h-4 mr-2" />
                                   PDF Auditoria
@@ -1487,6 +1532,7 @@ export default function AdminPage() {
                                   variant="outline"
                                   onClick={() => setLocation(`/results?electionId=${election.id}`)}
                                   data-testid={`button-view-election-${election.id}`}
+                                  className="w-full md:w-auto"
                                 >
                                   <ChartBar className="w-4 h-4 mr-2" />
                                   Ver Resultados

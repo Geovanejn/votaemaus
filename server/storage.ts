@@ -105,6 +105,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      isPresident: Boolean(row.is_president),
     };
   }
 
@@ -123,12 +124,13 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      isPresident: Boolean(row.is_president),
     };
   }
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member, is_president) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
@@ -138,7 +140,8 @@ export class SQLiteStorage implements IStorage {
       user.photoUrl || null,
       user.birthdate || null,
       user.isAdmin ? 1 : 0,
-      user.isMember ? 1 : 0
+      user.isMember ? 1 : 0,
+      user.isPresident ? 1 : 0
     ) as any;
     
     return {
@@ -151,6 +154,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      isPresident: Boolean(row.is_president),
     };
   }
 
@@ -171,6 +175,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      isPresident: Boolean(row.is_president),
     }));
   }
 
@@ -213,6 +218,10 @@ export class SQLiteStorage implements IStorage {
       fields.push("is_member = ?");
       values.push(updates.isMember ? 1 : 0);
     }
+    if (updates.isPresident !== undefined) {
+      fields.push("is_president = ?");
+      values.push(updates.isPresident ? 1 : 0);
+    }
 
     if (fields.length === 0) return user;
 
@@ -234,6 +243,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      isPresident: Boolean(row.is_president),
     };
   }
   
@@ -1294,6 +1304,10 @@ export class SQLiteStorage implements IStorage {
     const positions = this.getElectionPositions(electionId);
     const completedPositions = positions.filter((p: any) => p.status === 'completed');
 
+    const presidentStmt = db.prepare("SELECT full_name FROM users WHERE is_president = 1 LIMIT 1");
+    const presidentRow = presidentStmt.get() as any;
+    const presidentName = presidentRow?.full_name || null;
+
     return {
       results,
       electionMetadata: {
@@ -1304,6 +1318,7 @@ export class SQLiteStorage implements IStorage {
       },
       voterAttendance: this.getVoterAttendance(electionId),
       voteTimeline: this.getVoteTimeline(electionId),
+      presidentName,
     };
   }
 }

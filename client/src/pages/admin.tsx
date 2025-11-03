@@ -41,9 +41,10 @@ import type { Election, Position, CandidateWithDetails, ElectionResults } from "
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
+import { generateElectionAuditPDF } from "@/lib/pdfGenerator";
 
 export default function AdminPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
@@ -508,10 +509,38 @@ export default function AdminPage() {
     }
   };
 
-  const handleFinalizeElection = () => {
-    if (!activeElection) return;
-    if (confirm("Tem certeza que deseja finalizar a eleição? Ela será arquivada no histórico e não poderá mais ser modificada.")) {
-      finalizeElectionMutation.mutate(activeElection.id);
+  const handleFinalizeElection = async () => {
+    if (!activeElection || !token) return;
+    if (confirm("Tem certeza que deseja finalizar a eleição? Um PDF de auditoria será gerado automaticamente. A eleição será arquivada no histórico e não poderá mais ser modificada.")) {
+      try {
+        const response = await fetch(`/api/elections/${activeElection.id}/results`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Erro ao buscar resultados da eleição");
+        }
+        
+        const electionResults: ElectionResults = await response.json();
+        
+        generateElectionAuditPDF(electionResults);
+        
+        toast({
+          title: "PDF gerado!",
+          description: "O relatório de auditoria foi baixado automaticamente",
+        });
+        
+        setTimeout(() => {
+          finalizeElectionMutation.mutate(activeElection.id);
+        }, 500);
+      } catch (error) {
+        toast({
+          title: "Erro ao gerar PDF",
+          description: error instanceof Error ? error.message : "Não foi possível gerar o relatório de auditoria",
+          variant: "destructive",
+        });
+      }
     }
   };
 

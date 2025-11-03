@@ -34,6 +34,7 @@ export interface IStorage {
   getUserByEmail(email: string): User | undefined;
   getUserById(id: number): User | undefined;
   createUser(user: InsertUser): User;
+  updateUser(id: number, updates: Partial<Omit<User, 'id'>>): User | undefined;
   getAllMembers(excludeAdmins?: boolean): User[];
   deleteMember(id: number): void;
   
@@ -95,6 +96,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      hasPassword: Boolean(row.has_password),
       photoUrl: row.photo_url,
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
@@ -112,6 +114,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      hasPassword: Boolean(row.has_password),
       photoUrl: row.photo_url,
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
@@ -121,12 +124,13 @@ export class SQLiteStorage implements IStorage {
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, photo_url, birthdate, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
       user.email,
       user.password,
+      user.hasPassword ? 1 : 0,
       user.photoUrl || null,
       user.birthdate || null,
       user.isAdmin ? 1 : 0,
@@ -138,6 +142,7 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      hasPassword: Boolean(row.has_password),
       photoUrl: row.photo_url,
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
@@ -157,11 +162,75 @@ export class SQLiteStorage implements IStorage {
       fullName: row.full_name,
       email: row.email,
       password: row.password,
+      hasPassword: Boolean(row.has_password),
       photoUrl: row.photo_url,
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     }));
+  }
+
+  updateUser(id: number, updates: Partial<Omit<User, 'id'>>): User | undefined {
+    const user = this.getUserById(id);
+    if (!user) return undefined;
+
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.fullName !== undefined) {
+      fields.push("full_name = ?");
+      values.push(updates.fullName);
+    }
+    if (updates.email !== undefined) {
+      fields.push("email = ?");
+      values.push(updates.email);
+    }
+    if (updates.password !== undefined) {
+      fields.push("password = ?");
+      values.push(updates.password);
+    }
+    if (updates.hasPassword !== undefined) {
+      fields.push("has_password = ?");
+      values.push(updates.hasPassword ? 1 : 0);
+    }
+    if (updates.photoUrl !== undefined) {
+      fields.push("photo_url = ?");
+      values.push(updates.photoUrl);
+    }
+    if (updates.birthdate !== undefined) {
+      fields.push("birthdate = ?");
+      values.push(updates.birthdate);
+    }
+    if (updates.isAdmin !== undefined) {
+      fields.push("is_admin = ?");
+      values.push(updates.isAdmin ? 1 : 0);
+    }
+    if (updates.isMember !== undefined) {
+      fields.push("is_member = ?");
+      values.push(updates.isMember ? 1 : 0);
+    }
+
+    if (fields.length === 0) return user;
+
+    values.push(id);
+    const stmt = db.prepare(
+      `UPDATE users SET ${fields.join(", ")} WHERE id = ? RETURNING *`
+    );
+    const row = stmt.get(...values) as any;
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      fullName: row.full_name,
+      email: row.email,
+      password: row.password,
+      hasPassword: Boolean(row.has_password),
+      photoUrl: row.photo_url,
+      birthdate: row.birthdate,
+      isAdmin: Boolean(row.is_admin),
+      isMember: Boolean(row.is_member),
+    };
   }
   
   deleteMember(id: number): void {

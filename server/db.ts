@@ -246,6 +246,11 @@ export function initializeDatabase() {
       console.log("Added birthdate column to users table");
     }
 
+    if (!usersColumnNames.includes('has_password')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN has_password INTEGER NOT NULL DEFAULT 0");
+      console.log("Added has_password column to users table");
+    }
+
     // Clean up empty string birthdates (convert to NULL)
     const emptyBirthdatesCount = sqlite.prepare("UPDATE users SET birthdate = NULL WHERE birthdate = ''").run();
     if (emptyBirthdatesCount.changes && emptyBirthdatesCount.changes > 0) {

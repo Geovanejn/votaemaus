@@ -19,6 +19,7 @@ export const users = sqliteTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  hasPassword: integer("has_password", { mode: "boolean" }).notNull().default(false),
   photoUrl: text("photo_url"),
   birthdate: text("birthdate"),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
@@ -214,6 +215,32 @@ export const addMemberSchema = z.object({
 });
 
 export type AddMemberData = z.infer<typeof addMemberSchema>;
+
+export const updateMemberSchema = z.object({
+  fullName: z.string().min(2, "Nome completo é obrigatório").optional(),
+  email: z.string().email("Email inválido").optional(),
+  photoUrl: z.string().optional(),
+  birthdate: z.string().optional(),
+});
+
+export type UpdateMemberData = z.infer<typeof updateMemberSchema>;
+
+export const setPasswordSchema = z.object({
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  confirmPassword: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+export type SetPasswordData = z.infer<typeof setPasswordSchema>;
+
+export const loginPasswordSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+});
+
+export type LoginPasswordData = z.infer<typeof loginPasswordSchema>;
 
 // Response types
 export type AuthResponse = {

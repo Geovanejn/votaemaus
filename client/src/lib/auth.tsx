@@ -14,6 +14,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_DURATION = 2 * 60 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Omit<User, "password"> | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -22,20 +24,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
+    const loginTimestamp = localStorage.getItem("loginTimestamp");
     
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    if (storedToken && storedUser && loginTimestamp) {
+      const timeElapsed = Date.now() - parseInt(loginTimestamp);
+      
+      if (timeElapsed < SESSION_DURATION) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } else {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("loginTimestamp");
+      }
     }
     
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (!token) return;
+
+    const loginTimestamp = localStorage.getItem("loginTimestamp");
+    if (!loginTimestamp) return;
+
+    const timeElapsed = Date.now() - parseInt(loginTimestamp);
+    const timeRemaining = SESSION_DURATION - timeElapsed;
+
+    if (timeRemaining <= 0) {
+      handleSessionExpired();
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      handleSessionExpired();
+    }, timeRemaining);
+
+    return () => clearTimeout(timeoutId);
+  }, [token]);
+
+  const handleSessionExpired = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("loginTimestamp");
+    localStorage.setItem("sessionExpired", "true");
+    window.location.reload();
+  };
+
   const login = (userData: Omit<User, "password">, authToken: string) => {
+    const timestamp = Date.now().toString();
     setUser(userData);
     setToken(authToken);
     localStorage.setItem("token", authToken);
     localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("loginTimestamp", timestamp);
+    localStorage.removeItem("sessionExpired");
   };
 
   const logout = () => {
@@ -43,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("loginTimestamp");
   };
 
   const value = {

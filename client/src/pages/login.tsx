@@ -39,6 +39,19 @@ export default function LoginPage() {
   const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
 
+  // Check if session expired
+  useEffect(() => {
+    const sessionExpired = localStorage.getItem("sessionExpired");
+    if (sessionExpired === "true") {
+      localStorage.removeItem("sessionExpired");
+      toast({
+        title: "Sessão expirada",
+        description: "Sua sessão expirou após 2 horas de inatividade. Por favor, faça login novamente.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -460,7 +473,7 @@ export default function LoginPage() {
               Código válido por 15 minutos
             </p>
             <p className="text-xs text-muted-foreground">
-              Após o login, sua sessão fica ativa por 1 hora
+              Após o login, sua sessão fica ativa por 2 horas
             </p>
           </div>
         </div>

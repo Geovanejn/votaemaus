@@ -52,6 +52,82 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   }
 }
 
+export async function sendBirthdayEmail(
+  memberName: string,
+  memberEmail: string
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Birthday email for ${memberEmail}: ${memberName}`);
+    return false;
+  }
+
+  try {
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: memberEmail,
+      subject: `🎂 Feliz Aniversário! - UMP Emaús`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold;">🎂 Feliz Aniversário!</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="padding: 40px 30px; background-color: #ffffff;">
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Querido(a) <strong>${memberName}</strong>!</p>
+            
+            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+              Hoje é um dia muito especial! A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+            </p>
+
+            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 20px; margin: 25px 0; border-radius: 8px;">
+              <p style="margin: 0; color: #666; font-size: 16px; text-align: center; font-style: italic;">
+                "Que o Senhor te abençoe e te guarde"
+              </p>
+              <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 14px;">
+                Números 6:24
+              </p>
+            </div>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+              Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
+            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
+              UMP Emaús - Com carinho 💛
+            </p>
+            <p style="color: #aaa; font-size: 12px; margin: 0;">
+              Este é um email automático, mas o carinho é verdadeiro!
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [
+        {
+          content: logoBuffer.toString('base64'),
+          filename: 'logo.png',
+          contentId: 'logo-emaus',
+        },
+      ];
+    }
+
+    await resend.emails.send(emailPayload);
+    console.log(`✓ Birthday email sent to ${memberName} (${memberEmail})`);
+    return true;
+  } catch (error) {
+    console.error("Error sending birthday email:", error);
+    return false;
+  }
+}
+
 export async function sendCongratulationsEmail(
   candidateName: string, 
   candidateEmail: string,
@@ -115,7 +191,7 @@ export async function sendCongratulationsEmail(
 
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 200px; height: auto; margin-bottom: 15px;" />` : ''}
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
               UMP Emaús - Sistema de Votação
             </p>

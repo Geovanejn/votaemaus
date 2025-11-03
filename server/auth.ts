@@ -18,7 +18,7 @@ export function generateToken(user: Omit<User, "password">): string {
       isMember: user.isMember 
     },
     JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "2h" }
   );
 }
 

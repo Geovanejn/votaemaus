@@ -96,6 +96,7 @@ export class SQLiteStorage implements IStorage {
       email: row.email,
       password: row.password,
       photoUrl: row.photo_url,
+      birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -112,6 +113,7 @@ export class SQLiteStorage implements IStorage {
       email: row.email,
       password: row.password,
       photoUrl: row.photo_url,
+      birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -119,13 +121,14 @@ export class SQLiteStorage implements IStorage {
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, photo_url, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, photo_url, birthdate, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
       user.email,
       user.password,
       user.photoUrl || null,
+      user.birthdate || null,
       user.isAdmin ? 1 : 0,
       user.isMember ? 1 : 0
     ) as any;
@@ -136,6 +139,7 @@ export class SQLiteStorage implements IStorage {
       email: row.email,
       password: row.password,
       photoUrl: row.photo_url,
+      birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     };
@@ -154,6 +158,7 @@ export class SQLiteStorage implements IStorage {
       email: row.email,
       password: row.password,
       photoUrl: row.photo_url,
+      birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
     }));
@@ -390,15 +395,20 @@ export class SQLiteStorage implements IStorage {
     // The UNIQUE constraint on (user_id, position_id, election_id) prevents duplicates
     
     // If advancing to 3rd scrutiny, keep only top 2 candidates from 2nd scrutiny
+    // If there's a tie, use birthdate (oldest candidates advance)
     if (newScrutiny === 3) {
-      // Get vote counts for all candidates in 2nd scrutiny
+      // Get vote counts for all candidates in 2nd scrutiny with birthdate for tie-breaking
+      // NULLs are placed last so candidates without birthdate don't get unfair advantage
       const candidatesStmt = db.prepare(`
-        SELECT c.id, c.user_id, COUNT(v.id) as vote_count
+        SELECT c.id, c.user_id, u.birthdate, COUNT(v.id) as vote_count
         FROM candidates c
         LEFT JOIN votes v ON v.candidate_id = c.id AND v.scrutiny_round = 2
+        LEFT JOIN users u ON c.user_id = u.id
         WHERE c.position_id = ? AND c.election_id = ?
         GROUP BY c.id
-        ORDER BY vote_count DESC
+        ORDER BY vote_count DESC, 
+                 CASE WHEN u.birthdate IS NULL OR u.birthdate = '' THEN 1 ELSE 0 END,
+                 u.birthdate ASC
         LIMIT 2
       `);
       const topCandidates = candidatesStmt.all(position.position_id, position.election_id) as any[];
@@ -845,8 +855,33 @@ export class SQLiteStorage implements IStorage {
       this.setWinner(electionId, winner.candidate_id, positionId, scrutinyRound);
       // Complete this position
       this.completePosition(activePosition.id);
+      return;
     }
-    // Note: If no winner and scrutiny is 3, admin will need to manually break the tie
+
+    // If 3rd scrutiny and no majority winner, use age-based tie-breaking
+    if (scrutinyRound === 3) {
+      // Get all candidates with their vote counts and birthdates for tie-breaking
+      // NULLs are placed last so candidates without birthdate don't get unfair advantage
+      const tiedCandidatesStmt = db.prepare(`
+        SELECT c.id as candidate_id, COUNT(v.id) as vote_count, u.birthdate
+        FROM candidates c
+        LEFT JOIN votes v ON v.candidate_id = c.id AND v.scrutiny_round = 3
+        LEFT JOIN users u ON c.user_id = u.id
+        WHERE c.position_id = ? AND c.election_id = ?
+        GROUP BY c.id
+        ORDER BY vote_count DESC,
+                 CASE WHEN u.birthdate IS NULL OR u.birthdate = '' THEN 1 ELSE 0 END,
+                 u.birthdate ASC
+        LIMIT 1
+      `);
+      const oldestWinner = tiedCandidatesStmt.get(positionId, electionId) as { candidate_id: number; vote_count: number; birthdate: string | null } | undefined;
+
+      if (oldestWinner) {
+        // Automatically set the oldest candidate as winner
+        this.setWinner(electionId, oldestWinner.candidate_id, positionId, scrutinyRound);
+        this.completePosition(activePosition.id);
+      }
+    }
   }
 
   checkThirdScrutinyTie(electionPositionId: number): { hasTie: boolean; candidates: Array<{ candidateId: number; voteCount: number }> } {

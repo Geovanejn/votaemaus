@@ -51,8 +51,9 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
       return ordinals[scrutiny - 1] || `${scrutiny}º`;
     };
 
-    const yearMatch = electionTitle.match(/(\d{4})\/(\d{4})/);
-    const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const year = `${currentYear}/${nextYear}`;
 
     useImperativeHandle(ref, () => ({
       exportImage: async () => {

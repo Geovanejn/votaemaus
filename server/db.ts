@@ -26,6 +26,7 @@ export function initializeDatabase() {
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       photo_url TEXT,
+      birthdate TEXT,
       is_admin INTEGER NOT NULL DEFAULT 0,
       is_member INTEGER NOT NULL DEFAULT 1
     );
@@ -238,6 +239,17 @@ export function initializeDatabase() {
     if (!usersColumnNames.includes('photo_url')) {
       sqlite.exec("ALTER TABLE users ADD COLUMN photo_url TEXT");
       console.log("Added photo_url column to users table");
+    }
+
+    if (!usersColumnNames.includes('birthdate')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN birthdate TEXT");
+      console.log("Added birthdate column to users table");
+    }
+
+    // Clean up empty string birthdates (convert to NULL)
+    const emptyBirthdatesCount = sqlite.prepare("UPDATE users SET birthdate = NULL WHERE birthdate = ''").run();
+    if (emptyBirthdatesCount.changes && emptyBirthdatesCount.changes > 0) {
+      console.log(`Cleaned up ${emptyBirthdatesCount.changes} empty birthdate entries`);
     }
 
     // Migration: Add UNIQUE constraint to candidates table to prevent duplicates

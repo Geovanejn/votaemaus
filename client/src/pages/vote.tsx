@@ -25,6 +25,7 @@ export default function VotePage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [hasVoted, setHasVoted] = useState(false);
+  const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
@@ -56,8 +57,9 @@ export default function VotePage() {
     mutationFn: async (data: { candidateId: number; positionId: number; electionId: number }) => {
       return await apiRequest("POST", "/api/vote", data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       setHasVoted(true);
+      setVotedCandidateId(variables.candidateId);
       toast({
         title: "Voto registrado com sucesso!",
         description: "Seu voto foi computado com segurança",
@@ -216,46 +218,62 @@ export default function VotePage() {
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {activeCandidates.map((candidate) => (
-                    <Card 
-                      key={candidate.id} 
-                      className="border-border hover-elevate transition-shadow"
-                      data-testid={`card-candidate-${candidate.id}`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Avatar className="w-12 h-12">
-                            <AvatarImage 
-                              src={candidate.photoUrl} 
-                              alt={candidate.name}
-                            />
-                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                              {candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <p className="font-medium flex-1">{candidate.name}</p>
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={() => handleVote(candidate.id)}
-                          disabled={hasVoted || voteMutation.isPending}
-                          data-testid={`button-vote-${candidate.id}`}
-                        >
-                          {hasVoted ? (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Votado
-                            </>
-                          ) : (
-                            <>
-                              <Vote className="w-4 h-4 mr-2" />
-                              Votar
-                            </>
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {activeCandidates.map((candidate) => {
+                    const isVotedFor = votedCandidateId === candidate.id;
+                    return (
+                      <Card 
+                        key={candidate.id} 
+                        className={`border-border hover-elevate transition-all ${isVotedFor ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}`}
+                        data-testid={`card-candidate-${candidate.id}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="relative">
+                              <Avatar className="w-12 h-12">
+                                <AvatarImage 
+                                  src={candidate.photoUrl} 
+                                  alt={candidate.name}
+                                />
+                                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                  {candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              {isVotedFor && (
+                                <div className="absolute -top-1 -right-1 bg-green-500 dark:bg-green-400 rounded-full p-0.5">
+                                  <CheckCircle className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="font-medium flex-1">{candidate.name}</p>
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => handleVote(candidate.id)}
+                            disabled={hasVoted || voteMutation.isPending}
+                            data-testid={`button-vote-${candidate.id}`}
+                            variant={isVotedFor ? "default" : "outline"}
+                          >
+                            {isVotedFor ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Seu Voto
+                              </>
+                            ) : hasVoted ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Votado
+                              </>
+                            ) : (
+                              <>
+                                <Vote className="w-4 h-4 mr-2" />
+                                Votar
+                              </>
+                            )}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ElectionResults, ElectionAuditData } from "@shared/schema";
 
-async function loadImageAsBase64(imagePath: string): Promise<string> {
+async function loadImageAsBase64(imagePath: string): Promise<{ data: string; width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -13,7 +13,11 @@ async function loadImageAsBase64(imagePath: string): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
+        resolve({ 
+          data: canvas.toDataURL('image/png'),
+          width: img.width,
+          height: img.height
+        });
       } else {
         reject(new Error('Could not get canvas context'));
       }
@@ -33,13 +37,16 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   const margin = 20;
   let yPosition = margin;
 
-  const logoWidth = pageWidth * 0.4;
-  const logoHeight = logoWidth * 0.3;
+  const maxLogoWidth = pageWidth * 0.3;
   
   try {
-    const logoBase64 = await loadImageAsBase64('/logo.png');
-    doc.addImage(logoBase64, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 15;
+    const logoImage = await loadImageAsBase64('/logo-ump.png');
+    const aspectRatio = logoImage.height / logoImage.width;
+    const logoWidth = maxLogoWidth;
+    const logoHeight = logoWidth * aspectRatio;
+    
+    doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
+    yPosition += logoHeight + 12;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
     yPosition += 10;
@@ -51,7 +58,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   yPosition += 8;
 
   doc.setFontSize(11);
-  doc.text("União da Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
+  doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
   yPosition += 15;
 
   doc.setFontSize(10);
@@ -255,6 +262,33 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.addPage();
   yPosition = margin + 40;
 
+  doc.setDrawColor(0, 0, 0);
+  doc.line(margin, yPosition, margin + 80, yPosition);
+  yPosition += 5;
+  
+  const presidentName = (auditData as any)?.presidentName;
+  if (presidentName) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(presidentName, margin, yPosition);
+    yPosition += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
+    yPosition += 4;
+  } else {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("_________________________________", margin, yPosition);
+    yPosition += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
+    yPosition += 4;
+  }
+  
+  yPosition += 15;
+
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
 
@@ -273,30 +307,6 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
     
     doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
-  }
-  yPosition += 40;
-
-  doc.setDrawColor(0, 0, 0);
-  doc.line(margin, yPosition, margin + 80, yPosition);
-  yPosition += 5;
-  
-  const presidentName = (auditData as any)?.presidentName;
-  if (presidentName) {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(presidentName, margin, yPosition);
-    yPosition += 4;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-  } else {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("_________________________________", margin, yPosition);
-    yPosition += 4;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
   }
   
   yPosition += 20;

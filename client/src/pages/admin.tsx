@@ -793,8 +793,8 @@ export default function AdminPage() {
       data: {
         fullName: editingMember.fullName,
         email: editingMember.email,
-        photoUrl: editingMember.photoUrl,
-        birthdate: editingMember.birthdate,
+        photoUrl: editingMember.photoUrl || undefined,
+        birthdate: editingMember.birthdate || undefined,
       },
     });
   };
@@ -1588,6 +1588,19 @@ export default function AdminPage() {
                   setNewMember({ ...newMember, email: e.target.value })
                 }
                 data-testid="input-member-email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="member-birthdate">Data de Nascimento (Opcional)</Label>
+              <Input
+                id="member-birthdate"
+                type="date"
+                value={newMember.birthdate || ""}
+                onChange={(e) =>
+                  setNewMember({ ...newMember, birthdate: e.target.value })
+                }
+                data-testid="input-member-birthdate"
               />
             </div>
 

@@ -30,7 +30,7 @@ type SetPasswordData = z.infer<typeof setPasswordSchema>;
 type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
 
 export default function LoginPage() {
-  const [step, setStep] = useState<"email" | "code" | "password">("email");
+  const [step, setStep] = useState<"email" | "code" | "password">("password");
   const [email, setEmail] = useState("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -357,7 +357,7 @@ export default function LoginPage() {
                     data-testid="button-switch-password"
                   >
                     <Lock className="w-4 h-4 mr-2" />
-                    Entrar com senha
+                    Já tenho senha
                   </Button>
                 </form>
               ) : step === "password" ? (
@@ -379,7 +379,24 @@ export default function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Senha</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep("email");
+                          passwordForm.reset();
+                          toast({
+                            title: "Recuperar senha",
+                            description: "Digite seu email para receber um código de verificação e redefinir sua senha",
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                        data-testid="button-forgot-password"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </div>
                     <Input
                       id="password"
                       type="password"
@@ -413,9 +430,10 @@ export default function LoginPage() {
                         passwordForm.reset();
                       }}
                       disabled={isLoading}
-                      data-testid="button-back-to-email"
+                      data-testid="button-first-access"
                     >
-                      Voltar
+                      <Mail className="w-4 h-4 mr-2" />
+                      Primeiro Acesso
                     </Button>
                   </div>
                 </form>

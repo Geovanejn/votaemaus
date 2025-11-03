@@ -17,6 +17,9 @@ import {
   requestCodeSchema,
   verifyCodeSchema,
   addMemberSchema,
+  updateMemberSchema,
+  setPasswordSchema,
+  loginPasswordSchema,
   getGravatarUrl,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
@@ -134,6 +137,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/set-password", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = setPasswordSchema.parse(req.body);
+      
+      if (!req.user) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const hashedPassword = await hashPassword(validatedData.password);
+      
+      const updatedUser = storage.updateUser(req.user.id, {
+        password: hashedPassword,
+        hasPassword: true,
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      const token = generateToken(userWithoutPassword);
+
+      const response: AuthResponse = {
+        user: userWithoutPassword,
+        token,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Set password error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Erro ao definir senha" 
+      });
+    }
+  });
+
+  app.post("/api/auth/login-password", async (req, res) => {
+    try {
+      const validatedData = loginPasswordSchema.parse(req.body);
+      
+      const user = storage.getUserByEmail(validatedData.email);
+      if (!user) {
+        return res.status(401).json({ message: "Email ou senha incorretos" });
+      }
+
+      if (!user.hasPassword) {
+        return res.status(400).json({ 
+          message: "Você ainda não definiu uma senha. Use o código de verificação para fazer login." 
+        });
+      }
+
+      const isPasswordValid = await comparePassword(
+        validatedData.password,
+        user.password
+      );
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Email ou senha incorretos" });
+      }
+
+      const { password, ...userWithoutPassword } = user;
+      const token = generateToken(userWithoutPassword);
+
+      const response: AuthResponse = {
+        user: userWithoutPassword,
+        token,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Login password error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Erro ao fazer login" 
+      });
+    }
+  });
+
   app.post("/api/admin/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const validatedData = addMemberSchema.parse(req.body);
@@ -147,7 +227,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: validatedData.fullName,
         email: validatedData.email,
         password: Math.random().toString(36),
+        hasPassword: false,
         photoUrl: validatedData.photoUrl,
+        birthdate: validatedData.birthdate,
         isAdmin: false,
         isMember: true,
       } as any);
@@ -158,6 +240,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Add member error:", error);
       res.status(400).json({ 
         message: error instanceof Error ? error.message : "Erro ao adicionar membro" 
+      });
+    }
+  });
+
+  app.patch("/api/admin/members/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      
+      if (isNaN(memberId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const validatedData = updateMemberSchema.parse(req.body);
+
+      if (validatedData.email) {
+        const existingUser = storage.getUserByEmail(validatedData.email);
+        if (existingUser && existingUser.id !== memberId) {
+          return res.status(400).json({ message: "Este email já está sendo usado por outro membro" });
+        }
+      }
+
+      const updatedUser = storage.updateUser(memberId, validatedData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Membro não encontrado" });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Update member error:", error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Erro ao atualizar membro" 
       });
     }
   });

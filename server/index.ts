@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  initializeDatabase();
+  await initializeDatabase();
   initBirthdayScheduler();
   
   const server = await registerRoutes(app);

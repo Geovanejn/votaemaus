@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "@shared/schema";
 import path from "path";
 import fs from "fs";
+import { hashPassword } from "./auth";
 
 const dbDir = path.join(process.cwd(), "data");
 if (!fs.existsSync(dbDir)) {
@@ -16,7 +17,7 @@ sqlite.exec("PRAGMA foreign_keys = ON");
 
 export const db = drizzle(sqlite, { schema });
 
-export function initializeDatabase() {
+export async function initializeDatabase() {
   console.log("Initializing database...");
 
   sqlite.exec(`
@@ -418,6 +419,23 @@ export function initializeDatabase() {
     }
     
     console.log(`Created ${fixedPositions.length} fixed positions`);
+  }
+
+  // Create default admin user if it doesn't exist
+  const adminEmail = "marketingumpemaus@gmail.com";
+  const existingAdmin = sqlite.prepare("SELECT * FROM users WHERE email = ?").get(adminEmail);
+  
+  if (!existingAdmin) {
+    console.log("Creating default admin user...");
+    const defaultPassword = await hashPassword("umpemaus2025");
+    
+    sqlite.prepare(`
+      INSERT INTO users (full_name, email, password, has_password, is_admin, is_member)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run("UMP Emaús", adminEmail, defaultPassword, 1, 1, 1);
+    
+    console.log(`Created admin user: ${adminEmail}`);
+    console.log("Default password: umpemaus2025 (please change after first login)");
   }
 
   console.log("Database initialized successfully");

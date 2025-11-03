@@ -7,6 +7,7 @@ Emaús Vota is a full-stack web application designed to manage elections for a c
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 3, 2025)
+- **Implemented automated birthday email scheduling system**: Created a cron-based scheduler that automatically sends birthday emails to members daily at 8:00 AM (Brasília time / America/Sao_Paulo timezone). The system checks all members' birthdates every morning and sends personalized birthday emails to those celebrating their birthday that day. Uses `node-cron` for reliable scheduling and integrates with the existing Resend email service for sending emails. The scheduler initializes automatically when the server starts and runs in the background without requiring manual intervention. Includes comprehensive logging to track birthday checks and email sending status.
 - **Implemented PDF audit report generation system**: Created a complete election audit reporting feature with automatic PDF generation. Added secure `/api/elections/:id/audit` endpoint (admin-only with authenticateToken and requireAdmin middleware) that returns comprehensive audit data including voter attendance (names, emails, vote counts, timestamps), vote timeline, and full election results. The PDF generation automatically triggers when finalizing an election and includes election metadata, complete voter list, results for each position with vote counts and percentages, scrutiny rounds, and elected winners. Also added a standalone "Download Audit PDF" button in the election history tab, allowing admins to re-download audit reports for archived elections at any time. Uses jsPDF and jspdf-autotable libraries for professional PDF formatting with proper pagination, headers, and institutional branding.
 - **Implemented complete member data editing functionality**: Added full photo upload capability to the member edit dialog in the admin panel. Admins can now edit all member information including name, email, birthdate, and photo. The photo editing uses the same circular crop tool as member registration, ensuring consistent avatar appearance. Added separate handlers (`handleEditPhotoUpload`) and context tracking (`cropContext` state) to distinguish between adding and editing photos, ensuring the cropped image updates the correct member object.
 - **Verified and fixed password authentication system**: The system already had a complete password authentication implementation. Fixed a critical bug where the frontend was sending only `password` instead of both `password` and `confirmPassword` to the `/api/auth/set-password` endpoint. The system now works as intended: first-time users login with email verification code, are prompted to set a password after first login (if hasPassword is false), and can use email+password for subsequent logins. The login page includes a toggle to switch between code and password authentication methods.
@@ -46,6 +47,7 @@ Key features include:
 - Three-round scrutiny voting system with tie-resolution.
 - Generation of shareable election results images with circular candidate photos.
 - PDF audit report generation with voter attendance, vote timeline, and complete election results.
+- Automated birthday email system with daily cron job running at 8:00 AM (Brasília time).
 - Circular image crop tool for member photo uploads with zoom and positioning controls.
 - Full mobile optimization.
 
@@ -67,6 +69,7 @@ Key features include:
 - **Drizzle Kit**: For database migration and schema management.
 - **esbuild**: For server-side bundling in production.
 - **tsx**: For TypeScript execution during development.
+- **node-cron**: For scheduling automated tasks like daily birthday email notifications.
 
 ### Validation
 - **Zod**: Runtime schema validation for data integrity.

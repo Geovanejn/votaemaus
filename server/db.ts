@@ -251,6 +251,35 @@ export function initializeDatabase() {
       console.log("Added has_password column to users table");
     }
 
+    // Migration: Remove is_president column if it exists
+    if (usersColumnNames.includes('is_president')) {
+      console.log("Removing is_president column from users table...");
+      sqlite.exec("PRAGMA foreign_keys = OFF");
+      
+      sqlite.exec(`
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          full_name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          password TEXT NOT NULL,
+          photo_url TEXT,
+          birthdate TEXT,
+          has_password INTEGER NOT NULL DEFAULT 0,
+          is_admin INTEGER NOT NULL DEFAULT 0,
+          is_member INTEGER NOT NULL DEFAULT 1
+        );
+        
+        INSERT INTO users_new (id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member)
+        SELECT id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member FROM users;
+        
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+      `);
+      
+      sqlite.exec("PRAGMA foreign_keys = ON");
+      console.log("Removed is_president column from users table");
+    }
+
     // Clean up empty string birthdates (convert to NULL)
     const emptyBirthdatesCount = sqlite.prepare("UPDATE users SET birthdate = NULL WHERE birthdate = ''").run();
     if (emptyBirthdatesCount.changes && emptyBirthdatesCount.changes > 0) {

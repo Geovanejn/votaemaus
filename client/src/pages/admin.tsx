@@ -73,6 +73,7 @@ export default function AdminPage() {
   const [forceClosePositionId, setForceClosePositionId] = useState<number | null>(null);
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState("");
+  const [cropContext, setCropContext] = useState<"add" | "edit">("add");
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
@@ -91,7 +92,7 @@ export default function AdminPage() {
     staleTime: 10000,
   });
 
-  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean }>>({
+  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string }>>({
     queryKey: ["/api/members"],
     staleTime: 30000,
   });
@@ -265,7 +266,7 @@ export default function AdminPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string }) => {
+    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string }) => {
       return await apiRequest("POST", "/api/admin/members", member);
     },
     onSuccess: () => {
@@ -275,7 +276,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "", photoUrl: "" });
+      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "" });
     },
     onError: (error: Error) => {
       toast({
@@ -609,6 +610,79 @@ export default function AdminPage() {
             // Converter para data URL com boa qualidade
             const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
             setImageToCrop(resizedDataUrl);
+            setCropContext("add");
+            setIsCropDialogOpen(true);
+          }
+        };
+
+        img.onerror = () => {
+          toast({
+            title: "Erro ao carregar imagem",
+            description: "Não foi possível processar a imagem",
+            variant: "destructive",
+          });
+        };
+
+        img.src = event.target?.result as string;
+      };
+      
+      reader.onerror = () => {
+        toast({
+          title: "Erro ao ler arquivo",
+          description: "Não foi possível ler o arquivo selecionado",
+          variant: "destructive",
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Arquivo inválido",
+          description: "Por favor, selecione uma imagem",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Redimensionar se a imagem for muito grande
+          const MAX_SIZE = 2000;
+          let width = img.width;
+          let height = img.height;
+
+          // Se a imagem for maior que MAX_SIZE, redimensiona mantendo aspect ratio
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            } else {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          // Criar canvas e redimensionar
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para data URL com boa qualidade
+            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            setImageToCrop(resizedDataUrl);
+            setCropContext("edit");
             setIsCropDialogOpen(true);
           }
         };
@@ -637,7 +711,11 @@ export default function AdminPage() {
   };
 
   const handleCropComplete = (croppedImage: string) => {
-    setNewMember({ ...newMember, photoUrl: croppedImage });
+    if (cropContext === "add") {
+      setNewMember({ ...newMember, photoUrl: croppedImage });
+    } else if (cropContext === "edit" && editingMember) {
+      setEditingMember({ ...editingMember, photoUrl: croppedImage });
+    }
   };
 
   const handleAddMember = () => {
@@ -1566,6 +1644,26 @@ export default function AdminPage() {
                 }
                 data-testid="input-edit-member-birthdate"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-photo">Foto do Membro (Opcional)</Label>
+              <Input
+                id="edit-member-photo"
+                type="file"
+                accept="image/*"
+                onChange={handleEditPhotoUpload}
+                data-testid="input-edit-member-photo"
+              />
+              {editingMember?.photoUrl && (
+                <div className="mt-2 flex justify-center">
+                  <img
+                    src={editingMember.photoUrl}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-full border-2 border-primary"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">

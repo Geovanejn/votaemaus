@@ -6,7 +6,10 @@ Emaús Vota is a full-stack web application designed to manage elections for a c
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (November 2, 2025)
+## Recent Changes (November 3, 2025)
+- **Implemented complete member data editing functionality**: Added full photo upload capability to the member edit dialog in the admin panel. Admins can now edit all member information including name, email, birthdate, and photo. The photo editing uses the same circular crop tool as member registration, ensuring consistent avatar appearance. Added separate handlers (`handleEditPhotoUpload`) and context tracking (`cropContext` state) to distinguish between adding and editing photos, ensuring the cropped image updates the correct member object.
+
+## Previous Changes (November 2, 2025)
 - **Fixed email logo with CID embedding for Gmail compatibility**: Converted congratulations email to use CID (Content-ID) attachment method instead of base64 data URIs, which Gmail blocks. Logo is now attached as a multipart MIME attachment and referenced via `<img src="cid:logo-emaus" />`. Removed alt text from logo image. This ensures the logo displays correctly in Gmail and other email clients. Login page continues to use the circular logo (160KB), while admin/vote/results pages use the full logo with text (from attached_assets) in their footers (h-48 height).
 - **Fixed available members cache invalidation**: Added cache invalidation for `/api/members/non-admins` query when positions are opened, closed, or winners are set. This ensures that elected members are immediately removed from the candidate selection list when opening the next position, preventing already-elected members from appearing as available candidates for subsequent positions.
 - **Implemented 1-hour session persistence**: Changed JWT token expiration from 7 days to 1 hour. Added automatic redirect in the login page for already-authenticated users, so members don't need to request a new verification code if their session is still valid within the 1-hour window. Added user-facing message indicating session duration.

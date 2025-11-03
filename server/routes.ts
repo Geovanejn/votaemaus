@@ -986,6 +986,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/elections/:electionId/audit", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const electionId = parseInt(req.params.electionId);
+      const auditData = storage.getElectionAuditData(electionId);
+      
+      if (!auditData) {
+        return res.status(404).json({ message: "Dados de auditoria não encontrados para esta eleição" });
+      }
+
+      // Add photo URLs to candidates in results
+      auditData.results.positions.forEach((position: any) => {
+        position.candidates.forEach((candidate: any) => {
+          const user = storage.getUserByEmail(candidate.candidateEmail);
+          candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
+        });
+      });
+
+      res.json(auditData);
+    } catch (error) {
+      console.error("Get election audit data error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao buscar dados de auditoria" 
+      });
+    }
+  });
+
   app.post("/api/dev/seed-test-users", async (req, res) => {
     try {
       if (app.get("env") !== "development") {

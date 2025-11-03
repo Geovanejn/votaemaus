@@ -513,18 +513,18 @@ export default function AdminPage() {
     if (!activeElection || !token) return;
     if (confirm("Tem certeza que deseja finalizar a eleição? Um PDF de auditoria será gerado automaticamente. A eleição será arquivada no histórico e não poderá mais ser modificada.")) {
       try {
-        const response = await fetch(`/api/elections/${activeElection.id}/results`, {
+        const response = await fetch(`/api/elections/${activeElection.id}/audit`, {
           headers: {
             "Authorization": `Bearer ${token}`,
           },
         });
         if (!response.ok) {
-          throw new Error("Erro ao buscar resultados da eleição");
+          throw new Error("Erro ao buscar dados de auditoria da eleição");
         }
         
-        const electionResults: ElectionResults = await response.json();
+        const auditData = await response.json();
         
-        generateElectionAuditPDF(electionResults);
+        generateElectionAuditPDF(auditData);
         
         toast({
           title: "PDF gerado!",
@@ -541,6 +541,36 @@ export default function AdminPage() {
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleDownloadAuditPDF = async (electionId: number) => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`/api/elections/${electionId}/audit`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error("Erro ao buscar dados de auditoria");
+      }
+      
+      const auditData = await response.json();
+      generateElectionAuditPDF(auditData);
+      
+      toast({
+        title: "PDF gerado!",
+        description: "O relatório de auditoria foi baixado com sucesso",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar PDF",
+        description: error instanceof Error ? error.message : "Não foi possível gerar o relatório",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1444,14 +1474,24 @@ export default function AdminPage() {
                                   Finalizada em {new Date(election.closedAt || '').toLocaleDateString('pt-BR')}
                                 </CardDescription>
                               </div>
-                              <Button
-                                variant="outline"
-                                onClick={() => setLocation(`/results?electionId=${election.id}`)}
-                                data-testid={`button-view-election-${election.id}`}
-                              >
-                                <ChartBar className="w-4 h-4 mr-2" />
-                                Ver Resultados
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleDownloadAuditPDF(election.id)}
+                                  data-testid={`button-download-pdf-${election.id}`}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  PDF Auditoria
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setLocation(`/results?electionId=${election.id}`)}
+                                  data-testid={`button-view-election-${election.id}`}
+                                >
+                                  <ChartBar className="w-4 h-4 mr-2" />
+                                  Ver Resultados
+                                </Button>
+                              </div>
                             </div>
                           </CardHeader>
                         </Card>

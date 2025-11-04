@@ -56,7 +56,7 @@ export interface IStorage {
   openNextPosition(electionId: number): ElectionPosition | null;
   openPosition(electionPositionId: number): ElectionPosition;
   completePosition(electionPositionId: number): void;
-  forceCompletePosition(electionPositionId: number, reason: string): void;
+  forceCompletePosition(electionPositionId: number, reason: string, shouldReopen?: boolean): void;
   
   // Election Attendance management
   getElectionAttendance(electionId: number): ElectionAttendance[];
@@ -584,16 +584,50 @@ export class SQLiteStorage implements IStorage {
     `).run(electionPositionId);
   }
 
-  forceCompletePosition(electionPositionId: number, reason: string): void {
+  forceCompletePosition(electionPositionId: number, reason: string, shouldReopen: boolean = false): void {
     // Admin override to manually complete a position when stuck due to abstentions
-    console.log(`[ADMIN OVERRIDE] Forcing completion of position ${electionPositionId}. Reason: ${reason}`);
+    console.log(`[ADMIN OVERRIDE] Forcing completion of position ${electionPositionId}. Reason: ${reason}. Reopen: ${shouldReopen}`);
     
-    // Mark the position as completed
-    db.prepare(`
-      UPDATE election_positions 
-      SET status = 'completed', closed_at = datetime('now')
-      WHERE id = ?
-    `).run(electionPositionId);
+    const position = this.getElectionPositionById(electionPositionId);
+    if (!position) {
+      throw new Error("Cargo não encontrado");
+    }
+    
+    if (shouldReopen) {
+      // Close current voting, clear ALL votes and candidates, reset to pending for revote
+      console.log(`[ADMIN OVERRIDE] Clearing ALL votes, winners, and candidates for position ${electionPositionId} to reopen`);
+      
+      // Delete ALL votes for this position across all scrutiny rounds (not just current)
+      db.prepare(`
+        DELETE FROM votes 
+        WHERE election_id = ? AND position_id = ?
+      `).run(position.electionId, position.positionId);
+      
+      // Delete any winner records for this position
+      db.prepare(`
+        DELETE FROM election_winners 
+        WHERE election_id = ? AND position_id = ?
+      `).run(position.electionId, position.positionId);
+      
+      // Clear candidates for this position
+      this.clearCandidatesForPosition(position.positionId, position.electionId);
+      
+      // Reset position to pending status and reset scrutiny
+      db.prepare(`
+        UPDATE election_positions 
+        SET status = 'pending', current_scrutiny = 1, opened_at = NULL, closed_at = NULL
+        WHERE id = ?
+      `).run(electionPositionId);
+      
+      console.log(`[ADMIN OVERRIDE] Position ${electionPositionId} fully reset to pending for revote (all votes, winners, and candidates cleared)`);
+    } else {
+      // Permanently close the position
+      db.prepare(`
+        UPDATE election_positions 
+        SET status = 'completed', closed_at = datetime('now')
+        WHERE id = ?
+      `).run(electionPositionId);
+    }
   }
 
   getElectionPositionById(id: number): ElectionPosition | null {
@@ -1293,6 +1327,8 @@ export class SQLiteStorage implements IStorage {
 
     const positions = this.getElectionPositions(electionId);
     const completedPositions = positions.filter((p: any) => p.status === 'completed');
+    
+    const totalMembers = this.getAllMembers().length;
 
     return {
       results,
@@ -1301,6 +1337,7 @@ export class SQLiteStorage implements IStorage {
         closedAt: election.closedAt || null,
         totalPositions: positions.length,
         completedPositions: completedPositions.length,
+        totalMembers,
       },
       voterAttendance: this.getVoterAttendance(electionId),
       voteTimeline: this.getVoteTimeline(electionId),

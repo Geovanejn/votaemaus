@@ -37,6 +37,7 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  RotateCw,
 } from "lucide-react";
 import {
   Collapsible,
@@ -82,6 +83,7 @@ export default function AdminPage() {
   const [isForceCloseDialogOpen, setIsForceCloseDialogOpen] = useState(false);
   const [forceCloseReason, setForceCloseReason] = useState("");
   const [forceClosePositionId, setForceClosePositionId] = useState<number | null>(null);
+  const [forceCloseAction, setForceCloseAction] = useState<"permanent" | "reopen">("permanent");
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState("");
   const [cropContext, setCropContext] = useState<"add" | "edit">("add");
@@ -503,9 +505,10 @@ export default function AdminPage() {
 
 
   const forceClosePositionMutation = useMutation({
-    mutationFn: async (data: { electionId: number; electionPositionId: number; reason: string }) => {
+    mutationFn: async (data: { electionId: number; electionPositionId: number; reason: string; shouldReopen: boolean }) => {
       return await apiRequest("POST", `/api/elections/${data.electionId}/positions/${data.electionPositionId}/force-close`, {
         reason: data.reason,
+        shouldReopen: data.shouldReopen,
       });
     },
     onSuccess: () => {
@@ -632,7 +635,7 @@ export default function AdminPage() {
     createElectionMutation.mutate(`Eleição ${currentYear}/${nextYear}`);
   };
 
-  const handleForceClosePosition = () => {
+  const handleForceClosePosition = (action: "permanent" | "reopen") => {
     if (!activeElection || !forceClosePositionId || !forceCloseReason.trim()) {
       return;
     }
@@ -641,11 +644,13 @@ export default function AdminPage() {
       electionId: activeElection.id,
       electionPositionId: forceClosePositionId,
       reason: forceCloseReason.trim(),
+      shouldReopen: action === "reopen",
     });
     
     setIsForceCloseDialogOpen(false);
     setForceCloseReason("");
     setForceClosePositionId(null);
+    setForceCloseAction("permanent");
   };
 
   const handleCloseElection = () => {
@@ -2016,7 +2021,7 @@ export default function AdminPage() {
           <DialogHeader>
             <DialogTitle>Fechar Cargo Manualmente</DialogTitle>
             <DialogDescription>
-              Use esta opção apenas em caso de abstenções. Explique o motivo do fechamento manual.
+              Use esta opção apenas em caso de abstenções. Escolha como deseja proceder com este cargo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -2031,6 +2036,34 @@ export default function AdminPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Opções de Fechamento</Label>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => handleForceClosePosition("permanent")}
+                  className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                  disabled={!forceCloseReason.trim() || forceClosePositionMutation.isPending}
+                  data-testid="button-force-close-permanent"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  {forceClosePositionMutation.isPending ? "Fechando..." : "Fechar Permanentemente"}
+                </Button>
+                <Button
+                  onClick={() => handleForceClosePosition("reopen")}
+                  className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800"
+                  disabled={!forceCloseReason.trim() || forceClosePositionMutation.isPending}
+                  data-testid="button-force-close-reopen"
+                >
+                  <RotateCw className="w-4 h-4 mr-2" />
+                  {forceClosePositionMutation.isPending ? "Fechando..." : "Fechar e Reabrir Cargo"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Fechar Permanentemente:</strong> Encerra a votação deste cargo e passa para o próximo.<br />
+                <strong>Fechar e Reabrir:</strong> Encerra a votação atual e reabre para nova votação do mesmo cargo.
+              </p>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -2038,19 +2071,12 @@ export default function AdminPage() {
                   setIsForceCloseDialogOpen(false);
                   setForceCloseReason("");
                   setForceClosePositionId(null);
+                  setForceCloseAction("permanent");
                 }}
-                className="flex-1"
+                className="w-full"
                 data-testid="button-cancel-force-close"
               >
                 Cancelar
-              </Button>
-              <Button
-                onClick={handleForceClosePosition}
-                className="flex-1"
-                disabled={!forceCloseReason.trim() || forceClosePositionMutation.isPending}
-                data-testid="button-confirm-force-close"
-              >
-                {forceClosePositionMutation.isPending ? "Fechando..." : "Confirmar Fechamento"}
               </Button>
             </div>
           </div>

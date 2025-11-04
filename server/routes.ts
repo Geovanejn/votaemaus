@@ -642,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const electionId = parseInt(req.params.id);
       const electionPositionId = parseInt(req.params.positionId);
-      const { reason } = req.body;
+      const { reason, shouldReopen } = req.body;
       
       if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
         return res.status(400).json({ message: "É necessário fornecer um motivo para fechar manualmente" });
@@ -655,9 +655,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Force complete the position
-      storage.forceCompletePosition(electionPositionId, reason);
+      storage.forceCompletePosition(electionPositionId, reason, shouldReopen === true);
       
-      res.json({ message: "Cargo fechado manualmente com sucesso" });
+      const message = shouldReopen 
+        ? "Cargo fechado e reaberto para nova votação" 
+        : "Cargo fechado permanentemente com sucesso";
+      
+      res.json({ message });
     } catch (error) {
       console.error("Force close position error:", error);
       res.status(400).json({ 

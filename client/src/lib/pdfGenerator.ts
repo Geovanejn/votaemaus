@@ -46,10 +46,10 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 8;
+    yPosition += logoHeight + 4;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 8;
+    yPosition += 4;
   }
 
   doc.setFontSize(16);
@@ -70,7 +70,9 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     : `Eleição ${results.electionName}`;
   doc.text(electionTitle, margin, yPosition);
   yPosition += 4;
-  doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
+  
+  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
+  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
   yPosition += 4;
 
   const closedAt = auditData?.electionMetadata?.closedAt;
@@ -136,7 +138,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     return;
   }
 
-  if (yPosition > pageHeight - 35) {
+  if (yPosition > pageHeight - 60) {
     doc.addPage();
     yPosition = margin;
   }
@@ -147,7 +149,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   yPosition += 6;
 
   completedPositions.forEach((position, index) => {
-    if (yPosition > pageHeight - 55) {
+    if (yPosition > pageHeight - 65) {
       doc.addPage();
       yPosition = margin;
     }
@@ -351,10 +353,10 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 8;
+    yPosition += logoHeight + 4;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 8;
+    yPosition += 4;
   }
 
   doc.setFontSize(16);
@@ -374,14 +376,22 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     : `Eleição ${results.electionName}`;
   doc.text(electionTitle, margin, yPosition);
   yPosition += 4;
-  doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
+  
+  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
+  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
   yPosition += 4;
 
   if (auditData?.electionMetadata) {
-    doc.text(`Data de Criação: ${new Date(auditData.electionMetadata.createdAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
+    const createdDate = new Date(auditData.electionMetadata.createdAt);
+    const createdDateStr = createdDate.toLocaleDateString('pt-BR');
+    const createdTimeStr = createdDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    doc.text(`Data de Criação: ${createdDateStr} às ${createdTimeStr}`, margin, yPosition);
     yPosition += 4;
     if (auditData.electionMetadata.closedAt) {
-      doc.text(`Data de Encerramento: ${new Date(auditData.electionMetadata.closedAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
+      const closedDate = new Date(auditData.electionMetadata.closedAt);
+      const closedDateStr = closedDate.toLocaleDateString('pt-BR');
+      const closedTimeStr = closedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      doc.text(`Data de Encerramento: ${closedDateStr} às ${closedTimeStr}`, margin, yPosition);
       yPosition += 4;
     }
   }
@@ -396,7 +406,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   doc.setFontSize(10);
 
   for (const position of results.positions) {
-    if (yPosition > pageHeight - 90) {
+    if (yPosition > pageHeight - 100) {
       doc.addPage();
       yPosition = margin;
     }

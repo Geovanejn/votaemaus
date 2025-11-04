@@ -315,6 +315,7 @@ export type ElectionAuditData = {
     closedAt?: string;
     totalPositions: number;
     completedPositions: number;
+    totalMembers: number;
   };
   voterAttendance: VoterAttendance[];
   voteTimeline: VoterActivity[];

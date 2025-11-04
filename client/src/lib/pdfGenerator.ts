@@ -35,7 +35,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
-  let yPosition = margin;
+  let yPosition = 10;
 
   const maxLogoWidth = pageWidth * 0.3;
   
@@ -46,20 +46,20 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 4;
+    yPosition += logoHeight + 2;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 4;
+    yPosition += 2;
   }
 
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 5;
+  yPosition += 3;
 
   doc.setFontSize(11);
   doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 7;
+  yPosition += 21;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -88,7 +88,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   }
 
   doc.text(`Localização: São Paulo, SP`, margin, yPosition);
-  yPosition += 6;
+  yPosition += 18;
 
   if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
     doc.setFontSize(11);
@@ -146,7 +146,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("2. Resultados por Cargo e Escrutínio", margin, yPosition);
-  yPosition += 6;
+  yPosition += 18;
 
   completedPositions.forEach((position, index) => {
     if (yPosition > pageHeight - 65) {
@@ -342,7 +342,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
-  let yPosition = margin;
+  let yPosition = 10;
 
   const maxLogoWidth = pageWidth * 0.3;
   
@@ -353,20 +353,20 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 4;
+    yPosition += logoHeight + 2;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 4;
+    yPosition += 2;
   }
 
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 5;
+  yPosition += 3;
 
   doc.setFontSize(11);
   doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 7;
+  yPosition += 21;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -396,12 +396,12 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     }
   }
   
-  yPosition += 3;
+  yPosition += 9;
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("Resultados por Cargo", margin, yPosition);
-  yPosition += 6;
+  yPosition += 18;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
 

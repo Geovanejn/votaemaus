@@ -845,22 +845,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const members = storage.getAllMembers(true); // Exclude admins
       let membersWithoutPasswords = members.map(({ password, ...user }) => user);
       
-      // Exclude members who have been elected in ANY election (not just the current one)
-      const allWinners = storage.getAllElectionWinners();
-      const winnerUserIds = new Set(allWinners.map(w => w.userId));
-      
-      console.log(`[DEBUG] All winners from all elections:`, allWinners);
-      console.log(`[DEBUG] Winner User IDs:`, Array.from(winnerUserIds));
-      console.log(`[DEBUG] Total members before filtering:`, membersWithoutPasswords.length);
-      
-      // Filter out elected candidates from all elections
-      membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
-      
-      console.log(`[DEBUG] Members after winner filter:`, membersWithoutPasswords.length);
-      
-      // If electionId is provided, filter only members who are present
+      // If electionId is provided, exclude members who already won a position in this election
+      // and filter only members who are present
       const electionId = req.query.electionId ? parseInt(req.query.electionId as string) : null;
       if (electionId) {
+        const winners = storage.getElectionWinners(electionId);
+        const winnerUserIds = new Set(winners.map(w => w.userId));
+        
+        console.log(`[DEBUG] Election ID: ${electionId}`);
+        console.log(`[DEBUG] Winners found:`, winners);
+        console.log(`[DEBUG] Winner User IDs:`, Array.from(winnerUserIds));
+        console.log(`[DEBUG] Total members before filtering:`, membersWithoutPasswords.length);
+        
+        // Filter by winners
+        membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
+        
+        console.log(`[DEBUG] Members after winner filter:`, membersWithoutPasswords.length);
+        
+        // Filter by presence - only include members who are present
         membersWithoutPasswords = membersWithoutPasswords.filter(m => 
           storage.isMemberPresent(electionId, m.id)
         );

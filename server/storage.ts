@@ -331,22 +331,6 @@ export class SQLiteStorage implements IStorage {
   }
 
   finalizeElection(id: number): void {
-    // Clear all data for this election in the correct order (respecting foreign keys)
-    // 1. First delete votes (references candidates)
-    db.prepare(`
-      DELETE FROM votes WHERE election_id = ?
-    `).run(id);
-    
-    // 2. Delete election_winners (references candidates)
-    db.prepare(`
-      DELETE FROM election_winners WHERE election_id = ?
-    `).run(id);
-    
-    // 3. Now we can safely delete candidates
-    db.prepare(`
-      DELETE FROM candidates WHERE election_id = ?
-    `).run(id);
-    
     const stmt = db.prepare("UPDATE elections SET is_active = 0, closed_at = datetime('now') WHERE id = ?");
     stmt.run(id);
     

@@ -83,3 +83,17 @@ Key features include:
 3. Renumbered "Detalhamento de Votos Individuais" to section "4." for proper sequencing
 4. Removed verbose debug logging that could leak PII in production
 5. Now users can see all election winners at a glance on page 1, with full details following on subsequent pages
+
+### Manual Position Closing UX Improvement
+**Change**: Reverted "Fechar Cargo Manualmente" button to display inline action buttons instead of a dialog.
+**Solution**: Modified `client/src/pages/admin.tsx` to show two direct action buttons when clicked:
+1. "Fechar Permanentemente" - Permanently closes the position
+2. "Fechar e Reabrir Cargo" - Temporarily closes and reopens the position
+This provides a more streamlined UX by removing an unnecessary dialog step.
+
+### PDF Audit Report Enhancements
+**Standardization**: Ensured both `generateElectionAuditPDF` (download) and `generateElectionAuditPDFBase64` (email/finalization) have identical formatting:
+1. Both include signature section with date by extension
+2. Both display opening date (createdAt) and closing date (closedAt) with Brasília timezone timestamps
+3. All timestamps use `timeZone: "America/Sao_Paulo"` for consistent local time display
+4. Improved spacing: reduced gap between logo and title (from 2 to 1), increased gap between subtitle and content (from 8 to 10)

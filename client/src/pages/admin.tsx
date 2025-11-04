@@ -521,6 +521,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
       queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "attendance"] });
       toast({
         title: "Cargo fechado manualmente",
         description: "O cargo foi encerrado com sucesso",

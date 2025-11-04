@@ -76,8 +76,20 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
 
   if (auditData?.electionMetadata?.createdAt) {
     const createdDate = new Date(auditData.electionMetadata.createdAt);
-    const formattedDate = `${String(createdDate.getDate()).padStart(2, '0')}/${String(createdDate.getMonth() + 1).padStart(2, '0')}/${createdDate.getFullYear()}`;
-    const formattedTime = createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      day: "2-digit", 
+      month: "2-digit", 
+      year: "numeric",
+      timeZone: "America/Sao_Paulo"
+    };
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+      hour12: false
+    };
+    const formattedDate = createdDate.toLocaleDateString("pt-BR", dateOptions);
+    const formattedTime = createdDate.toLocaleTimeString("pt-BR", timeOptions);
     
     doc.text(`Data de Abertura: ${formattedDate} às ${formattedTime}`, margin, yPosition);
     yPosition += 4;
@@ -86,8 +98,20 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   const closedAt = auditData?.electionMetadata?.closedAt;
   if (closedAt) {
     const closureDate = new Date(closedAt);
-    const formattedDate = `${String(closureDate.getDate()).padStart(2, '0')}/${String(closureDate.getMonth() + 1).padStart(2, '0')}/${closureDate.getFullYear()}`;
-    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      day: "2-digit", 
+      month: "2-digit", 
+      year: "numeric",
+      timeZone: "America/Sao_Paulo"
+    };
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+      hour12: false
+    };
+    const formattedDate = closureDate.toLocaleDateString("pt-BR", dateOptions);
+    const formattedTime = closureDate.toLocaleTimeString("pt-BR", timeOptions);
     
     doc.text(`Data de Encerramento: ${formattedDate} às ${formattedTime}`, margin, yPosition);
     yPosition += 6;
@@ -337,8 +361,20 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
 
   if (auditData?.electionMetadata?.createdAt) {
     const createdDate = new Date(auditData.electionMetadata.createdAt);
-    const formattedDate = `${String(createdDate.getDate()).padStart(2, '0')}/${String(createdDate.getMonth() + 1).padStart(2, '0')}/${createdDate.getFullYear()}`;
-    const formattedTime = createdDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      day: "2-digit", 
+      month: "2-digit", 
+      year: "numeric",
+      timeZone: "America/Sao_Paulo"
+    };
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+      hour12: false
+    };
+    const formattedDate = createdDate.toLocaleDateString("pt-BR", dateOptions);
+    const formattedTime = createdDate.toLocaleTimeString("pt-BR", timeOptions);
     
     doc.text(`Data de Abertura: ${formattedDate} às ${formattedTime}`, margin, yPosition);
     yPosition += 4;
@@ -346,8 +382,20 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
 
   if (auditData?.electionMetadata?.closedAt) {
     const closedDate = new Date(auditData.electionMetadata.closedAt);
-    const formattedDate = `${String(closedDate.getDate()).padStart(2, '0')}/${String(closedDate.getMonth() + 1).padStart(2, '0')}/${closedDate.getFullYear()}`;
-    const formattedTime = closedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: "America/Sao_Paulo" });
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      day: "2-digit", 
+      month: "2-digit", 
+      year: "numeric",
+      timeZone: "America/Sao_Paulo"
+    };
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+      hour12: false
+    };
+    const formattedDate = closedDate.toLocaleDateString("pt-BR", dateOptions);
+    const formattedTime = closedDate.toLocaleTimeString("pt-BR", timeOptions);
     doc.text(`Data de Encerramento: ${formattedDate} às ${formattedTime}`, margin, yPosition);
     yPosition += 6;
   }

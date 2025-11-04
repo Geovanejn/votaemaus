@@ -1105,6 +1105,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/elections/:electionId/audit/send-email", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const electionId = parseInt(req.params.electionId);
+      const { presidentEmail, presidentName, pdfBase64 } = req.body;
+
+      if (!presidentEmail || !presidentName || !pdfBase64) {
+        return res.status(400).json({ message: "Email do presidente, nome e PDF são obrigatórios" });
+      }
+
+      const election = storage.getElectionById(electionId);
+      if (!election) {
+        return res.status(404).json({ message: "Eleição não encontrada" });
+      }
+
+      const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+      
+      const emailModule = await import("./email");
+      const success = await emailModule.sendAuditPDFEmail(
+        presidentName,
+        presidentEmail,
+        election.name,
+        pdfBuffer
+      );
+
+      if (!success) {
+        return res.status(500).json({ message: "Erro ao enviar email. Verifique a configuração do serviço de email." });
+      }
+
+      res.json({ 
+        message: "PDF de auditoria enviado com sucesso para o email do presidente",
+        sentTo: presidentEmail
+      });
+    } catch (error) {
+      console.error("Send audit PDF email error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao enviar PDF por email" 
+      });
+    }
+  });
+
   app.post("/api/dev/seed-test-users", async (req, res) => {
     try {
       if (app.get("env") !== "development") {

@@ -41,7 +41,7 @@ import type { Election, Position, CandidateWithDetails, ElectionResults } from "
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
-import { generateElectionAuditPDF } from "@/lib/pdfGenerator";
+import { generateElectionAuditPDF, generateElectionAuditPDFBase64 } from "@/lib/pdfGenerator";
 
 export default function AdminPage() {
   const { user, logout, token } = useAuth();
@@ -576,11 +576,17 @@ export default function AdminPage() {
       const auditData = await response.json();
       auditData.presidentName = selectedPresident.fullName;
       
-      await generateElectionAuditPDF(auditData);
+      const pdfBase64 = await generateElectionAuditPDFBase64(auditData);
+      
+      const emailResponse = await apiRequest("POST", `/api/elections/${pendingPdfElectionId}/audit/send-email`, {
+        presidentEmail: selectedPresident.email,
+        presidentName: selectedPresident.fullName,
+        pdfBase64,
+      });
       
       toast({
-        title: "PDF gerado!",
-        description: "O relatório de auditoria foi baixado com sucesso",
+        title: "PDF enviado!",
+        description: `O relatório de auditoria foi enviado para ${selectedPresident.email}`,
       });
       
       setIsPresidentDialogOpen(false);
@@ -594,8 +600,8 @@ export default function AdminPage() {
       }
     } catch (error) {
       toast({
-        title: "Erro ao gerar PDF",
-        description: error instanceof Error ? error.message : "Não foi possível gerar o relatório",
+        title: "Erro ao enviar PDF",
+        description: error instanceof Error ? error.message : "Não foi possível enviar o relatório por email",
         variant: "destructive",
       });
     }

@@ -223,3 +223,96 @@ export async function sendCongratulationsEmail(
     return false;
   }
 }
+
+export async function sendAuditPDFEmail(
+  presidentName: string,
+  presidentEmail: string,
+  electionName: string,
+  pdfBuffer: Buffer
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Audit PDF email for ${presidentEmail}: ${presidentName} - ${electionName}`);
+    return false;
+  }
+
+  try {
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: presidentEmail,
+      subject: `📊 Relatório de Auditoria - ${electionName}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">📊 Relatório de Auditoria</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="padding: 40px 30px; background-color: #ffffff;">
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${presidentName}</strong>!</p>
+            
+            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+              Segue anexo o relatório de auditoria completo da eleição:
+            </p>
+
+            <!-- Election Card -->
+            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 20px; margin: 25px 0; border-radius: 8px;">
+              <h2 style="color: #FFA500; margin: 0 0 10px 0; font-size: 20px; font-weight: bold;">${electionName}</h2>
+              <p style="margin: 0; color: #666; font-size: 14px;">Relatório completo de auditoria em PDF</p>
+            </div>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
+              Este relatório contém todos os detalhes da eleição, incluindo:
+            </p>
+
+            <ul style="color: #555; font-size: 15px; line-height: 1.8;">
+              <li>Lista completa de presença</li>
+              <li>Resultados por cargo e escrutínio</li>
+              <li>Linha do tempo de votação</li>
+              <li>Informações de auditoria</li>
+            </ul>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
+              Guarde este documento para seus registros oficiais.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
+            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
+              UMP Emaús - Sistema de Votação
+            </p>
+            <p style="color: #aaa; font-size: 12px; margin: 0;">
+              Este é um email automático, por favor não responda.
+            </p>
+          </div>
+        </div>
+      `,
+      attachments: [
+        {
+          content: pdfBuffer.toString('base64'),
+          filename: `Auditoria_${electionName.replace(/\s+/g, '_')}.pdf`,
+          type: 'application/pdf',
+        },
+      ],
+    };
+
+    // Add logo as CID attachment
+    if (logoBuffer) {
+      emailPayload.attachments.push({
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      });
+    }
+
+    await resend.emails.send(emailPayload);
+    
+    console.log(`✓ Audit PDF email sent to ${presidentName} (${presidentEmail}) for ${electionName}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending audit PDF email:", error);
+    return false;
+  }
+}

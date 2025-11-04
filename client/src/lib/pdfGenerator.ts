@@ -323,3 +323,219 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
   doc.save(fileName);
 }
+
+export async function generateElectionAuditPDFBase64(electionResults: ElectionResults | ElectionAuditData): Promise<string> {
+  const results = 'results' in electionResults ? electionResults.results : electionResults;
+  const auditData = 'results' in electionResults ? electionResults : null;
+  const doc = new jsPDF();
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  let yPosition = margin;
+
+  const maxLogoWidth = pageWidth * 0.3;
+  
+  try {
+    const logoImage = await loadImageAsBase64('/logo-ump.png');
+    const aspectRatio = logoImage.height / logoImage.width;
+    const logoWidth = maxLogoWidth;
+    const logoHeight = logoWidth * aspectRatio;
+    
+    doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
+    yPosition += logoHeight + 12;
+  } catch (error) {
+    console.warn('Logo não pôde ser carregado no PDF:', error);
+    yPosition += 10;
+  }
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
+  yPosition += 8;
+
+  doc.setFontSize(11);
+  doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
+  yPosition += 15;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  
+  const electionTitle = results.electionName.startsWith("Eleição") 
+    ? results.electionName 
+    : `Eleição ${results.electionName}`;
+  doc.text(electionTitle, margin, yPosition);
+  yPosition += 7;
+  doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
+  yPosition += 7;
+
+  if (auditData?.electionMetadata) {
+    doc.text(`Data de Criação: ${new Date(auditData.electionMetadata.createdAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
+    yPosition += 7;
+    if (auditData.electionMetadata.closedAt) {
+      doc.text(`Data de Encerramento: ${new Date(auditData.electionMetadata.closedAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
+      yPosition += 7;
+    }
+  }
+  
+  yPosition += 5;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Resultados por Cargo", margin, yPosition);
+  yPosition += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  for (const position of results.positions) {
+    if (yPosition > pageHeight - 100) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(position.positionName, margin, yPosition);
+    yPosition += 7;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`Escrutínio: ${position.currentScrutiny}º`, margin, yPosition);
+    yPosition += 5;
+    doc.text(`Status: ${position.status === 'completed' ? 'Concluído' : position.status === 'active' ? 'Ativo' : 'Pendente'}`, margin, yPosition);
+    yPosition += 8;
+
+    const tableData = position.candidates.map((candidate) => {
+      const status = candidate.isElected 
+        ? `✓ Eleito (${candidate.wonAtScrutiny || candidate.electedInScrutiny}º escrutínio)`
+        : `${candidate.voteCount} voto${candidate.voteCount !== 1 ? 's' : ''}`;
+      return [
+        candidate.candidateName,
+        status,
+      ];
+    });
+
+    if (tableData.length > 0) {
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Candidato', 'Resultado']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [255, 165, 0],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold',
+        },
+        bodyStyles: {
+          fontSize: 8,
+        },
+        margin: { left: margin, right: margin },
+        didDrawPage: (data) => {
+          yPosition = data.cursor!.y;
+        },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 12;
+    } else {
+      doc.text("Nenhum candidato registrado para este cargo", margin + 5, yPosition);
+      yPosition += 10;
+    }
+  }
+
+  if (auditData) {
+    if (yPosition > pageHeight - 100) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Presença de Membros", margin, yPosition);
+    yPosition += 10;
+
+    const attendanceData = auditData.voterAttendance.map((voter) => [
+      voter.voterName,
+      voter.totalVotes.toString(),
+      new Date(voter.firstVoteAt).toLocaleString('pt-BR'),
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Nome', 'Total de Votos', 'Primeira Votação']],
+      body: attendanceData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [255, 165, 0],
+        textColor: [255, 255, 255],
+        fontSize: 9,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 8,
+      },
+      margin: { left: margin, right: margin },
+      didDrawPage: (data) => {
+        yPosition = data.cursor!.y;
+      },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+
+    if (yPosition > pageHeight - 100) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Linha do Tempo de Votação", margin, yPosition);
+    yPosition += 10;
+
+    const timelineData = auditData.voteTimeline.map((vote) => [
+      new Date(vote.votedAt).toLocaleString('pt-BR'),
+      vote.voterName,
+      vote.positionName,
+      `${vote.scrutinyRound}º escrutínio`,
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Data/Hora', 'Membro', 'Cargo', 'Escrutínio']],
+      body: timelineData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [255, 165, 0],
+        textColor: [255, 255, 255],
+        fontSize: 9,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 7,
+      },
+      margin: { left: margin, right: margin },
+      didDrawPage: (data) => {
+        yPosition = data.cursor!.y;
+      },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  if (yPosition > pageHeight - 60) {
+    doc.addPage();
+    yPosition = margin;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Informações de Auditoria", margin, yPosition);
+  yPosition += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, yPosition);
+  yPosition += 5;
+  doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
+
+  return doc.output('dataurlstring').split(',')[1];
+}

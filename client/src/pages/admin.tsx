@@ -120,16 +120,17 @@ export default function AdminPage() {
   const { data: availableMembers = [] } = useQuery<Array<{ id: number; fullName: string; email: string }>>({
     queryKey: ["/api/members/non-admins", { electionId: activeElection?.id }],
     queryFn: async () => {
-      const url = activeElection 
-        ? `/api/members/non-admins?electionId=${activeElection.id}` 
-        : "/api/members/non-admins";
+      if (!activeElection) {
+        throw new Error("No active election");
+      }
+      const url = `/api/members/non-admins?electionId=${activeElection.id}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
-    enabled: isAddCandidateOpen, // Only fetch when dialog is open
+    enabled: isAddCandidateOpen && !!activeElection, // Only fetch when dialog is open AND election exists
     staleTime: 0, // Always fetch fresh data to ensure elected candidates are filtered
     refetchOnMount: true, // Refetch when component mounts to get latest winners
   });

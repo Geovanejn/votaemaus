@@ -256,9 +256,9 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
-  const closedAt = auditData?.electionMetadata?.closedAt;
-  if (closedAt) {
-    const closureDate = new Date(closedAt);
+  const electionClosedAt = auditData?.electionMetadata?.closedAt;
+  if (electionClosedAt) {
+    const closureDate = new Date(electionClosedAt);
     const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
                         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
     const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;

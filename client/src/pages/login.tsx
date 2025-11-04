@@ -292,9 +292,9 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto mt-8 sm:mt-16">
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex justify-center mb-3 sm:mb-4">
-              <div className="logo-container relative w-20 h-20 sm:w-24 sm:h-24">
+              <div className="logo-container relative w-40 h-40 sm:w-48 sm:h-48">
                 <video 
-                  className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
+                  className="w-40 h-40 sm:w-48 sm:h-48 object-contain"
                   autoPlay
                   loop
                   muted

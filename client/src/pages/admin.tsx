@@ -130,6 +130,8 @@ export default function AdminPage() {
       return response.json();
     },
     enabled: isAddCandidateOpen, // Only fetch when dialog is open
+    staleTime: 0, // Always fetch fresh data to ensure elected candidates are filtered
+    refetchOnMount: true, // Refetch when component mounts to get latest winners
   });
 
   // Election results for scrutiny management
@@ -417,6 +419,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "positions", "active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/members/non-admins"] });
       toast({
         title: "Escrutínio avançado!",
         description: "A votação passou para o próximo escrutínio",

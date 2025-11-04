@@ -58,3 +58,18 @@ Key features include:
 ### Validation
 - **Zod**: Runtime schema validation.
 - **drizzle-zod**: Generates Zod schemas from Drizzle tables.
+
+## Recent Bug Fixes (November 4, 2025)
+
+### Candidate Filter Bug
+**Issue**: Elected candidates were appearing in the nomination list for subsequent positions.
+**Root Cause**: The availableMembers query was executing without an `electionId` parameter, causing the backend to skip winner filtering.
+**Solution**: Added `&& !!activeElection` validation to the query's `enabled` condition, ensuring the query only executes when both the dialog is open AND an active election exists. This guarantees that `electionId` is always sent to the backend, which properly filters out already-elected members.
+
+### PDF Audit Report Spacing
+**Issue**: First page had excessive blank space (only showing Presidente and Vice-Presidente), and text elements had inconsistent spacing causing overlaps.
+**Root Cause**: Accumulated spacing of 36 units (18+18) between header and content sections, plus inconsistent line spacing (ranging from 3 to 21 units).
+**Solution**: 
+- Reduced total spacing to 18 units (10+8) to eliminate first-page blank space
+- Standardized all line spacing to consistent 4-5 unit increments
+- Applied corrections to both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` functions for consistency

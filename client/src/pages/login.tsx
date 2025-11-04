@@ -286,12 +286,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="h-2 bg-primary w-full" />
+      <div className="h-0.5 bg-primary w-full" />
       
       <div className="container mx-auto px-4 py-4 sm:py-0">
-        <div className="max-w-md mx-auto mt-2 sm:mt-4">
-          <div className="text-center mb-9 sm:mb-12">
-            <div className="flex justify-center mb-2 sm:mb-2">
+        <div className="max-w-md mx-auto mt-0.5 sm:mt-1">
+          <div className="text-center mb-3 sm:mb-4">
+            <div className="flex justify-center mb-0.5 sm:mb-0.5">
               <div className="logo-container relative w-40 h-40 sm:w-[200px] sm:h-[200px]">
                 <video 
                   className="w-40 h-40 sm:w-[200px] sm:h-[200px] object-contain"
@@ -308,7 +308,7 @@ export default function LoginPage() {
                 </video>
               </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Emaús Vota</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Emaús Vota</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Sistema de votação da UMP Emaús</p>
           </div>
 
@@ -342,8 +342,8 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
               {step === "email" ? (
-                <form onSubmit={emailForm.handleSubmit(onRequestCode)} className="space-y-4">
-                  <div className="space-y-2">
+                <form onSubmit={emailForm.handleSubmit(onRequestCode)} className="space-y-6">
+                  <div className="space-y-3">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
@@ -389,8 +389,8 @@ export default function LoginPage() {
                   </Button>
                 </form>
               ) : step === "password" ? (
-                <form onSubmit={passwordForm.handleSubmit(onPasswordLogin)} className="space-y-4">
-                  <div className="space-y-2">
+                <form onSubmit={passwordForm.handleSubmit(onPasswordLogin)} className="space-y-6">
+                  <div className="space-y-3">
                     <Label htmlFor="password-email">Email</Label>
                     <Input
                       id="password-email"
@@ -406,7 +406,7 @@ export default function LoginPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Senha</Label>
                       <button
@@ -440,7 +440,7 @@ export default function LoginPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Button
                       type="submit"
                       className="w-full"
@@ -468,8 +468,8 @@ export default function LoginPage() {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={codeForm.handleSubmit(onVerifyCode)} className="space-y-4">
-                  <div className="space-y-2">
+                <form onSubmit={codeForm.handleSubmit(onVerifyCode)} className="space-y-6">
+                  <div className="space-y-3">
                     <Label htmlFor="code">Código de Verificação</Label>
                     <Input
                       id="code"
@@ -490,7 +490,7 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Button
                       type="submit"
                       className="w-full"
@@ -516,7 +516,7 @@ export default function LoginPage() {
             </CardContent>
           </Card>
 
-          <div className="mt-6 text-center space-y-1">
+          <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
               Código válido por 15 minutos
             </p>
@@ -540,8 +540,8 @@ export default function LoginPage() {
               Este é seu primeiro acesso. Crie uma senha para facilitar logins futuros.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={setPasswordForm.handleSubmit(onSetPassword)} className="space-y-4 py-4">
-            <div className="space-y-2">
+          <form onSubmit={setPasswordForm.handleSubmit(onSetPassword)} className="space-y-6 py-4">
+            <div className="space-y-3">
               <Label htmlFor="new-password">Nova Senha</Label>
               <Input
                 id="new-password"
@@ -560,7 +560,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="confirm-password">Confirmar Senha</Label>
               <Input
                 id="confirm-password"

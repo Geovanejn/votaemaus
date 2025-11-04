@@ -289,24 +289,13 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
-  const electionClosedAt = auditData?.electionMetadata?.closedAt;
-  if (electionClosedAt) {
-    const closureDate = new Date(electionClosedAt);
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
-    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  } else {
-    const currentDate = new Date();
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
-    const formattedTime = currentDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  }
+  const currentDate = new Date();
+  const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
+  const formattedTime = currentDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+  
+  doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
 
   const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
   doc.save(fileName);
@@ -572,24 +561,13 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
-  const electionClosedAt = auditData?.electionMetadata?.closedAt;
-  if (electionClosedAt) {
-    const closureDate = new Date(electionClosedAt);
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
-    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  } else {
-    const currentDate = new Date();
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
-    const formattedTime = currentDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  }
+  const currentDate = new Date();
+  const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
+  const formattedTime = currentDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+  
+  doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
 
   return doc.output('dataurlstring').split(',')[1];
 }

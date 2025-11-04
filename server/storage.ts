@@ -299,10 +299,12 @@ export class SQLiteStorage implements IStorage {
   createElection(name: string): Election {
     db.prepare("UPDATE elections SET is_active = 0 WHERE is_active = 1").run();
     
+    const createdAt = new Date().toISOString();
+    
     const stmt = db.prepare(
-      "INSERT INTO elections (name, is_active) VALUES (?, 1) RETURNING *"
+      "INSERT INTO elections (name, is_active, created_at) VALUES (?, 1, ?) RETURNING *"
     );
-    const row = stmt.get(name) as any;
+    const row = stmt.get(name, createdAt) as any;
     
     // Create election_positions for all positions, all starting as pending
     const positions = this.getAllPositions();
@@ -331,11 +333,13 @@ export class SQLiteStorage implements IStorage {
   }
 
   finalizeElection(id: number): void {
-    const stmt = db.prepare("UPDATE elections SET is_active = 0, closed_at = datetime('now') WHERE id = ?");
-    stmt.run(id);
+    const closedAt = new Date().toISOString();
+    
+    const stmt = db.prepare("UPDATE elections SET is_active = 0, closed_at = ? WHERE id = ?");
+    stmt.run(closedAt, id);
     
     // Close all election_positions if not already closed
-    db.prepare("UPDATE election_positions SET status = 'completed', closed_at = datetime('now') WHERE election_id = ? AND status != 'completed'").run(id);
+    db.prepare("UPDATE election_positions SET status = 'completed', closed_at = ? WHERE election_id = ? AND status != 'completed'").run(closedAt, id);
   }
 
   getElectionHistory(): Election[] {

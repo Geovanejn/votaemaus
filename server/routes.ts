@@ -722,6 +722,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/candidates/batch", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { candidates, positionId, electionId } = req.body;
+
+      if (!Array.isArray(candidates) || candidates.length === 0) {
+        return res.status(400).json({ message: "Lista de candidatos inválida ou vazia" });
+      }
+
+      if (!positionId || !electionId) {
+        return res.status(400).json({ message: "ID do cargo e eleição são obrigatórios" });
+      }
+
+      const activePosition = storage.getActiveElectionPosition(electionId);
+      if (!activePosition || activePosition.positionId !== positionId) {
+        return res.status(400).json({ message: "A votação para este cargo ainda não foi aberta" });
+      }
+
+      const winners = storage.getElectionWinners(electionId);
+      const existingCandidates = storage.getCandidatesByPosition(positionId, electionId);
+      const createdCandidates = [];
+      const errors = [];
+
+      for (const candidate of candidates) {
+        try {
+          if (!candidate.userId || !candidate.name || !candidate.email) {
+            errors.push(`Candidato inválido: dados incompletos`);
+            continue;
+          }
+
+          const user = storage.getUserById(candidate.userId);
+          if (!user) {
+            errors.push(`Usuário ${candidate.name} não encontrado`);
+            continue;
+          }
+          
+          if (user.isAdmin) {
+            errors.push(`${candidate.name} é administrador e não pode ser candidato`);
+            continue;
+          }
+
+          const isPresent = storage.isMemberPresent(electionId, candidate.userId);
+          if (!isPresent) {
+            errors.push(`${candidate.name} não está presente`);
+            continue;
+          }
+          
+          const isAlreadyWinner = winners.some(w => w.userId === candidate.userId);
+          if (isAlreadyWinner) {
+            errors.push(`${candidate.name} já foi eleito para um cargo nesta eleição`);
+            continue;
+          }
+
+          const isDuplicate = existingCandidates.some(c => c.userId === candidate.userId);
+          if (isDuplicate) {
+            errors.push(`${candidate.name} já foi adicionado para este cargo`);
+            continue;
+          }
+
+          const created = storage.createCandidate({
+            name: candidate.name,
+            email: candidate.email,
+            userId: candidate.userId,
+            positionId,
+            electionId,
+          });
+
+          createdCandidates.push(created);
+          existingCandidates.push(created);
+        } catch (error) {
+          errors.push(`Erro ao adicionar ${candidate.name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        }
+      }
+
+      if (createdCandidates.length === 0) {
+        return res.status(400).json({ 
+          message: "Nenhum candidato foi adicionado", 
+          errors 
+        });
+      }
+
+      res.json({
+        message: `${createdCandidates.length} candidato(s) adicionado(s) com sucesso`,
+        candidates: createdCandidates,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error("Batch create candidates error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao adicionar candidatos em lote" 
+      });
+    }
+  });
+
   app.get("/api/elections/active", async (req, res) => {
     try {
       const election = storage.getActiveElection();

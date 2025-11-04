@@ -128,3 +128,14 @@ This creates a more balanced and visually appealing login experience.
 4. Display conversion to "America/Sao_Paulo" happens only in PDF generation using `toLocaleDateString` and `toLocaleTimeString`
 5. PDF footer timestamp always uses the moment the PDF is generated (not the election's `closedAt`)
 This ensures timestamps are stored unambiguously in UTC and displayed correctly in São Paulo local time.
+
+### Display Election Dates on Results Page (November 4, 2025)
+**Feature**: Added display of election opening and closing dates with timestamps on the results page.
+**Implementation**: Modified the following files:
+1. **shared/schema.ts**: Added `createdAt` and `closedAt` fields to the `ElectionResults` type
+2. **server/storage.ts**: Updated `getElectionResults()` to include `createdAt` and `closedAt` in the returned object
+3. **client/src/pages/results.tsx**: Added conditional rendering of opening and closing dates with São Paulo timezone formatting
+   - "Data de Abertura" shows when the election was opened (when admin clicked "Abrir Nova Eleição")
+   - "Data de Fechamento" shows when the election was finalized (when admin clicked "Finalizar Eleição")
+   - Both display date in DD/MM/YYYY format and time in HH:MM format (24-hour)
+This provides users with complete transparency about when elections were opened and closed.

@@ -55,11 +55,11 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 6;
+  yPosition += 5;
 
   doc.setFontSize(11);
   doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
+  yPosition += 7;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -69,9 +69,9 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     ? results.electionName 
     : `Eleição ${results.electionName}`;
   doc.text(electionTitle, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
   doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
 
   const closedAt = auditData?.electionMetadata?.closedAt;
   if (closedAt) {
@@ -82,17 +82,17 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     
     doc.text(`Data de Fechamento: ${formattedDate} às ${formattedTime}`, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
   }
 
   doc.text(`Localização: São Paulo, SP`, margin, yPosition);
-  yPosition += 8;
+  yPosition += 6;
 
   if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("1. Lista de Votantes Presentes", margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -118,13 +118,14 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
         fillColor: [255, 165, 0],
         textColor: [255, 255, 255], 
         fontStyle: "bold",
-        halign: "center"
+        halign: "center",
+        fontSize: 9
       },
-      styles: { fontSize: 9, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 2 },
       margin: { left: margin, right: margin },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    yPosition = (doc as any).lastAutoTable.finalY + 6;
   }
 
   const completedPositions = results.positions.filter(p => p.status === "completed");
@@ -135,46 +136,47 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     return;
   }
 
-  if (yPosition > pageHeight - 40) {
+  if (yPosition > pageHeight - 35) {
     doc.addPage();
     yPosition = margin;
   }
 
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("2. Resultados por Cargo e Escrutínio", margin, yPosition);
-  yPosition += 8;
+  yPosition += 6;
 
   completedPositions.forEach((position, index) => {
-    if (yPosition > pageHeight - 60) {
+    if (yPosition > pageHeight - 55) {
       doc.addPage();
       yPosition = margin;
     }
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text(`${index + 1}. ${position.positionName}`, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     
     const electedCandidate = position.candidates.find(c => c.isElected);
     const scrutinyUsed = electedCandidate?.electedInScrutiny || position.currentScrutiny;
     
     doc.text(`Escrutínio de Eleição: ${scrutinyUsed}º`, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.text(`Total de Votantes: ${position.totalVoters}`, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.text(`Maioria Necessária: ${position.majorityThreshold} votos`, margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
     if (electedCandidate) {
       doc.setFillColor(220, 252, 231);
-      doc.rect(margin - 2, yPosition - 5, pageWidth - 2 * margin + 4, 8, "F");
+      doc.rect(margin - 2, yPosition - 4, pageWidth - 2 * margin + 4, 7, "F");
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
       doc.text(`✓ Eleito: ${electedCandidate.candidateName} (${electedCandidate.voteCount} votos)`, margin, yPosition);
-      yPosition += 10;
+      yPosition += 8;
     }
 
     const tableData = position.candidates.map(candidate => [
@@ -193,9 +195,10 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
         fillColor: [255, 165, 0],
         textColor: [255, 255, 255], 
         fontStyle: "bold",
-        halign: "center"
+        halign: "center",
+        fontSize: 8
       },
-      styles: { fontSize: 9, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 50 },
         1: { cellWidth: 65 },
@@ -205,24 +208,24 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
       margin: { left: margin, right: margin },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 8;
+    yPosition = (doc as any).lastAutoTable.finalY + 5;
   });
 
   if (auditData?.voteTimeline && auditData.voteTimeline.length > 0) {
-    if (yPosition > pageHeight - 40) {
+    if (yPosition > pageHeight - 35) {
       doc.addPage();
       yPosition = margin;
     }
 
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("3. Detalhamento de Votos Individuais", margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("Registro completo de quem votou em quem em cada cargo:", margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
 
     const voteTimelineData = auditData.voteTimeline.map((v: any) => [
       v.voterName,
@@ -247,9 +250,9 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
         textColor: [255, 255, 255], 
         fontStyle: "bold",
         halign: "center",
-        fontSize: 8
+        fontSize: 7
       },
-      styles: { fontSize: 7, cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       columnStyles: {
         0: { cellWidth: 40 },
         1: { cellWidth: 35 },
@@ -260,40 +263,45 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
       margin: { left: margin, right: margin },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    yPosition = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  doc.addPage();
-  yPosition = margin + 30;
+  // Only add new page for signature if there's not enough space
+  if (yPosition > pageHeight - 80) {
+    doc.addPage();
+    yPosition = margin;
+  } else {
+    yPosition += 10;
+  }
 
   doc.setDrawColor(0, 0, 0);
   doc.line(margin, yPosition, margin + 80, yPosition);
-  yPosition += 5;
+  yPosition += 4;
   
   const presidentName = (auditData as any)?.presidentName;
   if (presidentName) {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(presidentName, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
   } else {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("_________________________________", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
   }
   
-  yPosition += 15;
+  yPosition += 10;
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
 
   const currentDate = new Date();
@@ -313,11 +321,11 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
   }
   
-  yPosition += 20;
-  doc.setFontSize(8);
+  yPosition += 12;
+  doc.setFontSize(7);
   doc.setFont("helvetica", "italic");
   doc.text("Este relatório foi gerado automaticamente pelo Sistema Emaús Vota.", margin, yPosition);
-  yPosition += 4;
+  yPosition += 3;
   doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
 
   const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
@@ -352,11 +360,11 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 6;
+  yPosition += 5;
 
   doc.setFontSize(11);
   doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
+  yPosition += 7;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -365,45 +373,45 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     ? results.electionName 
     : `Eleição ${results.electionName}`;
   doc.text(electionTitle, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
   doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
 
   if (auditData?.electionMetadata) {
     doc.text(`Data de Criação: ${new Date(auditData.electionMetadata.createdAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
     if (auditData.electionMetadata.closedAt) {
       doc.text(`Data de Encerramento: ${new Date(auditData.electionMetadata.closedAt).toLocaleDateString('pt-BR')}`, margin, yPosition);
-      yPosition += 5;
+      yPosition += 4;
     }
   }
   
   yPosition += 3;
 
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("Resultados por Cargo", margin, yPosition);
-  yPosition += 8;
+  yPosition += 6;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
 
   for (const position of results.positions) {
-    if (yPosition > pageHeight - 100) {
+    if (yPosition > pageHeight - 90) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.text(position.positionName, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.text(`Escrutínio: ${position.currentScrutiny}º`, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.text(`Status: ${position.status === 'completed' ? 'Concluído' : position.status === 'active' ? 'Ativo' : 'Pendente'}`, margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
     const tableData = position.candidates.map((candidate) => {
       const status = candidate.isElected 
@@ -424,11 +432,12 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
         headStyles: {
           fillColor: [255, 165, 0],
           textColor: [255, 255, 255],
-          fontSize: 9,
+          fontSize: 8,
           fontStyle: 'bold',
         },
         bodyStyles: {
-          fontSize: 8,
+          fontSize: 7,
+          cellPadding: 2,
         },
         margin: { left: margin, right: margin },
         didDrawPage: (data) => {
@@ -436,23 +445,23 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
         },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 8;
+      yPosition = (doc as any).lastAutoTable.finalY + 5;
     } else {
       doc.text("Nenhum candidato registrado para este cargo", margin + 5, yPosition);
-      yPosition += 8;
+      yPosition += 5;
     }
   }
 
   if (auditData) {
-    if (yPosition > pageHeight - 80) {
+    if (yPosition > pageHeight - 70) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.text("Presença de Membros", margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
 
     const attendanceData = auditData.voterAttendance.map((voter) => [
       voter.voterName,
@@ -468,11 +477,12 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       headStyles: {
         fillColor: [255, 165, 0],
         textColor: [255, 255, 255],
-        fontSize: 9,
+        fontSize: 8,
         fontStyle: 'bold',
       },
       bodyStyles: {
-        fontSize: 8,
+        fontSize: 7,
+        cellPadding: 2,
       },
       margin: { left: margin, right: margin },
       didDrawPage: (data) => {
@@ -480,17 +490,17 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    yPosition = (doc as any).lastAutoTable.finalY + 6;
 
-    if (yPosition > pageHeight - 80) {
+    if (yPosition > pageHeight - 70) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.text("Linha do Tempo de Votação", margin, yPosition);
-    yPosition += 8;
+    yPosition += 6;
 
     const timelineData = auditData.voteTimeline.map((vote) => [
       new Date(vote.votedAt).toLocaleString('pt-BR'),
@@ -507,11 +517,12 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       headStyles: {
         fillColor: [255, 165, 0],
         textColor: [255, 255, 255],
-        fontSize: 9,
+        fontSize: 7,
         fontStyle: 'bold',
       },
       bodyStyles: {
         fontSize: 7,
+        cellPadding: 1.5,
       },
       margin: { left: margin, right: margin },
       didDrawPage: (data) => {
@@ -519,42 +530,47 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    yPosition = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  doc.addPage();
-  yPosition = margin + 30;
+  // Only add new page for signature if there's not enough space
+  if (yPosition > pageHeight - 80) {
+    doc.addPage();
+    yPosition = margin;
+  } else {
+    yPosition += 10;
+  }
 
   doc.setDrawColor(0, 0, 0);
   doc.line(margin, yPosition, margin + 80, yPosition);
-  yPosition += 5;
+  yPosition += 4;
   
   const presidentName = (auditData as any)?.presidentName;
   if (presidentName) {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(presidentName, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
   } else {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("_________________________________", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
   }
 
   const currentDate = new Date();
   const closedAt = auditData?.electionMetadata?.closedAt;
   
-  yPosition += 15;
-  doc.setFontSize(10);
+  yPosition += 10;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   
   if (closedAt) {
@@ -573,11 +589,11 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
   }
   
-  yPosition += 20;
-  doc.setFontSize(8);
+  yPosition += 12;
+  doc.setFontSize(7);
   doc.setFont("helvetica", "italic");
   doc.text("Este relatório foi gerado automaticamente pelo Sistema Emaús Vota.", margin, yPosition);
-  yPosition += 4;
+  yPosition += 3;
   doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
 
   return doc.output('dataurlstring').split(',')[1];

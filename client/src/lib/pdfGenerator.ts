@@ -237,6 +237,43 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     yPosition += 8;
   }
 
+  doc.setDrawColor(0, 0, 0);
+  doc.line(margin, yPosition, margin + 80, yPosition);
+  yPosition += 4;
+  
+  const presidentName = (auditData as any)?.presidentName;
+  if (presidentName) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(presidentName, margin, yPosition);
+    yPosition += 3;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
+  }
+  
+  yPosition += 6;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+
+  const closedAt = auditData?.electionMetadata?.closedAt;
+  if (closedAt) {
+    const closureDate = new Date(closedAt);
+    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
+    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    
+    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
+  } else {
+    const currentDate = new Date();
+    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
+    
+    doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
+  }
+
   const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
   doc.save(fileName);
 }

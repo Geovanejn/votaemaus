@@ -84,6 +84,7 @@ export default function AdminPage() {
   const [forceCloseReason, setForceCloseReason] = useState("");
   const [forceClosePositionId, setForceClosePositionId] = useState<number | null>(null);
   const [forceCloseAction, setForceCloseAction] = useState<"permanent" | "reopen">("permanent");
+  const [showForceCloseOptions, setShowForceCloseOptions] = useState(false);
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState("");
   const [cropContext, setCropContext] = useState<"add" | "edit">("add");
@@ -652,6 +653,7 @@ export default function AdminPage() {
     });
     
     setIsForceCloseDialogOpen(false);
+    setShowForceCloseOptions(false);
     setForceCloseReason("");
     setForceClosePositionId(null);
     setForceCloseAction("permanent");
@@ -1360,19 +1362,71 @@ export default function AdminPage() {
                                   {position.totalVoters} de {presentCountData?.presentCount || 0} presentes votaram
                                 </p>
                               </div>
-                              <Button
-                                variant="outline"
-                                className="w-full border-orange-500 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
-                                onClick={() => {
-                                  setForceClosePositionId(activePosition.id);
-                                  setIsForceCloseDialogOpen(true);
-                                }}
-                                disabled={forceClosePositionMutation.isPending}
-                                data-testid="button-force-close-position"
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Fechar Cargo Manualmente
-                              </Button>
+                              
+                              {!showForceCloseOptions ? (
+                                <Button
+                                  variant="outline"
+                                  className="w-full border-orange-500 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
+                                  onClick={() => {
+                                    setForceClosePositionId(activePosition.id);
+                                    setShowForceCloseOptions(true);
+                                  }}
+                                  disabled={forceClosePositionMutation.isPending}
+                                  data-testid="button-force-close-position"
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Fechar Cargo Manualmente
+                                </Button>
+                              ) : (
+                                <div className="space-y-3">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="force-close-reason-inline">Motivo do Fechamento Manual</Label>
+                                    <Input
+                                      id="force-close-reason-inline"
+                                      placeholder="Ex: Membros saíram antes de votar"
+                                      value={forceCloseReason}
+                                      onChange={(e) => setForceCloseReason(e.target.value)}
+                                      data-testid="input-force-close-reason"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      onClick={() => handleForceClosePosition("permanent")}
+                                      className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                                      disabled={!forceCloseReason.trim() || forceClosePositionMutation.isPending}
+                                      data-testid="button-force-close-permanent"
+                                    >
+                                      <XCircle className="w-4 h-4 mr-2" />
+                                      {forceClosePositionMutation.isPending ? "Fechando..." : "Fechar Permanentemente"}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleForceClosePosition("reopen")}
+                                      className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800"
+                                      disabled={!forceCloseReason.trim() || forceClosePositionMutation.isPending}
+                                      data-testid="button-force-close-reopen"
+                                    >
+                                      <RotateCw className="w-4 h-4 mr-2" />
+                                      {forceClosePositionMutation.isPending ? "Fechando..." : "Fechar e Reabrir Cargo"}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setShowForceCloseOptions(false);
+                                        setForceCloseReason("");
+                                        setForceClosePositionId(null);
+                                      }}
+                                      className="w-full"
+                                      data-testid="button-cancel-force-close"
+                                    >
+                                      Cancelar
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    <strong>Fechar Permanentemente:</strong> Encerra a votação deste cargo e passa para o próximo.<br />
+                                    <strong>Fechar e Reabrir:</strong> Encerra a votação atual e reabre para nova votação do mesmo cargo.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

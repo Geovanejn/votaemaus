@@ -289,9 +289,9 @@ export default function LoginPage() {
       <div className="h-2 bg-primary w-full" />
       
       <div className="container mx-auto px-4 py-4 sm:py-0">
-        <div className="max-w-md mx-auto mt-4 sm:mt-8">
-          <div className="text-center mb-3 sm:mb-4">
-            <div className="flex justify-center mb-3 sm:mb-4">
+        <div className="max-w-md mx-auto mt-2 sm:mt-4">
+          <div className="text-center mb-9 sm:mb-12">
+            <div className="flex justify-center mb-2 sm:mb-2">
               <div className="logo-container relative w-80 h-80 sm:w-[400px] sm:h-[400px]">
                 <video 
                   className="w-80 h-80 sm:w-[400px] sm:h-[400px] object-contain"

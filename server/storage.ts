@@ -1328,7 +1328,7 @@ export class SQLiteStorage implements IStorage {
     const positions = this.getElectionPositions(electionId);
     const completedPositions = positions.filter((p: any) => p.status === 'completed');
     
-    const totalMembers = this.getAllMembers().length;
+    const totalMembers = this.getAllMembers(true).length;
 
     return {
       results,

@@ -281,7 +281,7 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: is916 ? "60px" : "50px",
+              gap: is916 ? "68px" : "58px",
               marginBottom: is916 ? "60px" : "50px",
             }}
           >

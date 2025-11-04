@@ -522,19 +522,62 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     yPosition = (doc as any).lastAutoTable.finalY + 15;
   }
 
-  if (yPosition > pageHeight - 60) {
-    doc.addPage();
-    yPosition = margin;
+  doc.addPage();
+  yPosition = margin + 40;
+
+  doc.setDrawColor(0, 0, 0);
+  doc.line(margin, yPosition, margin + 80, yPosition);
+  yPosition += 5;
+  
+  const presidentName = (auditData as any)?.presidentName;
+  if (presidentName) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(presidentName, margin, yPosition);
+    yPosition += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
+    yPosition += 4;
+  } else {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("_________________________________", margin, yPosition);
+    yPosition += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
+    yPosition += 4;
   }
 
-  doc.setFont("helvetica", "bold");
+  const currentDate = new Date();
+  const closedAt = auditData?.electionMetadata?.closedAt;
+  
+  yPosition += 15;
   doc.setFontSize(10);
-  doc.text("Informações de Auditoria", margin, yPosition);
-  yPosition += 7;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, yPosition);
-  yPosition += 5;
+  
+  if (closedAt) {
+    const closureDate = new Date(closedAt);
+    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
+    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    
+    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
+  } else {
+    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
+    
+    doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
+  }
+  
+  yPosition += 20;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.text("Este relatório foi gerado automaticamente pelo Sistema Emaús Vota.", margin, yPosition);
+  yPosition += 4;
   doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
 
   return doc.output('dataurlstring').split(',')[1];

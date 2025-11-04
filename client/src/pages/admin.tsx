@@ -35,7 +35,14 @@ import {
   Square,
   UserCheck,
   Download,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useLocation } from "wouter";
 import type { Election, Position, CandidateWithDetails, ElectionResults } from "@shared/schema";
 import ExportResultsImage, { type ExportResultsImageHandle } from "@/components/ExportResultsImage";
@@ -82,6 +89,8 @@ export default function AdminPage() {
   const [selectedPresidentId, setSelectedPresidentId] = useState("");
   const [pendingPdfElectionId, setPendingPdfElectionId] = useState<number | null>(null);
   const [pdfAction, setPdfAction] = useState<"finalize" | "download">("download");
+  const [isAttendanceListOpen, setIsAttendanceListOpen] = useState(false);
+  const [isMembersListOpen, setIsMembersListOpen] = useState(false);
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
@@ -578,6 +587,16 @@ export default function AdminPage() {
       
       const pdfBase64 = await generateElectionAuditPDFBase64(auditData);
       
+      const blob = await fetch(`data:application/pdf;base64,${pdfBase64}`).then(res => res.blob());
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Auditoria_${auditData.results?.electionName || 'Eleicao'}_${new Date().getTime()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
       const emailResponse = await apiRequest("POST", `/api/elections/${pendingPdfElectionId}/audit/send-email`, {
         presidentEmail: selectedPresident.email,
         presidentName: selectedPresident.fullName,
@@ -585,8 +604,8 @@ export default function AdminPage() {
       });
       
       toast({
-        title: "PDF enviado!",
-        description: `O relatório de auditoria foi enviado para ${selectedPresident.email}`,
+        title: "PDF enviado e baixado!",
+        description: `O relatório foi baixado e enviado para ${selectedPresident.email}`,
       });
       
       setIsPresidentDialogOpen(false);
@@ -600,8 +619,8 @@ export default function AdminPage() {
       }
     } catch (error) {
       toast({
-        title: "Erro ao enviar PDF",
-        description: error instanceof Error ? error.message : "Não foi possível enviar o relatório por email",
+        title: "Erro ao processar PDF",
+        description: error instanceof Error ? error.message : "Não foi possível gerar ou enviar o relatório",
         variant: "destructive",
       });
     }
@@ -1067,46 +1086,65 @@ export default function AdminPage() {
                           </p>
                         </div>
 
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                          {attendance.map((att) => {
-                            const member = members.find(m => m.id === att.memberId);
-                            const isAdmin = member?.isAdmin || false;
-                            
-                            // Skip admin in attendance list
-                            if (isAdmin) return null;
-                            
-                            return (
-                              <button
-                                key={att.memberId}
-                                onClick={() => setAttendanceMutation.mutate({
-                                  electionId: activeElection.id,
-                                  memberId: att.memberId,
-                                  isPresent: !att.isPresent
-                                })}
-                                className="w-full flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors text-left"
-                                data-testid={`button-toggle-attendance-${att.memberId}`}
-                              >
-                                {att.isPresent ? (
-                                  <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-                                ) : (
-                                  <Square className="w-5 h-5 text-muted-foreground shrink-0" />
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className={`font-medium truncate ${att.isPresent ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                    {att.memberName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {att.memberEmail}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <Collapsible open={isAttendanceListOpen} onOpenChange={setIsAttendanceListOpen}>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-between"
+                              data-testid="button-toggle-attendance-list"
+                            >
+                              <span>Lista de Presença</span>
+                              {isAttendanceListOpen ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-2">
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                              {attendance.map((att) => {
+                                const member = members.find(m => m.id === att.memberId);
+                                const isAdmin = member?.isAdmin || false;
+                                
+                                // Skip admin in attendance list
+                                if (isAdmin) return null;
+                                
+                                return (
+                                  <button
+                                    key={att.memberId}
+                                    onClick={() => setAttendanceMutation.mutate({
+                                      electionId: activeElection.id,
+                                      memberId: att.memberId,
+                                      isPresent: !att.isPresent
+                                    })}
+                                    className="w-full flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors text-left"
+                                    data-testid={`button-toggle-attendance-${att.memberId}`}
+                                  >
+                                    {att.isPresent ? (
+                                      <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                                    ) : (
+                                      <Square className="w-5 h-5 text-muted-foreground shrink-0" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`font-medium truncate ${att.isPresent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                        {att.memberName}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {att.memberEmail}
+                                      </p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
 
                         <Button
                           className="w-full"
                           onClick={() => {
+                            setIsAttendanceListOpen(false);
                             toast({
                               title: "Presença confirmada!",
                               description: `${presentCountData?.presentCount || 0} membros marcados como presentes`,
@@ -1446,92 +1484,108 @@ export default function AdminPage() {
                     <p className="text-sm mt-1">Cadastre membros para permitir votação</p>
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile view - Cards */}
-                    <div className="block sm:hidden space-y-3">
-                      {members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="p-4 border border-border rounded-lg"
-                          data-testid={`row-member-${member.id}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate" data-testid={`text-member-name-${member.id}`}>
-                                {member.fullName}
-                              </p>
-                              <p className="text-sm text-muted-foreground truncate mt-1">
-                                {member.email}
-                              </p>
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditMember(member)}
-                                data-testid={`button-edit-member-${member.id}`}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteMember(member.id)}
-                                data-testid={`button-delete-member-${member.id}`}
-                              >
-                                Remover
-                              </Button>
+                  <Collapsible open={isMembersListOpen} onOpenChange={setIsMembersListOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between mb-3"
+                        data-testid="button-toggle-members-list"
+                      >
+                        <span>Ver Lista de Membros</span>
+                        {isMembersListOpen ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {/* Mobile view - Cards */}
+                      <div className="block sm:hidden space-y-3">
+                        {members.map((member) => (
+                          <div
+                            key={member.id}
+                            className="p-4 border border-border rounded-lg"
+                            data-testid={`row-member-${member.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate" data-testid={`text-member-name-${member.id}`}>
+                                  {member.fullName}
+                                </p>
+                                <p className="text-sm text-muted-foreground truncate mt-1">
+                                  {member.email}
+                                </p>
+                              </div>
+                              <div className="flex gap-2 shrink-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditMember(member)}
+                                  data-testid={`button-edit-member-${member.id}`}
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteMember(member.id)}
+                                  data-testid={`button-delete-member-${member.id}`}
+                                >
+                                  Remover
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
 
-                    {/* Desktop view - Table */}
-                    <div className="hidden sm:block overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="text-left px-6 py-3 font-semibold text-sm">Nome</th>
-                            <th className="text-left px-6 py-3 font-semibold text-sm">Email</th>
-                            <th className="text-right px-6 py-3 font-semibold text-sm">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {members.map((member) => (
-                            <tr 
-                              key={member.id} 
-                              className="border-b border-border hover:bg-muted/30 transition-colors"
-                              data-testid={`row-member-${member.id}`}
-                            >
-                              <td className="px-6 py-4" data-testid={`text-member-name-${member.id}`}>{member.fullName}</td>
-                              <td className="px-6 py-4 text-muted-foreground">{member.email}</td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEditMember(member)}
-                                    data-testid={`button-edit-member-${member.id}`}
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeleteMember(member.id)}
-                                    data-testid={`button-delete-member-${member.id}`}
-                                  >
-                                    Remover
-                                  </Button>
-                                </div>
-                              </td>
+                      {/* Desktop view - Table */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border bg-muted/50">
+                              <th className="text-left px-6 py-3 font-semibold text-sm">Nome</th>
+                              <th className="text-left px-6 py-3 font-semibold text-sm">Email</th>
+                              <th className="text-right px-6 py-3 font-semibold text-sm">Ações</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
+                          </thead>
+                          <tbody>
+                            {members.map((member) => (
+                              <tr 
+                                key={member.id} 
+                                className="border-b border-border hover:bg-muted/30 transition-colors"
+                                data-testid={`row-member-${member.id}`}
+                              >
+                                <td className="px-6 py-4" data-testid={`text-member-name-${member.id}`}>{member.fullName}</td>
+                                <td className="px-6 py-4 text-muted-foreground">{member.email}</td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEditMember(member)}
+                                      data-testid={`button-edit-member-${member.id}`}
+                                    >
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteMember(member.id)}
+                                      data-testid={`button-delete-member-${member.id}`}
+                                    >
+                                      Remover
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </CardContent>
             </Card>

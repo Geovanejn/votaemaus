@@ -388,15 +388,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const electionId = parseInt(req.params.id);
       const attendance = storage.getElectionAttendance(electionId);
       
-      // Join with user information
-      const attendanceWithUsers = attendance.map(att => {
-        const user = storage.getUserById(att.memberId);
-        return {
-          ...att,
-          memberName: user?.fullName || '',
-          memberEmail: user?.email || '',
-        };
-      });
+      // Get winners for this election to exclude them from attendance list
+      const winners = storage.getElectionWinners(electionId);
+      const winnerUserIds = new Set(winners.map(w => w.userId));
+      
+      // Join with user information and filter out winners
+      const attendanceWithUsers = attendance
+        .map(att => {
+          const user = storage.getUserById(att.memberId);
+          return {
+            ...att,
+            memberName: user?.fullName || '',
+            memberEmail: user?.email || '',
+          };
+        })
+        .filter(att => !winnerUserIds.has(att.memberId));
       
       res.json(attendanceWithUsers);
     } catch (error) {

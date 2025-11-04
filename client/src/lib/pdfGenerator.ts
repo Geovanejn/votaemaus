@@ -145,7 +145,54 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("2. Resultados por Cargo e Escrutínio", margin, yPosition);
+  doc.text("2. Resultados por Cargo", margin, yPosition);
+  yPosition += 6;
+
+  // Tabela resumida com todos os resultados na primeira página
+  const summaryData = completedPositions.map((position) => {
+    const electedCandidate = position.candidates.find(c => c.isElected);
+    const scrutinyUsed = electedCandidate?.electedInScrutiny || position.currentScrutiny;
+    return [
+      position.positionName,
+      electedCandidate?.candidateName || "Não definido",
+      `${electedCandidate?.voteCount || 0} votos`,
+      `${scrutinyUsed}º escrutínio`,
+    ];
+  });
+
+  autoTable(doc, {
+    startY: yPosition,
+    head: [["Cargo", "Eleito", "Votos", "Escrutínio"]],
+    body: summaryData,
+    theme: "grid",
+    headStyles: { 
+      fillColor: [255, 165, 0],
+      textColor: [255, 255, 255], 
+      fontStyle: "bold",
+      halign: "center",
+      fontSize: 9
+    },
+    styles: { fontSize: 9, cellPadding: 3 },
+    columnStyles: {
+      0: { cellWidth: 50, fontStyle: "bold" },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 30, halign: "center" },
+      3: { cellWidth: 30, halign: "center" },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+  // Adicionar nova página para detalhes
+  if (yPosition > pageHeight - 40) {
+    doc.addPage();
+    yPosition = margin;
+  }
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("3. Detalhamento por Cargo e Escrutínio", margin, yPosition);
   yPosition += 8;
 
   completedPositions.forEach((position, index) => {
@@ -221,7 +268,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("3. Detalhamento de Votos Individuais", margin, yPosition);
+    doc.text("4. Detalhamento de Votos Individuais", margin, yPosition);
     yPosition += 5;
 
     doc.setFontSize(8);
@@ -401,6 +448,56 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("Resultados por Cargo", margin, yPosition);
+  yPosition += 6;
+
+  // Tabela resumida com todos os resultados na primeira página
+  const completedPositions = results.positions.filter(p => p.status === "completed");
+  const summaryData = completedPositions.map((position) => {
+    const electedCandidate = position.candidates.find(c => c.isElected);
+    const scrutinyUsed = electedCandidate?.electedInScrutiny || electedCandidate?.wonAtScrutiny || position.currentScrutiny;
+    return [
+      position.positionName,
+      electedCandidate?.candidateName || "Não definido",
+      `${electedCandidate?.voteCount || 0} votos`,
+      `${scrutinyUsed}º escrutínio`,
+    ];
+  });
+
+  if (summaryData.length > 0) {
+    autoTable(doc, {
+      startY: yPosition,
+      head: [["Cargo", "Eleito", "Votos", "Escrutínio"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { 
+        fillColor: [255, 165, 0],
+        textColor: [255, 255, 255], 
+        fontStyle: "bold",
+        halign: "center",
+        fontSize: 9
+      },
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 50, fontStyle: "bold" },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 30, halign: "center" },
+        3: { cellWidth: 30, halign: "center" },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Adicionar nova página para detalhes se necessário
+  if (yPosition > pageHeight - 40) {
+    doc.addPage();
+    yPosition = margin;
+  }
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Detalhamento por Cargo", margin, yPosition);
   yPosition += 8;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);

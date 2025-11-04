@@ -61,15 +61,25 @@ Key features include:
 
 ## Recent Bug Fixes (November 4, 2025)
 
-### Candidate Filter Bug
-**Issue**: Elected candidates were appearing in the nomination list for subsequent positions.
-**Root Cause**: The availableMembers query was executing without an `electionId` parameter, causing the backend to skip winner filtering.
-**Solution**: Added `&& !!activeElection` validation to the query's `enabled` condition, ensuring the query only executes when both the dialog is open AND an active election exists. This guarantees that `electionId` is always sent to the backend, which properly filters out already-elected members.
+### Elected Members in Nomination List Bug (FINAL FIX)
+**Issue**: Elected candidates were still appearing in the "Indicação de Membros para Candidatura" dialog for subsequent positions, despite previous fix attempts.
+**Root Cause**: The nomination dialog uses the `/api/elections/:id/attendance` endpoint, which was NOT filtering out elected members. The previous fix only addressed the `/api/members/non-admins` endpoint used by a different dialog.
+**Solution**: Modified `/api/elections/:id/attendance` route in `server/routes.ts` to:
+1. Query `storage.getElectionWinners(electionId)` to get all winners for the current election
+2. Build a Set of winner user IDs for efficient filtering
+3. Filter the attendance list to exclude any member whose ID is in the winner Set
+4. This ensures elected members (like Geovane Nascimento who was elected Presidente) no longer appear when nominating for Vice-Presidente or other positions
 
-### PDF Audit Report Spacing
-**Issue**: First page had excessive blank space (only showing Presidente and Vice-Presidente), and text elements had inconsistent spacing causing overlaps.
-**Root Cause**: Accumulated spacing of 36 units (18+18) between header and content sections, plus inconsistent line spacing (ranging from 3 to 21 units).
-**Solution**: 
-- Reduced total spacing to 18 units (10+8) to eliminate first-page blank space
-- Standardized all line spacing to consistent 4-5 unit increments
-- Applied corrections to both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` functions for consistency
+### PDF Audit Report - All Results on First Page
+**Issue**: PDF audit report was spreading position results across multiple pages, requiring users to flip through pages to see all elected candidates.
+**User Request**: Show all election results (cargo and elected candidate) on the first page for quick reference.
+**Solution**: Modified both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` in `client/src/lib/pdfGenerator.ts` to:
+1. Added a new section "2. Resultados por Cargo" with a compact summary table showing all completed positions with:
+   - Cargo (position name)
+   - Eleito (elected candidate name)  
+   - Votos (vote count)
+   - Escrutínio (scrutiny round)
+2. Moved detailed breakdown to section "3. Detalhamento por Cargo e Escrutínio"
+3. Renumbered "Detalhamento de Votos Individuais" to section "4." for proper sequencing
+4. Removed verbose debug logging that could leak PII in production
+5. Now users can see all election winners at a glance on page 1, with full details following on subsequent pages

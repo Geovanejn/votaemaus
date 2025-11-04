@@ -79,6 +79,7 @@ export interface IStorage {
   getElectionResults(electionId: number): ElectionResults | null;
   getLatestElectionResults(): ElectionResults | null;
   getElectionWinners(electionId: number): Array<{ userId: number; positionId: number; candidateId: number; wonAtScrutiny: number }>;
+  getAllElectionWinners(): Array<{ userId: number; positionId: number; candidateId: number; wonAtScrutiny: number; electionId: number }>;
   
   getVoterAttendance(electionId: number): Array<any>;
   getVoteTimeline(electionId: number): Array<any>;
@@ -1207,6 +1208,23 @@ export class SQLiteStorage implements IStorage {
     
     const results = stmt.all(electionId) as any[];
     console.log(`[DB] getElectionWinners for election ${electionId}:`, results);
+    return results;
+  }
+
+  getAllElectionWinners(): Array<{ userId: number; positionId: number; candidateId: number; wonAtScrutiny: number; electionId: number }> {
+    const stmt = db.prepare(`
+      SELECT 
+        c.user_id as userId,
+        ew.position_id as positionId,
+        ew.candidate_id as candidateId,
+        ew.won_at_scrutiny as wonAtScrutiny,
+        ew.election_id as electionId
+      FROM election_winners ew
+      INNER JOIN candidates c ON c.id = ew.candidate_id
+    `);
+    
+    const results = stmt.all() as any[];
+    console.log(`[DB] getAllElectionWinners:`, results);
     return results;
   }
 

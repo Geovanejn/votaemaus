@@ -34,8 +34,8 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  let yPosition = 10;
+  const margin = 10;
+  let yPosition = 8;
 
   const maxLogoWidth = pageWidth * 0.3;
   
@@ -59,470 +59,57 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
 
   doc.setFontSize(11);
   doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
+  yPosition += 8;
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   
-  // Remove "Eleição: " prefix if election name already starts with "Eleição"
   const electionTitle = results.electionName.startsWith("Eleição") 
     ? results.electionName 
     : `Eleição ${results.electionName}`;
   doc.text(electionTitle, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
   
   const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
   doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
-  yPosition += 5;
+  yPosition += 4;
 
   const closedAt = auditData?.electionMetadata?.closedAt;
   if (closedAt) {
     const closureDate = new Date(closedAt);
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
+    const formattedDate = `${String(closureDate.getDate()).padStart(2, '0')}/${String(closureDate.getMonth() + 1).padStart(2, '0')}/${closureDate.getFullYear()}`;
     const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     
-    doc.text(`Data de Fechamento: ${formattedDate} às ${formattedTime}`, margin, yPosition);
-    yPosition += 5;
-  }
-
-  doc.text(`Localização: São Paulo, SP`, margin, yPosition);
-  yPosition += 10;
-
-  if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("1. Lista de Votantes Presentes", margin, yPosition);
-    yPosition += 5;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    const voterData = auditData.voterAttendance.map((v: any) => [
-      v.voterName,
-      v.voterEmail,
-      v.totalVotes.toString(),
-      new Date(v.firstVoteAt).toLocaleString("pt-BR", { 
-        day: "2-digit", 
-        month: "2-digit", 
-        hour: "2-digit", 
-        minute: "2-digit" 
-      }),
-    ]);
-
-    autoTable(doc, {
-      startY: yPosition,
-      head: [["Nome", "Email", "Votos", "Primeiro Voto"]],
-      body: voterData,
-      theme: "grid",
-      headStyles: { 
-        fillColor: [255, 165, 0],
-        textColor: [255, 255, 255], 
-        fontStyle: "bold",
-        halign: "center",
-        fontSize: 9
-      },
-      styles: { fontSize: 8, cellPadding: 2 },
-      margin: { left: margin, right: margin },
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 6;
-  }
-
-  const completedPositions = results.positions.filter(p => p.status === "completed");
-
-  if (completedPositions.length === 0) {
-    doc.text("Nenhum cargo foi concluído nesta eleição.", margin, yPosition);
-    doc.save(`Auditoria_${results.electionName.replace(/\s+/g, "_")}.pdf`);
-    return;
-  }
-
-  if (yPosition > pageHeight - 60) {
-    doc.addPage();
-    yPosition = margin;
-  }
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("2. Resultados por Cargo", margin, yPosition);
-  yPosition += 6;
-
-  // Tabela resumida com todos os resultados na primeira página
-  const summaryData = completedPositions.map((position) => {
-    const electedCandidate = position.candidates.find(c => c.isElected);
-    const scrutinyUsed = electedCandidate?.electedInScrutiny || position.currentScrutiny;
-    return [
-      position.positionName,
-      electedCandidate?.candidateName || "Não definido",
-      `${electedCandidate?.voteCount || 0} votos`,
-      `${scrutinyUsed}º escrutínio`,
-    ];
-  });
-
-  autoTable(doc, {
-    startY: yPosition,
-    head: [["Cargo", "Eleito", "Votos", "Escrutínio"]],
-    body: summaryData,
-    theme: "grid",
-    headStyles: { 
-      fillColor: [255, 165, 0],
-      textColor: [255, 255, 255], 
-      fontStyle: "bold",
-      halign: "center",
-      fontSize: 9
-    },
-    styles: { fontSize: 9, cellPadding: 3 },
-    columnStyles: {
-      0: { cellWidth: 50, fontStyle: "bold" },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 30, halign: "center" },
-      3: { cellWidth: 30, halign: "center" },
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  yPosition = (doc as any).lastAutoTable.finalY + 10;
-
-  // Adicionar nova página para detalhes
-  if (yPosition > pageHeight - 40) {
-    doc.addPage();
-    yPosition = margin;
-  }
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("3. Detalhamento por Cargo e Escrutínio", margin, yPosition);
-  yPosition += 8;
-
-  completedPositions.forEach((position, index) => {
-    if (yPosition > pageHeight - 65) {
-      doc.addPage();
-      yPosition = margin;
-    }
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${index + 1}. ${position.positionName}`, margin, yPosition);
-    yPosition += 5;
-
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    
-    const electedCandidate = position.candidates.find(c => c.isElected);
-    const scrutinyUsed = electedCandidate?.electedInScrutiny || position.currentScrutiny;
-    
-    doc.text(`Escrutínio de Eleição: ${scrutinyUsed}º`, margin, yPosition);
-    yPosition += 4;
-    doc.text(`Total de Votantes: ${position.totalVoters}`, margin, yPosition);
-    yPosition += 4;
-    doc.text(`Maioria Necessária: ${position.majorityThreshold} votos`, margin, yPosition);
-    yPosition += 5;
-
-    if (electedCandidate) {
-      doc.setFillColor(220, 252, 231);
-      doc.rect(margin - 2, yPosition - 3, pageWidth - 2 * margin + 4, 6, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text(`✓ Eleito: ${electedCandidate.candidateName} (${electedCandidate.voteCount} votos)`, margin, yPosition);
-      yPosition += 6;
-    }
-
-    const tableData = position.candidates.map(candidate => [
-      candidate.candidateName,
-      candidate.candidateEmail,
-      candidate.voteCount.toString(),
-      candidate.isElected ? "Sim" : "Não",
-    ]);
-
-    autoTable(doc, {
-      startY: yPosition,
-      head: [["Candidato", "Email", "Votos", "Eleito"]],
-      body: tableData,
-      theme: "grid",
-      headStyles: { 
-        fillColor: [255, 165, 0],
-        textColor: [255, 255, 255], 
-        fontStyle: "bold",
-        halign: "center",
-        fontSize: 8
-      },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 65 },
-        2: { cellWidth: 25, halign: "center" },
-        3: { cellWidth: 25, halign: "center" },
-      },
-      margin: { left: margin, right: margin },
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 8;
-  });
-
-  if (auditData?.voteTimeline && auditData.voteTimeline.length > 0) {
-    if (yPosition > pageHeight - 35) {
-      doc.addPage();
-      yPosition = margin;
-    }
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("4. Detalhamento de Votos Individuais", margin, yPosition);
-    yPosition += 5;
-
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.text("Registro completo de quem votou em quem em cada cargo:", margin, yPosition);
+    doc.text(`Data de Criação: ${formattedDate} às ${formattedTime}`, margin, yPosition);
     yPosition += 6;
-
-    const voteTimelineData = auditData.voteTimeline.map((v: any) => [
-      v.voterName,
-      v.positionName,
-      v.candidateName,
-      `${v.scrutinyRound}º`,
-      new Date(v.votedAt).toLocaleString("pt-BR", { 
-        day: "2-digit", 
-        month: "2-digit",
-        hour: "2-digit", 
-        minute: "2-digit" 
-      }),
-    ]);
-
-    autoTable(doc, {
-      startY: yPosition,
-      head: [["Votante", "Cargo", "Candidato Escolhido", "Esc.", "Data/Hora"]],
-      body: voteTimelineData,
-      theme: "grid",
-      headStyles: { 
-        fillColor: [255, 165, 0],
-        textColor: [255, 255, 255], 
-        fontStyle: "bold",
-        halign: "center",
-        fontSize: 7
-      },
-      styles: { fontSize: 7, cellPadding: 1.5 },
-      columnStyles: {
-        0: { cellWidth: 40 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 15, halign: "center" },
-        4: { cellWidth: 30, halign: "center" },
-      },
-      margin: { left: margin, right: margin },
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 6;
   }
-
-  // Only add new page for signature if there's not enough space
-  if (yPosition > pageHeight - 80) {
-    doc.addPage();
-    yPosition = margin;
-  } else {
-    yPosition += 10;
-  }
-
-  doc.setDrawColor(0, 0, 0);
-  doc.line(margin, yPosition, margin + 80, yPosition);
-  yPosition += 4;
-  
-  const presidentName = (auditData as any)?.presidentName;
-  if (presidentName) {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(presidentName, margin, yPosition);
-    yPosition += 3;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 3;
-  } else {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("_________________________________", margin, yPosition);
-    yPosition += 3;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 3;
-  }
-  
-  yPosition += 10;
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-
-  const currentDate = new Date();
-  if (closedAt) {
-    const closureDate = new Date(closedAt);
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
-    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  } else {
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
-    
-    doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
-  }
-  
-  yPosition += 12;
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "italic");
-  doc.text("Este relatório foi gerado automaticamente pelo Sistema Emaús Vota.", margin, yPosition);
-  yPosition += 3;
-  doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
-
-  const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
-  doc.save(fileName);
-}
-
-export async function generateElectionAuditPDFBase64(electionResults: ElectionResults | ElectionAuditData): Promise<string> {
-  const results = 'results' in electionResults ? electionResults.results : electionResults;
-  const auditData = 'results' in electionResults ? electionResults : null;
-  const doc = new jsPDF();
-  
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  let yPosition = 10;
-
-  const maxLogoWidth = pageWidth * 0.3;
-  
-  try {
-    const logoImage = await loadImageAsBase64('/logo-ump.png');
-    const aspectRatio = logoImage.height / logoImage.width;
-    const logoWidth = maxLogoWidth;
-    const logoHeight = logoWidth * aspectRatio;
-    
-    doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 2;
-  } catch (error) {
-    console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 2;
-  }
-
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 5;
-
-  doc.setFontSize(11);
-  doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
 
   doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  
-  const electionTitle = results.electionName.startsWith("Eleição") 
-    ? results.electionName 
-    : `Eleição ${results.electionName}`;
-  doc.text(electionTitle, margin, yPosition);
-  yPosition += 5;
-  
-  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
-  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
-  yPosition += 5;
-
-  if (auditData?.electionMetadata) {
-    const createdDate = new Date(auditData.electionMetadata.createdAt);
-    const createdDateStr = createdDate.toLocaleDateString('pt-BR');
-    const createdTimeStr = createdDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    doc.text(`Data de Criação: ${createdDateStr} às ${createdTimeStr}`, margin, yPosition);
-    yPosition += 5;
-    if (auditData.electionMetadata.closedAt) {
-      const closedDate = new Date(auditData.electionMetadata.closedAt);
-      const closedDateStr = closedDate.toLocaleDateString('pt-BR');
-      const closedTimeStr = closedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      doc.text(`Data de Encerramento: ${closedDateStr} às ${closedTimeStr}`, margin, yPosition);
-      yPosition += 5;
-    }
-  }
-  
-  yPosition += 6;
-
-  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("Resultados por Cargo", margin, yPosition);
   yPosition += 6;
 
-  // Tabela resumida com todos os resultados na primeira página
-  const completedPositions = results.positions.filter(p => p.status === "completed");
-  const summaryData = completedPositions.map((position) => {
-    const electedCandidate = position.candidates.find(c => c.isElected);
-    const scrutinyUsed = electedCandidate?.electedInScrutiny || electedCandidate?.wonAtScrutiny || position.currentScrutiny;
-    return [
-      position.positionName,
-      electedCandidate?.candidateName || "Não definido",
-      `${electedCandidate?.voteCount || 0} votos`,
-      `${scrutinyUsed}º escrutínio`,
-    ];
-  });
-
-  if (summaryData.length > 0) {
-    autoTable(doc, {
-      startY: yPosition,
-      head: [["Cargo", "Eleito", "Votos", "Escrutínio"]],
-      body: summaryData,
-      theme: "grid",
-      headStyles: { 
-        fillColor: [255, 165, 0],
-        textColor: [255, 255, 255], 
-        fontStyle: "bold",
-        halign: "center",
-        fontSize: 9
-      },
-      styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: {
-        0: { cellWidth: 50, fontStyle: "bold" },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 30, halign: "center" },
-        3: { cellWidth: 30, halign: "center" },
-      },
-      margin: { left: margin, right: margin },
-    });
-
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
-  }
-
-  // Adicionar nova página para detalhes se necessário
-  if (yPosition > pageHeight - 40) {
-    doc.addPage();
-    yPosition = margin;
-  }
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("Detalhamento por Cargo", margin, yPosition);
-  yPosition += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-
   for (const position of results.positions) {
-    if (yPosition > pageHeight - 100) {
+    if (yPosition > pageHeight - 50) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.text(position.positionName, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(`Escrutínio: ${position.currentScrutiny}º`, margin, yPosition);
-    yPosition += 4;
+    yPosition += 3;
     doc.text(`Status: ${position.status === 'completed' ? 'Concluído' : position.status === 'active' ? 'Ativo' : 'Pendente'}`, margin, yPosition);
-    yPosition += 5;
+    yPosition += 4;
 
     const tableData = position.candidates.map((candidate) => {
       const status = candidate.isElected 
-        ? `✓ Eleito (${candidate.wonAtScrutiny || candidate.electedInScrutiny}º escrutínio)`
+        ? `✓ ${candidate.voteCount} votos`
         : `${candidate.voteCount} voto${candidate.voteCount !== 1 ? 's' : ''}`;
       return [
         candidate.candidateName,
@@ -539,41 +126,43 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
         headStyles: {
           fillColor: [255, 165, 0],
           textColor: [255, 255, 255],
-          fontSize: 8,
+          fontSize: 7,
           fontStyle: 'bold',
         },
         bodyStyles: {
           fontSize: 7,
-          cellPadding: 2,
+          cellPadding: 1.5,
         },
         margin: { left: margin, right: margin },
-        didDrawPage: (data) => {
-          yPosition = data.cursor!.y;
-        },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 5;
+      yPosition = (doc as any).lastAutoTable.finalY + 4;
     } else {
-      doc.text("Nenhum candidato registrado para este cargo", margin + 5, yPosition);
-      yPosition += 5;
+      doc.text("Nenhum candidato registrado para este cargo", margin, yPosition);
+      yPosition += 4;
     }
   }
 
-  if (auditData) {
-    if (yPosition > pageHeight - 70) {
+  if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
+    if (yPosition > pageHeight - 50) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.text("Presença de Membros", margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
-    const attendanceData = auditData.voterAttendance.map((voter) => [
+    const attendanceData = auditData.voterAttendance.map((voter: any) => [
       voter.voterName,
       voter.totalVotes.toString(),
-      new Date(voter.firstVoteAt).toLocaleString('pt-BR'),
+      new Date(voter.firstVoteAt).toLocaleString('pt-BR', { 
+        day: "2-digit", 
+        month: "2-digit", 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      }),
     ]);
 
     autoTable(doc, {
@@ -584,41 +173,45 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       headStyles: {
         fillColor: [255, 165, 0],
         textColor: [255, 255, 255],
-        fontSize: 8,
+        fontSize: 7,
         fontStyle: 'bold',
       },
       bodyStyles: {
         fontSize: 7,
-        cellPadding: 2,
+        cellPadding: 1.5,
       },
       margin: { left: margin, right: margin },
-      didDrawPage: (data) => {
-        yPosition = data.cursor!.y;
-      },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 6;
+    yPosition = (doc as any).lastAutoTable.finalY + 5;
+  }
 
-    if (yPosition > pageHeight - 70) {
+  if (auditData?.voteTimeline && auditData.voteTimeline.length > 0) {
+    if (yPosition > pageHeight - 50) {
       doc.addPage();
       yPosition = margin;
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.text("Linha do Tempo de Votação", margin, yPosition);
-    yPosition += 6;
+    yPosition += 5;
 
-    const timelineData = auditData.voteTimeline.map((vote) => [
-      new Date(vote.votedAt).toLocaleString('pt-BR'),
+    const timelineData = auditData.voteTimeline.map((vote: any) => [
       vote.voterName,
       vote.positionName,
-      `${vote.scrutinyRound}º escrutínio`,
+      `${vote.scrutinyRound}º`,
+      new Date(vote.votedAt).toLocaleString('pt-BR', { 
+        day: "2-digit", 
+        month: "2-digit", 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      }),
     ]);
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['Data/Hora', 'Membro', 'Cargo', 'Escrutínio']],
+      head: [['Membro', 'Cargo', 'Escrutínio', 'Data/Hora']],
       body: timelineData,
       theme: 'grid',
       headStyles: {
@@ -632,76 +225,222 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
         cellPadding: 1.5,
       },
       margin: { left: margin, right: margin },
-      didDrawPage: (data) => {
-        yPosition = data.cursor!.y;
-      },
     });
 
-    yPosition = (doc as any).lastAutoTable.finalY + 6;
+    yPosition = (doc as any).lastAutoTable.finalY + 5;
   }
 
-  // Only add new page for signature if there's not enough space
-  if (yPosition > pageHeight - 80) {
+  if (yPosition > pageHeight - 50) {
     doc.addPage();
     yPosition = margin;
   } else {
-    yPosition += 10;
+    yPosition += 8;
   }
 
-  doc.setDrawColor(0, 0, 0);
-  doc.line(margin, yPosition, margin + 80, yPosition);
-  yPosition += 4;
+  const fileName = `Auditoria_${results.electionName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`;
+  doc.save(fileName);
+}
+
+export async function generateElectionAuditPDFBase64(electionResults: ElectionResults | ElectionAuditData): Promise<string> {
+  const results = 'results' in electionResults ? electionResults.results : electionResults;
+  const auditData = 'results' in electionResults ? electionResults : null;
+  const doc = new jsPDF();
   
-  const presidentName = (auditData as any)?.presidentName;
-  if (presidentName) {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(presidentName, margin, yPosition);
-    yPosition += 3;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 3;
-  } else {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("_________________________________", margin, yPosition);
-    yPosition += 3;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Presidente em Exercício da UMP Emaús", margin, yPosition);
-    yPosition += 3;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 10;
+  let yPosition = 8;
+
+  const maxLogoWidth = pageWidth * 0.3;
+  
+  try {
+    const logoImage = await loadImageAsBase64('/logo-ump.png');
+    const aspectRatio = logoImage.height / logoImage.width;
+    const logoWidth = maxLogoWidth;
+    const logoHeight = logoWidth * aspectRatio;
+    
+    doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
+    yPosition += logoHeight + 2;
+  } catch (error) {
+    console.warn('Logo não pôde ser carregado no PDF:', error);
+    yPosition += 2;
   }
 
-  const currentDate = new Date();
-  const closedAt = auditData?.electionMetadata?.closedAt;
-  
-  yPosition += 10;
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("RELATÓRIO DE AUDITORIA DE ELEIÇÃO", pageWidth / 2, yPosition, { align: "center" });
+  yPosition += 5;
+
+  doc.setFontSize(11);
+  doc.text("União de Mocidade Presbiteriana Emaús", pageWidth / 2, yPosition, { align: "center" });
+  yPosition += 8;
+
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   
-  if (closedAt) {
-    const closureDate = new Date(closedAt);
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${closureDate.getDate()} de ${monthNames[closureDate.getMonth()]} de ${closureDate.getFullYear()}`;
-    const formattedTime = closureDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    
-    doc.text(`São Paulo, SP, ${formattedDate} às ${formattedTime}`, pageWidth / 2, yPosition, { align: "center" });
-  } else {
-    const monthNames = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-                        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-    const formattedDate = `${currentDate.getDate()} de ${monthNames[currentDate.getMonth()]} de ${currentDate.getFullYear()}`;
-    
-    doc.text(`São Paulo, SP, ${formattedDate}`, pageWidth / 2, yPosition, { align: "center" });
-  }
+  const electionTitle = results.electionName.startsWith("Eleição") 
+    ? results.electionName 
+    : `Eleição ${results.electionName}`;
+  doc.text(electionTitle, margin, yPosition);
+  yPosition += 4;
   
-  yPosition += 12;
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "italic");
-  doc.text("Este relatório foi gerado automaticamente pelo Sistema Emaús Vota.", margin, yPosition);
-  yPosition += 3;
-  doc.text("Representa o registro oficial e auditável dos resultados da eleição.", margin, yPosition);
+  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
+  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
+  yPosition += 4;
+
+  if (auditData?.electionMetadata?.closedAt) {
+    const closedDate = new Date(auditData.electionMetadata.closedAt);
+    const formattedDate = `${String(closedDate.getDate()).padStart(2, '0')}/${String(closedDate.getMonth() + 1).padStart(2, '0')}/${closedDate.getFullYear()}`;
+    const formattedTime = closedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    doc.text(`Data de Criação: ${formattedDate} às ${formattedTime}`, margin, yPosition);
+    yPosition += 6;
+  }
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Resultados por Cargo", margin, yPosition);
+  yPosition += 6;
+
+  for (const position of results.positions) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(position.positionName, margin, yPosition);
+    yPosition += 4;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(`Escrutínio: ${position.currentScrutiny}º`, margin, yPosition);
+    yPosition += 3;
+    doc.text(`Status: ${position.status === 'completed' ? 'Concluído' : position.status === 'active' ? 'Ativo' : 'Pendente'}`, margin, yPosition);
+    yPosition += 4;
+
+    const tableData = position.candidates.map((candidate) => {
+      const status = candidate.isElected 
+        ? `✓ ${candidate.voteCount} votos`
+        : `${candidate.voteCount} voto${candidate.voteCount !== 1 ? 's' : ''}`;
+      return [
+        candidate.candidateName,
+        status,
+      ];
+    });
+
+    if (tableData.length > 0) {
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Candidato', 'Resultado']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [255, 165, 0],
+          textColor: [255, 255, 255],
+          fontSize: 7,
+          fontStyle: 'bold',
+        },
+        bodyStyles: {
+          fontSize: 7,
+          cellPadding: 1.5,
+        },
+        margin: { left: margin, right: margin },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 4;
+    } else {
+      doc.text("Nenhum candidato registrado para este cargo", margin, yPosition);
+      yPosition += 4;
+    }
+  }
+
+  if (auditData?.voterAttendance && auditData.voterAttendance.length > 0) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Presença de Membros", margin, yPosition);
+    yPosition += 5;
+
+    const attendanceData = auditData.voterAttendance.map((voter: any) => [
+      voter.voterName,
+      voter.totalVotes.toString(),
+      new Date(voter.firstVoteAt).toLocaleString('pt-BR', { 
+        day: "2-digit", 
+        month: "2-digit", 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      }),
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Nome', 'Total de Votos', 'Primeira Votação']],
+      body: attendanceData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [255, 165, 0],
+        textColor: [255, 255, 255],
+        fontSize: 7,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 7,
+        cellPadding: 1.5,
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 5;
+  }
+
+  if (auditData?.voteTimeline && auditData.voteTimeline.length > 0) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Linha do Tempo de Votação", margin, yPosition);
+    yPosition += 5;
+
+    const timelineData = auditData.voteTimeline.map((vote: any) => [
+      vote.voterName,
+      vote.positionName,
+      `${vote.scrutinyRound}º`,
+      new Date(vote.votedAt).toLocaleString('pt-BR', { 
+        day: "2-digit", 
+        month: "2-digit", 
+        hour: "2-digit", 
+        minute: "2-digit" 
+      }),
+    ]);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Membro', 'Cargo', 'Escrutínio', 'Data/Hora']],
+      body: timelineData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [255, 165, 0],
+        textColor: [255, 255, 255],
+        fontSize: 7,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 7,
+        cellPadding: 1.5,
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 5;
+  }
 
   return doc.output('dataurlstring').split(',')[1];
 }

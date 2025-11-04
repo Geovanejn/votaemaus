@@ -856,15 +856,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const winners = storage.getElectionWinners(electionId);
         const winnerUserIds = new Set(winners.map(w => w.userId));
         
+        console.log(`\n[API /api/members/non-admins] ========== MEMBER FILTERING DEBUG ==========`);
         console.log(`[DEBUG] Election ID: ${electionId}`);
-        console.log(`[DEBUG] Winners found:`, winners);
+        console.log(`[DEBUG] Winners found:`, JSON.stringify(winners, null, 2));
         console.log(`[DEBUG] Winner User IDs:`, Array.from(winnerUserIds));
         console.log(`[DEBUG] Total members before filtering:`, membersWithoutPasswords.length);
+        console.log(`[DEBUG] Members before filtering (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
         
         // Filter by winners
-        membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
+        const beforeWinnerFilter = membersWithoutPasswords.length;
+        membersWithoutPasswords = membersWithoutPasswords.filter(m => {
+          const isWinner = winnerUserIds.has(m.id);
+          if (isWinner) {
+            console.log(`[DEBUG] Filtering out winner: ${m.fullName} (id: ${m.id})`);
+          }
+          return !isWinner;
+        });
         
+        console.log(`[DEBUG] Filtered out ${beforeWinnerFilter - membersWithoutPasswords.length} winners`);
         console.log(`[DEBUG] Members after winner filter:`, membersWithoutPasswords.length);
+        console.log(`[DEBUG] Remaining members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
         
         // Filter by presence - only include members who are present
         membersWithoutPasswords = membersWithoutPasswords.filter(m => 
@@ -872,6 +883,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         console.log(`[DEBUG] Members after presence filter:`, membersWithoutPasswords.length);
+        console.log(`[DEBUG] Final members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
+        console.log(`[API /api/members/non-admins] ========== END DEBUG ==========\n`);
       }
       
       res.json(membersWithoutPasswords);

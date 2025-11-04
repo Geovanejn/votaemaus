@@ -368,6 +368,12 @@ export class SQLiteStorage implements IStorage {
   }
 
   setWinner(electionId: number, candidateId: number, positionId: number, scrutiny: number): void {
+    // Get candidate info for logging
+    const candidateStmt = db.prepare("SELECT user_id, name FROM candidates WHERE id = ?");
+    const candidate = candidateStmt.get(candidateId) as any;
+    
+    console.log(`[setWinner] Setting winner for election ${electionId}, position ${positionId}, candidate ${candidateId} (userId: ${candidate?.user_id}), scrutiny ${scrutiny}`);
+    
     // Insert or update winner for this position
     const checkStmt = db.prepare("SELECT id FROM election_winners WHERE election_id = ? AND position_id = ?");
     const existing = checkStmt.get(electionId, positionId) as any;
@@ -375,9 +381,11 @@ export class SQLiteStorage implements IStorage {
     if (existing) {
       const updateStmt = db.prepare("UPDATE election_winners SET candidate_id = ?, won_at_scrutiny = ? WHERE election_id = ? AND position_id = ?");
       updateStmt.run(candidateId, scrutiny, electionId, positionId);
+      console.log(`[setWinner] Updated existing winner record`);
     } else {
       const insertStmt = db.prepare("INSERT INTO election_winners (election_id, position_id, candidate_id, won_at_scrutiny) VALUES (?, ?, ?, ?)");
       insertStmt.run(electionId, positionId, candidateId, scrutiny);
+      console.log(`[setWinner] Inserted new winner record`);
     }
     
     // Mark the election_position as completed

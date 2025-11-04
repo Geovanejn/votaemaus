@@ -97,3 +97,13 @@ This provides a more streamlined UX by removing an unnecessary dialog step.
 2. Both display opening date (createdAt) and closing date (closedAt) with Brasília timezone timestamps
 3. All timestamps use `timeZone: "America/Sao_Paulo"` for consistent local time display
 4. Improved spacing: reduced gap between logo and title (from 2 to 1), increased gap between subtitle and content (from 8 to 10)
+
+### Force Close Position - Cache Invalidation Fix (November 4, 2025)
+**Issue**: When using "Fechar e Reabrir Cargo" button, the system would show members who were not present in the assembly in the nomination dialog.
+**Root Cause**: The `forceClosePositionMutation` was not invalidating the attendance cache (`/api/elections/:id/attendance`), causing stale data to be displayed.
+**Solution**: Added `queryClient.invalidateQueries({ queryKey: ["/api/elections", activeElection?.id, "attendance"] })` to the mutation's `onSuccess` handler to ensure fresh attendance data is fetched after reopening a position.
+
+### PDF Date Formatting Fix (November 4, 2025)
+**Issue**: The "Data de Abertura" (opening date) in the PDF audit report was showing incorrect times, not properly converted to Brasília timezone.
+**Root Cause**: Using `getDate()`, `getMonth()`, and `getFullYear()` methods directly on Date objects doesn't respect the timezone parameter, causing UTC times to be displayed.
+**Solution**: Modified both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` to use `toLocaleDateString` and `toLocaleTimeString` with explicit `timeZone: "America/Sao_Paulo"` and `hour12: false` options for proper timezone conversion. Also renamed "Data de Criação" to "Data de Encerramento" for clarity.

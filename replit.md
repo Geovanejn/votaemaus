@@ -107,3 +107,24 @@ This provides a more streamlined UX by removing an unnecessary dialog step.
 **Issue**: The "Data de Abertura" (opening date) in the PDF audit report was showing incorrect times, not properly converted to Brasília timezone.
 **Root Cause**: Using `getDate()`, `getMonth()`, and `getFullYear()` methods directly on Date objects doesn't respect the timezone parameter, causing UTC times to be displayed.
 **Solution**: Modified both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` to use `toLocaleDateString` and `toLocaleTimeString` with explicit `timeZone: "America/Sao_Paulo"` and `hour12: false` options for proper timezone conversion. Also renamed "Data de Criação" to "Data de Encerramento" for clarity.
+
+### Login Page Spacing Improvements (November 4, 2025)
+**Change**: Adjusted all spacing on the login page for a more compact and refined layout.
+**Solution**: Modified `client/src/pages/login.tsx` to:
+1. Reduced header bar height from `h-2` to `h-0.5` (75% reduction)
+2. Reduced top margin from `mt-2 sm:mt-4` to `mt-0.5 sm:mt-1` (70% reduction)
+3. Reduced logo-to-title spacing from `mb-9 sm:mb-12` to `mb-3 sm:mb-4` (70% reduction)
+4. Increased title-to-subtitle spacing from `mb-2` to `mb-4` (100% increase)
+5. Increased form element spacing from `space-y-4` to `space-y-6` and `space-y-2` to `space-y-3` (50% increase)
+This creates a more balanced and visually appealing login experience.
+
+### Timestamp Storage and Display Fix (November 4, 2025)
+**Issue**: Election opening and closing timestamps were being recorded with incorrect times, not reflecting the actual São Paulo timezone when events occurred.
+**Root Cause**: Previous implementation attempted to store São Paulo time as UTC by converting locale strings, which caused a ~3 hour shift because the São Paulo wall-clock time was being interpreted as UTC.
+**Solution**: Modified `server/storage.ts` to:
+1. Store all timestamps in UTC using `new Date().toISOString()` in `createElection()` and `finalizeElection()`
+2. Opening timestamp (`created_at`) is captured when "Abrir Nova Eleição" button is clicked
+3. Closing timestamp (`closed_at`) is captured when "Finalizar Eleição" button is clicked
+4. Display conversion to "America/Sao_Paulo" happens only in PDF generation using `toLocaleDateString` and `toLocaleTimeString`
+5. PDF footer timestamp always uses the moment the PDF is generated (not the election's `closedAt`)
+This ensures timestamps are stored unambiguously in UTC and displayed correctly in São Paulo local time.

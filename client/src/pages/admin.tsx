@@ -48,6 +48,9 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
+  const [isNominationDialogOpen, setIsNominationDialogOpen] = useState(false);
+  const [nominatedMemberIds, setNominatedMemberIds] = useState<Set<number>>(new Set());
+  const [nominationPositionId, setNominationPositionId] = useState<number | null>(null);
   const [isCreateElectionOpen, setIsCreateElectionOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
@@ -264,6 +267,30 @@ export default function AdminPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao adicionar candidato",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addBatchCandidatesMutation = useMutation({
+    mutationFn: async (data: { candidates: Array<{ name: string; email: string; userId: number }>; positionId: number; electionId: number }) => {
+      return await apiRequest("POST", "/api/candidates/batch", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/results/latest"] });
+      toast({
+        title: "Candidatos adicionados!",
+        description: "Todos os candidatos indicados foram registrados na eleição",
+      });
+      setIsNominationDialogOpen(false);
+      setNominatedMemberIds(new Set());
+      setNominationPositionId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao adicionar candidatos",
         description: error.message,
         variant: "destructive",
       });
@@ -625,6 +652,52 @@ export default function AdminPage() {
     });
   };
 
+  const handleOpenNominationDialog = (positionId: number) => {
+    setNominationPositionId(positionId);
+    setNominatedMemberIds(new Set());
+    setIsNominationDialogOpen(true);
+  };
+
+  const handleToggleNomination = (memberId: number) => {
+    setNominatedMemberIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleConfirmNominations = () => {
+    if (!activeElection || !nominationPositionId || nominatedMemberIds.size === 0) {
+      toast({
+        title: "Nenhum candidato indicado",
+        description: "Indique pelo menos um membro para continuar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const presentMembers = attendance?.filter(a => a.isPresent) || [];
+    const candidates = Array.from(nominatedMemberIds).map(memberId => {
+      const member = presentMembers.find(a => a.memberId === memberId);
+      if (!member) return null;
+      return {
+        name: member.memberName,
+        email: member.memberEmail,
+        userId: memberId,
+      };
+    }).filter(Boolean) as Array<{ name: string; email: string; userId: number }>;
+
+    addBatchCandidatesMutation.mutate({
+      candidates,
+      positionId: nominationPositionId,
+      electionId: activeElection.id,
+    });
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -913,12 +986,22 @@ export default function AdminPage() {
                   <Button
                     variant="outline"
                     className="w-full justify-start"
-                    onClick={() => setIsAddCandidateOpen(true)}
-                    disabled={!activeElection}
-                    data-testid="button-add-candidate"
+                    onClick={() => {
+                      if (activePosition) {
+                        handleOpenNominationDialog(activePosition.positionId);
+                      } else {
+                        toast({
+                          title: "Nenhum cargo ativo",
+                          description: "Abra um cargo para votação primeiro",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={!activeElection || !activePosition}
+                    data-testid="button-manage-nominations"
                   >
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Adicionar Candidato
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Gerenciar Indicações
                   </Button>
                   <Button
                     variant="outline"
@@ -1529,6 +1612,92 @@ export default function AdminPage() {
               data-testid="button-confirm-create-election"
             >
               {createElectionMutation.isPending ? "Criando..." : "Criar Eleição"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNominationDialogOpen} onOpenChange={setIsNominationDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Indicação de Membros para Candidatura</DialogTitle>
+            <DialogDescription>
+              Marque os membros conforme forem sendo indicados. Membros que não aceitarem a indicação podem ser desmarcados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {nominationPositionId && (
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <p className="text-sm font-medium">
+                  Cargo: {positions.find(p => p.id === nominationPositionId)?.name}
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Membros Presentes ({attendance?.filter(a => a.isPresent).length || 0})</Label>
+              <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+                {attendance?.filter(a => a.isPresent).length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    Nenhum membro presente disponível para indicação.
+                  </div>
+                ) : (
+                  attendance
+                    ?.filter(a => a.isPresent)
+                    .map((member) => {
+                      const isNominated = nominatedMemberIds.has(member.memberId);
+                      return (
+                        <div
+                          key={member.memberId}
+                          className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                          data-testid={`nomination-member-${member.memberId}`}
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <button
+                              onClick={() => handleToggleNomination(member.memberId)}
+                              className="flex-shrink-0"
+                              data-testid={`button-toggle-nomination-${member.memberId}`}
+                            >
+                              {isNominated ? (
+                                <CheckSquare className="w-5 h-5 text-primary" />
+                              ) : (
+                                <Square className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </button>
+                            <div className="flex-1">
+                              <p className="font-medium">{member.memberName}</p>
+                              <p className="text-sm text-muted-foreground">{member.memberEmail}</p>
+                            </div>
+                          </div>
+                          {isNominated && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleNomination(member.memberId)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              data-testid={`button-remove-nomination-${member.memberId}`}
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <span className="text-sm font-medium">Total de Indicados:</span>
+              <span className="text-lg font-bold text-primary">{nominatedMemberIds.size}</span>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleConfirmNominations}
+              disabled={addBatchCandidatesMutation.isPending || nominatedMemberIds.size === 0}
+              data-testid="button-confirm-nominations"
+            >
+              {addBatchCandidatesMutation.isPending 
+                ? "Adicionando candidatos..." 
+                : `Confirmar ${nominatedMemberIds.size} Candidato${nominatedMemberIds.size !== 1 ? 's' : ''}`}
             </Button>
           </div>
         </DialogContent>

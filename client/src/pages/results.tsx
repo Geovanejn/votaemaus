@@ -106,6 +106,36 @@ export default function ResultsPage() {
             {results && (
               <>
                 <p className="text-sm sm:text-base text-muted-foreground mt-1">{results.electionName}</p>
+                {results.createdAt && (
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Data de Abertura: {new Date(results.createdAt).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric',
+                      timeZone: 'America/Sao_Paulo'
+                    })} às {new Date(results.createdAt).toLocaleTimeString('pt-BR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      timeZone: 'America/Sao_Paulo',
+                      hour12: false
+                    })}
+                  </p>
+                )}
+                {results.closedAt && (
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Data de Fechamento: {new Date(results.closedAt).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric',
+                      timeZone: 'America/Sao_Paulo'
+                    })} às {new Date(results.closedAt).toLocaleTimeString('pt-BR', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      timeZone: 'America/Sao_Paulo',
+                      hour12: false
+                    })}
+                  </p>
+                )}
                 {results.isActive && (
                   <p className="text-xs sm:text-sm text-primary font-medium">
                     Escrutínio atual: {results.currentScrutiny}º Escrutínio • Eleição em andamento

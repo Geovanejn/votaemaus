@@ -1093,6 +1093,8 @@ export class SQLiteStorage implements IStorage {
       isActive: election.isActive,
       currentScrutiny: electionPositions.find(ep => ep.status === 'active')?.current_scrutiny || 1,
       presentCount,
+      createdAt: election.createdAt,
+      closedAt: election.closedAt,
       positions: [],
     };
 

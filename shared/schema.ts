@@ -266,6 +266,8 @@ export type ElectionResults = {
   isActive: boolean;
   currentScrutiny: number;
   presentCount: number; // Number of members present
+  createdAt: string; // Election opening date/time
+  closedAt: string | null; // Election closing date/time
   positions: Array<{
     positionId: number;
     positionName: string;

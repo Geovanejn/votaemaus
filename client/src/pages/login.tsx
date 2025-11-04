@@ -293,42 +293,24 @@ export default function LoginPage() {
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex justify-center mb-3 sm:mb-4">
               <div className="logo-container relative w-20 h-20 sm:w-24 sm:h-24">
-                <img 
-                  src="/logo.png" 
-                  alt="Emaús Vota Logo" 
-                  className="w-20 h-20 sm:w-24 sm:h-24 object-contain logo-flame"
-                />
+                <video 
+                  className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  poster="/logo.png"
+                  aria-label="Emaús Vota Logo Animado"
+                  preload="auto"
+                >
+                  <source src="/logo-animated.webm" type="video/webm" />
+                  <source src="/logo-animated.mp4" type="video/mp4" />
+                </video>
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Emaús Vota</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Sistema de votação da UMP Emaús</p>
           </div>
-          
-          <style>{`
-            .logo-container {
-              position: relative;
-              overflow: hidden;
-            }
-            
-            .logo-flame {
-              animation: flameReveal 2.5s ease-in-out infinite;
-            }
-            
-            @keyframes flameReveal {
-              0% {
-                clip-path: inset(100% 0 0 0);
-                opacity: 0.3;
-              }
-              40% {
-                clip-path: inset(0 0 0 0);
-                opacity: 1;
-              }
-              100% {
-                clip-path: inset(0 0 0 0);
-                opacity: 1;
-              }
-            }
-          `}</style>
 
           <Card className="border-border shadow-md">
             <CardHeader className="p-4 sm:p-6">

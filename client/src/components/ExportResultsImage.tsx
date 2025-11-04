@@ -167,7 +167,7 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
         <div
           style={{
             position: "absolute",
-            bottom: is916 ? "-50px" : "-40px",
+            bottom: is916 ? "-58px" : "-48px",
             left: "50%",
             transform: "translateX(-50%)",
             width: is916 ? "128px" : "96px",
@@ -260,6 +260,7 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
                 textTransform: "uppercase",
                 letterSpacing: "4px",
                 textShadow: "2px 2px 0px rgba(0, 0, 0, 0.1)",
+                lineHeight: "1",
               }}
             >
               ELEIÇÃO{" "}

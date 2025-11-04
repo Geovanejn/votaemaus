@@ -64,7 +64,11 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   
-  doc.text(`Eleição: ${results.electionName}`, margin, yPosition);
+  // Remove "Eleição: " prefix if election name already starts with "Eleição"
+  const electionTitle = results.electionName.startsWith("Eleição") 
+    ? results.electionName 
+    : `Eleição ${results.electionName}`;
+  doc.text(electionTitle, margin, yPosition);
   yPosition += 7;
   doc.text(`Total de Membros Presentes: ${results.presentCount}`, margin, yPosition);
   yPosition += 7;

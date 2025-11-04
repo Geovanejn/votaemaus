@@ -1577,11 +1577,18 @@ export default function AdminPage() {
                   <SelectValue placeholder="Selecione o cargo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {positions.map((position) => (
-                    <SelectItem key={position.id} value={position.id.toString()}>
-                      {position.name}
-                    </SelectItem>
-                  ))}
+                  {positions
+                    .filter(position => {
+                      // If electionPositions not loaded yet, show all positions
+                      if (!electionPositions || electionPositions.length === 0) return true;
+                      const electionPosition = electionPositions.find(ep => ep.positionId === position.id);
+                      return !electionPosition || electionPosition.status !== 'completed';
+                    })
+                    .map((position) => (
+                      <SelectItem key={position.id} value={position.id.toString()}>
+                        {position.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

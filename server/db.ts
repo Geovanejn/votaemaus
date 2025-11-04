@@ -175,6 +175,12 @@ export async function initializeDatabase() {
       sqlite.exec("PRAGMA foreign_keys = ON");
       console.log("Removed current_scrutiny column from elections table");
     }
+    
+    // Check and add closed_at column to elections table
+    if (!electionsColumnNames.includes('closed_at')) {
+      sqlite.exec("ALTER TABLE elections ADD COLUMN closed_at TEXT");
+      console.log("Added closed_at column to elections table");
+    }
 
     // Check and add columns to candidates table
     const candidatesColumns = sqlite.prepare("PRAGMA table_info(candidates)").all() as Array<{ name: string }>;

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Select, 
   SelectContent, 
@@ -69,6 +70,7 @@ export default function AdminPage() {
     email: "",
     photoUrl: "",
     birthdate: "",
+    activeMember: true,
   });
   const [editingMember, setEditingMember] = useState<{
     id: number;
@@ -76,6 +78,7 @@ export default function AdminPage() {
     email: string;
     photoUrl?: string;
     birthdate?: string;
+    activeMember?: boolean;
   } | null>(null);
   
   const exportImageRef = useRef<ExportResultsImageHandle>(null);
@@ -313,7 +316,7 @@ export default function AdminPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string }) => {
+    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember: boolean }) => {
       return await apiRequest("POST", "/api/admin/members", member);
     },
     onSuccess: () => {
@@ -323,7 +326,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "" });
+      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: true });
     },
     onError: (error: Error) => {
       toast({
@@ -355,7 +358,7 @@ export default function AdminPage() {
   });
 
   const updateMemberMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean }> }) => {
       return await apiRequest("PATCH", `/api/admin/members/${id}`, data);
     },
     onSuccess: () => {
@@ -1915,6 +1918,20 @@ export default function AdminPage() {
                 }
                 data-testid="input-member-birthdate"
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="member-active"
+                checked={newMember.activeMember}
+                onCheckedChange={(checked) =>
+                  setNewMember({ ...newMember, activeMember: checked === true })
+                }
+                data-testid="checkbox-member-active"
+              />
+              <Label htmlFor="member-active" className="cursor-pointer">
+                Sócio Ativo
+              </Label>
             </div>
 
             <div className="space-y-2">

@@ -21,6 +21,7 @@ import {
   setPasswordSchema,
   loginPasswordSchema,
   getGravatarUrl,
+  generatePdfVerificationHash,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail } from "./email";
@@ -1120,6 +1121,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
+      // Generate verification hash for PDF
+      const verificationHash = generatePdfVerificationHash(
+        electionId,
+        auditData.results.electionName,
+        new Date().toISOString()
+      );
+
+      // Add verification hash to audit data
+      auditData.verificationHash = verificationHash;
+
       res.json(auditData);
     } catch (error) {
       console.error("Get election audit data error:", error);
@@ -1228,6 +1239,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Seed test users error:", error);
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Erro ao criar usuários de teste" 
+      });
+    }
+  });
+
+  // Public route to verify PDF authenticity
+  app.get("/api/verify/:hash", async (req, res) => {
+    try {
+      const { hash } = req.params;
+      
+      if (!hash) {
+        return res.status(400).json({ message: "Hash de verificação não fornecido" });
+      }
+
+      const verification = storage.getPdfVerification(hash);
+      
+      if (!verification) {
+        return res.status(404).json({ 
+          verified: false,
+          message: "Este documento não pôde ser verificado. O hash não foi encontrado no sistema." 
+        });
+      }
+
+      res.json({
+        verified: true,
+        electionName: verification.electionName,
+        electionId: verification.electionId,
+        presidentName: verification.presidentName,
+        createdAt: verification.createdAt,
+        electionCreatedAt: verification.electionCreatedAt,
+        electionClosedAt: verification.electionClosedAt,
+      });
+    } catch (error) {
+      console.error("Verify PDF error:", error);
+      res.status(500).json({ 
+        verified: false,
+        message: error instanceof Error ? error.message : "Erro ao verificar documento" 
+      });
+    }
+  });
+
+  // Route to save PDF verification hash
+  app.post("/api/elections/:electionId/audit/save-hash", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const electionId = parseInt(req.params.electionId);
+      const { verificationHash, presidentName } = req.body;
+
+      if (!verificationHash) {
+        return res.status(400).json({ message: "Hash de verificação é obrigatório" });
+      }
+
+      const verification = storage.createPdfVerification(electionId, verificationHash, presidentName);
+      res.json(verification);
+    } catch (error) {
+      console.error("Save verification hash error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao salvar hash de verificação" 
       });
     }
   });

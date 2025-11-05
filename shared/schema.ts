@@ -13,6 +13,12 @@ export function getGravatarUrl(email: string): string {
   return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
 }
 
+// Utility function to generate verification hash for PDF
+export function generatePdfVerificationHash(electionId: number, electionName: string, timestamp: string): string {
+  const data = `${electionId}-${electionName}-${timestamp}-${Math.random()}`;
+  return crypto.createHash("sha256").update(data).digest("hex");
+}
+
 // Users table
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),

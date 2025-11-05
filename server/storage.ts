@@ -87,6 +87,9 @@ export interface IStorage {
   createVerificationCode(data: InsertVerificationCode): VerificationCode;
   getValidVerificationCode(email: string, code: string): VerificationCode | null;
   deleteVerificationCodesByEmail(email: string): void;
+  
+  createPdfVerification(electionId: number, verificationHash: string, presidentName?: string): any;
+  getPdfVerification(verificationHash: string): any | null;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -1361,6 +1364,44 @@ export class SQLiteStorage implements IStorage {
       },
       voterAttendance: this.getVoterAttendance(electionId),
       voteTimeline: this.getVoteTimeline(electionId),
+    };
+  }
+
+  createPdfVerification(electionId: number, verificationHash: string, presidentName?: string): any {
+    const stmt = db.prepare(`
+      INSERT INTO pdf_verifications (election_id, verification_hash, president_name)
+      VALUES (?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(electionId, verificationHash, presidentName || null) as any;
+    return {
+      id: row.id,
+      electionId: row.election_id,
+      verificationHash: row.verification_hash,
+      presidentName: row.president_name,
+      createdAt: row.created_at,
+    };
+  }
+
+  getPdfVerification(verificationHash: string): any | null {
+    const stmt = db.prepare(`
+      SELECT pv.*, e.name as election_name, e.created_at as election_created_at, e.closed_at as election_closed_at
+      FROM pdf_verifications pv
+      JOIN elections e ON pv.election_id = e.id
+      WHERE pv.verification_hash = ?
+    `);
+    const row = stmt.get(verificationHash) as any;
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      electionId: row.election_id,
+      electionName: row.election_name,
+      electionCreatedAt: row.election_created_at,
+      electionClosedAt: row.election_closed_at,
+      verificationHash: row.verification_hash,
+      presidentName: row.president_name,
+      createdAt: row.created_at,
     };
   }
 }

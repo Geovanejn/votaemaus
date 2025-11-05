@@ -139,3 +139,38 @@ This ensures timestamps are stored unambiguously in UTC and displayed correctly 
    - "Data de Fechamento" shows when the election was finalized (when admin clicked "Finalizar Eleição")
    - Both display date in DD/MM/YYYY format and time in HH:MM format (24-hour)
 This provides users with complete transparency about when elections were opened and closed.
+
+### UI Simplification for Election Finalization (November 5, 2025)
+**Changes**: Streamlined election management workflow by removing redundant controls and simplifying the finalization process.
+**Implementation**: Modified the following files:
+1. **client/src/pages/admin.tsx**:
+   - Removed "Exportar Resultados (Imagem)" button from the "Gerenciamento de Votação por Cargo" section
+   - Image export functionality remains available only on the results page (/results)
+   - Modified `handleFinalizeElection()` to directly finalize elections without generating PDF
+   - PDF generation is now only available from the election history tab
+   - Updated confirmation message to "A eleição será arquivada no histórico e não poderá mais ser modificada."
+   - Removed unused `handleExportResults` function and `Download` icon import
+2. **client/src/pages/vote.tsx**:
+   - Removed "Ver Resultados" button from the bottom of the voting page
+   - Kept the "Resultados" button in the header navigation for consistent access
+This simplification reduces UI clutter and makes the admin workflow more focused on the primary task of managing the voting process.
+
+### PDF Audit Report Enhancements - Logo and Spacing (November 5, 2025)
+**Changes**: Updated PDF audit report with new logo and improved spacing for better readability.
+**Implementation**: Modified the following files:
+1. **client/public/logo-ump.png**:
+   - Replaced existing logo with new UMP Emaús logo (Logo UMP_1762304778179.png)
+   - Maintained existing proportions and display size
+2. **client/src/lib/pdfGenerator.ts**:
+   - Updated both `generateElectionAuditPDF` and `generateElectionAuditPDFBase64` functions
+   - Increased spacing between elements by 50% (except logo-to-title and title-to-subtitle):
+     - Subtitle to content: 10 → 15
+     - Election info lines: 4 → 6
+     - Section titles: 5 → 8, 6 → 9
+     - Between candidates: 3 → 5, 4 → 6
+     - After tables: 5 → 8
+     - Before signature: 8 → 12
+     - President name to title: 3 → 5
+     - After signature: 6 → 9
+   - Preserved existing spacing between logo and title (+1) and between title and subtitle (+4)
+This provides better visual hierarchy and readability while maintaining the professional appearance of audit reports.

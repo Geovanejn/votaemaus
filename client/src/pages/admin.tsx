@@ -541,30 +541,10 @@ export default function AdminPage() {
     setLocation("/");
   };
 
-  const handleExportResults = async () => {
-    if (exportImageRef.current) {
-      try {
-        await exportImageRef.current.exportImage();
-        toast({
-          title: "Imagem exportada!",
-          description: "Os resultados foram salvos como imagem",
-        });
-      } catch (error) {
-        toast({
-          title: "Erro ao exportar",
-          description: "Não foi possível gerar a imagem",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
   const handleFinalizeElection = async () => {
     if (!activeElection) return;
-    if (confirm("Tem certeza que deseja finalizar a eleição? Um PDF de auditoria será gerado automaticamente. A eleição será arquivada no histórico e não poderá mais ser modificada.")) {
-      setPendingPdfElectionId(activeElection.id);
-      setPdfAction("finalize");
-      setIsPresidentDialogOpen(true);
+    if (confirm("Tem certeza que deseja finalizar a eleição? A eleição será arquivada no histórico e não poderá mais ser modificada.")) {
+      finalizeElectionMutation.mutate(activeElection.id);
     }
   };
 
@@ -1444,18 +1424,9 @@ export default function AdminPage() {
                             </p>
                           </div>
                           <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                            Você pode exportar os resultados e finalizar a eleição.
+                            Você pode finalizar a eleição e arquivá-la no histórico.
                           </p>
                         </div>
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          onClick={handleExportResults}
-                          data-testid="button-export-results"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Exportar Resultados (Imagem)
-                        </Button>
                         <Button
                           className="w-full"
                           variant="default"

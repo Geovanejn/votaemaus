@@ -292,17 +292,6 @@ export default function VotePage() {
               </div>
             </CardContent>
           </Card>
-
-          <div className="text-center">
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation("/results")}
-              data-testid="button-view-results"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Ver Resultados
-            </Button>
-          </div>
         </div>
 
         {/* Footer with UMP Emaús Logo */}

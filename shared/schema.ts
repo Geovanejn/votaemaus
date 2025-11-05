@@ -24,6 +24,7 @@ export const users = sqliteTable("users", {
   birthdate: text("birthdate"),
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   isMember: integer("is_member", { mode: "boolean" }).notNull().default(true),
+  activeMember: integer("active_member", { mode: "boolean" }).notNull().default(true),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -213,6 +214,7 @@ export const addMemberSchema = z.object({
   email: z.string().email("Email inválido"),
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
+  activeMember: z.boolean().default(true),
 });
 
 export type AddMemberData = z.infer<typeof addMemberSchema>;
@@ -222,6 +224,7 @@ export const updateMemberSchema = z.object({
   email: z.string().email("Email inválido").optional(),
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
+  activeMember: z.boolean().optional(),
 });
 
 export type UpdateMemberData = z.infer<typeof updateMemberSchema>;

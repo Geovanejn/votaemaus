@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import QRCode from "qrcode";
 import type { ElectionResults, ElectionAuditData } from "@shared/schema";
 
 async function loadImageAsBase64(imagePath: string): Promise<{ data: string; width: number; height: number }> {
@@ -25,6 +26,20 @@ async function loadImageAsBase64(imagePath: string): Promise<{ data: string; wid
     img.onerror = reject;
     img.src = imagePath;
   });
+}
+
+async function generateQRCode(text: string): Promise<string> {
+  try {
+    return await QRCode.toDataURL(text, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 256,
+      margin: 1,
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw error;
+  }
 }
 
 export async function generateElectionAuditPDF(electionResults: ElectionResults | ElectionAuditData): Promise<void> {
@@ -267,11 +282,32 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     yPosition = (doc as any).lastAutoTable.finalY + 8;
   }
 
-  if (yPosition > pageHeight - 50) {
+  if (yPosition > pageHeight - 70) {
     doc.addPage();
     yPosition = margin;
   } else {
     yPosition += 12;
+  }
+
+  // Add QR Code for verification if hash is available
+  const verificationHash = (auditData as any)?.verificationHash;
+  if (verificationHash) {
+    try {
+      const verificationUrl = `${window.location.origin}/verificar/${verificationHash}`;
+      const qrCodeDataUrl = await generateQRCode(verificationUrl);
+      
+      const qrSize = 25;
+      doc.addImage(qrCodeDataUrl, 'PNG', pageWidth - margin - qrSize, yPosition, qrSize, qrSize);
+      
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      const qrText = "Escaneie para";
+      const qrText2 = "verificar autenticidade";
+      doc.text(qrText, pageWidth - margin - qrSize / 2, yPosition + qrSize + 3, { align: "center" });
+      doc.text(qrText2, pageWidth - margin - qrSize / 2, yPosition + qrSize + 6, { align: "center" });
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+    }
   }
 
   doc.setDrawColor(0, 0, 0);
@@ -543,11 +579,32 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     yPosition = (doc as any).lastAutoTable.finalY + 8;
   }
 
-  if (yPosition > pageHeight - 50) {
+  if (yPosition > pageHeight - 70) {
     doc.addPage();
     yPosition = margin;
   } else {
     yPosition += 12;
+  }
+
+  // Add QR Code for verification if hash is available
+  const verificationHash = (auditData as any)?.verificationHash;
+  if (verificationHash) {
+    try {
+      const verificationUrl = `${window.location.origin}/verificar/${verificationHash}`;
+      const qrCodeDataUrl = await generateQRCode(verificationUrl);
+      
+      const qrSize = 25;
+      doc.addImage(qrCodeDataUrl, 'PNG', pageWidth - margin - qrSize, yPosition, qrSize, qrSize);
+      
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      const qrText = "Escaneie para";
+      const qrText2 = "verificar autenticidade";
+      doc.text(qrText, pageWidth - margin - qrSize / 2, yPosition + qrSize + 3, { align: "center" });
+      doc.text(qrText2, pageWidth - margin - qrSize / 2, yPosition + qrSize + 6, { align: "center" });
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+    }
   }
 
   doc.setDrawColor(0, 0, 0);

@@ -116,6 +116,15 @@ export async function initializeDatabase() {
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS pdf_verifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      election_id INTEGER NOT NULL,
+      verification_hash TEXT NOT NULL UNIQUE,
+      president_name TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (election_id) REFERENCES elections(id)
+    );
   `);
 
   // Migration: Add new columns if they don't exist

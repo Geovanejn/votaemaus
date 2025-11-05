@@ -105,6 +105,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      activeMember: Boolean(row.active_member),
     };
   }
 
@@ -123,12 +124,13 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      activeMember: Boolean(row.active_member),
     };
   }
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member, active_member) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
@@ -138,7 +140,8 @@ export class SQLiteStorage implements IStorage {
       user.photoUrl || null,
       user.birthdate || null,
       user.isAdmin ? 1 : 0,
-      user.isMember ? 1 : 0
+      user.isMember ? 1 : 0,
+      user.activeMember ? 1 : 0
     ) as any;
     
     return {
@@ -151,6 +154,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      activeMember: Boolean(row.active_member),
     };
   }
 
@@ -171,6 +175,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      activeMember: Boolean(row.active_member),
     }));
   }
 
@@ -213,6 +218,10 @@ export class SQLiteStorage implements IStorage {
       fields.push("is_member = ?");
       values.push(updates.isMember ? 1 : 0);
     }
+    if (updates.activeMember !== undefined) {
+      fields.push("active_member = ?");
+      values.push(updates.activeMember ? 1 : 0);
+    }
 
     if (fields.length === 0) return user;
 
@@ -234,6 +243,7 @@ export class SQLiteStorage implements IStorage {
       birthdate: row.birthdate,
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
+      activeMember: Boolean(row.active_member),
     };
   }
   
@@ -759,8 +769,8 @@ export class SQLiteStorage implements IStorage {
   }
 
   initializeAttendance(electionId: number): void {
-    // Create attendance records for all members
-    const members = this.getAllMembers();
+    // Create attendance records for all active members only
+    const members = this.getAllMembers().filter(m => m.activeMember);
     
     for (const member of members) {
       // Check if attendance already exists

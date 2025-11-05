@@ -181,6 +181,23 @@ export const insertVerificationCodeSchema = createInsertSchema(verificationCodes
 export type InsertVerificationCode = z.infer<typeof insertVerificationCodeSchema>;
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 
+// PDF Verification table
+export const pdfVerifications = sqliteTable("pdf_verifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  electionId: integer("election_id").notNull().references(() => elections.id),
+  verificationHash: text("verification_hash").notNull().unique(),
+  presidentName: text("president_name"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertPdfVerificationSchema = createInsertSchema(pdfVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPdfVerification = z.infer<typeof insertPdfVerificationSchema>;
+export type PdfVerification = typeof pdfVerifications.$inferSelect;
+
 // Auth schemas
 export const requestCodeSchema = z.object({
   email: z.string().email("Email inválido"),

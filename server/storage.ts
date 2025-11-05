@@ -661,6 +661,18 @@ export class SQLiteStorage implements IStorage {
       throw new Error("Não é possível abrir um novo cargo enquanto outro ainda está ativo. Aguarde até que o cargo atual seja decidido pela votação ou complete o processo de votação.");
     }
 
+    // SEQUENTIAL VOTING: Check if all previous positions are completed
+    const previousPendingStmt = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM election_positions 
+      WHERE election_id = ? AND order_index < ? AND status != 'completed'
+    `);
+    const previousPending = previousPendingStmt.get(position.electionId, position.orderIndex) as { count: number };
+    
+    if (previousPending.count > 0) {
+      throw new Error("A votação deve seguir a ordem sequencial. Complete os cargos anteriores antes de abrir este cargo.");
+    }
+
     // Clear old votes for this position (but keep candidates)
     db.prepare(`
       DELETE FROM votes 

@@ -258,6 +258,11 @@ export async function initializeDatabase() {
       console.log("Added has_password column to users table");
     }
 
+    if (!usersColumnNames.includes('active_member')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN active_member INTEGER NOT NULL DEFAULT 1");
+      console.log("Added active_member column to users table");
+    }
+
     // Migration: Remove is_president column if it exists
     if (usersColumnNames.includes('is_president')) {
       console.log("Removing is_president column from users table...");
@@ -273,11 +278,12 @@ export async function initializeDatabase() {
           birthdate TEXT,
           has_password INTEGER NOT NULL DEFAULT 0,
           is_admin INTEGER NOT NULL DEFAULT 0,
-          is_member INTEGER NOT NULL DEFAULT 1
+          is_member INTEGER NOT NULL DEFAULT 1,
+          active_member INTEGER NOT NULL DEFAULT 1
         );
         
-        INSERT INTO users_new (id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member)
-        SELECT id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member FROM users;
+        INSERT INTO users_new (id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member, active_member)
+        SELECT id, full_name, email, password, photo_url, birthdate, has_password, is_admin, is_member, COALESCE(active_member, 1) FROM users;
         
         DROP TABLE users;
         ALTER TABLE users_new RENAME TO users;

@@ -115,7 +115,7 @@ export default function AdminPage() {
     staleTime: 10000,
   });
 
-  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string }>>({
+  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string; activeMember?: boolean }>>({
     queryKey: ["/api/members"],
     staleTime: 30000,
   });
@@ -885,6 +885,7 @@ export default function AdminPage() {
       email: newMember.email,
       photoUrl: newMember.photoUrl || undefined,
       birthdate: newMember.birthdate || undefined,
+      activeMember: newMember.activeMember,
     });
   };
 
@@ -894,7 +895,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string }) => {
+  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean }) => {
     setEditingMember(member);
     setIsEditMemberOpen(true);
   };
@@ -918,6 +919,7 @@ export default function AdminPage() {
         email: editingMember.email,
         photoUrl: editingMember.photoUrl || undefined,
         birthdate: editingMember.birthdate || undefined,
+        activeMember: editingMember.activeMember,
       },
     });
   };
@@ -2016,6 +2018,20 @@ export default function AdminPage() {
                 }
                 data-testid="input-edit-member-birthdate"
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-member-active"
+                checked={editingMember?.activeMember ?? true}
+                onCheckedChange={(checked) =>
+                  setEditingMember(editingMember ? { ...editingMember, activeMember: checked === true } : null)
+                }
+                data-testid="checkbox-edit-member-active"
+              />
+              <Label htmlFor="edit-member-active" className="cursor-pointer">
+                Sócio Ativo
+              </Label>
             </div>
 
             <div className="space-y-2">

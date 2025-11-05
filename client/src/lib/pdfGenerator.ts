@@ -46,10 +46,10 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 1;
+    yPosition += logoHeight + 8;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 1;
+    yPosition += 8;
   }
 
   doc.setFontSize(16);
@@ -320,10 +320,10 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     const logoHeight = logoWidth * aspectRatio;
     
     doc.addImage(logoImage.data, 'PNG', (pageWidth - logoWidth) / 2, yPosition, logoWidth, logoHeight);
-    yPosition += logoHeight + 1;
+    yPosition += logoHeight + 8;
   } catch (error) {
     console.warn('Logo não pôde ser carregado no PDF:', error);
-    yPosition += 1;
+    yPosition += 8;
   }
 
   doc.setFontSize(16);

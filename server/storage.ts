@@ -1368,12 +1368,28 @@ export class SQLiteStorage implements IStorage {
   }
 
   createPdfVerification(electionId: number, verificationHash: string, presidentName?: string): any {
+    const now = new Date();
+    const brasiliaTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(now);
+    
+    const [date, time] = brasiliaTime.split(', ');
+    const [month, day, year] = date.split('/');
+    const formattedDateTime = `${year}-${month}-${day} ${time}`;
+    
     const stmt = db.prepare(`
-      INSERT INTO pdf_verifications (election_id, verification_hash, president_name)
-      VALUES (?, ?, ?)
+      INSERT INTO pdf_verifications (election_id, verification_hash, president_name, created_at)
+      VALUES (?, ?, ?, ?)
       RETURNING *
     `);
-    const row = stmt.get(electionId, verificationHash, presidentName || null) as any;
+    const row = stmt.get(electionId, verificationHash, presidentName || null, formattedDateTime) as any;
     return {
       id: row.id,
       electionId: row.election_id,

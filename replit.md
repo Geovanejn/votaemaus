@@ -283,3 +283,35 @@ This provides better visual hierarchy and readability while maintaining the prof
 **Reference**: Based on chapters "Livros e Atas" (p. 127-133) and "Regras Parlamentares" (p. 111-125) from Manual Unificado das Sociedades Internas da IPB.
 
 **Status**: Planned for future implementation. Potential standalone page or integration within admin panel.
+
+## Recent Feature Additions (November 5, 2025)
+
+### Active Member Management System
+**Feature**: Added ability to track and manage active vs inactive members in the UMP.
+**Implementation**: 
+1. **Database Schema**:
+   - Added `active_member` column to `users` table (boolean, default: true)
+   - Migration automatically applied on startup to existing databases
+2. **Backend Changes**:
+   - Modified `initializeAttendance()` in `server/storage.ts` to filter only active members when creating attendance lists
+   - Updated storage methods to support reading and writing `activeMember` status
+   - All User type mappings updated to include `activeMember` field
+3. **Frontend Changes**:
+   - Added "Sócio Ativo" checkbox in member registration form
+   - Added "Sócio Ativo" checkbox in member edit form
+   - Updated member queries and mutations to handle `activeMember` field
+   - Default value for new members is `true` (active)
+4. **Business Logic**:
+   - Only active members appear in attendance lists during elections
+   - Only members marked as present (from active members) appear in nomination lists
+   - Elected members are still filtered out from nomination lists (existing functionality preserved)
+   - Birthday emails are sent to ALL members (active and inactive) - no filtering applied
+5. **User Experience**:
+   - Admins can mark members as inactive instead of deleting them
+   - Inactive members remain in the database but don't participate in elections
+   - Status can be toggled at any time through the member edit form
+**Benefits**:
+- Maintains historical data for inactive members
+- Prevents accidental voting by non-active members
+- Simplifies member management (toggle status vs delete)
+- Birthday emails still reach all members maintaining community connection

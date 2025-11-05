@@ -208,3 +208,78 @@ This provides better visual hierarchy and readability while maintaining the prof
 - **WhatsApp Status**: No official API available; unofficial APIs risk account ban (not recommended)
 
 **Status**: Planned for future implementation when Meta app approval can be pursued.
+
+### Sistema de Geração de Atas de Plenárias (Planned)
+**Objective**: Create a dedicated page within the system to generate formal minutes (atas) for plenary sessions, following the IPB Unified Manual standards.
+
+**Scope**:
+- ✅ Election plenaries (already have data from voting system)
+- ✅ Regular plenaries (meetings, discussions, decisions)
+- ✅ Special plenaries (emergency meetings, specific topics)
+
+**Available Resources**:
+- ✅ Manual Unificado das Sociedades Internas da IPB (reference document)
+- ✅ Election data already in the system (dates, attendance, results, scrutinies)
+- ✅ Member database with complete information
+- ✅ PDF generation infrastructure already implemented
+
+**Technical Implementation Plan**:
+1. **New Page/Section**: Dedicated "Atas" page in the system
+   - Form to create new minute document
+   - Template selection (election, regular plenary, special plenary)
+   - Historical archive of all generated minutes
+
+2. **Ata Format According to IPB Manual**:
+   - Sequential numbering (e.g., "ATA Nº 023/2025")
+   - Formal header with UMP Emaús identification
+   - Date written in full (e.g., "quinze dias do mês de novembro...")
+   - Complete location information
+   - Attendance verification with quorum percentage
+   - Nominal list of present members
+   - Presiding board (Mesa Diretora) identification
+   - Agenda items (Ordem do Dia)
+   - Detailed proceedings and decisions
+   - Election results (when applicable) with scrutiny details
+   - Closing statement with time and date
+   - Signature fields for board and witnesses
+
+3. **Data Integration**:
+   - **Election Plenaries**: Auto-populate from election system data
+     - Pull attendance list automatically
+     - Include all election results with vote counts
+     - Add scrutiny round information
+     - Include elected board members
+   - **Other Plenaries**: Manual entry with guided forms
+     - Attendance check-in
+     - Agenda items
+     - Decisions and resolutions
+     - Action items
+
+4. **Export Options**:
+   - PDF generation following IPB standards
+   - Print-ready format for physical signature
+   - Digital archive with searchable history
+   - Email distribution to relevant parties
+
+5. **Compliance Features**:
+   - Validation against IPB Manual requirements
+   - Checklist to ensure all mandatory fields are present
+   - Warning if any required information is missing
+   - Sequential numbering maintained automatically
+
+**Use Cases**:
+1. **Post-Election**: Generate formal election plenary minutes immediately after finalizing election
+2. **Monthly Meetings**: Record decisions from regular UMP meetings
+3. **Special Events**: Document special plenaries (planning, emergency decisions, etc.)
+4. **Historical Archive**: Maintain complete, searchable record of all plenary sessions
+
+**Benefits**:
+- ✅ Ensures IPB compliance automatically
+- ✅ Saves time (no manual formatting)
+- ✅ Maintains consistent format across all minutes
+- ✅ Creates digital archive for easy reference
+- ✅ Reduces errors in formal documentation
+
+**Reference**: Based on chapters "Livros e Atas" (p. 127-133) and "Regras Parlamentares" (p. 111-125) from Manual Unificado das Sociedades Internas da IPB.
+
+**Status**: Planned for future implementation. Potential standalone page or integration within admin panel.

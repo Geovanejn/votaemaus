@@ -5,10 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 interface VerificationResult {
-  valid: boolean;
+  verified: boolean;
   electionName?: string;
   presidentName?: string;
   createdAt?: string;
+  electionId?: number;
+  electionCreatedAt?: string;
+  electionClosedAt?: string;
 }
 
 export default function VerifyPage() {
@@ -101,7 +104,7 @@ export default function VerifyPage() {
     );
   }
 
-  if (!verificationResult?.valid) {
+  if (!verificationResult?.verified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-white p-4" data-testid="page-verify">
         <Card className="w-full max-w-md border-red-200">

@@ -577,6 +577,19 @@ export default function AdminPage() {
       const auditData = await response.json();
       auditData.presidentName = selectedPresident.fullName;
       
+      // Save verification hash to database
+      if (auditData.verificationHash) {
+        try {
+          await apiRequest("POST", `/api/elections/${pendingPdfElectionId}/audit/save-hash`, {
+            verificationHash: auditData.verificationHash,
+            presidentName: selectedPresident.fullName,
+          });
+        } catch (hashError) {
+          console.error("Error saving verification hash:", hashError);
+          // Continue even if hash saving fails
+        }
+      }
+      
       const pdfBase64 = await generateElectionAuditPDFBase64(auditData);
       
       const blob = await fetch(`data:application/pdf;base64,${pdfBase64}`).then(res => res.blob());

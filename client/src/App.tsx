@@ -8,6 +8,7 @@ import LoginPage from "@/pages/login";
 import AdminPage from "@/pages/admin";
 import VotePage from "@/pages/vote";
 import ResultsPage from "@/pages/results";
+import VerifyPage from "@/pages/verify";
 
 function Router() {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
@@ -23,6 +24,7 @@ function Router() {
   if (!isAuthenticated) {
     return (
       <Switch>
+        <Route path="/verificar/:hash" component={VerifyPage} />
         <Route path="/results" component={ResultsPage} />
         <Route path="/" component={LoginPage} />
         <Route>
@@ -35,6 +37,7 @@ function Router() {
   if (isAdmin) {
     return (
       <Switch>
+        <Route path="/verificar/:hash" component={VerifyPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/vote" component={VotePage} />
         <Route path="/results" component={ResultsPage} />
@@ -47,6 +50,7 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/verificar/:hash" component={VerifyPage} />
       <Route path="/vote" component={VotePage} />
       <Route path="/results" component={ResultsPage} />
       <Route>

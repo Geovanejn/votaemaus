@@ -243,6 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         birthdate: validatedData.birthdate,
         isAdmin: false,
         isMember: true,
+        activeMember: validatedData.activeMember,
       } as any);
 
       const { password, ...userWithoutPassword } = user;

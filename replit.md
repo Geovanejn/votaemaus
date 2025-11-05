@@ -174,3 +174,37 @@ This simplification reduces UI clutter and makes the admin workflow more focused
      - After signature: 6 → 9
    - Preserved existing spacing between logo and title (+1) and between title and subtitle (+4)
 This provides better visual hierarchy and readability while maintaining the professional appearance of audit reports.
+
+## Future Features
+
+### Automated Birthday Stories on Instagram (Planned)
+**Objective**: Automatically post birthday celebration stories on the UMP Emaús Instagram Business account for members on their birthdays.
+
+**Available Resources**:
+- ✅ Instagram Business account (verified)
+- ✅ Member photos already stored in the database
+- ✅ Birth dates already registered in the database
+- ✅ Birthday scheduler infrastructure already in place (runs daily at 8:00 AM)
+
+**Technical Implementation Plan**:
+1. **Integration**: Use Meta Graph API (Instagram Content Publishing API)
+   - Requires Instagram Business/Creator account (already available)
+   - Needs Meta Developer App with `instagram_content_publish` permission
+   - App review and approval process (2-4 weeks estimated)
+2. **Image Generation**: 
+   - Create automated birthday art templates with member photo, name, and UMP Emaús branding
+   - Generate personalized graphics using canvas or image manipulation library
+   - Upload to publicly accessible URL for API consumption
+3. **Scheduling**:
+   - Extend existing `server/scheduler.ts` birthday scheduler
+   - Add Instagram Stories posting alongside current email notifications
+   - Stories automatically expire after 24 hours (Instagram default behavior)
+4. **API Endpoints**:
+   - POST to Instagram Graph API: `https://graph.facebook.com/{ig-user-id}/media` with `media_type=STORIES`
+   - Publish using: `https://graph.facebook.com/{ig-user-id}/media_publish`
+
+**Alternative Platforms Considered**:
+- **Facebook Stories**: Available via Meta Graph API (similar implementation)
+- **WhatsApp Status**: No official API available; unofficial APIs risk account ban (not recommended)
+
+**Status**: Planned for future implementation when Meta app approval can be pursued.

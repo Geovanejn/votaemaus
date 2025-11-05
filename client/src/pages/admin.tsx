@@ -70,7 +70,7 @@ export default function AdminPage() {
     email: "",
     photoUrl: "",
     birthdate: "",
-    activeMember: true,
+    activeMember: false,
   });
   const [editingMember, setEditingMember] = useState<{
     id: number;
@@ -326,7 +326,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: true });
+      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: false });
     },
     onError: (error: Error) => {
       toast({
@@ -1076,7 +1076,7 @@ export default function AdminPage() {
                       <div className="space-y-3">
                         <div className="p-3 bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 rounded-lg">
                           <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                            Presentes: {presentCountData?.presentCount || 0} de {members.filter(m => !m.isAdmin).length} membros
+                            Presentes: {presentCountData?.presentCount || 0} de {members.filter(m => !m.isAdmin && m.activeMember).length} membros
                           </p>
                           <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">
                             Selecione os presentes e clique em confirmar

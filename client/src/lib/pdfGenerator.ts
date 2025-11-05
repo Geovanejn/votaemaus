@@ -70,8 +70,12 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
   doc.text(electionTitle, margin, yPosition);
   yPosition += 6;
   
-  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
-  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
+  const totalActiveMembers = auditData?.electionMetadata?.totalMembers;
+  if (totalActiveMembers !== undefined) {
+    doc.text(`Total de membros presentes: ${results.presentCount} de ${totalActiveMembers}`, margin, yPosition);
+  } else {
+    doc.text(`Total de membros presentes: ${results.presentCount}`, margin, yPosition);
+  }
   yPosition += 6;
 
   if (auditData?.electionMetadata?.createdAt) {
@@ -344,8 +348,12 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
   doc.text(electionTitle, margin, yPosition);
   yPosition += 6;
   
-  const totalMembers = auditData?.electionMetadata?.totalMembers || results.presentCount;
-  doc.text(`Total de membros presentes: ${results.presentCount} de ${totalMembers}`, margin, yPosition);
+  const totalActiveMembers = auditData?.electionMetadata?.totalMembers;
+  if (totalActiveMembers !== undefined) {
+    doc.text(`Total de membros presentes: ${results.presentCount} de ${totalActiveMembers}`, margin, yPosition);
+  } else {
+    doc.text(`Total de membros presentes: ${results.presentCount}`, margin, yPosition);
+  }
   yPosition += 6;
 
   if (auditData?.electionMetadata?.createdAt) {

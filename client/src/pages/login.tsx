@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,17 +39,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Force video autoplay for cross-browser compatibility
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.play().catch(() => {
-        // Silently fail if autoplay is blocked
-      });
-    }
-  }, []);
 
   // Check if session expired
   useEffect(() => {
@@ -311,26 +300,13 @@ export default function LoginPage() {
           <div className="text-center mb-3 sm:mb-4">
             <div className="flex justify-center mb-0.5 sm:mb-0.5">
               <div className="logo-container relative w-40 h-40 sm:w-[200px] sm:h-[200px]">
-                <video 
-                  ref={videoRef}
+                <img 
+                  src="/logo-animated.apng"
+                  alt="Emaús Vota Logo Animado"
                   className="w-40 h-40 sm:w-[200px] sm:h-[200px] object-contain"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  aria-label="Emaús Vota Logo Animado"
-                  preload="auto"
-                  poster="/logo.png"
-                  webkit-playsinline="true"
-                  x5-playsinline="true"
-                  x-webkit-airplay="deny"
-                >
-                  <source src="/logo-animated.webm" type="video/webm" />
-                  <source src="/logo-animated.mp4" type="video/mp4" />
-                  <img src="/logo.png" alt="Emaús Vota Logo" className="w-40 h-40 sm:w-[200px] sm:h-[200px] object-contain" />
-                </video>
+                  loading="eager"
+                  data-testid="logo-animated"
+                />
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Emaús Vota</h1>

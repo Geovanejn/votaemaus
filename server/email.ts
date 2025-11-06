@@ -67,7 +67,6 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 15px;" />` : ''}
             <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">🔒 Recuperação de Senha</h1>
           </div>
 
@@ -107,6 +106,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
 
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
               UMP Emaús - Sistema de Votação
             </p>

@@ -299,7 +299,6 @@ export default function LoginPage() {
                   loop
                   muted
                   playsInline
-                  poster="/logo.png"
                   aria-label="Emaús Vota Logo Animado"
                   preload="auto"
                 >

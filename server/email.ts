@@ -34,7 +34,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FFA500;">Emaús Vota</h2>
           <p>Olá,</p>
-          <p>Seu código de verificação é:</p>
+          <p>Seu código de verificação para primeiro acesso é:</p>
           <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
             <h1 style="color: #FFA500; font-size: 32px; letter-spacing: 8px; margin: 0;">${code}</h1>
           </div>
@@ -48,6 +48,90 @@ export async function sendVerificationEmail(email: string, code: string): Promis
     return true;
   } catch (error) {
     console.error("Error sending email:", error);
+    return false;
+  }
+}
+
+export async function sendPasswordResetEmail(email: string, code: string): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Password reset code for ${email}: ${code}`);
+    return false;
+  }
+  
+  try {
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: email,
+      subject: "🔒 Recuperação de Senha - Emaús Vota",
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🔒 Recuperação de Senha</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="padding: 40px 30px; background-color: #ffffff;">
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá!</p>
+            
+            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+              Você solicitou a recuperação de senha para sua conta no sistema Emaús Vota.
+            </p>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 20px;">
+              Use o código abaixo para recuperar sua senha:
+            </p>
+
+            <!-- Code Card -->
+            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 30px; margin: 25px 0; border-radius: 8px; text-align: center;">
+              <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Código de Recuperação</p>
+              <h1 style="color: #FFA500; margin: 0; font-size: 42px; letter-spacing: 12px; font-weight: bold;">${code}</h1>
+            </div>
+
+            <div style="background-color: #FFF3CD; border-left: 4px solid #FFA500; padding: 15px; margin: 25px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>⏱️ Atenção:</strong> Este código expira em <strong>15 minutos</strong>.
+              </p>
+            </div>
+
+            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
+              Após inserir o código, você será solicitado a criar uma nova senha para sua conta.
+            </p>
+
+            <p style="font-size: 14px; color: #888; line-height: 1.6; margin-top: 25px; padding-top: 25px; border-top: 1px solid #eee;">
+              <strong>Não solicitou esta recuperação?</strong><br>
+              Se você não solicitou a recuperação de senha, ignore este email. Sua senha atual permanecerá inalterada.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
+            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
+              UMP Emaús - Sistema de Votação
+            </p>
+            <p style="color: #aaa; font-size: 12px; margin: 0;">
+              Este é um email automático, por favor não responda.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [
+        {
+          content: logoBuffer.toString('base64'),
+          filename: 'logo.png',
+          contentId: 'logo-emaus',
+        },
+      ];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending password reset email:", error);
     return false;
   }
 }

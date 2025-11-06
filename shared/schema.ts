@@ -176,6 +176,7 @@ export const verificationCodes = sqliteTable("verification_codes", {
   email: text("email").notNull(),
   code: text("code").notNull(),
   expiresAt: text("expires_at").notNull(),
+  isPasswordReset: integer("is_password_reset", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

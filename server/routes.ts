@@ -24,7 +24,7 @@ import {
   generatePdfVerificationHash,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
-import { sendVerificationEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -87,17 +87,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const code = generateVerificationCode();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      const isPasswordReset = validatedData.isPasswordReset || false;
 
       storage.createVerificationCode({
         email: validatedData.email,
         code,
         expiresAt,
+        isPasswordReset,
       });
 
-      const emailSent = await sendVerificationEmail(validatedData.email, code);
+      const emailSent = isPasswordReset 
+        ? await sendPasswordResetEmail(validatedData.email, code)
+        : await sendVerificationEmail(validatedData.email, code);
 
       if (!emailSent) {
-        console.log(`[FALLBACK] Código de verificação para ${validatedData.email}: ${code}`);
+        console.log(`[FALLBACK] Código de ${isPasswordReset ? 'recuperação' : 'verificação'} para ${validatedData.email}: ${code}`);
       }
 
       res.json({ 
@@ -139,6 +143,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: userWithoutPassword,
         token,
       };
+
+      // If this is a password reset, indicate that user needs to set new password
+      if (verificationCode.isPasswordReset) {
+        return res.json({
+          ...response,
+          requiresPasswordReset: true,
+        });
+      }
 
       res.json(response);
     } catch (error) {

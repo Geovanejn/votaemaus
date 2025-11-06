@@ -159,12 +159,19 @@ export default function LoginPage() {
         throw new Error(error.message || "Erro ao verificar código");
       }
 
-      const result: AuthResponse = await response.json();
+      const result: AuthResponse & { requiresPasswordReset?: boolean } = await response.json();
 
-      // Check if user needs to set password
-      if (!result.user.hasPassword) {
+      // Check if user needs to set password (first access or password reset)
+      if (!result.user.hasPassword || result.requiresPasswordReset) {
         setPendingUser(result);
         setShowSetPasswordDialog(true);
+        setPasswordForm.reset();
+        if (result.requiresPasswordReset) {
+          toast({
+            title: "Código verificado!",
+            description: "Agora defina sua nova senha",
+          });
+        }
         return;
       }
 
@@ -534,9 +541,11 @@ export default function LoginPage() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Defina sua Senha</DialogTitle>
+            <DialogTitle>{isPasswordReset ? 'Redefinir sua Senha' : 'Defina sua Senha'}</DialogTitle>
             <DialogDescription>
-              Este é seu primeiro acesso. Crie uma senha para facilitar logins futuros.
+              {isPasswordReset 
+                ? 'Crie uma nova senha para sua conta. Sua senha anterior será substituída.'
+                : 'Este é seu primeiro acesso. Crie uma senha para facilitar logins futuros.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={setPasswordForm.handleSubmit(onSetPassword)} className="space-y-6 py-4">

@@ -1269,15 +1269,16 @@ export class SQLiteStorage implements IStorage {
 
   createVerificationCode(data: InsertVerificationCode): VerificationCode {
     const stmt = db.prepare(
-      "INSERT INTO verification_codes (email, code, expires_at) VALUES (?, ?, ?) RETURNING *"
+      "INSERT INTO verification_codes (email, code, expires_at, is_password_reset) VALUES (?, ?, ?, ?) RETURNING *"
     );
-    const row = stmt.get(data.email, data.code, data.expiresAt) as any;
+    const row = stmt.get(data.email, data.code, data.expiresAt, data.isPasswordReset ? 1 : 0) as any;
     
     return {
       id: row.id,
       email: row.email,
       code: row.code,
       expiresAt: row.expires_at,
+      isPasswordReset: Boolean(row.is_password_reset),
       createdAt: row.created_at,
     };
   }
@@ -1295,6 +1296,7 @@ export class SQLiteStorage implements IStorage {
       email: row.email,
       code: row.code,
       expiresAt: row.expires_at,
+      isPasswordReset: Boolean(row.is_password_reset),
       createdAt: row.created_at,
     };
   }

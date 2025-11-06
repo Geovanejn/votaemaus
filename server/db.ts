@@ -272,6 +272,15 @@ export async function initializeDatabase() {
       console.log("Added active_member column to users table");
     }
 
+    // Check and add is_password_reset column to verification_codes table
+    const verificationCodesColumns = sqlite.prepare("PRAGMA table_info(verification_codes)").all() as Array<{ name: string }>;
+    const verificationCodesColumnNames = verificationCodesColumns.map(col => col.name);
+    
+    if (!verificationCodesColumnNames.includes('is_password_reset')) {
+      sqlite.exec("ALTER TABLE verification_codes ADD COLUMN is_password_reset INTEGER NOT NULL DEFAULT 0");
+      console.log("Added is_password_reset column to verification_codes table");
+    }
+
     // Migration: Remove is_president column if it exists
     if (usersColumnNames.includes('is_president')) {
       console.log("Removing is_president column from users table...");

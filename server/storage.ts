@@ -1343,6 +1343,78 @@ export class SQLiteStorage implements IStorage {
     return stmt.all(electionId) as any[];
   }
 
+  getScrutinyHistory(electionId: number): Array<any> {
+    const electionPositions = this.getElectionPositions(electionId);
+    const allPositions = this.getAllPositions();
+    const winners = this.getElectionWinners(electionId);
+    const history: any[] = [];
+
+    // Create a map of position ID to position name
+    const positionMap = new Map(allPositions.map(p => [p.id, p.name]));
+
+    // Create a map of candidate ID to winner info
+    const winnerMap = new Map(winners.map(w => [w.candidateId, { wonAtScrutiny: w.wonAtScrutiny, positionId: w.positionId }]));
+
+    for (const position of electionPositions) {
+      const posName = positionMap.get(position.positionId);
+      if (!posName) continue;
+
+      const positionHistory: any = {
+        positionId: position.positionId,
+        positionName: posName,
+        scrutinies: []
+      };
+
+      // Get candidates for this position
+      const candidates = this.getCandidatesByPosition(position.positionId, electionId);
+
+      // For each scrutiny round (1 to current_scrutiny or max 3)
+      const maxScrutiny = Math.min(position.currentScrutiny, 3);
+      for (let scrutiny = 1; scrutiny <= maxScrutiny; scrutiny++) {
+        const scrutinyData: any = {
+          round: scrutiny,
+          candidates: []
+        };
+
+        // Get vote counts for each candidate in this scrutiny
+        const voteStmt = db.prepare(`
+          SELECT candidate_id, COUNT(*) as voteCount
+          FROM votes
+          WHERE election_id = ? AND position_id = ? AND scrutiny_round = ?
+          GROUP BY candidate_id
+        `);
+        const voteCounts = voteStmt.all(electionId, position.positionId, scrutiny) as Array<{ candidate_id: number; voteCount: number }>;
+
+        // Map vote counts to candidates
+        const voteCountMap = new Map(voteCounts.map(v => [v.candidate_id, v.voteCount]));
+
+        for (const candidate of candidates) {
+          const votes = voteCountMap.get(candidate.id) || 0;
+          const user = this.getUserById(candidate.userId);
+          const winnerInfo = winnerMap.get(candidate.id);
+
+          scrutinyData.candidates.push({
+            candidateId: candidate.id,
+            candidateName: candidate.name,
+            candidateEmail: user?.email || '',
+            voteCount: votes,
+            advancedToNext: scrutiny < maxScrutiny ? votes > 0 : false, // Simple logic - can be refined
+            isElected: winnerInfo ? winnerInfo.wonAtScrutiny === scrutiny : false
+          });
+        }
+
+        // Sort by vote count descending
+        scrutinyData.candidates.sort((a: any, b: any) => b.voteCount - a.voteCount);
+
+        positionHistory.scrutinies.push(scrutinyData);
+      }
+
+      history.push(positionHistory);
+    }
+
+    return history;
+  }
+
   getElectionAuditData(electionId: number): any | null {
     const results = this.getElectionResults(electionId);
     if (!results) return null;
@@ -1366,6 +1438,7 @@ export class SQLiteStorage implements IStorage {
       },
       voterAttendance: this.getVoterAttendance(electionId),
       voteTimeline: this.getVoteTimeline(electionId),
+      scrutinyHistory: this.getScrutinyHistory(electionId),
     };
   }
 

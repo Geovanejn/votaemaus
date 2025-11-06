@@ -166,6 +166,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
       return [
         candidate.candidateName,
         status,
+        candidate.isElected,
       ];
     });
 
@@ -173,7 +174,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
       autoTable(doc, {
         startY: yPosition,
         head: [['Candidato', 'Resultado']],
-        body: tableData,
+        body: tableData.map(row => [row[0], row[1]]),
         theme: 'grid',
         headStyles: {
           fillColor: [255, 165, 0],
@@ -185,6 +186,11 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
           fontSize: 7,
           cellPadding: 1.5,
         },
+        didParseCell: function(data) {
+          if (data.section === 'body' && tableData[data.row.index][2]) {
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
         margin: { left: margin, right: margin },
       });
 
@@ -192,6 +198,90 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     } else {
       doc.text("Nenhum candidato registrado para este cargo", margin, yPosition);
       yPosition += 6;
+    }
+  }
+
+  // Add detailed scrutiny breakdown section
+  if (auditData?.scrutinyHistory && auditData.scrutinyHistory.length > 0) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Detalhamento de Escrutínios", margin, yPosition);
+    yPosition += 8;
+
+    for (const positionHistory of auditData.scrutinyHistory) {
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = margin;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(positionHistory.positionName, margin, yPosition);
+      yPosition += 6;
+
+      for (const scrutiny of positionHistory.scrutinies) {
+        if (yPosition > pageHeight - 45) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`${scrutiny.round}º Escrutínio`, margin, yPosition);
+        yPosition += 5;
+
+        const scrutinyTableData = scrutiny.candidates.map((candidate: any) => {
+          let status = `${candidate.voteCount} voto${candidate.voteCount !== 1 ? 's' : ''}`;
+          let advancement = '';
+          
+          if (candidate.isElected) {
+            advancement = '✓ ELEITO';
+          } else if (candidate.advancedToNext && scrutiny.round < 3) {
+            advancement = 'Avançou';
+          }
+
+          return [
+            candidate.candidateName,
+            status,
+            advancement,
+            candidate.isElected,
+          ];
+        });
+
+        if (scrutinyTableData.length > 0) {
+          autoTable(doc, {
+            startY: yPosition,
+            head: [['Candidato', 'Votos', 'Status']],
+            body: scrutinyTableData.map((row: any) => [row[0], row[1], row[2]]),
+            theme: 'grid',
+            headStyles: {
+              fillColor: [255, 165, 0],
+              textColor: [255, 255, 255],
+              fontSize: 7,
+              fontStyle: 'bold',
+            },
+            bodyStyles: {
+              fontSize: 7,
+              cellPadding: 1.5,
+            },
+            didParseCell: function(data) {
+              if (data.section === 'body' && scrutinyTableData[data.row.index][3]) {
+                data.cell.styles.fontStyle = 'bold';
+              }
+            },
+            margin: { left: margin, right: margin },
+          });
+
+          yPosition = (doc as any).lastAutoTable.finalY + 6;
+        }
+      }
+
+      yPosition += 4;
     }
   }
 
@@ -463,6 +553,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       return [
         candidate.candidateName,
         status,
+        candidate.isElected,
       ];
     });
 
@@ -470,7 +561,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
       autoTable(doc, {
         startY: yPosition,
         head: [['Candidato', 'Resultado']],
-        body: tableData,
+        body: tableData.map(row => [row[0], row[1]]),
         theme: 'grid',
         headStyles: {
           fillColor: [255, 165, 0],
@@ -482,6 +573,11 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
           fontSize: 7,
           cellPadding: 1.5,
         },
+        didParseCell: function(data) {
+          if (data.section === 'body' && tableData[data.row.index][2]) {
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
         margin: { left: margin, right: margin },
       });
 
@@ -489,6 +585,90 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     } else {
       doc.text("Nenhum candidato registrado para este cargo", margin, yPosition);
       yPosition += 6;
+    }
+  }
+
+  // Add detailed scrutiny breakdown section
+  if (auditData?.scrutinyHistory && auditData.scrutinyHistory.length > 0) {
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Detalhamento de Escrutínios", margin, yPosition);
+    yPosition += 8;
+
+    for (const positionHistory of auditData.scrutinyHistory) {
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = margin;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(positionHistory.positionName, margin, yPosition);
+      yPosition += 6;
+
+      for (const scrutiny of positionHistory.scrutinies) {
+        if (yPosition > pageHeight - 45) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`${scrutiny.round}º Escrutínio`, margin, yPosition);
+        yPosition += 5;
+
+        const scrutinyTableData = scrutiny.candidates.map((candidate: any) => {
+          let status = `${candidate.voteCount} voto${candidate.voteCount !== 1 ? 's' : ''}`;
+          let advancement = '';
+          
+          if (candidate.isElected) {
+            advancement = '✓ ELEITO';
+          } else if (candidate.advancedToNext && scrutiny.round < 3) {
+            advancement = 'Avançou';
+          }
+
+          return [
+            candidate.candidateName,
+            status,
+            advancement,
+            candidate.isElected,
+          ];
+        });
+
+        if (scrutinyTableData.length > 0) {
+          autoTable(doc, {
+            startY: yPosition,
+            head: [['Candidato', 'Votos', 'Status']],
+            body: scrutinyTableData.map((row: any) => [row[0], row[1], row[2]]),
+            theme: 'grid',
+            headStyles: {
+              fillColor: [255, 165, 0],
+              textColor: [255, 255, 255],
+              fontSize: 7,
+              fontStyle: 'bold',
+            },
+            bodyStyles: {
+              fontSize: 7,
+              cellPadding: 1.5,
+            },
+            didParseCell: function(data) {
+              if (data.section === 'body' && scrutinyTableData[data.row.index][3]) {
+                data.cell.styles.fontStyle = 'bold';
+              }
+            },
+            margin: { left: margin, right: margin },
+          });
+
+          yPosition = (doc as any).lastAutoTable.finalY + 6;
+        }
+      }
+
+      yPosition += 4;
     }
   }
 

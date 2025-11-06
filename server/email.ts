@@ -66,26 +66,27 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🔒 Recuperação de Senha</h1>
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 15px;" />` : ''}
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">🔒 Recuperação de Senha</h1>
           </div>
 
           <!-- Main Content -->
           <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá!</p>
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Olá!</p>
             
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Você solicitou a recuperação de senha para sua conta no sistema Emaús Vota.
             </p>
 
-            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 20px;">
+            <p style="font-size: 15px; color: #555; line-height: 1.6; margin-top: 20px;">
               Use o código abaixo para recuperar sua senha:
             </p>
 
             <!-- Code Card -->
-            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 30px; margin: 25px 0; border-radius: 8px; text-align: center;">
-              <p style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Código de Recuperação</p>
-              <h1 style="color: #FFA500; margin: 0; font-size: 42px; letter-spacing: 12px; font-weight: bold;">${code}</h1>
+            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 25px; margin: 25px 0; border-radius: 8px; text-align: center;">
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Código de Recuperação</p>
+              <h1 style="color: #FFA500; margin: 0; font-size: 32px; letter-spacing: 8px; font-weight: bold;">${code}</h1>
             </div>
 
             <div style="background-color: #FFF3CD; border-left: 4px solid #FFA500; padding: 15px; margin: 25px 0; border-radius: 4px;">
@@ -94,7 +95,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
               </p>
             </div>
 
-            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
+            <p style="font-size: 15px; color: #555; line-height: 1.6; margin-top: 25px;">
               Após inserir o código, você será solicitado a criar uma nova senha para sua conta.
             </p>
 
@@ -106,7 +107,6 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
 
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
               UMP Emaús - Sistema de Votação
             </p>

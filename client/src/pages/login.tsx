@@ -324,7 +324,7 @@ export default function LoginPage() {
                 {step === "email" ? (
                   <>
                     <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-                    Entrar
+                    {isPasswordReset ? 'Recuperar Senha' : 'Entrar'}
                   </>
                 ) : step === "password" ? (
                   <>
@@ -334,16 +334,20 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <KeyRound className="w-5 h-5 sm:w-6 sm:h-6" />
-                    Verificar Código
+                    {isPasswordReset ? 'Recuperar Senha' : 'Verificar Código'}
                   </>
                 )}
               </CardTitle>
               <CardDescription className="text-sm">
                 {step === "email" 
-                  ? "Digite seu email para receber o código de verificação" 
+                  ? (isPasswordReset 
+                      ? "Digite seu email para receber o código de recuperação de senha"
+                      : "Digite seu email para receber o código de verificação")
                   : step === "password"
                   ? "Digite seu email e senha para acessar"
-                  : `Código enviado para ${email}`}
+                  : (isPasswordReset 
+                      ? `Código de recuperação enviado para ${email}`
+                      : `Código enviado para ${email}`)}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
@@ -492,7 +496,9 @@ export default function LoginPage() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground text-center">
-                      Digite o código de 6 dígitos enviado para seu email
+                      {isPasswordReset 
+                        ? "Digite o código de recuperação de 6 dígitos enviado para seu email"
+                        : "Digite o código de 6 dígitos enviado para seu email"}
                     </p>
                   </div>
 

@@ -348,4 +348,19 @@ export type ElectionAuditData = {
   };
   voterAttendance: VoterAttendance[];
   voteTimeline: VoterActivity[];
+  scrutinyHistory?: Array<{
+    positionId: number;
+    positionName: string;
+    scrutinies: Array<{
+      round: number;
+      candidates: Array<{
+        candidateId: number;
+        candidateName: string;
+        candidateEmail: string;
+        voteCount: number;
+        advancedToNext: boolean;
+        isElected: boolean;
+      }>;
+    }>;
+  }>;
 };

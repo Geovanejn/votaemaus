@@ -299,7 +299,7 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto mt-0.5 sm:mt-1">
           <div className="text-center mb-3 sm:mb-4">
             <div className="flex justify-center mb-0.5 sm:mb-0.5">
-              <div className="logo-container relative w-40 h-40 sm:w-[200px] sm:h-[200px]">
+              <div className="logo-container relative w-40 h-40 sm:w-[200px] sm:h-[200px] bg-white rounded-lg">
                 <img 
                   src="/logo-animated.apng"
                   alt="Emaús Vota Logo Animado"

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { UserCircle, Mail, KeyRound, Lock } from "lucide-react";
+import logoAnimated from "@assets/Crie_uma_animao_2025110622562-ezgif.com-video-to-apng-converter (1)_1762519710011.png";
 
 const setPasswordSchema = z.object({
   password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
@@ -301,12 +302,14 @@ export default function LoginPage() {
             <div className="flex justify-center mb-0.5 sm:mb-0.5">
               <div className="logo-container relative w-full max-w-[400px] mx-auto">
                 <picture>
-                  <source srcSet="/logo-animated.webp" type="image/webp" />
+                  <source srcSet={logoAnimated} type="image/apng" />
+                  <source srcSet={logoAnimated} type="image/png" />
                   <img 
-                    src="/logo.png"
+                    src={logoAnimated}
                     alt="Emaús Vota Logo Animado"
                     className="w-full h-auto object-contain"
                     loading="eager"
+                    decoding="async"
                     data-testid="logo-animated"
                   />
                 </picture>

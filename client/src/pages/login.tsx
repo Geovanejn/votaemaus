@@ -299,7 +299,7 @@ export default function LoginPage() {
       <div className="container mx-auto px-4 py-4 sm:py-0">
         <div className="max-w-md mx-auto mt-0.5 sm:mt-1">
           <div className="text-center mb-3 sm:mb-4">
-            <div className="flex justify-center mb-0.5 sm:mb-0.5">
+            <div className="flex justify-center mb-3 sm:mb-3">
               <div className="logo-container relative w-full max-w-[133px] mx-auto">
                 <img 
                   src={logoAnimated}

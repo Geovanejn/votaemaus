@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg", "imagemagick"]
+packages = ["ffmpeg", "imagemagick", "unzip"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -22,6 +22,10 @@ externalPort = 6000
 [[ports]]
 localPort = 41009
 externalPort = 3000
+
+[[ports]]
+localPort = 41013
+externalPort = 3003
 
 [[ports]]
 localPort = 41079

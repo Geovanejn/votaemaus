@@ -299,14 +299,17 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto mt-0.5 sm:mt-1">
           <div className="text-center mb-3 sm:mb-4">
             <div className="flex justify-center mb-0.5 sm:mb-0.5">
-              <div className="logo-container relative w-40 h-40 sm:w-[200px] sm:h-[200px] bg-white rounded-lg">
-                <img 
-                  src="/logo-animated.apng"
-                  alt="Emaús Vota Logo Animado"
-                  className="w-40 h-40 sm:w-[200px] sm:h-[200px] object-contain"
-                  loading="eager"
-                  data-testid="logo-animated"
-                />
+              <div className="logo-container relative w-full max-w-[400px] mx-auto">
+                <picture>
+                  <source srcSet="/logo-animated.webp" type="image/webp" />
+                  <img 
+                    src="/logo.png"
+                    alt="Emaús Vota Logo Animado"
+                    className="w-full h-auto object-contain"
+                    loading="eager"
+                    data-testid="logo-animated"
+                  />
+                </picture>
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Emaús Vota</h1>

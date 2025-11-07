@@ -342,6 +342,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
     const timelineData = auditData.voteTimeline.map((vote: any) => [
       vote.voterName,
       vote.positionName,
+      vote.candidateName,
       `${vote.scrutinyRound}º`,
       new Date(vote.votedAt).toLocaleString('pt-BR', { 
         day: "2-digit", 
@@ -353,7 +354,7 @@ export async function generateElectionAuditPDF(electionResults: ElectionResults 
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['Membro', 'Cargo', 'Escrutínio', 'Data/Hora']],
+      head: [['Membro', 'Cargo', 'Candidato', 'Escrutínio', 'Data/Hora']],
       body: timelineData,
       theme: 'grid',
       headStyles: {
@@ -729,6 +730,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
     const timelineData = auditData.voteTimeline.map((vote: any) => [
       vote.voterName,
       vote.positionName,
+      vote.candidateName,
       `${vote.scrutinyRound}º`,
       new Date(vote.votedAt).toLocaleString('pt-BR', { 
         day: "2-digit", 
@@ -740,7 +742,7 @@ export async function generateElectionAuditPDFBase64(electionResults: ElectionRe
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['Membro', 'Cargo', 'Escrutínio', 'Data/Hora']],
+      head: [['Membro', 'Cargo', 'Candidato', 'Escrutínio', 'Data/Hora']],
       body: timelineData,
       theme: 'grid',
       headStyles: {

@@ -300,7 +300,7 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto mt-0.5 sm:mt-1">
           <div className="text-center mb-3 sm:mb-4">
             <div className="flex justify-center mb-0.5 sm:mb-0.5">
-              <div className="logo-container relative w-full max-w-[400px] mx-auto">
+              <div className="logo-container relative w-full max-w-[133px] mx-auto">
                 <picture>
                   <source srcSet={logoAnimated} type="image/apng" />
                   <source srcSet={logoAnimated} type="image/png" />

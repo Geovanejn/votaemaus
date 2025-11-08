@@ -218,25 +218,25 @@ Toda a família UMP Emaús
                 <!-- Header -->
                 <tr>
                   <td align="center" style="background-color: #FFA500; padding: 40px 20px;">
-                    <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">🎉 Feliz Aniversário! 🎉</h1>
+                    <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">🎉 Feliz Aniversário!</h1>
                     <p style="color: #ffffff; margin: 0; font-size: 16px; opacity: 0.95;">Que dia especial!</p>
                   </td>
                 </tr>
                 
                 <!-- Main Content -->
                 <tr>
-                  <td style="padding: 40px 30px;">
+                  <td align="center" style="padding: 40px 30px;">
                     <!-- Member Photo - Centralized -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 30px auto;">
                       <tr>
-                        <td align="center" style="padding-bottom: 30px;">
-                          <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #FFA500; border-radius: 50px;">
+                        <td align="center">
+                          <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
                             <tr>
                               <td align="center" style="padding: 4px;">
-                                <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 46px;">
+                                <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 46px; margin: 0 auto;">
                                   <tr>
                                     <td align="center" style="padding: 2px;">
-                                      <table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
+                                      <table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0; margin: 0 auto;">
                                         <tr>
                                           <td align="center" valign="middle">
                                             <img 
@@ -244,7 +244,7 @@ Toda a família UMP Emaús
                                               alt=""
                                               width="75"
                                               height="75"
-                                              style="display: block; width: 75px; height: 75px; border-radius: 38px; border: 0; object-fit: cover;"
+                                              style="display: block; width: 75px; height: 75px; border-radius: 38px; border: 0; object-fit: cover; margin: 0 auto;"
                                             />
                                           </td>
                                         </tr>

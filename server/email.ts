@@ -6,6 +6,22 @@ import { getGravatarUrl } from "@shared/schema";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// Helper function to download image from URL and return as Buffer
+async function downloadImageAsBuffer(imageUrl: string): Promise<Buffer | null> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error(`Failed to download image from ${imageUrl}: ${response.status}`);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error(`Error downloading image from ${imageUrl}:`, error);
+    return null;
+  }
+}
+
 // Read logo for CID embedding (Content-ID attachment method for Gmail compatibility)
 // This method is more reliable than base64 data URIs which Gmail blocks
 let logoBuffer: Buffer | null = null;

@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import fs from "fs";
 import path from "path";
+import { getFirstAndLastName } from "@shared/utils";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -146,6 +147,8 @@ export async function sendBirthdayEmail(
   }
 
   try {
+    const formattedName = getFirstAndLastName(memberName);
+    
     const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
       to: memberEmail,
@@ -159,7 +162,7 @@ export async function sendBirthdayEmail(
 
           <!-- Main Content -->
           <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Querido(a) <strong>${memberName}</strong>!</p>
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Querido(a) <strong>${formattedName}</strong>!</p>
             
             <p style="font-size: 16px; color: #555; line-height: 1.6;">
               Hoje é um dia muito especial! A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
@@ -204,7 +207,7 @@ export async function sendBirthdayEmail(
     }
 
     await resend.emails.send(emailPayload);
-    console.log(`✓ Birthday email sent to ${memberName} (${memberEmail})`);
+    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail})`);
     return true;
   } catch (error) {
     console.error("Error sending birthday email:", error);
@@ -225,6 +228,7 @@ export async function sendCongratulationsEmail(
 
   const ordinals = ["1º", "2º", "3º"];
   const scrutinyLabel = ordinals[scrutinyRound - 1] || `${scrutinyRound}º`;
+  const formattedName = getFirstAndLastName(candidateName);
   
   try {
     // Prepare email payload with CID-embedded logo (Gmail-compatible method)
@@ -241,7 +245,7 @@ export async function sendCongratulationsEmail(
 
           <!-- Main Content -->
           <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${candidateName}</strong>!</p>
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${formattedName}</strong>!</p>
             
             <p style="font-size: 16px; color: #555; line-height: 1.6;">
               É com grande alegria que informamos que você foi eleito(a) para o cargo de:
@@ -300,7 +304,7 @@ export async function sendCongratulationsEmail(
 
     await resend.emails.send(emailPayload);
     
-    console.log(`✓ Congratulations email sent to ${candidateName} (${candidateEmail}) for ${positionName}`);
+    console.log(`✓ Congratulations email sent to ${formattedName} (${candidateEmail}) for ${positionName}`);
     return true;
   } catch (error) {
     console.error("Error sending congratulations email:", error);
@@ -320,6 +324,8 @@ export async function sendAuditPDFEmail(
   }
 
   try {
+    const formattedName = getFirstAndLastName(presidentName);
+    
     const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
       to: presidentEmail,
@@ -333,7 +339,7 @@ export async function sendAuditPDFEmail(
 
           <!-- Main Content -->
           <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${presidentName}</strong>!</p>
+            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${formattedName}</strong>!</p>
             
             <p style="font-size: 16px; color: #555; line-height: 1.6;">
               Segue anexo o relatório de auditoria completo da eleição:

@@ -226,43 +226,38 @@ Este é um email automático da liderança.
                 <!-- Main Content -->
                 <tr>
                   <td style="padding: 40px 30px;">
-                    <!-- Member Photo -->
+                    <!-- Member Photo - Centralized -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td align="center" style="padding-bottom: 30px; text-align: center;">
-                          <!-- Centered container -->
-                          <div style="display: inline-block; text-align: center;">
-                            <!-- Outer golden frame -->
-                            <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto; display: inline-block;">
-                              <tr>
-                                <td style="padding: 4px;">
-                                  <!-- Inner white border -->
-                                  <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 46px;">
-                                    <tr>
-                                      <td align="center" valign="middle" style="padding: 2px; width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
-                                        <!-- Member Photo -->
-                                        <img 
-                                          src="cid:member-photo" 
-                                          alt=""
-                                          width="75"
-                                          height="75"
-                                          style="
-                                            display: block;
-                                            width: 75px;
-                                            height: 75px;
-                                            border-radius: 38px;
-                                            border: 0;
-                                            object-fit: cover;
-                                            margin: 0 auto;
-                                          "
-                                        />
-                                      </td>
-                                    </tr>
-                                  </table>
-                                </td>
-                              </tr>
-                            </table>
-                          </div>
+                        <td align="center" style="padding-bottom: 30px;">
+                          <!-- Outer golden frame -->
+                          <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #FFA500; border-radius: 50px;">
+                            <tr>
+                              <td align="center" style="padding: 4px;">
+                                <!-- Inner white border -->
+                                <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 46px;">
+                                  <tr>
+                                    <td align="center" style="padding: 2px;">
+                                      <!-- Photo container -->
+                                      <table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
+                                        <tr>
+                                          <td align="center" valign="middle">
+                                            <img 
+                                              src="cid:member-photo" 
+                                              alt=""
+                                              width="75"
+                                              height="75"
+                                              style="display: block; width: 75px; height: 75px; border-radius: 38px; border: 0; object-fit: cover;"
+                                            />
+                                          </td>
+                                        </tr>
+                                      </table>
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>

@@ -67,11 +67,11 @@ async function sendBirthdayEmails(): Promise<void> {
 }
 
 export function initBirthdayScheduler(): void {
-  cron.schedule('0 11 * * *', sendBirthdayEmails, {
+  cron.schedule('15 10 * * *', sendBirthdayEmails, {
     timezone: 'America/Sao_Paulo'
   });
   
-  console.log('[Birthday Scheduler] ✓ Initialized - will run daily at 11:00 AM (America/Sao_Paulo)');
+  console.log('[Birthday Scheduler] ✓ Initialized - will run daily at 10:15 AM (America/Sao_Paulo)');
 }
 
 export { sendBirthdayEmails };

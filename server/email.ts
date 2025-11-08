@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import fs from "fs";
 import path from "path";
 import { getFirstAndLastName } from "@shared/utils";
+import { getGravatarUrl } from "@shared/schema";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -139,7 +140,8 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
 
 export async function sendBirthdayEmail(
   memberName: string,
-  memberEmail: string
+  memberEmail: string,
+  photoUrl: string | null
 ): Promise<boolean> {
   if (!resend) {
     console.log(`[EMAIL DISABLED] Birthday email for ${memberEmail}: ${memberName}`);
@@ -148,51 +150,111 @@ export async function sendBirthdayEmail(
 
   try {
     const formattedName = getFirstAndLastName(memberName);
+    const memberPhoto = photoUrl || getGravatarUrl(memberEmail);
     
     const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
       to: memberEmail,
       subject: `🎂 Feliz Aniversário! - UMP Emaús`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold;">🎂 Feliz Aniversário!</h1>
-          </div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
+          <tr>
+            <td align="center" style="padding: 20px 0;">
+              <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; font-family: Arial, sans-serif;">
+                <!-- Header -->
+                <tr>
+                  <td align="center" style="background-color: #FFA500; padding: 40px 20px;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold;">🎂 Feliz Aniversário!</h1>
+                  </td>
+                </tr>
+                
+                <!-- Main Content -->
+                <tr>
+                  <td style="padding: 40px 30px;">
+                    <!-- Member Photo with Birthday Frame -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="padding-bottom: 10px;">
+                          <!-- Birthday decoration -->
+                          <div style="font-size: 36px; line-height: 1;">🎉</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding-bottom: 30px;">
+                          <!-- Outer golden frame -->
+                          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 100px;">
+                            <tr>
+                              <td style="padding: 8px;">
+                                <!-- Inner white border -->
+                                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 92px;">
+                                  <tr>
+                                    <td align="center" valign="middle" style="padding: 4px; width: 150px; height: 150px; border-radius: 75px; overflow: hidden;">
+                                      <!-- Member Photo (circular) -->
+                                      <img 
+                                        src="${memberPhoto}" 
+                                        alt="${formattedName}"
+                                        width="150"
+                                        height="150"
+                                        style="
+                                          display: block;
+                                          width: 150px;
+                                          height: 150px;
+                                          border-radius: 75px;
+                                          border: 0;
+                                        "
+                                      />
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
 
-          <!-- Main Content -->
-          <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Querido(a) <strong>${formattedName}</strong>!</p>
-            
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
-              Hoje é um dia muito especial! A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
-            </p>
+                    <p style="font-size: 18px; color: #333; margin: 0 0 20px 0; text-align: center;">Querido(a) <strong>${formattedName}</strong>!</p>
+                    
+                    <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+                      Hoje é um dia muito especial! A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+                    </p>
 
-            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 20px; margin: 25px 0; border-radius: 8px;">
-              <p style="margin: 0; color: #666; font-size: 16px; text-align: center; font-style: italic;">
-                "Que o Senhor te abençoe e te guarde"
-              </p>
-              <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 14px;">
-                Números 6:24
-              </p>
-            </div>
+                    <!-- Bible Verse Box -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+                      <tr>
+                        <td style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px;">
+                          <p style="margin: 0; color: #666; font-size: 16px; text-align: center; font-style: italic;">
+                            "Que o Senhor te abençoe e te guarde"
+                          </p>
+                          <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 14px;">
+                            Números 6:24
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
 
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
-              Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
-            </p>
-          </div>
+                    <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0;">
+                      Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
+                    </p>
+                  </td>
+                </tr>
 
-          <!-- Footer -->
-          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
-            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús - Com carinho 💛
-            </p>
-            <p style="color: #aaa; font-size: 12px; margin: 0;">
-              Este é um email automático, mas o carinho é verdadeiro!
-            </p>
-          </div>
-        </div>
+                <!-- Footer -->
+                <tr>
+                  <td align="center" style="background-color: #f8f9fa; padding: 30px; border-top: 1px solid #e9ecef;">
+                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px; display: block;" />` : ''}
+                    <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
+                      UMP Emaús - Com carinho 💛
+                    </p>
+                    <p style="color: #aaa; font-size: 12px; margin: 0;">
+                      Este é um email automático, mas o carinho é verdadeiro!
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       `,
     };
 

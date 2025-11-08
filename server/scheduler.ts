@@ -45,7 +45,11 @@ async function sendBirthdayEmails(): Promise<void> {
     
     for (const member of birthdayMembers) {
       try {
-        const sent = await sendBirthdayEmail(member.fullName, member.email);
+        const sent = await sendBirthdayEmail(
+          member.fullName, 
+          member.email,
+          member.photoUrl || null
+        );
         if (sent) {
           console.log(`[Birthday Scheduler] ✓ Sent birthday email to ${member.fullName} (${member.email})`);
         } else {

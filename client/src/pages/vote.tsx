@@ -10,6 +10,7 @@ import { CheckCircle, LogOut, Vote, ChartBar } from "lucide-react";
 import { useLocation } from "wouter";
 import type { Election, Position } from "@shared/schema";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
+import { getFirstAndLastName } from "@shared/utils";
 
 type CandidateWithEmail = {
   id: number;
@@ -244,7 +245,7 @@ export default function VotePage() {
                                 </div>
                               )}
                             </div>
-                            <p className="font-medium flex-1">{candidate.name}</p>
+                            <p className="font-medium flex-1">{getFirstAndLastName(candidate.name)}</p>
                           </div>
                           <Button
                             className="w-full"

@@ -170,15 +170,21 @@ export async function sendBirthdayEmail(
     // Download member photo (from photoUrl or Gravatar) as Buffer for CID attachment
     const memberPhotoUrl = photoUrl || getGravatarUrl(memberEmail);
     console.log(`Downloading member photo from: ${memberPhotoUrl}`);
-    const memberPhotoBuffer = await downloadImageAsBuffer(memberPhotoUrl);
+    let memberPhotoBuffer = await downloadImageAsBuffer(memberPhotoUrl);
     
     if (!memberPhotoBuffer) {
-      console.error(`Failed to download member photo for ${memberEmail}, falling back to default Gravatar`);
-      // Try default Gravatar as ultimate fallback
-      const fallbackUrl = getGravatarUrl(memberEmail);
-      const fallbackBuffer = await downloadImageAsBuffer(fallbackUrl);
-      if (!fallbackBuffer) {
-        console.error(`Failed to download fallback Gravatar for ${memberEmail}`);
+      console.error(`Failed to download member photo for ${memberEmail}, trying Gravatar fallback`);
+      // Only try Gravatar if we haven't already tried it
+      if (photoUrl) {
+        const fallbackUrl = getGravatarUrl(memberEmail);
+        console.log(`Trying Gravatar fallback: ${fallbackUrl}`);
+        memberPhotoBuffer = await downloadImageAsBuffer(fallbackUrl);
+        if (!memberPhotoBuffer) {
+          console.error(`Failed to download Gravatar fallback for ${memberEmail}`);
+          return false;
+        }
+      } else {
+        console.error(`Gravatar download already failed for ${memberEmail}`);
         return false;
       }
     }

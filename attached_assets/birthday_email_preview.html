@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preview - E-mail de Aniversário UMP Emaús</title>
+  <title>Preview - E-mail de Aniversário UMP Emaús (CORRIGIDO)</title>
   <style>
     body {
       margin: 0;
@@ -23,7 +23,7 @@
       text-align: center;
       margin-bottom: 30px;
       padding-bottom: 20px;
-      border-bottom: 2px solid #e0e0e0;
+      border-top: 2px solid #e0e0e0;
     }
     .preview-header h1 {
       color: #333;
@@ -34,6 +34,26 @@
       color: #666;
       margin: 0;
       font-size: 14px;
+    }
+    .changes-list {
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 4px;
+    }
+    .changes-list h3 {
+      margin: 0 0 15px 0;
+      color: #0c4a6e;
+      font-size: 16px;
+    }
+    .changes-list ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #0c4a6e;
+    }
+    .changes-list li {
+      margin: 8px 0;
     }
     .email-frame {
       border: 1px solid #ddd;
@@ -46,8 +66,19 @@
 <body>
   <div class="preview-container">
     <div class="preview-header">
-      <h1>📧 Preview do E-mail de Aniversário</h1>
+      <h1>📧 E-mail de Aniversário - VERSÃO CORRIGIDA</h1>
       <p>UMP Emaús - Sistema de Votação</p>
+    </div>
+    
+    <div class="changes-list">
+      <h3>✅ Correções Aplicadas:</h3>
+      <ul>
+        <li><strong>Foto anexada via CID</strong> - Agora funciona igual ao logo (sem URLs externas)</li>
+        <li><strong>Moldura reduzida 50%</strong> - De 150px para 75px</li>
+        <li><strong>Moldura centralizada</strong> - Usando align="center" e margin: 0 auto</li>
+        <li><strong>Sem texto alternativo</strong> - alt="" para não mostrar nome do membro</li>
+        <li><strong>Object-fit: cover</strong> - Foto preenche toda a moldura circular</li>
+      </ul>
     </div>
     
     <div class="email-frame">
@@ -69,34 +100,42 @@
                   <table width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                       <td align="center" style="padding-bottom: 10px;">
-                        <!-- Birthday decoration -->
-                        <div style="font-size: 36px; line-height: 1;">🎉</div>
+                        <!-- Birthday decoration (reduzido também) -->
+                        <div style="font-size: 24px; line-height: 1;">🎉</div>
                       </td>
                     </tr>
                     <tr>
                       <td align="center" style="padding-bottom: 30px;">
-                        <!-- Outer golden frame -->
-                        <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 100px;">
+                        <!-- Center container table -->
+                        <table align="center" cellpadding="0" cellspacing="0" border="0">
                           <tr>
-                            <td style="padding: 8px;">
-                              <!-- Inner white border -->
-                              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 92px;">
+                            <td align="center">
+                              <!-- Outer golden frame (REDUZIDO 50%: 75px) -->
+                              <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
                                 <tr>
-                                  <td align="center" valign="middle" style="padding: 4px; width: 150px; height: 150px; border-radius: 75px; overflow: hidden;">
-                                    <!-- Member Photo (circular) -->
-                                    <img 
-                                      src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=200" 
-                                      alt="Membro"
-                                      width="150"
-                                      height="150"
-                                      style="
-                                        display: block;
-                                        width: 150px;
-                                        height: 150px;
-                                        border-radius: 75px;
-                                        border: 0;
-                                      "
-                                    />
+                                  <td style="padding: 4px;">
+                                    <!-- Inner white border -->
+                                    <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 46px;">
+                                      <tr>
+                                        <td align="center" valign="middle" style="padding: 2px; width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
+                                          <!-- Member Photo (circular) - CID attachment -->
+                                          <img 
+                                            src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=150" 
+                                            alt=""
+                                            width="75"
+                                            height="75"
+                                            style="
+                                              display: block;
+                                              width: 75px;
+                                              height: 75px;
+                                              border-radius: 38px;
+                                              border: 0;
+                                              object-fit: cover;
+                                            "
+                                          />
+                                        </td>
+                                      </tr>
+                                    </table>
                                   </td>
                                 </tr>
                               </table>
@@ -151,9 +190,10 @@
     </div>
     
     <div style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
-      <p style="margin: 10px 0;">✨ A foto do membro será inserida na moldura dourada circular</p>
-      <p style="margin: 10px 0;">📧 O e-mail será enviado automaticamente no dia do aniversário às 8h</p>
-      <p style="margin: 10px 0;">🎉 Design otimizado para Gmail, Outlook e Apple Mail</p>
+      <p style="margin: 10px 0;">✅ <strong>Foto anexada via CID</strong> - Método confiável para Gmail/Outlook</p>
+      <p style="margin: 10px 0;">📏 <strong>Moldura reduzida para 75px</strong> - 50% menor que antes</p>
+      <p style="margin: 10px 0;">🎯 <strong>Moldura centralizada</strong> - Alinhamento perfeito</p>
+      <p style="margin: 10px 0;">🖼️ <strong>Foto preenche moldura</strong> - object-fit: cover</p>
     </div>
   </div>
 </body>

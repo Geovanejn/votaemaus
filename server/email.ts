@@ -166,7 +166,22 @@ export async function sendBirthdayEmail(
 
   try {
     const formattedName = getFirstAndLastName(memberName);
-    const memberPhoto = photoUrl || getGravatarUrl(memberEmail);
+    
+    // Download member photo (from photoUrl or Gravatar) as Buffer for CID attachment
+    const memberPhotoUrl = photoUrl || getGravatarUrl(memberEmail);
+    console.log(`Downloading member photo from: ${memberPhotoUrl}`);
+    const memberPhotoBuffer = await downloadImageAsBuffer(memberPhotoUrl);
+    
+    if (!memberPhotoBuffer) {
+      console.error(`Failed to download member photo for ${memberEmail}, falling back to default Gravatar`);
+      // Try default Gravatar as ultimate fallback
+      const fallbackUrl = getGravatarUrl(memberEmail);
+      const fallbackBuffer = await downloadImageAsBuffer(fallbackUrl);
+      if (!fallbackBuffer) {
+        console.error(`Failed to download fallback Gravatar for ${memberEmail}`);
+        return false;
+      }
+    }
     
     const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
@@ -192,33 +207,41 @@ export async function sendBirthdayEmail(
                       <tr>
                         <td align="center" style="padding-bottom: 10px;">
                           <!-- Birthday decoration -->
-                          <div style="font-size: 36px; line-height: 1;">🎉</div>
+                          <div style="font-size: 24px; line-height: 1;">🎉</div>
                         </td>
                       </tr>
                       <tr>
                         <td align="center" style="padding-bottom: 30px;">
-                          <!-- Outer golden frame -->
-                          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 100px;">
+                          <!-- Center container table -->
+                          <table align="center" cellpadding="0" cellspacing="0" border="0">
                             <tr>
-                              <td style="padding: 8px;">
-                                <!-- Inner white border -->
-                                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 92px;">
+                              <td align="center">
+                                <!-- Outer golden frame (reduced to 50% = 75px) -->
+                                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
                                   <tr>
-                                    <td align="center" valign="middle" style="padding: 4px; width: 150px; height: 150px; border-radius: 75px; overflow: hidden;">
-                                      <!-- Member Photo (circular) -->
-                                      <img 
-                                        src="${memberPhoto}" 
-                                        alt="${formattedName}"
-                                        width="150"
-                                        height="150"
-                                        style="
-                                          display: block;
-                                          width: 150px;
-                                          height: 150px;
-                                          border-radius: 75px;
-                                          border: 0;
-                                        "
-                                      />
+                                    <td style="padding: 4px;">
+                                      <!-- Inner white border -->
+                                      <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 46px;">
+                                        <tr>
+                                          <td align="center" valign="middle" style="padding: 2px; width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
+                                            <!-- Member Photo (circular) - using CID attachment -->
+                                            <img 
+                                              src="cid:member-photo" 
+                                              alt=""
+                                              width="75"
+                                              height="75"
+                                              style="
+                                                display: block;
+                                                width: 75px;
+                                                height: 75px;
+                                                border-radius: 38px;
+                                                border: 0;
+                                                object-fit: cover;
+                                              "
+                                            />
+                                          </td>
+                                        </tr>
+                                      </table>
                                     </td>
                                   </tr>
                                 </table>
@@ -258,7 +281,7 @@ export async function sendBirthdayEmail(
                 <!-- Footer -->
                 <tr>
                   <td align="center" style="background-color: #f8f9fa; padding: 30px; border-top: 1px solid #e9ecef;">
-                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px; display: block;" />` : ''}
+                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin: 0 auto 15px auto; display: block;" />` : ''}
                     <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
                       UMP Emaús - Com carinho 💛
                     </p>
@@ -274,18 +297,31 @@ export async function sendBirthdayEmail(
       `,
     };
 
+    // Attach member photo as CID (same method as logo)
+    const attachments: any[] = [];
+    
+    if (memberPhotoBuffer) {
+      attachments.push({
+        content: memberPhotoBuffer.toString('base64'),
+        filename: 'member-photo.jpg',
+        contentId: 'member-photo',
+      });
+    }
+    
     if (logoBuffer) {
-      emailPayload.attachments = [
-        {
-          content: logoBuffer.toString('base64'),
-          filename: 'logo.png',
-          contentId: 'logo-emaus',
-        },
-      ];
+      attachments.push({
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      });
+    }
+    
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
     }
 
     await resend.emails.send(emailPayload);
-    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail})`);
+    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail}) with CID photo attachment`);
     return true;
   } catch (error) {
     console.error("Error sending birthday email:", error);

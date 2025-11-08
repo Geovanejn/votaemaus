@@ -193,17 +193,16 @@ export async function sendBirthdayEmail(
     const plainText = `
 Olá, ${formattedName}!
 
-Hoje é seu aniversário e a liderança da UMP Emaús gostaria de enviar uma mensagem especial.
+Hoje é um dia muito especial - é o seu aniversário!
 
-A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
 
-"Que o Senhor te abençoe e te guarde" - Números 6:24
+"Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça" - Números 6:24-25
 
-Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
+Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
 
----
-UMP Emaús
-Este é um email automático da liderança.
+Com carinho,
+Toda a família UMP Emaús
     `.trim();
 
     const emailPayload: any = {
@@ -218,8 +217,9 @@ Este é um email automático da liderança.
               <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; font-family: Arial, sans-serif;">
                 <!-- Header -->
                 <tr>
-                  <td align="center" style="background-color: #FFA500; padding: 30px 20px;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Feliz Aniversário</h1>
+                  <td align="center" style="background-color: #FFA500; padding: 40px 20px;">
+                    <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">🎉 Feliz Aniversário! 🎉</h1>
+                    <p style="color: #ffffff; margin: 0; font-size: 16px; opacity: 0.95;">Que dia especial!</p>
                   </td>
                 </tr>
                 
@@ -230,15 +230,12 @@ Este é um email automático da liderança.
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td align="center" style="padding-bottom: 30px;">
-                          <!-- Outer golden frame -->
                           <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #FFA500; border-radius: 50px;">
                             <tr>
                               <td align="center" style="padding: 4px;">
-                                <!-- Inner white border -->
                                 <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 46px;">
                                   <tr>
                                     <td align="center" style="padding: 2px;">
-                                      <!-- Photo container -->
                                       <table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
                                         <tr>
                                           <td align="center" valign="middle">
@@ -262,45 +259,46 @@ Este é um email automático da liderança.
                       </tr>
                     </table>
 
-                    <p style="font-size: 16px; color: #333; margin: 0 0 20px 0; text-align: center;">Olá, <strong>${formattedName}</strong>!</p>
+                    <p style="font-size: 18px; color: #333; margin: 0 0 25px 0; text-align: center; font-weight: 500;">Olá, <strong>${formattedName}</strong>!</p>
                     
-                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-                      Hoje é seu aniversário e a liderança da UMP Emaús gostaria de enviar uma mensagem especial.
+                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 20px 0;">
+                      Hoje é um dia muito especial - é o seu aniversário! 🎂
                     </p>
                     
-                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-                      A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 25px 0;">
+                      Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
                     </p>
 
                     <!-- Bible Verse -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
                       <tr>
-                        <td style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px;">
-                          <p style="margin: 0; color: #666; font-size: 15px; text-align: center; font-style: italic;">
-                            "Que o Senhor te abençoe e te guarde"
+                        <td style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px; border-radius: 4px;">
+                          <p style="margin: 0 0 8px 0; color: #666; font-size: 15px; text-align: center; font-style: italic; line-height: 1.6;">
+                            "Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça"
                           </p>
-                          <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 13px;">
-                            Números 6:24
+                          <p style="margin: 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 13px;">
+                            Números 6:24-25
                           </p>
                         </td>
                       </tr>
                     </table>
 
-                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
-                      Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos.
+                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 10px 0;">
+                      Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
+                    </p>
+                    
+                    <p style="font-size: 16px; color: #FFA500; margin: 25px 0 0 0; text-align: center; font-weight: 500;">
+                      Com carinho,<br>Toda a família UMP Emaús ❤️
                     </p>
                   </td>
                 </tr>
 
                 <!-- Footer -->
                 <tr>
-                  <td align="center" style="background-color: #f8f9fa; padding: 30px; border-top: 1px solid #e9ecef;">
-                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin: 0 auto 15px auto; display: block;" />` : ''}
-                    <p style="color: #888; font-size: 14px; margin: 0 0 10px 0;">
+                  <td align="center" style="background-color: #f8f9fa; padding: 25px; border-top: 1px solid #e9ecef;">
+                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin: 0 auto 12px auto; display: block;" />` : ''}
+                    <p style="color: #888; font-size: 13px; margin: 0;">
                       UMP Emaús
-                    </p>
-                    <p style="color: #aaa; font-size: 12px; margin: 0;">
-                      Este é um email automático da liderança.
                     </p>
                   </td>
                 </tr>

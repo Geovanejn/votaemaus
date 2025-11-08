@@ -189,10 +189,28 @@ export async function sendBirthdayEmail(
       }
     }
     
+    // Plain text version for better deliverability (Gmail Primary inbox)
+    const plainText = `
+Olá, ${formattedName}!
+
+Hoje é seu aniversário e a liderança da UMP Emaús gostaria de enviar uma mensagem especial.
+
+A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+
+"Que o Senhor te abençoe e te guarde" - Números 6:24
+
+Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
+
+---
+UMP Emaús
+Este é um email automático da liderança.
+    `.trim();
+
     const emailPayload: any = {
       from: "Emaús Vota <suporte@emausvota.com.br>",
       to: memberEmail,
-      subject: `🎂 Feliz Aniversário! - UMP Emaús`,
+      subject: `Mensagem de Aniversário - UMP Emaús`,
+      text: plainText,
       html: `
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
           <tr>
@@ -200,54 +218,41 @@ export async function sendBirthdayEmail(
               <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; font-family: Arial, sans-serif;">
                 <!-- Header -->
                 <tr>
-                  <td align="center" style="background-color: #FFA500; padding: 40px 20px;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold;">🎂 Feliz Aniversário!</h1>
+                  <td align="center" style="background-color: #FFA500; padding: 30px 20px;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Feliz Aniversário</h1>
                   </td>
                 </tr>
                 
                 <!-- Main Content -->
                 <tr>
                   <td style="padding: 40px 30px;">
-                    <!-- Member Photo with Birthday Frame -->
+                    <!-- Member Photo -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td align="center" style="padding-bottom: 10px;">
-                          <!-- Birthday decoration -->
-                          <div style="font-size: 24px; line-height: 1;">🎉</div>
-                        </td>
-                      </tr>
-                      <tr>
                         <td align="center" style="padding-bottom: 30px;">
-                          <!-- Center container table -->
-                          <table align="center" cellpadding="0" cellspacing="0" border="0">
+                          <!-- Outer golden frame -->
+                          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
                             <tr>
-                              <td align="center">
-                                <!-- Outer golden frame (reduced to 50% = 75px) -->
-                                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
+                              <td style="padding: 4px;">
+                                <!-- Inner white border -->
+                                <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 46px;">
                                   <tr>
-                                    <td style="padding: 4px;">
-                                      <!-- Inner white border -->
-                                      <table cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 46px;">
-                                        <tr>
-                                          <td align="center" valign="middle" style="padding: 2px; width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
-                                            <!-- Member Photo (circular) - using CID attachment -->
-                                            <img 
-                                              src="cid:member-photo" 
-                                              alt=""
-                                              width="75"
-                                              height="75"
-                                              style="
-                                                display: block;
-                                                width: 75px;
-                                                height: 75px;
-                                                border-radius: 38px;
-                                                border: 0;
-                                                object-fit: cover;
-                                              "
-                                            />
-                                          </td>
-                                        </tr>
-                                      </table>
+                                    <td align="center" valign="middle" style="padding: 2px; width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0;">
+                                      <!-- Member Photo -->
+                                      <img 
+                                        src="cid:member-photo" 
+                                        alt=""
+                                        width="75"
+                                        height="75"
+                                        style="
+                                          display: block;
+                                          width: 75px;
+                                          height: 75px;
+                                          border-radius: 38px;
+                                          border: 0;
+                                          object-fit: cover;
+                                        "
+                                      />
                                     </td>
                                   </tr>
                                 </table>
@@ -258,28 +263,32 @@ export async function sendBirthdayEmail(
                       </tr>
                     </table>
 
-                    <p style="font-size: 18px; color: #333; margin: 0 0 20px 0; text-align: center;">Querido(a) <strong>${formattedName}</strong>!</p>
+                    <p style="font-size: 16px; color: #333; margin: 0 0 20px 0; text-align: center;">Olá, <strong>${formattedName}</strong>!</p>
                     
-                    <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
-                      Hoje é um dia muito especial! A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
+                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+                      Hoje é seu aniversário e a liderança da UMP Emaús gostaria de enviar uma mensagem especial.
+                    </p>
+                    
+                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+                      A família UMP Emaús deseja a você um feliz aniversário cheio de bênçãos, alegria e realizações.
                     </p>
 
-                    <!-- Bible Verse Box -->
+                    <!-- Bible Verse -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
                       <tr>
                         <td style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px;">
-                          <p style="margin: 0; color: #666; font-size: 16px; text-align: center; font-style: italic;">
+                          <p style="margin: 0; color: #666; font-size: 15px; text-align: center; font-style: italic;">
                             "Que o Senhor te abençoe e te guarde"
                           </p>
-                          <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 14px;">
+                          <p style="margin: 10px 0 0 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 13px;">
                             Números 6:24
                           </p>
                         </td>
                       </tr>
                     </table>
 
-                    <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0;">
-                      Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos!
+                    <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0;">
+                      Que este novo ano de vida seja repleto de paz, amor e muita comunhão com Deus e com nossos irmãos.
                     </p>
                   </td>
                 </tr>
@@ -288,11 +297,11 @@ export async function sendBirthdayEmail(
                 <tr>
                   <td align="center" style="background-color: #f8f9fa; padding: 30px; border-top: 1px solid #e9ecef;">
                     ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin: 0 auto 15px auto; display: block;" />` : ''}
-                    <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-                      UMP Emaús - Com carinho 💛
+                    <p style="color: #888; font-size: 14px; margin: 0 0 10px 0;">
+                      UMP Emaús
                     </p>
                     <p style="color: #aaa; font-size: 12px; margin: 0;">
-                      Este é um email automático, mas o carinho é verdadeiro!
+                      Este é um email automático da liderança.
                     </p>
                   </td>
                 </tr>

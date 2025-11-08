@@ -2,7 +2,6 @@ import { useRef, forwardRef, useImperativeHandle } from "react";
 import html2canvas from "html2canvas";
 import backgroundUrl from "@assets/Fundo Layout stories_1761783891823.png";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1761786105447.png";
-import { getFirstName } from "@shared/utils";
 
 interface Winner {
   positionId: number;
@@ -150,7 +149,7 @@ const ExportResultsImage = forwardRef<ExportResultsImageHandle, ExportResultsIma
               lineHeight: "1.2",
             }}
           >
-            {getFirstName(winner.candidateName)}
+            {winner.candidateName}
           </h2>
           <p
             style={{

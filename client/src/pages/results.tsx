@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
+import { getShortName } from "@shared/utils";
 
 interface Winner {
   positionId: number;
@@ -361,7 +362,7 @@ export default function ResultsPage() {
                                   </Avatar>
                                   <div className="min-w-0">
                                     <p className="font-medium text-base sm:text-lg truncate">
-                                      {candidate.candidateName}
+                                      {getShortName(candidate.candidateName)}
                                     </p>
                                     {isElected && candidate.wonAtScrutiny && (
                                       <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">

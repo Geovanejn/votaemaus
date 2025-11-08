@@ -399,7 +399,7 @@ export async function sendAuditPDFEmail(
 
     await resend.emails.send(emailPayload);
     
-    console.log(`✓ Audit PDF email sent to ${presidentName} (${presidentEmail}) for ${electionName}`);
+    console.log(`✓ Audit PDF email sent to ${formattedName} (${presidentEmail}) for ${electionName}`);
     return true;
   } catch (error) {
     console.error("Error sending audit PDF email:", error);

@@ -1311,6 +1311,740 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== STUDY SYSTEM ROUTES ====================
+
+  // Get study profile for current user
+  app.get("/api/study/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const profile = storage.getOrCreateStudyProfile(req.user.id);
+      res.json(profile);
+    } catch (error) {
+      console.error("Get study profile error:", error);
+      res.status(500).json({ message: "Erro ao buscar perfil de estudo" });
+    }
+  });
+
+  // Get all published study weeks
+  app.get("/api/study/weeks", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weeks = storage.getPublishedStudyWeeks();
+      res.json(weeks);
+    } catch (error) {
+      console.error("Get study weeks error:", error);
+      res.status(500).json({ message: "Erro ao buscar semanas de estudo" });
+    }
+  });
+
+  // Get a specific study week with lessons
+  app.get("/api/study/weeks/:weekId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const weekId = parseInt(req.params.weekId);
+      const week = storage.getStudyWeekById(weekId);
+      if (!week) {
+        return res.status(404).json({ message: "Semana de estudo nao encontrada" });
+      }
+      const lessons = storage.getLessonsWithProgress(req.user.id, weekId);
+      res.json({ ...week, lessons });
+    } catch (error) {
+      console.error("Get study week error:", error);
+      res.status(500).json({ message: "Erro ao buscar semana de estudo" });
+    }
+  });
+
+  // Get a specific lesson with units
+  app.get("/api/study/lessons/:lessonId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const lessonId = parseInt(req.params.lessonId);
+      const lesson = storage.getLessonById(lessonId);
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+      const units = storage.getUnitsByLessonId(lessonId);
+      const progress = storage.getUserLessonProgress(req.user.id, lessonId);
+      res.json({ ...lesson, units, progress });
+    } catch (error) {
+      console.error("Get lesson error:", error);
+      res.status(500).json({ message: "Erro ao buscar licao" });
+    }
+  });
+
+  // Start a lesson
+  app.post("/api/study/lessons/:lessonId/start", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const lessonId = parseInt(req.params.lessonId);
+      const profile = storage.getOrCreateStudyProfile(req.user.id);
+      
+      if (profile.hearts <= 0) {
+        return res.status(400).json({ 
+          message: "Voce nao tem vidas suficientes. Leia versiculos biblicos para recuperar.",
+          heartsNeeded: true
+        });
+      }
+      
+      const progress = storage.startLesson(req.user.id, lessonId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Start lesson error:", error);
+      res.status(500).json({ message: "Erro ao iniciar licao" });
+    }
+  });
+
+  // Submit answer for a unit
+  app.post("/api/study/units/:unitId/answer", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const unitId = parseInt(req.params.unitId);
+      const { answer } = req.body;
+
+      if (answer === undefined) {
+        return res.status(400).json({ message: "O campo answer e obrigatorio" });
+      }
+
+      const result = storage.submitUnitAnswer(req.user.id, unitId, answer);
+      const profile = storage.getStudyProfile(req.user.id);
+      
+      res.json({ 
+        unitProgress: result.unitProgress, 
+        profile,
+        correct: result.isCorrect,
+        explanation: result.explanation
+      });
+    } catch (error) {
+      console.error("Submit answer error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao submeter resposta" 
+      });
+    }
+  });
+
+  // Complete a lesson
+  app.post("/api/study/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const lessonId = parseInt(req.params.lessonId);
+      const { xpEarned, mistakesCount, timeSpentSeconds } = req.body;
+
+      const progress = storage.completeLesson(
+        req.user.id, 
+        lessonId, 
+        xpEarned || 0, 
+        mistakesCount || 0, 
+        timeSpentSeconds || 0
+      );
+      const profile = storage.getStudyProfile(req.user.id);
+      
+      res.json({ progress, profile });
+    } catch (error) {
+      console.error("Complete lesson error:", error);
+      res.status(500).json({ message: "Erro ao completar licao" });
+    }
+  });
+
+  // Get all bible verses
+  app.get("/api/study/verses", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const verses = storage.getAllBibleVerses();
+      res.json(verses);
+    } catch (error) {
+      console.error("Get verses error:", error);
+      res.status(500).json({ message: "Erro ao buscar versiculos" });
+    }
+  });
+
+  // Read a verse to recover heart
+  app.post("/api/study/verses/:verseId/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const verseId = parseInt(req.params.verseId);
+      const verse = storage.getBibleVerseById(verseId);
+      
+      if (!verse) {
+        return res.status(404).json({ message: "Versiculo nao encontrado" });
+      }
+
+      const profile = storage.readVerseAndRecoverHeart(req.user.id, verseId);
+      res.json({ verse, profile, heartRecovered: true });
+    } catch (error) {
+      console.error("Read verse error:", error);
+      res.status(500).json({ message: "Erro ao ler versiculo" });
+    }
+  });
+
+  // Get all achievements
+  app.get("/api/study/achievements", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const allAchievements = storage.getAllAchievements();
+      const userAchievements = storage.getUserAchievements(req.user.id);
+      const unlockedCodes = new Set(userAchievements.map(a => a.code));
+      
+      const achievements = allAchievements.map(achievement => ({
+        ...achievement,
+        unlocked: unlockedCodes.has(achievement.code),
+        unlockedAt: userAchievements.find(ua => ua.code === achievement.code)?.unlockedAt || null
+      }));
+      
+      res.json(achievements);
+    } catch (error) {
+      console.error("Get achievements error:", error);
+      res.status(500).json({ message: "Erro ao buscar conquistas" });
+    }
+  });
+
+  // Get leaderboard
+  app.get("/api/study/leaderboard", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const periodType = (req.query.period as string) || 'weekly';
+      const now = new Date();
+      let periodKey: string;
+      
+      if (periodType === 'weekly') {
+        const weekNumber = Math.ceil((now.getDate() + now.getDay()) / 7);
+        periodKey = `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+      } else if (periodType === 'monthly') {
+        periodKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+      } else {
+        periodKey = now.getFullYear().toString();
+      }
+
+      const leaderboard = storage.getLeaderboard(periodType, periodKey, 20);
+      res.json({ periodType, periodKey, entries: leaderboard });
+    } catch (error) {
+      console.error("Get leaderboard error:", error);
+      res.status(500).json({ message: "Erro ao buscar ranking" });
+    }
+  });
+
+  // Admin: Seed study data (development only)
+  app.post("/api/study/seed", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const results = {
+        verses: 0,
+        achievements: 0,
+        weeks: 0,
+        lessons: 0,
+        units: 0
+      };
+
+      // Check if verses already exist
+      const existingVerses = storage.getAllBibleVerses();
+      if (existingVerses.length === 0) {
+        // Seed Bible verses for heart recovery
+        const verses = [
+          { reference: "Joao 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.", reflection: "O amor de Deus e incondicional e oferece salvacao a todos.", category: "amor" },
+          { reference: "Salmos 23:1", text: "O Senhor e o meu pastor; nada me faltara.", reflection: "Deus cuida de nos como um pastor cuida de suas ovelhas.", category: "provisao" },
+          { reference: "Filipenses 4:13", text: "Posso todas as coisas naquele que me fortalece.", reflection: "Cristo nos da forca para enfrentar qualquer situacao.", category: "forca" },
+          { reference: "Jeremias 29:11", text: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz, e nao de mal, para vos dar o fim que esperais.", reflection: "Deus tem planos de esperanca e futuro para nos.", category: "esperanca" },
+          { reference: "Isaias 41:10", text: "Nao temas, porque eu sou contigo; nao te assombres, porque eu sou teu Deus; eu te fortaleco, e te ajudo, e te sustento com a destra da minha justica.", reflection: "Deus esta sempre conosco para nos fortalecer.", category: "forca" },
+          { reference: "Romanos 8:28", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que sao chamados segundo o seu proposito.", reflection: "Deus transforma todas as situacoes para o nosso bem.", category: "esperanca" },
+          { reference: "Salmos 46:1", text: "Deus e o nosso refugio e fortaleza, socorro bem presente na angustia.", reflection: "Podemos confiar em Deus em todos os momentos.", category: "protecao" },
+          { reference: "Mateus 11:28", text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reflection: "Jesus oferece descanso para nossas almas.", category: "descanso" },
+          { reference: "Proverbios 3:5-6", text: "Confia no Senhor de todo o teu coracao, e nao te estribes no teu proprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitara as tuas veredas.", reflection: "Confiar em Deus nos guia pelo caminho certo.", category: "sabedoria" },
+          { reference: "1 Corintios 10:13", text: "Nao veio sobre vos tentacao, senao humana; mas fiel e Deus, que nao vos deixara tentar acima do que podeis, antes com a tentacao dara tambem o escape, para que a possais suportar.", reflection: "Deus sempre nos da um caminho de saida nas tentacoes.", category: "forca" },
+          { reference: "Salmos 119:105", text: "Lampada para os meus pes e a tua palavra, e luz para o meu caminho.", reflection: "A Palavra de Deus ilumina nossa vida.", category: "sabedoria" },
+          { reference: "2 Timoteo 1:7", text: "Porque Deus nao nos deu o espirito de temor, mas de fortaleza, e de amor, e de moderacao.", reflection: "Deus nos capacita com coragem e amor.", category: "coragem" },
+          { reference: "Hebreus 11:1", text: "Ora, a fe e o firme fundamento das coisas que se esperam, e a prova das coisas que se nao veem.", reflection: "A fe e a certeza do que esperamos em Deus.", category: "fe" },
+          { reference: "Romanos 12:2", text: "E nao sede conformados com este mundo, mas sede transformados pela renovacao do vosso entendimento, para que experimenteis qual seja a boa, agradavel, e perfeita vontade de Deus.", reflection: "Devemos buscar a transformacao em Cristo.", category: "transformacao" },
+          { reference: "Galatas 5:22-23", text: "Mas o fruto do Espirito e: amor, gozo, paz, longanimidade, benignidade, bondade, fe, mansidao, temperanca. Contra estas coisas nao ha lei.", reflection: "O Espirito Santo produz frutos em nossa vida.", category: "espirito" }
+        ];
+
+        for (const verse of verses) {
+          storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
+          results.verses++;
+        }
+      }
+
+      // Check if achievements already exist
+      const existingAchievements = storage.getAllAchievements();
+      if (existingAchievements.length === 0) {
+        // Seed achievements
+        const achievements = [
+          { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "Trophy", xpReward: 50, category: "progress" },
+          { code: "streak_3", name: "Constante", description: "Mantenha uma sequencia de 3 dias", icon: "Flame", xpReward: 30, category: "streak" },
+          { code: "streak_7", name: "Dedicado", description: "Mantenha uma sequencia de 7 dias", icon: "Flame", xpReward: 100, category: "streak" },
+          { code: "streak_30", name: "Imbativel", description: "Mantenha uma sequencia de 30 dias", icon: "Flame", xpReward: 500, category: "streak" },
+          { code: "perfect_lesson", name: "Perfeito!", description: "Complete uma licao sem erros", icon: "Star", xpReward: 25, category: "performance" },
+          { code: "perfect_week", name: "Semana Perfeita", description: "Complete todas as licoes de uma semana sem erros", icon: "Crown", xpReward: 200, category: "performance" },
+          { code: "early_bird", name: "Madrugador", description: "Estude antes das 7h da manha", icon: "Sun", xpReward: 30, category: "time" },
+          { code: "night_owl", name: "Coruja Noturna", description: "Estude apos as 22h", icon: "Moon", xpReward: 30, category: "time" },
+          { code: "bookworm", name: "Leitor Voraz", description: "Leia 10 versiculos biblicos", icon: "BookOpen", xpReward: 50, category: "reading" },
+          { code: "level_5", name: "Aprendiz", description: "Alcance o nivel 5", icon: "Award", xpReward: 100, category: "level" },
+          { code: "level_10", name: "Estudante", description: "Alcance o nivel 10", icon: "Award", xpReward: 200, category: "level" },
+          { code: "level_25", name: "Mestre", description: "Alcance o nivel 25", icon: "Award", xpReward: 500, category: "level" },
+          { code: "speed_demon", name: "Veloz", description: "Complete uma licao em menos de 2 minutos", icon: "Zap", xpReward: 40, category: "performance" },
+          { code: "comeback_kid", name: "Nunca Desisto", description: "Recupere todas as vidas usando versiculos", icon: "Heart", xpReward: 30, category: "recovery" },
+          { code: "top_10", name: "Elite", description: "Fique entre os 10 primeiros do ranking semanal", icon: "Medal", xpReward: 150, category: "ranking" }
+        ];
+
+        for (const achievement of achievements) {
+          storage.createAchievement(achievement);
+          results.achievements++;
+        }
+      }
+
+      // Check if study weeks already exist
+      const existingWeeks = storage.getPublishedStudyWeeks();
+      if (existingWeeks.length === 0) {
+        // Create a sample study week based on "Nao jogue sua vida fora"
+        const week = storage.createStudyWeek({
+          weekNumber: 1,
+          year: 2025,
+          title: "Nao Jogue Sua Vida Fora",
+          description: "Estudo sobre o proposito da vida e como viver de acordo com a vontade de Deus"
+        });
+        results.weeks++;
+
+        // Create lessons for the week
+        const lessonsData = [
+          { 
+            orderIndex: 0, 
+            title: "O Valor da Vida", 
+            type: "study", 
+            description: "Entenda o verdadeiro valor que Deus da a sua vida",
+            xpReward: 15,
+            estimatedMinutes: 5
+          },
+          { 
+            orderIndex: 1, 
+            title: "Proposito Divino", 
+            type: "study", 
+            description: "Descubra o proposito que Deus tem para voce",
+            xpReward: 15,
+            estimatedMinutes: 5
+          },
+          { 
+            orderIndex: 2, 
+            title: "Decisoes que Importam", 
+            type: "study", 
+            description: "Aprenda a tomar decisoes sabias para sua vida",
+            xpReward: 15,
+            estimatedMinutes: 5
+          },
+          { 
+            orderIndex: 3, 
+            title: "Vivendo com Proposito", 
+            type: "study", 
+            description: "Coloque em pratica o que aprendeu",
+            xpReward: 20,
+            estimatedMinutes: 7
+          },
+          { 
+            orderIndex: 4, 
+            title: "Desafio da Semana", 
+            type: "challenge", 
+            description: "Teste seus conhecimentos sobre a revista",
+            xpReward: 30,
+            estimatedMinutes: 10,
+            isBonus: true
+          }
+        ];
+
+        for (const lessonData of lessonsData) {
+          const lesson = storage.createStudyLesson({
+            studyWeekId: week.id,
+            ...lessonData
+          });
+          results.lessons++;
+
+          // Create units (exercises) for each lesson
+          if (lessonData.orderIndex === 0) {
+            // Lesson 1: O Valor da Vida
+            const units = [
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Segundo a Biblia, o que faz a vida humana ter tanto valor?",
+                  options: [
+                    "Nossas conquistas materiais",
+                    "Fomos criados a imagem e semelhanca de Deus",
+                    "Nossa posicao social",
+                    "Nossa inteligencia"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Genesis 1:27 nos ensina que fomos criados a imagem de Deus, isso nos da valor unico."
+                },
+                xpValue: 3
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Deus conhecia voce antes mesmo de nascer e ja tinha planos para sua vida.",
+                  isTrue: true,
+                  reference: "Jeremias 1:5",
+                  explanation: "Deus diz: 'Antes que te formasse no ventre te conheci, e antes que saísses da madre, te santifiquei'."
+                },
+                xpValue: 2
+              },
+              {
+                type: "fill_blank",
+                content: {
+                  sentence: "Porque Deus amou o _____ de tal maneira que deu o seu Filho unigenito.",
+                  correctAnswer: "mundo",
+                  reference: "Joao 3:16",
+                  hint: "Pense em toda a humanidade"
+                },
+                xpValue: 3
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "O que significa 'nao jogar sua vida fora'?",
+                  options: [
+                    "Acumular riquezas para o futuro",
+                    "Viver de acordo com o proposito de Deus",
+                    "Evitar todos os riscos na vida",
+                    "Fazer apenas o que nos agrada"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Viver com proposito significa alinhar nossa vida com os planos de Deus para nos."
+                },
+                xpValue: 3
+              }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+              storage.createStudyUnit({
+                lessonId: lesson.id,
+                orderIndex: i,
+                type: units[i].type,
+                content: units[i].content,
+                xpValue: units[i].xpValue
+              });
+              results.units++;
+            }
+          } else if (lessonData.orderIndex === 1) {
+            // Lesson 2: Proposito Divino
+            const units = [
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Qual e o proposito principal do ser humano segundo Eclesiastes?",
+                  options: [
+                    "Buscar prazeres e diversao",
+                    "Acumular conhecimento",
+                    "Temer a Deus e guardar seus mandamentos",
+                    "Conquistar sucesso profissional"
+                  ],
+                  correctIndex: 2,
+                  explanation: "Eclesiastes 12:13 diz: 'Teme a Deus, e guarda os seus mandamentos; porque isto e o dever de todo o homem'."
+                },
+                xpValue: 3
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Deus tem um plano especifico e unico para cada pessoa.",
+                  isTrue: true,
+                  reference: "Jeremias 29:11",
+                  explanation: "Deus conhece os planos que tem para nos, planos de paz e nao de mal."
+                },
+                xpValue: 2
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Como podemos descobrir nosso proposito divino?",
+                  options: [
+                    "Atraves da oracao e estudo da Biblia",
+                    "Consultando horoscopos",
+                    "Seguindo nossos impulsos",
+                    "Imitando pessoas famosas"
+                  ],
+                  correctIndex: 0,
+                  explanation: "A oracao e a Palavra de Deus sao os meios pelos quais Deus nos revela Sua vontade."
+                },
+                xpValue: 3
+              },
+              {
+                type: "fill_blank",
+                content: {
+                  sentence: "Eu vim para que tenham _____ e a tenham em abundancia.",
+                  correctAnswer: "vida",
+                  reference: "Joao 10:10",
+                  hint: "O oposto de morte"
+                },
+                xpValue: 3
+              }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+              storage.createStudyUnit({
+                lessonId: lesson.id,
+                orderIndex: i,
+                type: units[i].type,
+                content: units[i].content,
+                xpValue: units[i].xpValue
+              });
+              results.units++;
+            }
+          } else if (lessonData.orderIndex === 2) {
+            // Lesson 3: Decisoes que Importam
+            const units = [
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Qual deve ser a base para nossas decisoes importantes?",
+                  options: [
+                    "Opiniao dos amigos",
+                    "A Palavra de Deus e oracao",
+                    "Tendencias da sociedade",
+                    "Nossos sentimentos momentaneos"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Proverbios 3:5-6 nos ensina a confiar no Senhor e reconhece-Lo em todos os nossos caminhos."
+                },
+                xpValue: 3
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Pequenas decisoes diarias nao afetam nosso destino espiritual.",
+                  isTrue: false,
+                  explanation: "Cada decisao, por menor que seja, contribui para formar nosso carater e caminho."
+                },
+                xpValue: 2
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "O que acontece quando seguimos nosso proprio entendimento sem consultar a Deus?",
+                  options: [
+                    "Sempre damos certo",
+                    "Podemos nos desviar do caminho de Deus",
+                    "Nao faz diferenca",
+                    "Deus fica satisfeito com nossa independencia"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Proverbios 14:12 diz: 'Ha um caminho que ao homem parece direito, mas o fim dele sao os caminhos da morte'."
+                },
+                xpValue: 3
+              },
+              {
+                type: "fill_blank",
+                content: {
+                  sentence: "Confia no Senhor de todo o teu _____, e nao te estribes no teu proprio entendimento.",
+                  correctAnswer: "coracao",
+                  reference: "Proverbios 3:5",
+                  hint: "Orgao que representa nossos sentimentos e vontade"
+                },
+                xpValue: 3
+              }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+              storage.createStudyUnit({
+                lessonId: lesson.id,
+                orderIndex: i,
+                type: units[i].type,
+                content: units[i].content,
+                xpValue: units[i].xpValue
+              });
+              results.units++;
+            }
+          } else if (lessonData.orderIndex === 3) {
+            // Lesson 4: Vivendo com Proposito
+            const units = [
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Como podemos viver cada dia com proposito?",
+                  options: [
+                    "Fazendo apenas o que nos agrada",
+                    "Buscando primeiro o Reino de Deus e Sua justica",
+                    "Focando apenas em nossa carreira",
+                    "Evitando compromissos"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Mateus 6:33 nos ensina a buscar primeiro o Reino de Deus, e tudo mais nos sera acrescentado."
+                },
+                xpValue: 3
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Servir aos outros e uma forma de viver com proposito segundo Jesus.",
+                  isTrue: true,
+                  reference: "Marcos 10:45",
+                  explanation: "Jesus disse que veio para servir e dar Sua vida, e nos devemos seguir Seu exemplo."
+                },
+                xpValue: 2
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Qual e o maior mandamento segundo Jesus?",
+                  options: [
+                    "Guardar o sabado",
+                    "Dar dizimos",
+                    "Amar a Deus de todo coracao e ao proximo como a si mesmo",
+                    "Ir a igreja todos os domingos"
+                  ],
+                  correctIndex: 2,
+                  explanation: "Em Mateus 22:37-39, Jesus resume toda a lei no amor a Deus e ao proximo."
+                },
+                xpValue: 3
+              },
+              {
+                type: "fill_blank",
+                content: {
+                  sentence: "Portanto ide, fazei _____ de todas as nacoes.",
+                  correctAnswer: "discipulos",
+                  reference: "Mateus 28:19",
+                  hint: "Seguidores de Jesus"
+                },
+                xpValue: 3
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "O que podemos fazer hoje para nao 'jogar nossa vida fora'?",
+                  options: [
+                    "Buscar Deus em primeiro lugar em todas as decisoes",
+                    "Ignorar os conselhos biblicos",
+                    "Viver apenas para nos mesmos",
+                    "Adiar nosso relacionamento com Deus"
+                  ],
+                  correctIndex: 0,
+                  explanation: "Colocar Deus em primeiro lugar e a chave para uma vida com proposito e significado."
+                },
+                xpValue: 4
+              }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+              storage.createStudyUnit({
+                lessonId: lesson.id,
+                orderIndex: i,
+                type: units[i].type,
+                content: units[i].content,
+                xpValue: units[i].xpValue
+              });
+              results.units++;
+            }
+          } else if (lessonData.orderIndex === 4) {
+            // Bonus Challenge
+            const units = [
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Qual versiculo fala sobre Deus nos conhecer antes de nascermos?",
+                  options: [
+                    "Joao 3:16",
+                    "Jeremias 1:5",
+                    "Salmos 23:1",
+                    "Genesis 1:1"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Jeremias 1:5: 'Antes que te formasse no ventre te conheci'."
+                },
+                xpValue: 4
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Segundo Eclesiastes, o dever de todo homem e temer a Deus e guardar seus mandamentos.",
+                  isTrue: true,
+                  reference: "Eclesiastes 12:13"
+                },
+                xpValue: 3
+              },
+              {
+                type: "fill_blank",
+                content: {
+                  sentence: "Buscai primeiro o _____ de Deus e a sua justica.",
+                  correctAnswer: "Reino",
+                  reference: "Mateus 6:33",
+                  hint: "Onde Deus reina"
+                },
+                xpValue: 4
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Qual livro da Biblia fala 'Ha caminho que ao homem parece direito, mas o fim dele sao caminhos de morte'?",
+                  options: [
+                    "Salmos",
+                    "Proverbios",
+                    "Eclesiastes",
+                    "Isaias"
+                  ],
+                  correctIndex: 1,
+                  explanation: "Este versiculo esta em Proverbios 14:12."
+                },
+                xpValue: 4
+              },
+              {
+                type: "true_false",
+                content: {
+                  statement: "Jesus disse que veio para que tenhamos vida e vida em abundancia.",
+                  isTrue: true,
+                  reference: "Joao 10:10"
+                },
+                xpValue: 3
+              },
+              {
+                type: "multiple_choice",
+                content: {
+                  question: "Quantos mandamentos Jesus resumiu toda a lei?",
+                  options: [
+                    "Dez",
+                    "Cinco",
+                    "Dois",
+                    "Tres"
+                  ],
+                  correctIndex: 2,
+                  explanation: "Jesus resumiu em dois: Amar a Deus e amar ao proximo (Mateus 22:37-40)."
+                },
+                xpValue: 5
+              }
+            ];
+
+            for (let i = 0; i < units.length; i++) {
+              storage.createStudyUnit({
+                lessonId: lesson.id,
+                orderIndex: i,
+                type: units[i].type,
+                content: units[i].content,
+                xpValue: units[i].xpValue
+              });
+              results.units++;
+            }
+          }
+        }
+      }
+
+      res.json({
+        message: "Dados de estudo criados com sucesso",
+        results
+      });
+    } catch (error) {
+      console.error("Seed study data error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao criar dados de estudo" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

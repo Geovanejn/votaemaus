@@ -92,6 +92,67 @@ A gamified study module replicating Duolingo's visual design while maintaining U
 ### Preview Page
 Access `/study-preview` without authentication to test all study components.
 
+### Backend API Routes (server/routes.ts)
+The study system has the following API endpoints (all require authentication):
+
+**Profile & Progress:**
+- `GET /api/study/profile` - Get or create study profile (XP, level, streak, hearts)
+- `GET /api/study/weeks` - Get all published study weeks
+- `GET /api/study/weeks/:weekId` - Get week with lessons and progress
+- `GET /api/study/lessons/:lessonId` - Get lesson with units (exercises)
+
+**Lesson Flow:**
+- `POST /api/study/lessons/:lessonId/start` - Start a lesson (checks hearts)
+- `POST /api/study/units/:unitId/answer` - Submit answer (loses heart if wrong)
+- `POST /api/study/lessons/:lessonId/complete` - Complete lesson (grants XP, updates streak)
+
+**Hearts Recovery:**
+- `GET /api/study/verses` - Get all Bible verses for heart recovery
+- `POST /api/study/verses/:verseId/read` - Read verse to recover 1 heart
+
+**Gamification:**
+- `GET /api/study/achievements` - Get all achievements with unlock status
+- `GET /api/study/leaderboard` - Get weekly/monthly/yearly leaderboard
+
+**Admin:**
+- `POST /api/study/seed` - Seed test data (verses, achievements, lessons, exercises)
+
+### Database Schema (server/db.ts)
+Study system tables:
+- `study_profiles` - User XP, level, streak, hearts
+- `study_weeks` - Weekly study content from magazines
+- `study_lessons` - Individual lessons within weeks
+- `study_units` - Exercises/questions within lessons (multiple_choice, true_false, fill_blank)
+- `bible_verses` - Verses for heart recovery with reflections
+- `user_lesson_progress` - User's progress on each lesson
+- `user_unit_progress` - User's answers and attempts on each unit
+- `xp_transactions` - XP history log
+- `daily_activity` - Daily study tracking
+- `achievements` - Available achievements
+- `user_achievements` - Unlocked achievements per user
+- `leaderboard_entries` - Weekly/monthly rankings
+- `verse_readings` - Log of verses read for heart recovery
+
+### Seed Data
+The `/api/study/seed` endpoint creates:
+- 15 Bible verses with reflections (Joao 3:16, Salmos 23:1, Filipenses 4:13, etc.)
+- 15 achievements (first_lesson, streak_3, streak_7, perfect_lesson, level_5, etc.)
+- 1 study week: "Nao Jogue Sua Vida Fora"
+- 5 lessons: O Valor da Vida, Proposito Divino, Decisoes que Importam, Vivendo com Proposito, Desafio da Semana
+- 23 exercises with real Bible content (multiple choice, true/false, fill blank)
+
+### Storage Functions (server/storage.ts)
+Key functions for the study system:
+- `getOrCreateStudyProfile(userId)` - Get or create user's study profile
+- `addXp(userId, amount, source)` - Add XP and calculate level
+- `loseHeart(userId)` / `recoverHeart(userId)` - Heart management
+- `readVerseAndRecoverHeart(userId, verseId)` - Read verse and recover heart
+- `startLesson(userId, lessonId)` - Start a lesson
+- `completeLesson(userId, lessonId, xp, mistakes, time)` - Complete lesson
+- `submitUnitAnswer(userId, unitId, answer, isCorrect)` - Submit answer
+- `updateStreak(userId)` - Update daily streak
+- `getLessonsWithProgress(userId, weekId)` - Get lessons with unlock status
+
 ## External Dependencies
 
 ### Email Service

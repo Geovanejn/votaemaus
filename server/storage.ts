@@ -1495,6 +1495,731 @@ export class SQLiteStorage implements IStorage {
       createdAt: row.created_at,
     };
   }
+
+  // ==================== STUDY SYSTEM STORAGE FUNCTIONS ====================
+
+  // Study Profile
+  getStudyProfile(userId: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_profiles WHERE user_id = ?");
+    const row = stmt.get(userId) as any;
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      userId: row.user_id,
+      totalXp: row.total_xp,
+      currentLevel: row.current_level,
+      currentStreak: row.current_streak,
+      longestStreak: row.longest_streak,
+      hearts: row.hearts,
+      heartsMax: row.hearts_max,
+      heartsRefillAt: row.hearts_refill_at,
+      lastActivityDate: row.last_activity_date,
+      dailyGoalMinutes: row.daily_goal_minutes,
+      timezone: row.timezone,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  createStudyProfile(userId: number): any {
+    const stmt = db.prepare(`
+      INSERT INTO study_profiles (user_id, total_xp, current_level, current_streak, hearts, hearts_max)
+      VALUES (?, 0, 1, 0, 5, 5)
+      RETURNING *
+    `);
+    const row = stmt.get(userId) as any;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      totalXp: row.total_xp,
+      currentLevel: row.current_level,
+      currentStreak: row.current_streak,
+      longestStreak: row.longest_streak,
+      hearts: row.hearts,
+      heartsMax: row.hearts_max,
+      heartsRefillAt: row.hearts_refill_at,
+      lastActivityDate: row.last_activity_date,
+      dailyGoalMinutes: row.daily_goal_minutes,
+      timezone: row.timezone,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  getOrCreateStudyProfile(userId: number): any {
+    let profile = this.getStudyProfile(userId);
+    if (!profile) {
+      profile = this.createStudyProfile(userId);
+    }
+    return profile;
+  }
+
+  updateStudyProfile(userId: number, updates: any): any {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.totalXp !== undefined) { fields.push("total_xp = ?"); values.push(updates.totalXp); }
+    if (updates.currentLevel !== undefined) { fields.push("current_level = ?"); values.push(updates.currentLevel); }
+    if (updates.currentStreak !== undefined) { fields.push("current_streak = ?"); values.push(updates.currentStreak); }
+    if (updates.longestStreak !== undefined) { fields.push("longest_streak = ?"); values.push(updates.longestStreak); }
+    if (updates.hearts !== undefined) { fields.push("hearts = ?"); values.push(updates.hearts); }
+    if (updates.heartsRefillAt !== undefined) { fields.push("hearts_refill_at = ?"); values.push(updates.heartsRefillAt); }
+    if (updates.lastActivityDate !== undefined) { fields.push("last_activity_date = ?"); values.push(updates.lastActivityDate); }
+
+    if (fields.length === 0) return this.getStudyProfile(userId);
+
+    fields.push("updated_at = datetime('now')");
+    values.push(userId);
+
+    const stmt = db.prepare(`UPDATE study_profiles SET ${fields.join(", ")} WHERE user_id = ? RETURNING *`);
+    const row = stmt.get(...values) as any;
+    
+    return row ? {
+      id: row.id,
+      userId: row.user_id,
+      totalXp: row.total_xp,
+      currentLevel: row.current_level,
+      currentStreak: row.current_streak,
+      longestStreak: row.longest_streak,
+      hearts: row.hearts,
+      heartsMax: row.hearts_max,
+      heartsRefillAt: row.hearts_refill_at,
+      lastActivityDate: row.last_activity_date,
+      dailyGoalMinutes: row.daily_goal_minutes,
+      timezone: row.timezone,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    } : null;
+  }
+
+  addXp(userId: number, amount: number, source: string, sourceId?: number, description?: string): any {
+    const profile = this.getOrCreateStudyProfile(userId);
+    const newTotal = profile.totalXp + amount;
+    const newLevel = this.calculateLevel(newTotal);
+
+    db.prepare(`
+      INSERT INTO xp_transactions (user_id, amount, source, source_id, description)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(userId, amount, source, sourceId || null, description || null);
+
+    return this.updateStudyProfile(userId, { totalXp: newTotal, currentLevel: newLevel });
+  }
+
+  calculateLevel(xp: number): number {
+    if (xp <= 0) return 1;
+    return Math.floor(1 + Math.sqrt(xp / 100)) + 1;
+  }
+
+  loseHeart(userId: number): any {
+    const profile = this.getOrCreateStudyProfile(userId);
+    if (profile.hearts <= 0) return profile;
+
+    const newHearts = profile.hearts - 1;
+    let refillAt = profile.heartsRefillAt;
+
+    if (!refillAt || newHearts < profile.heartsMax - 1) {
+      const now = new Date();
+      now.setHours(now.getHours() + 6);
+      refillAt = now.toISOString();
+    }
+
+    return this.updateStudyProfile(userId, { hearts: newHearts, heartsRefillAt: refillAt });
+  }
+
+  recoverHeart(userId: number): any {
+    const profile = this.getOrCreateStudyProfile(userId);
+    if (profile.hearts >= profile.heartsMax) return profile;
+
+    const newHearts = Math.min(profile.hearts + 1, profile.heartsMax);
+    let refillAt = profile.heartsRefillAt;
+
+    if (newHearts >= profile.heartsMax) {
+      refillAt = null;
+    }
+
+    return this.updateStudyProfile(userId, { hearts: newHearts, heartsRefillAt: refillAt });
+  }
+
+  // Bible Verses
+  getAllBibleVerses(): any[] {
+    const stmt = db.prepare("SELECT * FROM bible_verses ORDER BY id");
+    return (stmt.all() as any[]).map(row => ({
+      id: row.id,
+      reference: row.reference,
+      text: row.text,
+      reflection: row.reflection,
+      category: row.category,
+      createdAt: row.created_at,
+    }));
+  }
+
+  getBibleVerseById(id: number): any | null {
+    const stmt = db.prepare("SELECT * FROM bible_verses WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      reference: row.reference,
+      text: row.text,
+      reflection: row.reflection,
+      category: row.category,
+      createdAt: row.created_at,
+    };
+  }
+
+  createBibleVerse(reference: string, text: string, reflection?: string, category?: string): any {
+    const stmt = db.prepare(`
+      INSERT INTO bible_verses (reference, text, reflection, category)
+      VALUES (?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(reference, text, reflection || null, category || null) as any;
+    return {
+      id: row.id,
+      reference: row.reference,
+      text: row.text,
+      reflection: row.reflection,
+      category: row.category,
+      createdAt: row.created_at,
+    };
+  }
+
+  readVerseAndRecoverHeart(userId: number, verseId: number): any {
+    db.prepare(`
+      INSERT INTO verse_readings (user_id, verse_id, hearts_recovered)
+      VALUES (?, ?, 1)
+    `).run(userId, verseId);
+
+    return this.recoverHeart(userId);
+  }
+
+  // Study Weeks
+  getPublishedStudyWeeks(): any[] {
+    const stmt = db.prepare("SELECT * FROM study_weeks WHERE status = 'published' ORDER BY year DESC, week_number DESC");
+    return (stmt.all() as any[]).map(row => ({
+      id: row.id,
+      weekNumber: row.week_number,
+      year: row.year,
+      title: row.title,
+      description: row.description,
+      pdfUrl: row.pdf_url,
+      status: row.status,
+      publishedAt: row.published_at,
+      createdBy: row.created_by,
+      aiMetadata: row.ai_metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  getStudyWeekById(id: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_weeks WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      weekNumber: row.week_number,
+      year: row.year,
+      title: row.title,
+      description: row.description,
+      pdfUrl: row.pdf_url,
+      status: row.status,
+      publishedAt: row.published_at,
+      createdBy: row.created_by,
+      aiMetadata: row.ai_metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  createStudyWeek(data: { weekNumber: number; year: number; title: string; description?: string; createdBy?: number }): any {
+    const stmt = db.prepare(`
+      INSERT INTO study_weeks (week_number, year, title, description, created_by, status)
+      VALUES (?, ?, ?, ?, ?, 'published')
+      RETURNING *
+    `);
+    const row = stmt.get(data.weekNumber, data.year, data.title, data.description || null, data.createdBy || null) as any;
+    return {
+      id: row.id,
+      weekNumber: row.week_number,
+      year: row.year,
+      title: row.title,
+      description: row.description,
+      pdfUrl: row.pdf_url,
+      status: row.status,
+      publishedAt: row.published_at,
+      createdBy: row.created_by,
+      aiMetadata: row.ai_metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  // Study Lessons
+  getLessonsByWeekId(weekId: number): any[] {
+    const stmt = db.prepare("SELECT * FROM study_lessons WHERE study_week_id = ? ORDER BY order_index");
+    return (stmt.all(weekId) as any[]).map(row => ({
+      id: row.id,
+      studyWeekId: row.study_week_id,
+      orderIndex: row.order_index,
+      title: row.title,
+      type: row.type,
+      description: row.description,
+      xpReward: row.xp_reward,
+      estimatedMinutes: row.estimated_minutes,
+      icon: row.icon,
+      isBonus: Boolean(row.is_bonus),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  getLessonById(id: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_lessons WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      studyWeekId: row.study_week_id,
+      orderIndex: row.order_index,
+      title: row.title,
+      type: row.type,
+      description: row.description,
+      xpReward: row.xp_reward,
+      estimatedMinutes: row.estimated_minutes,
+      icon: row.icon,
+      isBonus: Boolean(row.is_bonus),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): any {
+    const stmt = db.prepare(`
+      INSERT INTO study_lessons (study_week_id, order_index, title, type, description, xp_reward, estimated_minutes, icon, is_bonus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.studyWeekId,
+      data.orderIndex,
+      data.title,
+      data.type || 'study',
+      data.description || null,
+      data.xpReward || 10,
+      data.estimatedMinutes || 5,
+      data.icon || null,
+      data.isBonus ? 1 : 0
+    ) as any;
+    return {
+      id: row.id,
+      studyWeekId: row.study_week_id,
+      orderIndex: row.order_index,
+      title: row.title,
+      type: row.type,
+      description: row.description,
+      xpReward: row.xp_reward,
+      estimatedMinutes: row.estimated_minutes,
+      icon: row.icon,
+      isBonus: Boolean(row.is_bonus),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  // Study Units (Exercises)
+  getUnitsByLessonId(lessonId: number): any[] {
+    const stmt = db.prepare("SELECT * FROM study_units WHERE lesson_id = ? ORDER BY order_index");
+    return (stmt.all(lessonId) as any[]).map(row => ({
+      id: row.id,
+      lessonId: row.lesson_id,
+      orderIndex: row.order_index,
+      type: row.type,
+      content: JSON.parse(row.content),
+      xpValue: row.xp_value,
+      createdAt: row.created_at,
+    }));
+  }
+
+  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number }): any {
+    const stmt = db.prepare(`
+      INSERT INTO study_units (lesson_id, order_index, type, content, xp_value)
+      VALUES (?, ?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.lessonId,
+      data.orderIndex,
+      data.type,
+      JSON.stringify(data.content),
+      data.xpValue || 2
+    ) as any;
+    return {
+      id: row.id,
+      lessonId: row.lesson_id,
+      orderIndex: row.order_index,
+      type: row.type,
+      content: JSON.parse(row.content),
+      xpValue: row.xp_value,
+      createdAt: row.created_at,
+    };
+  }
+
+  // User Lesson Progress
+  getUserLessonProgress(userId: number, lessonId: number): any | null {
+    const stmt = db.prepare("SELECT * FROM user_lesson_progress WHERE user_id = ? AND lesson_id = ?");
+    const row = stmt.get(userId, lessonId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      lessonId: row.lesson_id,
+      status: row.status,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      xpEarned: row.xp_earned,
+      mistakesCount: row.mistakes_count,
+      perfectScore: Boolean(row.perfect_score),
+      timeSpentSeconds: row.time_spent_seconds,
+    };
+  }
+
+  getAllUserLessonProgress(userId: number): any[] {
+    const stmt = db.prepare("SELECT * FROM user_lesson_progress WHERE user_id = ?");
+    return (stmt.all(userId) as any[]).map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      lessonId: row.lesson_id,
+      status: row.status,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      xpEarned: row.xp_earned,
+      mistakesCount: row.mistakes_count,
+      perfectScore: Boolean(row.perfect_score),
+      timeSpentSeconds: row.time_spent_seconds,
+    }));
+  }
+
+  startLesson(userId: number, lessonId: number): any {
+    const existing = this.getUserLessonProgress(userId, lessonId);
+    if (existing) {
+      if (existing.status === 'locked') {
+        db.prepare(`
+          UPDATE user_lesson_progress 
+          SET status = 'in_progress', started_at = datetime('now')
+          WHERE user_id = ? AND lesson_id = ?
+        `).run(userId, lessonId);
+      }
+      return this.getUserLessonProgress(userId, lessonId);
+    }
+
+    db.prepare(`
+      INSERT INTO user_lesson_progress (user_id, lesson_id, status, started_at)
+      VALUES (?, ?, 'in_progress', datetime('now'))
+    `).run(userId, lessonId);
+
+    return this.getUserLessonProgress(userId, lessonId);
+  }
+
+  completeLesson(userId: number, lessonId: number, xpEarned: number, mistakesCount: number, timeSpentSeconds: number): any {
+    const perfectScore = mistakesCount === 0;
+    
+    db.prepare(`
+      INSERT INTO user_lesson_progress (user_id, lesson_id, status, completed_at, xp_earned, mistakes_count, perfect_score, time_spent_seconds)
+      VALUES (?, ?, 'completed', datetime('now'), ?, ?, ?, ?)
+      ON CONFLICT(user_id, lesson_id) DO UPDATE SET
+        status = 'completed',
+        completed_at = datetime('now'),
+        xp_earned = ?,
+        mistakes_count = ?,
+        perfect_score = ?,
+        time_spent_seconds = ?
+    `).run(userId, lessonId, xpEarned, mistakesCount, perfectScore ? 1 : 0, timeSpentSeconds, xpEarned, mistakesCount, perfectScore ? 1 : 0, timeSpentSeconds);
+
+    const lesson = this.getLessonById(lessonId);
+    let totalXp = xpEarned;
+    if (perfectScore && lesson) {
+      totalXp += 10;
+    }
+
+    this.addXp(userId, totalXp, 'lesson', lessonId, `Completou licao: ${lesson?.title || 'Licao'}`);
+    this.updateStreak(userId);
+
+    return this.getUserLessonProgress(userId, lessonId);
+  }
+
+  // User Unit Progress
+  getUserUnitProgress(userId: number, unitId: number): any | null {
+    const stmt = db.prepare("SELECT * FROM user_unit_progress WHERE user_id = ? AND unit_id = ?");
+    const row = stmt.get(userId, unitId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      unitId: row.unit_id,
+      isCompleted: Boolean(row.is_completed),
+      answerGiven: row.answer_given ? JSON.parse(row.answer_given) : null,
+      isCorrect: row.is_correct !== null ? Boolean(row.is_correct) : null,
+      attempts: row.attempts,
+      completedAt: row.completed_at,
+    };
+  }
+
+  getStudyUnitById(unitId: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_units WHERE id = ?");
+    const row = stmt.get(unitId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      lessonId: row.lesson_id,
+      orderIndex: row.order_index,
+      type: row.type,
+      content: JSON.parse(row.content),
+      xpValue: row.xp_value,
+      createdAt: row.created_at,
+    };
+  }
+
+  validateAnswer(unit: any, answer: any): boolean {
+    const content = unit.content;
+    
+    switch (unit.type) {
+      case 'multiple_choice':
+        return answer === content.correctIndex;
+      
+      case 'true_false':
+        return answer === content.isTrue;
+      
+      case 'fill_blank':
+        if (typeof answer !== 'string') return false;
+        const normalizedAnswer = answer.trim().toLowerCase();
+        const normalizedCorrect = content.correctAnswer.trim().toLowerCase();
+        return normalizedAnswer === normalizedCorrect;
+      
+      default:
+        return false;
+    }
+  }
+
+  submitUnitAnswer(userId: number, unitId: number, answer: any): { unitProgress: any; isCorrect: boolean; explanation?: string } {
+    const unit = this.getStudyUnitById(unitId);
+    if (!unit) {
+      throw new Error("Unidade nao encontrada");
+    }
+
+    const isCorrect = this.validateAnswer(unit, answer);
+    const existing = this.getUserUnitProgress(userId, unitId);
+    const attempts = existing ? existing.attempts + 1 : 1;
+
+    db.prepare(`
+      INSERT INTO user_unit_progress (user_id, unit_id, is_completed, answer_given, is_correct, attempts, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(user_id, unit_id) DO UPDATE SET
+        is_completed = ?,
+        answer_given = ?,
+        is_correct = ?,
+        attempts = ?,
+        completed_at = datetime('now')
+    `).run(userId, unitId, 1, JSON.stringify(answer), isCorrect ? 1 : 0, attempts, 1, JSON.stringify(answer), isCorrect ? 1 : 0, attempts);
+
+    if (!isCorrect) {
+      this.loseHeart(userId);
+    }
+
+    const unitProgress = this.getUserUnitProgress(userId, unitId);
+    const explanation = unit.content.explanation || null;
+
+    return { unitProgress, isCorrect, explanation };
+  }
+
+  // Streak Management
+  updateStreak(userId: number): any {
+    const profile = this.getOrCreateStudyProfile(userId);
+    const today = new Date().toISOString().split('T')[0];
+    const lastActivity = profile.lastActivityDate;
+
+    let newStreak = profile.currentStreak;
+
+    if (!lastActivity) {
+      newStreak = 1;
+    } else {
+      const lastDate = new Date(lastActivity);
+      const todayDate = new Date(today);
+      const diffTime = todayDate.getTime() - lastDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        // Same day, streak stays
+      } else if (diffDays === 1) {
+        newStreak = profile.currentStreak + 1;
+      } else {
+        newStreak = 1;
+      }
+    }
+
+    const longestStreak = Math.max(newStreak, profile.longestStreak);
+
+    return this.updateStudyProfile(userId, {
+      currentStreak: newStreak,
+      longestStreak: longestStreak,
+      lastActivityDate: today,
+    });
+  }
+
+  // Achievements
+  getAllAchievements(): any[] {
+    const stmt = db.prepare("SELECT * FROM achievements ORDER BY id");
+    return (stmt.all() as any[]).map(row => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      description: row.description,
+      icon: row.icon,
+      xpReward: row.xp_reward,
+      category: row.category,
+      requirement: row.requirement ? JSON.parse(row.requirement) : null,
+      isSecret: Boolean(row.is_secret),
+    }));
+  }
+
+  createAchievement(data: { code: string; name: string; description?: string; icon?: string; xpReward?: number; category?: string; requirement?: any; isSecret?: boolean }): any {
+    const stmt = db.prepare(`
+      INSERT INTO achievements (code, name, description, icon, xp_reward, category, requirement, is_secret)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.code,
+      data.name,
+      data.description || null,
+      data.icon || null,
+      data.xpReward || 0,
+      data.category || null,
+      data.requirement ? JSON.stringify(data.requirement) : null,
+      data.isSecret ? 1 : 0
+    ) as any;
+    return {
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      description: row.description,
+      icon: row.icon,
+      xpReward: row.xp_reward,
+      category: row.category,
+      requirement: row.requirement ? JSON.parse(row.requirement) : null,
+      isSecret: Boolean(row.is_secret),
+    };
+  }
+
+  getUserAchievements(userId: number): any[] {
+    const stmt = db.prepare(`
+      SELECT a.*, ua.unlocked_at
+      FROM user_achievements ua
+      JOIN achievements a ON ua.achievement_id = a.id
+      WHERE ua.user_id = ?
+      ORDER BY ua.unlocked_at DESC
+    `);
+    return (stmt.all(userId) as any[]).map(row => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      description: row.description,
+      icon: row.icon,
+      xpReward: row.xp_reward,
+      category: row.category,
+      requirement: row.requirement ? JSON.parse(row.requirement) : null,
+      isSecret: Boolean(row.is_secret),
+      unlockedAt: row.unlocked_at,
+    }));
+  }
+
+  unlockAchievement(userId: number, achievementCode: string): any | null {
+    const achievement = db.prepare("SELECT * FROM achievements WHERE code = ?").get(achievementCode) as any;
+    if (!achievement) return null;
+
+    try {
+      db.prepare(`
+        INSERT INTO user_achievements (user_id, achievement_id)
+        VALUES (?, ?)
+      `).run(userId, achievement.id);
+
+      if (achievement.xp_reward > 0) {
+        this.addXp(userId, achievement.xp_reward, 'achievement', achievement.id, `Conquista desbloqueada: ${achievement.name}`);
+      }
+
+      return {
+        id: achievement.id,
+        code: achievement.code,
+        name: achievement.name,
+        description: achievement.description,
+        icon: achievement.icon,
+        xpReward: achievement.xp_reward,
+      };
+    } catch (e) {
+      // Already unlocked
+      return null;
+    }
+  }
+
+  // Leaderboard
+  getLeaderboard(periodType: string, periodKey: string, limit: number = 10): any[] {
+    const stmt = db.prepare(`
+      SELECT le.*, u.full_name, u.photo_url
+      FROM leaderboard_entries le
+      JOIN users u ON le.user_id = u.id
+      WHERE le.period_type = ? AND le.period_key = ?
+      ORDER BY le.xp_earned DESC
+      LIMIT ?
+    `);
+    return (stmt.all(periodType, periodKey, limit) as any[]).map((row, index) => ({
+      userId: row.user_id,
+      fullName: row.full_name,
+      photoUrl: row.photo_url,
+      xpEarned: row.xp_earned,
+      rankPosition: index + 1,
+    }));
+  }
+
+  updateLeaderboard(userId: number, periodType: string, periodKey: string, xpEarned: number): void {
+    db.prepare(`
+      INSERT INTO leaderboard_entries (user_id, period_type, period_key, xp_earned)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, period_type, period_key) DO UPDATE SET
+        xp_earned = xp_earned + ?,
+        updated_at = datetime('now')
+    `).run(userId, periodType, periodKey, xpEarned, xpEarned);
+  }
+
+  // Get lessons with user progress for a week
+  getLessonsWithProgress(userId: number, weekId: number): any[] {
+    const lessons = this.getLessonsByWeekId(weekId);
+    const progressList = this.getAllUserLessonProgress(userId);
+    const progressMap = new Map(progressList.map(p => [p.lessonId, p]));
+
+    return lessons.map((lesson, index) => {
+      const progress = progressMap.get(lesson.id);
+      let status = 'locked';
+      
+      if (progress) {
+        status = progress.status;
+      } else if (index === 0) {
+        status = 'available';
+      } else {
+        const prevLesson = lessons[index - 1];
+        const prevProgress = progressMap.get(prevLesson.id);
+        if (prevProgress && prevProgress.status === 'completed') {
+          status = 'available';
+        }
+      }
+
+      return {
+        ...lesson,
+        progress: progress || null,
+        status,
+      };
+    });
+  }
 }
 
 export const storage = new SQLiteStorage();

@@ -398,6 +398,179 @@ export async function initializeDatabase() {
     console.error("Migration error:", error);
   }
 
+  // Create study system tables
+  console.log("Creating study system tables...");
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS study_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      total_xp INTEGER NOT NULL DEFAULT 0,
+      current_level INTEGER NOT NULL DEFAULT 1,
+      current_streak INTEGER NOT NULL DEFAULT 0,
+      longest_streak INTEGER NOT NULL DEFAULT 0,
+      hearts INTEGER NOT NULL DEFAULT 5,
+      hearts_max INTEGER NOT NULL DEFAULT 5,
+      hearts_refill_at TEXT,
+      last_activity_date TEXT,
+      daily_goal_minutes INTEGER NOT NULL DEFAULT 10,
+      timezone TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS study_weeks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_number INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      pdf_url TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      published_at TEXT,
+      created_by INTEGER,
+      ai_metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(week_number, year),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS study_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      study_week_id INTEGER NOT NULL,
+      order_index INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'study',
+      description TEXT,
+      xp_reward INTEGER NOT NULL DEFAULT 10,
+      estimated_minutes INTEGER NOT NULL DEFAULT 5,
+      icon TEXT,
+      is_bonus INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (study_week_id) REFERENCES study_weeks(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS study_units (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lesson_id INTEGER NOT NULL,
+      order_index INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      content TEXT NOT NULL,
+      xp_value INTEGER NOT NULL DEFAULT 2,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (lesson_id) REFERENCES study_lessons(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS bible_verses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reference TEXT NOT NULL,
+      text TEXT NOT NULL,
+      reflection TEXT,
+      category TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS user_lesson_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      lesson_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'locked',
+      started_at TEXT,
+      completed_at TEXT,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      mistakes_count INTEGER NOT NULL DEFAULT 0,
+      perfect_score INTEGER NOT NULL DEFAULT 0,
+      time_spent_seconds INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, lesson_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (lesson_id) REFERENCES study_lessons(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_unit_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      unit_id INTEGER NOT NULL,
+      is_completed INTEGER NOT NULL DEFAULT 0,
+      answer_given TEXT,
+      is_correct INTEGER,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      UNIQUE(user_id, unit_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (unit_id) REFERENCES study_units(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS verse_readings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      verse_id INTEGER NOT NULL,
+      read_at TEXT NOT NULL DEFAULT (datetime('now')),
+      hearts_recovered INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (verse_id) REFERENCES bible_verses(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS xp_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      source TEXT NOT NULL,
+      source_id INTEGER,
+      description TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      activity_date TEXT NOT NULL,
+      minutes_studied INTEGER NOT NULL DEFAULT 0,
+      lessons_completed INTEGER NOT NULL DEFAULT 0,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      streak_maintained INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, activity_date),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      description TEXT,
+      icon TEXT,
+      xp_reward INTEGER NOT NULL DEFAULT 0,
+      category TEXT,
+      requirement TEXT,
+      is_secret INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      unlocked_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, achievement_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (achievement_id) REFERENCES achievements(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS leaderboard_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      period_type TEXT NOT NULL,
+      period_key TEXT NOT NULL,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      rank_position INTEGER,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, period_type, period_key),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  console.log("Study system tables created successfully");
+
   console.log("Creating performance indexes...");
   try {
     sqlite.exec(`
@@ -424,6 +597,27 @@ export async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_candidates_user 
         ON candidates(user_id, election_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_study_profiles_user
+        ON study_profiles(user_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_study_lessons_week
+        ON study_lessons(study_week_id, order_index);
+      
+      CREATE INDEX IF NOT EXISTS idx_study_units_lesson
+        ON study_units(lesson_id, order_index);
+      
+      CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_user
+        ON user_lesson_progress(user_id, lesson_id);
+      
+      CREATE INDEX IF NOT EXISTS idx_xp_transactions_user
+        ON xp_transactions(user_id, created_at);
+      
+      CREATE INDEX IF NOT EXISTS idx_daily_activity_user_date
+        ON daily_activity(user_id, activity_date);
+      
+      CREATE INDEX IF NOT EXISTS idx_leaderboard_period
+        ON leaderboard_entries(period_type, period_key, xp_earned);
     `);
     console.log("Performance indexes created successfully");
   } catch (error) {

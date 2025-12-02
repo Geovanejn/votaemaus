@@ -12,6 +12,7 @@ import VerifyPage from "@/pages/verify";
 import StudyHomePage from "@/pages/study/index";
 import LessonPage from "@/pages/study/lesson";
 import VersesPage from "@/pages/study/verses";
+import ExplorePage from "@/pages/study/explore";
 import ProfilePage from "@/pages/study/profile";
 import RankingPage from "@/pages/study/ranking";
 import StudyPreviewPage from "@/pages/study/preview";
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/verificar/:hash" component={VerifyPage} />
         <Route path="/results" component={ResultsPage} />
         <Route path="/study-preview" component={StudyPreviewPage} />
+        <Route path="/study-preview/explore" component={ExplorePage} />
         <Route path="/" component={LoginPage} />
         <Route>
           <Redirect to="/" />
@@ -50,6 +52,7 @@ function Router() {
         <Route path="/results" component={ResultsPage} />
         <Route path="/study" component={StudyHomePage} />
         <Route path="/study/lesson/:id" component={LessonPage} />
+        <Route path="/study/explore" component={ExplorePage} />
         <Route path="/study/verses" component={VersesPage} />
         <Route path="/study/profile" component={ProfilePage} />
         <Route path="/study/ranking" component={RankingPage} />
@@ -67,6 +70,7 @@ function Router() {
       <Route path="/results" component={ResultsPage} />
       <Route path="/study" component={StudyHomePage} />
       <Route path="/study/lesson/:id" component={LessonPage} />
+      <Route path="/study/explore" component={ExplorePage} />
       <Route path="/study/verses" component={VersesPage} />
       <Route path="/study/profile" component={ProfilePage} />
       <Route path="/study/ranking" component={RankingPage} />

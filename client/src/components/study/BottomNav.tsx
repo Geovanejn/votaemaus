@@ -12,7 +12,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/study", icon: Home, label: "Inicio", activeColor: "#1CB0F6" },
-  { href: "/study/verses", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
+  { href: "/study/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
   { href: "/study/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
   { href: "/study/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
 ];

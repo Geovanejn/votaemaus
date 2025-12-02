@@ -45,9 +45,12 @@ The architecture supports an expandable portal vision with planned modules for:
 ## Duolingo-Style Study System
 
 ### Overview
-A gamified study module replicating Duolingo's visual design while maintaining UMP Emaus branding (primary orange #FFA500). The system uses React with Framer Motion for animations.
+A gamified study module replicating Duolingo's visual design while maintaining UMP Emaus branding. The system uses React with Framer Motion for animations and features vertical-only scrolling with a mobile-first approach.
 
 ### Components (client/src/components/study/)
+- **UnitCard**: Card component for learning path units with progress dots, icons, and completion states (completed/current/locked)
+- **PracticeCard**: Dumbbell-themed practice entry point card
+- **UserProfileHeader**: Yellow header component with user avatar, greeting, streak badge, and XP display
 - **LessonNode**: Circular 3D lesson buttons with green completion states, shadows, and animations
 - **LessonMap**: Serpentine lesson path with SVG connectors and treasure chest rewards
 - **SectionHeader**: Orange banner with "SECAO X, UNIDADE Y" format
@@ -55,16 +58,26 @@ A gamified study module replicating Duolingo's visual design while maintaining U
 - **DailyMissions**: Progress bar-based daily objectives with time countdown
 - **StreakCelebration**: Full-screen celebration for streak milestones
 - **LessonComplete**: Completion screen with colorful stat boxes (XP, accuracy, time)
-- **BottomNav**: 5-tab navigation (Inicio, Versiculos, Ranking, Perfil, Mais)
+- **BottomNav**: 4-tab navigation (Inicio, Explorar, Ranking, Perfil)
 - **HeartsDisplay/XPDisplay/StreakBadge/LevelBadge**: Gamification stat displays
 - **FeedbackOverlay**: Correct/incorrect answer feedback with explanations
+- **StudyHeader**: Progress bar header with hearts display for lesson pages
+
+### Study Home Page Layout
+- **Yellow Header**: #FFC800 gradient background with user profile, streak, and XP badges
+- **Daily Goal Section**: "Meta Diaria" progress bar showing lesson completion progress
+- **Learning Path Section**: "Seu Caminho" with vertical unit cards showing:
+  - Completed units (green checkmark icons)
+  - Current unit (green border, "ATUAL" badge)
+  - Locked units (gray appearance)
+  - Progress dots for each unit
 
 ### Color System
 - Primary Orange: #FFA500 (section headers, branding)
-- Duolingo Green: #58CC02 (completed lessons, correct answers)
+- Header Yellow: #FFC800 (study home header gradient)
+- Duolingo Green: #58CC02 (completed lessons, correct answers, XP badges)
 - Duolingo Blue: #1CB0F6 (continue buttons, active states)
-- XP Yellow: #FFC800 (XP displays)
-- Streak Orange: #FF9600 (streak displays)
+- Streak Orange: #FF9600 (streak badges and displays)
 - Hearts Red: #FF4B4B (heart icons)
 
 ### Preview Page

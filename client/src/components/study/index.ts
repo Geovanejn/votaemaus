@@ -18,6 +18,8 @@ export { RewardModal } from "./RewardModal";
 export { DailyMissions } from "./DailyMissions";
 export { StreakCelebration } from "./StreakCelebration";
 export { UnitCard, PracticeCard } from "./UnitCard";
+export { LearningPath } from "./LearningPath";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";
+export type { LessonItem } from "./LearningPath";

@@ -11,8 +11,10 @@ import {
   StudyHeader,
   UnitCard,
   PracticeCard,
-  StreakCelebration
+  StreakCelebration,
+  LearningPath
 } from "@/components/study";
+import type { LessonItem } from "@/components/study";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,42 +32,51 @@ const mockUserProfile = {
   maxHearts: 5,
 };
 
-const mockUnits = [
+const mockLessons: LessonItem[] = [
   { 
     id: 1, 
-    title: "Unidade 1", 
-    subtitle: "Forme frases basicas", 
-    status: "completed" as const, 
-    progress: 3, 
-    totalLessons: 5,
-    icon: "star" as const
+    lessonNumber: 1,
+    title: "Licao 1", 
+    subtitle: "Uma paixao unica pela qual viver", 
+    status: "completed", 
+    progress: 5, 
+    totalSections: 5,
   },
   { 
     id: 2, 
-    title: "Unidade 2", 
-    subtitle: "Cumprimentos basicos", 
-    status: "current" as const, 
-    progress: 1, 
-    totalLessons: 5,
-    icon: "message" as const
+    lessonNumber: 2,
+    title: "Licao 2", 
+    subtitle: "Nao desperdice sua vida", 
+    status: "completed", 
+    progress: 5, 
+    totalSections: 5,
   },
   { 
     id: 3, 
-    title: "Unidade 3", 
-    subtitle: "Apresentacoes", 
-    status: "locked" as const, 
-    progress: 0, 
-    totalLessons: 5,
-    icon: "presentation" as const
+    lessonNumber: 3,
+    title: "Licao 3", 
+    subtitle: "Gloria somente na cruz", 
+    status: "current", 
+    progress: 2, 
+    totalSections: 5,
   },
   { 
     id: 4, 
-    title: "Unidade 4", 
-    subtitle: "Comida e bebida", 
-    status: "locked" as const, 
+    lessonNumber: 4,
+    title: "Licao 4", 
+    subtitle: "Glorificando a Cristo por meio de dor e morte (1)", 
+    status: "locked", 
     progress: 0, 
-    totalLessons: 5,
-    icon: "presentation" as const
+    totalSections: 5,
+  },
+  { 
+    id: 5, 
+    lessonNumber: 5,
+    title: "Licao 5", 
+    subtitle: "Glorificando a Cristo por meio de dor e morte (2)", 
+    status: "locked", 
+    progress: 0, 
+    totalSections: 5,
   },
 ];
 
@@ -187,70 +198,6 @@ function DailyGoalSection({ current, target }: { current: number; target: number
   );
 }
 
-function LearningPathSection({ 
-  units, 
-  onUnitClick 
-}: { 
-  units: typeof mockUnits; 
-  onUnitClick: (unitId: number) => void;
-}) {
-  const currentUnitIndex = units.findIndex(u => u.status === "current");
-  
-  return (
-    <div className="px-4 py-6">
-      <div className="max-w-lg mx-auto">
-        <h2 className="font-bold text-xl text-foreground mb-4">Seu Caminho</h2>
-        
-        <div className="relative">
-          <div className="absolute left-7 top-0 bottom-0 w-0.5 bg-border" />
-          
-          <div className="space-y-3">
-            {units.map((unit, index) => (
-              <motion.div
-                key={unit.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative"
-              >
-                {index < units.length - 1 && unit.status !== "locked" && (
-                  <div 
-                    className={cn(
-                      "absolute left-7 top-14 w-0.5 h-3 z-10",
-                      unit.status === "completed" ? "bg-[#58CC02]" : "bg-border"
-                    )}
-                  />
-                )}
-                
-                <UnitCard
-                  id={unit.id}
-                  title={unit.title}
-                  subtitle={unit.subtitle}
-                  status={unit.status}
-                  progress={unit.progress}
-                  totalLessons={unit.totalLessons}
-                  icon={unit.icon}
-                  onClick={() => onUnitClick(unit.id)}
-                />
-              </motion.div>
-            ))}
-            
-            {currentUnitIndex !== -1 && currentUnitIndex < units.length - 1 && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: (currentUnitIndex + 1) * 0.1 }}
-              >
-                <PracticeCard onClick={() => alert("Pratica!")} />
-              </motion.div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MapPreview() {
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -261,9 +208,11 @@ function MapPreview() {
         target={mockDailyGoal.target} 
       />
       
-      <LearningPathSection 
-        units={mockUnits} 
-        onUnitClick={(id) => alert(`Unidade ${id} clicada!`)} 
+      <LearningPath 
+        lessons={mockLessons}
+        onLessonClick={(id) => alert(`Licao ${id} clicada!`)}
+        onPracticeClick={() => alert("Pratica!")}
+        showPractice={true}
       />
 
       <BottomNav />

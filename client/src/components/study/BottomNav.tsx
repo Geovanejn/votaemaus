@@ -1,4 +1,4 @@
-import { Home, Trophy, User, Book, MoreHorizontal } from "lucide-react";
+import { Home, Compass, Trophy, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -6,17 +6,15 @@ import { motion } from "framer-motion";
 interface NavItem {
   href: string;
   icon: typeof Home;
-  iconFilled?: typeof Home;
   label: string;
   activeColor: string;
 }
 
 const navItems: NavItem[] = [
-  { href: "/study", icon: Home, label: "Inicio", activeColor: "#FFA500" },
-  { href: "/study/verses", icon: Book, label: "Versiculos", activeColor: "#58CC02" },
+  { href: "/study", icon: Home, label: "Inicio", activeColor: "#1CB0F6" },
+  { href: "/study/verses", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
   { href: "/study/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
-  { href: "/study/profile", icon: User, label: "Perfil", activeColor: "#FF9600" },
-  { href: "/study/more", icon: MoreHorizontal, label: "Mais", activeColor: "#AFAFAF" },
+  { href: "/study/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
 ];
 
 export function BottomNav() {
@@ -33,8 +31,14 @@ export function BottomNav() {
     >
       <div className="flex items-stretch h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
-          const isActive = location === item.href || 
-            (item.href !== "/study" && item.href !== "/study/more" && location.startsWith(item.href));
+          let isActive = location === item.href;
+          
+          if (item.href === "/study") {
+            isActive = location === "/study" || 
+              location.startsWith("/study/lesson");
+          } else if (item.href !== "/study") {
+            isActive = isActive || location.startsWith(item.href);
+          }
           
           return (
             <Link 

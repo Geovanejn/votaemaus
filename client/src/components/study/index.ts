@@ -17,5 +17,7 @@ export { Celebration, useCelebration } from "./Celebration";
 export { RewardModal } from "./RewardModal";
 export { DailyMissions } from "./DailyMissions";
 export { StreakCelebration } from "./StreakCelebration";
+export { UnitCard, PracticeCard } from "./UnitCard";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
+export type { UnitStatus } from "./UnitCard";

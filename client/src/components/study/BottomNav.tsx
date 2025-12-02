@@ -4,21 +4,24 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface NavItem {
-  href: string;
+  path: string;
   icon: typeof Home;
   label: string;
   activeColor: string;
 }
 
 const navItems: NavItem[] = [
-  { href: "/study", icon: Home, label: "Inicio", activeColor: "#1CB0F6" },
-  { href: "/study/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
-  { href: "/study/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
-  { href: "/study/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
+  { path: "", icon: Home, label: "Inicio", activeColor: "#1CB0F6" },
+  { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
+  { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
+  { path: "/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
 ];
 
 export function BottomNav() {
   const [location] = useLocation();
+  
+  const isPreviewMode = location.startsWith("/study-preview");
+  const baseRoute = isPreviewMode ? "/study-preview" : "/study";
 
   return (
     <nav 
@@ -31,19 +34,20 @@ export function BottomNav() {
     >
       <div className="flex items-stretch h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
-          let isActive = location === item.href;
+          const fullPath = baseRoute + item.path;
+          let isActive = location === fullPath;
           
-          if (item.href === "/study") {
-            isActive = location === "/study" || 
-              location.startsWith("/study/lesson");
-          } else if (item.href !== "/study") {
-            isActive = isActive || location.startsWith(item.href);
+          if (item.path === "") {
+            isActive = location === baseRoute || 
+              location.startsWith(baseRoute + "/lesson");
+          } else {
+            isActive = isActive || location.startsWith(fullPath);
           }
           
           return (
             <Link 
-              key={item.href} 
-              href={item.href}
+              key={item.path} 
+              href={fullPath}
               className="flex-1"
               data-testid={`nav-${item.label.toLowerCase()}`}
             >

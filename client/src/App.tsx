@@ -33,8 +33,13 @@ function Router() {
       <Switch>
         <Route path="/verificar/:hash" component={VerifyPage} />
         <Route path="/results" component={ResultsPage} />
+        {/* Preview routes - todas as páginas do sistema de estudo acessíveis sem login */}
         <Route path="/study-preview" component={StudyPreviewPage} />
         <Route path="/study-preview/explore" component={ExplorePage} />
+        <Route path="/study-preview/ranking" component={RankingPage} />
+        <Route path="/study-preview/profile" component={ProfilePage} />
+        <Route path="/study-preview/verses" component={VersesPage} />
+        <Route path="/study-preview/lesson/:id" component={LessonPage} />
         <Route path="/" component={LoginPage} />
         <Route>
           <Redirect to="/" />

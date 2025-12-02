@@ -45,10 +45,17 @@ The architecture supports an expandable portal vision with planned modules for:
 ## Duolingo-Style Study System
 
 ### Overview
-A gamified study module replicating Duolingo's visual design while maintaining UMP Emaus branding. The system uses React with Framer Motion for animations and features vertical-only scrolling with a mobile-first approach.
+A gamified study module replicating Duolingo's visual design while maintaining UMP Emaus branding. The system uses React with Framer Motion for animations and features vertical-only scrolling with a mobile-first approach. Complete design documentation available at `docs/STUDY_SYSTEM_DESIGN.md`.
+
+### Content Management System
+- Admin uploads PDF magazines (e.g., "Nao jogue sua vida fora" from "Nossa Fe" series)
+- AI extracts magazine title, lesson titles, and content automatically
+- Lessons are released weekly (one per Sunday) via scheduled jobs
+- Admin can manually adjust release dates and review extracted content
 
 ### Components (client/src/components/study/)
-- **UnitCard**: Card component for learning path units with progress dots, icons, and completion states (completed/current/locked)
+- **LearningPath**: Main container with two-column layout (icon rail + lesson cards) and vertical guide line
+- **UnitCard**: Card component for learning path units with progress dots, icons, and completion states
 - **PracticeCard**: Dumbbell-themed practice entry point card
 - **UserProfileHeader**: Yellow header component with user avatar, greeting, streak badge, and XP display
 - **LessonNode**: Circular 3D lesson buttons with green completion states, shadows, and animations
@@ -66,11 +73,13 @@ A gamified study module replicating Duolingo's visual design while maintaining U
 ### Study Home Page Layout
 - **Yellow Header**: #FFC800 gradient background with user profile, streak, and XP badges
 - **Daily Goal Section**: "Meta Diaria" progress bar showing lesson completion progress
-- **Learning Path Section**: "Seu Caminho" with vertical unit cards showing:
-  - Completed units (green checkmark icons)
-  - Current unit (green border, "ATUAL" badge)
-  - Locked units (gray appearance)
-  - Progress dots for each unit
+- **Learning Path Section**: "Seu Caminho" with two-column layout:
+  - Left column: Icon rail (72px) with lesson icons OUTSIDE the cards
+  - Right column: Lesson cards with title, subtitle, and progress dots
+  - Vertical guide line: Centered with icons, z-index behind icons
+  - Completed lessons: Green checkmark icon
+  - Current lesson: Green border + "ATUAL" badge
+  - Locked lessons: Gray lock icon with reduced opacity
 
 ### Color System
 - Primary Orange: #FFA500 (section headers, branding)

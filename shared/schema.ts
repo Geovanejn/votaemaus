@@ -364,3 +364,317 @@ export type ElectionAuditData = {
     }>;
   }>;
 };
+
+// ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
+
+// Perfil de gamificação do usuário
+export const studyProfiles = sqliteTable("study_profiles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  totalXp: integer("total_xp").notNull().default(0),
+  currentLevel: integer("current_level").notNull().default(1),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  hearts: integer("hearts").notNull().default(5),
+  heartsMax: integer("hearts_max").notNull().default(5),
+  heartsRefillAt: text("hearts_refill_at"),
+  lastActivityDate: text("last_activity_date"),
+  dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
+  timezone: text("timezone").notNull().default("America/Sao_Paulo"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  uniqueUser: unique().on(table.userId),
+}));
+
+export const insertStudyProfileSchema = createInsertSchema(studyProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStudyProfile = z.infer<typeof insertStudyProfileSchema>;
+export type StudyProfile = typeof studyProfiles.$inferSelect;
+
+// Semanas de estudo
+export const studyWeeks = sqliteTable("study_weeks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  weekNumber: integer("week_number").notNull(),
+  year: integer("year").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  pdfUrl: text("pdf_url"),
+  status: text("status").notNull().default("draft"), // processing, draft, published, archived
+  publishedAt: text("published_at"),
+  createdBy: integer("created_by").references(() => users.id),
+  aiMetadata: text("ai_metadata"), // JSON string
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  uniqueWeek: unique().on(table.weekNumber, table.year),
+}));
+
+export const insertStudyWeekSchema = createInsertSchema(studyWeeks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStudyWeek = z.infer<typeof insertStudyWeekSchema>;
+export type StudyWeek = typeof studyWeeks.$inferSelect;
+
+// Lições dentro de cada semana
+export const studyLessons = sqliteTable("study_lessons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  studyWeekId: integer("study_week_id").notNull().references(() => studyWeeks.id),
+  orderIndex: integer("order_index").notNull(),
+  title: text("title").notNull(),
+  type: text("type").notNull().default("study"), // intro, study, meditation, challenge, review
+  description: text("description"),
+  xpReward: integer("xp_reward").notNull().default(10),
+  estimatedMinutes: integer("estimated_minutes").notNull().default(5),
+  icon: text("icon"),
+  isBonus: integer("is_bonus", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertStudyLessonSchema = createInsertSchema(studyLessons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStudyLesson = z.infer<typeof insertStudyLessonSchema>;
+export type StudyLesson = typeof studyLessons.$inferSelect;
+
+// Unidades/Exercícios dentro de cada lição
+export const studyUnits = sqliteTable("study_units", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
+  orderIndex: integer("order_index").notNull(),
+  type: text("type").notNull(), // text, multiple_choice, true_false, fill_blank, meditation, reflection, verse
+  content: text("content").notNull(), // JSON string with exercise content
+  xpValue: integer("xp_value").notNull().default(2),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertStudyUnitSchema = createInsertSchema(studyUnits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStudyUnit = z.infer<typeof insertStudyUnitSchema>;
+export type StudyUnit = typeof studyUnits.$inferSelect;
+
+// Versículos para recuperar vidas
+export const bibleVerses = sqliteTable("bible_verses", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  reference: text("reference").notNull(), // "João 3:16"
+  text: text("text").notNull(),
+  reflection: text("reflection"),
+  category: text("category"), // fé, amor, esperança
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertBibleVerseSchema = createInsertSchema(bibleVerses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBibleVerse = z.infer<typeof insertBibleVerseSchema>;
+export type BibleVerse = typeof bibleVerses.$inferSelect;
+
+// Progresso do usuário em cada lição
+export const userLessonProgress = sqliteTable("user_lesson_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
+  status: text("status").notNull().default("locked"), // locked, available, in_progress, completed
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
+  xpEarned: integer("xp_earned").notNull().default(0),
+  mistakesCount: integer("mistakes_count").notNull().default(0),
+  perfectScore: integer("perfect_score", { mode: "boolean" }).notNull().default(false),
+  timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
+}, (table) => ({
+  uniqueUserLesson: unique().on(table.userId, table.lessonId),
+}));
+
+export const insertUserLessonProgressSchema = createInsertSchema(userLessonProgress).omit({
+  id: true,
+});
+
+export type InsertUserLessonProgress = z.infer<typeof insertUserLessonProgressSchema>;
+export type UserLessonProgress = typeof userLessonProgress.$inferSelect;
+
+// Progresso do usuário em cada unidade
+export const userUnitProgress = sqliteTable("user_unit_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  unitId: integer("unit_id").notNull().references(() => studyUnits.id),
+  isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
+  answerGiven: text("answer_given"), // JSON string
+  isCorrect: integer("is_correct", { mode: "boolean" }),
+  attempts: integer("attempts").notNull().default(0),
+  completedAt: text("completed_at"),
+}, (table) => ({
+  uniqueUserUnit: unique().on(table.userId, table.unitId),
+}));
+
+export const insertUserUnitProgressSchema = createInsertSchema(userUnitProgress).omit({
+  id: true,
+});
+
+export type InsertUserUnitProgress = z.infer<typeof insertUserUnitProgressSchema>;
+export type UserUnitProgress = typeof userUnitProgress.$inferSelect;
+
+// Registro de leitura de versículos (para recuperar vidas)
+export const verseReadings = sqliteTable("verse_readings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  verseId: integer("verse_id").notNull().references(() => bibleVerses.id),
+  readAt: text("read_at").notNull().default(sql`(datetime('now'))`),
+  heartsRecovered: integer("hearts_recovered").notNull().default(1),
+});
+
+export const insertVerseReadingSchema = createInsertSchema(verseReadings).omit({
+  id: true,
+  readAt: true,
+});
+
+export type InsertVerseReading = z.infer<typeof insertVerseReadingSchema>;
+export type VerseReading = typeof verseReadings.$inferSelect;
+
+// Transações de XP
+export const xpTransactions = sqliteTable("xp_transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: integer("amount").notNull(),
+  source: text("source").notNull(), // lesson, challenge, streak_bonus, achievement, perfect_lesson
+  sourceId: integer("source_id"),
+  description: text("description"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertXpTransactionSchema = createInsertSchema(xpTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertXpTransaction = z.infer<typeof insertXpTransactionSchema>;
+export type XpTransaction = typeof xpTransactions.$inferSelect;
+
+// Registro diário de atividade (para streak)
+export const dailyActivity = sqliteTable("daily_activity", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  activityDate: text("activity_date").notNull(),
+  minutesStudied: integer("minutes_studied").notNull().default(0),
+  lessonsCompleted: integer("lessons_completed").notNull().default(0),
+  xpEarned: integer("xp_earned").notNull().default(0),
+  streakMaintained: integer("streak_maintained", { mode: "boolean" }).notNull().default(false),
+}, (table) => ({
+  uniqueUserDate: unique().on(table.userId, table.activityDate),
+}));
+
+export const insertDailyActivitySchema = createInsertSchema(dailyActivity).omit({
+  id: true,
+});
+
+export type InsertDailyActivity = z.infer<typeof insertDailyActivitySchema>;
+export type DailyActivity = typeof dailyActivity.$inferSelect;
+
+// Conquistas disponíveis
+export const achievements = sqliteTable("achievements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  xpReward: integer("xp_reward").notNull().default(0),
+  category: text("category").notNull(), // streak, xp, lessons, special
+  requirement: text("requirement"), // JSON string with requirement conditions
+  isSecret: integer("is_secret", { mode: "boolean" }).notNull().default(false),
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).omit({
+  id: true,
+});
+
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+export type Achievement = typeof achievements.$inferSelect;
+
+// Conquistas do usuário
+export const userAchievements = sqliteTable("user_achievements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: text("unlocked_at").notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  uniqueUserAchievement: unique().on(table.userId, table.achievementId),
+}));
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  unlockedAt: true,
+});
+
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+
+// Leaderboard entries
+export const leaderboardEntries = sqliteTable("leaderboard_entries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  periodType: text("period_type").notNull(), // weekly, monthly, all_time
+  periodKey: text("period_key").notNull(), // "2024-W48", "2024-12", "all"
+  xpEarned: integer("xp_earned").notNull().default(0),
+  rankPosition: integer("rank_position"),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  uniqueUserPeriod: unique().on(table.userId, table.periodType, table.periodKey),
+}));
+
+export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntries).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
+export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
+
+// ==================== TIPOS COMPOSTOS DO SISTEMA DE ESTUDOS ====================
+
+export type StudyProfileWithUser = StudyProfile & {
+  userName: string;
+  userEmail: string;
+  userPhotoUrl?: string;
+};
+
+export type StudyLessonWithProgress = StudyLesson & {
+  status: "locked" | "available" | "in_progress" | "completed";
+  xpEarned?: number;
+  perfectScore?: boolean;
+};
+
+export type StudyWeekWithLessons = StudyWeek & {
+  lessons: StudyLessonWithProgress[];
+  totalXp: number;
+  completedLessons: number;
+};
+
+export type LeaderboardRanking = {
+  userId: number;
+  userName: string;
+  userPhotoUrl?: string;
+  totalXp: number;
+  level: number;
+  streak: number;
+  rank: number;
+};
+
+export type AchievementWithStatus = Achievement & {
+  unlocked: boolean;
+  unlockedAt?: string;
+};

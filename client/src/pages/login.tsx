@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { UserCircle, Mail, KeyRound, Lock } from "lucide-react";
+import { UserCircle, Mail, KeyRound, Lock, BookOpen } from "lucide-react";
 import logoAnimated from "@assets/logo-animated.webp";
 
 const setPasswordSchema = z.object({
@@ -533,6 +533,18 @@ export default function LoginPage() {
             <p className="text-xs text-muted-foreground">
               Após o login, sua sessão fica ativa por 2 horas
             </p>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              className="border-primary/50 text-primary"
+              onClick={() => setLocation("/study-preview")}
+              data-testid="button-study-preview"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Ver Preview do Sistema de Estudos
+            </Button>
           </div>
         </div>
       </div>

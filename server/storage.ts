@@ -1796,13 +1796,13 @@ export class SQLiteStorage implements IStorage {
     };
   }
 
-  createStudyWeek(data: { weekNumber: number; year: number; title: string; description?: string; createdBy?: number }): any {
+  createStudyWeek(data: { weekNumber: number; year: number; title: string; description?: string; createdBy?: number; aiMetadata?: string }): any {
     const stmt = db.prepare(`
-      INSERT INTO study_weeks (week_number, year, title, description, created_by, status)
-      VALUES (?, ?, ?, ?, ?, 'published')
+      INSERT INTO study_weeks (week_number, year, title, description, created_by, ai_metadata, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'published')
       RETURNING *
     `);
-    const row = stmt.get(data.weekNumber, data.year, data.title, data.description || null, data.createdBy || null) as any;
+    const row = stmt.get(data.weekNumber, data.year, data.title, data.description || null, data.createdBy || null, data.aiMetadata || null) as any;
     return {
       id: row.id,
       weekNumber: row.week_number,

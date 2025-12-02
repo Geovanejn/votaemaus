@@ -25,9 +25,27 @@ import {
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
+import { 
+  generateStudyContentFromText, 
+  generateExercisesFromTopic, 
+  generateReflectionQuestions,
+  summarizeText,
+  isOpenAIConfigured 
+} from "./ai";
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function getIconForLessonType(type: string): string {
+  const icons: Record<string, string> = {
+    intro: "book-open",
+    study: "star",
+    meditation: "heart",
+    challenge: "trophy",
+    review: "crown"
+  };
+  return icons[type] || "star";
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2115,6 +2133,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Publish week error:", error);
       res.status(500).json({ message: "Erro ao publicar semana" });
+    }
+  });
+
+  // ============================================
+  // AI-POWERED CONTENT GENERATION ROUTES
+  // ============================================
+
+  // Check if AI is configured
+  app.get("/api/ai/status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      res.json({ 
+        configured: isOpenAIConfigured(),
+        message: isOpenAIConfigured() 
+          ? "IA configurada e pronta para uso" 
+          : "Chave de API do OpenAI nao configurada"
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao verificar status da IA" });
+    }
+  });
+
+  // Generate complete study week content from text
+  app.post("/api/ai/generate-week", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!isOpenAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      }
+
+      const { text, weekNumber, year } = req.body;
+      
+      if (!text || text.trim().length < 100) {
+        return res.status(400).json({ message: "Texto muito curto. Forneca pelo menos 100 caracteres." });
+      }
+
+      const content = await generateStudyContentFromText(
+        text,
+        weekNumber || 1,
+        year || new Date().getFullYear()
+      );
+
+      res.json(content);
+    } catch (error) {
+      console.error("AI generate week error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao gerar conteudo com IA" 
+      });
+    }
+  });
+
+  // Generate exercises from a topic
+  app.post("/api/ai/generate-exercises", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!isOpenAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      }
+
+      const { topic, count } = req.body;
+      
+      if (!topic || topic.trim().length < 10) {
+        return res.status(400).json({ message: "Forneca um topico com pelo menos 10 caracteres." });
+      }
+
+      const exercises = await generateExercisesFromTopic(topic, count || 5);
+      res.json({ exercises });
+    } catch (error) {
+      console.error("AI generate exercises error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao gerar exercicios com IA" 
+      });
+    }
+  });
+
+  // Generate reflection questions from text
+  app.post("/api/ai/generate-reflections", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!isOpenAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      }
+
+      const { text, count } = req.body;
+      
+      if (!text || text.trim().length < 50) {
+        return res.status(400).json({ message: "Texto muito curto para gerar reflexoes." });
+      }
+
+      const questions = await generateReflectionQuestions(text, count || 3);
+      res.json({ questions });
+    } catch (error) {
+      console.error("AI generate reflections error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao gerar reflexoes com IA" 
+      });
+    }
+  });
+
+  // Summarize text
+  app.post("/api/ai/summarize", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!isOpenAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      }
+
+      const { text } = req.body;
+      
+      if (!text || text.trim().length < 100) {
+        return res.status(400).json({ message: "Texto muito curto para resumir." });
+      }
+
+      const summary = await summarizeText(text);
+      res.json({ summary });
+    } catch (error) {
+      console.error("AI summarize error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao resumir texto com IA" 
+      });
+    }
+  });
+
+  // Create week with AI-generated content and save to database
+  app.post("/api/ai/create-week-with-content", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      if (!isOpenAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      }
+
+      const { text, weekNumber, year } = req.body;
+      
+      if (!text || text.trim().length < 100) {
+        return res.status(400).json({ message: "Texto muito curto. Forneca pelo menos 100 caracteres." });
+      }
+
+      const currentYear = year || new Date().getFullYear();
+      const currentWeekNumber = weekNumber || 1;
+
+      // Generate content with AI
+      const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear);
+
+      // Create the week in database
+      const week = storage.createStudyWeek({
+        title: generatedContent.weekTitle,
+        description: generatedContent.weekDescription,
+        weekNumber: currentWeekNumber,
+        year: currentYear,
+        createdBy: req.user!.id,
+        aiMetadata: JSON.stringify({
+          generatedAt: new Date().toISOString(),
+          model: "gpt-5",
+          lessonsCount: generatedContent.lessons.length
+        })
+      });
+
+      // Create lessons and units
+      let totalLessons = 0;
+      let totalUnits = 0;
+
+      for (let i = 0; i < generatedContent.lessons.length; i++) {
+        const lessonData = generatedContent.lessons[i];
+        
+        const lesson = storage.createStudyLesson({
+          studyWeekId: week.id,
+          orderIndex: i,
+          title: lessonData.title,
+          description: lessonData.description || undefined,
+          type: lessonData.type,
+          xpReward: lessonData.xpReward,
+          estimatedMinutes: lessonData.estimatedMinutes,
+          icon: getIconForLessonType(lessonData.type),
+          isBonus: false
+        });
+        totalLessons++;
+
+        // Create units for this lesson
+        for (let j = 0; j < lessonData.units.length; j++) {
+          const unitData = lessonData.units[j];
+          
+          storage.createStudyUnit({
+            lessonId: lesson.id,
+            orderIndex: j,
+            type: unitData.type,
+            content: unitData.content,
+            xpValue: unitData.xpValue
+          });
+          totalUnits++;
+        }
+      }
+
+      res.json({
+        message: "Semana criada com sucesso usando IA",
+        week,
+        stats: {
+          lessons: totalLessons,
+          units: totalUnits
+        }
+      });
+    } catch (error) {
+      console.error("AI create week error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao criar semana com IA" 
+      });
     }
   });
 

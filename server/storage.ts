@@ -90,6 +90,25 @@ export interface IStorage {
   
   createPdfVerification(electionId: number, verificationHash: string, presidentName?: string): any;
   getPdfVerification(verificationHash: string): any | null;
+
+  // Study System
+  getStudyWeekById(weekId: number): any | null;
+  getAllStudyWeeks(): any[];
+  getLessonsForWeek(weekId: number): any[];
+  getLessonById(lessonId: number): any | null;
+  getUnitsByLessonId(lessonId: number): any[];
+  getStudyUnitById(unitId: number): any | null;
+  createStudyWeek(data: { title: string; description?: string; weekNumber: number; year: number; createdBy?: number; aiMetadata?: string }): any;
+  createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): any;
+  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number }): any;
+  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null;
+  deleteStudyLesson(lessonId: number): boolean;
+  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number }): any | null;
+  deleteStudyUnit(unitId: number): boolean;
+  updateStudyWeek(weekId: number, data: { title?: string; description?: string; weekNumber?: number; year?: number; status?: string }): any | null;
+  deleteStudyWeek(weekId: number): boolean;
+  getUnitsForLesson(lessonId: number): any[];
+  publishStudyWeek(weekId: number): any | null;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -1927,6 +1946,122 @@ export class SQLiteStorage implements IStorage {
       xpValue: row.xp_value,
       createdAt: row.created_at,
     };
+  }
+
+  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null {
+    const lesson = this.getLessonById(lessonId);
+    if (!lesson) return null;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (data.title !== undefined) { updates.push("title = ?"); values.push(data.title); }
+    if (data.type !== undefined) { updates.push("type = ?"); values.push(data.type); }
+    if (data.description !== undefined) { updates.push("description = ?"); values.push(data.description); }
+    if (data.xpReward !== undefined) { updates.push("xp_reward = ?"); values.push(data.xpReward); }
+    if (data.estimatedMinutes !== undefined) { updates.push("estimated_minutes = ?"); values.push(data.estimatedMinutes); }
+    if (data.icon !== undefined) { updates.push("icon = ?"); values.push(data.icon); }
+    if (data.isBonus !== undefined) { updates.push("is_bonus = ?"); values.push(data.isBonus ? 1 : 0); }
+    if (data.orderIndex !== undefined) { updates.push("order_index = ?"); values.push(data.orderIndex); }
+
+    if (updates.length === 0) return lesson;
+
+    values.push(lessonId);
+    db.prepare(`UPDATE study_lessons SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+
+    return this.getLessonById(lessonId);
+  }
+
+  deleteStudyLesson(lessonId: number): boolean {
+    const lesson = this.getLessonById(lessonId);
+    if (!lesson) return false;
+
+    db.prepare("DELETE FROM user_unit_progress WHERE unit_id IN (SELECT id FROM study_units WHERE lesson_id = ?)").run(lessonId);
+    db.prepare("DELETE FROM study_units WHERE lesson_id = ?").run(lessonId);
+    db.prepare("DELETE FROM user_lesson_progress WHERE lesson_id = ?").run(lessonId);
+    db.prepare("DELETE FROM study_lessons WHERE id = ?").run(lessonId);
+    return true;
+  }
+
+  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number }): any | null {
+    const unit = this.getStudyUnitById(unitId);
+    if (!unit) return null;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (data.type !== undefined) { updates.push("type = ?"); values.push(data.type); }
+    if (data.content !== undefined) { updates.push("content = ?"); values.push(JSON.stringify(data.content)); }
+    if (data.xpValue !== undefined) { updates.push("xp_value = ?"); values.push(data.xpValue); }
+    if (data.orderIndex !== undefined) { updates.push("order_index = ?"); values.push(data.orderIndex); }
+
+    if (updates.length === 0) return unit;
+
+    values.push(unitId);
+    db.prepare(`UPDATE study_units SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+
+    return this.getStudyUnitById(unitId);
+  }
+
+  deleteStudyUnit(unitId: number): boolean {
+    const unit = this.getStudyUnitById(unitId);
+    if (!unit) return false;
+
+    db.prepare("DELETE FROM user_unit_progress WHERE unit_id = ?").run(unitId);
+    db.prepare("DELETE FROM study_units WHERE id = ?").run(unitId);
+    return true;
+  }
+
+  updateStudyWeek(weekId: number, data: { title?: string; description?: string; weekNumber?: number; year?: number; status?: string }): any | null {
+    const week = this.getStudyWeekById(weekId);
+    if (!week) return null;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (data.title !== undefined) { updates.push("title = ?"); values.push(data.title); }
+    if (data.description !== undefined) { updates.push("description = ?"); values.push(data.description); }
+    if (data.weekNumber !== undefined) { updates.push("week_number = ?"); values.push(data.weekNumber); }
+    if (data.year !== undefined) { updates.push("year = ?"); values.push(data.year); }
+    if (data.status !== undefined) { updates.push("status = ?"); values.push(data.status); }
+
+    if (updates.length === 0) return week;
+
+    updates.push("updated_at = datetime('now')");
+    values.push(weekId);
+    db.prepare(`UPDATE study_weeks SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+
+    return this.getStudyWeekById(weekId);
+  }
+
+  deleteStudyWeek(weekId: number): boolean {
+    const week = this.getStudyWeekById(weekId);
+    if (!week) return false;
+
+    const lessons = this.getLessonsForWeek(weekId);
+    for (const lesson of lessons) {
+      this.deleteStudyLesson(lesson.id);
+    }
+
+    db.prepare("DELETE FROM study_weeks WHERE id = ?").run(weekId);
+    return true;
+  }
+
+  getUnitsForLesson(lessonId: number): any[] {
+    return this.getUnitsByLessonId(lessonId);
+  }
+
+  publishStudyWeek(weekId: number): any | null {
+    const week = this.getStudyWeekById(weekId);
+    if (!week) return null;
+
+    db.prepare(`
+      UPDATE study_weeks 
+      SET status = 'published', published_at = datetime('now'), updated_at = datetime('now')
+      WHERE id = ?
+    `).run(weekId);
+
+    return this.getStudyWeekById(weekId);
   }
 
   // User Lesson Progress

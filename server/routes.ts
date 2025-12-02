@@ -2335,6 +2335,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Create a new lesson
+  app.post("/api/study/admin/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { studyWeekId, title, type, description, xpReward, estimatedMinutes, isBonus } = req.body;
+      
+      if (!studyWeekId || !title) {
+        return res.status(400).json({ message: "ID da semana e titulo sao obrigatorios" });
+      }
+
+      const existingLessons = storage.getLessonsForWeek(studyWeekId);
+      const orderIndex = existingLessons.length;
+
+      const lesson = storage.createStudyLesson({
+        studyWeekId,
+        orderIndex,
+        title,
+        type: type || 'study',
+        description: description || undefined,
+        xpReward: xpReward || 10,
+        estimatedMinutes: estimatedMinutes || 5,
+        icon: getIconForLessonType(type || 'study'),
+        isBonus: isBonus || false
+      });
+
+      res.json(lesson);
+    } catch (error) {
+      console.error("Create lesson error:", error);
+      res.status(500).json({ message: "Erro ao criar licao" });
+    }
+  });
+
+  // Admin: Update a lesson
+  app.put("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const { title, type, description, xpReward, estimatedMinutes, isBonus, orderIndex } = req.body;
+
+      const lesson = storage.updateStudyLesson(lessonId, {
+        title,
+        type,
+        description,
+        xpReward,
+        estimatedMinutes,
+        icon: type ? getIconForLessonType(type) : undefined,
+        isBonus,
+        orderIndex
+      });
+
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      res.json(lesson);
+    } catch (error) {
+      console.error("Update lesson error:", error);
+      res.status(500).json({ message: "Erro ao atualizar licao" });
+    }
+  });
+
+  // Admin: Delete a lesson
+  app.delete("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const deleted = storage.deleteStudyLesson(lessonId);
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      res.json({ message: "Licao excluida com sucesso" });
+    } catch (error) {
+      console.error("Delete lesson error:", error);
+      res.status(500).json({ message: "Erro ao excluir licao" });
+    }
+  });
+
+  // Admin: Get units for a lesson
+  app.get("/api/study/admin/lessons/:lessonId/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const units = storage.getUnitsForLesson(lessonId);
+      res.json(units);
+    } catch (error) {
+      console.error("Get units error:", error);
+      res.status(500).json({ message: "Erro ao buscar exercicios" });
+    }
+  });
+
+  // Admin: Create a new unit
+  app.post("/api/study/admin/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { lessonId, type, content, xpValue } = req.body;
+
+      if (!lessonId || !type || !content) {
+        return res.status(400).json({ message: "ID da licao, tipo e conteudo sao obrigatorios" });
+      }
+
+      const existingUnits = storage.getUnitsForLesson(lessonId);
+      const orderIndex = existingUnits.length;
+
+      const unit = storage.createStudyUnit({
+        lessonId,
+        orderIndex,
+        type,
+        content,
+        xpValue: xpValue || 5
+      });
+
+      res.json(unit);
+    } catch (error) {
+      console.error("Create unit error:", error);
+      res.status(500).json({ message: "Erro ao criar exercicio" });
+    }
+  });
+
+  // Admin: Update a unit
+  app.put("/api/study/admin/units/:unitId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const unitId = parseInt(req.params.unitId);
+      const { type, content, xpValue, orderIndex } = req.body;
+
+      const unit = storage.updateStudyUnit(unitId, {
+        type,
+        content,
+        xpValue,
+        orderIndex
+      });
+
+      if (!unit) {
+        return res.status(404).json({ message: "Exercicio nao encontrado" });
+      }
+
+      res.json(unit);
+    } catch (error) {
+      console.error("Update unit error:", error);
+      res.status(500).json({ message: "Erro ao atualizar exercicio" });
+    }
+  });
+
+  // Admin: Delete a unit
+  app.delete("/api/study/admin/units/:unitId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const unitId = parseInt(req.params.unitId);
+      const deleted = storage.deleteStudyUnit(unitId);
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Exercicio nao encontrado" });
+      }
+
+      res.json({ message: "Exercicio excluido com sucesso" });
+    } catch (error) {
+      console.error("Delete unit error:", error);
+      res.status(500).json({ message: "Erro ao excluir exercicio" });
+    }
+  });
+
+  // Admin: Delete a week
+  app.delete("/api/study/admin/weeks/:weekId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const deleted = storage.deleteStudyWeek(weekId);
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Semana nao encontrada" });
+      }
+
+      res.json({ message: "Semana excluida com sucesso" });
+    } catch (error) {
+      console.error("Delete week error:", error);
+      res.status(500).json({ message: "Erro ao excluir semana" });
+    }
+  });
+
+  // Admin: Update a week
+  app.put("/api/study/admin/weeks/:weekId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const { title, description, weekNumber, year, status } = req.body;
+
+      const week = storage.updateStudyWeek(weekId, {
+        title,
+        description,
+        weekNumber,
+        year,
+        status
+      });
+
+      if (!week) {
+        return res.status(404).json({ message: "Semana nao encontrada" });
+      }
+
+      res.json(week);
+    } catch (error) {
+      console.error("Update week error:", error);
+      res.status(500).json({ message: "Erro ao atualizar semana" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

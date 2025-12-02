@@ -16,6 +16,7 @@ import ExplorePage from "@/pages/study/explore";
 import ProfilePage from "@/pages/study/profile";
 import RankingPage from "@/pages/study/ranking";
 import StudyPreviewPage from "@/pages/study/preview";
+import StudyAdminPage from "@/pages/study/admin/index";
 
 function Router() {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
@@ -53,6 +54,7 @@ function Router() {
       <Switch>
         <Route path="/verificar/:hash" component={VerifyPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/admin/study" component={StudyAdminPage} />
         <Route path="/vote" component={VotePage} />
         <Route path="/results" component={ResultsPage} />
         <Route path="/study" component={StudyHomePage} />

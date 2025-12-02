@@ -39,6 +39,7 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCw,
+  BookOpen,
 } from "lucide-react";
 import {
   Collapsible,
@@ -1055,6 +1056,14 @@ export default function AdminPage() {
                   >
                     <ChartBar className="w-4 h-4 mr-2" />
                     Ver Resultados
+                  </Button>
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-[#FFA500] to-[#FFB733] text-white hover:from-[#FF8C00] hover:to-[#FFA500]"
+                    onClick={() => setLocation("/admin/study")}
+                    data-testid="button-study-admin"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Sistema de Estudos
                   </Button>
                 </CardContent>
               </Card>

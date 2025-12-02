@@ -2045,6 +2045,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Get all study weeks (including drafts)
+  app.get("/api/study/admin/weeks", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weeks = storage.getAllStudyWeeks();
+      res.json(weeks);
+    } catch (error) {
+      console.error("Get admin weeks error:", error);
+      res.status(500).json({ message: "Erro ao buscar semanas" });
+    }
+  });
+
+  // Admin: Get study stats
+  app.get("/api/study/admin/stats", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const stats = storage.getStudyStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Get admin stats error:", error);
+      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+    }
+  });
+
+  // Admin: Get lessons for a week
+  app.get("/api/study/admin/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.query.weekId as string);
+      if (!weekId) {
+        return res.status(400).json({ message: "ID da semana e obrigatorio" });
+      }
+      const lessons = storage.getLessonsForWeek(weekId);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Get admin lessons error:", error);
+      res.status(500).json({ message: "Erro ao buscar licoes" });
+    }
+  });
+
+  // Admin: Create a new study week
+  app.post("/api/study/admin/weeks", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { title, description, weekNumber, year } = req.body;
+      if (!title) {
+        return res.status(400).json({ message: "Titulo e obrigatorio" });
+      }
+      const week = storage.createStudyWeek({
+        title,
+        description: description || null,
+        weekNumber: weekNumber || 1,
+        year: year || new Date().getFullYear(),
+        createdBy: req.user!.id
+      });
+      res.json(week);
+    } catch (error) {
+      console.error("Create week error:", error);
+      res.status(500).json({ message: "Erro ao criar semana" });
+    }
+  });
+
+  // Admin: Publish a study week
+  app.post("/api/study/admin/weeks/:weekId/publish", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const week = storage.publishStudyWeek(weekId);
+      if (!week) {
+        return res.status(404).json({ message: "Semana nao encontrada" });
+      }
+      res.json(week);
+    } catch (error) {
+      console.error("Publish week error:", error);
+      res.status(500).json({ message: "Erro ao publicar semana" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

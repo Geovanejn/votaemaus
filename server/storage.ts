@@ -1713,6 +1713,69 @@ export class SQLiteStorage implements IStorage {
     }));
   }
 
+  getAllStudyWeeks(): any[] {
+    const stmt = db.prepare("SELECT * FROM study_weeks ORDER BY year DESC, week_number DESC");
+    return (stmt.all() as any[]).map(row => ({
+      id: row.id,
+      weekNumber: row.week_number,
+      year: row.year,
+      title: row.title,
+      description: row.description,
+      pdfUrl: row.pdf_url,
+      status: row.status,
+      publishedAt: row.published_at,
+      createdBy: row.created_by,
+      aiMetadata: row.ai_metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  getStudyStats(): any {
+    const totalUsers = (db.prepare("SELECT COUNT(DISTINCT user_id) as count FROM user_study_progress").get() as any)?.count || 0;
+    const totalLessons = (db.prepare("SELECT COUNT(*) as count FROM study_lessons").get() as any)?.count || 0;
+    const completedLessons = (db.prepare("SELECT COUNT(*) as count FROM lesson_completions").get() as any)?.count || 0;
+    const totalWeeks = (db.prepare("SELECT COUNT(*) as count FROM study_weeks").get() as any)?.count || 0;
+    const publishedWeeks = (db.prepare("SELECT COUNT(*) as count FROM study_weeks WHERE status = 'published'").get() as any)?.count || 0;
+    
+    return {
+      totalUsers,
+      totalLessons,
+      completedLessons,
+      totalWeeks,
+      publishedWeeks,
+    };
+  }
+
+  publishStudyWeek(weekId: number): any | null {
+    const stmt = db.prepare(`
+      UPDATE study_weeks 
+      SET status = 'published', published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      RETURNING *
+    `);
+    const row = stmt.get(weekId) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      weekNumber: row.week_number,
+      year: row.year,
+      title: row.title,
+      description: row.description,
+      pdfUrl: row.pdf_url,
+      status: row.status,
+      publishedAt: row.published_at,
+      createdBy: row.created_by,
+      aiMetadata: row.ai_metadata,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  getLessonsForWeek(weekId: number): any[] {
+    return this.getLessonsByWeekId(weekId);
+  }
+
   getStudyWeekById(id: number): any | null {
     const stmt = db.prepare("SELECT * FROM study_weeks WHERE id = ?");
     const row = stmt.get(id) as any;

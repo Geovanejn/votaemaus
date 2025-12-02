@@ -1,4 +1,6 @@
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
   LearningPath,
@@ -6,71 +8,72 @@ import {
 } from "@/components/study";
 import type { LessonItem } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings, Flame, Zap } from "lucide-react";
+import { Settings, Flame, Zap, Heart, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
-const mockUserProfile = {
-  name: "Maria Silva",
-  avatar: "",
-  level: 5,
-  totalXP: 450,
-  streak: 7,
-};
+interface StudyProfile {
+  id: number;
+  userId: number;
+  totalXp: number;
+  currentLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  hearts: number;
+  heartsMax: number;
+  heartsRefillAt: string | null;
+  lastActivityDate: string | null;
+  dailyGoalMinutes: number;
+  timezone: string;
+}
 
-const mockLessons: LessonItem[] = [
-  { 
-    id: 1, 
-    lessonNumber: 1,
-    title: "Licao 1", 
-    subtitle: "Uma paixao unica pela qual viver", 
-    status: "completed", 
-    progress: 5, 
-    totalSections: 5,
-  },
-  { 
-    id: 2, 
-    lessonNumber: 2,
-    title: "Licao 2", 
-    subtitle: "Nao desperdice sua vida", 
-    status: "completed", 
-    progress: 5, 
-    totalSections: 5,
-  },
-  { 
-    id: 3, 
-    lessonNumber: 3,
-    title: "Licao 3", 
-    subtitle: "Gloria somente na cruz", 
-    status: "current", 
-    progress: 2, 
-    totalSections: 5,
-  },
-  { 
-    id: 4, 
-    lessonNumber: 4,
-    title: "Licao 4", 
-    subtitle: "Glorificando a Cristo por meio de dor e morte (1)", 
-    status: "locked", 
-    progress: 0, 
-    totalSections: 5,
-  },
-  { 
-    id: 5, 
-    lessonNumber: 5,
-    title: "Licao 5", 
-    subtitle: "Glorificando a Cristo por meio de dor e morte (2)", 
-    status: "locked", 
-    progress: 0, 
-    totalSections: 5,
-  },
-];
+interface StudyWeek {
+  id: number;
+  weekNumber: number;
+  year: number;
+  title: string;
+  description: string;
+  pdfUrl: string | null;
+  status: string;
+  publishedAt: string | null;
+  createdBy: number | null;
+}
 
-const mockDailyGoal = {
-  current: 3,
-  target: 5,
-};
+interface LessonWithProgress {
+  id: number;
+  studyWeekId: number;
+  orderIndex: number;
+  title: string;
+  type: string;
+  description: string;
+  xpReward: number;
+  estimatedMinutes: number;
+  icon: string | null;
+  isBonus: boolean;
+  status: string;
+  progress?: {
+    completedUnits: number;
+    totalUnits: number;
+    xpEarned: number;
+  };
+}
 
-function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
+interface WeekWithLessons {
+  week: StudyWeek;
+  lessons: LessonWithProgress[];
+}
+
+function UserProfileHeader({ 
+  userName, 
+  userPhoto,
+  profile 
+}: { 
+  userName: string;
+  userPhoto?: string | null;
+  profile: StudyProfile;
+}) {
+  const [, setLocation] = useLocation();
+  
   return (
     <div 
       className="px-4 pt-6 pb-8"
@@ -82,7 +85,7 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-14 w-14 border-3 border-white shadow-lg">
-              <AvatarImage src={user.avatar} />
+              <AvatarImage src={userPhoto || undefined} />
               <AvatarFallback 
                 className="text-xl font-bold"
                 style={{
@@ -90,13 +93,13 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
                   color: 'white'
                 }}
               >
-                {user.name.charAt(0)}
+                {userName?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
               <p className="text-sm text-white/80 font-medium">Ola,</p>
               <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
-                {user.name}
+                {userName}
               </h1>
             </div>
           </div>
@@ -105,20 +108,21 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
             whileHover={{ scale: 1.1, rotate: 15 }}
             whileTap={{ scale: 0.9 }}
             className="p-2 rounded-full bg-white/20"
+            onClick={() => setLocation('/study/profile')}
             data-testid="button-settings"
           >
             <Settings className="h-5 w-5 text-white" />
           </motion.button>
         </div>
 
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex items-center gap-3 mt-4 flex-wrap">
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF9600] shadow-lg"
             style={{ boxShadow: '0 4px 0 0 #CC7700' }}
           >
             <Flame className="h-5 w-5 text-white" />
-            <span className="font-bold text-white">{user.streak}</span>
+            <span className="font-bold text-white">{profile.currentStreak}</span>
             <span className="text-white/80 text-sm">dias</span>
           </motion.div>
           
@@ -128,8 +132,19 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
             style={{ boxShadow: '0 4px 0 0 #46A302' }}
           >
             <Zap className="h-5 w-5 text-white" />
-            <span className="font-bold text-white">{user.totalXP}</span>
+            <span className="font-bold text-white">{profile.totalXp}</span>
             <span className="text-white/80 text-sm">XP</span>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF4B4B] shadow-lg cursor-pointer"
+            style={{ boxShadow: '0 4px 0 0 #CC3333' }}
+            onClick={() => setLocation('/study/verses')}
+            data-testid="button-hearts"
+          >
+            <Heart className="h-5 w-5 text-white fill-white" />
+            <span className="font-bold text-white">{profile.hearts}/{profile.heartsMax}</span>
           </motion.div>
         </div>
       </div>
@@ -137,14 +152,22 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
   );
 }
 
-function DailyGoalSection({ current, target }: { current: number; target: number }) {
-  const percentage = Math.min((current / target) * 100, 100);
+function DailyGoalSection({ 
+  lessonsCompleted, 
+  totalLessons 
+}: { 
+  lessonsCompleted: number; 
+  totalLessons: number;
+}) {
+  const target = Math.min(totalLessons, 5);
+  const current = Math.min(lessonsCompleted, target);
+  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
   const remaining = target - current;
   
   return (
     <div className="px-4 py-4 bg-background border-b border-border">
       <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2">
           <h2 className="font-bold text-foreground">Meta Diaria</h2>
           <span className="text-sm font-bold text-[#58CC02]">{current}/{target}</span>
         </div>
@@ -169,13 +192,135 @@ function DailyGoalSection({ current, target }: { current: number; target: number
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center" data-testid="study-loading">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-[#FFA500]" />
+        <p className="text-muted-foreground">Carregando estudos...</p>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="study-error">
+      <div className="text-center max-w-sm">
+        <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
+        <p className="text-muted-foreground mb-4">
+          Nao foi possivel carregar os dados do estudo. Por favor, tente novamente.
+        </p>
+        <Button onClick={onRetry} data-testid="button-retry">
+          Tentar novamente
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function NotAuthenticatedState() {
+  const [, setLocation] = useLocation();
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="study-not-auth">
+      <div className="text-center max-w-sm">
+        <h1 className="text-xl font-bold text-foreground mb-2">Faca login para continuar</h1>
+        <p className="text-muted-foreground mb-4">
+          Voce precisa estar logado para acessar os estudos.
+        </p>
+        <Button onClick={() => setLocation('/')} data-testid="button-login">
+          Fazer Login
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex-1 flex items-center justify-center p-4" data-testid="study-empty">
+      <div className="text-center max-w-sm">
+        <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponivel</h2>
+        <p className="text-muted-foreground">
+          Os estudos semanais serao liberados em breve. Volte mais tarde!
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function StudyHomePage() {
   const [, setLocation] = useLocation();
   const { CelebrationComponent } = useCelebration();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  const { data: profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery<StudyProfile>({
+    queryKey: ['/api/study/profile'],
+    enabled: isAuthenticated,
+  });
+
+  const { data: weeks, isLoading: weeksLoading, error: weeksError, refetch: refetchWeeks } = useQuery<StudyWeek[]>({
+    queryKey: ['/api/study/weeks'],
+    enabled: isAuthenticated && !!profile,
+  });
+
+  const currentWeek = weeks?.[0];
+
+  const { data: weekData, isLoading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useQuery<WeekWithLessons>({
+    queryKey: ['/api/study/weeks', currentWeek?.id?.toString()],
+    enabled: isAuthenticated && !!currentWeek?.id,
+  });
+
+  const isLoading = authLoading || profileLoading || weeksLoading || lessonsLoading;
+  const hasError = profileError || weeksError || lessonsError;
+
+  const handleRetry = () => {
+    refetchProfile();
+    refetchWeeks();
+    refetchLessons();
+  };
+
+  if (authLoading) {
+    return <LoadingState />;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <NotAuthenticatedState />;
+  }
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  if (hasError || !profile) {
+    return <ErrorState onRetry={handleRetry} />;
+  }
+
+  const lessons: LessonItem[] = weekData?.lessons?.map((lesson) => {
+    let status: 'completed' | 'current' | 'locked' = 'locked';
+    if (lesson.status === 'completed') {
+      status = 'completed';
+    } else if (lesson.status === 'in_progress' || lesson.status === 'available') {
+      status = 'current';
+    }
+
+    return {
+      id: lesson.id,
+      lessonNumber: lesson.orderIndex + 1,
+      title: `Licao ${lesson.orderIndex + 1}`,
+      subtitle: lesson.title,
+      status,
+      progress: lesson.progress?.completedUnits || 0,
+      totalSections: lesson.progress?.totalUnits || 5,
+    };
+  }) || [];
+
+  const lessonsCompleted = lessons.filter(l => l.status === 'completed').length;
 
   const handleLessonClick = (lessonId: number) => {
-    const lesson = mockLessons.find(l => l.id === lessonId);
-    if (lesson && lesson.status !== "locked") {
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (lesson && lesson.status !== 'locked') {
       setLocation(`/study/lesson/${lessonId}`);
     }
   };
@@ -184,19 +329,27 @@ export default function StudyHomePage() {
     <div className="min-h-screen bg-background pb-20" data-testid="study-home">
       <CelebrationComponent />
       
-      <UserProfileHeader user={mockUserProfile} />
+      <UserProfileHeader 
+        userName={user.fullName} 
+        userPhoto={user.photoUrl}
+        profile={profile} 
+      />
       
       <DailyGoalSection 
-        current={mockDailyGoal.current} 
-        target={mockDailyGoal.target} 
+        lessonsCompleted={lessonsCompleted} 
+        totalLessons={lessons.length}
       />
-      
-      <LearningPath 
-        lessons={mockLessons}
-        onLessonClick={handleLessonClick}
-        onPracticeClick={() => setLocation('/study/practice')}
-        showPractice={true}
-      />
+
+      {lessons.length > 0 ? (
+        <LearningPath 
+          lessons={lessons}
+          onLessonClick={handleLessonClick}
+          onPracticeClick={() => setLocation('/study/practice')}
+          showPractice={lessonsCompleted > 0}
+        />
+      ) : (
+        <EmptyState />
+      )}
 
       <BottomNav />
     </div>

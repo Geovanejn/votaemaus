@@ -145,7 +145,7 @@ function LessonCard({
 
 function PracticeRow({ onClick }: { onClick?: () => void }) {
   return (
-    <div className="flex items-start gap-4">
+    <div className="flex items-center gap-4">
       <div className="relative z-10 flex-shrink-0 w-14 flex justify-center">
         <motion.div
           whileHover={{ scale: 1.05 }}
@@ -201,7 +201,7 @@ export function LearningPath({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-4"
+                className="flex items-center gap-4"
               >
                 <div className="relative z-10 flex-shrink-0 w-14 flex justify-center">
                   <LessonIcon 

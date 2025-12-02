@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { CheckCircle, LogOut, Vote, ChartBar } from "lucide-react";
+import { CheckCircle, LogOut, Vote, ChartBar, BookOpen } from "lucide-react";
 import { useLocation } from "wouter";
 import type { Election, Position } from "@shared/schema";
 import logoUrl from "@assets/EMAÚS v3 sem fundo_1762038215610.png";
@@ -109,7 +109,15 @@ export default function VotePage() {
         <div className="container mx-auto px-4 py-4 sm:py-8 max-w-2xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold">Votação</h1>
-            <div className="flex gap-2 self-end sm:self-auto">
+            <div className="flex gap-2 self-end sm:self-auto flex-wrap">
+              <Button 
+                className="bg-gradient-to-r from-[#FFA500] to-[#FFB733] text-white hover:from-[#FF8C00] hover:to-[#FFA500]"
+                onClick={() => setLocation("/study")} 
+                data-testid="button-study"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Estudos
+              </Button>
               <Button variant="outline" onClick={() => setLocation("/results")} data-testid="button-results">
                 <ChartBar className="w-4 h-4 mr-2" />
                 Resultados
@@ -140,7 +148,15 @@ export default function VotePage() {
         <div className="container mx-auto px-4 py-4 sm:py-8 max-w-2xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold">Votação</h1>
-            <div className="flex gap-2 self-end sm:self-auto">
+            <div className="flex gap-2 self-end sm:self-auto flex-wrap">
+              <Button 
+                className="bg-gradient-to-r from-[#FFA500] to-[#FFB733] text-white hover:from-[#FF8C00] hover:to-[#FFA500]"
+                onClick={() => setLocation("/study")} 
+                data-testid="button-study"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Estudos
+              </Button>
               <Button variant="outline" onClick={() => setLocation("/results")} data-testid="button-results">
                 <ChartBar className="w-4 h-4 mr-2" />
                 Resultados
@@ -179,7 +195,15 @@ export default function VotePage() {
               {activePosition.positionName} • Escrutínio atual: {activePosition.currentScrutiny}º Escrutínio
             </p>
           </div>
-          <div className="flex gap-2 self-end sm:self-auto">
+          <div className="flex gap-2 self-end sm:self-auto flex-wrap">
+            <Button 
+              className="bg-gradient-to-r from-[#FFA500] to-[#FFB733] text-white hover:from-[#FF8C00] hover:to-[#FFA500]"
+              onClick={() => setLocation("/study")} 
+              data-testid="button-study"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Estudos
+            </Button>
             <Button variant="outline" onClick={() => setLocation("/results")} data-testid="button-results">
               <ChartBar className="w-4 h-4 mr-2" />
               Resultados

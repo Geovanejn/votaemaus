@@ -42,6 +42,34 @@ The architecture supports an expandable portal vision with planned modules for:
 - **Renewed Home Page:** A central landing page integrating various portal modules.
 - **Expanded Permissions:** A tiered access system for Visitors, Members, Secretariat Members, and Admins.
 
+## Duolingo-Style Study System
+
+### Overview
+A gamified study module replicating Duolingo's visual design while maintaining UMP Emaus branding (primary orange #FFA500). The system uses React with Framer Motion for animations.
+
+### Components (client/src/components/study/)
+- **LessonNode**: Circular 3D lesson buttons with green completion states, shadows, and animations
+- **LessonMap**: Serpentine lesson path with SVG connectors and treasure chest rewards
+- **SectionHeader**: Orange banner with "SECAO X, UNIDADE Y" format
+- **StartButton**: Pill-shaped "COMECAR" button for available lessons
+- **DailyMissions**: Progress bar-based daily objectives with time countdown
+- **StreakCelebration**: Full-screen celebration for streak milestones
+- **LessonComplete**: Completion screen with colorful stat boxes (XP, accuracy, time)
+- **BottomNav**: 5-tab navigation (Inicio, Versiculos, Ranking, Perfil, Mais)
+- **HeartsDisplay/XPDisplay/StreakBadge/LevelBadge**: Gamification stat displays
+- **FeedbackOverlay**: Correct/incorrect answer feedback with explanations
+
+### Color System
+- Primary Orange: #FFA500 (section headers, branding)
+- Duolingo Green: #58CC02 (completed lessons, correct answers)
+- Duolingo Blue: #1CB0F6 (continue buttons, active states)
+- XP Yellow: #FFC800 (XP displays)
+- Streak Orange: #FF9600 (streak displays)
+- Hearts Red: #FF4B4B (heart icons)
+
+### Preview Page
+Access `/study-preview` without authentication to test all study components.
+
 ## External Dependencies
 
 ### Email Service

@@ -1,4 +1,4 @@
-import { Home, Trophy, User, Book } from "lucide-react";
+import { Home, Trophy, User, Book, MoreHorizontal } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 interface NavItem {
   href: string;
   icon: typeof Home;
+  iconFilled?: typeof Home;
   label: string;
   activeColor: string;
 }
@@ -13,8 +14,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/study", icon: Home, label: "Inicio", activeColor: "#FFA500" },
   { href: "/study/verses", icon: Book, label: "Versiculos", activeColor: "#58CC02" },
-  { href: "/study/ranking", icon: Trophy, label: "Ranking", activeColor: "#FFD700" },
+  { href: "/study/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
   { href: "/study/profile", icon: User, label: "Perfil", activeColor: "#FF9600" },
+  { href: "/study/more", icon: MoreHorizontal, label: "Mais", activeColor: "#AFAFAF" },
 ];
 
 export function BottomNav() {
@@ -22,60 +24,67 @@ export function BottomNav() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border/50 safe-area-bottom" 
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50",
+        "bg-background border-t border-border",
+        "safe-area-bottom"
+      )}
       data-testid="bottom-nav"
     >
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+      <div className="flex items-stretch h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = location === item.href || 
-            (item.href !== "/study" && location.startsWith(item.href));
+            (item.href !== "/study" && item.href !== "/study/more" && location.startsWith(item.href));
           
           return (
             <Link 
               key={item.href} 
               href={item.href}
-              className="relative flex-1"
+              className="flex-1"
               data-testid={`nav-${item.label.toLowerCase()}`}
             >
               <motion.div
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-2 mx-1 rounded-xl transition-colors",
-                  isActive 
-                    ? "bg-muted/80" 
-                    : "hover:bg-muted/50"
+                  "flex flex-col items-center justify-center gap-0.5 h-full",
+                  "transition-colors relative"
                 )}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.9 }}
               >
-                <div className="relative">
+                <motion.div
+                  animate={isActive ? { y: -2 } : { y: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="relative"
+                >
                   <item.icon 
                     className={cn(
-                      "h-6 w-6 transition-all duration-200",
+                      "h-7 w-7 transition-all duration-200",
                       isActive 
                         ? "stroke-[2.5]"
-                        : "text-muted-foreground stroke-[1.5]"
+                        : "text-muted-foreground/60 stroke-[1.5]"
                     )}
                     style={isActive ? { color: item.activeColor } : undefined}
                   />
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: item.activeColor }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </div>
+                </motion.div>
+                
                 <span 
                   className={cn(
-                    "text-[10px] font-semibold transition-colors",
+                    "text-[10px] font-bold transition-colors",
                     isActive 
                       ? "text-foreground" 
-                      : "text-muted-foreground"
+                      : "text-muted-foreground/60"
                   )}
                 >
                   {item.label}
                 </span>
+                
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-active-indicator"
+                    className="absolute -top-0.5 w-12 h-1 rounded-full"
+                    style={{ backgroundColor: item.activeColor }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
               </motion.div>
             </Link>
           );

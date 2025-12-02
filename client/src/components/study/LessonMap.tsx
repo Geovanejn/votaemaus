@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { LessonNode, LessonStatus, LessonType } from "./LessonNode";
-import { BookOpen, Calendar } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
+import { Sparkles, Gift } from "lucide-react";
 
 interface Lesson {
   id: number;
@@ -15,6 +16,8 @@ interface Lesson {
 interface LessonMapProps {
   weekTitle: string;
   weekNumber: number;
+  sectionNumber?: number;
+  unitNumber?: number;
   lessons: Lesson[];
   onLessonClick?: (lessonId: number) => void;
   className?: string;
@@ -38,8 +41,8 @@ function PathConnector({
 }) {
   const getX = (pos: string) => {
     switch (pos) {
-      case "left": return 95;
-      case "right": return 185;
+      case "left": return 92;
+      case "right": return 188;
       default: return 140;
     }
   };
@@ -50,46 +53,48 @@ function PathConnector({
   const controlPoint1X = fromX;
   const controlPoint2X = toX;
 
-  const pathD = `M ${fromX} 0 C ${controlPoint1X} 35, ${controlPoint2X} 45, ${toX} 80`;
+  const pathD = `M ${fromX} 0 C ${controlPoint1X} 40, ${controlPoint2X} 50, ${toX} 90`;
 
-  const completedGradientId = `pathGradient-completed-${fromPos}-${toPos}`;
-  const pendingGradientId = `pathGradient-pending-${fromPos}-${toPos}`;
-  const nextGradientId = `pathGradient-next-${fromPos}-${toPos}`;
+  const completedColor = "#58CC02";
+  const completedShadow = "#46A302";
+  const pendingColor = "#E5E5E5";
+  const pendingShadow = "#CECECE";
 
   return (
     <svg 
-      className="absolute left-0 right-0 mx-auto w-[280px] h-20 -mt-2 -mb-2 z-0"
-      viewBox="0 0 280 80"
+      className="absolute left-0 right-0 mx-auto w-[280px] h-[90px] -mt-1 -mb-1 z-0"
+      viewBox="0 0 280 90"
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
-        <linearGradient id={completedGradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#58CC02" />
-          <stop offset="100%" stopColor="#46a302" />
-        </linearGradient>
-        <linearGradient id={pendingGradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#E5E5E5" />
-          <stop offset="100%" stopColor="#CECECE" />
-        </linearGradient>
-        <linearGradient id={nextGradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#58CC02" />
-          <stop offset="100%" stopColor="#46a302" />
-        </linearGradient>
         <filter id="pathShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="1" floodOpacity="0.2"/>
+          <feDropShadow dx="0" dy="3" stdDeviation="1" floodOpacity="0.3"/>
         </filter>
       </defs>
+      
       <motion.path
         initial={{ pathLength: 0 }}
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         d={pathD}
         fill="none"
-        stroke={`url(#${isCompleted ? completedGradientId : (isNext ? nextGradientId : pendingGradientId)})`}
-        strokeWidth="10"
+        stroke={isCompleted || isNext ? completedShadow : pendingShadow}
+        strokeWidth="14"
         strokeLinecap="round"
-        filter="url(#pathShadow)"
+        style={{ transform: 'translateY(3px)' }}
       />
+      
+      <motion.path
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        d={pathD}
+        fill="none"
+        stroke={isCompleted || isNext ? completedColor : pendingColor}
+        strokeWidth="12"
+        strokeLinecap="round"
+      />
+      
       {(isCompleted || isNext) && (
         <motion.path
           initial={{ pathLength: 0 }}
@@ -106,48 +111,51 @@ function PathConnector({
   );
 }
 
-function WeekHeader({ weekNumber, weekTitle }: { weekNumber: number; weekTitle: string }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center mb-10"
-    >
-      <motion.div 
-        className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FFA500]/10 to-[#FFD700]/10 dark:from-[#FFA500]/20 dark:to-[#FFD700]/20 border border-[#FFA500]/20 rounded-full px-5 py-2 mb-3"
-        whileHover={{ scale: 1.02 }}
-      >
-        <Calendar className="h-4 w-4 text-[#FFA500]" />
-        <span className="text-sm font-bold text-[#FFA500]">SEMANA {weekNumber}</span>
-      </motion.div>
-      <h2 
-        className="text-2xl md:text-3xl font-black text-foreground tracking-tight" 
-        data-testid="text-week-title"
-      >
-        {weekTitle}
-      </h2>
-      <p className="text-sm text-muted-foreground mt-1">
-        Complete todas as licoes para desbloquear a proxima semana
-      </p>
-    </motion.div>
-  );
-}
-
-function UnitDivider({ unitNumber, unitTitle }: { unitNumber: number; unitTitle: string }) {
+function TreasureChest({ isUnlocked }: { isUnlocked: boolean }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scaleX: 0 }}
-      animate={{ opacity: 1, scaleX: 1 }}
-      className="flex items-center gap-3 w-full max-w-[320px] my-6"
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className="flex flex-col items-center my-6"
     >
-      <div className="flex-1 h-[2px] bg-gradient-to-r from-transparent to-border" />
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-full">
-        <BookOpen className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          Unidade {unitNumber}
-        </span>
-      </div>
-      <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent to-border" />
+      <motion.div
+        whileHover={isUnlocked ? { scale: 1.1, y: -4 } : undefined}
+        className={cn(
+          "relative w-20 h-20 rounded-2xl flex items-center justify-center",
+          isUnlocked 
+            ? "bg-gradient-to-br from-[#FFD700] to-[#FFA500] shadow-[0_6px_0_0_#CC8400]"
+            : "bg-[#E5E5E5] shadow-[0_6px_0_0_#CECECE]"
+        )}
+      >
+        <div className={cn(
+          "absolute inset-[4px] rounded-xl flex items-center justify-center",
+          isUnlocked 
+            ? "bg-gradient-to-b from-[#FFE55C] to-[#FFD700]"
+            : "bg-[#F0F0F0]"
+        )}>
+          <Gift className={cn(
+            "h-10 w-10",
+            isUnlocked ? "text-[#8B6914]" : "text-[#AFAFAF]"
+          )} />
+        </div>
+        
+        {isUnlocked && (
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute -top-2 -right-2"
+          >
+            <Sparkles className="h-6 w-6 text-[#FFD700]" />
+          </motion.div>
+        )}
+      </motion.div>
+      
+      <p className={cn(
+        "mt-2 text-xs font-bold",
+        isUnlocked ? "text-[#CC8400]" : "text-muted-foreground/50"
+      )}>
+        {isUnlocked ? "Recompensa!" : "Complete todas"}
+      </p>
     </motion.div>
   );
 }
@@ -155,22 +163,32 @@ function UnitDivider({ unitNumber, unitTitle }: { unitNumber: number; unitTitle:
 export function LessonMap({
   weekTitle,
   weekNumber,
+  sectionNumber = 1,
+  unitNumber = 1,
   lessons,
   onLessonClick,
   className
 }: LessonMapProps) {
+  const allCompleted = lessons.every(l => l.status === "completed");
+  const activeIndex = lessons.findIndex(l => l.status === "available" || l.status === "in_progress");
+  
   return (
     <div className={cn("flex flex-col items-center", className)} data-testid="lesson-map">
-      <WeekHeader weekNumber={weekNumber} weekTitle={weekTitle} />
+      <SectionHeader 
+        sectionNumber={sectionNumber}
+        unitNumber={unitNumber}
+        title={weekTitle}
+      />
 
-      <div className="relative flex flex-col items-center gap-6 w-full max-w-[280px]">
+      <div className="relative flex flex-col items-center gap-4 w-full max-w-[280px]">
         {lessons.map((lesson, index) => {
           const currentPos = getPosition(index);
           const nextPos = index < lessons.length - 1 ? getPosition(index + 1) : currentPos;
           const isCompleted = lesson.status === "completed";
           const isNextLesson = index < lessons.length - 1 && 
             lessons[index].status === "completed" && 
-            lessons[index + 1].status !== "completed";
+            (lessons[index + 1].status === "available" || lessons[index + 1].status === "in_progress");
+          const isActiveLesson = lesson.status === "available" || lesson.status === "in_progress";
           
           return (
             <motion.div 
@@ -190,6 +208,7 @@ export function LessonMap({
                 position={currentPos}
                 onClick={() => onLessonClick?.(lesson.id)}
                 isLast={index === lessons.length - 1}
+                showStartButton={isActiveLesson && activeIndex === index}
               />
               
               {index < lessons.length - 1 && (
@@ -203,6 +222,8 @@ export function LessonMap({
             </motion.div>
           );
         })}
+        
+        <TreasureChest isUnlocked={allCompleted} />
       </div>
     </div>
   );

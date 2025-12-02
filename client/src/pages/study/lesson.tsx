@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { HeartCrack } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { HeartCrack, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   StudyHeader,
@@ -10,78 +11,101 @@ import {
   FeedbackOverlay,
   LessonComplete
 } from "@/components/study";
+import { useAuth } from "@/lib/auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
-interface Exercise {
-  id: number;
-  type: "text" | "multiple_choice" | "true_false";
-  content: any;
+interface UnitContent {
+  title?: string;
+  body?: string;
+  highlight?: string;
+  question?: string;
+  options?: string[];
+  correctIndex?: number;
+  correctAnswer?: string;
+  statement?: string;
+  isTrue?: boolean;
+  explanationCorrect?: string;
+  explanationIncorrect?: string;
+  explanation?: string;
+  hint?: string;
 }
 
-const mockExercises: Exercise[] = [
-  {
-    id: 1,
-    type: "text",
-    content: {
-      title: "O que é Fé?",
-      body: "A fé é a certeza daquilo que esperamos e a prova das coisas que não vemos. É através da fé que os antigos receberam bom testemunho.",
-      highlight: "Hebreus 11:1"
-    }
-  },
-  {
-    id: 2,
-    type: "multiple_choice",
-    content: {
-      question: "Segundo Hebreus 11:1, a fé é a certeza daquilo que...",
-      options: ["Vemos", "Esperamos", "Duvidamos", "Sabemos"],
-      correctIndex: 1,
-      explanationCorrect: "Exatamente! A fé é a certeza daquilo que ESPERAMOS, não do que já vemos ou sabemos.",
-      explanationIncorrect: "A resposta correta é 'esperamos'. Hebreus 11:1 diz: 'A fé é a certeza daquilo que esperamos...'",
-      hint: "Releia o versículo com atenção"
-    }
-  },
-  {
-    id: 3,
-    type: "true_false",
-    content: {
-      statement: "A fé é baseada em coisas que podemos ver e tocar.",
-      isTrue: false,
-      explanation: "Pelo contrário! A fé é a prova das coisas que NÃO vemos. Se pudéssemos ver, não seria fé."
-    }
-  },
-  {
-    id: 4,
-    type: "text",
-    content: {
-      title: "Fé em Ação",
-      body: "Abraão é um exemplo clássico de fé. Quando Deus o chamou para ir a uma terra desconhecida, ele obedeceu sem saber para onde ia. Sua fé não era cega, era confiança no caráter de Deus.",
-      highlight: "Hebreus 11:8"
-    }
-  },
-  {
-    id: 5,
-    type: "multiple_choice",
-    content: {
-      question: "Por que Abraão é considerado um exemplo de fé?",
-      options: [
-        "Porque ele era rico",
-        "Porque obedeceu sem saber para onde ia",
-        "Porque nunca teve dúvidas",
-        "Porque fazia muitos milagres"
-      ],
-      correctIndex: 1,
-      explanationCorrect: "Correto! Abraão demonstrou fé ao obedecer o chamado de Deus sem conhecer o destino.",
-      explanationIncorrect: "A resposta é que ele obedeceu sem saber para onde ia. Isso demonstra confiança total em Deus.",
-      hint: "Pense na história de Abraão saindo de Ur"
-    }
-  }
-];
+interface Unit {
+  id: number;
+  lessonId: number;
+  orderIndex: number;
+  type: "text" | "multiple_choice" | "true_false" | "fill_blank";
+  content: UnitContent;
+  xpValue: number;
+}
+
+interface LessonProgress {
+  id?: number;
+  userId: number;
+  lessonId: number;
+  startedAt?: string;
+  completedAt?: string | null;
+  xpEarned?: number;
+  mistakesCount?: number;
+  perfectScore?: boolean;
+  timeSpentSeconds?: number;
+}
+
+interface LessonData {
+  id: number;
+  studyWeekId: number;
+  orderIndex: number;
+  title: string;
+  type: string;
+  description?: string;
+  xpReward: number;
+  estimatedMinutes: number;
+  icon?: string;
+  isBonus: boolean;
+  units: Unit[];
+  progress: LessonProgress | null;
+}
+
+interface StudyProfile {
+  id: number;
+  userId: number;
+  totalXp: number;
+  currentStreak: number;
+  longestStreak: number;
+  hearts: number;
+  maxHearts: number;
+  weeklyXp: number;
+  level: number;
+  lastActivityAt: string | null;
+  lastHeartRecoveryAt: string | null;
+}
+
+interface AnswerResult {
+  correct: boolean;
+  explanation?: string;
+  unitProgress: {
+    id: number;
+    userId: number;
+    unitId: number;
+    isCompleted: boolean;
+    isCorrect: boolean;
+    attempts: number;
+  };
+  profile: StudyProfile;
+}
+
+interface CompletionResult {
+  progress: LessonProgress;
+  profile: StudyProfile;
+}
 
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const lessonId = parseInt(id || "0");
   
-  const [currentExercise, setCurrentExercise] = useState(0);
-  const [hearts, setHearts] = useState(4);
+  const [currentUnitIndex, setCurrentUnitIndex] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackData, setFeedbackData] = useState<{
     isCorrect: boolean;
@@ -90,74 +114,97 @@ export default function LessonPage() {
     xpEarned: number;
     heartsLost: number;
   } | null>(null);
-  const [xpEarned, setXpEarned] = useState(0);
+  const [displayXp, setDisplayXp] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [startTime] = useState(Date.now());
   const [isCompleted, setIsCompleted] = useState(false);
+  const [lessonStarted, setLessonStarted] = useState(false);
+  const [noHeartsError, setNoHeartsError] = useState(false);
+  const [finalProfile, setFinalProfile] = useState<StudyProfile | null>(null);
+  const [finalXpFromServer, setFinalXpFromServer] = useState<number | null>(null);
+  const [waitingForAnswer, setWaitingForAnswer] = useState(false);
+  const heartsBeforeAnswer = useRef<number>(5);
 
-  const exercise = mockExercises[currentExercise];
-  const totalExercises = mockExercises.length;
+  const { 
+    data: lessonData, 
+    isLoading: isLoadingLesson, 
+    error: lessonError,
+    refetch: refetchLesson 
+  } = useQuery<LessonData>({
+    queryKey: ['/api/study/lessons', lessonId.toString()],
+    enabled: !!user && lessonId > 0,
+  });
 
-  const handleAnswer = (isCorrect: boolean, exerciseContent: any) => {
-    let xp = 0;
-    let lostHearts = 0;
+  const { data: profileData, refetch: refetchProfile } = useQuery<StudyProfile>({
+    queryKey: ['/api/study/profile'],
+    enabled: !!user,
+  });
 
-    if (isCorrect) {
-      xp = 5;
-      setXpEarned(prev => prev + xp);
-    } else {
-      lostHearts = 1;
-      setHearts(prev => Math.max(0, prev - 1));
-      setMistakes(prev => prev + 1);
+  const serverHearts = finalProfile?.hearts ?? profileData?.hearts;
+
+  const startLessonMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/study/lessons/${lessonId}/start`);
+      return res.json();
+    },
+    onSuccess: () => {
+      setLessonStarted(true);
+      refetchProfile();
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("vidas") || error.message.includes("hearts") || error.message.includes("heartsNeeded")) {
+        setNoHeartsError(true);
+      }
     }
+  });
 
-    setFeedbackData({
-      isCorrect,
-      explanation: isCorrect 
-        ? exerciseContent.explanationCorrect || exerciseContent.explanation || "Correto!"
-        : exerciseContent.explanationIncorrect || exerciseContent.explanation || "Incorreto",
-      hint: exerciseContent.hint,
-      xpEarned: xp,
-      heartsLost: lostHearts
-    });
-    setShowFeedback(true);
-  };
-
-  const handleContinue = () => {
-    setShowFeedback(false);
-    setFeedbackData(null);
-
-    if (currentExercise < totalExercises - 1) {
-      setCurrentExercise(prev => prev + 1);
-    } else {
-      const bonusXP = mistakes === 0 ? 10 : 0;
-      setXpEarned(prev => prev + 15 + bonusXP);
-      setIsCompleted(true);
+  const submitAnswerMutation = useMutation({
+    mutationFn: async ({ unitId, answer }: { unitId: number; answer: any }) => {
+      const res = await apiRequest("POST", `/api/study/units/${unitId}/answer`, { answer });
+      return res.json() as Promise<AnswerResult>;
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
     }
-  };
+  });
 
-  const handleTextContinue = () => {
-    setXpEarned(prev => prev + 2);
-    if (currentExercise < totalExercises - 1) {
-      setCurrentExercise(prev => prev + 1);
-    } else {
-      const bonusXP = mistakes === 0 ? 10 : 0;
-      setXpEarned(prev => prev + 15 + bonusXP);
-      setIsCompleted(true);
+  const completeLessonMutation = useMutation({
+    mutationFn: async (completionData: { xpEarned: number; mistakesCount: number; timeSpentSeconds: number }) => {
+      const res = await apiRequest("POST", `/api/study/lessons/${lessonId}/complete`, completionData);
+      return res.json() as Promise<CompletionResult>;
+    },
+    onSuccess: (result) => {
+      setFinalProfile(result.profile);
+      if (result.progress?.xpEarned !== undefined) {
+        setFinalXpFromServer(result.progress.xpEarned);
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     }
-  };
+  });
 
-  const handleClose = () => {
-    if (window.confirm("Tem certeza que deseja sair? Seu progresso será perdido.")) {
-      setLocation("/study");
+  useEffect(() => {
+    if (lessonData && !lessonStarted && !startLessonMutation.isPending && !noHeartsError && !startLessonMutation.isError) {
+      startLessonMutation.mutate();
     }
-  };
+  }, [lessonData, lessonStarted, noHeartsError]);
 
-  const handleLessonComplete = () => {
-    setLocation("/study");
-  };
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="not-authenticated">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-foreground mb-2">Nao Autenticado</h1>
+          <p className="text-muted-foreground mb-4">Faca login para acessar as licoes.</p>
+          <Button onClick={() => setLocation("/login")} data-testid="button-login">
+            Fazer Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  if (hearts === 0) {
+  if (noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4" data-testid="no-hearts">
         <div className="text-center max-w-sm">
@@ -168,7 +215,7 @@ export default function LessonPage() {
             Suas vidas acabaram!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Leia versículos bíblicos para recuperar vidas, ou aguarde 6 horas para recuperar automaticamente.
+            Leia versiculos biblicos para recuperar vidas, ou aguarde 6 horas para recuperar automaticamente.
           </p>
           <div className="flex flex-col gap-3">
             <Button
@@ -176,7 +223,7 @@ export default function LessonPage() {
               className="w-full py-6 font-bold"
               data-testid="button-read-verses"
             >
-              LER VERSÍCULOS
+              LER VERSICULOS
             </Button>
             <Button
               variant="outline"
@@ -184,7 +231,7 @@ export default function LessonPage() {
               className="w-full py-6"
               data-testid="button-go-home"
             >
-              Voltar ao Início
+              Voltar ao Inicio
             </Button>
           </div>
         </div>
@@ -192,13 +239,175 @@ export default function LessonPage() {
     );
   }
 
+  if (isLoadingLesson || startLessonMutation.isPending || !profileData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" data-testid="loading-lesson">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando licao...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (lessonError || startLessonMutation.isError) {
+    const errorMessage = lessonError 
+      ? (lessonError as Error).message 
+      : (startLessonMutation.error as Error)?.message || "Erro ao iniciar licao";
+    
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="error-lesson">
+        <div className="text-center max-w-sm">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar licao</h1>
+          <p className="text-muted-foreground mb-4">{errorMessage}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => {
+              if (lessonError) refetchLesson();
+              else startLessonMutation.reset();
+            }} variant="outline" data-testid="button-retry">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar Novamente
+            </Button>
+            <Button onClick={() => setLocation("/study")} data-testid="button-back">
+              Voltar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!lessonData || !lessonData.units || lessonData.units.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-lesson">
+        <div className="text-center max-w-sm">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-foreground mb-2">Licao Vazia</h1>
+          <p className="text-muted-foreground mb-4">Esta licao ainda nao tem conteudo.</p>
+          <Button onClick={() => setLocation("/study")} data-testid="button-back-empty">
+            Voltar ao Estudo
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const units = lessonData.units;
+  const currentUnit = units[currentUnitIndex];
+  const totalUnits = units.length;
+  const currentHearts = serverHearts ?? 5;
+
+  const handleAnswerSubmit = async (userAnswer: any) => {
+    if (waitingForAnswer) return;
+    setWaitingForAnswer(true);
+    heartsBeforeAnswer.current = currentHearts;
+
+    try {
+      const result = await submitAnswerMutation.mutateAsync({ 
+        unitId: currentUnit.id, 
+        answer: userAnswer 
+      });
+
+      const isCorrect = result.correct;
+      const xpForUnit = currentUnit.xpValue || 5;
+      const heartsAfter = result.profile.hearts;
+      const heartsLost = Math.max(0, heartsBeforeAnswer.current - heartsAfter);
+
+      if (isCorrect) {
+        setDisplayXp(prev => prev + xpForUnit);
+      } else {
+        setMistakes(prev => prev + 1);
+      }
+
+      setFeedbackData({
+        isCorrect,
+        explanation: result.explanation || (isCorrect 
+          ? currentUnit.content.explanationCorrect || currentUnit.content.explanation || "Correto!"
+          : currentUnit.content.explanationIncorrect || currentUnit.content.explanation || "Incorreto"),
+        hint: !isCorrect ? currentUnit.content.hint : undefined,
+        xpEarned: isCorrect ? xpForUnit : 0,
+        heartsLost
+      });
+      setShowFeedback(true);
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      setFeedbackData({
+        isCorrect: false,
+        explanation: "Erro ao enviar resposta. Tente novamente.",
+        xpEarned: 0,
+        heartsLost: 0
+      });
+      setShowFeedback(true);
+    } finally {
+      setWaitingForAnswer(false);
+    }
+  };
+
+  const handleContinue = () => {
+    setShowFeedback(false);
+    setFeedbackData(null);
+
+    if (currentUnitIndex < totalUnits - 1) {
+      setCurrentUnitIndex(prev => prev + 1);
+    } else {
+      handleLessonCompletion();
+    }
+  };
+
+  const handleTextContinue = () => {
+    const xp = currentUnit.xpValue || 2;
+    setDisplayXp(prev => prev + xp);
+    
+    if (currentUnitIndex < totalUnits - 1) {
+      setCurrentUnitIndex(prev => prev + 1);
+    } else {
+      handleLessonCompletion();
+    }
+  };
+
+  const handleLessonCompletion = async () => {
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    const isPerfect = mistakes === 0;
+    const bonusXp = isPerfect ? 10 : 0;
+    const estimatedXp = displayXp + lessonData.xpReward + bonusXp;
+    
+    try {
+      await completeLessonMutation.mutateAsync({
+        xpEarned: estimatedXp,
+        mistakesCount: mistakes,
+        timeSpentSeconds: timeSpent
+      });
+    } catch (error) {
+      console.error("Error completing lesson:", error);
+    }
+    
+    setIsCompleted(true);
+  };
+
+  const handleClose = () => {
+    if (window.confirm("Tem certeza que deseja sair? Seu progresso sera perdido.")) {
+      setLocation("/study");
+    }
+  };
+
+  const handleLessonComplete = () => {
+    setLocation("/study");
+  };
+
   if (isCompleted) {
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
+    const isPerfect = mistakes === 0;
+    const bonusXp = isPerfect ? 10 : 0;
+    const fallbackXp = displayXp + lessonData.xpReward + bonusXp;
+    const finalXp = finalXpFromServer ?? fallbackXp;
+    
     return (
       <LessonComplete
-        xpEarned={xpEarned}
-        isPerfect={mistakes === 0}
-        streakDays={7}
+        xpEarned={finalXp}
+        isPerfect={isPerfect}
+        streakDays={streakDays}
         mistakesCount={mistakes}
         timeSpentSeconds={timeSpent}
         onContinue={handleLessonComplete}
@@ -206,40 +415,48 @@ export default function LessonPage() {
     );
   }
 
+  const handleMultipleChoiceAnswer = (_isCorrect: boolean, selectedIndex: number) => {
+    handleAnswerSubmit(selectedIndex);
+  };
+
+  const handleTrueFalseAnswer = (_isCorrect: boolean, userAnswer: boolean) => {
+    handleAnswerSubmit(userAnswer);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
       <StudyHeader
-        currentStep={currentExercise + 1}
-        totalSteps={totalExercises}
-        hearts={hearts}
-        maxHearts={5}
+        currentStep={currentUnitIndex + 1}
+        totalSteps={totalUnits}
+        hearts={currentHearts}
+        maxHearts={profileData?.maxHearts || 5}
         onClose={handleClose}
       />
 
       <main className="flex-1 flex flex-col">
-        {exercise.type === "text" && (
+        {currentUnit.type === "text" && (
           <TextContent
-            title={exercise.content.title}
-            body={exercise.content.body}
-            highlight={exercise.content.highlight}
+            title={currentUnit.content.title || ""}
+            body={currentUnit.content.body || ""}
+            highlight={currentUnit.content.highlight}
             onContinue={handleTextContinue}
           />
         )}
 
-        {exercise.type === "multiple_choice" && (
+        {currentUnit.type === "multiple_choice" && (
           <MultipleChoiceExercise
-            question={exercise.content.question}
-            options={exercise.content.options}
-            correctIndex={exercise.content.correctIndex}
-            onAnswer={(isCorrect) => handleAnswer(isCorrect, exercise.content)}
+            question={currentUnit.content.question || ""}
+            options={currentUnit.content.options || []}
+            correctIndex={currentUnit.content.correctIndex || 0}
+            onAnswer={handleMultipleChoiceAnswer}
           />
         )}
 
-        {exercise.type === "true_false" && (
+        {currentUnit.type === "true_false" && (
           <TrueFalseExercise
-            statement={exercise.content.statement}
-            isTrue={exercise.content.isTrue}
-            onAnswer={(isCorrect) => handleAnswer(isCorrect, exercise.content)}
+            statement={currentUnit.content.statement || ""}
+            isTrue={currentUnit.content.isTrue || false}
+            onAnswer={handleTrueFalseAnswer}
           />
         )}
       </main>

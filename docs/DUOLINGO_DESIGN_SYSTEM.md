@@ -51,10 +51,13 @@ Inner circle: inset 4px, cor mais clara
 ```
 
 **Cores por Estado:**
-- Disponivel/Completo: bg=#58CC02, shadow=#46A302, inner=#7BD937
-- Em Progresso: bg=#1CB0F6, shadow=#1899D6, inner=#49C0F8
-- Bloqueado: bg=#E5E5E5, shadow=#CECECE, inner=#F0F0F0
-- Bonus: bg=#FF9600 (laranja UMP), shadow=#E68600, inner=#FFB020
+- Disponivel: bg=#58CC02, shadow=#46A302, inner=#7BD937 (VERDE - igual a completo)
+- Completo: bg=#58CC02, shadow=#46A302, inner=#7BD937 (VERDE com icone de check)
+- Em Progresso: bg=#1CB0F6, shadow=#1899D6, inner=#49C0F8 (AZUL)
+- Bloqueado: bg=#E5E5E5, shadow=#CECECE, inner=#F0F0F0 (CINZA)
+- Bonus: bg=#FF9600 (laranja UMP), shadow=#E68600, inner=#FFB020 (LARANJA - reservado APENAS para licoes bonus)
+
+**IMPORTANTE:** O laranja (#FFA500) e reservado para elementos de BRANDING UMP Emaus (headers, botoes primarios, destaques) e para licoes BONUS. Licoes disponiveis e completas SEMPRE usam verde (#58CC02) para manter consistencia com o padrao Duolingo.
 
 ### 3.2 Path Connector (Conector de Caminho)
 

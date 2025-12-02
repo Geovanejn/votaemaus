@@ -11,5 +11,7 @@ export { VerseReader, VerseList } from "./VerseReader";
 export { StudyHeader } from "./StudyHeader";
 export { BottomNav } from "./BottomNav";
 export { LessonComplete } from "./LessonComplete";
+export { Celebration, useCelebration } from "./Celebration";
+export { RewardModal } from "./RewardModal";
 
 export type { LessonStatus, LessonType } from "./LessonNode";

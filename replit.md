@@ -1,7 +1,23 @@
-# Emaús Vota - Election Management System
+# Emaus Vota - Election Management System
 
 ## Overview
-Emaús Vota is a full-stack web application for managing elections within the UMP Emaús church youth group. It provides email-based authentication, role-based access control, election creation and management, secure voting, and real-time results. The system emphasizes transparency, accessibility, and adheres to civic tech principles, offering features like shareable results images and PDF audit reports. Its purpose is to streamline the electoral process, ensure fairness, and foster trust among participants.
+Emaus Vota is a full-stack web application for managing elections within the UMP Emaus church youth group. It provides email-based authentication, role-based access control, election creation and management, secure voting, and real-time results. The system emphasizes transparency, accessibility, and adheres to civic tech principles, offering features like shareable results images and PDF audit reports. Its purpose is to streamline the electoral process, ensure fairness, and foster trust among participants.
+
+## Recent Changes (December 2024)
+
+### Duolingo-Style Study System Visual Improvements
+- **LessonNode Component**: Updated to use UMP Emaus orange colors (#FFA500) for available lessons, with improved 3D button effects and glow animations
+- **LessonMap Component**: Enhanced path connectors with orange gradients for next lessons, improved week header design
+- **BottomNav Component**: New Duolingo-style bottom navigation with animated indicators and color-coded icons
+- **LevelBadge Component**: New circular progress design with UMP Emaus orange gradient
+- **Celebration Component**: New confetti, stars, and XP burst animations for lesson completion
+- **RewardModal Component**: New post-lesson reward modal with XP counter, streak display, and celebration effects
+- **Ranking Page**: Complete redesign with podium for top 3, animated list entries, and position change indicators
+- **Study Home Page**: New daily goal card, streak card, and improved layout
+
+### Design System Documentation
+- Created `docs/DUOLINGO_DESIGN_SYSTEM.md` with complete design specifications
+- Documented color palette, component specifications, and animation guidelines
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

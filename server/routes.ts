@@ -34,9 +34,8 @@ import {
   isAIConfigured 
 } from "./ai";
 import multer from "multer";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import * as pdfParseModule from "pdf-parse";
+const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 // Configure multer for PDF uploads
 const upload = multer({

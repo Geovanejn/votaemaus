@@ -61,6 +61,8 @@ import {
   Brain,
   ListChecks,
   ChevronRight,
+  FileUp,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -188,6 +190,9 @@ export default function StudyAdminPage() {
     year: new Date().getFullYear(),
   });
 
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [generateMode, setGenerateMode] = useState<"text" | "pdf">("text");
+
   const [lessonForm, setLessonForm] = useState({
     title: "",
     type: "study",
@@ -303,6 +308,43 @@ export default function StudyAdminPage() {
       setIsGenerateDialogOpen(false);
       setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
       toast({ title: "Conteudo gerado com IA", description: "A semana foi criada com licoes e exercicios automaticamente." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao gerar conteudo", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const generateFromPDFMutation = useMutation({
+    mutationFn: async ({ file, weekNumber, year }: { file: File; weekNumber: number; year: number }) => {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      formData.append("weekNumber", weekNumber.toString());
+      formData.append("year", year.toString());
+      
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/ai/generate-week-from-pdf", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao processar PDF");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/stats"] });
+      setIsGenerateDialogOpen(false);
+      setPdfFile(null);
+      setGenerateMode("text");
+      setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
+      toast({ title: "Conteudo gerado com IA", description: "A semana foi criada a partir do PDF com licoes e exercicios." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao gerar conteudo", description: error.message, variant: "destructive" });
@@ -1123,7 +1165,7 @@ export default function StudyAdminPage() {
               <Sparkles className="h-5 w-5 text-[#FFA500]" />
               Gerar Conteudo com IA
             </DialogTitle>
-            <DialogDescription>Cole o texto da revista ou devocional e nossa IA ira gerar licoes e exercicios automaticamente.</DialogDescription>
+            <DialogDescription>Envie um PDF ou cole o texto da revista/devocional para gerar licoes automaticamente.</DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 py-4">
             <div className="space-y-4 pr-4">
@@ -1138,6 +1180,27 @@ export default function StudyAdminPage() {
                 <p className="text-xs text-muted-foreground">{aiStatus?.message}</p>
               </div>
 
+              <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                <Button
+                  variant={generateMode === "text" ? "default" : "ghost"}
+                  className="flex-1"
+                  onClick={() => setGenerateMode("text")}
+                  data-testid="button-mode-text"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Colar Texto
+                </Button>
+                <Button
+                  variant={generateMode === "pdf" ? "default" : "ghost"}
+                  className="flex-1"
+                  onClick={() => setGenerateMode("pdf")}
+                  data-testid="button-mode-pdf"
+                >
+                  <FileUp className="w-4 h-4 mr-2" />
+                  Enviar PDF
+                </Button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Numero da Semana</Label>
@@ -1149,17 +1212,55 @@ export default function StudyAdminPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Texto Base</Label>
-                <Textarea
-                  placeholder="Cole aqui o texto da revista, devocional ou conteudo que deseja transformar em licoes..."
-                  value={generateInput.text}
-                  onChange={(e) => setGenerateInput({ ...generateInput, text: e.target.value })}
-                  rows={12}
-                  data-testid="input-generate-text"
-                />
-                <p className="text-xs text-muted-foreground">Minimo de 100 caracteres. Quanto mais conteudo, mais licoes serao geradas.</p>
-              </div>
+              {generateMode === "text" ? (
+                <div className="space-y-2">
+                  <Label>Texto Base</Label>
+                  <Textarea
+                    placeholder="Cole aqui o texto da revista, devocional ou conteudo que deseja transformar em licoes..."
+                    value={generateInput.text}
+                    onChange={(e) => setGenerateInput({ ...generateInput, text: e.target.value })}
+                    rows={12}
+                    data-testid="input-generate-text"
+                  />
+                  <p className="text-xs text-muted-foreground">Minimo de 100 caracteres. Quanto mais conteudo, mais licoes serao geradas.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Arquivo PDF</Label>
+                  {pdfFile ? (
+                    <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/50">
+                      <FileText className="w-8 h-8 text-red-500" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{pdfFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{(pdfFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => setPdfFile(null)} data-testid="button-remove-pdf">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <FileUp className="w-10 h-10 mb-3 text-muted-foreground" />
+                        <p className="mb-2 text-sm text-muted-foreground">
+                          <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
+                        </p>
+                        <p className="text-xs text-muted-foreground">PDF (max. 10MB)</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setPdfFile(file);
+                        }}
+                        data-testid="input-pdf-file"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
 
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium text-sm mb-2">O que a IA ira fazer:</h4>
@@ -1175,11 +1276,31 @@ export default function StudyAdminPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)}>Cancelar</Button>
             <Button
-              onClick={() => generateWithAIMutation.mutate(generateInput)}
-              disabled={!aiStatus?.configured || generateInput.text.length < 100 || generateWithAIMutation.isPending}
+              onClick={() => {
+                if (generateMode === "pdf" && pdfFile) {
+                  generateFromPDFMutation.mutate({
+                    file: pdfFile,
+                    weekNumber: generateInput.weekNumber,
+                    year: generateInput.year,
+                  });
+                } else {
+                  generateWithAIMutation.mutate(generateInput);
+                }
+              }}
+              disabled={
+                !aiStatus?.configured || 
+                (generateMode === "text" && generateInput.text.length < 100) || 
+                (generateMode === "pdf" && !pdfFile) ||
+                generateWithAIMutation.isPending || 
+                generateFromPDFMutation.isPending
+              }
               data-testid="button-generate-content"
             >
-              {generateWithAIMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando...</> : <><Sparkles className="w-4 h-4 mr-2" />Gerar Conteudo</>}
+              {(generateWithAIMutation.isPending || generateFromPDFMutation.isPending) ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando...</>
+              ) : (
+                <><Sparkles className="w-4 h-4 mr-2" />Gerar Conteudo</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

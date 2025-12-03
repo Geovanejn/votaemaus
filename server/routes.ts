@@ -27,11 +27,31 @@ import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 import { 
   generateStudyContentFromText, 
+  generateStudyContentFromPDF,
   generateExercisesFromTopic, 
   generateReflectionQuestions,
   summarizeText,
-  isOpenAIConfigured 
+  isAIConfigured 
 } from "./ai";
+import multer from "multer";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
+
+// Configure multer for PDF uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos PDF são permitidos'));
+    }
+  }
+});
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -2144,21 +2164,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       res.json({ 
-        configured: isOpenAIConfigured(),
-        message: isOpenAIConfigured() 
+        configured: isAIConfigured(),
+        message: isAIConfigured() 
           ? "IA configurada e pronta para uso" 
-          : "Chave de API do OpenAI nao configurada"
+          : "Chave de API do Gemini nao configurada"
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao verificar status da IA" });
     }
   });
 
+  // Generate complete study week content from PDF
+  app.post("/api/ai/generate-week-from-pdf", authenticateToken, requireAdmin, upload.single('pdf'), async (req: AuthRequest, res) => {
+    try {
+      if (!isAIConfigured()) {
+        return res.status(503).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo PDF enviado." });
+      }
+
+      const weekNumber = parseInt(req.body.weekNumber);
+      const year = parseInt(req.body.year);
+
+      if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 53) {
+        return res.status(400).json({ message: "Numero da semana invalido. Deve ser entre 1 e 53." });
+      }
+
+      if (isNaN(year) || year < 2020 || year > 2100) {
+        return res.status(400).json({ message: "Ano invalido. Deve ser entre 2020 e 2100." });
+      }
+
+      // Parse PDF content
+      const pdfData = await pdfParse(req.file.buffer);
+      const pdfText = pdfData.text;
+
+      if (!pdfText || pdfText.trim().length < 100) {
+        return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
+      }
+
+      const content = await generateStudyContentFromPDF(pdfText, weekNumber, year);
+      res.json(content);
+    } catch (error) {
+      console.error("AI generate week from PDF error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao gerar conteudo com IA a partir do PDF" 
+      });
+    }
+  });
+
   // Generate complete study week content from text
   app.post("/api/ai/generate-week", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      if (!isOpenAIConfigured()) {
-        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      if (!isAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
       const { text, weekNumber, year } = req.body;
@@ -2185,8 +2245,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate exercises from a topic
   app.post("/api/ai/generate-exercises", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      if (!isOpenAIConfigured()) {
-        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      if (!isAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
       const { topic, count } = req.body;
@@ -2208,8 +2268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate reflection questions from text
   app.post("/api/ai/generate-reflections", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      if (!isOpenAIConfigured()) {
-        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      if (!isAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
       const { text, count } = req.body;
@@ -2231,8 +2291,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Summarize text
   app.post("/api/ai/summarize", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      if (!isOpenAIConfigured()) {
-        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      if (!isAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
       const { text } = req.body;
@@ -2254,8 +2314,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create week with AI-generated content and save to database
   app.post("/api/ai/create-week-with-content", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      if (!isOpenAIConfigured()) {
-        return res.status(400).json({ message: "IA nao configurada. Adicione a chave OPENAI_API_KEY." });
+      if (!isAIConfigured()) {
+        return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
       const { text, weekNumber, year } = req.body;
@@ -2279,7 +2339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id,
         aiMetadata: JSON.stringify({
           generatedAt: new Date().toISOString(),
-          model: "gpt-5",
+          model: "gemini-1.5-flash",
           lessonsCount: generatedContent.lessons.length
         })
       });

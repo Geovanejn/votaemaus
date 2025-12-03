@@ -1,7 +1,8 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export interface GeneratedLesson {
   title: string;
@@ -36,6 +37,27 @@ export interface GeneratedWeekContent {
   lessons: GeneratedLesson[];
 }
 
+async function generateWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+  
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 8192,
+    },
+  });
+
+  const response = result.response;
+  const text = response.text();
+  
+  // Extract JSON from response (Gemini may wrap it in markdown code blocks)
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+  return jsonMatch[1]?.trim() || text.trim();
+}
+
 export async function generateStudyContentFromText(
   text: string,
   weekNumber: number,
@@ -51,7 +73,7 @@ O conteudo deve ser:
 - Com exercicios variados e gamificados
 - Em portugues brasileiro
 
-Responda SEMPRE em JSON valido com a estrutura exata especificada.`;
+Responda SEMPRE em JSON valido com a estrutura exata especificada. NAO use markdown, apenas JSON puro.`;
 
   const userPrompt = `Transforme o seguinte texto em um conteudo de estudo semanal (Semana ${weekNumber} de ${year}).
 
@@ -96,20 +118,12 @@ Regras:
 5. Varie os tipos de exercicios para manter o engajamento
 6. Use versiculos biblicos relevantes ao tema
 7. As perguntas devem testar compreensao, nao decoreba
-8. O conteudo deve ser edificante e encorajador`;
+8. O conteudo deve ser edificante e encorajador
+
+Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 8192,
-    });
-
-    const content = response.choices[0].message.content;
+    const content = await generateWithGemini(systemPrompt, userPrompt);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -124,7 +138,7 @@ Regras:
 
 export async function generateExercisesFromTopic(topic: string, count: number = 5): Promise<GeneratedUnit[]> {
   const systemPrompt = `Voce e um especialista em educacao crista. Crie exercicios interativos no estilo Duolingo sobre o topico fornecido.
-Responda SEMPRE em JSON valido.`;
+Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -144,20 +158,11 @@ Retorne um JSON com a estrutura:
   ]
 }
 
-Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.`;
+Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.
+Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 4096,
-    });
-
-    const content = response.choices[0].message.content;
+    const content = await generateWithGemini(systemPrompt, userPrompt);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -172,7 +177,7 @@ Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.`;
 
 export async function generateReflectionQuestions(text: string, count: number = 3): Promise<string[]> {
   const systemPrompt = `Voce e um lider de jovens cristao. Crie perguntas de reflexao profundas baseadas no texto.
-Responda SEMPRE em JSON valido.`;
+Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.`;
 
   const userPrompt = `Baseado no seguinte texto, crie ${count} perguntas de reflexao para discussao em grupo:
 
@@ -184,20 +189,12 @@ As perguntas devem:
 1. Promover autoavaliacao espiritual
 2. Conectar o texto com a vida pratica
 3. Ser abertas (sem resposta certa/errada)
-4. Encorajar compartilhamento de experiencias`;
+4. Encorajar compartilhamento de experiencias
+
+Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 1024,
-    });
-
-    const content = response.choices[0].message.content;
+    const content = await generateWithGemini(systemPrompt, userPrompt);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -212,26 +209,48 @@ As perguntas devem:
 
 export async function summarizeText(text: string): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        { 
-          role: "system", 
-          content: "Voce e um resumidor de textos cristao. Crie resumos claros e edificantes em portugues brasileiro." 
-        },
-        { 
-          role: "user", 
-          content: `Resuma o seguinte texto em 2-3 paragrafos, mantendo os pontos principais e a mensagem espiritual:\n\n${text}` 
-        }
-      ],
-      max_completion_tokens: 1024,
+    const result = await model.generateContent({
+      contents: [{ 
+        role: "user", 
+        parts: [{ 
+          text: `Voce e um resumidor de textos cristao. Crie resumos claros e edificantes em portugues brasileiro.
+
+Resuma o seguinte texto em 2-3 paragrafos, mantendo os pontos principais e a mensagem espiritual:
+
+${text}` 
+        }] 
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
     });
 
-    return response.choices[0].message.content || "";
+    return result.response.text() || "";
   } catch (error) {
     console.error("Erro ao resumir texto:", error);
     throw new Error(`Falha ao resumir: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
   }
+}
+
+export async function extractTextFromPDFContent(pdfText: string): Promise<string> {
+  // Clean up the extracted PDF text
+  return pdfText
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+export async function generateStudyContentFromPDF(
+  pdfText: string,
+  weekNumber: number,
+  year: number
+): Promise<GeneratedWeekContent> {
+  // Clean the PDF text first
+  const cleanedText = await extractTextFromPDFContent(pdfText);
+  
+  // Use the same generation function
+  return generateStudyContentFromText(cleanedText, weekNumber, year);
 }
 
 function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekContent {
@@ -283,6 +302,11 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
   return content;
 }
 
+export function isAIConfigured(): boolean {
+  return !!process.env.GEMINI_API_KEY;
+}
+
+// Keep backward compatibility
 export function isOpenAIConfigured(): boolean {
-  return !!process.env.OPENAI_API_KEY;
+  return isAIConfigured();
 }

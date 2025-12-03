@@ -459,6 +459,7 @@ export async function initializeDatabase() {
       type TEXT NOT NULL,
       content TEXT NOT NULL,
       xp_value INTEGER NOT NULL DEFAULT 2,
+      stage TEXT NOT NULL DEFAULT 'responda',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (lesson_id) REFERENCES study_lessons(id)
     );
@@ -507,7 +508,7 @@ export async function initializeDatabase() {
       user_id INTEGER NOT NULL,
       verse_id INTEGER NOT NULL,
       read_at TEXT NOT NULL DEFAULT (datetime('now')),
-      hearts_recovered INTEGER NOT NULL DEFAULT 1,
+      heart_recovery_batch INTEGER,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (verse_id) REFERENCES bible_verses(id)
     );

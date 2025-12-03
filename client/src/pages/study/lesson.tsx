@@ -43,6 +43,7 @@ interface Unit {
   type: "text" | "multiple_choice" | "true_false" | "fill_blank" | "verse" | "meditation" | "reflection";
   content: UnitContent;
   xpValue: number;
+  stage: "estude" | "medite" | "responda";
 }
 
 interface LessonProgress {
@@ -433,6 +434,8 @@ export default function LessonPage() {
     handleAnswerSubmit(userAnswer);
   };
 
+  const currentStage = currentUnit?.stage || 'responda';
+
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
       <StudyHeader
@@ -441,6 +444,8 @@ export default function LessonPage() {
         hearts={currentHearts}
         maxHearts={profileData?.maxHearts || 5}
         onClose={handleClose}
+        currentStage={currentStage}
+        showStages={true}
       />
 
       <main className="flex-1 flex flex-col">

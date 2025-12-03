@@ -15,6 +15,7 @@ export interface GeneratedLesson {
 
 export interface GeneratedUnit {
   type: "text" | "multiple_choice" | "true_false" | "fill_blank" | "meditation" | "reflection" | "verse";
+  stage?: "estude" | "medite" | "responda";
   content: {
     title?: string;
     text?: string;
@@ -74,14 +75,17 @@ export async function generateStudyContentFromText(
   const systemPrompt = `Voce e um especialista em educacao crista e criacao de conteudo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa e transformar o texto fornecido em um conteudo de estudo semanal completo para jovens da UMP (Uniao da Mocidade Presbiteriana).
 
-O Sistema DeoGlory segue uma estrutura pedagogica especifica:
-1. PRIMEIRO: Apresentar o TEXTO DE LEITURA (conteudo principal para estudo)
-2. SEGUNDO: Apresentar o VERSICULO BASE (texto biblico central da licao)
-3. TERCEIRO: Apresentar TITULO e TOPICOS principais
-4. QUARTO: Somente DEPOIS apresentar os DESAFIOS (perguntas e exercicios)
+IMPORTANTE - VERSAO BIBLICA:
+- Use EXCLUSIVAMENTE a versao ARA (Almeida Revista e Atualizada) para TODAS as citacoes biblicas.
+- Ao citar versiculos, use o texto exato da ARA, nao parafrasei ou use outras versoes.
+
+O Sistema DeoGlory segue uma estrutura de 3 ETAPAS por licao:
+1. ETAPA "ESTUDE" (stage: "estude"): Conteudo para leitura - texto educativo e versiculos biblicos
+2. ETAPA "MEDITE" (stage: "medite"): Aplicacoes praticas geradas por IA, oracao e reflexao pessoal
+3. ETAPA "RESPONDA" (stage: "responda"): Perguntas e exercicios - UNICA etapa que pode causar perda de vidas
 
 O conteudo deve ser:
-- Biblicamente fundamentado com versiculos relevantes
+- Biblicamente fundamentado com versiculos da ARA (Almeida Revista e Atualizada)
 - Engajante e interativo
 - Adequado para jovens (18-35 anos)
 - Com exercicios variados e gamificados
@@ -108,14 +112,15 @@ Gere um JSON com a seguinte estrutura:
       "units": [
         {
           "type": "text|multiple_choice|true_false|fill_blank|meditation|reflection|verse",
+          "stage": "estude|medite|responda",
           "content": {
-            // Para "text": { "title": "Titulo do Topico", "body": "Conteudo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
-            // Para "verse": { "title": "Versiculo Base", "body": "Texto completo do versiculo", "highlight": "Referencia: Joao 3:16" }
-            // Para "multiple_choice": { "question": "Pergunta clara sobre o conteudo", "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"], "correctIndex": 0, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar", "hint": "Dica opcional" }
-            // Para "true_false": { "statement": "Afirmacao para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
-            // Para "fill_blank": { "question": "Complete: ___ e o caminho, a verdade e a vida.", "correctAnswer": "Jesus", "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
-            // Para "meditation": { "title": "Titulo da Meditacao", "body": "Guia de meditacao detalhado", "meditationDuration": 60 }
-            // Para "reflection": { "title": "Reflexao Pessoal", "body": "Contexto para reflexao", "reflectionPrompt": "Pergunta para reflexao pessoal" }
+            // Para "text" (stage: "estude"): { "title": "Titulo do Topico", "body": "Conteudo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
+            // Para "verse" (stage: "estude"): { "title": "Versiculo Base (ARA)", "body": "Texto completo do versiculo na versao ARA", "highlight": "Referencia: Joao 3:16" }
+            // Para "meditation" (stage: "medite"): { "title": "Titulo da Meditacao", "body": "Guia de meditacao detalhado com aplicacoes praticas e oracao", "meditationDuration": 60 }
+            // Para "reflection" (stage: "medite"): { "title": "Aplicacao Pratica", "body": "Como aplicar este ensino na vida diaria", "reflectionPrompt": "Pergunta para reflexao pessoal" }
+            // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteudo", "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"], "correctIndex": 0, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar", "hint": "Dica opcional" }
+            // Para "true_false" (stage: "responda"): { "statement": "Afirmacao para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
+            // Para "fill_blank" (stage: "responda"): { "question": "Complete: ___ e o caminho, a verdade e a vida.", "correctAnswer": "Jesus", "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
           },
           "xpValue": 2-10
         }
@@ -124,21 +129,27 @@ Gere um JSON com a seguinte estrutura:
   ]
 }
 
-ESTRUTURA OBRIGATORIA DAS LICOES (Sistema DeoGlory):
-Cada licao DEVE seguir esta ordem de unidades:
-1. PRIMEIRO: Uma unidade "text" com o TEXTO DE LEITURA principal (conteudo educativo sobre o tema)
-2. SEGUNDO: Uma unidade "verse" com o VERSICULO BASE da licao
-3. TERCEIRO: Uma unidade "text" com TOPICOS e SUBTOPICOS do estudo
-4. DEPOIS: Unidades de exercicios (multiple_choice, true_false, fill_blank)
-5. FINAL: Uma unidade "reflection" ou "meditation" para conclusao
+ESTRUTURA OBRIGATORIA DAS LICOES - 3 ETAPAS:
+
+ETAPA 1 - ESTUDE (stage: "estude"):
+- Uma ou mais unidades "text" com o TEXTO DE LEITURA principal
+- Uma ou mais unidades "verse" com VERSICULOS BIBLICOS da versao ARA
+
+ETAPA 2 - MEDITE (stage: "medite"):
+- Unidades "reflection" com APLICACOES PRATICAS geradas por IA
+- Unidades "meditation" com GUIA DE ORACAO e meditacao
+
+ETAPA 3 - RESPONDA (stage: "responda"):
+- Unidades de exercicios: "multiple_choice", "true_false", "fill_blank"
+- APENAS esta etapa causa perda de vidas quando o usuario erra
 
 Regras Adicionais:
-1. Crie 3-5 licoes variadas
-2. Cada licao deve ter 5-8 unidades seguindo a estrutura acima
-3. Inicie com uma licao "intro" e termine com "review"
+1. Crie 1-3 licoes por semana (uma licao principal e opcionais extras)
+2. Cada licao deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
+3. Use APENAS a versao ARA (Almeida Revista e Atualizada) para todos os versiculos
 4. O texto de leitura deve ser substantivo (minimo 100 palavras)
-5. Inclua 2-4 perguntas de multipla escolha ou verdadeiro/falso por licao
-6. Use versiculos biblicos relevantes ao tema em cada licao
+5. Inclua 2-4 perguntas de multipla escolha ou verdadeiro/falso por licao (etapa RESPONDA)
+6. As aplicacoes praticas (etapa MEDITE) devem conectar o texto biblico com a vida cotidiana
 7. As perguntas devem testar compreensao do texto de leitura
 8. O conteudo deve ser edificante e encorajador
 
@@ -502,6 +513,17 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
       }
       if (!unit.xpValue || unit.xpValue < 1) {
         unit.xpValue = 2;
+      }
+      
+      // Assign stage based on unit type if not already set
+      if (!unit.stage) {
+        if (unit.type === "text" || unit.type === "verse") {
+          unit.stage = "estude";
+        } else if (unit.type === "meditation" || unit.type === "reflection") {
+          unit.stage = "medite";
+        } else {
+          unit.stage = "responda";
+        }
       }
       
       return normalizeUnitContent(unit);

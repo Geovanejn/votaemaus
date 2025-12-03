@@ -101,10 +101,10 @@ export interface IStorage {
   getStudyUnitById(unitId: number): any | null;
   createStudyWeek(data: { title: string; description?: string; weekNumber: number; year: number; createdBy?: number; aiMetadata?: string }): any;
   createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): any;
-  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number }): any;
+  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number; stage?: string }): any;
   updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null;
   deleteStudyLesson(lessonId: number): boolean;
-  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number }): any | null;
+  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number; stage?: string }): any | null;
   deleteStudyUnit(unitId: number): boolean;
   updateStudyWeek(weekId: number, data: { title?: string; description?: string; weekNumber?: number; year?: number; status?: string }): any | null;
   deleteStudyWeek(weekId: number): boolean;
@@ -1705,13 +1705,69 @@ export class SQLiteStorage implements IStorage {
     };
   }
 
-  readVerseAndRecoverHeart(userId: number, verseId: number): any {
+  getUnclaimedVerseReadingsCount(userId: number): number {
+    const result = db.prepare(`
+      SELECT COUNT(*) as count FROM verse_readings 
+      WHERE user_id = ? AND heart_recovery_batch IS NULL
+    `).get(userId) as any;
+    return result?.count || 0;
+  }
+
+  getNextHeartRecoveryBatch(userId: number): number {
+    const result = db.prepare(`
+      SELECT COALESCE(MAX(heart_recovery_batch), 0) + 1 as next_batch 
+      FROM verse_readings WHERE user_id = ?
+    `).get(userId) as any;
+    return result?.next_batch || 1;
+  }
+
+  readVerseAndRecoverHeart(userId: number, verseId: number): { profile: any; versesRead: number; versesNeeded: number; heartRecovered: boolean } {
     db.prepare(`
-      INSERT INTO verse_readings (user_id, verse_id, hearts_recovered)
-      VALUES (?, ?, 1)
+      INSERT INTO verse_readings (user_id, verse_id)
+      VALUES (?, ?)
     `).run(userId, verseId);
 
-    return this.recoverHeart(userId);
+    const unclaimedCount = this.getUnclaimedVerseReadingsCount(userId);
+    const versesNeededForHeart = 3;
+    
+    let heartRecovered = false;
+    let profile = this.getOrCreateStudyProfile(userId);
+    
+    if (unclaimedCount >= versesNeededForHeart && profile.hearts < profile.heartsMax) {
+      const batchNumber = this.getNextHeartRecoveryBatch(userId);
+      
+      db.prepare(`
+        UPDATE verse_readings 
+        SET heart_recovery_batch = ?
+        WHERE user_id = ? AND heart_recovery_batch IS NULL
+        ORDER BY read_at ASC
+        LIMIT ?
+      `).run(batchNumber, userId, versesNeededForHeart);
+      
+      profile = this.recoverHeart(userId);
+      heartRecovered = true;
+    }
+
+    const remainingUnclaimed = this.getUnclaimedVerseReadingsCount(userId);
+    
+    return {
+      profile,
+      versesRead: remainingUnclaimed,
+      versesNeeded: versesNeededForHeart,
+      heartRecovered
+    };
+  }
+
+  getVerseRecoveryProgress(userId: number): { versesRead: number; versesNeeded: number; hearts: number; maxHearts: number } {
+    const unclaimedCount = this.getUnclaimedVerseReadingsCount(userId);
+    const versesNeededForHeart = 3;
+    const profile = this.getOrCreateStudyProfile(userId);
+    return {
+      versesRead: unclaimedCount,
+      versesNeeded: versesNeededForHeart,
+      hearts: profile.hearts,
+      maxHearts: profile.heartsMax
+    };
   }
 
   // Study Weeks
@@ -1908,7 +1964,7 @@ export class SQLiteStorage implements IStorage {
 
   // Study Units (Exercises)
   getUnitsByLessonId(lessonId: number): any[] {
-    const stmt = db.prepare("SELECT * FROM study_units WHERE lesson_id = ? ORDER BY order_index");
+    const stmt = db.prepare("SELECT * FROM study_units WHERE lesson_id = ? ORDER BY stage, order_index");
     return (stmt.all(lessonId) as any[]).map(row => ({
       id: row.id,
       lessonId: row.lesson_id,
@@ -1916,14 +1972,16 @@ export class SQLiteStorage implements IStorage {
       type: row.type,
       content: JSON.parse(row.content),
       xpValue: row.xp_value,
+      stage: row.stage || 'responda',
       createdAt: row.created_at,
     }));
   }
 
-  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number }): any {
+  createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number; stage?: string }): any {
+    const stage = data.stage || this.inferStageFromType(data.type);
     const stmt = db.prepare(`
-      INSERT INTO study_units (lesson_id, order_index, type, content, xp_value)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO study_units (lesson_id, order_index, type, content, xp_value, stage)
+      VALUES (?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
     const row = stmt.get(
@@ -1931,7 +1989,8 @@ export class SQLiteStorage implements IStorage {
       data.orderIndex,
       data.type,
       JSON.stringify(data.content),
-      data.xpValue || 2
+      data.xpValue || 2,
+      stage
     ) as any;
     return {
       id: row.id,
@@ -1940,8 +1999,26 @@ export class SQLiteStorage implements IStorage {
       type: row.type,
       content: JSON.parse(row.content),
       xpValue: row.xp_value,
+      stage: row.stage,
       createdAt: row.created_at,
     };
+  }
+
+  private inferStageFromType(type: string): string {
+    switch (type) {
+      case 'text':
+      case 'verse':
+        return 'estude';
+      case 'meditation':
+      case 'reflection':
+        return 'medite';
+      case 'multiple_choice':
+      case 'true_false':
+      case 'fill_blank':
+        return 'responda';
+      default:
+        return 'responda';
+    }
   }
 
   updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null {
@@ -1979,7 +2056,7 @@ export class SQLiteStorage implements IStorage {
     return true;
   }
 
-  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number }): any | null {
+  updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number; stage?: string }): any | null {
     const unit = this.getStudyUnitById(unitId);
     if (!unit) return null;
 
@@ -1990,6 +2067,7 @@ export class SQLiteStorage implements IStorage {
     if (data.content !== undefined) { updates.push("content = ?"); values.push(JSON.stringify(data.content)); }
     if (data.xpValue !== undefined) { updates.push("xp_value = ?"); values.push(data.xpValue); }
     if (data.orderIndex !== undefined) { updates.push("order_index = ?"); values.push(data.orderIndex); }
+    if (data.stage !== undefined) { updates.push("stage = ?"); values.push(data.stage); }
 
     if (updates.length === 0) return unit;
 
@@ -2175,6 +2253,7 @@ export class SQLiteStorage implements IStorage {
       type: row.type,
       content: normalizedContent,
       xpValue: row.xp_value,
+      stage: row.stage || 'responda',
       createdAt: row.created_at,
     };
   }
@@ -2258,7 +2337,7 @@ export class SQLiteStorage implements IStorage {
     }
   }
 
-  submitUnitAnswer(userId: number, unitId: number, answer: any): { unitProgress: any; isCorrect: boolean; explanation?: string } {
+  submitUnitAnswer(userId: number, unitId: number, answer: any): { unitProgress: any; isCorrect: boolean; explanation?: string; stage: string } {
     const unit = this.getStudyUnitById(unitId);
     if (!unit) {
       throw new Error("Unidade nao encontrada");
@@ -2279,14 +2358,14 @@ export class SQLiteStorage implements IStorage {
         completed_at = datetime('now')
     `).run(userId, unitId, 1, JSON.stringify(answer), isCorrect ? 1 : 0, attempts, 1, JSON.stringify(answer), isCorrect ? 1 : 0, attempts);
 
-    if (!isCorrect) {
+    if (!isCorrect && unit.stage === 'responda') {
       this.loseHeart(userId);
     }
 
     const unitProgress = this.getUserUnitProgress(userId, unitId);
     const explanation = unit.content.explanation || null;
 
-    return { unitProgress, isCorrect, explanation };
+    return { unitProgress, isCorrect, explanation, stage: unit.stage };
   }
 
   // Streak Management

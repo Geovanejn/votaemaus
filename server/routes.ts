@@ -1513,7 +1513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Read a verse to recover heart
+  // Read a verse to recover heart (3 verses = +1 heart)
   app.post("/api/study/verses/:verseId/read", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -1526,11 +1526,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Versiculo nao encontrado" });
       }
 
-      const profile = storage.readVerseAndRecoverHeart(req.user.id, verseId);
-      res.json({ verse, profile, heartRecovered: true });
+      const result = storage.readVerseAndRecoverHeart(req.user.id, verseId);
+      res.json({ 
+        verse, 
+        profile: result.profile, 
+        heartRecovered: result.heartRecovered,
+        versesRead: result.versesRead,
+        versesNeeded: result.versesNeeded
+      });
     } catch (error) {
       console.error("Read verse error:", error);
       res.status(500).json({ message: "Erro ao ler versiculo" });
+    }
+  });
+
+  // Get verse recovery progress
+  app.get("/api/study/verses/recovery-progress", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const progress = storage.getVerseRecoveryProgress(req.user.id);
+      res.json(progress);
+    } catch (error) {
+      console.error("Get verse recovery progress error:", error);
+      res.status(500).json({ message: "Erro ao buscar progresso" });
     }
   });
 

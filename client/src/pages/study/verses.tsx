@@ -1,88 +1,242 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VerseList } from "@/components/study";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { HeartsDisplay } from "@/components/study/HeartsDisplay";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const mockVerses = [
-  {
-    id: 1,
-    reference: "João 3:16",
-    text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.",
-    reflection: "Este versículo nos mostra a profundidade do amor de Deus. Ele não esperou que fôssemos dignos - Ele nos amou primeiro."
-  },
-  {
-    id: 2,
-    reference: "Salmos 23:1",
-    text: "O Senhor é o meu pastor; nada me faltará.",
-    reflection: "Quando reconhecemos Deus como nosso pastor, podemos descansar na certeza de que Ele cuida de todas as nossas necessidades."
-  },
-  {
-    id: 3,
-    reference: "Filipenses 4:13",
-    text: "Tudo posso naquele que me fortalece.",
-    reflection: "Nossa força não vem de nós mesmos, mas de Cristo. Com Ele, podemos enfrentar qualquer desafio."
-  },
-  {
-    id: 4,
-    reference: "Jeremias 29:11",
-    text: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz, e não de mal, para vos dar o fim que esperais.",
-    reflection: "Deus tem planos específicos para cada um de nós. Mesmo em tempos difíceis, Ele está trabalhando para o nosso bem."
-  },
-  {
-    id: 5,
-    reference: "Romanos 8:28",
-    text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito.",
-    reflection: "Não significa que tudo será fácil, mas que Deus usa todas as circunstâncias para nos moldar e abençoar."
-  }
-];
+interface BibleVerse {
+  id: number;
+  reference: string;
+  text: string;
+  reflection?: string;
+  book: string;
+  chapter: number;
+  verse: number;
+}
+
+interface StudyProfile {
+  id: number;
+  userId: number;
+  totalXp: number;
+  currentStreak: number;
+  longestStreak: number;
+  hearts: number;
+  maxHearts: number;
+  weeklyXp: number;
+  level: number;
+  heartsContributedToRecovery: number;
+}
+
+interface RecoveryProgress {
+  versesRead: number;
+  versesNeeded: number;
+  hearts: number;
+  maxHearts: number;
+}
 
 export default function VersesPage() {
   const [, setLocation] = useLocation();
-  const [currentHearts, setCurrentHearts] = useState(3);
-  const [completedVerses, setCompletedVerses] = useState<number[]>([]);
   const { toast } = useToast();
-  const maxHearts = 5;
 
-  const handleVerseComplete = (verseId: number) => {
-    if (completedVerses.includes(verseId)) return;
-    if (currentHearts >= maxHearts) return;
+  const { data: verses, isLoading: versesLoading } = useQuery<BibleVerse[]>({
+    queryKey: ['/api/study/verses'],
+  });
 
-    setCompletedVerses(prev => [...prev, verseId]);
-    setCurrentHearts(prev => Math.min(maxHearts, prev + 1));
-    
-    toast({
-      title: "Vida recuperada!",
-      description: "Você ganhou +1 vida pela leitura do versículo.",
-    });
+  const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
+    queryKey: ['/api/study/profile'],
+  });
+
+  const { data: recoveryProgress, isLoading: progressLoading } = useQuery<RecoveryProgress>({
+    queryKey: ['/api/study/verses/recovery-progress'],
+  });
+
+  const readVerseMutation = useMutation({
+    mutationFn: async (verseId: number) => {
+      const response = await apiRequest("POST", `/api/study/verses/${verseId}/read`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/verses/recovery-progress'] });
+      
+      if (data.heartRecovered) {
+        toast({
+          title: "Vida recuperada!",
+          description: "Voce leu 3 versiculos e ganhou +1 vida!",
+        });
+      } else {
+        toast({
+          title: "Versiculo lido!",
+          description: `${data.versesRead}/${data.versesNeeded} versiculos para recuperar uma vida.`,
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Nao foi possivel registrar a leitura do versiculo.",
+      });
+    }
+  });
+
+  const handleVerseRead = (verseId: number) => {
+    if (profile && profile.hearts >= profile.maxHearts) {
+      toast({
+        title: "Vidas cheias!",
+        description: "Voce ja tem todas as suas vidas. Continue estudando!",
+      });
+      return;
+    }
+    readVerseMutation.mutate(verseId);
   };
 
-  const availableVerses = mockVerses.filter(v => !completedVerses.includes(v.id));
+  const isLoading = versesLoading || profileLoading || progressLoading;
+  const currentHearts = profile?.hearts || 0;
+  const maxHearts = profile?.maxHearts || 5;
+  const versesRead = recoveryProgress?.versesRead || 0;
+  const versesNeeded = recoveryProgress?.versesNeeded || 3;
+  const progressPercent = (versesRead / versesNeeded) * 100;
 
   return (
     <div className="min-h-screen bg-background" data-testid="verses-page">
       <header className="sticky top-0 z-50 bg-background border-b">
-        <div className="flex items-center gap-3 p-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/study")}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="font-bold text-lg">Versículos</h1>
+        <div className="flex items-center justify-between gap-3 p-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLocation("/study")}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-bold text-lg">Versiculos (ARA)</h1>
+          </div>
+          <HeartsDisplay current={currentHearts} max={maxHearts} size="md" />
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-4">
-        <VerseList
-          verses={availableVerses}
-          currentHearts={currentHearts}
-          maxHearts={maxHearts}
-          onVerseComplete={handleVerseComplete}
-        />
+      <main className="max-w-lg mx-auto p-4 space-y-4">
+        {/* Recovery Progress Card */}
+        <Card className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 border-red-200 dark:border-red-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50">
+                <Heart className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm">Recuperar Vidas</h3>
+                <p className="text-xs text-muted-foreground">
+                  Leia 3 versiculos para ganhar +1 vida
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{versesRead} de {versesNeeded} versiculos</span>
+                <span>{Math.round(progressPercent)}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Verses List */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-16 w-full mb-2" />
+                  <Skeleton className="h-8 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : currentHearts >= maxHearts ? (
+          <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
+                  <Heart className="h-8 w-8 text-green-500 fill-green-500" />
+                </div>
+              </div>
+              <h3 className="font-bold text-lg mb-2">Vidas Cheias!</h3>
+              <p className="text-muted-foreground text-sm">
+                Voce esta com todas as suas vidas. Continue estudando para ganhar XP!
+              </p>
+              <Button 
+                className="mt-4" 
+                onClick={() => setLocation("/study")}
+                data-testid="button-continue-study"
+              >
+                Continuar Estudando
+              </Button>
+            </CardContent>
+          </Card>
+        ) : verses && verses.length > 0 ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground text-center">
+              Toque em um versiculo para ler e progredir na recuperacao de vidas
+            </p>
+            {verses.slice(0, 10).map((verse) => (
+              <Card 
+                key={verse.id} 
+                className="hover-elevate cursor-pointer transition-all"
+                onClick={() => handleVerseRead(verse.id)}
+                data-testid={`card-verse-${verse.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm text-primary mb-1">
+                        {verse.reference}
+                      </h4>
+                      <p className="text-sm text-foreground leading-relaxed">
+                        "{verse.text}"
+                      </p>
+                      {verse.reflection && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          {verse.reflection}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      disabled={readVerseMutation.isPending}
+                      data-testid={`button-read-verse-${verse.id}`}
+                    >
+                      {readVerseMutation.isPending ? "Lendo..." : "Marcar como Lido"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <h3 className="font-bold mb-2">Nenhum versiculo disponivel</h3>
+              <p className="text-muted-foreground text-sm">
+                Os versiculos serao adicionados em breve.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

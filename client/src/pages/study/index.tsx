@@ -297,20 +297,27 @@ export default function StudyHomePage() {
     return <ErrorState onRetry={handleRetry} />;
   }
 
-  const lessons: LessonItem[] = weekData?.lessons?.map((lesson) => {
+  const rawLessons = weekData?.lessons || [];
+  
+  const lessons: LessonItem[] = rawLessons.map((lesson, index) => {
+    const previousLesson = index > 0 ? rawLessons[index - 1] : null;
+    const isPreviousLessonComplete = !previousLesson || previousLesson.status === 'completed';
+    
     let status: 'completed' | 'current' | 'locked' = 'locked';
     if (lesson.status === 'completed') {
       status = 'completed';
-    } else if (lesson.status === 'in_progress' || lesson.status === 'available') {
+    } else if ((lesson.status === 'in_progress' || lesson.status === 'available') && isPreviousLessonComplete) {
+      status = 'current';
+    } else if (isPreviousLessonComplete && lesson.status !== 'completed') {
       status = 'current';
     }
 
     const completedUnits = lesson.progress?.completedUnits || 0;
-    const totalUnits = lesson.progress?.totalUnits || 5;
+    const totalUnits = lesson.progress?.totalUnits || 6;
     
-    const estudeUnits = Math.ceil(totalUnits * 0.4);
-    const mediteUnits = Math.ceil(totalUnits * 0.2);
-    const respondaUnits = totalUnits - estudeUnits - mediteUnits;
+    const estudeUnits = Math.max(2, Math.ceil(totalUnits * 0.4));
+    const mediteUnits = Math.max(1, Math.ceil(totalUnits * 0.2));
+    const respondaUnits = Math.max(2, totalUnits - estudeUnits - mediteUnits);
     
     let estudeCompleted = 0;
     let mediteCompleted = 0;
@@ -322,7 +329,7 @@ export default function StudyHomePage() {
         mediteCompleted = Math.min(completedUnits - estudeUnits, mediteUnits);
       }
       if (completedUnits > estudeUnits + mediteUnits) {
-        respondaCompleted = completedUnits - estudeUnits - mediteUnits;
+        respondaCompleted = Math.min(completedUnits - estudeUnits - mediteUnits, respondaUnits);
       }
     }
     
@@ -335,9 +342,12 @@ export default function StudyHomePage() {
       mediteStatus = 'completed';
       respondaStatus = 'completed';
     } else if (status === 'current') {
-      if (estudeCompleted >= estudeUnits) {
+      const estudeComplete = estudeCompleted >= estudeUnits;
+      const mediteComplete = mediteCompleted >= mediteUnits;
+      
+      if (estudeComplete) {
         estudeStatus = 'completed';
-        if (mediteCompleted >= mediteUnits) {
+        if (mediteComplete) {
           mediteStatus = 'completed';
           respondaStatus = 'current';
         } else {
@@ -375,11 +385,11 @@ export default function StudyHomePage() {
       title: `Lição ${lesson.orderIndex + 1}`,
       subtitle: lesson.title,
       status,
-      progress: lesson.progress?.completedUnits || 0,
-      totalSections: lesson.progress?.totalUnits || 5,
+      progress: completedUnits,
+      totalSections: totalUnits,
       stages
     };
-  }) || [];
+  });
 
   const lessonsCompleted = lessons.filter(l => l.status === 'completed').length;
 

@@ -106,13 +106,22 @@ interface CompletionResult {
   profile: StudyProfile;
 }
 
+function useQueryParam(param: string): string | null {
+  const searchParams = typeof window !== 'undefined' 
+    ? new URLSearchParams(window.location.search) 
+    : new URLSearchParams();
+  return searchParams.get(param);
+}
+
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const lessonId = parseInt(id || "0");
+  const stageParam = useQueryParam('stage');
   
   const [currentUnitIndex, setCurrentUnitIndex] = useState(0);
+  const [initialStageSet, setInitialStageSet] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackData, setFeedbackData] = useState<{
     isCorrect: boolean;
@@ -195,6 +204,21 @@ export default function LessonPage() {
       startLessonMutation.mutate();
     }
   }, [lessonData, lessonStarted, noHeartsError]);
+
+  useEffect(() => {
+    if (lessonData?.units && stageParam && !initialStageSet) {
+      const validStages = ['estude', 'medite', 'responda'];
+      if (validStages.includes(stageParam)) {
+        const stageIndex = lessonData.units.findIndex(
+          (unit) => unit.stage === stageParam
+        );
+        if (stageIndex !== -1) {
+          setCurrentUnitIndex(stageIndex);
+        }
+      }
+      setInitialStageSet(true);
+    }
+  }, [lessonData, stageParam, initialStageSet]);
 
   if (!user) {
     return (

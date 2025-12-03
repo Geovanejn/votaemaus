@@ -21,7 +21,7 @@ export interface LessonItem {
   status: LessonStatus;
   progress: number;
   totalSections: number;
-  stages?: StageItem[];
+  stages: StageItem[];
 }
 
 interface LearningPathProps {
@@ -30,6 +30,8 @@ interface LearningPathProps {
   onPracticeClick?: () => void;
   showPractice?: boolean;
 }
+
+const RAIL_WIDTH = 72;
 
 const stageConfig = {
   estude: {
@@ -70,7 +72,7 @@ const lockedColors = {
   inner: "#F0F0F0"
 };
 
-function StageIcon({ type, status }: { type: StageType; status: StageStatus }) {
+function StageIcon({ type, status, onClick }: { type: StageType; status: StageStatus; onClick?: () => void }) {
   const config = stageConfig[type];
   const Icon = config.icon;
   const isLocked = status === "locked";
@@ -80,146 +82,128 @@ function StageIcon({ type, status }: { type: StageType; status: StageStatus }) {
   const colors = isLocked ? lockedColors : config.colors;
 
   return (
-    <motion.div
-      whileHover={!isLocked ? { scale: 1.05, y: -2 } : undefined}
+    <motion.button
+      whileHover={!isLocked ? { scale: 1.08, y: -2 } : undefined}
       whileTap={!isLocked ? { scale: 0.95, y: 2 } : undefined}
+      onClick={!isLocked ? onClick : undefined}
+      disabled={isLocked}
       className={cn(
-        "relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center",
+        "relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center",
         !isLocked && "cursor-pointer"
       )}
       style={{
         backgroundColor: colors.bg,
-        boxShadow: `0 4px 0 0 ${colors.shadow}`
+        boxShadow: `0 5px 0 0 ${colors.shadow}`
       }}
+      data-testid={`stage-icon-${type}`}
     >
       <div 
-        className="absolute inset-[3px] rounded-lg flex items-center justify-center"
+        className="absolute inset-[4px] rounded-xl flex items-center justify-center"
         style={{
           background: `linear-gradient(180deg, ${colors.inner} 0%, ${colors.bg} 100%)`
         }}
       >
         {isLocked ? (
-          <Lock className="h-5 w-5 text-muted-foreground/50" />
+          <Lock className="h-6 w-6 text-muted-foreground/50" />
         ) : isCompleted ? (
-          <Check className="h-5 w-5 text-white stroke-[3]" />
+          <Check className="h-6 w-6 text-white stroke-[3]" />
         ) : (
-          <Icon className="h-5 w-5 text-white" />
+          <Icon className="h-6 w-6 text-white" />
         )}
       </div>
       
       {isCurrent && (
         <motion.div
           animate={{ 
-            scale: [1, 1.15, 1],
-            opacity: [0.6, 1, 0.6]
+            scale: [1, 1.12, 1],
+            opacity: [0.5, 1, 0.5]
           }}
           transition={{ 
             duration: 2,
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute inset-0 rounded-xl border-2 border-white/60"
+          className="absolute inset-0 rounded-2xl border-[3px] border-white/70"
         />
       )}
-    </motion.div>
+    </motion.button>
   );
 }
 
 function StageCard({ 
-  type,
-  status,
-  completedUnits,
-  totalUnits,
-  onClick,
-  isLast
+  stage,
+  onClick
 }: { 
-  type: StageType;
-  status: StageStatus;
-  completedUnits: number;
-  totalUnits: number;
+  stage: StageItem;
   onClick?: () => void;
-  isLast: boolean;
 }) {
-  const config = stageConfig[type];
-  const isLocked = status === "locked";
-  const isCurrent = status === "current";
-  const isCompleted = status === "completed";
+  const config = stageConfig[stage.type];
+  const isLocked = stage.status === "locked";
+  const isCurrent = stage.status === "current";
+  const isCompleted = stage.status === "completed";
 
   return (
-    <div className="flex items-start gap-4">
-      <div className="relative flex flex-col items-center">
-        <StageIcon type={type} status={status} />
-        
-        {!isLast && (
-          <div 
-            className="w-0.5 h-6 mt-1"
-            style={{ backgroundColor: isLocked ? '#E5E5E5' : config.colors.bg }}
-          />
+    <motion.button
+      whileHover={!isLocked ? { scale: 1.01 } : undefined}
+      whileTap={!isLocked ? { scale: 0.99 } : undefined}
+      onClick={!isLocked ? onClick : undefined}
+      disabled={isLocked}
+      className={cn(
+        "flex-1 text-left p-4 rounded-xl transition-all min-w-0",
+        "border-2",
+        isCurrent && "bg-card border-[#58CC02] shadow-md",
+        isCompleted && "bg-card/80 border-border/50",
+        isLocked && "bg-transparent border-transparent cursor-not-allowed"
+      )}
+      data-testid={`stage-card-${stage.type}`}
+    >
+      <div className="flex items-center gap-2 flex-wrap">
+        <h4 className={cn(
+          "font-bold text-sm",
+          isLocked ? "text-muted-foreground/50" : "text-foreground"
+        )}>
+          {config.label}
+        </h4>
+        {isCurrent && (
+          <span className="px-2 py-0.5 text-[10px] font-bold text-white bg-[#FF9600] rounded-full uppercase tracking-wide">
+            Atual
+          </span>
+        )}
+        {isCompleted && (
+          <Check className="h-4 w-4 text-[#58CC02]" />
         )}
       </div>
+      <p className={cn(
+        "text-xs mt-1",
+        isLocked ? "text-muted-foreground/40" : "text-muted-foreground"
+      )}>
+        {config.description}
+      </p>
       
-      <motion.button
-        whileHover={!isLocked ? { scale: 1.01 } : undefined}
-        whileTap={!isLocked ? { scale: 0.99 } : undefined}
-        onClick={!isLocked ? onClick : undefined}
-        disabled={isLocked}
-        className={cn(
-          "flex-1 text-left p-3 rounded-xl transition-all min-w-0",
-          "border-2",
-          isCurrent && "bg-card border-[#58CC02] shadow-md",
-          isCompleted && "bg-card border-border",
-          isLocked && "bg-transparent border-transparent cursor-not-allowed"
-        )}
-        data-testid={`stage-card-${type}`}
-      >
-        <div className="flex items-center gap-2 flex-wrap">
-          <h4 className={cn(
-            "font-semibold text-sm",
-            isLocked ? "text-muted-foreground/50" : "text-foreground"
+      {stage.totalUnits > 0 && (
+        <div className="flex items-center gap-1.5 mt-3">
+          {Array.from({ length: Math.min(stage.totalUnits, 6) }).map((_, index) => (
+            <div
+              key={index}
+              className={cn(
+                "w-2.5 h-2.5 rounded-full transition-colors",
+                isLocked
+                  ? "bg-muted-foreground/20"
+                  : index < stage.completedUnits
+                  ? "bg-[#58CC02]"
+                  : "bg-muted-foreground/30"
+              )}
+            />
+          ))}
+          <span className={cn(
+            "text-xs font-medium ml-1",
+            isLocked ? "text-muted-foreground/40" : "text-muted-foreground"
           )}>
-            {config.label}
-          </h4>
-          {isCurrent && (
-            <span className="px-2 py-0.5 text-[10px] font-bold text-white bg-[#FF9600] rounded-full uppercase">
-              Atual
-            </span>
-          )}
-          {isCompleted && (
-            <Check className="h-4 w-4 text-[#58CC02]" />
-          )}
+            {isLocked ? "0" : stage.completedUnits}/{stage.totalUnits}
+          </span>
         </div>
-        <p className={cn(
-          "text-xs mt-0.5",
-          isLocked ? "text-muted-foreground/40" : "text-muted-foreground"
-        )}>
-          {config.description}
-        </p>
-        
-        {totalUnits > 0 && (
-          <div className="flex items-center gap-1 mt-2">
-            {Array.from({ length: Math.min(totalUnits, 5) }).map((_, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-colors",
-                  isLocked
-                    ? "bg-muted-foreground/20"
-                    : index < completedUnits
-                    ? "bg-[#58CC02]"
-                    : "bg-muted-foreground/30"
-                )}
-              />
-            ))}
-            <span className={cn(
-              "text-[10px] font-medium ml-1",
-              isLocked ? "text-muted-foreground/40" : "text-muted-foreground"
-            )}>
-              {isLocked ? "0" : completedUnits}/{totalUnits}
-            </span>
-          </div>
-        )}
-      </motion.button>
-    </div>
+      )}
+    </motion.button>
   );
 }
 
@@ -237,7 +221,7 @@ function LessonHeader({
   return (
     <div 
       className={cn(
-        "px-4 py-3 rounded-xl mb-3",
+        "px-4 py-3 rounded-xl",
         isLocked 
           ? "bg-muted/50" 
           : "bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
@@ -245,15 +229,15 @@ function LessonHeader({
     >
       <div className="flex items-center gap-2 flex-wrap">
         <span className={cn(
-          "text-xs font-bold uppercase",
+          "text-xs font-bold uppercase tracking-wide",
           isLocked ? "text-muted-foreground/50" : "text-white/80"
         )}>
           Lição {lessonNumber}
         </span>
-        {isLocked && <Lock className="h-3 w-3 text-muted-foreground/50" />}
+        {isLocked && <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />}
       </div>
       <h3 className={cn(
-        "font-bold text-base mt-0.5",
+        "font-bold text-lg mt-0.5",
         isLocked ? "text-muted-foreground/50" : "text-white"
       )}>
         {title}
@@ -265,92 +249,113 @@ function LessonHeader({
 function LessonGroup({ 
   lesson, 
   onStageClick,
+  isFirstLesson,
   isLastLesson
 }: { 
   lesson: LessonItem; 
   onStageClick?: (lessonId: number, stage: StageType) => void;
+  isFirstLesson: boolean;
   isLastLesson: boolean;
 }) {
-  const defaultStages: StageItem[] = lesson.stages || [
-    { 
-      type: "estude", 
-      status: lesson.status === "completed" ? "completed" : lesson.status === "current" ? "current" : "locked",
-      completedUnits: lesson.status === "completed" ? 2 : lesson.status === "current" ? lesson.progress : 0,
-      totalUnits: 2
-    },
-    { 
-      type: "medite", 
-      status: lesson.status === "completed" ? "completed" : "locked",
-      completedUnits: lesson.status === "completed" ? 1 : 0,
-      totalUnits: 1
-    },
-    { 
-      type: "responda", 
-      status: lesson.status === "completed" ? "completed" : "locked",
-      completedUnits: lesson.status === "completed" ? 2 : 0,
-      totalUnits: 2
-    }
-  ];
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="mb-6"
-    >
-      <LessonHeader 
-        lessonNumber={lesson.lessonNumber} 
-        title={lesson.subtitle || lesson.title}
-        status={lesson.status}
-      />
+    <div className="relative">
+      <div 
+        className="mb-4"
+        style={{ marginLeft: RAIL_WIDTH + 16 }}
+      >
+        <LessonHeader 
+          lessonNumber={lesson.lessonNumber} 
+          title={lesson.subtitle || lesson.title}
+          status={lesson.status}
+        />
+      </div>
       
-      <div className="pl-2 space-y-1">
-        {defaultStages.map((stage, index) => (
-          <StageCard
-            key={stage.type}
-            type={stage.type}
-            status={stage.status}
-            completedUnits={stage.completedUnits}
-            totalUnits={stage.totalUnits}
-            onClick={() => onStageClick?.(lesson.id, stage.type)}
-            isLast={index === defaultStages.length - 1}
-          />
-        ))}
+      <div className="space-y-3">
+        {lesson.stages.map((stage, stageIndex) => {
+          const isLastStage = stageIndex === lesson.stages.length - 1;
+          const showConnector = !(isLastLesson && isLastStage);
+          
+          return (
+            <div 
+              key={stage.type} 
+              className="flex items-start gap-4"
+              style={{ minHeight: '80px' }}
+            >
+              <div 
+                className="flex-shrink-0 flex justify-center relative"
+                style={{ width: RAIL_WIDTH }}
+              >
+                <StageIcon 
+                  type={stage.type} 
+                  status={stage.status} 
+                  onClick={() => onStageClick?.(lesson.id, stage.type)}
+                />
+                
+                {showConnector && (
+                  <div 
+                    className="absolute top-[60px] w-1 rounded-full"
+                    style={{ 
+                      height: isLastStage ? '40px' : '28px',
+                      backgroundColor: stage.status === 'completed' ? stageConfig[stage.type].colors.bg : '#E5E5E5',
+                      left: '50%',
+                      transform: 'translateX(-50%)'
+                    }}
+                  />
+                )}
+              </div>
+              
+              <StageCard
+                stage={stage}
+                onClick={() => onStageClick?.(lesson.id, stage.type)}
+              />
+            </div>
+          );
+        })}
       </div>
       
       {!isLastLesson && (
-        <div className="flex justify-center py-4">
-          <div className="w-0.5 h-8 bg-border" />
+        <div 
+          className="flex justify-center py-4"
+          style={{ width: RAIL_WIDTH }}
+        >
+          <div className="w-1 h-6 bg-border rounded-full" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
 function PracticeRow({ onClick }: { onClick?: () => void }) {
   return (
-    <div className="flex items-center gap-4 mt-4">
-      <div className="relative z-10 flex-shrink-0 flex justify-center">
-        <motion.div
+    <div 
+      className="flex items-center gap-4 mt-6"
+    >
+      <div 
+        className="flex-shrink-0 flex justify-center"
+        style={{ width: RAIL_WIDTH }}
+      >
+        <motion.button
           whileHover={{ scale: 1.05 }}
-          className="w-12 h-12 rounded-xl bg-[#1CB0F6] flex items-center justify-center cursor-pointer"
-          style={{ boxShadow: "0 4px 0 0 #1899D6" }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onClick}
+          className="relative z-10 w-14 h-14 rounded-2xl bg-[#1CB0F6] flex items-center justify-center cursor-pointer"
+          style={{ boxShadow: "0 5px 0 0 #1899D6" }}
+          data-testid="practice-icon"
         >
-          <Dumbbell className="h-5 w-5 text-white" />
-        </motion.div>
+          <Dumbbell className="h-6 w-6 text-white" />
+        </motion.button>
       </div>
       
       <motion.button
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         onClick={onClick}
-        className="flex-1 p-3 rounded-xl bg-[#1CB0F6] text-white text-left"
-        style={{ boxShadow: "0 4px 0 0 #1899D6" }}
+        className="flex-1 p-4 rounded-xl bg-[#1CB0F6] text-white text-left"
+        style={{ boxShadow: "0 5px 0 0 #1899D6" }}
         data-testid="practice-card"
       >
-        <h3 className="font-bold text-sm">Prática</h3>
-        <p className="text-xs text-white/80">Revise suas lições</p>
+        <h3 className="font-bold text-base">Prática</h3>
+        <p className="text-sm text-white/80 mt-0.5">Revise suas lições anteriores</p>
       </motion.button>
     </div>
   );
@@ -373,15 +378,27 @@ export function LearningPath({
       <div className="max-w-lg mx-auto">
         <h2 className="font-bold text-xl text-foreground mb-6">Seu Caminho</h2>
         
-        <div className="space-y-0">
-          {lessons.map((lesson, index) => (
-            <LessonGroup
-              key={lesson.id}
-              lesson={lesson}
-              onStageClick={handleStageClick}
-              isLastLesson={index === lessons.length - 1}
-            />
-          ))}
+        <div className="relative">
+          <div 
+            className="absolute top-0 bottom-0 bg-muted/30 rounded-full"
+            style={{ 
+              left: RAIL_WIDTH / 2 - 2,
+              width: 4,
+              zIndex: 0
+            }}
+          />
+          
+          <div className="relative z-10 space-y-2">
+            {lessons.map((lesson, index) => (
+              <LessonGroup
+                key={lesson.id}
+                lesson={lesson}
+                onStageClick={handleStageClick}
+                isFirstLesson={index === 0}
+                isLastLesson={index === lessons.length - 1}
+              />
+            ))}
+          </div>
         </div>
         
         {showPractice && hasCompletedLessons && (

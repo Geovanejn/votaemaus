@@ -49,9 +49,19 @@ A gamified study module replicating Duolingo's visual design while maintaining U
 
 ### Content Management System
 - Admin uploads PDF magazines (e.g., "Nao jogue sua vida fora" from "Nossa Fe" series)
-- AI extracts magazine title, lesson titles, and content automatically
+- AI extracts magazine title, lesson titles, and content automatically using Google Gemini API
+- PDF upload support with automatic text extraction (pdf-parse library)
 - Lessons are released weekly (one per Sunday) via scheduled jobs
 - Admin can manually adjust release dates and review extracted content
+
+### AI Configuration
+- Uses Google Gemini API (free tier) for content generation
+- Requires GEMINI_API_KEY secret to be configured
+- Features:
+  - Generate study weeks from text or PDF files
+  - Create multiple choice, true/false, and fill-in-the-blank exercises
+  - Generate meditation content and reflection questions
+  - Text summarization for lesson content
 
 ### Components (client/src/components/study/)
 - **LearningPath**: Main container with two-column layout (icon rail + lesson cards) and vertical guide line

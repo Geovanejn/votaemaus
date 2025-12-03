@@ -3033,11 +3033,10 @@ export class SQLiteStorage implements IStorage {
           current_streak = 0, 
           longest_streak = 0, 
           hearts = 5, 
-          max_hearts = 5,
-          weekly_xp = 0,
-          level = 1,
-          last_activity_at = NULL,
-          last_heart_recovery_at = NULL
+          hearts_max = 5,
+          current_level = 1,
+          last_activity_date = NULL,
+          hearts_refill_at = NULL
     `).run();
     
     console.log('[Seed] Cleared all study progress');

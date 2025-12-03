@@ -258,9 +258,13 @@ function LessonGroup({
   isLastLesson: boolean;
 }) {
   const ICON_SIZE = 56;
-  const ICON_CENTER = ICON_SIZE / 2;
-  const ROW_HEIGHT = 80;
-  const GAP_BETWEEN_ROWS = 12;
+  const ROW_HEIGHT = 88;
+  const GAP_BETWEEN_ROWS = 20;
+  
+  const ICON_VERTICAL_OFFSET = (ROW_HEIGHT - ICON_SIZE) / 2;
+  const FIRST_ICON_BOTTOM = ICON_VERTICAL_OFFSET + ICON_SIZE;
+  const LAST_ICON_TOP = (lesson.stages.length - 1) * (ROW_HEIGHT + GAP_BETWEEN_ROWS) + ICON_VERTICAL_OFFSET;
+  const LINE_HEIGHT = LAST_ICON_TOP - FIRST_ICON_BOTTOM;
   
   return (
     <div className="relative">
@@ -276,13 +280,13 @@ function LessonGroup({
       </div>
       
       <div className="relative">
-        {lesson.stages.length > 1 && (
+        {lesson.stages.length > 1 && LINE_HEIGHT > 0 && (
           <div 
             className="absolute w-1 rounded-full bg-gray-300"
             style={{ 
               left: RAIL_WIDTH / 2 - 2,
-              top: ICON_CENTER,
-              height: (lesson.stages.length - 1) * (ROW_HEIGHT + GAP_BETWEEN_ROWS),
+              top: FIRST_ICON_BOTTOM,
+              height: LINE_HEIGHT,
               zIndex: 0
             }}
           />

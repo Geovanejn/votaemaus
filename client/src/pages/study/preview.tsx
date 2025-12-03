@@ -41,6 +41,11 @@ const mockLessons: LessonItem[] = [
     status: "completed", 
     progress: 5, 
     totalSections: 5,
+    stages: [
+      { type: "estude", status: "completed", completedUnits: 3, totalUnits: 3 },
+      { type: "medite", status: "completed", completedUnits: 2, totalUnits: 2 },
+      { type: "responda", status: "completed", completedUnits: 5, totalUnits: 5 },
+    ],
   },
   { 
     id: 2, 
@@ -50,6 +55,11 @@ const mockLessons: LessonItem[] = [
     status: "completed", 
     progress: 5, 
     totalSections: 5,
+    stages: [
+      { type: "estude", status: "completed", completedUnits: 3, totalUnits: 3 },
+      { type: "medite", status: "completed", completedUnits: 2, totalUnits: 2 },
+      { type: "responda", status: "completed", completedUnits: 5, totalUnits: 5 },
+    ],
   },
   { 
     id: 3, 
@@ -59,6 +69,11 @@ const mockLessons: LessonItem[] = [
     status: "current", 
     progress: 2, 
     totalSections: 5,
+    stages: [
+      { type: "estude", status: "completed", completedUnits: 3, totalUnits: 3 },
+      { type: "medite", status: "current", completedUnits: 1, totalUnits: 2 },
+      { type: "responda", status: "locked", completedUnits: 0, totalUnits: 5 },
+    ],
   },
   { 
     id: 4, 
@@ -68,6 +83,11 @@ const mockLessons: LessonItem[] = [
     status: "locked", 
     progress: 0, 
     totalSections: 5,
+    stages: [
+      { type: "estude", status: "locked", completedUnits: 0, totalUnits: 3 },
+      { type: "medite", status: "locked", completedUnits: 0, totalUnits: 2 },
+      { type: "responda", status: "locked", completedUnits: 0, totalUnits: 5 },
+    ],
   },
   { 
     id: 5, 
@@ -77,6 +97,11 @@ const mockLessons: LessonItem[] = [
     status: "locked", 
     progress: 0, 
     totalSections: 5,
+    stages: [
+      { type: "estude", status: "locked", completedUnits: 0, totalUnits: 3 },
+      { type: "medite", status: "locked", completedUnits: 0, totalUnits: 2 },
+      { type: "responda", status: "locked", completedUnits: 0, totalUnits: 5 },
+    ],
   },
 ];
 
@@ -199,6 +224,21 @@ function DailyGoalSection({ current, target }: { current: number; target: number
 }
 
 function MapPreview() {
+  const handleLessonClick = (lessonId: number, stage?: string) => {
+    const lesson = mockLessons.find(l => l.id === lessonId);
+    if (lesson && lesson.status !== 'locked') {
+      const stageName = stage || 'estude';
+      const stageInfo = lesson.stages.find(s => s.type === stageName);
+      if (stageInfo && stageInfo.status !== 'locked') {
+        alert(`Navegando para Lição ${lessonId} - Etapa: ${stageName.charAt(0).toUpperCase() + stageName.slice(1)}\n\nEsta é uma demonstração. Para acessar as lições, faça login no sistema.`);
+      } else {
+        alert(`A etapa "${stageName}" ainda está bloqueada. Complete as etapas anteriores primeiro!`);
+      }
+    } else {
+      alert('Esta lição ainda está bloqueada. Complete as lições anteriores primeiro!');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <UserProfileHeader user={mockUserProfile} />
@@ -210,8 +250,8 @@ function MapPreview() {
       
       <LearningPath 
         lessons={mockLessons}
-        onLessonClick={(id) => alert(`Lição ${id} clicada!`)}
-        onPracticeClick={() => alert("Prática!")}
+        onLessonClick={handleLessonClick}
+        onPracticeClick={() => alert("Prática!\n\nEsta é uma demonstração. Para praticar, faça login no sistema.")}
         showPractice={true}
       />
 

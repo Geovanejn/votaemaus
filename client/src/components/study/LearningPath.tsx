@@ -381,7 +381,7 @@ export function LearningPath({
         <h2 className="font-bold text-xl text-foreground mb-6">Seu Caminho</h2>
         
         <div className="relative">
-          <div className="space-y-2">
+          <div className="space-y-10">
             {lessons.map((lesson, index) => (
               <LessonGroup
                 key={lesson.id}

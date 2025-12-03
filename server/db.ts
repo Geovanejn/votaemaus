@@ -571,6 +571,41 @@ export async function initializeDatabase() {
       UNIQUE(user_id, period_type, period_key),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS daily_missions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      xp_reward INTEGER NOT NULL DEFAULT 10,
+      requirement TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS user_daily_missions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      mission_id INTEGER NOT NULL,
+      assigned_date TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      xp_awarded INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, mission_id, assigned_date),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (mission_id) REFERENCES daily_missions(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_mission_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content_date TEXT NOT NULL UNIQUE,
+      daily_verse TEXT,
+      bible_fact TEXT,
+      bible_character TEXT,
+      daily_theme TEXT,
+      timed_quiz_questions TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   console.log("Study system tables created successfully");
 
@@ -639,6 +674,15 @@ export async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_leaderboard_period
         ON leaderboard_entries(period_type, period_key, xp_earned);
+      
+      CREATE INDEX IF NOT EXISTS idx_daily_missions_active
+        ON daily_missions(is_active);
+      
+      CREATE INDEX IF NOT EXISTS idx_user_daily_missions_lookup
+        ON user_daily_missions(user_id, assigned_date);
+      
+      CREATE INDEX IF NOT EXISTS idx_daily_mission_content_date
+        ON daily_mission_content(content_date);
     `);
     console.log("Performance indexes created successfully");
   } catch (error) {
@@ -716,6 +760,36 @@ export async function initializeDatabase() {
     }
     
     console.log(`Created ${verses.length} Bible verses for heart recovery`);
+  }
+
+  // Initialize daily missions if they don't exist
+  const existingMissions = sqlite.prepare("SELECT COUNT(*) as count FROM daily_missions").get() as { count: number };
+  
+  if (existingMissions.count === 0) {
+    console.log("Initializing daily missions...");
+    const insertMission = sqlite.prepare(`
+      INSERT INTO daily_missions (type, title, description, icon, xp_reward, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `);
+    
+    const missions = [
+      { type: 'complete_lesson', title: 'Conclua uma Licao', description: 'Complete uma licao da sua trilha de estudos', icon: 'BookOpen', xpReward: 15 },
+      { type: 'read_daily_verse', title: 'Versiculo do Dia', description: 'Leia e medite no versiculo do dia', icon: 'BookMarked', xpReward: 10 },
+      { type: 'timed_challenge', title: 'Desafio Cronometrado', description: 'Complete um quiz rapido em menos de 1 minuto', icon: 'Timer', xpReward: 20 },
+      { type: 'quick_quiz', title: 'Quiz Rapido', description: 'Acerte 3 perguntas biblicas no modo rapido', icon: 'Zap', xpReward: 15 },
+      { type: 'bible_character', title: 'Personagem Biblico', description: 'Conheca a historia de um personagem biblico', icon: 'User', xpReward: 10 },
+      { type: 'perfect_answers', title: 'Respostas Perfeitas', description: 'Acerte 2 respostas seguidas sem errar', icon: 'Target', xpReward: 15 },
+      { type: 'memorize_theme', title: 'Memorize o Tema', description: 'Memorize o conceito biblico do dia', icon: 'Brain', xpReward: 10 },
+      { type: 'simple_prayer', title: 'Oracao Simples', description: 'Escreva uma oracao curta de gratidao', icon: 'Heart', xpReward: 10 },
+      { type: 'bible_fact', title: 'Fato Biblico', description: 'Descubra um fato interessante da Biblia', icon: 'Lightbulb', xpReward: 10 },
+      { type: 'maintain_streak', title: 'Mantenha a Sequencia', description: 'Mantenha sua sequencia de estudos diarios', icon: 'Flame', xpReward: 20 },
+    ];
+    
+    for (const mission of missions) {
+      insertMission.run(mission.type, mission.title, mission.description, mission.icon, mission.xpReward);
+    }
+    
+    console.log(`Created ${missions.length} daily missions`);
   }
 
   console.log("Database initialized successfully");

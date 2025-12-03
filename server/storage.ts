@@ -117,6 +117,15 @@ export interface IStorage {
   unlockAllLessonsForWeek(weekId: number): number;
   lockAllLessonsForWeek(weekId: number): number;
   setWeeklyUnlockSchedule(weekId: number, startDate: string): number;
+  
+  // Daily Missions System
+  getDailyMissions(): any[];
+  getUserDailyMissions(userId: number, date: string): any[];
+  assignDailyMissions(userId: number, date: string): any[];
+  completeMission(userId: number, missionId: number, date: string): any | null;
+  getDailyMissionContent(date: string): any | null;
+  createDailyMissionContent(data: any): any;
+  initializeDailyMissions(): void;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -2605,6 +2614,211 @@ export class SQLiteStorage implements IStorage {
         status,
       };
     });
+  }
+
+  // ==================== DAILY MISSIONS SYSTEM ====================
+
+  getDailyMissions(): any[] {
+    const stmt = db.prepare("SELECT * FROM daily_missions WHERE is_active = 1");
+    return (stmt.all() as any[]).map(row => ({
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      description: row.description,
+      icon: row.icon,
+      xpReward: row.xp_reward,
+      requirement: row.requirement ? JSON.parse(row.requirement) : null,
+      isActive: Boolean(row.is_active),
+    }));
+  }
+
+  getUserDailyMissions(userId: number, date: string): any[] {
+    const stmt = db.prepare(`
+      SELECT udm.*, dm.type, dm.title, dm.description, dm.icon, dm.xp_reward, dm.requirement
+      FROM user_daily_missions udm
+      JOIN daily_missions dm ON udm.mission_id = dm.id
+      WHERE udm.user_id = ? AND udm.assigned_date = ?
+      ORDER BY dm.id
+    `);
+    return (stmt.all(userId, date) as any[]).map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      missionId: row.mission_id,
+      assignedDate: row.assigned_date,
+      completed: Boolean(row.completed),
+      completedAt: row.completed_at,
+      xpAwarded: row.xp_awarded,
+      mission: {
+        id: row.mission_id,
+        type: row.type,
+        title: row.title,
+        description: row.description,
+        icon: row.icon,
+        xpReward: row.xp_reward,
+        requirement: row.requirement ? JSON.parse(row.requirement) : null,
+      }
+    }));
+  }
+
+  assignDailyMissions(userId: number, date: string): any[] {
+    // Check if user already has missions for today
+    const existing = this.getUserDailyMissions(userId, date);
+    if (existing.length > 0) {
+      return existing;
+    }
+
+    // Get all active missions
+    const allMissions = this.getDailyMissions();
+    if (allMissions.length === 0) {
+      return [];
+    }
+
+    // Randomly select 3-4 missions for the day
+    const shuffled = allMissions.sort(() => Math.random() - 0.5);
+    const count = Math.min(Math.floor(Math.random() * 2) + 3, shuffled.length); // 3 or 4 missions
+    const selectedMissions = shuffled.slice(0, count);
+
+    // Insert user daily missions
+    const insertStmt = db.prepare(`
+      INSERT INTO user_daily_missions (user_id, mission_id, assigned_date)
+      VALUES (?, ?, ?)
+    `);
+
+    for (const mission of selectedMissions) {
+      try {
+        insertStmt.run(userId, mission.id, date);
+      } catch (e) {
+        // Ignore duplicates
+      }
+    }
+
+    return this.getUserDailyMissions(userId, date);
+  }
+
+  completeMission(userId: number, missionId: number, date: string): any | null {
+    // Get the user's mission for today
+    const stmt = db.prepare(`
+      SELECT udm.*, dm.xp_reward
+      FROM user_daily_missions udm
+      JOIN daily_missions dm ON udm.mission_id = dm.id
+      WHERE udm.user_id = ? AND udm.mission_id = ? AND udm.assigned_date = ? AND udm.completed = 0
+    `);
+    const mission = stmt.get(userId, missionId, date) as any;
+    
+    if (!mission) {
+      return null;
+    }
+
+    // Mark as completed
+    db.prepare(`
+      UPDATE user_daily_missions
+      SET completed = 1, completed_at = datetime('now'), xp_awarded = ?
+      WHERE id = ?
+    `).run(mission.xp_reward, mission.id);
+
+    // Add XP to user
+    this.addXp(userId, mission.xp_reward, 'lesson', missionId, 'Missao diaria concluida');
+
+    // Check if all missions are completed for bonus XP
+    const allMissions = this.getUserDailyMissions(userId, date);
+    const allCompleted = allMissions.every(m => m.completed);
+    
+    if (allCompleted) {
+      // Award bonus XP for completing all missions
+      const bonusXp = 50;
+      this.addXp(userId, bonusXp, 'streak_bonus', 0, 'Bonus: todas as missoes do dia concluidas');
+    }
+
+    return {
+      ...mission,
+      completed: true,
+      completedAt: new Date().toISOString(),
+      allCompleted,
+      bonusXp: allCompleted ? 50 : 0,
+    };
+  }
+
+  getDailyMissionContent(date: string): any | null {
+    const stmt = db.prepare("SELECT * FROM daily_mission_content WHERE content_date = ?");
+    const row = stmt.get(date) as any;
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      contentDate: row.content_date,
+      dailyVerse: row.daily_verse ? JSON.parse(row.daily_verse) : null,
+      bibleFact: row.bible_fact ? JSON.parse(row.bible_fact) : null,
+      bibleCharacter: row.bible_character ? JSON.parse(row.bible_character) : null,
+      dailyTheme: row.daily_theme ? JSON.parse(row.daily_theme) : null,
+      timedQuizQuestions: row.timed_quiz_questions ? JSON.parse(row.timed_quiz_questions) : null,
+      createdAt: row.created_at,
+    };
+  }
+
+  createDailyMissionContent(data: any): any {
+    const stmt = db.prepare(`
+      INSERT INTO daily_mission_content (content_date, daily_verse, bible_fact, bible_character, daily_theme, timed_quiz_questions)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(content_date) DO UPDATE SET
+        daily_verse = excluded.daily_verse,
+        bible_fact = excluded.bible_fact,
+        bible_character = excluded.bible_character,
+        daily_theme = excluded.daily_theme,
+        timed_quiz_questions = excluded.timed_quiz_questions
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.contentDate,
+      data.dailyVerse ? JSON.stringify(data.dailyVerse) : null,
+      data.bibleFact ? JSON.stringify(data.bibleFact) : null,
+      data.bibleCharacter ? JSON.stringify(data.bibleCharacter) : null,
+      data.dailyTheme ? JSON.stringify(data.dailyTheme) : null,
+      data.timedQuizQuestions ? JSON.stringify(data.timedQuizQuestions) : null
+    ) as any;
+
+    return {
+      id: row.id,
+      contentDate: row.content_date,
+      dailyVerse: row.daily_verse ? JSON.parse(row.daily_verse) : null,
+      bibleFact: row.bible_fact ? JSON.parse(row.bible_fact) : null,
+      bibleCharacter: row.bible_character ? JSON.parse(row.bible_character) : null,
+      dailyTheme: row.daily_theme ? JSON.parse(row.daily_theme) : null,
+      timedQuizQuestions: row.timed_quiz_questions ? JSON.parse(row.timed_quiz_questions) : null,
+      createdAt: row.created_at,
+    };
+  }
+
+  initializeDailyMissions(): void {
+    // Check if missions already exist
+    const existing = db.prepare("SELECT COUNT(*) as count FROM daily_missions").get() as any;
+    if (existing.count > 0) {
+      return;
+    }
+
+    // Create default mission templates
+    const missions = [
+      { type: 'complete_lesson', title: 'Conclua uma Licao', description: 'Complete uma licao da sua trilha de estudos', icon: 'BookOpen', xpReward: 15 },
+      { type: 'read_daily_verse', title: 'Versiculo do Dia', description: 'Leia e medite no versiculo do dia', icon: 'BookMarked', xpReward: 10 },
+      { type: 'timed_challenge', title: 'Desafio Cronometrado', description: 'Complete um quiz rapido em menos de 1 minuto', icon: 'Timer', xpReward: 20 },
+      { type: 'quick_quiz', title: 'Quiz Rapido', description: 'Acerte 3 perguntas biblicas no modo rapido', icon: 'Zap', xpReward: 15 },
+      { type: 'bible_character', title: 'Personagem Biblico', description: 'Conheca a historia de um personagem biblico', icon: 'User', xpReward: 10 },
+      { type: 'perfect_answers', title: 'Respostas Perfeitas', description: 'Acerte 2 respostas seguidas sem errar', icon: 'Target', xpReward: 15 },
+      { type: 'memorize_theme', title: 'Memorize o Tema', description: 'Memorize o conceito biblico do dia', icon: 'Brain', xpReward: 10 },
+      { type: 'simple_prayer', title: 'Oracao Simples', description: 'Escreva uma oracao curta de gratidao', icon: 'Heart', xpReward: 10 },
+      { type: 'bible_fact', title: 'Fato Biblico', description: 'Descubra um fato interessante da Biblia', icon: 'Lightbulb', xpReward: 10 },
+      { type: 'maintain_streak', title: 'Mantenha a Sequencia', description: 'Mantenha sua sequencia de estudos diarios', icon: 'Flame', xpReward: 20 },
+    ];
+
+    const insertStmt = db.prepare(`
+      INSERT INTO daily_missions (type, title, description, icon, xp_reward, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `);
+
+    for (const mission of missions) {
+      insertStmt.run(mission.type, mission.title, mission.description, mission.icon, mission.xpReward);
+    }
+
+    console.log('[Daily Missions] Initialized default mission templates');
   }
 }
 

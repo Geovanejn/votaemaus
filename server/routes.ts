@@ -2808,6 +2808,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== DAILY MISSIONS ROUTES ====================
+
+  // Get user's daily missions for today
+  app.get("/api/missions/daily", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Assign missions for today if not already assigned
+      const missions = storage.assignDailyMissions(userId, today);
+      const content = storage.getDailyMissionContent(today);
+      
+      const completedCount = missions.filter(m => m.completed).length;
+      const allCompleted = missions.length > 0 && completedCount === missions.length;
+      
+      res.json({
+        missions,
+        completedCount,
+        totalCount: missions.length,
+        allCompleted,
+        bonusXpAvailable: allCompleted ? 0 : 50,
+        content,
+        date: today,
+      });
+    } catch (error) {
+      console.error("Get daily missions error:", error);
+      res.status(500).json({ message: "Erro ao buscar missoes diarias" });
+    }
+  });
+
+  // Complete a mission
+  app.post("/api/missions/:missionId/complete", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const missionId = parseInt(req.params.missionId);
+      const today = new Date().toISOString().split('T')[0];
+      
+      const result = storage.completeMission(userId, missionId, today);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Missao nao encontrada ou ja concluida" });
+      }
+      
+      res.json({
+        message: "Missao concluida com sucesso!",
+        ...result,
+      });
+    } catch (error) {
+      console.error("Complete mission error:", error);
+      res.status(500).json({ message: "Erro ao concluir missao" });
+    }
+  });
+
+  // Get daily mission content (verse, fact, character)
+  app.get("/api/missions/content", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const content = storage.getDailyMissionContent(today);
+      
+      res.json(content || {});
+    } catch (error) {
+      console.error("Get mission content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteudo das missoes" });
+    }
+  });
+
+  // Admin: Initialize daily missions (seed templates)
+  app.post("/api/missions/admin/init", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      storage.initializeDailyMissions();
+      res.json({ message: "Missoes diarias inicializadas com sucesso" });
+    } catch (error) {
+      console.error("Init daily missions error:", error);
+      res.status(500).json({ message: "Erro ao inicializar missoes diarias" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

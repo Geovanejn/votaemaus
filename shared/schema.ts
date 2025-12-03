@@ -646,6 +646,86 @@ export const insertLeaderboardEntrySchema = createInsertSchema(leaderboardEntrie
 export type InsertLeaderboardEntry = z.infer<typeof insertLeaderboardEntrySchema>;
 export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
 
+// ==================== SISTEMA DE MISSÕES DIÁRIAS ====================
+
+// Tipos de missões disponíveis
+export const missionTypes = [
+  "complete_lesson",      // Conclua uma lição da trilha
+  "read_daily_verse",     // Leia o versículo do dia
+  "timed_challenge",      // Desafio cronometrado
+  "quick_quiz",           // Quiz rápido (3 perguntas)
+  "bible_character",      // Personagem bíblico do dia
+  "perfect_answers",      // Respostas perfeitas seguidas
+  "memorize_theme",       // Memorize o tema
+  "simple_prayer",        // Oração simples
+  "bible_fact",           // Fato bíblico do dia
+  "maintain_streak",      // Mantenha a sequência
+] as const;
+
+export type MissionType = typeof missionTypes[number];
+
+// Templates de missões disponíveis
+export const dailyMissions = sqliteTable("daily_missions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(), // MissionType
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(), // lucide icon name
+  xpReward: integer("xp_reward").notNull().default(10),
+  requirement: text("requirement"), // JSON with specific requirements
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+});
+
+export const insertDailyMissionSchema = createInsertSchema(dailyMissions).omit({
+  id: true,
+});
+
+export type InsertDailyMission = z.infer<typeof insertDailyMissionSchema>;
+export type DailyMission = typeof dailyMissions.$inferSelect;
+
+// Missões atribuídas ao usuário para o dia
+export const userDailyMissions = sqliteTable("user_daily_missions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  missionId: integer("mission_id").notNull().references(() => dailyMissions.id),
+  assignedDate: text("assigned_date").notNull(), // YYYY-MM-DD format
+  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+  completedAt: text("completed_at"),
+  xpAwarded: integer("xp_awarded").notNull().default(0),
+}, (table) => ({
+  uniqueUserMissionDate: unique().on(table.userId, table.missionId, table.assignedDate),
+}));
+
+export const insertUserDailyMissionSchema = createInsertSchema(userDailyMissions).omit({
+  id: true,
+  completed: true,
+  completedAt: true,
+  xpAwarded: true,
+});
+
+export type InsertUserDailyMission = z.infer<typeof insertUserDailyMissionSchema>;
+export type UserDailyMission = typeof userDailyMissions.$inferSelect;
+
+// Conteúdo gerado por AI para missões (versículo, fato, personagem)
+export const dailyMissionContent = sqliteTable("daily_mission_content", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contentDate: text("content_date").notNull().unique(), // YYYY-MM-DD
+  dailyVerse: text("daily_verse"), // JSON: { reference, text, reflection }
+  bibleFact: text("bible_fact"), // JSON: { title, fact, source }
+  bibleCharacter: text("bible_character"), // JSON: { name, summary, lesson }
+  dailyTheme: text("daily_theme"), // JSON: { theme, explanation }
+  timedQuizQuestions: text("timed_quiz_questions"), // JSON array of questions
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertDailyMissionContentSchema = createInsertSchema(dailyMissionContent).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDailyMissionContent = z.infer<typeof insertDailyMissionContentSchema>;
+export type DailyMissionContent = typeof dailyMissionContent.$inferSelect;
+
 // ==================== TIPOS COMPOSTOS DO SISTEMA DE ESTUDOS ====================
 
 export type StudyProfileWithUser = StudyProfile & {
@@ -679,4 +759,19 @@ export type LeaderboardRanking = {
 export type AchievementWithStatus = Achievement & {
   unlocked: boolean;
   unlockedAt?: string;
+};
+
+// Missão diária com status do usuário
+export type UserDailyMissionWithDetails = UserDailyMission & {
+  mission: DailyMission;
+};
+
+// Resumo das missões do dia
+export type DailyMissionsStatus = {
+  missions: UserDailyMissionWithDetails[];
+  completedCount: number;
+  totalCount: number;
+  allCompleted: boolean;
+  bonusXpAvailable: number;
+  content?: DailyMissionContent;
 };

@@ -8,7 +8,7 @@ import {
 } from "@/components/study";
 import type { LessonItem, StageType, StageItem } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings, Flame, Zap, Heart, Loader2 } from "lucide-react";
+import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -145,6 +145,17 @@ function UserProfileHeader({
           >
             <Heart className="h-5 w-5 text-white fill-white" />
             <span className="font-bold text-white">{profile.hearts}/{profile.heartsMax}</span>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1CB0F6] shadow-lg cursor-pointer"
+            style={{ boxShadow: '0 4px 0 0 #0D94D7' }}
+            onClick={() => setLocation('/study/missions')}
+            data-testid="button-missions"
+          >
+            <Target className="h-5 w-5 text-white" />
+            <span className="font-bold text-white text-sm">Missões</span>
           </motion.div>
         </div>
       </div>

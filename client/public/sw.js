@@ -1,16 +1,29 @@
-const CACHE_NAME = 'emaus-vota-v1';
+const CACHE_NAME = 'emaus-vota-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/favicon.png',
   '/logo.png',
-  '/logo-ump.png'
+  '/logo-ump.png',
+  '/logo-animated.webp',
+  '/logo-original.png'
+];
+
+const API_CACHE_DURATION = 5 * 60 * 1000;
+
+const CACHEABLE_API_ROUTES = [
+  '/api/study/verses',
+  '/api/study/achievements',
+  '/api/study/profile',
+  '/api/study/leaderboard',
+  '/api/missions'
 ];
 
 const CACHE_STRATEGIES = {
   static: 'cache-first',
   api: 'network-first',
-  images: 'cache-first'
+  images: 'cache-first',
+  fonts: 'cache-first'
 };
 
 self.addEventListener('install', (event) => {
@@ -52,7 +65,20 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request));
+    const isCacheableApi = CACHEABLE_API_ROUTES.some(route => 
+      url.pathname.startsWith(route)
+    );
+    
+    if (isCacheableApi) {
+      event.respondWith(networkFirstWithCacheExpiry(request));
+    } else {
+      event.respondWith(networkFirst(request));
+    }
+    return;
+  }
+
+  if (request.destination === 'font') {
+    event.respondWith(cacheFirst(request));
     return;
   }
 
@@ -135,8 +161,73 @@ async function staleWhileRevalidate(request) {
   return cachedResponse || fetchPromise;
 }
 
+async function networkFirstWithCacheExpiry(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cacheKey = request.url;
+  
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const responseToCache = networkResponse.clone();
+      const headers = new Headers(responseToCache.headers);
+      headers.set('sw-cached-at', Date.now().toString());
+      
+      const body = await responseToCache.blob();
+      const cachedResponseWithMeta = new Response(body, {
+        status: responseToCache.status,
+        statusText: responseToCache.statusText,
+        headers: headers
+      });
+      
+      cache.put(cacheKey, cachedResponseWithMeta);
+    }
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+      const cachedAt = cachedResponse.headers.get('sw-cached-at');
+      if (cachedAt) {
+        const age = Date.now() - parseInt(cachedAt);
+        if (age < API_CACHE_DURATION) {
+          console.log('[SW] Serving fresh cached API response:', cacheKey);
+          return cachedResponse;
+        } else {
+          console.log('[SW] Cache expired, deleting stale entry:', cacheKey);
+          cache.delete(cacheKey);
+          return new Response(JSON.stringify({ 
+            error: 'Offline',
+            message: 'Cache expirado. Conecte-se para atualizar os dados.',
+            cached: true,
+            expired: true
+          }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      console.log('[SW] Serving cached API response (no timestamp):', cacheKey);
+      return cachedResponse;
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: 'Offline',
+      message: 'Voce esta offline. Por favor, verifique sua conexao.',
+      cached: false
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.delete(CACHE_NAME).then(() => {
+      console.log('[SW] Cache cleared');
+    });
   }
 });

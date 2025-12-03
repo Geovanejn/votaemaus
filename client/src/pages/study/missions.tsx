@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
@@ -18,14 +18,13 @@ import {
   Gift,
   Star,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
 
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
@@ -67,18 +66,13 @@ interface DailyMissionsData {
 
 function MissionCard({ 
   mission, 
-  onComplete,
-  isSubmitting,
-  submittingMissionId
+  onClick
 }: { 
   mission: Mission; 
-  onComplete: (missionId: number) => void;
-  isSubmitting: boolean;
-  submittingMissionId: number | null;
+  onClick: () => void;
 }) {
   const IconComponent = iconMap[mission.mission.icon] || Star;
   const isCompleted = mission.completed;
-  const isThisMissionSubmitting = isSubmitting && submittingMissionId === mission.missionId;
 
   return (
     <motion.div
@@ -88,11 +82,12 @@ function MissionCard({
       data-testid={`mission-item-${mission.id}`}
     >
       <Card 
-        className={`p-4 transition-all ${
+        className={`p-4 transition-all cursor-pointer ${
           isCompleted 
             ? "bg-[#58CC02]/10 border-[#58CC02]/30" 
             : "hover-elevate"
         }`}
+        onClick={onClick}
         data-testid={`mission-card-${mission.id}`}
       >
         <div className="flex items-center gap-4">
@@ -134,7 +129,7 @@ function MissionCard({
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
             <Badge 
               variant="outline" 
               className={`${isCompleted ? "border-[#58CC02] text-[#58CC02]" : "border-[#FFC800] text-[#FFC800]"}`}
@@ -144,19 +139,7 @@ function MissionCard({
             </Badge>
             
             {!isCompleted && (
-              <Button
-                size="sm"
-                onClick={() => onComplete(mission.missionId)}
-                disabled={isSubmitting}
-                className="bg-[#58CC02] text-white"
-                data-testid={`button-complete-mission-${mission.id}`}
-              >
-                {isThisMissionSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Concluir"
-                )}
-              </Button>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             )}
           </div>
         </div>
@@ -237,37 +220,14 @@ function RewardModal({
 
 export default function MissionsPage() {
   const [, setLocation] = useLocation();
-  const [showReward, setShowReward] = useState(false);
-  const [earnedBonusXp, setEarnedBonusXp] = useState(0);
-  const [submittingMissionId, setSubmittingMissionId] = useState<number | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery<DailyMissionsData>({
     queryKey: ["/api/missions/daily"],
   });
 
-  const completeMutation = useMutation({
-    mutationFn: async (missionId: number) => {
-      setSubmittingMissionId(missionId);
-      const response = await apiRequest("POST", `/api/missions/${missionId}/complete`);
-      return response.json();
-    },
-    onSuccess: async (result: { allCompleted?: boolean; bonusXp?: number }) => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/missions/daily"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/study/profile"] });
-      
-      if (result.allCompleted && result.bonusXp && result.bonusXp > 0) {
-        setEarnedBonusXp(result.bonusXp);
-        setShowReward(true);
-      }
-    },
-    onSettled: () => {
-      setSubmittingMissionId(null);
-    },
-  });
-
-  const handleCompleteMission = (missionId: number) => {
-    if (completeMutation.isPending) return;
-    completeMutation.mutate(missionId);
+  const handleMissionClick = (mission: Mission) => {
+    if (mission.completed) return;
+    setLocation(`/study/missions/${mission.missionId}`);
   };
 
   if (isLoading) {
@@ -318,7 +278,7 @@ export default function MissionsPage() {
           <div className="flex-1">
             <h1 className="font-bold text-lg" data-testid="page-title">Missoes Diarias</h1>
             <p className="text-xs text-muted-foreground">
-              Complete para ganhar XP bonus!
+              Clique em uma missao para comecar!
             </p>
           </div>
           <div className="flex items-center gap-2" data-testid="missions-counter">
@@ -375,9 +335,7 @@ export default function MissionsPage() {
             <MissionCard
               key={mission.id}
               mission={mission}
-              onComplete={handleCompleteMission}
-              isSubmitting={completeMutation.isPending}
-              submittingMissionId={submittingMissionId}
+              onClick={() => handleMissionClick(mission)}
             />
           ))}
         </div>
@@ -393,13 +351,21 @@ export default function MissionsPage() {
             </p>
           </div>
         )}
-      </div>
 
-      <RewardModal 
-        isOpen={showReward} 
-        onClose={() => setShowReward(false)} 
-        bonusXp={earnedBonusXp}
-      />
+        {data?.allCompleted && (
+          <div className="mt-6 text-center" data-testid="all-completed-message">
+            <Card className="p-6 bg-[#58CC02]/10 border-[#58CC02]/30">
+              <Check className="w-12 h-12 mx-auto text-[#58CC02] mb-3" />
+              <h3 className="font-bold text-lg text-[#58CC02] mb-2">
+                Todas as missoes concluidas!
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Parabens! Voce completou todas as missoes de hoje e ganhou +50 XP bonus!
+              </p>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

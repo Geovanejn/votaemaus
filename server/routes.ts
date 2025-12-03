@@ -2838,6 +2838,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get mission detail for activity page
+  app.get("/api/missions/:missionId/detail", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const missionId = parseInt(req.params.missionId);
+      const today = new Date().toISOString().split('T')[0];
+      
+      const mission = storage.getUserMissionById(userId, missionId, today);
+      
+      if (!mission) {
+        return res.status(404).json({ message: "Missao nao encontrada" });
+      }
+      
+      const content = storage.getDailyMissionContent(today);
+      
+      res.json({
+        ...mission,
+        content: content || {},
+      });
+    } catch (error) {
+      console.error("Get mission detail error:", error);
+      res.status(500).json({ message: "Erro ao buscar detalhes da missao" });
+    }
+  });
+
   // Complete a mission
   app.post("/api/missions/:missionId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {

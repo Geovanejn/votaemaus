@@ -122,6 +122,7 @@ export interface IStorage {
   getDailyMissions(): any[];
   getUserDailyMissions(userId: number, date: string): any[];
   assignDailyMissions(userId: number, date: string): any[];
+  getUserMissionById(userId: number, missionId: number, date: string): any | null;
   completeMission(userId: number, missionId: number, date: string): any | null;
   getDailyMissionContent(date: string): any | null;
   createDailyMissionContent(data: any): any;
@@ -2693,6 +2694,49 @@ export class SQLiteStorage implements IStorage {
     }
 
     return this.getUserDailyMissions(userId, date);
+  }
+
+  getUserMissionById(userId: number, missionId: number, date: string): any | null {
+    const stmt = db.prepare(`
+      SELECT 
+        udm.id,
+        udm.user_id as userId,
+        udm.mission_id as missionId,
+        udm.assigned_date as assignedDate,
+        udm.completed,
+        udm.completed_at as completedAt,
+        udm.xp_awarded as xpAwarded,
+        dm.id as "mission.id",
+        dm.type as "mission.type",
+        dm.title as "mission.title",
+        dm.description as "mission.description",
+        dm.icon as "mission.icon",
+        dm.xp_reward as "mission.xpReward"
+      FROM user_daily_missions udm
+      JOIN daily_missions dm ON udm.mission_id = dm.id
+      WHERE udm.user_id = ? AND udm.mission_id = ? AND udm.assigned_date = ?
+    `);
+    const row = stmt.get(userId, missionId, date) as any;
+    
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      missionId: row.missionId,
+      assignedDate: row.assignedDate,
+      completed: Boolean(row.completed),
+      completedAt: row.completedAt,
+      xpAwarded: row.xpAwarded,
+      mission: {
+        id: row['mission.id'],
+        type: row['mission.type'],
+        title: row['mission.title'],
+        description: row['mission.description'],
+        icon: row['mission.icon'],
+        xpReward: row['mission.xpReward'],
+      }
+    };
   }
 
   completeMission(userId: number, missionId: number, date: string): any | null {

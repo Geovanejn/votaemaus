@@ -10,7 +10,7 @@ O Sistema de Estudos e um modulo gamificado que replica o design visual do Duoli
 
 ### 1.1 Layout do Caminho de Aprendizagem
 
-O caminho de aprendizagem ("Seu Caminho") usa um layout de duas colunas:
+O caminho de aprendizagem exibe as licoes agrupadas por titulo, cada uma com seus tres estagios (Estude, Medite, Responda):
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -22,30 +22,75 @@ O caminho de aprendizagem ("Seu Caminho") usa um layout de duas colunas:
 │  [████████████░░░░░░] 3/5                           │
 └─────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────┐
-│                    SEU CAMINHO                       │
+│                                                      │
+│  ╔═══════════════════════════════════════════════╗  │
+│  ║  LICAO 1 - O que e Fe?                        ║  │
+│  ╚═══════════════════════════════════════════════╝  │
 │                                                      │
 │   ┌──────┐                                          │
-│   │      │   ┌───────────────────────────────────┐  │
-│   │ ICON │   │  Licao 1                          │  │
-│   │      │   │  Uma paixao unica pela qual viver │  │
-│   └──────┘   │  ● ● ● ○ ○  3/5                   │  │
+│   │ 📖  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Estude                  ✓        │  │
+│   └──────┘   │  Aprenda sobre o tema             │  │
 │      │       └───────────────────────────────────┘  │
 │      │                                              │
 │   ┌──────┐                                          │
-│   │      │   ┌───────────────────────────────────┐  │
-│   │ ICON │   │  Licao 2           [ATUAL]        │  │
-│   │      │   │  Nao desperdice sua vida          │  │
-│   └──────┘   │  ● ○ ○ ○ ○  1/5                   │  │
+│   │ 🙏  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Medite            [ATUAL]        │  │
+│   └──────┘   │  Reflexao e oracao                │  │
 │      │       └───────────────────────────────────┘  │
 │      │                                              │
 │   ┌──────┐                                          │
-│   │      │   ┌───────────────────────────────────┐  │
-│   │ 🔒   │   │  Licao 3                          │  │
-│   │      │   │  Gloria somente na cruz           │  │
-│   └──────┘   │  ○ ○ ○ ○ ○  0/5                   │  │
+│   │ ❓  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Responda                         │  │
+│   └──────┘   │  Teste seus conhecimentos         │  │
 │              └───────────────────────────────────┘  │
+│                                                      │
+│  ╔═══════════════════════════════════════════════╗  │
+│  ║  LICAO 2 - A Fe que Move Montanhas            ║  │
+│  ╚═══════════════════════════════════════════════╝  │
+│                                                      │
+│   ┌──────┐                                          │
+│   │ 🔒  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Estude              (bloqueado)  │  │
+│   └──────┘   │  Aprenda sobre o tema             │  │
+│      │       └───────────────────────────────────┘  │
+│      │                                              │
+│   ┌──────┐                                          │
+│   │ 🔒  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Medite              (bloqueado)  │  │
+│   └──────┘   │  Reflexao e oracao                │  │
+│      │       └───────────────────────────────────┘  │
+│      │                                              │
+│   ┌──────┐                                          │
+│   │ 🔒  │   ┌───────────────────────────────────┐  │
+│   │      │   │  Responda            (bloqueado)  │  │
+│   └──────┘   │  Teste seus conhecimentos         │  │
+│              └───────────────────────────────────┘  │
+│                                                      │
 └─────────────────────────────────────────────────────┘
 ```
+
+### 1.1.1 Estrutura Hierarquica das Licoes
+
+**IMPORTANTE**: A tela de caminho de aprendizagem NAO deve mostrar "Seu Caminho" com "Licao 1, Licao 2, Licao 3..." como itens separados.
+
+**ESTRUTURA CORRETA:**
+
+Para cada licao (ex: "Licao 1 - O que e Fe?"):
+1. Header da licao com titulo completo
+2. Card "Estude" - Conteudo de leitura (texto, versiculos)
+3. Card "Medite" - Reflexao e oracao (meditacao, reflexao)
+4. Card "Responda" - Exercicios e perguntas (multipla escolha, V/F, preencher lacunas)
+
+**REGRAS DE DESBLOQUEIO:**
+- Estude: Desbloqueia automaticamente quando licao anterior esta completa
+- Medite: Desbloqueia quando Estude esta completo
+- Responda: Desbloqueia quando Medite esta completo
+
+**SISTEMA DE VIDAS (IMPORTANTE):**
+- Estude: Usuario NAO perde vidas (apenas leitura)
+- Medite: Usuario NAO perde vidas (apenas reflexao)
+- Responda: Usuario PODE perder vidas em respostas erradas
 
 ### 1.2 Especificacoes dos Componentes
 

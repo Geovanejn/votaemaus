@@ -703,6 +703,47 @@ Ver seção detalhada no documento original.
 
 ## 12. Histórico de Alterações
 
+### [03/12/2024] - Correcao do Layout da Tela de Licoes
+
+**Problema identificado:**
+- A tela mostrava "Seu Caminho" com "Licao 1, Licao 2, Licao 3..." como itens separados
+- Estrutura incorreta nao refletia o fluxo de aprendizagem em 3 estagios
+
+**Solucao implementada:**
+- Novo layout hierarquico por licao
+- Cada licao exibe seu titulo completo (ex: "Licao 1 - O que e Fe?")
+- Abaixo de cada licao, os 3 estagios aparecem como cards separados:
+  1. **Estude** - Conteudo de leitura (texto, versiculos) - NAO perde vidas
+  2. **Medite** - Reflexao e oracao - NAO perde vidas
+  3. **Responda** - Exercicios e perguntas - PODE perder vidas
+
+**Arquivos afetados:**
+- `docs/STUDY_SYSTEM_DESIGN.md` - Documentacao atualizada
+- `client/src/components/study/LearningPath.tsx` - Componente principal
+- `client/src/pages/study/index.tsx` - Pagina do estudo
+
+**Regras de desbloqueio:**
+- Estude: Desbloqueia quando licao anterior esta completa
+- Medite: Desbloqueia quando Estude esta completo
+- Responda: Desbloqueia quando Medite esta completo
+
+---
+
+### [03/12/2024] - Criacao de Dados de Estudo - Semana 49
+
+**Dados criados:**
+- 1 Semana de estudo: "Fe em Acao - Vivendo a Fe no Dia a Dia"
+- 5 Licoes completas com conteudo biblico
+- 50 unidades distribuidas nos 3 estagios (18 Estude, 10 Medite, 22 Responda)
+- 15 versiculos biblicos para recuperacao de vidas
+- 21 conquistas para gamificacao
+
+**Schema atualizado:**
+- Coluna `stage` adicionada a tabela `study_units`
+- Coluna `heart_recovery_batch` adicionada a tabela `verse_readings`
+
+---
+
 ### [02/12/2024] - Documentação Inicial
 
 **Decisões registradas:**
@@ -720,6 +761,6 @@ Ver seção detalhada no documento original.
 
 ---
 
-*Documento atualizado em: 02/12/2024*
-*Versão: 2.0*
+*Documento atualizado em: 03/12/2024*
+*Versão: 2.1*
 *Status: Em Desenvolvimento*

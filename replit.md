@@ -47,8 +47,24 @@ The architecture is designed for expandability, supporting future modules for Se
 - Mock data provides realistic preview experience for demos
 - Navigation between pages works correctly in both authenticated and preview modes
 
+### PWA (Progressive Web App) Implementation
+- Complete PWA support with manifest.json, service worker, and offline caching
+- Three caching strategies: cache-first (images/static), network-first (API), stale-while-revalidate (documents)
+- Automatic service worker registration with update detection
+- Mobile-optimized with theme colors matching UMP Emaus branding (#FFA500)
+
+### Sound Feedback System
+- Optional sound effects for user interactions (success, error, achievements, etc.)
+- Web Audio API implementation with 8 distinct sound types
+- User preference toggle with localStorage persistence
+- Integrated with achievement notification system
+
 ### Key Files
 - `server/seed-study-data.ts` - Achievement seeding with seedAchievements()
 - `client/src/pages/study/profile.tsx` - Profile with real data + preview fallback
 - `client/src/pages/study/achievements.tsx` - Achievements listing with filters
 - `client/src/components/study/AchievementNotification.tsx` - Unlock modal component
+- `client/public/manifest.json` - PWA manifest configuration
+- `client/public/sw.js` - Service worker for offline support
+- `client/src/hooks/use-sounds.ts` - Sound feedback hook
+- `client/src/components/study/SoundSettings.tsx` - Sound toggle UI component

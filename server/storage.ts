@@ -2484,6 +2484,25 @@ export class SQLiteStorage implements IStorage {
       return { unitProgress: existing, xpAwarded: 0 };
     }
 
+    // Validate stage ordering: previous stages must be completed first
+    const allUnitsForLesson = this.getUnitsForLesson(unit.lessonId);
+    const stageOrder = ['estude', 'medite', 'responda'];
+    const currentStageIndex = stageOrder.indexOf(unit.stage);
+    
+    if (currentStageIndex > 0) {
+      for (let i = 0; i < currentStageIndex; i++) {
+        const previousStage = stageOrder[i];
+        const previousStageUnits = allUnitsForLesson.filter(u => u.stage === previousStage);
+        
+        for (const prevUnit of previousStageUnits) {
+          const prevProgress = this.getUserUnitProgress(userId, prevUnit.id);
+          if (!prevProgress || !prevProgress.isCompleted) {
+            throw new Error(`Voce precisa completar o estagio "${previousStage}" primeiro`);
+          }
+        }
+      }
+    }
+
     db.prepare(`
       INSERT INTO user_unit_progress (user_id, unit_id, is_completed, is_correct, attempts, completed_at)
       VALUES (?, ?, 1, 1, 1, datetime('now'))

@@ -192,6 +192,7 @@ export default function LessonPage() {
     },
     onSuccess: (result) => {
       queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     }
   });
 
@@ -219,6 +220,8 @@ export default function LessonPage() {
       if (result.profile) {
         queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
       }
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
     }
   });
 
@@ -630,6 +633,9 @@ export default function LessonPage() {
     setDisplayXp(prev => prev + xp);
     setShowStageComplete(false);
     setStageCompleteData(null);
+    
+    queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     
     setLocation("/study");
   };

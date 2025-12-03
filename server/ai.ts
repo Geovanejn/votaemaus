@@ -72,40 +72,75 @@ export async function generateStudyContentFromText(
   weekNumber: number,
   year: number
 ): Promise<GeneratedWeekContent> {
-  const systemPrompt = `Voce e um especialista em educacao crista e criacao de conteudo educacional interativo no estilo DeoGlory/Duolingo.
-Sua tarefa e transformar o texto fornecido em um conteudo de estudo semanal completo para jovens da UMP (Uniao da Mocidade Presbiteriana).
+  const systemPrompt = `Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
+Sua tarefa é transformar o texto fornecido em um conteúdo de estudo semanal completo para jovens da UMP (União da Mocidade Presbiteriana).
 
-IMPORTANTE - VERSAO BIBLICA:
-- Use EXCLUSIVAMENTE a versao ARA (Almeida Revista e Atualizada) para TODAS as citacoes biblicas.
-- Ao citar versiculos, use o texto exato da ARA, nao parafrasei ou use outras versoes.
+IMPORTANTE - VERSÃO BÍBLICA:
+- Use EXCLUSIVAMENTE a versão ARA (Almeida Revista e Atualizada) para TODAS as citações bíblicas.
+- Ao citar versículos, use o texto exato da ARA, não parafraseie ou use outras versões.
 
-O Sistema DeoGlory segue uma estrutura de 3 ETAPAS por licao:
-1. ETAPA "ESTUDE" (stage: "estude"): Conteudo para leitura - texto educativo e versiculos biblicos
-2. ETAPA "MEDITE" (stage: "medite"): Aplicacoes praticas geradas por IA, oracao e reflexao pessoal
-3. ETAPA "RESPONDA" (stage: "responda"): Perguntas e exercicios - UNICA etapa que pode causar perda de vidas
+IMPORTANTE - ORTOGRAFIA E ACENTUAÇÃO:
+- Use SEMPRE português brasileiro correto com acentuação apropriada.
+- Use "é" (com acento), "á", "ã", "ç", "ê", "í", "ó", "ú" corretamente.
+- Nunca omita acentos ou cedilhas.
 
-O conteudo deve ser:
-- Biblicamente fundamentado com versiculos da ARA (Almeida Revista e Atualizada)
+O Sistema DeoGlory segue uma estrutura de 3 ETAPAS por lição:
+1. ETAPA "ESTUDE" (stage: "estude"): Conteúdo para leitura - texto educativo e versículos bíblicos
+2. ETAPA "MEDITE" (stage: "medite"): Meditação cristã com oração, reflexão e aplicação prática (SEPARADA DO ESTUDO)
+3. ETAPA "RESPONDA" (stage: "responda"): Perguntas e exercícios - ÚNICA etapa que pode causar perda de vidas
+
+IMPORTANTE - MEDITAÇÃO CRISTÃ:
+A meditação cristã é DIFERENTE da meditação oriental/budista. NÃO inclua:
+- "Respire fundo", "Respire 3 vezes", "Feche os olhos e respire"
+- Técnicas de respiração ou mindfulness
+- Qualquer prática de esvaziamento mental
+
+A meditação cristã DEVE incluir:
+- Reflexão sobre a Palavra de Deus
+- Oração direcionada ao Senhor
+- Aplicação prática do texto bíblico na vida
+- Comunhão com Deus através da Palavra
+- Exame de consciência à luz das Escrituras
+
+O conteúdo deve ser:
+- Biblicamente fundamentado com versículos da ARA
 - Engajante e interativo
 - Adequado para jovens (18-35 anos)
-- Com exercicios variados e gamificados
-- Em portugues brasileiro
+- Com exercícios variados e gamificados
+- Em português brasileiro correto
 
-Responda SEMPRE em JSON valido com a estrutura exata especificada. NAO use markdown, apenas JSON puro.`;
+Responda SEMPRE em JSON válido com a estrutura exata especificada. NÃO use markdown, apenas JSON puro.`;
 
-  const userPrompt = `Transforme o seguinte texto em um conteudo de estudo semanal (Semana ${weekNumber} de ${year}).
+  const userPrompt = `Transforme o seguinte texto em um conteúdo de estudo semanal (Semana ${weekNumber} de ${year}).
 
 TEXTO BASE:
 ${text}
 
+ESTRUTURA DO ESTUDO BÍBLICO (seguir este formato):
+📖 ESTUDO BÍBLICO: [TÍTULO DO TEMA]
+
+✨ Versículo Base
+[Referência] — "[Texto do versículo na ARA]"
+
+📌 1. [TÍTULO DO PRIMEIRO TÓPICO]
+[Texto explicativo do tópico]
+
+📌 2. [TÍTULO DO SEGUNDO TÓPICO]
+[Texto explicativo do tópico]
+
+... (mais tópicos conforme necessário)
+
+🟦 CONCLUSÃO
+[Texto da conclusão]
+
 Gere um JSON com a seguinte estrutura:
 {
-  "weekTitle": "Titulo da semana baseado no tema principal",
-  "weekDescription": "Descricao breve do conteudo da semana",
+  "weekTitle": "Título da semana baseado no tema principal",
+  "weekDescription": "Descrição breve do conteúdo da semana",
   "lessons": [
     {
-      "title": "Titulo da licao",
-      "description": "Descricao breve",
+      "title": "Título da lição",
+      "description": "Descrição breve",
       "type": "intro|study|meditation|challenge|review",
       "xpReward": 10-50,
       "estimatedMinutes": 5-15,
@@ -114,16 +149,16 @@ Gere um JSON com a seguinte estrutura:
           "type": "text|multiple_choice|true_false|fill_blank|meditation|reflection|verse",
           "stage": "estude|medite|responda",
           "content": {
-            // Para "text" (stage: "estude"): { "title": "Titulo do Topico", "body": "Conteudo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
-            // Para "verse" (stage: "estude"): { "title": "Versiculo Base (ARA)", "body": "Texto completo do versiculo na versao ARA", "highlight": "Referencia: Joao 3:16" }
-            // Para "meditation" (stage: "medite"): { "title": "Titulo da Meditacao", "body": "Guia de meditacao detalhado com aplicacoes praticas e oracao", "meditationDuration": 60 }
-            // Para "reflection" (stage: "medite"): { "title": "Aplicacao Pratica", "body": "Como aplicar este ensino na vida diaria", "reflectionPrompt": "Pergunta para reflexao pessoal" }
-            // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteudo", "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"], "correctIndex": 0, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar", "hint": "Dica opcional" }
-            // Para "true_false" (stage: "responda"): { "statement": "Afirmacao para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
+            // Para "text" (stage: "estude"): { "title": "Título do Tópico", "body": "Conteúdo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
+            // Para "verse" (stage: "estude"): { "title": "Versículo Base (ARA)", "body": "Texto completo do versículo na versão ARA", "highlight": "Referência: João 3:16" }
+            // Para "meditation" (stage: "medite"): { "title": "Meditação na Palavra", "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.", "meditationDuration": 60 }
+            // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
+            // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Opção A", "Opção B", "Opção C", "Opção D"], "correctIndex": 0, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" }
+            // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
             // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Exemplos:
-            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "explanationCorrect": "Joao 14:6 - Jesus se apresenta como o unico caminho ao Pai", "explanationIncorrect": "A resposta correta e 'caminho'. Releia Joao 14:6" }
-            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "explanationCorrect": "Deus trabalha para nosso beneficio!", "explanationIncorrect": "A resposta e 'bem'. Romanos 8:28 nos ensina sobre a providencia divina." }
-            //   - { "question": "O fruto do Espirito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciencia", "explanationCorrect": "Galatas 5:22 lista os frutos do Espirito", "explanationIncorrect": "A resposta e 'paciencia'. Veja Galatas 5:22." }
+            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6" }
+            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "explanationCorrect": "Deus trabalha para nosso benefício!", "explanationIncorrect": "A resposta é 'bem'. Romanos 8:28 nos ensina sobre a providência divina." }
+            //   - { "question": "O fruto do Espírito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciência", "explanationCorrect": "Gálatas 5:22 lista os frutos do Espírito", "explanationIncorrect": "A resposta é 'paciência'. Veja Gálatas 5:22." }
           },
           "xpValue": 2-10
         }
@@ -132,40 +167,42 @@ Gere um JSON com a seguinte estrutura:
   ]
 }
 
-ESTRUTURA OBRIGATORIA DAS LICOES - 3 ETAPAS:
+ESTRUTURA OBRIGATÓRIA DAS LIÇÕES - 3 ETAPAS:
 
 ETAPA 1 - ESTUDE (stage: "estude"):
-- Uma ou mais unidades "text" com o TEXTO DE LEITURA principal
-- Uma ou mais unidades "verse" com VERSICULOS BIBLICOS da versao ARA
+- Uma unidade "verse" com o VERSÍCULO BASE da versão ARA (título + versículo na mesma unidade)
+- Múltiplas unidades "text" para cada TÓPICO (título do tópico + texto explicativo juntos)
+- Uma unidade "text" para a CONCLUSÃO
 
-ETAPA 2 - MEDITE (stage: "medite"):
-- Unidades "reflection" com APLICACOES PRATICAS geradas por IA
-- Unidades "meditation" com GUIA DE ORACAO e meditacao
+ETAPA 2 - MEDITE (stage: "medite") - SEPARADA DO ESTUDO:
+- Unidades "reflection" com APLICAÇÕES PRÁTICAS
+- Unidades "meditation" com MEDITAÇÃO CRISTÃ (oração, reflexão na Palavra - SEM técnicas de respiração)
 
 ETAPA 3 - RESPONDA (stage: "responda"):
-- Unidades de exercicios: "multiple_choice", "true_false", "fill_blank"
-- APENAS esta etapa causa perda de vidas quando o usuario erra
+- Unidades de exercícios: "multiple_choice", "true_false", "fill_blank"
+- APENAS esta etapa causa perda de vidas quando o usuário erra
 
 Regras Adicionais:
-1. Crie 1-3 licoes por semana (uma licao principal e opcionais extras)
-2. Cada licao deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
-3. Use APENAS a versao ARA (Almeida Revista e Atualizada) para todos os versiculos
-4. O texto de leitura deve ser substantivo (minimo 100 palavras)
-5. Inclua 2-4 perguntas de multipla escolha ou verdadeiro/falso por licao (etapa RESPONDA)
-6. As aplicacoes praticas (etapa MEDITE) devem conectar o texto biblico com a vida cotidiana
-7. As perguntas devem testar compreensao do texto de leitura
-8. O conteudo deve ser edificante e encorajador
+1. Crie 1-3 lições por semana (uma lição principal e opcionais extras)
+2. Cada lição deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
+3. Use APENAS a versão ARA (Almeida Revista e Atualizada) para todos os versículos
+4. O texto de leitura deve ser substantivo (mínimo 100 palavras)
+5. Inclua 2-4 perguntas de múltipla escolha ou verdadeiro/falso por lição (etapa RESPONDA)
+6. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
+7. As perguntas devem testar compreensão do texto de leitura
+8. O conteúdo deve ser edificante e encorajador
+9. Use português brasileiro correto COM TODOS OS ACENTOS
 
-REGRAS OBRIGATORIAS PARA EXERCICIOS fill_blank:
-- A frase DEVE ter contexto suficiente para o usuario entender o que preencher
-- NUNCA gere apenas "___" sem contexto - isso e INVALIDO
+REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
+- A frase DEVE ter contexto suficiente para o usuário entender o que preencher
+- NUNCA gere apenas "___" sem contexto - isso é INVÁLIDO
 - O campo "question" deve ser uma frase COMPLETA com ___ no lugar da palavra a completar
 - Exemplo CORRETO: "Jesus disse: Eu sou o ___, a verdade e a vida."
 - Exemplo INCORRETO: "___" (sem contexto)
 - Exemplo INCORRETO: "Complete: ___" (muito vago)
-- A resposta deve ser uma UNICA palavra ou expressao curta
+- A resposta deve ser uma ÚNICA palavra ou expressão curta
 
-Retorne APENAS o JSON, sem explicacoes adicionais.`;
+Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
     const content = await generateWithGemini(systemPrompt, userPrompt);

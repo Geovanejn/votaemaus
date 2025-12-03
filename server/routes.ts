@@ -2796,6 +2796,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Seed study data with real content
+  app.post("/api/study/admin/seed", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { seedStudyData } = await import("./seed-study-data");
+      const result = await seedStudyData();
+      res.json({ message: "Dados de estudo inseridos com sucesso", ...result });
+    } catch (error) {
+      console.error("Seed study data error:", error);
+      res.status(500).json({ message: "Erro ao inserir dados de estudo" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

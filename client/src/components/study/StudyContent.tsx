@@ -2,7 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface StudySection {
@@ -22,12 +22,6 @@ interface StudyContentProps {
 function parseStudyContent(body: string, title: string): StudySection[] {
   const sections: StudySection[] = [];
   
-  sections.push({
-    type: "title",
-    title: title,
-    content: ""
-  });
-  
   const lines = body.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   let currentTopicNumber = 0;
   let currentContent: string[] = [];
@@ -35,6 +29,8 @@ function parseStudyContent(body: string, title: string): StudySection[] {
   let isInTopic = false;
   let foundVerse = false;
   let foundConclusion = false;
+  let verseRef = "";
+  let verseContent = "";
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -52,9 +48,8 @@ function parseStudyContent(body: string, title: string): StudySection[] {
       
       const nextLine = lines[i + 1] || "";
       const verseMatch = line.match(/([A-Za-záéíóúãõâêîôûç\s]+\s+\d+[:\-]\d+[\-\d]*)/);
-      const verseRef = verseMatch ? verseMatch[1] : (nextLine.match(/([A-Za-záéíóúãõâêîôûç\s]+\s+\d+[:\-]\d+[\-\d]*)/) ? nextLine.match(/([A-Za-záéíóúãõâêîôûç\s]+\s+\d+[:\-]\d+[\-\d]*)/)![1] : "");
+      verseRef = verseMatch ? verseMatch[1] : (nextLine.match(/([A-Za-záéíóúãõâêîôûç\s]+\s+\d+[:\-]\d+[\-\d]*)/) ? nextLine.match(/([A-Za-záéíóúãõâêîôûç\s]+\s+\d+[:\-]\d+[\-\d]*)/)![1] : "");
       
-      let verseContent = "";
       if (line.includes('—') || line.includes('-')) {
         verseContent = line.split(/[—\-]/).slice(1).join('-').trim();
       } else if (lines[i + 1] && !lines[i + 1].match(/^\d+\./)) {
@@ -62,11 +57,6 @@ function parseStudyContent(body: string, title: string): StudySection[] {
         verseContent = lines[i];
       }
       
-      sections.push({
-        type: "verse",
-        reference: verseRef || line,
-        content: verseContent || line
-      });
       foundVerse = true;
       continue;
     }
@@ -127,16 +117,52 @@ function parseStudyContent(body: string, title: string): StudySection[] {
     });
   }
   
+  // Add verse as first section if found (after title and text are combined)
+  if (foundVerse && verseContent) {
+    sections.unshift({
+      type: "verse",
+      reference: verseRef,
+      content: verseContent
+    });
+  }
+  
+  // Add title with first topic content combined
+  if (sections.length > 0 && sections[0].type !== "verse") {
+    sections.unshift({
+      type: "title",
+      title: title,
+      content: ""
+    });
+  } else if (foundVerse) {
+    // If we have a verse, add title before it
+    sections.unshift({
+      type: "title",
+      title: title,
+      content: ""
+    });
+  } else {
+    sections.unshift({
+      type: "title",
+      title: title,
+      content: ""
+    });
+  }
+  
   if (sections.length <= 1) {
     const paragraphs = body.split('\n\n').filter(p => p.trim().length > 0);
-    paragraphs.forEach((p, idx) => {
-      sections.push({
-        type: "topic",
-        title: `Parte ${idx + 1}`,
-        content: p.trim(),
-        topicNumber: idx + 1
+    if (paragraphs.length > 0) {
+      paragraphs.forEach((p, idx) => {
+        const titleMatch = p.match(/^(.+?)[\n:]/);
+        const contentTitle = titleMatch ? titleMatch[1].replace(/[📌✨🟦\d+\.]/g, '').trim() : `Tópico ${idx + 1}`;
+        const contentText = titleMatch ? p.substring(titleMatch[0].length).trim() : p.trim();
+        sections.push({
+          type: "topic",
+          title: contentTitle,
+          content: contentText,
+          topicNumber: idx + 1
+        });
       });
-    });
+    }
   }
   
   return sections;
@@ -180,11 +206,11 @@ function TopicSection({ title, content, topicNumber }: { title: string; content:
   return (
     <div className="flex flex-col h-full px-6 py-4 overflow-y-auto">
       <div className="max-w-md mx-auto w-full">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="mb-4">
           {topicNumber && (
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-lg font-bold text-primary-foreground">{topicNumber}</span>
-            </div>
+            <p className="text-sm font-bold text-primary uppercase tracking-wide mb-2">
+              Tópico {topicNumber}
+            </p>
           )}
           <h2 className="text-xl font-bold text-foreground">{title}</h2>
         </div>
@@ -286,31 +312,46 @@ export function StudyContent({ lessonTitle, sections: rawSections, onComplete }:
       </div>
       
       <div className="p-4 border-t">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-6">
           <Button
             variant="outline"
             size="icon"
             onClick={goPrev}
             disabled={isFirst}
-            className={cn("flex-shrink-0", isFirst && "invisible")}
+            className={cn("h-12 w-12 rounded-full", isFirst && "opacity-30")}
             data-testid="button-prev"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-6 w-6" />
           </Button>
           
+          <div className="flex flex-col items-center">
+            <p className="text-sm text-muted-foreground">
+              {currentIndex + 1} de {totalSections}
+            </p>
+            {isLast && (
+              <Button
+                onClick={goNext}
+                size="sm"
+                className="mt-2"
+                data-testid="button-complete-study"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Concluir Estudo
+              </Button>
+            )}
+          </div>
+          
           <Button
+            variant={isLast ? "outline" : "default"}
+            size="icon"
             onClick={goNext}
-            className="flex-1 py-6 text-lg font-bold"
+            disabled={isLast}
+            className={cn("h-12 w-12 rounded-full", isLast && "opacity-30")}
             data-testid="button-next"
           >
-            {isLast ? "CONTINUAR" : "PRÓXIMO"}
-            {!isLast && <ChevronRight className="h-5 w-5 ml-2" />}
+            <ChevronRight className="h-6 w-6" />
           </Button>
         </div>
-        
-        <p className="text-center text-sm text-muted-foreground mt-2">
-          {currentIndex + 1} de {totalSections}
-        </p>
       </div>
     </div>
   );

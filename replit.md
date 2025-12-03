@@ -185,8 +185,34 @@ INCORRECT fill_blank examples (DO NOT USE):
 
 ### Important Rules
 1. All Bible verses MUST use ARA (Almeida Revista e Atualizada) version
-2. Content must be in Brazilian Portuguese
+2. Content must be in Brazilian Portuguese with proper accents (é, ç, ã, etc.)
 3. Each lesson must have units from ALL 3 stages in order: ESTUDE -> MEDITE -> RESPONDA
 4. Include 2-4 exercises per lesson in the RESPONDA stage
 5. Text content should be substantive (minimum 100 words)
 6. All fill_blank questions MUST have complete sentences with context
+
+### Christian Meditation Guidelines
+Christian meditation is DIFFERENT from Buddhist/Eastern meditation. NEVER include:
+- "Breathe deeply", "Breathe 3 times", "Close your eyes and breathe"
+- Breathing techniques or mindfulness practices
+- Any mental emptying practices
+
+Christian meditation MUST include:
+- Reflection on God's Word
+- Prayer directed to the Lord
+- Practical application of biblical text
+- Communion with God through Scripture
+- Self-examination in light of the Scriptures
+
+### Study Navigation (UI/UX)
+- Navigation uses circular arrow buttons (left/right) at bottom center
+- Counter shows current position (e.g., "3 de 15")
+- "Concluir Estudo" button appears only on the last screen
+- Topics display with "Tópico X" label above the title
+- Title and content are combined on the same card
+
+### Admin Seed Data
+- Route: POST /api/study/admin/seed (requires admin auth)
+- Script: server/seed-study-data.ts
+- Seeds real biblical study content about faith ("O Que É a Fé?")
+- Clears existing study data before inserting new content

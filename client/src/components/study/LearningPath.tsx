@@ -47,7 +47,7 @@ const stageConfig = {
   medite: {
     icon: Heart,
     label: "Medite",
-    description: "Reflexão e oração",
+    description: "Aplicação e oração",
     colors: {
       bg: "#9B59B6",
       shadow: "#7D3C98",
@@ -259,17 +259,18 @@ function LessonGroup({
 }) {
   const ICON_SIZE = 56;
   const ROW_HEIGHT = 88;
-  const GAP_BETWEEN_ROWS = 20;
+  const GAP_BETWEEN_ROWS = 32;
   
   const ICON_VERTICAL_OFFSET = (ROW_HEIGHT - ICON_SIZE) / 2;
-  const FIRST_ICON_BOTTOM = ICON_VERTICAL_OFFSET + ICON_SIZE;
-  const LAST_ICON_TOP = (lesson.stages.length - 1) * (ROW_HEIGHT + GAP_BETWEEN_ROWS) + ICON_VERTICAL_OFFSET;
-  const LINE_HEIGHT = LAST_ICON_TOP - FIRST_ICON_BOTTOM;
+  const FIRST_ICON_CENTER = ICON_VERTICAL_OFFSET + ICON_SIZE / 2;
+  const LAST_ICON_CENTER = (lesson.stages.length - 1) * (ROW_HEIGHT + GAP_BETWEEN_ROWS) + ICON_VERTICAL_OFFSET + ICON_SIZE / 2;
+  const LINE_TOP = FIRST_ICON_CENTER + ICON_SIZE / 2;
+  const LINE_HEIGHT = LAST_ICON_CENTER - ICON_SIZE / 2 - LINE_TOP;
   
   return (
     <div className="relative">
       <div 
-        className="mb-4"
+        className="mb-5"
         style={{ marginLeft: RAIL_WIDTH + 16 }}
       >
         <LessonHeader 
@@ -285,7 +286,7 @@ function LessonGroup({
             className="absolute w-1 rounded-full bg-gray-300"
             style={{ 
               left: RAIL_WIDTH / 2 - 2,
-              top: FIRST_ICON_BOTTOM,
+              top: LINE_TOP,
               height: LINE_HEIGHT,
               zIndex: 0
             }}
@@ -297,7 +298,7 @@ function LessonGroup({
             return (
               <div 
                 key={stage.type} 
-                className="flex items-center gap-4"
+                className="flex items-center gap-5"
                 style={{ height: `${ROW_HEIGHT}px` }}
               >
                 <div 
@@ -323,7 +324,7 @@ function LessonGroup({
       
       {!isLastLesson && (
         <div 
-          className="flex justify-center py-4"
+          className="flex justify-center py-5"
           style={{ width: RAIL_WIDTH }}
         >
           <div className="w-1 h-6 bg-gray-300 rounded-full" />

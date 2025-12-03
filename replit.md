@@ -219,6 +219,16 @@ Christian meditation MUST include:
 
 ## Recent Changes (December 2025)
 
+### Differentiated Stage Completion Animations
+- **Design Decision**: Simple modal for Estude/Medite, full celebration for Responda
+- **Implementation**: Created StageCompleteModal component for stage completions
+- **Behavior**: Estude/Medite stages show simple XP notification modal
+- **Celebration**: Full LessonComplete screen with confetti reserved for Responda only
+- **XP Handling**: XP for Estude/Medite is deferred until modal dismissal (no per-unit XP during stage)
+- **Key Files**: 
+  - client/src/components/study/StageCompleteModal.tsx
+  - client/src/pages/study/lesson.tsx
+
 ### Fill Blank Exercise Fix
 - **Issue**: fill_blank exercises showed empty question field
 - **Solution**: Added backward compatibility mapping in storage.ts (sentence → question)

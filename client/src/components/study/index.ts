@@ -15,6 +15,7 @@ export { BottomNav } from "./BottomNav";
 export { LessonComplete } from "./LessonComplete";
 export { Celebration, useCelebration } from "./Celebration";
 export { RewardModal } from "./RewardModal";
+export { StageCompleteModal } from "./StageCompleteModal";
 export { DailyMissions } from "./DailyMissions";
 export { StreakCelebration } from "./StreakCelebration";
 export { UnitCard, PracticeCard } from "./UnitCard";

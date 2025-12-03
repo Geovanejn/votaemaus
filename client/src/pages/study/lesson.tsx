@@ -11,7 +11,8 @@ import {
   FillBlankExercise,
   FeedbackOverlay,
   LessonComplete,
-  StudyContent
+  StudyContent,
+  StageCompleteModal
 } from "@/components/study";
 import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
@@ -142,6 +143,13 @@ export default function LessonPage() {
   const [finalXpFromServer, setFinalXpFromServer] = useState<number | null>(null);
   const [waitingForAnswer, setWaitingForAnswer] = useState(false);
   const heartsBeforeAnswer = useRef<number>(5);
+  const [showStageComplete, setShowStageComplete] = useState(false);
+  const [stageCompleteData, setStageCompleteData] = useState<{
+    xp: number;
+    stageType: "estude" | "medite";
+    nextStage: string | null;
+    nextIndex: number;
+  } | null>(null);
 
   const { 
     data: lessonData, 
@@ -451,7 +459,43 @@ export default function LessonPage() {
     }
   };
 
+  const handleMeditateComplete = () => {
+    const meditateUnits = allUnits.filter(u => u.stage === 'medite');
+    const totalXp = meditateUnits.reduce((sum, u) => sum + (u.xpValue || 3), 0);
+    
+    const lastMeditateIndex = allUnits.reduce((lastIdx, u, idx) => 
+      u.stage === 'medite' ? idx : lastIdx, -1
+    );
+    
+    const nextIndex = lastMeditateIndex + 1;
+    const nextUnit = nextIndex < allUnits.length ? allUnits[nextIndex] : null;
+    
+    setStageCompleteData({
+      xp: totalXp,
+      stageType: "medite",
+      nextStage: nextUnit?.stage || null,
+      nextIndex: nextIndex
+    });
+    setShowStageComplete(true);
+  };
+
   const handleTextContinue = () => {
+    if (currentUnit.stage === 'medite') {
+      const meditateUnitsInFiltered = units.filter(u => u.stage === 'medite');
+      const currentMeditateIndex = meditateUnitsInFiltered.findIndex(u => u.id === currentUnit.id);
+      const isLastMeditateUnit = currentMeditateIndex === meditateUnitsInFiltered.length - 1;
+      
+      if (isLastMeditateUnit) {
+        handleMeditateComplete();
+        return;
+      }
+      
+      if (currentUnitIndex < totalUnits - 1) {
+        setCurrentUnitIndex(prev => prev + 1);
+      }
+      return;
+    }
+    
     const xp = currentUnit.xpValue || 2;
     setDisplayXp(prev => prev + xp);
     
@@ -527,18 +571,34 @@ export default function LessonPage() {
   
   const handleStudyComplete = () => {
     const totalXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
-    setDisplayXp(prev => prev + totalXp);
     
     const lastStudyIndex = allUnits.reduce((lastIdx, u, idx) => 
       u.stage === 'estude' ? idx : lastIdx, -1
     );
     
     const nextIndex = lastStudyIndex + 1;
+    const nextUnit = nextIndex < allUnits.length ? allUnits[nextIndex] : null;
+    
+    setStageCompleteData({
+      xp: totalXp,
+      stageType: "estude",
+      nextStage: nextUnit?.stage || null,
+      nextIndex: nextIndex
+    });
+    setShowStageComplete(true);
+  };
+
+  const handleStageModalClose = () => {
+    if (!stageCompleteData) return;
+    
+    const { xp, nextStage, nextIndex } = stageCompleteData;
+    setDisplayXp(prev => prev + xp);
+    setShowStageComplete(false);
+    setStageCompleteData(null);
     
     if (nextIndex < allUnits.length) {
       if (targetStage) {
-        const nextUnit = allUnits[nextIndex];
-        setLocation(`/study/lesson/${lessonId}?stage=${nextUnit.stage}`);
+        setLocation(`/study/lesson/${lessonId}?stage=${nextStage}`);
       } else {
         setCurrentUnitIndex(nextIndex);
       }
@@ -647,6 +707,15 @@ export default function LessonPage() {
           xpEarned={feedbackData.xpEarned}
           heartsLost={feedbackData.heartsLost}
           onContinue={handleContinue}
+        />
+      )}
+
+      {stageCompleteData && (
+        <StageCompleteModal
+          isOpen={showStageComplete}
+          onClose={handleStageModalClose}
+          xpEarned={stageCompleteData.xp}
+          stageType={stageCompleteData.stageType}
         />
       )}
     </div>

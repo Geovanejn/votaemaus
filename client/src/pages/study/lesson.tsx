@@ -10,8 +10,11 @@ import {
   TextContent,
   FillBlankExercise,
   FeedbackOverlay,
-  LessonComplete
+  LessonComplete,
+  StudyContent,
+  parseStudyContent
 } from "@/components/study";
+import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -324,10 +327,58 @@ export default function LessonPage() {
     );
   }
 
-  const units = lessonData.units;
-  const currentUnit = units[currentUnitIndex];
+  const allUnits = lessonData.units;
+  
+  const targetStage = stageParam as "estude" | "medite" | "responda" | null;
+  const filteredUnits = targetStage 
+    ? allUnits.filter(u => u.stage === targetStage)
+    : null;
+  
+  const hasFilteredUnits = filteredUnits !== null && filteredUnits.length > 0;
+  const units = hasFilteredUnits ? filteredUnits : allUnits;
+  const safeIndex = Math.max(0, Math.min(currentUnitIndex, units.length - 1));
+  const currentUnit = units[safeIndex];
   const totalUnits = units.length;
   const currentHearts = serverHearts ?? 5;
+  
+  const isStudyStage = currentUnit?.stage === 'estude';
+  const isTextType = currentUnit?.type === 'text' || currentUnit?.type === 'verse';
+  const studyUnits = allUnits.filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'));
+  const studySections: StudySection[] = studyUnits.length > 0 
+    ? studyUnits.flatMap(unit => {
+        if (unit.content.body) {
+          return parseStudyContent(unit.content.body, unit.content.title || lessonData.title);
+        }
+        return [{
+          type: 'topic' as const,
+          title: unit.content.title || '',
+          content: unit.content.body || unit.content.verseText || ''
+        }];
+      })
+    : parseStudyContent('', lessonData.title);
+  
+  useEffect(() => {
+    if (targetStage) {
+      setCurrentUnitIndex(0);
+    }
+  }, [targetStage]);
+  
+  if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-stage">
+        <div className="text-center max-w-sm">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-foreground mb-2">Sem conteúdo</h1>
+          <p className="text-muted-foreground mb-4">
+            Este estágio ainda não tem conteúdo disponível.
+          </p>
+          <Button onClick={() => setLocation("/study")} data-testid="button-back-empty-stage">
+            Voltar ao Estudo
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleAnswerSubmit = async (userAnswer: any) => {
     if (waitingForAnswer) return;
@@ -458,7 +509,35 @@ export default function LessonPage() {
     handleAnswerSubmit(userAnswer);
   };
 
-  const currentStage = currentUnit?.stage || 'responda';
+  const currentStage = targetStage || currentUnit?.stage || 'responda';
+  
+  const handleStudyComplete = () => {
+    const totalXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
+    setDisplayXp(prev => prev + totalXp);
+    
+    const lastStudyIndex = allUnits.reduce((lastIdx, u, idx) => 
+      u.stage === 'estude' ? idx : lastIdx, -1
+    );
+    
+    const nextIndex = lastStudyIndex + 1;
+    
+    if (nextIndex < allUnits.length) {
+      if (targetStage) {
+        const nextUnit = allUnits[nextIndex];
+        setLocation(`/study/lesson/${lessonId}?stage=${nextUnit.stage}`);
+      } else {
+        setCurrentUnitIndex(nextIndex);
+      }
+    } else {
+      if (targetStage) {
+        setLocation("/study");
+      } else {
+        handleLessonCompletion();
+      }
+    }
+  };
+
+  const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
@@ -469,69 +548,79 @@ export default function LessonPage() {
         maxHearts={profileData?.maxHearts || 5}
         onClose={handleClose}
         currentStage={currentStage}
-        showStages={true}
+        showStages={!targetStage}
       />
 
       <main className="flex-1 flex flex-col">
-        {currentUnit.type === "text" && (
-          <TextContent
-            title={currentUnit.content.title || ""}
-            body={currentUnit.content.body || ""}
-            highlight={currentUnit.content.highlight}
-            onContinue={handleTextContinue}
+        {showStudyContent ? (
+          <StudyContent
+            lessonTitle={lessonData.title}
+            sections={studySections}
+            onComplete={handleStudyComplete}
           />
-        )}
+        ) : (
+          <>
+            {currentUnit.type === "text" && (
+              <TextContent
+                title={currentUnit.content.title || ""}
+                body={currentUnit.content.body || ""}
+                highlight={currentUnit.content.highlight}
+                onContinue={handleTextContinue}
+              />
+            )}
 
-        {currentUnit.type === "verse" && (
-          <TextContent
-            title={currentUnit.content.title || "Versículo"}
-            body={currentUnit.content.body || currentUnit.content.verseText || ""}
-            highlight={currentUnit.content.highlight || currentUnit.content.verseReference}
-            onContinue={handleTextContinue}
-          />
-        )}
+            {currentUnit.type === "verse" && (
+              <TextContent
+                title={currentUnit.content.title || "Versículo"}
+                body={currentUnit.content.body || currentUnit.content.verseText || ""}
+                highlight={currentUnit.content.highlight || currentUnit.content.verseReference}
+                onContinue={handleTextContinue}
+              />
+            )}
 
-        {currentUnit.type === "meditation" && (
-          <TextContent
-            title={currentUnit.content.title || "Meditação"}
-            body={currentUnit.content.body || currentUnit.content.meditationGuide || ""}
-            highlight={currentUnit.content.meditationDuration ? `Duração: ${currentUnit.content.meditationDuration} segundos` : undefined}
-            onContinue={handleTextContinue}
-          />
-        )}
+            {currentUnit.type === "meditation" && (
+              <TextContent
+                title={currentUnit.content.title || "Meditação"}
+                body={currentUnit.content.body || currentUnit.content.meditationGuide || ""}
+                highlight={currentUnit.content.meditationDuration ? `Duração: ${currentUnit.content.meditationDuration} segundos` : undefined}
+                onContinue={handleTextContinue}
+              />
+            )}
 
-        {currentUnit.type === "reflection" && (
-          <TextContent
-            title={currentUnit.content.title || "Reflexão"}
-            body={currentUnit.content.body || currentUnit.content.reflectionPrompt || ""}
-            highlight={currentUnit.content.highlight}
-            onContinue={handleTextContinue}
-          />
-        )}
+            {currentUnit.type === "reflection" && (
+              <TextContent
+                title={currentUnit.content.title || "Reflexão"}
+                body={currentUnit.content.body || currentUnit.content.reflectionPrompt || ""}
+                highlight={currentUnit.content.highlight}
+                onContinue={handleTextContinue}
+              />
+            )}
 
-        {currentUnit.type === "multiple_choice" && (
-          <MultipleChoiceExercise
-            question={currentUnit.content.question || ""}
-            options={currentUnit.content.options || []}
-            correctIndex={currentUnit.content.correctIndex || 0}
-            onAnswer={handleMultipleChoiceAnswer}
-          />
-        )}
+            {currentUnit.type === "multiple_choice" && (
+              <MultipleChoiceExercise
+                question={currentUnit.content.question || ""}
+                options={currentUnit.content.options || []}
+                correctIndex={currentUnit.content.correctIndex || 0}
+                onAnswer={handleMultipleChoiceAnswer}
+              />
+            )}
 
-        {currentUnit.type === "true_false" && (
-          <TrueFalseExercise
-            statement={currentUnit.content.statement || ""}
-            isTrue={currentUnit.content.isTrue || false}
-            onAnswer={handleTrueFalseAnswer}
-          />
-        )}
+            {currentUnit.type === "true_false" && (
+              <TrueFalseExercise
+                statement={currentUnit.content.statement || ""}
+                isTrue={currentUnit.content.isTrue || false}
+                onAnswer={handleTrueFalseAnswer}
+              />
+            )}
 
-        {currentUnit.type === "fill_blank" && (
-          <FillBlankExercise
-            question={currentUnit.content.question || ""}
-            correctAnswer={currentUnit.content.correctAnswer || ""}
-            onAnswer={handleFillBlankAnswer}
-          />
+            {currentUnit.type === "fill_blank" && (
+              <FillBlankExercise
+                question={currentUnit.content.question || ""}
+                correctAnswer={currentUnit.content.correctAnswer || ""}
+                onAnswer={handleFillBlankAnswer}
+              />
+            )}
+          </>
         )}
       </main>
 

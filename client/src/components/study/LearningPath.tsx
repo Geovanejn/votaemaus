@@ -257,6 +257,11 @@ function LessonGroup({
   isFirstLesson: boolean;
   isLastLesson: boolean;
 }) {
+  const ICON_SIZE = 56;
+  const ICON_CENTER = ICON_SIZE / 2;
+  const ROW_HEIGHT = 80;
+  const GAP_BETWEEN_ROWS = 12;
+  
   return (
     <div className="relative">
       <div 
@@ -270,47 +275,46 @@ function LessonGroup({
         />
       </div>
       
-      <div className="space-y-3">
-        {lesson.stages.map((stage, stageIndex) => {
-          const isLastStage = stageIndex === lesson.stages.length - 1;
-          const showConnector = !(isLastLesson && isLastStage);
-          
-          return (
-            <div 
-              key={stage.type} 
-              className="flex items-start gap-4"
-              style={{ minHeight: '80px' }}
-            >
+      <div className="relative">
+        {lesson.stages.length > 1 && (
+          <div 
+            className="absolute w-1 rounded-full bg-gray-300"
+            style={{ 
+              left: RAIL_WIDTH / 2 - 2,
+              top: ICON_CENTER,
+              height: (lesson.stages.length - 1) * (ROW_HEIGHT + GAP_BETWEEN_ROWS),
+              zIndex: 0
+            }}
+          />
+        )}
+        
+        <div className="relative z-10" style={{ display: 'flex', flexDirection: 'column', gap: `${GAP_BETWEEN_ROWS}px` }}>
+          {lesson.stages.map((stage) => {
+            return (
               <div 
-                className="flex-shrink-0 flex justify-center relative"
-                style={{ width: RAIL_WIDTH }}
+                key={stage.type} 
+                className="flex items-center gap-4"
+                style={{ height: `${ROW_HEIGHT}px` }}
               >
-                <StageIcon 
-                  type={stage.type} 
-                  status={stage.status} 
+                <div 
+                  className="flex-shrink-0 flex justify-center items-center relative"
+                  style={{ width: RAIL_WIDTH, height: ICON_SIZE }}
+                >
+                  <StageIcon 
+                    type={stage.type} 
+                    status={stage.status} 
+                    onClick={() => onStageClick?.(lesson.id, stage.type)}
+                  />
+                </div>
+                
+                <StageCard
+                  stage={stage}
                   onClick={() => onStageClick?.(lesson.id, stage.type)}
                 />
-                
-                {showConnector && (
-                  <div 
-                    className="absolute top-[60px] w-1 rounded-full"
-                    style={{ 
-                      height: isLastStage ? '40px' : '28px',
-                      backgroundColor: stage.status === 'completed' ? stageConfig[stage.type].colors.bg : '#E5E5E5',
-                      left: '50%',
-                      transform: 'translateX(-50%)'
-                    }}
-                  />
-                )}
               </div>
-              
-              <StageCard
-                stage={stage}
-                onClick={() => onStageClick?.(lesson.id, stage.type)}
-              />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
       
       {!isLastLesson && (
@@ -318,7 +322,7 @@ function LessonGroup({
           className="flex justify-center py-4"
           style={{ width: RAIL_WIDTH }}
         >
-          <div className="w-1 h-6 bg-border rounded-full" />
+          <div className="w-1 h-6 bg-gray-300 rounded-full" />
         </div>
       )}
     </div>
@@ -379,16 +383,7 @@ export function LearningPath({
         <h2 className="font-bold text-xl text-foreground mb-6">Seu Caminho</h2>
         
         <div className="relative">
-          <div 
-            className="absolute top-0 bottom-0 bg-muted/30 rounded-full"
-            style={{ 
-              left: RAIL_WIDTH / 2 - 2,
-              width: 4,
-              zIndex: 0
-            }}
-          />
-          
-          <div className="relative z-10 space-y-2">
+          <div className="space-y-2">
             {lessons.map((lesson, index) => (
               <LessonGroup
                 key={lesson.id}

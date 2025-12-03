@@ -19,7 +19,9 @@ export { DailyMissions } from "./DailyMissions";
 export { StreakCelebration } from "./StreakCelebration";
 export { UnitCard, PracticeCard } from "./UnitCard";
 export { LearningPath } from "./LearningPath";
+export { StudyContent, parseStudyContent } from "./StudyContent";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";
 export type { LessonItem, StageType, StageItem } from "./LearningPath";
+export type { StudySection } from "./StudyContent";

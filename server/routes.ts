@@ -2823,12 +2823,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Seed study data with real content
+  // Admin: Seed study data with real content (resets all DeoGlory data)
   app.post("/api/study/admin/seed", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const { seedStudyData } = await import("./seed-study-data");
-      const result = await seedStudyData();
-      res.json({ message: "Dados de estudo inseridos com sucesso", ...result });
+      const { seedAllData } = await import("./seed-study-data");
+      await seedAllData();
+      res.json({ 
+        message: "Todos os dados do sistema DeoGlory foram resetados e novos dados inseridos com sucesso",
+        success: true
+      });
     } catch (error) {
       console.error("Seed study data error:", error);
       res.status(500).json({ message: "Erro ao inserir dados de estudo" });

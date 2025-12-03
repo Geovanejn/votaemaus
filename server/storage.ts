@@ -131,6 +131,12 @@ export interface IStorage {
   // Bible Verses
   getUnreadVersesForUser(userId: number): any[];
   resetUserVerseReadings(userId: number): void;
+  
+  // Seed helpers
+  clearAllBibleVerses(): void;
+  clearAllDailyMissions(): void;
+  clearAllStudyProgress(): void;
+  createDailyMission(data: { type: string; title: string; description: string; icon: string; xpReward: number }): any;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -2996,6 +3002,63 @@ export class SQLiteStorage implements IStorage {
     }
 
     console.log('[Daily Missions] Initialized default mission templates');
+  }
+
+  clearAllBibleVerses(): void {
+    db.prepare("DELETE FROM verse_readings").run();
+    db.prepare("DELETE FROM bible_verses").run();
+    console.log('[Seed] Cleared all bible verses');
+  }
+
+  clearAllDailyMissions(): void {
+    db.prepare("DELETE FROM user_daily_missions").run();
+    db.prepare("DELETE FROM daily_missions").run();
+    console.log('[Seed] Cleared all daily missions');
+  }
+
+  clearAllStudyProgress(): void {
+    db.prepare("DELETE FROM user_unit_progress").run();
+    db.prepare("DELETE FROM user_lesson_progress").run();
+    db.prepare("DELETE FROM verse_readings").run();
+    db.prepare("DELETE FROM xp_transactions").run();
+    db.prepare("DELETE FROM daily_activity").run();
+    db.prepare("DELETE FROM user_achievements").run();
+    db.prepare("DELETE FROM leaderboard_entries").run();
+    db.prepare("DELETE FROM user_daily_missions").run();
+    
+    // Reset study profiles to default values
+    db.prepare(`
+      UPDATE study_profiles 
+      SET total_xp = 0, 
+          current_streak = 0, 
+          longest_streak = 0, 
+          hearts = 5, 
+          max_hearts = 5,
+          weekly_xp = 0,
+          level = 1,
+          last_activity_at = NULL,
+          last_heart_recovery_at = NULL
+    `).run();
+    
+    console.log('[Seed] Cleared all study progress');
+  }
+
+  createDailyMission(data: { type: string; title: string; description: string; icon: string; xpReward: number }): any {
+    const stmt = db.prepare(`
+      INSERT INTO daily_missions (type, title, description, icon, xp_reward, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+      RETURNING *
+    `);
+    const row = stmt.get(data.type, data.title, data.description, data.icon, data.xpReward) as any;
+    return {
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      description: row.description,
+      icon: row.icon,
+      xpReward: row.xp_reward,
+      isActive: Boolean(row.is_active)
+    };
   }
 }
 

@@ -23,6 +23,7 @@ interface UnitContent {
   body?: string;
   highlight?: string;
   question?: string;
+  sentence?: string;
   options?: string[];
   correctIndex?: number;
   correctAnswer?: string;
@@ -677,7 +678,7 @@ export default function LessonPage() {
 
             {currentUnit.type === "fill_blank" && (
               <FillBlankExercise
-                question={currentUnit.content.question || ""}
+                question={currentUnit.content.question || currentUnit.content.sentence || ""}
                 correctAnswer={currentUnit.content.correctAnswer || ""}
                 onAnswer={handleFillBlankAnswer}
               />

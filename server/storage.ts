@@ -127,6 +127,10 @@ export interface IStorage {
   getDailyMissionContent(date: string): any | null;
   createDailyMissionContent(data: any): any;
   initializeDailyMissions(): void;
+  
+  // Bible Verses
+  getUnreadVersesForUser(userId: number): any[];
+  resetUserVerseReadings(userId: number): void;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -1785,6 +1789,45 @@ export class SQLiteStorage implements IStorage {
       hearts: profile.hearts,
       maxHearts: profile.heartsMax
     };
+  }
+
+  getUnreadVersesForUser(userId: number): any[] {
+    const allVersesCount = (db.prepare("SELECT COUNT(*) as count FROM bible_verses").get() as any)?.count || 0;
+    
+    if (allVersesCount === 0) {
+      return [];
+    }
+    
+    const readCount = (db.prepare(`
+      SELECT COUNT(DISTINCT verse_id) as count FROM verse_readings WHERE user_id = ?
+    `).get(userId) as any)?.count || 0;
+    
+    if (readCount >= allVersesCount) {
+      this.resetUserVerseReadings(userId);
+    }
+    
+    const stmt = db.prepare(`
+      SELECT bv.* FROM bible_verses bv
+      WHERE bv.id NOT IN (
+        SELECT DISTINCT verse_id FROM verse_readings WHERE user_id = ?
+      )
+      ORDER BY RANDOM()
+      LIMIT 10
+    `);
+    const rows = stmt.all(userId) as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      reference: row.reference,
+      text: row.text,
+      reflection: row.reflection,
+      category: row.category,
+      createdAt: row.created_at,
+    }));
+  }
+
+  resetUserVerseReadings(userId: number): void {
+    db.prepare("DELETE FROM verse_readings WHERE user_id = ?").run(userId);
   }
 
   // Study Weeks

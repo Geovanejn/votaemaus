@@ -250,7 +250,8 @@ export async function seedStudyData() {
   }
 }
 
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
   seedStudyData()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));

@@ -1505,7 +1505,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all bible verses
   app.get("/api/study/verses", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const verses = storage.getAllBibleVerses();
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const verses = storage.getUnreadVersesForUser(req.user.id);
       res.json(verses);
     } catch (error) {
       console.error("Get verses error:", error);

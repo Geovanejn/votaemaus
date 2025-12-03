@@ -11,8 +11,7 @@ import {
   FillBlankExercise,
   FeedbackOverlay,
   LessonComplete,
-  StudyContent,
-  parseStudyContent
+  StudyContent
 } from "@/components/study";
 import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
@@ -327,7 +326,10 @@ export default function LessonPage() {
     );
   }
 
-  const allUnits = lessonData.units;
+  const allUnits = [...lessonData.units].sort((a, b) => {
+    const orderDiff = (a.orderIndex || 0) - (b.orderIndex || 0);
+    return orderDiff !== 0 ? orderDiff : (a.id || 0) - (b.id || 0);
+  });
   
   const targetStage = stageParam as "estude" | "medite" | "responda" | null;
   const filteredUnits = targetStage 
@@ -343,19 +345,37 @@ export default function LessonPage() {
   
   const isStudyStage = currentUnit?.stage === 'estude';
   const isTextType = currentUnit?.type === 'text' || currentUnit?.type === 'verse';
-  const studyUnits = allUnits.filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'));
-  const studySections: StudySection[] = studyUnits.length > 0 
-    ? studyUnits.flatMap(unit => {
-        if (unit.content.body) {
-          return parseStudyContent(unit.content.body, unit.content.title || lessonData.title);
-        }
-        return [{
-          type: 'topic' as const,
-          title: unit.content.title || '',
-          content: unit.content.body || unit.content.verseText || ''
-        }];
-      })
-    : parseStudyContent('', lessonData.title);
+  const studyUnits = allUnits
+    .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'));
+  
+  let topicCounter = 0;
+  const studySections: StudySection[] = studyUnits.map((unit) => {
+    if (unit.type === 'verse') {
+      return {
+        type: 'verse' as const,
+        title: unit.content.title || 'Versículo Base',
+        content: unit.content.body || unit.content.verseText || '',
+        reference: unit.content.highlight || unit.content.verseReference || ''
+      };
+    }
+    
+    const isConclusion = unit.content.title?.toLowerCase().includes('conclus');
+    if (isConclusion) {
+      return {
+        type: 'conclusion' as const,
+        title: unit.content.title || 'Conclusão',
+        content: unit.content.body || ''
+      };
+    }
+    
+    topicCounter++;
+    return {
+      type: 'topic' as const,
+      title: unit.content.title || '',
+      content: unit.content.body || '',
+      topicNumber: topicCounter
+    };
+  });
   
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (

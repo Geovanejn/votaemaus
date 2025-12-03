@@ -2357,7 +2357,7 @@ export class SQLiteStorage implements IStorage {
       case 'fill_blank':
         return {
           ...content,
-          question: content.question || "",
+          question: content.question || content.sentence || "",
           correctAnswer: content.correctAnswer || "",
           explanationCorrect: content.explanationCorrect || content.explanation || "Correto!",
           explanationIncorrect: content.explanationIncorrect || content.explanation || "Incorreto."

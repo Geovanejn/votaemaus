@@ -93,6 +93,7 @@ export interface IStorage {
 
   // Study System
   getStudyWeekById(weekId: number): any | null;
+  getStudyWeekByNumber(weekNumber: number, year: number): any | null;
   getAllStudyWeeks(): any[];
   getLessonsForWeek(weekId: number): any[];
   getLessonById(lessonId: number): any | null;
@@ -1751,9 +1752,9 @@ export class SQLiteStorage implements IStorage {
   }
 
   getStudyStats(): any {
-    const totalUsers = (db.prepare("SELECT COUNT(DISTINCT user_id) as count FROM user_study_progress").get() as any)?.count || 0;
+    const totalUsers = (db.prepare("SELECT COUNT(DISTINCT user_id) as count FROM user_lesson_progress").get() as any)?.count || 0;
     const totalLessons = (db.prepare("SELECT COUNT(*) as count FROM study_lessons").get() as any)?.count || 0;
-    const completedLessons = (db.prepare("SELECT COUNT(*) as count FROM lesson_completions").get() as any)?.count || 0;
+    const completedLessons = (db.prepare("SELECT COUNT(*) as count FROM user_lesson_progress WHERE status = 'completed'").get() as any)?.count || 0;
     const totalWeeks = (db.prepare("SELECT COUNT(*) as count FROM study_weeks").get() as any)?.count || 0;
     const publishedWeeks = (db.prepare("SELECT COUNT(*) as count FROM study_weeks WHERE status = 'published'").get() as any)?.count || 0;
     
@@ -1766,14 +1767,13 @@ export class SQLiteStorage implements IStorage {
     };
   }
 
-  publishStudyWeek(weekId: number): any | null {
-    const stmt = db.prepare(`
-      UPDATE study_weeks 
-      SET status = 'published', published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      RETURNING *
-    `);
-    const row = stmt.get(weekId) as any;
+  getLessonsForWeek(weekId: number): any[] {
+    return this.getLessonsByWeekId(weekId);
+  }
+
+  getStudyWeekById(id: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_weeks WHERE id = ?");
+    const row = stmt.get(id) as any;
     if (!row) return null;
     return {
       id: row.id,
@@ -1791,13 +1791,9 @@ export class SQLiteStorage implements IStorage {
     };
   }
 
-  getLessonsForWeek(weekId: number): any[] {
-    return this.getLessonsByWeekId(weekId);
-  }
-
-  getStudyWeekById(id: number): any | null {
-    const stmt = db.prepare("SELECT * FROM study_weeks WHERE id = ?");
-    const row = stmt.get(id) as any;
+  getStudyWeekByNumber(weekNumber: number, year: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_weeks WHERE week_number = ? AND year = ?");
+    const row = stmt.get(weekNumber, year) as any;
     if (!row) return null;
     return {
       id: row.id,

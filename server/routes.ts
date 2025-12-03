@@ -34,8 +34,17 @@ import {
   isAIConfigured 
 } from "./ai";
 import multer from "multer";
-import * as pdfParseModule from "pdf-parse";
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+import { PDFParse } from "pdf-parse";
+
+async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    return { text: result.text };
+  } finally {
+    await parser.destroy();
+  }
+}
 
 // Configure multer for PDF uploads
 const upload = multer({
@@ -2196,7 +2205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Parse PDF content
-      const pdfData = await pdfParse(req.file.buffer);
+      const pdfData = await parsePdfBuffer(req.file.buffer);
       const pdfText = pdfData.text;
 
       if (!pdfText || pdfText.trim().length < 100) {
@@ -2325,6 +2334,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const currentYear = year || new Date().getFullYear();
       const currentWeekNumber = weekNumber || 1;
+
+      // Check if week already exists
+      const existingWeek = storage.getStudyWeekByNumber(currentWeekNumber, currentYear);
+      if (existingWeek) {
+        return res.status(409).json({ 
+          message: `Ja existe conteudo para a semana ${currentWeekNumber} de ${currentYear}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
+          existingWeek
+        });
+      }
 
       // Generate content with AI
       const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear);

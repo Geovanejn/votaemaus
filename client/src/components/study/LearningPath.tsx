@@ -164,8 +164,8 @@ function PracticeRow({ onClick }: { onClick?: () => void }) {
         style={{ boxShadow: "0 4px 0 0 #1899D6" }}
         data-testid="practice-card"
       >
-        <h3 className="font-bold text-base">Pratica</h3>
-        <p className="text-sm text-white/80">Revise suas licoes</p>
+        <h3 className="font-bold text-base">Prática</h3>
+        <p className="text-sm text-white/80">Revise suas lições</p>
       </motion.button>
     </div>
   );

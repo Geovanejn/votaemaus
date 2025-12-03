@@ -148,21 +148,21 @@ const statusLabels: Record<string, string> = {
 };
 
 const lessonTypeLabels: Record<string, string> = {
-  intro: "Introducao",
+  intro: "Introdução",
   study: "Estudo",
-  meditation: "Meditacao",
+  meditation: "Meditação",
   challenge: "Desafio",
-  review: "Revisao",
+  review: "Revisão",
 };
 
 const unitTypeLabels: Record<string, string> = {
   text: "Texto",
-  multiple_choice: "Multipla Escolha",
+  multiple_choice: "Múltipla Escolha",
   true_false: "Verdadeiro/Falso",
   fill_blank: "Preencher Lacuna",
-  meditation: "Meditacao",
-  reflection: "Reflexao",
-  verse: "Versiculo",
+  meditation: "Meditação",
+  reflection: "Reflexão",
+  verse: "Versículo",
 };
 
 export default function StudyAdminPage() {
@@ -282,7 +282,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
-      toast({ title: "Semana publicada", description: "O conteudo esta disponivel para os usuarios." });
+      toast({ title: "Semana publicada", description: "O conteúdo está disponível para os usuários." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao publicar", description: error.message, variant: "destructive" });
@@ -296,7 +296,7 @@ export default function StudyAdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
       setSelectedWeek(null);
-      toast({ title: "Semana excluida", description: "A semana foi excluida com sucesso." });
+      toast({ title: "Semana excluída", description: "A semana foi excluída com sucesso." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -312,10 +312,10 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/stats"] });
       setIsGenerateDialogOpen(false);
       setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
-      toast({ title: "Conteudo gerado com IA", description: "A semana foi criada com licoes e exercicios automaticamente." });
+      toast({ title: "Conteúdo gerado com IA", description: "A semana foi criada com lições e exercícios automaticamente." });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao gerar conteudo", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao gerar conteúdo", description: error.message, variant: "destructive" });
     },
   });
 
@@ -349,10 +349,10 @@ export default function StudyAdminPage() {
       setPdfFile(null);
       setGenerateMode("text");
       setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
-      toast({ title: "Conteudo gerado com IA", description: "A semana foi criada a partir do PDF com licoes e exercicios." });
+      toast({ title: "Conteúdo gerado com IA", description: "A semana foi criada a partir do PDF com lições e exercícios." });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao gerar conteudo", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao gerar conteúdo", description: error.message, variant: "destructive" });
     },
   });
 
@@ -378,10 +378,10 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
       setIsEditLessonOpen(false);
       setLessonForm({ title: "", type: "study", description: "", xpReward: 10, estimatedMinutes: 5, isBonus: false });
-      toast({ title: "Licao criada", description: "A licao foi adicionada com sucesso." });
+      toast({ title: "Lição criada", description: "A lição foi adicionada com sucesso." });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao criar licao", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao criar lição", description: error.message, variant: "destructive" });
     },
   });
 
@@ -393,7 +393,7 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
       setIsEditLessonOpen(false);
       setEditingLesson(null);
-      toast({ title: "Licao atualizada", description: "As alteracoes foram salvas." });
+      toast({ title: "Lição atualizada", description: "As alterações foram salvas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
@@ -408,7 +408,7 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
       setSelectedLesson(null);
       setViewingUnits(false);
-      toast({ title: "Licao excluida", description: "A licao foi removida com sucesso." });
+      toast({ title: "Lição excluída", description: "A lição foi removida com sucesso." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -423,10 +423,10 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedLesson?.id, "units"] });
       setIsEditUnitOpen(false);
       resetUnitForm();
-      toast({ title: "Exercicio criado", description: "O exercicio foi adicionado com sucesso." });
+      toast({ title: "Exercício criado", description: "O exercício foi adicionado com sucesso." });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao criar exercicio", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao criar exercício", description: error.message, variant: "destructive" });
     },
   });
 
@@ -439,7 +439,7 @@ export default function StudyAdminPage() {
       setIsEditUnitOpen(false);
       setEditingUnit(null);
       resetUnitForm();
-      toast({ title: "Exercicio atualizado", description: "As alteracoes foram salvas." });
+      toast({ title: "Exercício atualizado", description: "As alterações foram salvas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
@@ -452,7 +452,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedLesson?.id, "units"] });
-      toast({ title: "Exercicio excluido", description: "O exercicio foi removido com sucesso." });
+      toast({ title: "Exercício excluído", description: "O exercício foi removido com sucesso." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -465,7 +465,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Licao bloqueada", description: "A licao foi bloqueada para os alunos." });
+      toast({ title: "Lição bloqueada", description: "A lição foi bloqueada para os alunos." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
@@ -478,7 +478,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Licao liberada", description: "A licao foi liberada para os alunos." });
+      toast({ title: "Lição liberada", description: "A lição foi liberada para os alunos." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
@@ -491,7 +491,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Todas as licoes liberadas", description: "Todas as licoes da semana foram liberadas." });
+      toast({ title: "Todas as lições liberadas", description: "Todas as lições da semana foram liberadas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
@@ -504,7 +504,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Todas as licoes bloqueadas", description: "Todas as licoes da semana foram bloqueadas." });
+      toast({ title: "Todas as lições bloqueadas", description: "Todas as lições da semana foram bloqueadas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
@@ -624,7 +624,7 @@ export default function StudyAdminPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-l-4 border-l-[#58CC02]">
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Usuarios Ativos</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Usuários Ativos</CardTitle>
               <Users className="h-4 w-4 text-[#58CC02]" />
             </CardHeader>
             <CardContent>
@@ -642,7 +642,7 @@ export default function StudyAdminPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.totalXpEarned?.toLocaleString() || 0}</div>
-              <p className="text-xs text-muted-foreground">pontos distribuidos</p>
+              <p className="text-xs text-muted-foreground">pontos distribuídos</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -650,12 +650,12 @@ export default function StudyAdminPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="border-l-4 border-l-[#1CB0F6]">
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Licoes Completas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Lições Completas</CardTitle>
               <Target className="h-4 w-4 text-[#1CB0F6]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.completedLessons || 0}</div>
-              <p className="text-xs text-muted-foreground">de {stats?.totalLessons || 0} disponiveis</p>
+              <p className="text-xs text-muted-foreground">de {stats?.totalLessons || 0} disponíveis</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -663,7 +663,7 @@ export default function StudyAdminPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="border-l-4 border-l-[#FF9600]">
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Media Ofensiva</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Média Ofensiva</CardTitle>
               <BarChart3 className="h-4 w-4 text-[#FF9600]" />
             </CardHeader>
             <CardContent>
@@ -679,14 +679,14 @@ export default function StudyAdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
-              Acoes Rapidas
+              Ações Rápidas
             </CardTitle>
-            <CardDescription>Gerencie o conteudo do sistema de estudos</CardDescription>
+            <CardDescription>Gerencie o conteúdo do sistema de estudos</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button className="w-full justify-start" variant="outline" onClick={() => setIsGenerateDialogOpen(true)} data-testid="button-generate-ai">
               <Sparkles className="w-4 h-4 mr-2 text-[#FFA500]" />
-              Gerar Conteudo com IA
+              Gerar Conteúdo com IA
               {aiStatus?.configured && <Badge className="ml-auto bg-green-100 text-green-800">IA Pronta</Badge>}
             </Button>
             <Button className="w-full justify-start" variant="outline" onClick={() => setIsCreateWeekOpen(true)} data-testid="button-create-week">
@@ -710,7 +710,7 @@ export default function StudyAdminPage() {
               <Calendar className="h-5 w-5 text-primary" />
               Semanas Recentes
             </CardTitle>
-            <CardDescription>Ultimas semanas de estudo criadas</CardDescription>
+            <CardDescription>Últimas semanas de estudo criadas</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingWeeks ? (
@@ -760,7 +760,7 @@ export default function StudyAdminPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-semibold">Semanas de Estudo</h2>
-          <p className="text-sm text-muted-foreground">Gerencie o conteudo semanal</p>
+          <p className="text-sm text-muted-foreground">Gerencie o conteúdo semanal</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setIsGenerateDialogOpen(true)} data-testid="button-generate-week">
@@ -784,7 +784,7 @@ export default function StudyAdminPage() {
             <FileText className="h-16 w-16 text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-semibold">Nenhuma semana criada</h3>
             <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
-              Comece gerando conteudo com IA ou crie uma semana manualmente.
+              Comece gerando conteúdo com IA ou crie uma semana manualmente.
             </p>
             <div className="flex gap-3 mt-6 flex-wrap">
               <Button onClick={() => setIsGenerateDialogOpen(true)}>
@@ -820,7 +820,7 @@ export default function StudyAdminPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => { setSelectedWeek(week); setViewingUnits(false); }}>
                             <Settings className="w-4 h-4 mr-2" />
-                            Gerenciar Licoes
+                            Gerenciar Lições
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setLocation(`/study`)}>
                             <Eye className="w-4 h-4 mr-2" />
@@ -842,7 +842,7 @@ export default function StudyAdminPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{week.description || "Sem descricao"}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{week.description || "Sem descrição"}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className={statusColors[week.status]}>{statusLabels[week.status]}</Badge>
                       {week.aiMetadata && <Badge variant="outline"><Brain className="w-3 h-3 mr-1" />IA</Badge>}
@@ -851,7 +851,7 @@ export default function StudyAdminPage() {
                   <CardFooter className="border-t bg-muted/30 px-4 py-3">
                     <Button variant="ghost" size="sm" className="w-full" onClick={() => { setSelectedWeek(week); setViewingUnits(false); }} data-testid={`manage-lessons-${week.id}`}>
                       <Settings className="w-4 h-4 mr-2" />
-                      Gerenciar Licoes
+                      Gerenciar Lições
                     </Button>
                   </CardFooter>
                 </Card>
@@ -887,20 +887,20 @@ export default function StudyAdminPage() {
                 disabled={unlockAllLessonsMutation.isPending}
               >
                 <Unlock className="w-4 h-4 mr-2" />
-                Liberar Todas as Licoes
+                Liberar Todas as Lições
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => selectedWeek && lockAllLessonsMutation.mutate(selectedWeek.id)}
                 disabled={lockAllLessonsMutation.isPending}
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Bloquear Todas as Licoes
+                Bloquear Todas as Lições
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={() => { setEditingLesson(null); setLessonForm({ title: "", type: "study", description: "", xpReward: 10, estimatedMinutes: 5, isBonus: false }); setIsEditLessonOpen(true); }} data-testid="button-add-lesson">
             <Plus className="w-4 h-4 mr-2" />
-            Adicionar Licao
+            Adicionar Lição
           </Button>
         </div>
       </div>
@@ -913,11 +913,11 @@ export default function StudyAdminPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-semibold">Nenhuma licao ainda</h3>
-            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">Adicione licoes manualmente ou use IA para gerar conteudo.</p>
+            <h3 className="mt-4 text-lg font-semibold">Nenhuma lição ainda</h3>
+            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">Adicione lições manualmente ou use IA para gerar conteúdo.</p>
             <Button className="mt-6" onClick={() => { setEditingLesson(null); setIsEditLessonOpen(true); }}>
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar Licao
+              Adicionar Lição
             </Button>
           </CardContent>
         </Card>
@@ -1011,7 +1011,7 @@ export default function StudyAdminPage() {
         </div>
         <Button onClick={() => { setEditingUnit(null); resetUnitForm(); setIsEditUnitOpen(true); }} data-testid="button-add-unit">
           <Plus className="w-4 h-4 mr-2" />
-          Adicionar Exercicio
+          Adicionar Exercício
         </Button>
       </div>
 
@@ -1023,11 +1023,11 @@ export default function StudyAdminPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <ListChecks className="h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-semibold">Nenhum exercicio ainda</h3>
-            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">Adicione exercicios para esta licao.</p>
+            <h3 className="mt-4 text-lg font-semibold">Nenhum exercício ainda</h3>
+            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">Adicione exercícios para esta lição.</p>
             <Button className="mt-6" onClick={() => { setEditingUnit(null); resetUnitForm(); setIsEditUnitOpen(true); }}>
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar Exercicio
+              Adicionar Exercício
             </Button>
           </CardContent>
         </Card>
@@ -1048,14 +1048,14 @@ export default function StudyAdminPage() {
                       </span>
                     </div>
                     <p className="text-sm mt-1 truncate text-muted-foreground">
-                      {unit.content.question || unit.content.title || unit.content.text?.substring(0, 50) || "Conteudo"}
+                      {unit.content.question || unit.content.title || unit.content.text?.substring(0, 50) || "Conteúdo"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => openEditUnit(unit)} data-testid={`edit-unit-${unit.id}`}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => confirmDelete("unit", unit.id, `Exercicio ${unit.orderIndex + 1}`)} data-testid={`delete-unit-${unit.id}`}>
+                    <Button variant="ghost" size="icon" onClick={() => confirmDelete("unit", unit.id, `Exercício ${unit.orderIndex + 1}`)} data-testid={`delete-unit-${unit.id}`}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -1074,12 +1074,12 @@ export default function StudyAdminPage() {
         return (
           <>
             <div className="space-y-2">
-              <Label>Titulo</Label>
-              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Titulo do texto" data-testid="input-unit-title" />
+              <Label>Título</Label>
+              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Título do texto" data-testid="input-unit-title" />
             </div>
             <div className="space-y-2">
               <Label>Texto</Label>
-              <Textarea value={unitForm.text} onChange={(e) => setUnitForm({ ...unitForm, text: e.target.value })} placeholder="Conteudo do texto..." rows={4} data-testid="input-unit-text" />
+              <Textarea value={unitForm.text} onChange={(e) => setUnitForm({ ...unitForm, text: e.target.value })} placeholder="Conteúdo do texto..." rows={4} data-testid="input-unit-text" />
             </div>
           </>
         );
@@ -1091,10 +1091,10 @@ export default function StudyAdminPage() {
               <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Digite a pergunta..." data-testid="input-unit-question" />
             </div>
             <div className="space-y-2">
-              <Label>Opcoes</Label>
+              <Label>Opções</Label>
               {unitForm.options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Input value={opt} onChange={(e) => { const opts = [...unitForm.options]; opts[i] = e.target.value; setUnitForm({ ...unitForm, options: opts }); }} placeholder={`Opcao ${i + 1}`} data-testid={`input-unit-option-${i}`} />
+                  <Input value={opt} onChange={(e) => { const opts = [...unitForm.options]; opts[i] = e.target.value; setUnitForm({ ...unitForm, options: opts }); }} placeholder={`Opção ${i + 1}`} data-testid={`input-unit-option-${i}`} />
                   <Button type="button" variant={unitForm.correctAnswer === i ? "default" : "outline"} size="sm" onClick={() => setUnitForm({ ...unitForm, correctAnswer: i })} data-testid={`button-correct-${i}`}>
                     {unitForm.correctAnswer === i ? <CheckCircle2 className="w-4 h-4" /> : "Correta"}
                   </Button>
@@ -1102,8 +1102,8 @@ export default function StudyAdminPage() {
               ))}
             </div>
             <div className="space-y-2">
-              <Label>Explicacao</Label>
-              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicacao da resposta..." data-testid="input-unit-explanation" />
+              <Label>Explicação</Label>
+              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicação da resposta..." data-testid="input-unit-explanation" />
             </div>
           </>
         );
@@ -1111,8 +1111,8 @@ export default function StudyAdminPage() {
         return (
           <>
             <div className="space-y-2">
-              <Label>Afirmacao</Label>
-              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Digite a afirmacao..." data-testid="input-unit-statement" />
+              <Label>Afirmação</Label>
+              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Digite a afirmação..." data-testid="input-unit-statement" />
             </div>
             <div className="space-y-2">
               <Label>Resposta Correta</Label>
@@ -1127,8 +1127,8 @@ export default function StudyAdminPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Explicacao</Label>
-              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicacao..." data-testid="input-unit-explanation" />
+              <Label>Explicação</Label>
+              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicação..." data-testid="input-unit-explanation" />
             </div>
           </>
         );
@@ -1137,15 +1137,15 @@ export default function StudyAdminPage() {
           <>
             <div className="space-y-2">
               <Label>Frase (use ___ para a lacuna)</Label>
-              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Complete: A fe e a certeza daquilo que ___" data-testid="input-unit-sentence" />
+              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Complete: A fé é a certeza daquilo que ___" data-testid="input-unit-sentence" />
             </div>
             <div className="space-y-2">
               <Label>Resposta Correta</Label>
               <Input value={unitForm.text} onChange={(e) => setUnitForm({ ...unitForm, text: e.target.value })} placeholder="esperamos" data-testid="input-unit-answer" />
             </div>
             <div className="space-y-2">
-              <Label>Explicacao</Label>
-              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicacao..." data-testid="input-unit-explanation" />
+              <Label>Explicação</Label>
+              <Textarea value={unitForm.explanation} onChange={(e) => setUnitForm({ ...unitForm, explanation: e.target.value })} placeholder="Explicação..." data-testid="input-unit-explanation" />
             </div>
           </>
         );
@@ -1153,12 +1153,12 @@ export default function StudyAdminPage() {
         return (
           <>
             <div className="space-y-2">
-              <Label>Titulo</Label>
-              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Titulo da reflexao" data-testid="input-unit-title" />
+              <Label>Título</Label>
+              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Título da reflexão" data-testid="input-unit-title" />
             </div>
             <div className="space-y-2">
-              <Label>Pergunta de Reflexao</Label>
-              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="O que esse versiculo significa para voce?" data-testid="input-unit-prompt" />
+              <Label>Pergunta de Reflexão</Label>
+              <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="O que esse versículo significa para você?" data-testid="input-unit-prompt" />
             </div>
           </>
         );
@@ -1166,15 +1166,15 @@ export default function StudyAdminPage() {
         return (
           <>
             <div className="space-y-2">
-              <Label>Referencia</Label>
-              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Joao 3:16" data-testid="input-unit-reference" />
+              <Label>Referência</Label>
+              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="João 3:16" data-testid="input-unit-reference" />
             </div>
             <div className="space-y-2">
-              <Label>Texto do Versiculo</Label>
+              <Label>Texto do Versículo</Label>
               <Textarea value={unitForm.text} onChange={(e) => setUnitForm({ ...unitForm, text: e.target.value })} placeholder="Porque Deus amou o mundo..." data-testid="input-unit-verse-text" />
             </div>
             <div className="space-y-2">
-              <Label>Pergunta de Reflexao (opcional)</Label>
+              <Label>Pergunta de Reflexão (opcional)</Label>
               <Textarea value={unitForm.question} onChange={(e) => setUnitForm({ ...unitForm, question: e.target.value })} placeholder="Como aplicar isso na sua vida?" data-testid="input-unit-prompt" />
             </div>
           </>
@@ -1183,11 +1183,11 @@ export default function StudyAdminPage() {
         return (
           <>
             <div className="space-y-2">
-              <Label>Titulo</Label>
-              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Momento de Reflexao" data-testid="input-unit-title" />
+              <Label>Título</Label>
+              <Input value={unitForm.title} onChange={(e) => setUnitForm({ ...unitForm, title: e.target.value })} placeholder="Momento de Reflexão" data-testid="input-unit-title" />
             </div>
             <div className="space-y-2">
-              <Label>Instrucoes da Meditacao</Label>
+              <Label>Instruções da Meditação</Label>
               <Textarea value={unitForm.text} onChange={(e) => setUnitForm({ ...unitForm, text: e.target.value })} placeholder="Feche os olhos e respire profundamente..." rows={4} data-testid="input-unit-guide" />
             </div>
           </>
@@ -1225,7 +1225,7 @@ export default function StudyAdminPage() {
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-              <TabsTrigger value="overview" data-testid="tab-overview">Visao Geral</TabsTrigger>
+              <TabsTrigger value="overview" data-testid="tab-overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="weeks" data-testid="tab-weeks">Semanas</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">{renderOverview()}</TabsContent>
@@ -1238,20 +1238,20 @@ export default function StudyAdminPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Semana de Estudo</DialogTitle>
-            <DialogDescription>Crie uma nova semana para adicionar licoes e exercicios.</DialogDescription>
+            <DialogDescription>Crie uma nova semana para adicionar lições e exercícios.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="week-title">Titulo</Label>
-              <Input id="week-title" placeholder="Ex: Nao Jogue Sua Vida Fora" value={newWeek.title} onChange={(e) => setNewWeek({ ...newWeek, title: e.target.value })} data-testid="input-week-title" />
+              <Label htmlFor="week-title">Título</Label>
+              <Input id="week-title" placeholder="Ex: Não Jogue Sua Vida Fora" value={newWeek.title} onChange={(e) => setNewWeek({ ...newWeek, title: e.target.value })} data-testid="input-week-title" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="week-description">Descricao</Label>
+              <Label htmlFor="week-description">Descrição</Label>
               <Textarea id="week-description" placeholder="Descreva o tema desta semana..." value={newWeek.description} onChange={(e) => setNewWeek({ ...newWeek, description: e.target.value })} data-testid="input-week-description" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="week-number">Numero da Semana</Label>
+                <Label htmlFor="week-number">Número da Semana</Label>
                 <Input id="week-number" type="number" min={1} value={newWeek.weekNumber} onChange={(e) => setNewWeek({ ...newWeek, weekNumber: parseInt(e.target.value) })} data-testid="input-week-number" />
               </div>
               <div className="space-y-2">
@@ -1275,9 +1275,9 @@ export default function StudyAdminPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#FFA500]" />
-              Gerar Conteudo com IA
+              Gerar Conteúdo com IA
             </DialogTitle>
-            <DialogDescription>Envie um PDF ou cole o texto da revista/devocional para gerar licoes automaticamente.</DialogDescription>
+            <DialogDescription>Envie um PDF ou cole o texto da revista/devocional para gerar lições automaticamente.</DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 py-4">
             <div className="space-y-4 pr-4">
@@ -1315,7 +1315,7 @@ export default function StudyAdminPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Numero da Semana</Label>
+                  <Label>Número da Semana</Label>
                   <Input type="number" min={1} value={generateInput.weekNumber} onChange={(e) => setGenerateInput({ ...generateInput, weekNumber: parseInt(e.target.value) })} data-testid="input-generate-week" />
                 </div>
                 <div className="space-y-2">
@@ -1328,13 +1328,13 @@ export default function StudyAdminPage() {
                 <div className="space-y-2">
                   <Label>Texto Base</Label>
                   <Textarea
-                    placeholder="Cole aqui o texto da revista, devocional ou conteudo que deseja transformar em licoes..."
+                    placeholder="Cole aqui o texto da revista, devocional ou conteúdo que deseja transformar em lições..."
                     value={generateInput.text}
                     onChange={(e) => setGenerateInput({ ...generateInput, text: e.target.value })}
                     rows={12}
                     data-testid="input-generate-text"
                   />
-                  <p className="text-xs text-muted-foreground">Minimo de 100 caracteres. Quanto mais conteudo, mais licoes serao geradas.</p>
+                  <p className="text-xs text-muted-foreground">Mínimo de 100 caracteres. Quanto mais conteúdo, mais lições serão geradas.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1375,12 +1375,12 @@ export default function StudyAdminPage() {
               )}
 
               <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium text-sm mb-2">O que a IA ira fazer:</h4>
+                <h4 className="font-medium text-sm mb-2">O que a IA irá fazer:</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Extrair titulo e tema principal</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Criar 3-5 licoes estruturadas</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Gerar exercicios variados (multipla escolha, V/F, lacunas)</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Adicionar versiculos e reflexoes</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Extrair título e tema principal</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Criar 3-5 lições estruturadas</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Gerar exercícios variados (múltipla escolha, V/F, lacunas)</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" />Adicionar versículos e reflexões</li>
                 </ul>
               </div>
             </div>
@@ -1411,7 +1411,7 @@ export default function StudyAdminPage() {
               {(generateWithAIMutation.isPending || generateFromPDFMutation.isPending) ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando...</>
               ) : (
-                <><Sparkles className="w-4 h-4 mr-2" />Gerar Conteudo</>
+                <><Sparkles className="w-4 h-4 mr-2" />Gerar Conteúdo</>
               )}
             </Button>
           </DialogFooter>
@@ -1421,30 +1421,30 @@ export default function StudyAdminPage() {
       <Dialog open={isEditLessonOpen} onOpenChange={setIsEditLessonOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingLesson ? "Editar Licao" : "Nova Licao"}</DialogTitle>
-            <DialogDescription>{editingLesson ? "Atualize os dados da licao." : "Adicione uma nova licao a esta semana."}</DialogDescription>
+            <DialogTitle>{editingLesson ? "Editar Lição" : "Nova Lição"}</DialogTitle>
+            <DialogDescription>{editingLesson ? "Atualize os dados da lição." : "Adicione uma nova lição a esta semana."}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Titulo</Label>
-              <Input value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} placeholder="Titulo da licao" data-testid="input-lesson-title" />
+              <Label>Título</Label>
+              <Input value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} placeholder="Título da lição" data-testid="input-lesson-title" />
             </div>
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={lessonForm.type} onValueChange={(v) => setLessonForm({ ...lessonForm, type: v })}>
                 <SelectTrigger data-testid="select-lesson-type"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="intro">Introducao</SelectItem>
+                  <SelectItem value="intro">Introdução</SelectItem>
                   <SelectItem value="study">Estudo</SelectItem>
-                  <SelectItem value="meditation">Meditacao</SelectItem>
+                  <SelectItem value="meditation">Meditação</SelectItem>
                   <SelectItem value="challenge">Desafio</SelectItem>
-                  <SelectItem value="review">Revisao</SelectItem>
+                  <SelectItem value="review">Revisão</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Descricao</Label>
-              <Textarea value={lessonForm.description} onChange={(e) => setLessonForm({ ...lessonForm, description: e.target.value })} placeholder="Descricao breve..." data-testid="input-lesson-description" />
+              <Label>Descrição</Label>
+              <Textarea value={lessonForm.description} onChange={(e) => setLessonForm({ ...lessonForm, description: e.target.value })} placeholder="Descrição breve..." data-testid="input-lesson-description" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1458,7 +1458,7 @@ export default function StudyAdminPage() {
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={lessonForm.isBonus} onCheckedChange={(v) => setLessonForm({ ...lessonForm, isBonus: v })} data-testid="switch-lesson-bonus" />
-              <Label>Licao Bonus</Label>
+              <Label>Lição Bônus</Label>
             </div>
           </div>
           <DialogFooter>
@@ -1474,8 +1474,8 @@ export default function StudyAdminPage() {
       <Dialog open={isEditUnitOpen} onOpenChange={setIsEditUnitOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingUnit ? "Editar Exercicio" : "Novo Exercicio"}</DialogTitle>
-            <DialogDescription>{editingUnit ? "Atualize os dados do exercicio." : "Adicione um novo exercicio a esta licao."}</DialogDescription>
+            <DialogTitle>{editingUnit ? "Editar Exercício" : "Novo Exercício"}</DialogTitle>
+            <DialogDescription>{editingUnit ? "Atualize os dados do exercício." : "Adicione um novo exercício a esta lição."}</DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 py-4">
             <div className="space-y-4 pr-4">
@@ -1486,12 +1486,12 @@ export default function StudyAdminPage() {
                     <SelectTrigger data-testid="select-unit-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="text">Texto</SelectItem>
-                      <SelectItem value="multiple_choice">Multipla Escolha</SelectItem>
+                      <SelectItem value="multiple_choice">Múltipla Escolha</SelectItem>
                       <SelectItem value="true_false">Verdadeiro/Falso</SelectItem>
                       <SelectItem value="fill_blank">Preencher Lacuna</SelectItem>
-                      <SelectItem value="reflection">Reflexao</SelectItem>
-                      <SelectItem value="verse">Versiculo</SelectItem>
-                      <SelectItem value="meditation">Meditacao</SelectItem>
+                      <SelectItem value="reflection">Reflexão</SelectItem>
+                      <SelectItem value="verse">Versículo</SelectItem>
+                      <SelectItem value="meditation">Meditação</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1516,11 +1516,11 @@ export default function StudyAdminPage() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusao</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{deleteTarget?.name}"? Esta acao nao pode ser desfeita.
-              {deleteTarget?.type === "week" && " Todas as licoes e exercicios desta semana serao excluidos."}
-              {deleteTarget?.type === "lesson" && " Todos os exercicios desta licao serao excluidos."}
+              Tem certeza que deseja excluir "{deleteTarget?.name}"? Esta ação não pode ser desfeita.
+              {deleteTarget?.type === "week" && " Todas as lições e exercícios desta semana serão excluídos."}
+              {deleteTarget?.type === "lesson" && " Todos os exercícios desta lição serão excluídos."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

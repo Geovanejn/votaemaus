@@ -29,7 +29,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const mockUser = {
-  name: "Joao Silva",
+  name: "João Silva",
   username: "@joaosilva",
   email: "joao@email.com",
   avatar: "",
@@ -50,12 +50,12 @@ const mockUser = {
 };
 
 const mockAchievements = [
-  { id: 1, name: "Primeiro Passo", icon: Star, unlocked: true, description: "Complete sua primeira licao" },
-  { id: 2, name: "Semana Perfeita", icon: Flame, unlocked: true, description: "7 dias de sequencia" },
-  { id: 3, name: "Estudioso", icon: BookOpen, unlocked: true, description: "Complete 10 licoes" },
-  { id: 4, name: "Mes de Fe", icon: Medal, unlocked: false, description: "30 dias de sequencia" },
-  { id: 5, name: "Mestre", icon: Trophy, unlocked: false, description: "Alcance o nivel 50" },
-  { id: 6, name: "Perfeicao", icon: Target, unlocked: false, description: "10 licoes sem erros" },
+  { id: 1, name: "Primeiro Passo", icon: Star, unlocked: true, description: "Complete sua primeira lição" },
+  { id: 2, name: "Semana Perfeita", icon: Flame, unlocked: true, description: "7 dias de sequência" },
+  { id: 3, name: "Estudioso", icon: BookOpen, unlocked: true, description: "Complete 10 lições" },
+  { id: 4, name: "Mês de Fé", icon: Medal, unlocked: false, description: "30 dias de sequência" },
+  { id: 5, name: "Mestre", icon: Trophy, unlocked: false, description: "Alcance o nível 50" },
+  { id: 6, name: "Perfeição", icon: Target, unlocked: false, description: "10 lições sem erros" },
 ];
 
 function StatCard({ 

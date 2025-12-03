@@ -162,8 +162,8 @@ export function PracticeCard({ onClick }: PracticeCardProps) {
       </div>
 
       <div className="flex-1 text-left">
-        <h3 className="font-bold text-base">Pratica</h3>
-        <p className="text-sm text-white/80">Revise suas licoes</p>
+        <h3 className="font-bold text-base">Prática</h3>
+        <p className="text-sm text-white/80">Revise suas lições</p>
       </div>
     </motion.button>
   );

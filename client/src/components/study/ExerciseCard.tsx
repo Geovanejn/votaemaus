@@ -234,12 +234,30 @@ export function FillBlankExercise({
   };
 
   const renderQuestionWithBlank = () => {
+    if (!question || question.trim() === "") {
+      return (
+        <>
+          <span className="block mb-2 text-muted-foreground">Complete a lacuna:</span>
+          <span className={cn(
+            "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+            isAnswered 
+              ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
+                ? "border-green-500 text-green-600 dark:text-green-400"
+                : "border-red-500 text-red-600 dark:text-red-400"
+              : "border-primary"
+          )}>
+            {userAnswer || "___"}
+          </span>
+        </>
+      );
+    }
+
     const blankIndex = question.indexOf("___");
     
     if (blankIndex === -1) {
       return (
         <>
-          <span>{question}</span>
+          <span>{question} </span>
           <span className={cn(
             "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
             isAnswered 
@@ -278,6 +296,10 @@ export function FillBlankExercise({
   return (
     <div className="flex flex-col h-full" data-testid="exercise-fill-blank">
       <div className="flex-1 flex flex-col justify-center px-4">
+        <h2 className="text-xl font-bold text-foreground mb-6 text-center">
+          Complete a frase
+        </h2>
+        
         <Card className="p-6 mb-6">
           <p className="text-lg text-foreground text-center leading-relaxed">
             {renderQuestionWithBlank()}

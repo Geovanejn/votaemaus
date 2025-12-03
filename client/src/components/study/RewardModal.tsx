@@ -155,7 +155,7 @@ export function RewardModal({
                   transition={{ delay: 0.1 }}
                   className="text-2xl font-black text-foreground mb-1"
                 >
-                  Licao Concluida!
+                  Lição Concluída!
                 </motion.h2>
                 
                 {lessonTitle && (

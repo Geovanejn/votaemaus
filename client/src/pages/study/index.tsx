@@ -97,7 +97,7 @@ function UserProfileHeader({
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-white/80 font-medium">Ola,</p>
+              <p className="text-sm text-white/80 font-medium">Olá,</p>
               <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
                 {userName}
               </h1>
@@ -168,7 +168,7 @@ function DailyGoalSection({
     <div className="px-4 py-4 bg-background border-b border-border">
       <div className="max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-2 gap-2">
-          <h2 className="font-bold text-foreground">Meta Diaria</h2>
+          <h2 className="font-bold text-foreground">Meta Diária</h2>
           <span className="text-sm font-bold text-[#58CC02]">{current}/{target}</span>
         </div>
         
@@ -183,8 +183,8 @@ function DailyGoalSection({
         
         <p className="text-sm text-muted-foreground mt-2">
           {remaining > 0 
-            ? `Mais ${remaining} licoes para completar sua meta!`
-            : "Parabens! Voce completou sua meta diaria!"
+            ? `Mais ${remaining} lições para completar sua meta!`
+            : "Parabéns! Você completou sua meta diária!"
           }
         </p>
       </div>
@@ -209,7 +209,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <div className="text-center max-w-sm">
         <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
         <p className="text-muted-foreground mb-4">
-          Nao foi possivel carregar os dados do estudo. Por favor, tente novamente.
+          Não foi possível carregar os dados do estudo. Por favor, tente novamente.
         </p>
         <Button onClick={onRetry} data-testid="button-retry">
           Tentar novamente
@@ -225,9 +225,9 @@ function NotAuthenticatedState() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="study-not-auth">
       <div className="text-center max-w-sm">
-        <h1 className="text-xl font-bold text-foreground mb-2">Faca login para continuar</h1>
+        <h1 className="text-xl font-bold text-foreground mb-2">Faça login para continuar</h1>
         <p className="text-muted-foreground mb-4">
-          Voce precisa estar logado para acessar os estudos.
+          Você precisa estar logado para acessar os estudos.
         </p>
         <Button onClick={() => setLocation('/')} data-testid="button-login">
           Fazer Login
@@ -241,9 +241,9 @@ function EmptyState() {
   return (
     <div className="flex-1 flex items-center justify-center p-4" data-testid="study-empty">
       <div className="text-center max-w-sm">
-        <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponivel</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponível</h2>
         <p className="text-muted-foreground">
-          Os estudos semanais serao liberados em breve. Volte mais tarde!
+          Os estudos semanais serão liberados em breve. Volte mais tarde!
         </p>
       </div>
     </div>
@@ -308,7 +308,7 @@ export default function StudyHomePage() {
     return {
       id: lesson.id,
       lessonNumber: lesson.orderIndex + 1,
-      title: `Licao ${lesson.orderIndex + 1}`,
+      title: `Lição ${lesson.orderIndex + 1}`,
       subtitle: lesson.title,
       status,
       progress: lesson.progress?.completedUnits || 0,

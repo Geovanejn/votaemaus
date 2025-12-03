@@ -217,7 +217,7 @@ function DailyVerseCard({ verse }: { verse: DailyVerse }) {
         >
           <div className="flex items-center gap-2 mb-2">
             <BookOpen className="h-5 w-5 text-white" />
-            <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
+            <span className="text-sm font-bold text-white/90">Versículo do Dia</span>
           </div>
           <p className="text-white font-bold text-lg">{verse.reference}</p>
         </div>
@@ -236,7 +236,7 @@ function DailyVerseCard({ verse }: { verse: DailyVerse }) {
             {verse.isCompleted ? (
               <span className="flex items-center gap-2">
                 <Check className="h-4 w-4" />
-                CONCLUIDO
+                CONCLUÍDO
               </span>
             ) : (
               "LER AGORA"
@@ -267,7 +267,7 @@ function HeartsRecoveryCard() {
           <div>
             <p className="font-bold text-foreground mb-1">Recuperar Vidas</p>
             <p className="text-sm text-muted-foreground">
-              Leia versiculos para ganhar vidas
+              Leia versículos para ganhar vidas
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -323,7 +323,7 @@ export default function ExplorePage() {
         <HeartsRecoveryCard />
 
         <div>
-          <h2 className="font-bold text-lg text-foreground mb-4">Categorias de Versiculos</h2>
+          <h2 className="font-bold text-lg text-foreground mb-4">Categorias de Versículos</h2>
           
           <div className="space-y-3">
             {mockCategories.map((category, index) => (

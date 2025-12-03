@@ -36,8 +36,8 @@ const mockLessons: LessonItem[] = [
   { 
     id: 1, 
     lessonNumber: 1,
-    title: "Licao 1", 
-    subtitle: "Uma paixao unica pela qual viver", 
+    title: "Lição 1", 
+    subtitle: "Uma paixão única pela qual viver", 
     status: "completed", 
     progress: 5, 
     totalSections: 5,
@@ -45,8 +45,8 @@ const mockLessons: LessonItem[] = [
   { 
     id: 2, 
     lessonNumber: 2,
-    title: "Licao 2", 
-    subtitle: "Nao desperdice sua vida", 
+    title: "Lição 2", 
+    subtitle: "Não desperdice sua vida", 
     status: "completed", 
     progress: 5, 
     totalSections: 5,
@@ -54,8 +54,8 @@ const mockLessons: LessonItem[] = [
   { 
     id: 3, 
     lessonNumber: 3,
-    title: "Licao 3", 
-    subtitle: "Gloria somente na cruz", 
+    title: "Lição 3", 
+    subtitle: "Glória somente na cruz", 
     status: "current", 
     progress: 2, 
     totalSections: 5,
@@ -63,7 +63,7 @@ const mockLessons: LessonItem[] = [
   { 
     id: 4, 
     lessonNumber: 4,
-    title: "Licao 4", 
+    title: "Lição 4", 
     subtitle: "Glorificando a Cristo por meio de dor e morte (1)", 
     status: "locked", 
     progress: 0, 
@@ -72,7 +72,7 @@ const mockLessons: LessonItem[] = [
   { 
     id: 5, 
     lessonNumber: 5,
-    title: "Licao 5", 
+    title: "Lição 5", 
     subtitle: "Glorificando a Cristo por meio de dor e morte (2)", 
     status: "locked", 
     progress: 0, 
@@ -88,14 +88,14 @@ const mockDailyGoal = {
 const mockVerses = [
   {
     id: 1,
-    reference: "Joao 3:16",
-    text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.",
-    reflection: "Este versiculo nos mostra a profundidade do amor de Deus."
+    reference: "João 3:16",
+    text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.",
+    reflection: "Este versículo nos mostra a profundidade do amor de Deus."
   },
   {
     id: 2,
     reference: "Salmos 23:1",
-    text: "O Senhor e o meu pastor; nada me faltara.",
+    text: "O Senhor é o meu pastor; nada me faltará.",
     reflection: "Quando reconhecemos Deus como nosso pastor, podemos descansar."
   },
 ];
@@ -123,7 +123,7 @@ function UserProfileHeader({ user }: { user: typeof mockUserProfile }) {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-white/80 font-medium">Ola,</p>
+              <p className="text-sm text-white/80 font-medium">Olá,</p>
               <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
                 {user.name}
               </h1>
@@ -174,7 +174,7 @@ function DailyGoalSection({ current, target }: { current: number; target: number
     <div className="px-4 py-4 bg-background border-b border-border">
       <div className="max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-bold text-foreground">Meta Diaria</h2>
+          <h2 className="font-bold text-foreground">Meta Diária</h2>
           <span className="text-sm font-bold text-[#58CC02]">{current}/{target}</span>
         </div>
         
@@ -189,8 +189,8 @@ function DailyGoalSection({ current, target }: { current: number; target: number
         
         <p className="text-sm text-muted-foreground mt-2">
           {remaining > 0 
-            ? `Mais ${remaining} licoes para completar sua meta!`
-            : "Parabens! Voce completou sua meta diaria!"
+            ? `Mais ${remaining} lições para completar sua meta!`
+            : "Parabéns! Você completou sua meta diária!"
           }
         </p>
       </div>
@@ -210,8 +210,8 @@ function MapPreview() {
       
       <LearningPath 
         lessons={mockLessons}
-        onLessonClick={(id) => alert(`Licao ${id} clicada!`)}
-        onPracticeClick={() => alert("Pratica!")}
+        onLessonClick={(id) => alert(`Lição ${id} clicada!`)}
+        onPracticeClick={() => alert("Prática!")}
         showPractice={true}
       />
 
@@ -236,7 +236,7 @@ function ExercisePreview() {
 
       <main className="flex-1 flex flex-col p-4">
         <h2 className="text-xl font-bold text-foreground mb-6 text-center">
-          Segundo Hebreus 11:1, a fe e a certeza daquilo que...
+          Segundo Hebreus 11:1, a fé é a certeza daquilo que...
         </h2>
 
         <div className="flex flex-col gap-3 mb-6">
@@ -287,10 +287,10 @@ function ExercisePreview() {
         isVisible={showFeedback}
         isCorrect={feedbackCorrect}
         explanation={feedbackCorrect 
-          ? "Exatamente! A fe e a certeza daquilo que ESPERAMOS, nao do que ja vemos." 
-          : "A resposta correta e 'esperamos'. Hebreus 11:1 diz: 'A fe e a certeza daquilo que esperamos...'"
+          ? "Exatamente! A fé é a certeza daquilo que ESPERAMOS, não do que já vemos." 
+          : "A resposta correta é 'esperamos'. Hebreus 11:1 diz: 'A fé é a certeza daquilo que esperamos...'"
         }
-        hint="Releia o versiculo com atencao"
+        hint="Releia o versículo com atenção"
         xpEarned={feedbackCorrect ? 5 : 0}
         heartsLost={feedbackCorrect ? 0 : 1}
         onContinue={() => setShowFeedback(false)}
@@ -307,7 +307,7 @@ function VersesPreview() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="flex items-center gap-3 p-3">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-          <h1 className="font-bold text-lg">Versiculos</h1>
+          <h1 className="font-bold text-lg">Versículos</h1>
         </div>
       </header>
 
@@ -341,7 +341,7 @@ function StreakPreview() {
     <StreakCelebration
       streakDays={1}
       weekProgress={[true, false, false, false, false, false, false]}
-      message="Sua ofensiva comecou! Pratique todos os dias pra ela crescer."
+      message="Sua ofensiva começou! Pratique todos os dias pra ela crescer."
       onContinue={() => alert("Continuar!")}
     />
   );
@@ -360,9 +360,9 @@ export default function StudyPreviewPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="map" className="text-xs">Mapa</TabsTrigger>
-              <TabsTrigger value="exercise" className="text-xs">Exercicio</TabsTrigger>
-              <TabsTrigger value="verses" className="text-xs">Versiculos</TabsTrigger>
-              <TabsTrigger value="complete" className="text-xs">Conclusao</TabsTrigger>
+              <TabsTrigger value="exercise" className="text-xs">Exercício</TabsTrigger>
+              <TabsTrigger value="verses" className="text-xs">Versículos</TabsTrigger>
+              <TabsTrigger value="complete" className="text-xs">Conclusão</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

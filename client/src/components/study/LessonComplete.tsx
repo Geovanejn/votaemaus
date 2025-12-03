@@ -110,7 +110,7 @@ export function LessonComplete({
         transition={{ delay: 0.2 }}
         className="text-3xl font-black text-[#58CC02] mb-8 text-center"
       >
-        {isPerfect ? "Pratica concluida!" : "Licao Completa!"}
+        {isPerfect ? "Prática concluída!" : "Lição Completa!"}
       </motion.h1>
 
       <motion.div
@@ -127,14 +127,14 @@ export function LessonComplete({
           delay={0.4}
         />
         <StatBox 
-          label="Otima" 
+          label="Ótima" 
           value={`${accuracy}%`}
           icon={Target}
           color="#58CC02"
           delay={0.5}
         />
         <StatBox 
-          label="Relampago" 
+          label="Relâmpago" 
           value={timeString}
           icon={Clock}
           color="#1CB0F6"

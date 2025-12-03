@@ -67,12 +67,12 @@ export default function VersesPage() {
       if (data.heartRecovered) {
         toast({
           title: "Vida recuperada!",
-          description: "Voce leu 3 versiculos e ganhou +1 vida!",
+          description: "Você leu 3 versículos e ganhou +1 vida!",
         });
       } else {
         toast({
-          title: "Versiculo lido!",
-          description: `${data.versesRead}/${data.versesNeeded} versiculos para recuperar uma vida.`,
+          title: "Versículo lido!",
+          description: `${data.versesRead}/${data.versesNeeded} versículos para recuperar uma vida.`,
         });
       }
     },
@@ -80,7 +80,7 @@ export default function VersesPage() {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nao foi possivel registrar a leitura do versiculo.",
+        description: "Não foi possível registrar a leitura do versículo.",
       });
     }
   });
@@ -89,7 +89,7 @@ export default function VersesPage() {
     if (profile && profile.hearts >= profile.maxHearts) {
       toast({
         title: "Vidas cheias!",
-        description: "Voce ja tem todas as suas vidas. Continue estudando!",
+        description: "Você já tem todas as suas vidas. Continue estudando!",
       });
       return;
     }
@@ -116,7 +116,7 @@ export default function VersesPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-bold text-lg">Versiculos (ARA)</h1>
+            <h1 className="font-bold text-lg">Versículos (ARA)</h1>
           </div>
           <HeartsDisplay current={currentHearts} max={maxHearts} size="md" />
         </div>
@@ -133,13 +133,13 @@ export default function VersesPage() {
               <div className="flex-1">
                 <h3 className="font-semibold text-sm">Recuperar Vidas</h3>
                 <p className="text-xs text-muted-foreground">
-                  Leia 3 versiculos para ganhar +1 vida
+                  Leia 3 versículos para ganhar +1 vida
                 </p>
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{versesRead} de {versesNeeded} versiculos</span>
+                <span>{versesRead} de {versesNeeded} versículos</span>
                 <span>{Math.round(progressPercent)}%</span>
               </div>
               <Progress value={progressPercent} className="h-2" />
@@ -170,7 +170,7 @@ export default function VersesPage() {
               </div>
               <h3 className="font-bold text-lg mb-2">Vidas Cheias!</h3>
               <p className="text-muted-foreground text-sm">
-                Voce esta com todas as suas vidas. Continue estudando para ganhar XP!
+                Você está com todas as suas vidas. Continue estudando para ganhar XP!
               </p>
               <Button 
                 className="mt-4" 
@@ -184,7 +184,7 @@ export default function VersesPage() {
         ) : verses && verses.length > 0 ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground text-center">
-              Toque em um versiculo para ler e progredir na recuperacao de vidas
+              Toque em um versículo para ler e progredir na recuperação de vidas
             </p>
             {verses.slice(0, 10).map((verse) => (
               <Card 
@@ -230,9 +230,9 @@ export default function VersesPage() {
           <Card>
             <CardContent className="p-6 text-center">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-bold mb-2">Nenhum versiculo disponivel</h3>
+              <h3 className="font-bold mb-2">Nenhum versículo disponível</h3>
               <p className="text-muted-foreground text-sm">
-                Os versiculos serao adicionados em breve.
+                Os versículos serão adicionados em breve.
               </p>
             </CardContent>
           </Card>

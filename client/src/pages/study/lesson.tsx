@@ -201,8 +201,8 @@ export default function LessonPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="not-authenticated">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-foreground mb-2">Nao Autenticado</h1>
-          <p className="text-muted-foreground mb-4">Faca login para acessar as licoes.</p>
+          <h1 className="text-xl font-bold text-foreground mb-2">Não Autenticado</h1>
+          <p className="text-muted-foreground mb-4">Faça login para acessar as lições.</p>
           <Button onClick={() => setLocation("/login")} data-testid="button-login">
             Fazer Login
           </Button>
@@ -222,7 +222,7 @@ export default function LessonPage() {
             Suas vidas acabaram!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Leia versiculos biblicos para recuperar vidas, ou aguarde 6 horas para recuperar automaticamente.
+            Leia versículos bíblicos para recuperar vidas, ou aguarde 6 horas para recuperar automaticamente.
           </p>
           <div className="flex flex-col gap-3">
             <Button
@@ -230,7 +230,7 @@ export default function LessonPage() {
               className="w-full py-6 font-bold"
               data-testid="button-read-verses"
             >
-              LER VERSICULOS
+              LER VERSÍCULOS
             </Button>
             <Button
               variant="outline"
@@ -238,7 +238,7 @@ export default function LessonPage() {
               className="w-full py-6"
               data-testid="button-go-home"
             >
-              Voltar ao Inicio
+              Voltar ao Início
             </Button>
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function LessonPage() {
       <div className="min-h-screen bg-background flex items-center justify-center" data-testid="loading-lesson">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando licao...</p>
+          <p className="text-muted-foreground">Carregando lição...</p>
         </div>
       </div>
     );
@@ -260,13 +260,13 @@ export default function LessonPage() {
   if (lessonError || startLessonMutation.isError) {
     const errorMessage = lessonError 
       ? (lessonError as Error).message 
-      : (startLessonMutation.error as Error)?.message || "Erro ao iniciar licao";
+      : (startLessonMutation.error as Error)?.message || "Erro ao iniciar lição";
     
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="error-lesson">
         <div className="text-center max-w-sm">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar licao</h1>
+          <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar lição</h1>
           <p className="text-muted-foreground mb-4">{errorMessage}</p>
           <div className="flex gap-2 justify-center">
             <Button onClick={() => {
@@ -290,8 +290,8 @@ export default function LessonPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-lesson">
         <div className="text-center max-w-sm">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-foreground mb-2">Licao Vazia</h1>
-          <p className="text-muted-foreground mb-4">Esta licao ainda nao tem conteudo.</p>
+          <h1 className="text-xl font-bold text-foreground mb-2">Lição Vazia</h1>
+          <p className="text-muted-foreground mb-4">Esta lição ainda não tem conteúdo.</p>
           <Button onClick={() => setLocation("/study")} data-testid="button-back-empty">
             Voltar ao Estudo
           </Button>
@@ -393,7 +393,7 @@ export default function LessonPage() {
   };
 
   const handleClose = () => {
-    if (window.confirm("Tem certeza que deseja sair? Seu progresso sera perdido.")) {
+    if (window.confirm("Tem certeza que deseja sair? Seu progresso será perdido.")) {
       setLocation("/study");
     }
   };
@@ -460,7 +460,7 @@ export default function LessonPage() {
 
         {currentUnit.type === "verse" && (
           <TextContent
-            title={currentUnit.content.title || "Versiculo"}
+            title={currentUnit.content.title || "Versículo"}
             body={currentUnit.content.body || currentUnit.content.verseText || ""}
             highlight={currentUnit.content.highlight || currentUnit.content.verseReference}
             onContinue={handleTextContinue}
@@ -469,16 +469,16 @@ export default function LessonPage() {
 
         {currentUnit.type === "meditation" && (
           <TextContent
-            title={currentUnit.content.title || "Meditacao"}
+            title={currentUnit.content.title || "Meditação"}
             body={currentUnit.content.body || currentUnit.content.meditationGuide || ""}
-            highlight={currentUnit.content.meditationDuration ? `Duracao: ${currentUnit.content.meditationDuration} segundos` : undefined}
+            highlight={currentUnit.content.meditationDuration ? `Duração: ${currentUnit.content.meditationDuration} segundos` : undefined}
             onContinue={handleTextContinue}
           />
         )}
 
         {currentUnit.type === "reflection" && (
           <TextContent
-            title={currentUnit.content.title || "Reflexao"}
+            title={currentUnit.content.title || "Reflexão"}
             body={currentUnit.content.body || currentUnit.content.reflectionPrompt || ""}
             highlight={currentUnit.content.highlight}
             onContinue={handleTextContinue}

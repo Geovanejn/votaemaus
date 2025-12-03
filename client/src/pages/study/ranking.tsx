@@ -198,11 +198,11 @@ function RankingList({ users }: { users: RankingUser[] }) {
                     {user.name}
                   </p>
                   {user.isCurrentUser && (
-                    <span className="text-xs text-muted-foreground">(voce)</span>
+                    <span className="text-xs text-muted-foreground">(você)</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Nivel {user.level}</span>
+                  <span>Nível {user.level}</span>
                   {user.streak && user.streak > 0 && (
                     <span className="flex items-center gap-0.5 text-orange-500">
                       <Flame className="h-3 w-3 fill-orange-500/30" />
@@ -233,7 +233,7 @@ function UserPositionCard({ user, position, period }: { user: RankingUser; posit
       <Card className="p-4 mb-6 bg-gradient-to-br from-[#FFA500]/10 via-[#FFD700]/5 to-transparent border-[#FFA500]/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Sua posicao</p>
+            <p className="text-sm text-muted-foreground">Sua posição</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-4xl font-black text-[#FFA500]">#{position}</span>
               <ChangeIndicator change={user.change} />

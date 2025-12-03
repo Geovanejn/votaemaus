@@ -102,7 +102,7 @@ export interface IStorage {
   createStudyWeek(data: { title: string; description?: string; weekNumber: number; year: number; createdBy?: number; aiMetadata?: string }): any;
   createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): any;
   createStudyUnit(data: { lessonId: number; orderIndex: number; type: string; content: any; xpValue?: number; stage?: string }): any;
-  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null;
+  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number; isLocked?: boolean; unlockDate?: string | null }): any | null;
   deleteStudyLesson(lessonId: number): boolean;
   updateStudyUnit(unitId: number, data: { type?: string; content?: any; xpValue?: number; orderIndex?: number; stage?: string }): any | null;
   deleteStudyUnit(unitId: number): boolean;
@@ -110,6 +110,13 @@ export interface IStorage {
   deleteStudyWeek(weekId: number): boolean;
   getUnitsForLesson(lessonId: number): any[];
   publishStudyWeek(weekId: number): any | null;
+  // Lesson lock/unlock management
+  lockLesson(lessonId: number): any | null;
+  unlockLesson(lessonId: number): any | null;
+  setLessonUnlockDate(lessonId: number, unlockDate: string | null): any | null;
+  unlockAllLessonsForWeek(weekId: number): number;
+  lockAllLessonsForWeek(weekId: number): number;
+  setWeeklyUnlockSchedule(weekId: number, startDate: string): number;
 }
 
 export class SQLiteStorage implements IStorage {
@@ -1893,26 +1900,18 @@ export class SQLiteStorage implements IStorage {
   // Study Lessons
   getLessonsByWeekId(weekId: number): any[] {
     const stmt = db.prepare("SELECT * FROM study_lessons WHERE study_week_id = ? ORDER BY order_index");
-    return (stmt.all(weekId) as any[]).map(row => ({
-      id: row.id,
-      studyWeekId: row.study_week_id,
-      orderIndex: row.order_index,
-      title: row.title,
-      type: row.type,
-      description: row.description,
-      xpReward: row.xp_reward,
-      estimatedMinutes: row.estimated_minutes,
-      icon: row.icon,
-      isBonus: Boolean(row.is_bonus),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return (stmt.all(weekId) as any[]).map(row => this.mapLessonRow(row));
   }
 
-  getLessonById(id: number): any | null {
-    const stmt = db.prepare("SELECT * FROM study_lessons WHERE id = ?");
-    const row = stmt.get(id) as any;
-    if (!row) return null;
+  mapLessonRow(row: any): any {
+    const now = new Date().toISOString();
+    const unlockDate = row.unlock_date;
+    const isLocked = row.is_locked === 1;
+    
+    // Check if lesson should be unlocked based on date
+    const isUnlockedByDate = unlockDate && unlockDate <= now;
+    const effectivelyLocked = isLocked && !isUnlockedByDate;
+    
     return {
       id: row.id,
       studyWeekId: row.study_week_id,
@@ -1924,15 +1923,24 @@ export class SQLiteStorage implements IStorage {
       estimatedMinutes: row.estimated_minutes,
       icon: row.icon,
       isBonus: Boolean(row.is_bonus),
+      isLocked: effectivelyLocked,
+      unlockDate: row.unlock_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
   }
 
-  createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): any {
+  getLessonById(id: number): any | null {
+    const stmt = db.prepare("SELECT * FROM study_lessons WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return this.mapLessonRow(row);
+  }
+
+  createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; isLocked?: boolean; unlockDate?: string }): any {
     const stmt = db.prepare(`
-      INSERT INTO study_lessons (study_week_id, order_index, title, type, description, xp_reward, estimated_minutes, icon, is_bonus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO study_lessons (study_week_id, order_index, title, type, description, xp_reward, estimated_minutes, icon, is_bonus, is_locked, unlock_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `);
     const row = stmt.get(
@@ -1944,22 +1952,62 @@ export class SQLiteStorage implements IStorage {
       data.xpReward || 10,
       data.estimatedMinutes || 5,
       data.icon || null,
-      data.isBonus ? 1 : 0
+      data.isBonus ? 1 : 0,
+      data.isLocked !== false ? 1 : 0,
+      data.unlockDate || null
     ) as any;
-    return {
-      id: row.id,
-      studyWeekId: row.study_week_id,
-      orderIndex: row.order_index,
-      title: row.title,
-      type: row.type,
-      description: row.description,
-      xpReward: row.xp_reward,
-      estimatedMinutes: row.estimated_minutes,
-      icon: row.icon,
-      isBonus: Boolean(row.is_bonus),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+    return this.mapLessonRow(row);
+  }
+
+  // Lock/Unlock lesson management
+  lockLesson(lessonId: number): any | null {
+    const lesson = this.getLessonById(lessonId);
+    if (!lesson) return null;
+    
+    db.prepare("UPDATE study_lessons SET is_locked = 1, unlock_date = NULL, updated_at = datetime('now') WHERE id = ?").run(lessonId);
+    return this.getLessonById(lessonId);
+  }
+
+  unlockLesson(lessonId: number): any | null {
+    const lesson = this.getLessonById(lessonId);
+    if (!lesson) return null;
+    
+    db.prepare("UPDATE study_lessons SET is_locked = 0, updated_at = datetime('now') WHERE id = ?").run(lessonId);
+    return this.getLessonById(lessonId);
+  }
+
+  setLessonUnlockDate(lessonId: number, unlockDate: string | null): any | null {
+    const lesson = this.getLessonById(lessonId);
+    if (!lesson) return null;
+    
+    db.prepare("UPDATE study_lessons SET unlock_date = ?, updated_at = datetime('now') WHERE id = ?").run(unlockDate, lessonId);
+    return this.getLessonById(lessonId);
+  }
+
+  unlockAllLessonsForWeek(weekId: number): number {
+    const result = db.prepare("UPDATE study_lessons SET is_locked = 0, updated_at = datetime('now') WHERE study_week_id = ?").run(weekId);
+    return result.changes || 0;
+  }
+
+  lockAllLessonsForWeek(weekId: number): number {
+    const result = db.prepare("UPDATE study_lessons SET is_locked = 1, updated_at = datetime('now') WHERE study_week_id = ?").run(weekId);
+    return result.changes || 0;
+  }
+
+  setWeeklyUnlockSchedule(weekId: number, startDate: string): number {
+    const lessons = this.getLessonsByWeekId(weekId);
+    let count = 0;
+    
+    for (let i = 0; i < lessons.length; i++) {
+      const unlockDate = new Date(startDate);
+      unlockDate.setDate(unlockDate.getDate() + (i * 7)); // Each lesson unlocks 1 week apart
+      
+      db.prepare("UPDATE study_lessons SET is_locked = 1, unlock_date = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(unlockDate.toISOString(), lessons[i].id);
+      count++;
+    }
+    
+    return count;
   }
 
   // Study Units (Exercises)
@@ -2021,7 +2069,7 @@ export class SQLiteStorage implements IStorage {
     }
   }
 
-  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number }): any | null {
+  updateStudyLesson(lessonId: number, data: { title?: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean; orderIndex?: number; isLocked?: boolean; unlockDate?: string | null }): any | null {
     const lesson = this.getLessonById(lessonId);
     if (!lesson) return null;
 
@@ -2036,9 +2084,12 @@ export class SQLiteStorage implements IStorage {
     if (data.icon !== undefined) { updates.push("icon = ?"); values.push(data.icon); }
     if (data.isBonus !== undefined) { updates.push("is_bonus = ?"); values.push(data.isBonus ? 1 : 0); }
     if (data.orderIndex !== undefined) { updates.push("order_index = ?"); values.push(data.orderIndex); }
+    if (data.isLocked !== undefined) { updates.push("is_locked = ?"); values.push(data.isLocked ? 1 : 0); }
+    if (data.unlockDate !== undefined) { updates.push("unlock_date = ?"); values.push(data.unlockDate); }
 
     if (updates.length === 0) return lesson;
 
+    updates.push("updated_at = datetime('now')");
     values.push(lessonId);
     db.prepare(`UPDATE study_lessons SET ${updates.join(", ")} WHERE id = ?`).run(...values);
 

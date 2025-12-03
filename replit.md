@@ -153,11 +153,27 @@ The study system has the following API endpoints (all require authentication):
 **Admin:**
 - `POST /api/study/seed` - Seed test data (verses, achievements, lessons, exercises)
 
+**Admin Lesson Control (requires admin auth):**
+- `POST /api/study/admin/lessons/:id/lock` - Lock a lesson (makes it unavailable to students)
+- `POST /api/study/admin/lessons/:id/unlock` - Unlock a lesson (makes it available to students)
+- `POST /api/study/admin/lessons/:id/schedule` - Set unlock date for a lesson (body: {unlockDate: string})
+- `POST /api/study/admin/weeks/:weekId/lock-all` - Lock all lessons in a week
+- `POST /api/study/admin/weeks/:weekId/unlock-all` - Unlock all lessons in a week
+- `POST /api/study/admin/weeks/:weekId/schedule-weekly` - Schedule weekly unlock (one lesson per week, body: {startDate: string})
+
+### Lesson Lock/Unlock System
+- Admins can generate all lessons in advance but control their release
+- Each lesson has `isLocked` (boolean) and `unlockDate` (optional date) fields
+- Locked lessons appear greyed out in the admin interface with a lock icon
+- Admins can lock/unlock individual lessons or all lessons in a week
+- Scheduled unlock: lessons automatically become available when the `unlockDate` is reached
+- Weekly schedule: automatically sets unlock dates one week apart for each lesson
+
 ### Database Schema (server/db.ts)
 Study system tables:
 - `study_profiles` - User XP, level, streak, hearts
 - `study_weeks` - Weekly study content from magazines
-- `study_lessons` - Individual lessons within weeks
+- `study_lessons` - Individual lessons within weeks (includes `is_locked` and `unlock_date` for admin control)
 - `study_units` - Exercises/questions within lessons (multiple_choice, true_false, fill_blank)
 - `bible_verses` - Verses for heart recovery with reflections
 - `user_lesson_progress` - User's progress on each lesson

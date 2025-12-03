@@ -435,6 +435,8 @@ export const studyLessons = sqliteTable("study_lessons", {
   estimatedMinutes: integer("estimated_minutes").notNull().default(5),
   icon: text("icon"),
   isBonus: integer("is_bonus", { mode: "boolean" }).notNull().default(false),
+  isLocked: integer("is_locked", { mode: "boolean" }).notNull().default(true), // Admin controls lesson availability
+  unlockDate: text("unlock_date"), // Optional scheduled unlock date
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });

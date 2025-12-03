@@ -63,6 +63,9 @@ import {
   ChevronRight,
   FileUp,
   X,
+  Lock,
+  Unlock,
+  CalendarClock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -101,6 +104,8 @@ interface StudyLesson {
   estimatedMinutes: number;
   icon: string | null;
   isBonus: boolean;
+  isLocked: boolean;
+  unlockDate: string | null;
   unitsCount?: number;
 }
 
@@ -451,6 +456,58 @@ export default function StudyAdminPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const lockLessonMutation = useMutation({
+    mutationFn: async (lessonId: number) => {
+      return apiRequest("POST", `/api/study/admin/lessons/${lessonId}/lock`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
+      toast({ title: "Licao bloqueada", description: "A licao foi bloqueada para os alunos." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unlockLessonMutation = useMutation({
+    mutationFn: async (lessonId: number) => {
+      return apiRequest("POST", `/api/study/admin/lessons/${lessonId}/unlock`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
+      toast({ title: "Licao liberada", description: "A licao foi liberada para os alunos." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unlockAllLessonsMutation = useMutation({
+    mutationFn: async (weekId: number) => {
+      return apiRequest("POST", `/api/study/admin/weeks/${weekId}/unlock-all`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
+      toast({ title: "Todas as licoes liberadas", description: "Todas as licoes da semana foram liberadas." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const lockAllLessonsMutation = useMutation({
+    mutationFn: async (weekId: number) => {
+      return apiRequest("POST", `/api/study/admin/weeks/${weekId}/lock-all`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
+      toast({ title: "Todas as licoes bloqueadas", description: "Todas as licoes da semana foram bloqueadas." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
     },
   });
 
@@ -816,10 +873,36 @@ export default function StudyAdminPage() {
           <h2 className="text-xl font-semibold truncate">{selectedWeek?.title}</h2>
           <p className="text-sm text-muted-foreground">Semana {selectedWeek?.weekNumber} - {selectedWeek?.year}</p>
         </div>
-        <Button onClick={() => { setEditingLesson(null); setLessonForm({ title: "", type: "study", description: "", xpReward: 10, estimatedMinutes: 5, isBonus: false }); setIsEditLessonOpen(true); }} data-testid="button-add-lesson">
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Licao
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" data-testid="button-bulk-actions">
+                <Lock className="w-4 h-4 mr-2" />
+                Controle de Acesso
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => selectedWeek && unlockAllLessonsMutation.mutate(selectedWeek.id)}
+                disabled={unlockAllLessonsMutation.isPending}
+              >
+                <Unlock className="w-4 h-4 mr-2" />
+                Liberar Todas as Licoes
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => selectedWeek && lockAllLessonsMutation.mutate(selectedWeek.id)}
+                disabled={lockAllLessonsMutation.isPending}
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Bloquear Todas as Licoes
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => { setEditingLesson(null); setLessonForm({ title: "", type: "study", description: "", xpReward: 10, estimatedMinutes: 5, isBonus: false }); setIsEditLessonOpen(true); }} data-testid="button-add-lesson">
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Licao
+          </Button>
+        </div>
       </div>
 
       {loadingLessons ? (
@@ -842,21 +925,41 @@ export default function StudyAdminPage() {
         <div className="space-y-3">
           {lessons.map((lesson, index) => (
             <motion.div key={lesson.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
-              <Card className="hover-elevate">
+              <Card className={`hover-elevate ${lesson.isLocked ? 'opacity-60' : ''}`}>
                 <CardContent className="flex items-center gap-4 p-4">
                   <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 relative"
                     style={{
-                      background: lesson.isBonus ? 'linear-gradient(135deg, #FF9600 0%, #FFB020 100%)' : 'linear-gradient(135deg, #58CC02 0%, #7BD937 100%)',
-                      boxShadow: lesson.isBonus ? '0 4px 0 0 #CC7700' : '0 4px 0 0 #46A302',
+                      background: lesson.isLocked 
+                        ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)'
+                        : lesson.isBonus 
+                          ? 'linear-gradient(135deg, #FF9600 0%, #FFB020 100%)' 
+                          : 'linear-gradient(135deg, #58CC02 0%, #7BD937 100%)',
+                      boxShadow: lesson.isLocked 
+                        ? '0 4px 0 0 #4B5563'
+                        : lesson.isBonus 
+                          ? '0 4px 0 0 #CC7700' 
+                          : '0 4px 0 0 #46A302',
                     }}
                   >
-                    {lesson.orderIndex + 1}
+                    {lesson.isLocked ? <Lock className="w-5 h-5" /> : lesson.orderIndex + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-medium truncate">{lesson.title}</h3>
                       {lesson.isBonus && <Badge className="bg-[#FF9600] text-white">Bonus</Badge>}
+                      {lesson.isLocked && (
+                        <Badge variant="secondary" className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Bloqueada
+                        </Badge>
+                      )}
+                      {lesson.unlockDate && (
+                        <Badge variant="outline" className="text-xs">
+                          <CalendarClock className="w-3 h-3 mr-1" />
+                          {new Date(lesson.unlockDate).toLocaleDateString('pt-BR')}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lesson.estimatedMinutes} min</span>
@@ -865,6 +968,15 @@ export default function StudyAdminPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline">{lessonTypeLabels[lesson.type] || lesson.type}</Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => lesson.isLocked ? unlockLessonMutation.mutate(lesson.id) : lockLessonMutation.mutate(lesson.id)}
+                      disabled={lockLessonMutation.isPending || unlockLessonMutation.isPending}
+                      data-testid={`toggle-lock-${lesson.id}`}
+                    >
+                      {lesson.isLocked ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-gray-500" />}
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => { setSelectedLesson(lesson); setViewingUnits(true); }} data-testid={`view-units-${lesson.id}`}>
                       <ListChecks className="w-4 h-4" />
                     </Button>

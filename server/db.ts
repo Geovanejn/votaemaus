@@ -447,6 +447,8 @@ export async function initializeDatabase() {
       estimated_minutes INTEGER NOT NULL DEFAULT 5,
       icon TEXT,
       is_bonus INTEGER NOT NULL DEFAULT 0,
+      is_locked INTEGER NOT NULL DEFAULT 1,
+      unlock_date TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (study_week_id) REFERENCES study_weeks(id)
@@ -572,6 +574,24 @@ export async function initializeDatabase() {
   `);
   console.log("Study system tables created successfully");
 
+  // Migration: Add is_locked and unlock_date columns to study_lessons if they don't exist
+  try {
+    const lessonsColumns = sqlite.prepare("PRAGMA table_info(study_lessons)").all() as Array<{ name: string }>;
+    const lessonsColumnNames = lessonsColumns.map(col => col.name);
+    
+    if (!lessonsColumnNames.includes('is_locked')) {
+      sqlite.exec("ALTER TABLE study_lessons ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 1");
+      console.log("Added is_locked column to study_lessons table");
+    }
+    
+    if (!lessonsColumnNames.includes('unlock_date')) {
+      sqlite.exec("ALTER TABLE study_lessons ADD COLUMN unlock_date TEXT");
+      console.log("Added unlock_date column to study_lessons table");
+    }
+  } catch (error) {
+    console.error("Study lessons migration error:", error);
+  }
+
   console.log("Creating performance indexes...");
   try {
     sqlite.exec(`
@@ -661,6 +681,41 @@ export async function initializeDatabase() {
     
     console.log(`Created admin user: ${adminEmail}`);
     console.log("Default password: umpemaus2025 (please change after first login)");
+  }
+
+  // Seed Bible verses for heart recovery if they don't exist
+  const existingVerses = sqlite.prepare("SELECT COUNT(*) as count FROM bible_verses").get() as { count: number };
+  
+  if (existingVerses.count === 0) {
+    console.log("Seeding Bible verses for heart recovery...");
+    const insertVerse = sqlite.prepare(`
+      INSERT INTO bible_verses (reference, text, reflection, category)
+      VALUES (?, ?, ?, ?)
+    `);
+    
+    const verses = [
+      { reference: "Joao 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.", reflection: "O amor de Deus e incondicional e oferece salvacao a todos.", category: "amor" },
+      { reference: "Salmos 23:1", text: "O Senhor e o meu pastor; nada me faltara.", reflection: "Deus cuida de nos como um pastor cuida de suas ovelhas.", category: "provisao" },
+      { reference: "Filipenses 4:13", text: "Posso todas as coisas naquele que me fortalece.", reflection: "Cristo nos da forca para enfrentar qualquer situacao.", category: "forca" },
+      { reference: "Jeremias 29:11", text: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz, e nao de mal, para vos dar o fim que esperais.", reflection: "Deus tem planos de esperanca e futuro para nos.", category: "esperanca" },
+      { reference: "Isaias 41:10", text: "Nao temas, porque eu sou contigo; nao te assombres, porque eu sou teu Deus; eu te fortaleco, e te ajudo, e te sustento com a destra da minha justica.", reflection: "Deus esta sempre conosco para nos fortalecer.", category: "forca" },
+      { reference: "Romanos 8:28", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que sao chamados segundo o seu proposito.", reflection: "Deus transforma todas as situacoes para o nosso bem.", category: "esperanca" },
+      { reference: "Salmos 46:1", text: "Deus e o nosso refugio e fortaleza, socorro bem presente na angustia.", reflection: "Podemos confiar em Deus em todos os momentos.", category: "protecao" },
+      { reference: "Mateus 11:28", text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reflection: "Jesus oferece descanso para nossas almas.", category: "descanso" },
+      { reference: "Proverbios 3:5-6", text: "Confia no Senhor de todo o teu coracao, e nao te estribes no teu proprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitara as tuas veredas.", reflection: "Confiar em Deus nos guia pelo caminho certo.", category: "sabedoria" },
+      { reference: "1 Corintios 10:13", text: "Nao veio sobre vos tentacao, senao humana; mas fiel e Deus, que nao vos deixara tentar acima do que podeis, antes com a tentacao dara tambem o escape, para que a possais suportar.", reflection: "Deus sempre nos da um caminho de saida nas tentacoes.", category: "forca" },
+      { reference: "Salmos 119:105", text: "Lampada para os meus pes e a tua palavra, e luz para o meu caminho.", reflection: "A Palavra de Deus ilumina nossa vida.", category: "sabedoria" },
+      { reference: "2 Timoteo 1:7", text: "Porque Deus nao nos deu o espirito de temor, mas de fortaleza, e de amor, e de moderacao.", reflection: "Deus nos capacita com coragem e amor.", category: "coragem" },
+      { reference: "Hebreus 11:1", text: "Ora, a fe e o firme fundamento das coisas que se esperam, e a prova das coisas que se nao veem.", reflection: "A fe e a certeza do que esperamos em Deus.", category: "fe" },
+      { reference: "Romanos 12:2", text: "E nao sede conformados com este mundo, mas sede transformados pela renovacao do vosso entendimento, para que experimenteis qual seja a boa, agradavel, e perfeita vontade de Deus.", reflection: "Devemos buscar a transformacao em Cristo.", category: "transformacao" },
+      { reference: "Galatas 5:22-23", text: "Mas o fruto do Espirito e: amor, gozo, paz, longanimidade, benignidade, bondade, fe, mansidao, temperanca. Contra estas coisas nao ha lei.", reflection: "O Espirito Santo produz frutos em nossa vida.", category: "espirito" }
+    ];
+    
+    for (const verse of verses) {
+      insertVerse.run(verse.reference, verse.text, verse.reflection, verse.category);
+    }
+    
+    console.log(`Created ${verses.length} Bible verses for heart recovery`);
   }
 
   console.log("Database initialized successfully");

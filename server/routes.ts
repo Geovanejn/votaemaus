@@ -2576,6 +2576,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Lock a lesson
+  app.post("/api/study/admin/lessons/:lessonId/lock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const lesson = storage.lockLesson(lessonId);
+
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      res.json({ message: "Licao bloqueada com sucesso", lesson });
+    } catch (error) {
+      console.error("Lock lesson error:", error);
+      res.status(500).json({ message: "Erro ao bloquear licao" });
+    }
+  });
+
+  // Admin: Unlock a lesson
+  app.post("/api/study/admin/lessons/:lessonId/unlock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const lesson = storage.unlockLesson(lessonId);
+
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      res.json({ message: "Licao liberada com sucesso", lesson });
+    } catch (error) {
+      console.error("Unlock lesson error:", error);
+      res.status(500).json({ message: "Erro ao liberar licao" });
+    }
+  });
+
+  // Admin: Set unlock date for a lesson
+  app.post("/api/study/admin/lessons/:lessonId/schedule", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      const { unlockDate } = req.body;
+      
+      const lesson = storage.setLessonUnlockDate(lessonId, unlockDate || null);
+
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      res.json({ message: unlockDate ? "Data de liberacao agendada" : "Agendamento removido", lesson });
+    } catch (error) {
+      console.error("Schedule lesson error:", error);
+      res.status(500).json({ message: "Erro ao agendar liberacao" });
+    }
+  });
+
+  // Admin: Unlock all lessons for a week
+  app.post("/api/study/admin/weeks/:weekId/unlock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const count = storage.unlockAllLessonsForWeek(weekId);
+
+      res.json({ message: `${count} licoes liberadas com sucesso` });
+    } catch (error) {
+      console.error("Unlock all lessons error:", error);
+      res.status(500).json({ message: "Erro ao liberar todas as licoes" });
+    }
+  });
+
+  // Admin: Lock all lessons for a week
+  app.post("/api/study/admin/weeks/:weekId/lock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const count = storage.lockAllLessonsForWeek(weekId);
+
+      res.json({ message: `${count} licoes bloqueadas com sucesso` });
+    } catch (error) {
+      console.error("Lock all lessons error:", error);
+      res.status(500).json({ message: "Erro ao bloquear todas as licoes" });
+    }
+  });
+
+  // Admin: Set weekly unlock schedule (one lesson per week)
+  app.post("/api/study/admin/weeks/:weekId/schedule-weekly", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      const { startDate } = req.body;
+
+      if (!startDate) {
+        return res.status(400).json({ message: "Data inicial e obrigatoria" });
+      }
+
+      const count = storage.setWeeklyUnlockSchedule(weekId, startDate);
+
+      res.json({ message: `Agendamento criado para ${count} licoes (uma por semana)` });
+    } catch (error) {
+      console.error("Schedule weekly error:", error);
+      res.status(500).json({ message: "Erro ao criar agendamento semanal" });
+    }
+  });
+
   // Admin: Get units for a lesson
   app.get("/api/study/admin/lessons/:lessonId/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

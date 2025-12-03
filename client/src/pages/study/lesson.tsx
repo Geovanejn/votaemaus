@@ -210,6 +210,18 @@ export default function LessonPage() {
     }
   });
 
+  const completeUnitMutation = useMutation({
+    mutationFn: async (unitId: number) => {
+      const res = await apiRequest("POST", `/api/study/units/${unitId}/complete`);
+      return res.json();
+    },
+    onSuccess: (result) => {
+      if (result.profile) {
+        queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
+      }
+    }
+  });
+
   useEffect(() => {
     if (lessonData && !lessonStarted && !startLessonMutation.isPending && !noHeartsError && !startLessonMutation.isError) {
       startLessonMutation.mutate();
@@ -460,9 +472,17 @@ export default function LessonPage() {
     }
   };
 
-  const handleMeditateComplete = () => {
+  const handleMeditateComplete = async () => {
     const meditateUnits = allUnits.filter(u => u.stage === 'medite');
     const totalXp = meditateUnits.reduce((sum, u) => sum + (u.xpValue || 3), 0);
+    
+    for (const unit of meditateUnits) {
+      try {
+        await completeUnitMutation.mutateAsync(unit.id);
+      } catch (error) {
+        console.error("Error completing meditate unit:", error);
+      }
+    }
     
     const lastMeditateIndex = allUnits.reduce((lastIdx, u, idx) => 
       u.stage === 'medite' ? idx : lastIdx, -1
@@ -480,7 +500,13 @@ export default function LessonPage() {
     setShowStageComplete(true);
   };
 
-  const handleTextContinue = () => {
+  const handleTextContinue = async () => {
+    try {
+      await completeUnitMutation.mutateAsync(currentUnit.id);
+    } catch (error) {
+      console.error("Error completing unit:", error);
+    }
+    
     if (currentUnit.stage === 'medite') {
       const meditateUnitsInFiltered = units.filter(u => u.stage === 'medite');
       const currentMeditateIndex = meditateUnitsInFiltered.findIndex(u => u.id === currentUnit.id);
@@ -570,8 +596,16 @@ export default function LessonPage() {
 
   const currentStage = targetStage || currentUnit?.stage || 'responda';
   
-  const handleStudyComplete = () => {
+  const handleStudyComplete = async () => {
     const totalXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
+    
+    for (const unit of studyUnits) {
+      try {
+        await completeUnitMutation.mutateAsync(unit.id);
+      } catch (error) {
+        console.error("Error completing study unit:", error);
+      }
+    }
     
     const lastStudyIndex = allUnits.reduce((lastIdx, u, idx) => 
       u.stage === 'estude' ? idx : lastIdx, -1

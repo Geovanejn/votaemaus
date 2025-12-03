@@ -323,26 +323,16 @@ export default function StudyHomePage() {
       status = 'current';
     }
 
-    const completedUnits = lesson.progress?.completedUnits || 0;
-    const totalUnits = lesson.progress?.totalUnits || 6;
+    const stageProgress = lesson.progress?.stageProgress;
+    const estudeUnits = stageProgress?.estude?.total || 3;
+    const mediteUnits = stageProgress?.medite?.total || 2;
+    const respondaUnits = stageProgress?.responda?.total || 3;
+    const estudeCompleted = stageProgress?.estude?.completed || 0;
+    const mediteCompleted = stageProgress?.medite?.completed || 0;
+    const respondaCompleted = stageProgress?.responda?.completed || 0;
     
-    const estudeUnits = Math.max(2, Math.ceil(totalUnits * 0.4));
-    const mediteUnits = Math.max(1, Math.ceil(totalUnits * 0.2));
-    const respondaUnits = Math.max(2, totalUnits - estudeUnits - mediteUnits);
-    
-    let estudeCompleted = 0;
-    let mediteCompleted = 0;
-    let respondaCompleted = 0;
-    
-    if (completedUnits > 0) {
-      estudeCompleted = Math.min(completedUnits, estudeUnits);
-      if (completedUnits > estudeUnits) {
-        mediteCompleted = Math.min(completedUnits - estudeUnits, mediteUnits);
-      }
-      if (completedUnits > estudeUnits + mediteUnits) {
-        respondaCompleted = Math.min(completedUnits - estudeUnits - mediteUnits, respondaUnits);
-      }
-    }
+    const completedUnits = estudeCompleted + mediteCompleted + respondaCompleted;
+    const totalUnits = estudeUnits + mediteUnits + respondaUnits;
     
     let estudeStatus: 'completed' | 'current' | 'locked' = 'locked';
     let mediteStatus: 'completed' | 'current' | 'locked' = 'locked';
@@ -353,8 +343,8 @@ export default function StudyHomePage() {
       mediteStatus = 'completed';
       respondaStatus = 'completed';
     } else if (status === 'current') {
-      const estudeComplete = estudeCompleted >= estudeUnits;
-      const mediteComplete = mediteCompleted >= mediteUnits;
+      const estudeComplete = estudeCompleted >= estudeUnits && estudeUnits > 0;
+      const mediteComplete = mediteCompleted >= mediteUnits && mediteUnits > 0;
       
       if (estudeComplete) {
         estudeStatus = 'completed';

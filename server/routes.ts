@@ -1477,6 +1477,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark a unit as completed (for text/reading units)
+  app.post("/api/study/units/:unitId/complete", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const unitId = parseInt(req.params.unitId);
+      
+      const result = storage.markUnitAsCompleted(req.user.id, unitId);
+      const profile = storage.getStudyProfile(req.user.id);
+      
+      res.json({ 
+        unitProgress: result.unitProgress, 
+        profile,
+        xpAwarded: result.xpAwarded
+      });
+    } catch (error) {
+      console.error("Complete unit error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao completar unidade" 
+      });
+    }
+  });
+
   // Complete a lesson
   app.post("/api/study/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {

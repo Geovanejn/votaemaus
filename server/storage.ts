@@ -2472,6 +2472,34 @@ export class SQLiteStorage implements IStorage {
     return { unitProgress, isCorrect, explanation, stage: unit.stage };
   }
 
+  // Mark a text/reading unit as completed (without requiring an answer)
+  markUnitAsCompleted(userId: number, unitId: number): { unitProgress: any; xpAwarded: number } {
+    const unit = this.getStudyUnitById(unitId);
+    if (!unit) {
+      throw new Error("Unidade nao encontrada");
+    }
+
+    const existing = this.getUserUnitProgress(userId, unitId);
+    if (existing && existing.isCompleted) {
+      return { unitProgress: existing, xpAwarded: 0 };
+    }
+
+    db.prepare(`
+      INSERT INTO user_unit_progress (user_id, unit_id, is_completed, is_correct, attempts, completed_at)
+      VALUES (?, ?, 1, 1, 1, datetime('now'))
+      ON CONFLICT(user_id, unit_id) DO UPDATE SET
+        is_completed = 1,
+        is_correct = 1,
+        completed_at = datetime('now')
+    `).run(userId, unitId);
+
+    const xpValue = unit.xpValue || 2;
+    this.addXp(userId, xpValue, 'lesson', unit.lessonId, `Completou unidade: ${unit.type}`);
+
+    const unitProgress = this.getUserUnitProgress(userId, unitId);
+    return { unitProgress, xpAwarded: xpValue };
+  }
+
   // Streak Management
   updateStreak(userId: number): any {
     const profile = this.getOrCreateStudyProfile(userId);
@@ -2630,6 +2658,39 @@ export class SQLiteStorage implements IStorage {
     `).run(userId, periodType, periodKey, xpEarned, xpEarned);
   }
 
+  // Get count of completed units by lesson and stage for a user
+  getCompletedUnitsByLessonAndStage(userId: number, lessonId: number): { estude: { completed: number; total: number }; medite: { completed: number; total: number }; responda: { completed: number; total: number } } {
+    const allUnits = this.getUnitsByLessonId(lessonId);
+    
+    const completedStmt = db.prepare(`
+      SELECT su.stage, COUNT(*) as completed
+      FROM user_unit_progress uup
+      JOIN study_units su ON uup.unit_id = su.id
+      WHERE uup.user_id = ? AND su.lesson_id = ? AND uup.is_completed = 1
+      GROUP BY su.stage
+    `);
+    const completedRows = completedStmt.all(userId, lessonId) as any[];
+    
+    const completedByStage: Record<string, number> = {};
+    completedRows.forEach(row => {
+      completedByStage[row.stage] = row.completed;
+    });
+    
+    const totalByStage = { estude: 0, medite: 0, responda: 0 };
+    allUnits.forEach(unit => {
+      const stage = unit.stage || 'responda';
+      if (stage in totalByStage) {
+        totalByStage[stage as keyof typeof totalByStage]++;
+      }
+    });
+    
+    return {
+      estude: { completed: completedByStage['estude'] || 0, total: totalByStage.estude },
+      medite: { completed: completedByStage['medite'] || 0, total: totalByStage.medite },
+      responda: { completed: completedByStage['responda'] || 0, total: totalByStage.responda }
+    };
+  }
+
   // Get lessons with user progress for a week
   getLessonsWithProgress(userId: number, weekId: number): any[] {
     const lessons = this.getLessonsByWeekId(weekId);
@@ -2652,9 +2713,19 @@ export class SQLiteStorage implements IStorage {
         }
       }
 
+      const stageProgress = this.getCompletedUnitsByLessonAndStage(userId, lesson.id);
+      const totalUnits = stageProgress.estude.total + stageProgress.medite.total + stageProgress.responda.total;
+      const completedUnits = stageProgress.estude.completed + stageProgress.medite.completed + stageProgress.responda.completed;
+
       return {
         ...lesson,
-        progress: progress || null,
+        progress: {
+          ...(progress || {}),
+          completedUnits,
+          totalUnits,
+          xpEarned: progress?.xpEarned || 0,
+          stageProgress
+        },
         status,
       };
     });

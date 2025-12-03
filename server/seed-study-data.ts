@@ -444,6 +444,58 @@ const dailyMissions = [
   { type: "study_time", title: "10 minutos de estudo", description: "Dedique 10 minutos aos estudos bíblicos", icon: "clock", xpReward: 15 }
 ];
 
+const achievements = [
+  // Conquistas de Streak (Sequencia)
+  { code: "streak_3", name: "Iniciante Dedicado", description: "Mantenha uma sequencia de 3 dias de estudo", icon: "flame", xpReward: 10, category: "streak", requirement: { days: 3 } },
+  { code: "streak_7", name: "Semana Perfeita", description: "Mantenha uma sequencia de 7 dias de estudo", icon: "flame", xpReward: 25, category: "streak", requirement: { days: 7 } },
+  { code: "streak_14", name: "Duas Semanas de Fe", description: "Mantenha uma sequencia de 14 dias de estudo", icon: "flame", xpReward: 50, category: "streak", requirement: { days: 14 } },
+  { code: "streak_30", name: "Mes de Fe", description: "Mantenha uma sequencia de 30 dias de estudo", icon: "flame", xpReward: 100, category: "streak", requirement: { days: 30 } },
+  { code: "streak_100", name: "Centuriao da Fe", description: "Mantenha uma sequencia de 100 dias de estudo", icon: "crown", xpReward: 500, category: "streak", requirement: { days: 100 } },
+  
+  // Conquistas de Licoes
+  { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "book", xpReward: 5, category: "lessons", requirement: { lessons: 1 } },
+  { code: "lessons_5", name: "Estudante Aplicado", description: "Complete 5 licoes", icon: "book-open", xpReward: 20, category: "lessons", requirement: { lessons: 5 } },
+  { code: "lessons_10", name: "Discipulo Dedicado", description: "Complete 10 licoes", icon: "graduation-cap", xpReward: 50, category: "lessons", requirement: { lessons: 10 } },
+  { code: "lessons_25", name: "Estudioso da Palavra", description: "Complete 25 licoes", icon: "trophy", xpReward: 100, category: "lessons", requirement: { lessons: 25 } },
+  { code: "lessons_50", name: "Mestre da Palavra", description: "Complete 50 licoes", icon: "crown", xpReward: 250, category: "lessons", requirement: { lessons: 50 } },
+  
+  // Conquistas de Perfeicao
+  { code: "perfect_lesson", name: "Perfeito!", description: "Complete uma licao sem errar nenhuma pergunta", icon: "star", xpReward: 15, category: "lessons", requirement: { perfectLessons: 1 } },
+  { code: "perfect_5", name: "Excelencia Biblica", description: "Complete 5 licoes perfeitas", icon: "stars", xpReward: 50, category: "lessons", requirement: { perfectLessons: 5 } },
+  { code: "perfect_10", name: "Estudante Exemplar", description: "Complete 10 licoes perfeitas", icon: "award", xpReward: 100, category: "lessons", requirement: { perfectLessons: 10 } },
+  
+  // Conquistas de XP
+  { code: "xp_100", name: "Primeira Centena", description: "Acumule 100 XP", icon: "zap", xpReward: 10, category: "xp", requirement: { xp: 100 } },
+  { code: "xp_500", name: "Meio Milhar", description: "Acumule 500 XP", icon: "zap", xpReward: 25, category: "xp", requirement: { xp: 500 } },
+  { code: "xp_1000", name: "Mil Pontos de Fe", description: "Acumule 1000 XP", icon: "zap", xpReward: 50, category: "xp", requirement: { xp: 1000 } },
+  { code: "xp_5000", name: "Guerreiro da Fe", description: "Acumule 5000 XP", icon: "shield", xpReward: 150, category: "xp", requirement: { xp: 5000 } },
+  { code: "xp_10000", name: "Campeo da Fe", description: "Acumule 10000 XP", icon: "medal", xpReward: 300, category: "xp", requirement: { xp: 10000 } },
+  
+  // Conquistas de Versiculos
+  { code: "verse_reader_1", name: "Leitor de Versiculos", description: "Leia seu primeiro versiculo", icon: "book-open", xpReward: 5, category: "special", requirement: { verses: 1 } },
+  { code: "verse_reader_10", name: "Amante da Palavra", description: "Leia 10 versiculos", icon: "book-heart", xpReward: 25, category: "special", requirement: { verses: 10 } },
+  { code: "verse_reader_50", name: "Devorador de Escrituras", description: "Leia 50 versiculos", icon: "book-marked", xpReward: 75, category: "special", requirement: { verses: 50 } },
+  
+  // Conquistas Especiais
+  { code: "early_bird", name: "Madrugador", description: "Estude antes das 7h da manha", icon: "sunrise", xpReward: 15, category: "special", requirement: { studyBefore: "07:00" } },
+  { code: "night_owl", name: "Coruja Noturna", description: "Estude depois das 22h", icon: "moon", xpReward: 15, category: "special", requirement: { studyAfter: "22:00" } },
+  { code: "weekend_warrior", name: "Guerreiro do Fim de Semana", description: "Estude no sabado e domingo", icon: "calendar", xpReward: 20, category: "special", requirement: { weekendStudy: true } },
+  { code: "meditation_master", name: "Mestre da Meditacao", description: "Complete 10 sessoes de meditacao", icon: "heart", xpReward: 50, category: "special", requirement: { meditations: 10 } },
+  { code: "first_ranking", name: "Top 10", description: "Entre no top 10 do ranking semanal", icon: "trophy", xpReward: 100, category: "special", requirement: { rankingTop: 10 } },
+  { code: "champion", name: "Campeao Semanal", description: "Fique em primeiro lugar no ranking semanal", icon: "crown", xpReward: 200, category: "special", requirement: { rankingTop: 1 } },
+  
+  // Conquistas de Nivel
+  { code: "level_5", name: "Nivel 5", description: "Alcance o nivel 5", icon: "trending-up", xpReward: 25, category: "xp", requirement: { level: 5 } },
+  { code: "level_10", name: "Nivel 10", description: "Alcance o nivel 10", icon: "trending-up", xpReward: 50, category: "xp", requirement: { level: 10 } },
+  { code: "level_25", name: "Nivel 25", description: "Alcance o nivel 25", icon: "award", xpReward: 150, category: "xp", requirement: { level: 25 } },
+  { code: "level_50", name: "Nivel 50", description: "Alcance o nivel 50", icon: "crown", xpReward: 500, category: "xp", requirement: { level: 50 } },
+  
+  // Conquistas de Missoes
+  { code: "mission_first", name: "Primeira Missao", description: "Complete sua primeira missao diaria", icon: "target", xpReward: 5, category: "special", requirement: { missions: 1 } },
+  { code: "mission_all_day", name: "Dia Perfeito", description: "Complete todas as missoes de um dia", icon: "check-circle", xpReward: 30, category: "special", requirement: { allMissionsDay: true } },
+  { code: "mission_week", name: "Semana de Missoes", description: "Complete todas as missoes por 7 dias seguidos", icon: "calendar-check", xpReward: 100, category: "special", requirement: { allMissionsWeek: true } }
+];
+
 export async function seedStudyData() {
   try {
     console.log("Limpando dados de estudo existentes...");
@@ -550,6 +602,34 @@ export async function seedDailyMissions() {
   }
 }
 
+export async function seedAchievements() {
+  try {
+    console.log("\nLimpando conquistas existentes...");
+    storage.clearAllAchievements();
+    
+    console.log("Inserindo conquistas...");
+    for (const achievement of achievements) {
+      storage.createAchievement({
+        code: achievement.code,
+        name: achievement.name,
+        description: achievement.description,
+        icon: achievement.icon,
+        xpReward: achievement.xpReward,
+        category: achievement.category,
+        requirement: achievement.requirement,
+        isSecret: false
+      });
+      console.log(`  Conquista inserida: ${achievement.name}`);
+    }
+    
+    console.log(`\n${achievements.length} conquistas inseridas com sucesso!`);
+    return { success: true, count: achievements.length };
+  } catch (error) {
+    console.error("Erro ao inserir conquistas:", error);
+    throw error;
+  }
+}
+
 export async function clearAllStudyProgress() {
   try {
     console.log("\nLimpando todo o progresso de estudo dos usuários...");
@@ -571,6 +651,7 @@ export async function seedAllData() {
   await seedStudyData();
   await seedBibleVerses();
   await seedDailyMissions();
+  await seedAchievements();
   
   console.log("\n" + "=".repeat(50));
   console.log("SEED COMPLETO FINALIZADO COM SUCESSO!");

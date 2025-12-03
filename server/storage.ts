@@ -135,6 +135,7 @@ export interface IStorage {
   // Seed helpers
   clearAllBibleVerses(): void;
   clearAllDailyMissions(): void;
+  clearAllAchievements(): void;
   clearAllStudyProgress(): void;
   createDailyMission(data: { type: string; title: string; description: string; icon: string; xpReward: number }): any;
 }
@@ -3014,6 +3015,12 @@ export class SQLiteStorage implements IStorage {
     db.prepare("DELETE FROM user_daily_missions").run();
     db.prepare("DELETE FROM daily_missions").run();
     console.log('[Seed] Cleared all daily missions');
+  }
+
+  clearAllAchievements(): void {
+    db.prepare("DELETE FROM user_achievements").run();
+    db.prepare("DELETE FROM achievements").run();
+    console.log('[Seed] Cleared all achievements');
   }
 
   clearAllStudyProgress(): void {

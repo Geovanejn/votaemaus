@@ -63,6 +63,7 @@ export default function VersesPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/verses/recovery-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/verses'] });
       
       if (data.heartRecovered) {
         toast({

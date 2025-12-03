@@ -8,6 +8,7 @@ import {
   MultipleChoiceExercise,
   TrueFalseExercise,
   TextContent,
+  FillBlankExercise,
   FeedbackOverlay,
   LessonComplete
 } from "@/components/study";
@@ -28,13 +29,18 @@ interface UnitContent {
   explanationIncorrect?: string;
   explanation?: string;
   hint?: string;
+  reflectionPrompt?: string;
+  meditationDuration?: number;
+  meditationGuide?: string;
+  verseReference?: string;
+  verseText?: string;
 }
 
 interface Unit {
   id: number;
   lessonId: number;
   orderIndex: number;
-  type: "text" | "multiple_choice" | "true_false" | "fill_blank";
+  type: "text" | "multiple_choice" | "true_false" | "fill_blank" | "verse" | "meditation" | "reflection";
   content: UnitContent;
   xpValue: number;
 }
@@ -423,6 +429,10 @@ export default function LessonPage() {
     handleAnswerSubmit(userAnswer);
   };
 
+  const handleFillBlankAnswer = (_isCorrect: boolean, userAnswer: string) => {
+    handleAnswerSubmit(userAnswer);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
       <StudyHeader
@@ -443,6 +453,33 @@ export default function LessonPage() {
           />
         )}
 
+        {currentUnit.type === "verse" && (
+          <TextContent
+            title={currentUnit.content.title || "Versiculo"}
+            body={currentUnit.content.body || currentUnit.content.verseText || ""}
+            highlight={currentUnit.content.highlight || currentUnit.content.verseReference}
+            onContinue={handleTextContinue}
+          />
+        )}
+
+        {currentUnit.type === "meditation" && (
+          <TextContent
+            title={currentUnit.content.title || "Meditacao"}
+            body={currentUnit.content.body || currentUnit.content.meditationGuide || ""}
+            highlight={currentUnit.content.meditationDuration ? `Duracao: ${currentUnit.content.meditationDuration} segundos` : undefined}
+            onContinue={handleTextContinue}
+          />
+        )}
+
+        {currentUnit.type === "reflection" && (
+          <TextContent
+            title={currentUnit.content.title || "Reflexao"}
+            body={currentUnit.content.body || currentUnit.content.reflectionPrompt || ""}
+            highlight={currentUnit.content.highlight}
+            onContinue={handleTextContinue}
+          />
+        )}
+
         {currentUnit.type === "multiple_choice" && (
           <MultipleChoiceExercise
             question={currentUnit.content.question || ""}
@@ -457,6 +494,14 @@ export default function LessonPage() {
             statement={currentUnit.content.statement || ""}
             isTrue={currentUnit.content.isTrue || false}
             onAnswer={handleTrueFalseAnswer}
+          />
+        )}
+
+        {currentUnit.type === "fill_blank" && (
+          <FillBlankExercise
+            question={currentUnit.content.question || ""}
+            correctAnswer={currentUnit.content.correctAnswer || ""}
+            onAnswer={handleFillBlankAnswer}
           />
         )}
       </main>

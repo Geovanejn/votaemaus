@@ -2,6 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { CheckCircle2 } from "lucide-react";
 
 interface MultipleChoiceExerciseProps {
@@ -205,6 +206,109 @@ export function TextContent({
           data-testid="button-continue"
         >
           CONTINUAR
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface FillBlankExerciseProps {
+  question: string;
+  correctAnswer: string;
+  onAnswer: (isCorrect: boolean, userAnswer: string) => void;
+}
+
+export function FillBlankExercise({
+  question,
+  correctAnswer,
+  onAnswer
+}: FillBlankExerciseProps) {
+  const [userAnswer, setUserAnswer] = useState("");
+  const [isAnswered, setIsAnswered] = useState(false);
+
+  const handleVerify = () => {
+    if (!userAnswer.trim()) return;
+    setIsAnswered(true);
+    const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    onAnswer(isCorrect, userAnswer);
+  };
+
+  const renderQuestionWithBlank = () => {
+    const blankIndex = question.indexOf("___");
+    
+    if (blankIndex === -1) {
+      return (
+        <>
+          <span>{question}</span>
+          <span className={cn(
+            "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+            isAnswered 
+              ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
+                ? "border-green-500 text-green-600 dark:text-green-400"
+                : "border-red-500 text-red-600 dark:text-red-400"
+              : "border-primary"
+          )}>
+            {userAnswer || "___"}
+          </span>
+        </>
+      );
+    }
+    
+    const beforeBlank = question.substring(0, blankIndex);
+    const afterBlank = question.substring(blankIndex + 3);
+    
+    return (
+      <>
+        <span>{beforeBlank}</span>
+        <span className={cn(
+          "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+          isAnswered 
+            ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
+              ? "border-green-500 text-green-600 dark:text-green-400"
+              : "border-red-500 text-red-600 dark:text-red-400"
+            : "border-primary"
+        )}>
+          {userAnswer || "___"}
+        </span>
+        <span>{afterBlank}</span>
+      </>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full" data-testid="exercise-fill-blank">
+      <div className="flex-1 flex flex-col justify-center px-4">
+        <Card className="p-6 mb-6">
+          <p className="text-lg text-foreground text-center leading-relaxed">
+            {renderQuestionWithBlank()}
+          </p>
+        </Card>
+
+        <Input
+          type="text"
+          value={userAnswer}
+          onChange={(e) => setUserAnswer(e.target.value)}
+          placeholder="Digite sua resposta..."
+          disabled={isAnswered}
+          className="py-4 text-lg"
+          data-testid="input-fill-blank-answer"
+        />
+
+        {isAnswered && userAnswer.trim().toLowerCase() !== correctAnswer.trim().toLowerCase() && (
+          <p className="mt-2 text-sm text-muted-foreground text-center">
+            Resposta correta: <span className="font-bold text-green-600 dark:text-green-400">{correctAnswer}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="p-4 border-t">
+        <Button
+          onClick={handleVerify}
+          disabled={!userAnswer.trim() || isAnswered}
+          className="w-full py-6 text-lg font-bold"
+          data-testid="button-verify-fill-blank"
+        >
+          VERIFICAR
         </Button>
       </div>
     </div>

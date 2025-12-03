@@ -2182,7 +2182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate complete study week content from PDF
+  // Generate complete study week content from PDF and save to database
   app.post("/api/ai/generate-week-from-pdf", authenticateToken, requireAdmin, upload.single('pdf'), async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
@@ -2204,6 +2204,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Ano invalido. Deve ser entre 2020 e 2100." });
       }
 
+      // Check if week already exists
+      const existingWeek = storage.getStudyWeekByNumber(weekNumber, year);
+      if (existingWeek) {
+        return res.status(409).json({ 
+          message: `Ja existe conteudo para a semana ${weekNumber} de ${year}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
+          existingWeek
+        });
+      }
+
       // Parse PDF content
       const pdfData = await parsePdfBuffer(req.file.buffer);
       const pdfText = pdfData.text;
@@ -2212,8 +2221,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
       }
 
-      const content = await generateStudyContentFromPDF(pdfText, weekNumber, year);
-      res.json(content);
+      // Generate content with AI
+      const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year);
+
+      // Create the week in database
+      const week = storage.createStudyWeek({
+        title: generatedContent.weekTitle,
+        description: generatedContent.weekDescription,
+        weekNumber: weekNumber,
+        year: year,
+        createdBy: req.user!.id,
+        aiMetadata: JSON.stringify({
+          generatedAt: new Date().toISOString(),
+          model: "gemini-2.0-flash",
+          source: "pdf",
+          lessonsCount: generatedContent.lessons.length
+        })
+      });
+
+      // Create lessons and units
+      let totalLessons = 0;
+      let totalUnits = 0;
+
+      for (let i = 0; i < generatedContent.lessons.length; i++) {
+        const lessonData = generatedContent.lessons[i];
+        
+        const lesson = storage.createStudyLesson({
+          studyWeekId: week.id,
+          orderIndex: i,
+          title: lessonData.title,
+          description: lessonData.description || undefined,
+          type: lessonData.type,
+          xpReward: lessonData.xpReward,
+          estimatedMinutes: lessonData.estimatedMinutes,
+          icon: getIconForLessonType(lessonData.type),
+          isBonus: false
+        });
+        totalLessons++;
+
+        // Create units for this lesson
+        for (let j = 0; j < lessonData.units.length; j++) {
+          const unitData = lessonData.units[j];
+          
+          storage.createStudyUnit({
+            lessonId: lesson.id,
+            orderIndex: j,
+            type: unitData.type,
+            content: unitData.content,
+            xpValue: unitData.xpValue
+          });
+          totalUnits++;
+        }
+      }
+
+      res.json({
+        message: "Semana criada com sucesso usando IA a partir do PDF",
+        week,
+        stats: {
+          lessons: totalLessons,
+          units: totalUnits
+        }
+      });
     } catch (error) {
       console.error("AI generate week from PDF error:", error);
       res.status(500).json({ 

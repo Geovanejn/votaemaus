@@ -18,10 +18,18 @@ export interface GeneratedUnit {
   content: {
     title?: string;
     text?: string;
+    body?: string;
+    highlight?: string;
     question?: string;
+    statement?: string;
     options?: string[];
+    correctIndex?: number;
     correctAnswer?: string | number | boolean;
+    isTrue?: boolean;
     explanation?: string;
+    explanationCorrect?: string;
+    explanationIncorrect?: string;
+    hint?: string;
     verseReference?: string;
     verseText?: string;
     reflectionPrompt?: string;
@@ -63,11 +71,17 @@ export async function generateStudyContentFromText(
   weekNumber: number,
   year: number
 ): Promise<GeneratedWeekContent> {
-  const systemPrompt = `Voce e um especialista em educacao crista e criacao de conteudo educacional interativo no estilo Duolingo.
+  const systemPrompt = `Voce e um especialista em educacao crista e criacao de conteudo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa e transformar o texto fornecido em um conteudo de estudo semanal completo para jovens da UMP (Uniao da Mocidade Presbiteriana).
 
+O Sistema DeoGlory segue uma estrutura pedagogica especifica:
+1. PRIMEIRO: Apresentar o TEXTO DE LEITURA (conteudo principal para estudo)
+2. SEGUNDO: Apresentar o VERSICULO BASE (texto biblico central da licao)
+3. TERCEIRO: Apresentar TITULO e TOPICOS principais
+4. QUARTO: Somente DEPOIS apresentar os DESAFIOS (perguntas e exercicios)
+
 O conteudo deve ser:
-- Biblicamente fundamentado
+- Biblicamente fundamentado com versiculos relevantes
 - Engajante e interativo
 - Adequado para jovens (18-35 anos)
 - Com exercicios variados e gamificados
@@ -95,13 +109,13 @@ Gere um JSON com a seguinte estrutura:
         {
           "type": "text|multiple_choice|true_false|fill_blank|meditation|reflection|verse",
           "content": {
-            // Para "text": { "title": "...", "text": "..." }
-            // Para "multiple_choice": { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..." }
-            // Para "true_false": { "question": "...", "correctAnswer": true/false, "explanation": "..." }
-            // Para "fill_blank": { "question": "Complete: ___ e o caminho...", "correctAnswer": "Jesus", "explanation": "..." }
-            // Para "meditation": { "title": "...", "meditationDuration": 60, "meditationGuide": "..." }
-            // Para "reflection": { "title": "...", "reflectionPrompt": "..." }
-            // Para "verse": { "verseReference": "Joao 3:16", "verseText": "...", "reflectionPrompt": "..." }
+            // Para "text": { "title": "Titulo do Topico", "body": "Conteudo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
+            // Para "verse": { "title": "Versiculo Base", "body": "Texto completo do versiculo", "highlight": "Referencia: Joao 3:16" }
+            // Para "multiple_choice": { "question": "Pergunta clara sobre o conteudo", "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"], "correctIndex": 0, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar", "hint": "Dica opcional" }
+            // Para "true_false": { "statement": "Afirmacao para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
+            // Para "fill_blank": { "question": "Complete: ___ e o caminho, a verdade e a vida.", "correctAnswer": "Jesus", "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
+            // Para "meditation": { "title": "Titulo da Meditacao", "body": "Guia de meditacao detalhado", "meditationDuration": 60 }
+            // Para "reflection": { "title": "Reflexao Pessoal", "body": "Contexto para reflexao", "reflectionPrompt": "Pergunta para reflexao pessoal" }
           },
           "xpValue": 2-10
         }
@@ -110,14 +124,22 @@ Gere um JSON com a seguinte estrutura:
   ]
 }
 
-Regras:
+ESTRUTURA OBRIGATORIA DAS LICOES (Sistema DeoGlory):
+Cada licao DEVE seguir esta ordem de unidades:
+1. PRIMEIRO: Uma unidade "text" com o TEXTO DE LEITURA principal (conteudo educativo sobre o tema)
+2. SEGUNDO: Uma unidade "verse" com o VERSICULO BASE da licao
+3. TERCEIRO: Uma unidade "text" com TOPICOS e SUBTOPICOS do estudo
+4. DEPOIS: Unidades de exercicios (multiple_choice, true_false, fill_blank)
+5. FINAL: Uma unidade "reflection" ou "meditation" para conclusao
+
+Regras Adicionais:
 1. Crie 3-5 licoes variadas
-2. Cada licao deve ter 4-8 unidades
+2. Cada licao deve ter 5-8 unidades seguindo a estrutura acima
 3. Inicie com uma licao "intro" e termine com "review"
-4. Inclua pelo menos uma licao de "meditation" ou exercicios de reflexao
-5. Varie os tipos de exercicios para manter o engajamento
-6. Use versiculos biblicos relevantes ao tema
-7. As perguntas devem testar compreensao, nao decoreba
+4. O texto de leitura deve ser substantivo (minimo 100 palavras)
+5. Inclua 2-4 perguntas de multipla escolha ou verdadeiro/falso por licao
+6. Use versiculos biblicos relevantes ao tema em cada licao
+7. As perguntas devem testar compreensao do texto de leitura
 8. O conteudo deve ser edificante e encorajador
 
 Retorne APENAS o JSON, sem explicacoes adicionais.`;
@@ -253,6 +275,194 @@ export async function generateStudyContentFromPDF(
   return generateStudyContentFromText(cleanedText, weekNumber, year);
 }
 
+function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
+  const content = unit.content || {};
+  
+  switch (unit.type) {
+    case "text":
+      if (!content.body && content.text) {
+        content.body = content.text;
+      }
+      if (!content.body) {
+        content.body = "Conteudo nao disponivel";
+      }
+      if (!content.title) {
+        content.title = "";
+      }
+      delete content.text;
+      break;
+      
+    case "verse":
+      if (!content.body && content.verseText) {
+        content.body = content.verseText;
+      }
+      if (!content.body && content.text) {
+        content.body = content.text;
+      }
+      if (!content.body) {
+        content.body = "Versiculo nao disponivel";
+      }
+      if (!content.highlight && content.verseReference) {
+        content.highlight = content.verseReference;
+      }
+      if (!content.title) {
+        content.title = "Versiculo";
+      }
+      delete content.text;
+      delete content.verseText;
+      break;
+      
+    case "multiple_choice":
+      if (!Array.isArray(content.options) || content.options.length === 0) {
+        content.options = ["Opcao A", "Opcao B", "Opcao C", "Opcao D"];
+      }
+      content.options = content.options
+        .map((opt: any) => String(opt || "").trim())
+        .filter((opt: string) => opt !== "");
+      if (content.options.length < 2) {
+        content.options = ["Opcao A", "Opcao B", "Opcao C", "Opcao D"];
+      }
+      const optionCount = content.options.length;
+      
+      if (content.correctAnswer !== undefined && content.correctIndex === undefined) {
+        let parsedIndex = 0;
+        const answerValue = String(content.correctAnswer).trim().toUpperCase();
+        if (/^[A-D]$/.test(answerValue)) {
+          parsedIndex = answerValue.charCodeAt(0) - 'A'.charCodeAt(0);
+        } else if (/^\d+$/.test(answerValue)) {
+          const numValue = parseInt(answerValue, 10);
+          parsedIndex = numValue >= 1 ? numValue - 1 : numValue;
+        } else if (typeof content.correctAnswer === 'number') {
+          const numValue = content.correctAnswer;
+          parsedIndex = numValue >= 1 ? numValue - 1 : numValue;
+        }
+        if (isNaN(parsedIndex) || parsedIndex < 0) {
+          parsedIndex = 0;
+        }
+        content.correctIndex = Math.min(parsedIndex, optionCount - 1);
+      }
+      if (content.correctIndex === undefined) {
+        content.correctIndex = 0;
+      }
+      content.correctIndex = Math.max(0, Math.min(content.correctIndex, optionCount - 1));
+      if (!content.question) {
+        content.question = "Pergunta nao disponivel";
+      }
+      if (!content.explanationCorrect && content.explanation) {
+        content.explanationCorrect = content.explanation;
+        content.explanationIncorrect = content.explanation;
+      }
+      if (!content.explanationCorrect) {
+        content.explanationCorrect = "Correto!";
+      }
+      if (!content.explanationIncorrect) {
+        content.explanationIncorrect = "Incorreto. Tente novamente.";
+      }
+      delete content.correctAnswer;
+      delete content.explanation;
+      break;
+      
+    case "true_false":
+      if (content.question && !content.statement) {
+        content.statement = content.question;
+      }
+      if (!content.statement) {
+        content.statement = "Afirmacao nao disponivel";
+      }
+      if (content.isTrue === undefined) {
+        if (content.correctAnswer !== undefined) {
+          content.isTrue = content.correctAnswer === true || content.correctAnswer === "true";
+        } else {
+          content.isTrue = true;
+        }
+      }
+      if (!content.explanationCorrect && content.explanation) {
+        content.explanationCorrect = content.explanation;
+        content.explanationIncorrect = content.explanation;
+      }
+      if (!content.explanationCorrect) {
+        content.explanationCorrect = "Correto!";
+      }
+      if (!content.explanationIncorrect) {
+        content.explanationIncorrect = "Incorreto. Tente novamente.";
+      }
+      delete content.question;
+      delete content.correctAnswer;
+      delete content.explanation;
+      break;
+      
+    case "fill_blank":
+      if (!content.correctAnswer) {
+        content.correctAnswer = "";
+      }
+      if (!content.question) {
+        content.question = "Complete a frase: ___";
+      }
+      if (!content.question.includes("___")) {
+        content.question = content.question.replace(/\s*$/, " ___");
+      }
+      const blankMatches = content.question.match(/___/g) || [];
+      if (blankMatches.length > 1) {
+        const firstBlankIndex = content.question.indexOf("___");
+        const beforeBlank = content.question.substring(0, firstBlankIndex + 3);
+        let afterBlank = content.question.substring(firstBlankIndex + 3);
+        afterBlank = afterBlank.replace(/___/g, "...");
+        content.question = beforeBlank + afterBlank;
+      }
+      if (!content.explanationCorrect && content.explanation) {
+        content.explanationCorrect = content.explanation;
+        content.explanationIncorrect = content.explanation;
+      }
+      if (!content.explanationCorrect) {
+        content.explanationCorrect = "Correto!";
+      }
+      if (!content.explanationIncorrect) {
+        content.explanationIncorrect = "Incorreto. Tente novamente.";
+      }
+      delete content.explanation;
+      break;
+      
+    case "meditation":
+      if (!content.body && content.meditationGuide) {
+        content.body = content.meditationGuide;
+      }
+      if (!content.body && content.text) {
+        content.body = content.text;
+      }
+      if (!content.body) {
+        content.body = "Guia de meditacao nao disponivel";
+      }
+      if (!content.meditationDuration) {
+        content.meditationDuration = 60;
+      }
+      if (!content.title) {
+        content.title = "Meditacao";
+      }
+      delete content.text;
+      delete content.meditationGuide;
+      break;
+      
+    case "reflection":
+      if (!content.body && content.reflectionPrompt) {
+        content.body = content.reflectionPrompt;
+      }
+      if (!content.body && content.text) {
+        content.body = content.text;
+      }
+      if (!content.body) {
+        content.body = "Reflexao nao disponivel";
+      }
+      if (!content.title) {
+        content.title = "Reflexao";
+      }
+      delete content.text;
+      break;
+  }
+  
+  unit.content = content;
+  return unit;
+}
+
 function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekContent {
   if (!content.weekTitle) {
     content.weekTitle = "Semana de Estudos";
@@ -288,12 +498,13 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
         unit.type = "text";
       }
       if (!unit.content) {
-        unit.content = { text: "Conteudo nao disponivel" };
+        unit.content = { body: "Conteudo nao disponivel" };
       }
       if (!unit.xpValue || unit.xpValue < 1) {
         unit.xpValue = 2;
       }
-      return unit;
+      
+      return normalizeUnitContent(unit);
     });
 
     return lesson;

@@ -8,7 +8,7 @@ export { LessonMap } from "./LessonMap";
 export { SectionHeader } from "./SectionHeader";
 export { StartButton } from "./StartButton";
 export { FeedbackOverlay } from "./FeedbackOverlay";
-export { MultipleChoiceExercise, TrueFalseExercise, TextContent } from "./ExerciseCard";
+export { MultipleChoiceExercise, TrueFalseExercise, TextContent, FillBlankExercise } from "./ExerciseCard";
 export { VerseReader, VerseList } from "./VerseReader";
 export { StudyHeader } from "./StudyHeader";
 export { BottomNav } from "./BottomNav";

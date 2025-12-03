@@ -2164,15 +2164,77 @@ export class SQLiteStorage implements IStorage {
     const stmt = db.prepare("SELECT * FROM study_units WHERE id = ?");
     const row = stmt.get(unitId) as any;
     if (!row) return null;
+    
+    const content = JSON.parse(row.content);
+    const normalizedContent = this.normalizeUnitContentForRead(row.type, content);
+    
     return {
       id: row.id,
       lessonId: row.lesson_id,
       orderIndex: row.order_index,
       type: row.type,
-      content: JSON.parse(row.content),
+      content: normalizedContent,
       xpValue: row.xp_value,
       createdAt: row.created_at,
     };
+  }
+  
+  private normalizeUnitContentForRead(type: string, content: any): any {
+    switch (type) {
+      case 'text':
+        return {
+          ...content,
+          body: content.body || content.text || "",
+          title: content.title || ""
+        };
+      case 'verse':
+        return {
+          ...content,
+          body: content.body || content.verseText || content.text || "",
+          title: content.title || "Versiculo",
+          highlight: content.highlight || content.verseReference || ""
+        };
+      case 'meditation':
+        return {
+          ...content,
+          body: content.body || content.meditationGuide || content.text || "",
+          title: content.title || "Meditacao",
+          meditationDuration: content.meditationDuration || 60
+        };
+      case 'reflection':
+        return {
+          ...content,
+          body: content.body || content.reflectionPrompt || content.text || "",
+          title: content.title || "Reflexao"
+        };
+      case 'multiple_choice':
+        return {
+          ...content,
+          question: content.question || "",
+          options: content.options || [],
+          correctIndex: content.correctIndex ?? 0,
+          explanationCorrect: content.explanationCorrect || content.explanation || "Correto!",
+          explanationIncorrect: content.explanationIncorrect || content.explanation || "Incorreto."
+        };
+      case 'true_false':
+        return {
+          ...content,
+          statement: content.statement || content.question || "",
+          isTrue: content.isTrue ?? true,
+          explanationCorrect: content.explanationCorrect || content.explanation || "Correto!",
+          explanationIncorrect: content.explanationIncorrect || content.explanation || "Incorreto."
+        };
+      case 'fill_blank':
+        return {
+          ...content,
+          question: content.question || "",
+          correctAnswer: content.correctAnswer || "",
+          explanationCorrect: content.explanationCorrect || content.explanation || "Correto!",
+          explanationIncorrect: content.explanationIncorrect || content.explanation || "Incorreto."
+        };
+      default:
+        return content;
+    }
   }
 
   validateAnswer(unit: any, answer: any): boolean {

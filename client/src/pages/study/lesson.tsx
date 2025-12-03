@@ -480,6 +480,15 @@ export default function LessonPage() {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp;
     
+    // Mark all responda units as completed (ensures text-type units are also marked)
+    for (const unit of respondaUnits) {
+      try {
+        await completeUnitMutation.mutateAsync(unit.id);
+      } catch (error) {
+        console.error("Error completing responda unit:", error);
+      }
+    }
+    
     setStageCompleteData({
       xp: totalXpFromResponda,
       stageType: "responda",

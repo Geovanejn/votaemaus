@@ -216,3 +216,47 @@ Christian meditation MUST include:
 - Script: server/seed-study-data.ts
 - Seeds real biblical study content about faith ("O Que É a Fé?")
 - Clears existing study data before inserting new content
+
+## Recent Changes (December 2025)
+
+### Fill Blank Exercise Fix
+- **Issue**: fill_blank exercises showed empty question field
+- **Solution**: Added backward compatibility mapping in storage.ts (sentence → question)
+- **Location**: server/storage.ts - getStudyUnits method
+
+### Deterministic Unit Ordering
+- **Issue**: Unit ordering could drift due to undefined orderIndex values
+- **Solution**: Sort by orderIndex (primary) + id (secondary) for stable sequence
+- **Location**: client/src/pages/study/lesson.tsx - allUnits sorting
+
+### Christian Meditation Content
+- **Issue**: Meditation content contained Buddhist breathing references
+- **Solution**: Updated database to remove all breathing technique references
+- **Verified**: No content with "respiração", "feche os olhos", or breathing instructions
+
+### Study Content Display
+- **Design Decision**: Title and content displayed together on same screen
+- **Implementation**: Direct structured unit mapping (parseStudyContent removed)
+- **Location**: client/src/components/study/StudyContent.tsx
+
+### Topic Numbering
+- **Counter**: topicCounter starts at 1 for actual topics
+- **Verse/Conclusion**: Use 0 (not numbered as topics)
+- **Display**: "Tópico X" label above content title
+
+## Architecture Notes
+
+### Data Flow for Study Units
+1. Database stores units with orderIndex and content JSON
+2. storage.ts fetches and maps fields (including backward compatibility)
+3. lesson.tsx sorts by orderIndex + id before rendering
+4. StudyContent.tsx displays structured sections
+
+### Key Files
+- **shared/schema.ts**: Data models and Zod schemas
+- **server/storage.ts**: Database operations with field mapping
+- **server/routes.ts**: API endpoints
+- **client/src/pages/study/lesson.tsx**: Main lesson page with ordering
+- **client/src/components/study/StudyContent.tsx**: Content display
+- **client/src/components/study/ExerciseCard.tsx**: Exercise handling
+- **server/seed-study-data.ts**: Admin seed data script

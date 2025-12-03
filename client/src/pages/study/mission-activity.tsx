@@ -267,7 +267,7 @@ function QuizActivity({
             const isSelected = selectedAnswer === index;
             const isCorrect = index === questions[currentQuestion].correctIndex;
             
-            let buttonClass = "w-full justify-start text-left p-4 h-auto";
+            let buttonClass = "w-full justify-start text-left p-4 min-h-[56px] h-auto whitespace-normal break-words";
             if (showResult) {
               if (isCorrect) {
                 buttonClass += " bg-[#58CC02] text-white";
@@ -285,10 +285,10 @@ function QuizActivity({
                 disabled={selectedAnswer !== null}
                 data-testid={`quiz-option-${index}`}
               >
-                <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 text-sm font-bold">
+                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 text-sm font-bold">
                   {String.fromCharCode(65 + index)}
                 </span>
-                {option}
+                <span className="flex-1 break-words overflow-hidden">{option}</span>
               </Button>
             );
           })}
@@ -731,14 +731,14 @@ function PerfectAnswersActivity({
             <Button
               key={index}
               variant="outline"
-              className="w-full justify-start text-left p-4 h-auto"
+              className="w-full justify-start text-left p-4 min-h-[56px] h-auto whitespace-normal break-words"
               onClick={() => handleAnswer(index)}
               data-testid={`perfect-option-${index}`}
             >
-              <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 text-sm font-bold">
+              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 text-sm font-bold">
                 {String.fromCharCode(65 + index)}
               </span>
-              {option}
+              <span className="flex-1 break-words overflow-hidden">{option}</span>
             </Button>
           ))}
         </div>

@@ -39,6 +39,11 @@ interface StudyWeek {
   createdBy: number | null;
 }
 
+interface StageProgress {
+  completed: number;
+  total: number;
+}
+
 interface LessonWithProgress {
   id: number;
   studyWeekId: number;
@@ -55,6 +60,11 @@ interface LessonWithProgress {
     completedUnits: number;
     totalUnits: number;
     xpEarned: number;
+    stageProgress?: {
+      estude: StageProgress;
+      medite: StageProgress;
+      responda: StageProgress;
+    };
   };
 }
 

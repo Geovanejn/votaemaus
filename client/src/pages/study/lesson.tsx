@@ -235,12 +235,9 @@ export default function LessonPage() {
     if (lessonData?.units && stageParam && !initialStageSet) {
       const validStages = ['estude', 'medite', 'responda'];
       if (validStages.includes(stageParam)) {
-        const stageIndex = lessonData.units.findIndex(
-          (unit) => unit.stage === stageParam
-        );
-        if (stageIndex !== -1) {
-          setCurrentUnitIndex(stageIndex);
-        }
+        // When filtering by stage, always start at index 0 of the filtered units
+        // The filtering happens later, so we just need to reset to beginning
+        setCurrentUnitIndex(0);
       }
       setInitialStageSet(true);
     }

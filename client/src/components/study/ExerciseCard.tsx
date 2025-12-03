@@ -39,14 +39,14 @@ export function MultipleChoiceExercise({
           {question}
         </h2>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 max-w-full px-2">
           {options.map((option, index) => (
             <Button
               key={index}
               variant="outline"
               className={cn(
-                "w-full py-6 text-left justify-start text-base font-medium transition-all",
-                "border-2",
+                "w-full min-h-[60px] h-auto py-4 px-4 text-left justify-start text-base font-medium transition-all",
+                "border-2 whitespace-normal break-words",
                 selectedIndex === index && !isAnswered && "border-primary bg-primary/5",
                 isAnswered && index === correctIndex && "border-green-500 bg-green-50 dark:bg-green-900/20",
                 isAnswered && selectedIndex === index && index !== correctIndex && "border-red-500 bg-red-50 dark:bg-red-900/20"
@@ -56,14 +56,14 @@ export function MultipleChoiceExercise({
               data-testid={`button-option-${index}`}
             >
               <span className={cn(
-                "flex items-center justify-center h-6 w-6 rounded-full border-2 mr-3 text-sm font-bold",
+                "flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full border-2 mr-3 text-sm font-bold",
                 selectedIndex === index ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"
               )}>
                 {String.fromCharCode(65 + index)}
               </span>
-              <span className="flex-1">{option}</span>
+              <span className="flex-1 break-words overflow-hidden">{option}</span>
               {isAnswered && index === correctIndex && (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 ml-2" />
               )}
             </Button>
           ))}

@@ -120,7 +120,10 @@ Gere um JSON com a seguinte estrutura:
             // Para "reflection" (stage: "medite"): { "title": "Aplicacao Pratica", "body": "Como aplicar este ensino na vida diaria", "reflectionPrompt": "Pergunta para reflexao pessoal" }
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteudo", "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"], "correctIndex": 0, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar", "hint": "Dica opcional" }
             // Para "true_false" (stage: "responda"): { "statement": "Afirmacao para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
-            // Para "fill_blank" (stage: "responda"): { "question": "Complete: ___ e o caminho, a verdade e a vida.", "correctAnswer": "Jesus", "explanationCorrect": "Explicacao quando acertar", "explanationIncorrect": "Explicacao quando errar" }
+            // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Exemplos:
+            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "explanationCorrect": "Joao 14:6 - Jesus se apresenta como o unico caminho ao Pai", "explanationIncorrect": "A resposta correta e 'caminho'. Releia Joao 14:6" }
+            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "explanationCorrect": "Deus trabalha para nosso beneficio!", "explanationIncorrect": "A resposta e 'bem'. Romanos 8:28 nos ensina sobre a providencia divina." }
+            //   - { "question": "O fruto do Espirito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciencia", "explanationCorrect": "Galatas 5:22 lista os frutos do Espirito", "explanationIncorrect": "A resposta e 'paciencia'. Veja Galatas 5:22." }
           },
           "xpValue": 2-10
         }
@@ -152,6 +155,15 @@ Regras Adicionais:
 6. As aplicacoes praticas (etapa MEDITE) devem conectar o texto biblico com a vida cotidiana
 7. As perguntas devem testar compreensao do texto de leitura
 8. O conteudo deve ser edificante e encorajador
+
+REGRAS OBRIGATORIAS PARA EXERCICIOS fill_blank:
+- A frase DEVE ter contexto suficiente para o usuario entender o que preencher
+- NUNCA gere apenas "___" sem contexto - isso e INVALIDO
+- O campo "question" deve ser uma frase COMPLETA com ___ no lugar da palavra a completar
+- Exemplo CORRETO: "Jesus disse: Eu sou o ___, a verdade e a vida."
+- Exemplo INCORRETO: "___" (sem contexto)
+- Exemplo INCORRETO: "Complete: ___" (muito vago)
+- A resposta deve ser uma UNICA palavra ou expressao curta
 
 Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
@@ -403,12 +415,50 @@ function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
       break;
       
     case "fill_blank":
-      if (!content.correctAnswer) {
-        content.correctAnswer = "";
+      // Ensure we have a valid answer string
+      const answerStr = content.correctAnswer ? String(content.correctAnswer).trim() : "";
+      if (!answerStr) {
+        content.correctAnswer = "palavra";
+        console.warn("[AI Validation] fill_blank missing correctAnswer, using default");
+      } else {
+        content.correctAnswer = answerStr;
       }
+      
       if (!content.question) {
-        content.question = "Complete a frase: ___";
+        content.question = "";
       }
+      
+      // Remove common prefixes and check for meaningful context
+      const cleanedQuestion = content.question
+        .replace(/^complete:?\s*/gi, '')
+        .replace(/^preencha:?\s*/gi, '')
+        .replace(/^a resposta e:?\s*/gi, '')
+        .trim();
+      
+      // Check if question has proper context:
+      // - Must have more than just "___"
+      // - Must have at least 15 characters of content (excluding blanks)
+      // - Must contain at least one space (multiple words)
+      const questionWithoutBlanks = cleanedQuestion.replace(/___/g, '').trim();
+      const hasProperContext = 
+        questionWithoutBlanks.length >= 15 && 
+        questionWithoutBlanks.includes(' ') &&
+        cleanedQuestion !== "___" &&
+        cleanedQuestion !== "";
+      
+      if (!hasProperContext) {
+        // Create a contextual fallback question with the answer hint
+        const firstLetter = answerStr.charAt(0).toUpperCase();
+        const answerLen = answerStr.length;
+        const hint = answerLen > 3 ? `${firstLetter}${'_'.repeat(answerLen - 1)}` : `${firstLetter}...`;
+        
+        content.question = `Complete a frase com a palavra correta (${hint}): ___`;
+        console.warn(`[AI Validation] fill_blank had insufficient context, created fallback question`);
+      } else {
+        content.question = cleanedQuestion;
+      }
+      
+      // Ensure exactly one blank
       if (!content.question.includes("___")) {
         content.question = content.question.replace(/\s*$/, " ___");
       }
@@ -420,15 +470,17 @@ function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
         afterBlank = afterBlank.replace(/___/g, "...");
         content.question = beforeBlank + afterBlank;
       }
+      
+      // Set up explanations
       if (!content.explanationCorrect && content.explanation) {
         content.explanationCorrect = content.explanation;
         content.explanationIncorrect = content.explanation;
       }
       if (!content.explanationCorrect) {
-        content.explanationCorrect = "Correto!";
+        content.explanationCorrect = "Correto! Muito bem!";
       }
       if (!content.explanationIncorrect) {
-        content.explanationIncorrect = "Incorreto. Tente novamente.";
+        content.explanationIncorrect = `Incorreto. A resposta correta e: "${content.correctAnswer}".`;
       }
       delete content.explanation;
       break;
@@ -503,31 +555,65 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
       lesson.units = [];
     }
 
-    lesson.units = lesson.units.map(unit => {
-      const validUnitTypes = ["text", "multiple_choice", "true_false", "fill_blank", "meditation", "reflection", "verse"];
-      if (!validUnitTypes.includes(unit.type)) {
-        unit.type = "text";
-      }
-      if (!unit.content) {
-        unit.content = { body: "Conteudo nao disponivel" };
-      }
-      if (!unit.xpValue || unit.xpValue < 1) {
-        unit.xpValue = 2;
-      }
-      
-      // Assign stage based on unit type if not already set
-      if (!unit.stage) {
-        if (unit.type === "text" || unit.type === "verse") {
-          unit.stage = "estude";
-        } else if (unit.type === "meditation" || unit.type === "reflection") {
-          unit.stage = "medite";
-        } else {
-          unit.stage = "responda";
+    lesson.units = lesson.units
+      .map(unit => {
+        const validUnitTypes = ["text", "multiple_choice", "true_false", "fill_blank", "meditation", "reflection", "verse"];
+        if (!validUnitTypes.includes(unit.type)) {
+          unit.type = "text";
         }
-      }
-      
-      return normalizeUnitContent(unit);
-    });
+        if (!unit.content) {
+          unit.content = { body: "Conteudo nao disponivel" };
+        }
+        if (!unit.xpValue || unit.xpValue < 1) {
+          unit.xpValue = 2;
+        }
+        
+        // Assign stage based on unit type if not already set
+        if (!unit.stage) {
+          if (unit.type === "text" || unit.type === "verse") {
+            unit.stage = "estude";
+          } else if (unit.type === "meditation" || unit.type === "reflection") {
+            unit.stage = "medite";
+          } else {
+            unit.stage = "responda";
+          }
+        }
+        
+        return normalizeUnitContent(unit);
+      })
+      // Post-normalization: filter out fill_blank units that still lack proper context
+      .filter(unit => {
+        if (unit.type === "fill_blank") {
+          const question = unit.content.question || "";
+          const answer = unit.content.correctAnswer || "";
+          
+          // Remove blank markers and check remaining content
+          const contentWithoutBlanks = question.replace(/___/g, '').trim();
+          
+          // Reject if:
+          // 1. Question is too short (less than 20 chars of actual content)
+          // 2. Answer is missing or empty
+          // 3. Question doesn't contain meaningful context (just generic phrases)
+          const genericPhrases = [
+            'complete a frase',
+            'complete a palavra',
+            'preencha',
+            'a resposta e',
+            'palavra correta'
+          ];
+          
+          const lowerContent = contentWithoutBlanks.toLowerCase();
+          const isGeneric = genericPhrases.some(phrase => 
+            lowerContent === phrase || lowerContent.startsWith(phrase + ' ')
+          );
+          
+          if (!answer || contentWithoutBlanks.length < 20 || isGeneric) {
+            console.warn(`[AI Validation] Removing contextless fill_blank: "${question}" -> answer: "${answer}"`);
+            return false; // Filter out this unit
+          }
+        }
+        return true; // Keep other unit types
+      });
 
     return lesson;
   });

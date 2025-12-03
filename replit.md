@@ -51,3 +51,142 @@ This module provides a gamified study experience with a Duolingo-inspired visual
 
 ### AI Integration
 - **Google Gemini API**: Used for content generation and extraction in the study module.
+
+## DeoGlory Study System - Lesson Format Documentation
+
+### Lesson Structure (3 Stages)
+Each lesson follows a mandatory 3-stage structure:
+
+**Stage 1: ESTUDE (Learn)**
+- Unit types: `text`, `verse`
+- Purpose: Reading content and Bible verses
+- Users read educational material without losing hearts
+
+**Stage 2: MEDITE (Meditate)**
+- Unit types: `meditation`, `reflection`
+- Purpose: Practical applications and prayer guides
+- Users reflect on how to apply teachings to daily life
+
+**Stage 3: RESPONDA (Answer)**
+- Unit types: `multiple_choice`, `true_false`, `fill_blank`
+- Purpose: Test comprehension with exercises
+- ONLY stage where incorrect answers cause heart loss
+
+### Unit Content Formats
+
+**text (stage: estude)**
+```json
+{
+  "type": "text",
+  "stage": "estude",
+  "content": {
+    "title": "Topic Title",
+    "body": "Main educational content (minimum 100 words)",
+    "highlight": "Key phrase to emphasize (optional)"
+  },
+  "xpValue": 2-5
+}
+```
+
+**verse (stage: estude)**
+```json
+{
+  "type": "verse",
+  "stage": "estude",
+  "content": {
+    "title": "Bible Verse Title",
+    "body": "Complete verse text from ARA version",
+    "highlight": "John 3:16"
+  },
+  "xpValue": 2-5
+}
+```
+
+**meditation (stage: medite)**
+```json
+{
+  "type": "meditation",
+  "stage": "medite",
+  "content": {
+    "title": "Meditation Title",
+    "body": "Detailed meditation guide with practical applications",
+    "meditationDuration": 60
+  },
+  "xpValue": 3-5
+}
+```
+
+**reflection (stage: medite)**
+```json
+{
+  "type": "reflection",
+  "stage": "medite",
+  "content": {
+    "title": "Practical Application",
+    "body": "How to apply this teaching in daily life",
+    "reflectionPrompt": "Personal reflection question"
+  },
+  "xpValue": 3-5
+}
+```
+
+**multiple_choice (stage: responda)**
+```json
+{
+  "type": "multiple_choice",
+  "stage": "responda",
+  "content": {
+    "question": "Clear question about the content",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0,
+    "explanationCorrect": "Explanation when correct",
+    "explanationIncorrect": "Explanation when incorrect",
+    "hint": "Optional hint"
+  },
+  "xpValue": 5-10
+}
+```
+
+**true_false (stage: responda)**
+```json
+{
+  "type": "true_false",
+  "stage": "responda",
+  "content": {
+    "statement": "Statement to judge as true or false",
+    "isTrue": true,
+    "explanationCorrect": "Explanation when correct",
+    "explanationIncorrect": "Explanation when incorrect"
+  },
+  "xpValue": 5-10
+}
+```
+
+**fill_blank (stage: responda)**
+IMPORTANT: The question MUST have complete context!
+```json
+{
+  "type": "fill_blank",
+  "stage": "responda",
+  "content": {
+    "question": "Jesus said: I am the ___, the truth and the life.",
+    "correctAnswer": "way",
+    "explanationCorrect": "John 14:6 - Jesus presents himself as the only way",
+    "explanationIncorrect": "The correct answer is 'way'. Reread John 14:6"
+  },
+  "xpValue": 5-10
+}
+```
+
+INCORRECT fill_blank examples (DO NOT USE):
+- `"question": "___"` (no context)
+- `"question": "Complete: ___"` (too vague)
+- `"question": "___"` with only the blank
+
+### Important Rules
+1. All Bible verses MUST use ARA (Almeida Revista e Atualizada) version
+2. Content must be in Brazilian Portuguese
+3. Each lesson must have units from ALL 3 stages in order: ESTUDE -> MEDITE -> RESPONDA
+4. Include 2-4 exercises per lesson in the RESPONDA stage
+5. Text content should be substantive (minimum 100 words)
+6. All fill_blank questions MUST have complete sentences with context

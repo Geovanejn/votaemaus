@@ -357,12 +357,6 @@ export default function LessonPage() {
       })
     : parseStudyContent('', lessonData.title);
   
-  useEffect(() => {
-    if (targetStage) {
-      setCurrentUnitIndex(0);
-    }
-  }, [targetStage]);
-  
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-stage">

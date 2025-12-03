@@ -22,4 +22,4 @@ export { LearningPath } from "./LearningPath";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";
-export type { LessonItem } from "./LearningPath";
+export type { LessonItem, StageType, StageItem } from "./LearningPath";

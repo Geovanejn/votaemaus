@@ -6,7 +6,7 @@ import {
   LearningPath,
   useCelebration
 } from "@/components/study";
-import type { LessonItem } from "@/components/study";
+import type { LessonItem, StageType, StageItem } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Flame, Zap, Heart, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -305,6 +305,70 @@ export default function StudyHomePage() {
       status = 'current';
     }
 
+    const completedUnits = lesson.progress?.completedUnits || 0;
+    const totalUnits = lesson.progress?.totalUnits || 5;
+    
+    const estudeUnits = Math.ceil(totalUnits * 0.4);
+    const mediteUnits = Math.ceil(totalUnits * 0.2);
+    const respondaUnits = totalUnits - estudeUnits - mediteUnits;
+    
+    let estudeCompleted = 0;
+    let mediteCompleted = 0;
+    let respondaCompleted = 0;
+    
+    if (completedUnits > 0) {
+      estudeCompleted = Math.min(completedUnits, estudeUnits);
+      if (completedUnits > estudeUnits) {
+        mediteCompleted = Math.min(completedUnits - estudeUnits, mediteUnits);
+      }
+      if (completedUnits > estudeUnits + mediteUnits) {
+        respondaCompleted = completedUnits - estudeUnits - mediteUnits;
+      }
+    }
+    
+    let estudeStatus: 'completed' | 'current' | 'locked' = 'locked';
+    let mediteStatus: 'completed' | 'current' | 'locked' = 'locked';
+    let respondaStatus: 'completed' | 'current' | 'locked' = 'locked';
+    
+    if (status === 'completed') {
+      estudeStatus = 'completed';
+      mediteStatus = 'completed';
+      respondaStatus = 'completed';
+    } else if (status === 'current') {
+      if (estudeCompleted >= estudeUnits) {
+        estudeStatus = 'completed';
+        if (mediteCompleted >= mediteUnits) {
+          mediteStatus = 'completed';
+          respondaStatus = 'current';
+        } else {
+          mediteStatus = 'current';
+        }
+      } else {
+        estudeStatus = 'current';
+      }
+    }
+    
+    const stages: StageItem[] = [
+      {
+        type: 'estude' as StageType,
+        status: estudeStatus,
+        completedUnits: estudeCompleted,
+        totalUnits: estudeUnits
+      },
+      {
+        type: 'medite' as StageType,
+        status: mediteStatus,
+        completedUnits: mediteCompleted,
+        totalUnits: mediteUnits
+      },
+      {
+        type: 'responda' as StageType,
+        status: respondaStatus,
+        completedUnits: respondaCompleted,
+        totalUnits: respondaUnits
+      }
+    ];
+
     return {
       id: lesson.id,
       lessonNumber: lesson.orderIndex + 1,
@@ -313,15 +377,17 @@ export default function StudyHomePage() {
       status,
       progress: lesson.progress?.completedUnits || 0,
       totalSections: lesson.progress?.totalUnits || 5,
+      stages
     };
   }) || [];
 
   const lessonsCompleted = lessons.filter(l => l.status === 'completed').length;
 
-  const handleLessonClick = (lessonId: number) => {
+  const handleLessonClick = (lessonId: number, stage?: StageType) => {
     const lesson = lessons.find(l => l.id === lessonId);
     if (lesson && lesson.status !== 'locked') {
-      setLocation(`/study/lesson/${lessonId}`);
+      const stageParam = stage ? `?stage=${stage}` : '';
+      setLocation(`/study/lesson/${lessonId}${stageParam}`);
     }
   };
 

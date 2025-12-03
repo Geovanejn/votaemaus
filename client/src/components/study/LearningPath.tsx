@@ -152,9 +152,10 @@ function StageCard({
         "flex-1 text-left p-4 rounded-xl transition-all min-w-0",
         "border-2",
         isCurrent && "bg-card border-[#58CC02] shadow-md",
-        isCompleted && "bg-card/80 border-border/50",
+        isCompleted && "bg-card/80 border-border/50 shadow-sm",
         isLocked && "bg-transparent border-transparent cursor-not-allowed"
       )}
+      style={!isLocked ? { boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" } : undefined}
       data-testid={`stage-card-${stage.type}`}
     >
       <div className="flex items-center gap-2 flex-wrap">
@@ -322,14 +323,6 @@ function LessonGroup({
         </div>
       </div>
       
-      {!isLastLesson && (
-        <div 
-          className="flex justify-center py-5"
-          style={{ width: RAIL_WIDTH }}
-        >
-          <div className="w-1 h-6 bg-gray-300 rounded-full" />
-        </div>
-      )}
     </div>
   );
 }

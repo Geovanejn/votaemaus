@@ -219,6 +219,19 @@ Christian meditation MUST include:
 
 ## Recent Changes (December 2025)
 
+### Learning Path UI Improvements (Dec 03, 2025)
+- **Vertical Line Fix**: Removed the connector line that appeared after the third icon (Responda) and before the next lesson
+  - **Location**: client/src/components/study/LearningPath.tsx - LessonGroup component
+  - **Change**: Removed the inter-lesson connector div that was showing a line piece between lessons
+- **Stage Card Shadows**: Added subtle shadow to Estude, Medite, and Responda stage cards for visual depth
+  - **Implementation**: Added `boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)"` to non-locked StageCard components
+  - **Location**: client/src/components/study/LearningPath.tsx - StageCard component
+- **Stage Completion Navigation**: Changed behavior so completing Estude or Medite returns to study page
+  - **Previous Behavior**: Automatically navigated to next stage (Estude -> Medite -> Responda)
+  - **New Behavior**: Returns to /study page after completing any stage, allowing user to manually select next stage
+  - **Location**: client/src/pages/study/lesson.tsx - handleStageModalClose function
+  - **Reason**: User should have control over their learning path, choosing when to proceed to next stage
+
 ### Differentiated Stage Completion Animations
 - **Design Decision**: Simple modal for Estude/Medite, full celebration for Responda
 - **Implementation**: Created StageCompleteModal component for stage completions

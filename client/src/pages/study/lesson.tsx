@@ -591,24 +591,12 @@ export default function LessonPage() {
   const handleStageModalClose = () => {
     if (!stageCompleteData) return;
     
-    const { xp, nextStage, nextIndex } = stageCompleteData;
+    const { xp } = stageCompleteData;
     setDisplayXp(prev => prev + xp);
     setShowStageComplete(false);
     setStageCompleteData(null);
     
-    if (nextIndex < allUnits.length) {
-      if (targetStage) {
-        setLocation(`/study/lesson/${lessonId}?stage=${nextStage}`);
-      } else {
-        setCurrentUnitIndex(nextIndex);
-      }
-    } else {
-      if (targetStage) {
-        setLocation("/study");
-      } else {
-        handleLessonCompletion();
-      }
-    }
+    setLocation("/study");
   };
 
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;

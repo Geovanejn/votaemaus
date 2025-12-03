@@ -1,9 +1,7 @@
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { 
-  HeartsDisplay, 
-  XPDisplay, 
-  StreakBadge, 
-  LevelBadge,
   BottomNav 
 } from "@/components/study";
 import { Card } from "@/components/ui/card";
@@ -14,49 +12,90 @@ import {
   Flame, 
   Target, 
   BookOpen, 
-  Calendar,
   Settings,
   LogOut,
   ChevronRight,
   Star,
   Medal,
   Zap,
-  Users,
   UserPlus,
-  Share2
+  Share2,
+  Crown,
+  Award,
+  TrendingUp,
+  Heart,
+  Sunrise,
+  Moon,
+  Calendar,
+  CheckCircle,
+  CalendarCheck,
+  BookMarked,
+  BookHeart,
+  Shield,
+  GraduationCap,
+  Loader2,
+  Lock
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const mockUser = {
-  name: "João Silva",
-  username: "@joaosilva",
-  email: "joao@email.com",
-  avatar: "",
-  level: 5,
-  totalXP: 6081,
-  xpForNextLevel: 8000,
-  streak: 7,
-  longestStreak: 14,
-  hearts: 4,
-  maxHearts: 5,
-  lessonsCompleted: 23,
-  totalMinutes: 180,
-  perfectLessons: 8,
-  joinedDate: "outubro de 2024",
-  following: 5,
-  followers: 4,
-  division: "Safira"
+interface StudyProfile {
+  id: number;
+  userId: number;
+  totalXp: number;
+  currentLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  hearts: number;
+  heartsMax: number;
+  heartsRefillAt: string | null;
+  lastActivityDate: string | null;
+  dailyGoalMinutes: number;
+  timezone: string;
+}
+
+interface Achievement {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  category: string;
+  requirement: any;
+  isSecret: boolean;
+  unlocked: boolean;
+  unlockedAt: string | null;
+}
+
+const iconMap: Record<string, typeof Flame> = {
+  flame: Flame,
+  book: BookOpen,
+  "book-open": BookOpen,
+  "book-heart": BookHeart,
+  "book-marked": BookMarked,
+  "graduation-cap": GraduationCap,
+  trophy: Trophy,
+  crown: Crown,
+  star: Star,
+  stars: Star,
+  award: Award,
+  zap: Zap,
+  shield: Shield,
+  medal: Medal,
+  sunrise: Sunrise,
+  moon: Moon,
+  calendar: Calendar,
+  heart: Heart,
+  target: Target,
+  "check-circle": CheckCircle,
+  "calendar-check": CalendarCheck,
+  "trending-up": TrendingUp,
 };
 
-const mockAchievements = [
-  { id: 1, name: "Primeiro Passo", icon: Star, unlocked: true, description: "Complete sua primeira lição" },
-  { id: 2, name: "Semana Perfeita", icon: Flame, unlocked: true, description: "7 dias de sequência" },
-  { id: 3, name: "Estudioso", icon: BookOpen, unlocked: true, description: "Complete 10 lições" },
-  { id: 4, name: "Mês de Fé", icon: Medal, unlocked: false, description: "30 dias de sequência" },
-  { id: 5, name: "Mestre", icon: Trophy, unlocked: false, description: "Alcance o nível 50" },
-  { id: 6, name: "Perfeição", icon: Target, unlocked: false, description: "10 lições sem erros" },
-];
+function getIconComponent(iconName: string) {
+  return iconMap[iconName.toLowerCase()] || Star;
+}
 
 function StatCard({ 
   icon: Icon, 
@@ -88,10 +127,127 @@ function StatCard({
   );
 }
 
-export default function ProfilePage() {
-  const [, setLocation] = useLocation();
+function AchievementBadge({ achievement }: { achievement: Achievement }) {
+  const IconComponent = getIconComponent(achievement.icon);
+  
+  return (
+    <motion.div
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={cn(
+        "flex-shrink-0 w-20 flex flex-col items-center p-3 rounded-xl",
+        achievement.unlocked 
+          ? "bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10" 
+          : "bg-muted/50"
+      )}
+      data-testid={`achievement-${achievement.code}`}
+    >
+      <div className={cn(
+        "w-12 h-12 rounded-full flex items-center justify-center mb-2 relative",
+        achievement.unlocked 
+          ? "bg-gradient-to-br from-amber-400 to-amber-500 shadow-lg"
+          : "bg-muted"
+      )}>
+        {achievement.unlocked ? (
+          <IconComponent className="h-6 w-6 text-white" />
+        ) : (
+          <>
+            <IconComponent className="h-6 w-6 text-muted-foreground/30" />
+            <Lock className="h-3 w-3 text-muted-foreground absolute bottom-0 right-0" />
+          </>
+        )}
+      </div>
+      <p className={cn(
+        "text-[10px] text-center font-bold line-clamp-2",
+        achievement.unlocked ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground/50"
+      )}>
+        {achievement.name}
+      </p>
+    </motion.div>
+  );
+}
 
-  const unlockedCount = mockAchievements.filter(a => a.unlocked).length;
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando perfil...</p>
+      </div>
+    </div>
+  );
+}
+
+const mockProfile: StudyProfile = {
+  id: 1,
+  userId: 1,
+  totalXp: 1250,
+  currentLevel: 5,
+  currentStreak: 7,
+  longestStreak: 14,
+  hearts: 4,
+  heartsMax: 5,
+  heartsRefillAt: null,
+  lastActivityDate: new Date().toISOString(),
+  dailyGoalMinutes: 15,
+  timezone: "America/Sao_Paulo"
+};
+
+const mockAchievements: Achievement[] = [
+  { id: 1, code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "book", xpReward: 5, category: "lessons", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
+  { id: 2, code: "streak_7", name: "Semana Perfeita", description: "7 dias de sequencia", icon: "flame", xpReward: 25, category: "streak", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
+  { id: 3, code: "lessons_5", name: "Estudante Aplicado", description: "Complete 5 licoes", icon: "book-open", xpReward: 20, category: "lessons", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
+  { id: 4, code: "streak_30", name: "Mes de Fe", description: "30 dias de sequencia", icon: "crown", xpReward: 100, category: "streak", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
+];
+
+const mockUser = {
+  fullName: "Usuario Demonstracao",
+  email: "demo@emaus.com.br",
+  photoUrl: ""
+};
+
+export default function ProfilePage() {
+  const [location, setLocation] = useLocation();
+  const { user, logout, isAuthenticated } = useAuth();
+  
+  const isPreview = location.startsWith("/study-preview");
+
+  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<StudyProfile>({
+    queryKey: ['/api/study/profile'],
+    enabled: isAuthenticated && !isPreview,
+  });
+
+  const { data: achievements, isLoading: achievementsLoading, error: achievementsError } = useQuery<Achievement[]>({
+    queryKey: ['/api/study/achievements'],
+    enabled: isAuthenticated && !isPreview,
+  });
+
+  const isLoading = !isPreview && (profileLoading || achievementsLoading);
+  
+  if (isLoading) {
+    return <LoadingState />;
+  }
+  
+  const effectiveProfile = isPreview ? mockProfile : profile;
+  const effectiveAchievements = isPreview ? mockAchievements : achievements;
+  const effectiveUser = isPreview ? mockUser : user;
+
+  const unlockedAchievements = effectiveAchievements?.filter(a => a.unlocked) || [];
+  const displayAchievements = effectiveAchievements?.slice(0, 4) || [];
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/");
+  };
+
+  const getDivision = (level: number) => {
+    if (level >= 50) return "Diamante";
+    if (level >= 30) return "Esmeralda";
+    if (level >= 20) return "Rubi";
+    if (level >= 10) return "Safira";
+    if (level >= 5) return "Ouro";
+    return "Bronze";
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="profile-page">
@@ -106,6 +262,7 @@ export default function ProfilePage() {
             variant="ghost" 
             size="icon" 
             className="text-muted-foreground"
+            onClick={() => setLocation("/study/settings")}
             data-testid="button-settings-top"
           >
             <Settings className="h-6 w-6" />
@@ -119,7 +276,7 @@ export default function ProfilePage() {
             className="relative inline-block mb-4"
           >
             <Avatar className="h-28 w-28 ring-4 ring-white shadow-xl">
-              <AvatarImage src={mockUser.avatar} />
+              <AvatarImage src={effectiveUser?.photoUrl || ""} />
               <AvatarFallback 
                 className="text-4xl font-bold"
                 style={{
@@ -127,7 +284,7 @@ export default function ProfilePage() {
                   color: 'white'
                 }}
               >
-                {mockUser.name.charAt(0)}
+                {effectiveUser?.fullName?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
           </motion.div>
@@ -138,10 +295,10 @@ export default function ProfilePage() {
             transition={{ delay: 0.1 }}
           >
             <h1 className="text-2xl font-black text-foreground mb-0.5" data-testid="text-user-name">
-              {mockUser.name}
+              {effectiveUser?.fullName || "Usuario"}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {mockUser.username} - Aqui desde {mockUser.joinedDate}
+              {effectiveUser?.email}
             </p>
           </motion.div>
 
@@ -152,13 +309,12 @@ export default function ProfilePage() {
             className="flex items-center justify-center gap-6 mt-4 text-sm"
           >
             <div className="flex items-center gap-1">
-              <span className="font-bold">{mockUser.following}</span>
-              <span className="text-muted-foreground">Segue</span>
+              <span className="font-bold">{unlockedAchievements.length}</span>
+              <span className="text-muted-foreground">Conquistas</span>
             </div>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1">
-              <span className="font-bold">{mockUser.followers}</span>
-              <span className="text-muted-foreground">Seguidores</span>
+              <span className="font-bold">Nivel {effectiveProfile?.currentLevel || 1}</span>
             </div>
           </motion.div>
 
@@ -198,25 +354,25 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard 
               icon={Flame} 
-              value={mockUser.streak} 
+              value={effectiveProfile?.currentStreak || 0} 
               label="Dias seguidos" 
               color="#FF9600" 
             />
             <StatCard 
               icon={Zap} 
-              value={mockUser.totalXP.toLocaleString()} 
+              value={(effectiveProfile?.totalXp || 0).toLocaleString()} 
               label="Total de XP" 
               color="#FFC800" 
             />
             <StatCard 
               icon={Trophy} 
-              value={mockUser.division} 
+              value={getDivision(effectiveProfile?.currentLevel || 1)} 
               label="Divisao" 
               color="#1CB0F6" 
             />
             <StatCard 
               icon={Star} 
-              value={mockUser.level} 
+              value={effectiveProfile?.currentLevel || 1} 
               label="Nivel atual" 
               color="#58CC02" 
             />
@@ -233,47 +389,62 @@ export default function ProfilePage() {
             <Button 
               variant="ghost" 
               className="text-[#1CB0F6] font-bold text-sm px-2"
+              onClick={() => setLocation(isPreview ? "/study-preview/achievements" : "/study/achievements")}
               data-testid="button-view-all-achievements"
             >
-              Ver todas
+              Ver todas ({effectiveAchievements?.length || 0})
             </Button>
           </div>
           
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-            {mockAchievements.slice(0, 4).map((achievement, index) => (
-              <motion.div
-                key={achievement.id}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className={cn(
-                  "flex-shrink-0 w-20 flex flex-col items-center p-3 rounded-xl",
-                  achievement.unlocked 
-                    ? "bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10" 
-                    : "bg-muted/50"
-                )}
-                data-testid={`achievement-${achievement.id}`}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center mb-2",
-                  achievement.unlocked 
-                    ? "bg-gradient-to-br from-amber-400 to-amber-500 shadow-lg"
-                    : "bg-muted"
-                )}>
-                  <achievement.icon className={cn(
-                    "h-6 w-6",
-                    achievement.unlocked ? "text-white" : "text-muted-foreground/50"
-                  )} />
-                </div>
-                <p className={cn(
-                  "text-[10px] text-center font-bold line-clamp-2",
-                  achievement.unlocked ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground/50"
-                )}>
-                  {achievement.name}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+          {displayAchievements.length > 0 ? (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+              {displayAchievements.map((achievement, index) => (
+                <motion.div
+                  key={achievement.id}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                >
+                  <AchievementBadge achievement={achievement} />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Medal className="h-12 w-12 mx-auto mb-2 opacity-30" />
+              <p>Nenhuma conquista disponivel</p>
+              <p className="text-sm">Execute o seed para popular as conquistas</p>
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <h2 className="text-xl font-black text-foreground mb-3">Estatisticas</h2>
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <span className="text-muted-foreground">Maior sequencia</span>
+              </div>
+              <span className="font-bold">{effectiveProfile?.longestStreak || 0} dias</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500" />
+                <span className="text-muted-foreground">Coracoes</span>
+              </div>
+              <span className="font-bold">{effectiveProfile?.hearts || 0}/{effectiveProfile?.heartsMax || 5}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                <span className="text-muted-foreground">Conquistas</span>
+              </div>
+              <span className="font-bold">{unlockedAchievements.length}/{effectiveAchievements?.length || 0}</span>
+            </div>
+          </Card>
         </motion.div>
 
         <motion.div
@@ -284,7 +455,7 @@ export default function ProfilePage() {
           <Card className="overflow-hidden divide-y divide-border">
             <button 
               className="w-full flex items-center justify-between p-4 hover-elevate"
-              onClick={() => {}}
+              onClick={() => setLocation("/study/settings")}
               data-testid="button-settings"
             >
               <div className="flex items-center gap-3">
@@ -296,7 +467,7 @@ export default function ProfilePage() {
             
             <button 
               className="w-full flex items-center justify-between p-4 text-red-500 hover-elevate"
-              onClick={() => setLocation("/")}
+              onClick={handleLogout}
               data-testid="button-logout"
             >
               <div className="flex items-center gap-3">

@@ -21,6 +21,7 @@ export { StreakCelebration } from "./StreakCelebration";
 export { UnitCard, PracticeCard } from "./UnitCard";
 export { LearningPath } from "./LearningPath";
 export { StudyContent } from "./StudyContent";
+export { AchievementNotification, useAchievementNotification } from "./AchievementNotification";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";

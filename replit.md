@@ -31,3 +31,24 @@ The architecture is designed for expandability, supporting future modules for Se
 -   **Development Tools**: Drizzle Kit (database migration and schema management), tsx (direct TypeScript execution), node-cron (scheduling automated tasks).
 -   **Validation**: Zod (runtime schema validation), drizzle-zod (generates Zod schemas from Drizzle tables).
 -   **AI Integration**: Google Gemini API (for content generation and extraction in the study module).
+
+## Recent Changes (December 2024)
+
+### Achievement System Implementation
+- Added 35+ predefined achievements organized by categories: streak, lessons, xp, special
+- Created dedicated achievements page (/study/achievements) with category filtering
+- Integrated real achievement data into profile page with XP, streak, hearts display
+- Added AchievementNotification component for unlock celebrations
+- Implemented preview mode support with mock data for unauthenticated users
+
+### Preview Mode Support
+- Profile and Achievements pages detect preview routes (/study-preview/*)
+- API calls are disabled in preview mode to prevent 401 errors
+- Mock data provides realistic preview experience for demos
+- Navigation between pages works correctly in both authenticated and preview modes
+
+### Key Files
+- `server/seed-study-data.ts` - Achievement seeding with seedAchievements()
+- `client/src/pages/study/profile.tsx` - Profile with real data + preview fallback
+- `client/src/pages/study/achievements.tsx` - Achievements listing with filters
+- `client/src/components/study/AchievementNotification.tsx` - Unlock modal component

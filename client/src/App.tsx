@@ -17,6 +17,7 @@ import ProfilePage from "@/pages/study/profile";
 import RankingPage from "@/pages/study/ranking";
 import MissionsPage from "@/pages/study/missions";
 import MissionActivityPage from "@/pages/study/mission-activity";
+import AchievementsPage from "@/pages/study/achievements";
 import StudyPreviewPage from "@/pages/study/preview";
 import StudyAdminPage from "@/pages/study/admin/index";
 
@@ -43,6 +44,7 @@ function Router() {
         <Route path="/study-preview/profile" component={ProfilePage} />
         <Route path="/study-preview/verses" component={VersesPage} />
         <Route path="/study-preview/lesson/:id" component={LessonPage} />
+        <Route path="/study-preview/achievements" component={AchievementsPage} />
         <Route path="/" component={LoginPage} />
         <Route>
           <Redirect to="/" />
@@ -67,6 +69,7 @@ function Router() {
         <Route path="/study/ranking" component={RankingPage} />
         <Route path="/study/missions" component={MissionsPage} />
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
+        <Route path="/study/achievements" component={AchievementsPage} />
         <Route>
           <Redirect to="/admin" />
         </Route>
@@ -87,6 +90,7 @@ function Router() {
       <Route path="/study/ranking" component={RankingPage} />
       <Route path="/study/missions" component={MissionsPage} />
       <Route path="/study/missions/:missionId" component={MissionActivityPage} />
+      <Route path="/study/achievements" component={AchievementsPage} />
       <Route>
         <Redirect to="/vote" />
       </Route>

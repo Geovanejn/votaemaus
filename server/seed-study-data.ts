@@ -230,6 +230,185 @@ const faithStudy = {
           xpValue: 5
         }
       ]
+    },
+    {
+      title: "O Poder da Oração",
+      type: "study",
+      description: "Entendendo a importância e os princípios da oração cristã",
+      xpReward: 45,
+      estimatedMinutes: 12,
+      units: [
+        {
+          type: "verse",
+          stage: "estude",
+          content: {
+            title: "Versículo Base",
+            body: "E tudo o que pedirdes em oração, crendo, o recebereis.",
+            highlight: "Mateus 21:22 (ARA)"
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "estude",
+          content: {
+            title: "O Que É Oração?",
+            body: "A oração é a comunicação direta entre o ser humano e Deus. É um privilégio concedido a todo cristão, permitindo que nos aproximemos do trono da graça com confiança. Através da oração, expressamos gratidão, confessamos pecados, fazemos pedidos e simplesmente desfrutamos da presença de Deus."
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "estude",
+          content: {
+            title: "Por Que Devemos Orar?",
+            body: "Jesus nos ensinou a importância da oração através de Seu próprio exemplo. Ele frequentemente se retirava para lugares solitários para orar ao Pai. A oração fortalece nossa fé, nos dá paz em meio às tribulações e nos aproxima do coração de Deus. É através da oração que alinhamos nossa vontade à vontade divina."
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "estude",
+          content: {
+            title: "Como Devemos Orar?",
+            body: "Não existe fórmula mágica para a oração. Deus deseja que nos aproximemos dEle com sinceridade e humildade. O modelo da oração do Pai Nosso nos ensina a começar adorando a Deus, buscar Sua vontade, pedir nossas necessidades diárias, confessar pecados e pedir proteção contra o mal."
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "medite",
+          content: {
+            title: "Aplicação Prática",
+            body: "Reserve um momento específico do seu dia para orar. Pode ser pela manhã ao acordar, à noite antes de dormir, ou durante o intervalo do trabalho. O importante é criar o hábito de conversar com Deus regularmente. Comece com poucos minutos e vá aumentando conforme sentir necessidade."
+          },
+          xpValue: 3
+        },
+        {
+          type: "reflection",
+          stage: "medite",
+          content: {
+            title: "Reflexão Pessoal",
+            body: "Pense em como tem sido sua vida de oração. Você ora regularmente ou apenas em momentos de desespero? Reflita sobre áreas da sua vida onde você precisa buscar mais a direção de Deus através da oração.",
+            reflectionPrompt: "Como posso melhorar minha vida de oração?"
+          },
+          xpValue: 5
+        },
+        {
+          type: "multiple_choice",
+          stage: "responda",
+          content: {
+            question: "Segundo Mateus 21:22, o que é necessário para que nossas orações sejam respondidas?",
+            options: [
+              "Usar palavras bonitas e elaboradas",
+              "Crer e ter fé",
+              "Orar em público para todos verem",
+              "Jejuar por 40 dias"
+            ],
+            correctIndex: 1,
+            explanationCorrect: "Excelente! A fé é fundamental na oração. Jesus disse que se pedirmos crendo, receberemos.",
+            explanationIncorrect: "A resposta correta é 'crer e ter fé'. Mateus 21:22 enfatiza a importância da fé na oração."
+          },
+          xpValue: 5
+        },
+        {
+          type: "true_false",
+          stage: "responda",
+          content: {
+            statement: "Jesus se retirava para lugares solitários para orar ao Pai.",
+            isTrue: true,
+            explanationCorrect: "Correto! Os evangelhos registram várias ocasiões em que Jesus buscou lugares tranquilos para orar.",
+            explanationIncorrect: "A afirmação é verdadeira. Os evangelhos mostram Jesus frequentemente se retirando para orar em lugares solitários."
+          },
+          xpValue: 5
+        },
+        {
+          type: "fill_blank",
+          stage: "responda",
+          content: {
+            question: "O modelo de oração ensinado por Jesus é conhecido como a oração do ___.",
+            correctAnswer: "Pai Nosso",
+            explanationCorrect: "Correto! O Pai Nosso é o modelo de oração ensinado por Jesus aos seus discípulos.",
+            explanationIncorrect: "A resposta é 'Pai Nosso'. Esta é a oração modelo ensinada por Jesus em Mateus 6:9-13.",
+            hint: "Começa com 'Pai...'"
+          },
+          xpValue: 5
+        }
+      ]
+    },
+    {
+      title: "Amor ao Próximo",
+      type: "study",
+      description: "O mandamento do amor que transforma relações",
+      xpReward: 40,
+      estimatedMinutes: 10,
+      units: [
+        {
+          type: "verse",
+          stage: "estude",
+          content: {
+            title: "Versículo Base",
+            body: "Amarás o teu próximo como a ti mesmo.",
+            highlight: "Marcos 12:31 (ARA)"
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "estude",
+          content: {
+            title: "O Grande Mandamento",
+            body: "Quando perguntaram a Jesus qual era o maior mandamento, Ele respondeu com dois: amar a Deus sobre todas as coisas e amar o próximo como a si mesmo. Estes dois mandamentos resumem toda a lei e os profetas. O amor não é apenas um sentimento, mas uma escolha diária de agir em benefício do outro."
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "estude",
+          content: {
+            title: "Quem É o Meu Próximo?",
+            body: "Na parábola do Bom Samaritano, Jesus expandiu nossa compreensão de 'próximo'. Não se trata apenas de familiares ou amigos, mas de qualquer pessoa que cruze nosso caminho e precise de ajuda. O amor cristão transcende barreiras culturais, sociais e religiosas."
+          },
+          xpValue: 3
+        },
+        {
+          type: "text",
+          stage: "medite",
+          content: {
+            title: "Amor em Ação",
+            body: "O amor verdadeiro se manifesta em atitudes concretas. Pode ser um sorriso, uma palavra de encorajamento, ajuda financeira, ou simplesmente estar presente para ouvir. Pense em alguém ao seu redor que precisa de amor e planeje uma forma de demonstrar esse amor esta semana."
+          },
+          xpValue: 3
+        },
+        {
+          type: "multiple_choice",
+          stage: "responda",
+          content: {
+            question: "Na parábola do Bom Samaritano, quem demonstrou verdadeiro amor ao próximo?",
+            options: [
+              "O sacerdote",
+              "O levita",
+              "O samaritano",
+              "O hospedeiro"
+            ],
+            correctIndex: 2,
+            explanationCorrect: "Correto! O samaritano foi quem parou para ajudar o homem ferido, demonstrando amor prático.",
+            explanationIncorrect: "A resposta correta é o samaritano. Ele foi o único que parou para ajudar o homem ferido na estrada."
+          },
+          xpValue: 5
+        },
+        {
+          type: "true_false",
+          stage: "responda",
+          content: {
+            statement: "O amor ao próximo deve ser limitado apenas aos nossos familiares e amigos.",
+            isTrue: false,
+            explanationCorrect: "Correto! O amor cristão deve se estender a todas as pessoas, sem distinção.",
+            explanationIncorrect: "A afirmação é falsa. Jesus ensinou que devemos amar a todos, inclusive nossos inimigos."
+          },
+          xpValue: 5
+        }
+      ]
     }
   ]
 };

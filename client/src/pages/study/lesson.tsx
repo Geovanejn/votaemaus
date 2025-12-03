@@ -147,7 +147,7 @@ export default function LessonPage() {
   const [showStageComplete, setShowStageComplete] = useState(false);
   const [stageCompleteData, setStageCompleteData] = useState<{
     xp: number;
-    stageType: "estude" | "medite";
+    stageType: "estude" | "medite" | "responda";
     nextStage: string | null;
     nextIndex: number;
   } | null>(null);
@@ -468,8 +468,25 @@ export default function LessonPage() {
     if (currentUnitIndex < totalUnits - 1) {
       setCurrentUnitIndex(prev => prev + 1);
     } else {
-      handleLessonCompletion();
+      if (targetStage === 'responda') {
+        handleRespondaComplete();
+      } else {
+        handleLessonCompletion();
+      }
     }
+  };
+
+  const handleRespondaComplete = async () => {
+    const respondaUnits = allUnits.filter(u => u.stage === 'responda');
+    const totalXpFromResponda = displayXp;
+    
+    setStageCompleteData({
+      xp: totalXpFromResponda,
+      stageType: "responda",
+      nextStage: null,
+      nextIndex: allUnits.length
+    });
+    setShowStageComplete(true);
   };
 
   const handleMeditateComplete = async () => {
@@ -623,18 +640,26 @@ export default function LessonPage() {
     setShowStageComplete(true);
   };
 
-  const handleStageModalClose = () => {
+  const handleStageModalClose = async () => {
     if (!stageCompleteData) return;
     
-    const { xp } = stageCompleteData;
-    setDisplayXp(prev => prev + xp);
+    const { xp, stageType } = stageCompleteData;
+    
+    if (stageType !== 'responda') {
+      setDisplayXp(prev => prev + xp);
+    }
+    
     setShowStageComplete(false);
     setStageCompleteData(null);
     
     queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     
-    setLocation("/study");
+    if (stageType === 'responda') {
+      await handleLessonCompletion();
+    } else {
+      setLocation("/study");
+    }
   };
 
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;

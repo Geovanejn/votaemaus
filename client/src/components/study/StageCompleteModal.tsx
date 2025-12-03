@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, BookOpen, Heart, ChevronRight } from "lucide-react";
+import { Zap, BookOpen, Heart, ChevronRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type StageType = "estude" | "medite";
+type StageType = "estude" | "medite" | "responda";
 
 interface StageCompleteModalProps {
   isOpen: boolean;
@@ -26,6 +26,13 @@ const stageConfig = {
     description: "Você completou a reflexão",
     bgGradient: "from-[#9B59B6] to-[#7D3C98]",
     shadowColor: "#6C3483"
+  },
+  responda: {
+    icon: CheckCircle,
+    label: "Perguntas Concluídas!",
+    description: "Você completou todas as perguntas",
+    bgGradient: "from-[#FF9600] to-[#E68600]",
+    shadowColor: "#CC7600"
   }
 };
 

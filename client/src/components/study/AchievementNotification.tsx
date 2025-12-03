@@ -23,6 +23,8 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSounds } from "@/hooks/use-sounds";
+import { useEffect } from "react";
 
 interface Achievement {
   id: number;
@@ -70,6 +72,14 @@ function getIconComponent(iconName: string) {
 }
 
 export function AchievementNotification({ achievement, show, onClose }: AchievementNotificationProps) {
+  const { sounds } = useSounds();
+  
+  useEffect(() => {
+    if (show && achievement) {
+      sounds.achievement();
+    }
+  }, [show, achievement, sounds]);
+  
   if (!achievement) return null;
 
   const IconComponent = getIconComponent(achievement.icon);

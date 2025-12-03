@@ -91,7 +91,9 @@ Projeto/
 │   │   │   ├── StudyHeader.tsx
 │   │   │   ├── UnitCard.tsx
 │   │   │   ├── VerseReader.tsx
-│   │   │   └── XPDisplay.tsx
+│   │   │   ├── XPDisplay.tsx
+│   │   │   ├── AchievementNotification.tsx  # Notificacao de conquista
+│   │   │   └── SoundSettings.tsx       # Configuracao de sons
 │   │   ├── ui/              # 50+ componentes Shadcn
 │   │   ├── ExportResultsImage.tsx
 │   │   └── ImageCropDialog.tsx
@@ -496,27 +498,35 @@ idx_candidates_user ON candidates(user_id, election_id)
 
 ---
 
-## 13. Recomendacoes de Melhorias
+## 13. Melhorias Implementadas (03/12/2025)
 
-### 13.1 Prioridade Alta
-1. **Completar sistema de conquistas**
-   - Adicionar conquistas pre-definidas
-   - Implementar UI para exibir badges
+### 13.1 Sistema de Conquistas (CONCLUIDO)
+- [x] 35+ conquistas pre-definidas (streak, licoes, XP, especiais)
+- [x] Pagina dedicada de conquistas (/study/achievements)
+- [x] Componente de notificacao com animacao (AchievementNotification)
+- [x] Integracao com perfil do usuario
+- [x] Filtros por categoria
 
-2. **Melhorar PWA**
-   - Adicionar service worker
-   - Configurar manifest.json
-   - Habilitar suporte offline basico
+### 13.2 PWA - Progressive Web App (CONCLUIDO)
+- [x] manifest.json configurado com icones e metadata
+- [x] Service worker (sw.js) para cache e suporte offline
+- [x] Meta tags PWA no index.html
+- [x] Registro automatico do service worker
+- [x] Estrategias de cache: cache-first, network-first, stale-while-revalidate
 
-### 13.2 Prioridade Media
-1. **WebSockets** - Para atualizacoes em tempo real (opcional)
-2. **Push notifications** - Lembretes de estudo/streak
+### 13.3 Sons de Feedback (CONCLUIDO)
+- [x] Hook useSounds() para sons via Web Audio API
+- [x] 8 tipos de sons: success, error, click, achievement, levelUp, xp, streak, heartLoss
+- [x] Componente SoundSettings para toggle de som
+- [x] Persistencia da preferencia no localStorage
+- [x] Integracao com notificacao de conquistas
+
+### 13.4 Proximos Passos (Opcional)
+1. **Push notifications** - Lembretes de estudo/streak
+2. **WebSockets** - Para atualizacoes em tempo real (opcional)
 3. **Testes automatizados** - Unit tests e E2E
-
-### 13.3 Prioridade Baixa
-1. Sons de feedback
-2. Animacoes adicionais
-3. Temas personalizados
+4. Animacoes adicionais
+5. Temas personalizados
 
 ---
 

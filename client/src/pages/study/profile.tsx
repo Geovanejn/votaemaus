@@ -2,7 +2,8 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { 
-  BottomNav 
+  BottomNav,
+  SoundSettings 
 } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -451,6 +452,15 @@ export default function ProfilePage() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.7 }}
+        >
+          <h2 className="text-xl font-black text-foreground mb-3">Preferencias</h2>
+          <SoundSettings />
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.8 }}
         >
           <Card className="overflow-hidden divide-y divide-border">
             <button 

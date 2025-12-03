@@ -22,6 +22,7 @@ export { UnitCard, PracticeCard } from "./UnitCard";
 export { LearningPath } from "./LearningPath";
 export { StudyContent } from "./StudyContent";
 export { AchievementNotification, useAchievementNotification } from "./AchievementNotification";
+export { SoundSettings } from "./SoundSettings";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";

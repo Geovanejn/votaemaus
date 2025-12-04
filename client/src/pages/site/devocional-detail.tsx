@@ -139,6 +139,18 @@ export default function DevocionalDetailPage() {
     const imageUrl = generatedImageUrl || await generateShareImage();
     if (!imageUrl) return;
 
+    const shareText = `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\nLeia o devocional completo: ${window.location.href}`;
+
+    let clipboardSuccess = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        clipboardSuccess = true;
+      }
+    } catch {
+      clipboardSuccess = false;
+    }
+
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -147,27 +159,44 @@ export default function DevocionalDetailPage() {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: devotional.title,
-          text: `${devotional.verse} - ${devotional.verseReference}\n\n${window.location.href}`,
+          text: shareText,
+          url: window.location.href,
           files: [file],
         });
         setIsShareDialogOpen(false);
+        toast({
+          title: "Compartilhado com sucesso!",
+          description: clipboardSuccess 
+            ? "O link tambem foi copiado para a area de transferencia." 
+            : "Imagem compartilhada.",
+        });
       } else {
         handleDownloadImage();
         toast({
-          title: "Imagem pronta para compartilhar",
-          description: "A imagem foi baixada. Abra o WhatsApp e anexe a imagem.",
+          title: clipboardSuccess ? "Imagem baixada + Link copiado" : "Imagem baixada",
+          description: clipboardSuccess 
+            ? "Cole o link junto com a imagem ao compartilhar no WhatsApp." 
+            : "A imagem foi salva. Copie o link manualmente se desejar.",
         });
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
         console.error("Error sharing:", err);
         handleDownloadImage();
+        toast({
+          title: clipboardSuccess ? "Imagem baixada + Link copiado" : "Imagem baixada",
+          description: clipboardSuccess 
+            ? "Cole o link junto com a imagem ao compartilhar." 
+            : "A imagem foi salva em seus downloads.",
+        });
       }
     }
   };
 
   const handleSimpleShare = async () => {
     if (!devotional) return;
+    
+    const shareText = `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\n${window.location.href}`;
     
     if (navigator.share) {
       try {
@@ -182,13 +211,27 @@ export default function DevocionalDetailPage() {
         }
       }
     } else {
-      await navigator.clipboard.writeText(
-        `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\n${window.location.href}`
-      );
-      toast({
-        title: "Link copiado",
-        description: "O link foi copiado para a area de transferencia.",
-      });
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareText);
+          toast({
+            title: "Link copiado",
+            description: "O link foi copiado para a area de transferencia.",
+          });
+        } else {
+          toast({
+            title: "Compartilhamento nao disponivel",
+            description: "Copie o link manualmente da barra de endereco.",
+            variant: "destructive",
+          });
+        }
+      } catch {
+        toast({
+          title: "Erro ao copiar",
+          description: "Copie o link manualmente da barra de endereco.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

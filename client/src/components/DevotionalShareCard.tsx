@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { BookOpen } from "lucide-react";
-import logoAnimated from "@assets/logo-animated.webp";
+import logoFlame from "@assets/EMAÚS v3 sem fundo_1762029245059.png";
 
 interface DevotionalShareCardProps {
   title: string;
@@ -161,7 +161,7 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
               }}
             >
               <img
-                src={logoAnimated}
+                src={logoFlame}
                 alt="UMP Emaús"
                 style={{
                   width: "80px",

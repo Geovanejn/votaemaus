@@ -99,14 +99,50 @@ The system features a responsive, Portuguese UI optimized for clarity and ease o
 
 ### System Design Choices
 The architecture is designed for expandability, supporting future modules for:
-- [ ] Secretariats management
-- [ ] Devotionals (CRUD)
-- [ ] Prayer Requests
-- [ ] Events & Schedule
-- [ ] Current Board display
+- [x] Secretariats management (Em desenvolvimento)
+- [x] Devotionals (CRUD) (Em desenvolvimento)
+- [x] Prayer Requests (Em desenvolvimento)
+- [x] Events & Schedule (Em desenvolvimento)
+- [x] Current Board display (Em desenvolvimento)
 - [ ] Instagram Integration
-- [ ] Revamped Home Page
-- [ ] Expanded tiered permissions
+- [x] Revamped Home Page (Em desenvolvimento)
+- [x] Expanded tiered permissions (Em desenvolvimento)
+
+### Site Institucional UMP Emaus (Em Desenvolvimento)
+**Status:** Documentacao completa, pronto para implementacao
+
+**Documentacao disponivel em `/docs/`:**
+- `SITE_UMP_EMAUS_DESIGN.md` - Design completo do site
+- `SITE_UMP_EMAUS_DATABASE.md` - Schema do banco de dados
+- `SITE_UMP_EMAUS_API.md` - Documentacao da API
+- `SITE_UMP_EMAUS_TASKS.md` - Lista de tarefas
+
+**Novas Funcionalidades:**
+- Home Page dinamica com banner animado (carrossel)
+- Sistema de Devocionais com destaque do dia
+- Agenda de Eventos com calendario
+- Pedidos de Oracao (formulario publico)
+- Pagina Quem Somos (historia, missao, visao, valores)
+- Diretoria atual com fotos e cargos
+- Integracao com Instagram (feed)
+- Area do Membro (escolher sistema: Emaus Vota ou DeoGlory)
+
+**Sistema de Permissoes por Secretaria:**
+- `Espiritualidade` - Gerencia Devocionais e Pedidos de Oracao
+- `Marketing` - Gerencia Eventos, Banners e Redes Sociais
+- `Admin` - Acesso total + Membros + Diretoria
+
+**Novas Tabelas:**
+- `devotionals` - Devocionais
+- `events` - Eventos/Agenda
+- `prayer_requests` - Pedidos de Oracao
+- `banners` - Banners do carrossel
+- `board_members` - Membros da diretoria
+- `site_content` - Conteudo estatico (Quem Somos, etc)
+- `instagram_posts` - Cache do Instagram
+
+**Campo adicionado em `users`:**
+- `secretaria` - Secretaria do membro (espiritualidade, marketing, none)
 
 Christian meditation content is strictly defined to focus on reflection on God's Word and prayer, avoiding secular mindfulness practices.
 
@@ -329,4 +365,4 @@ Christian meditation content is strictly defined to focus on reflection on God's
 ---
 
 *Last updated: December 04, 2025*
-*Version: 2.1 - Technical Improvements Update*
+*Version: 3.0 - Site Institucional UMP Emaus (Documentacao Completa)*

@@ -116,7 +116,7 @@ export default function DevocionalDetailPage() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${imageUrl})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-orange-500/80 to-amber-500/70" />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/50" />
         <div className="relative text-white py-12">
           <div className="container mx-auto px-4">
             <motion.div

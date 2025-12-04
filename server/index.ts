@@ -5,10 +5,13 @@ import { initializeDatabase } from "./db";
 import { initBirthdayScheduler } from "./scheduler";
 import { initializeWebSocket } from "./websocket";
 import cors from "cors";
+import path from "path";
 
 const app = express();
 
 app.use(cors());
+
+app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
 
 declare module 'http' {
   interface IncomingMessage {

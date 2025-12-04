@@ -56,6 +56,13 @@ The system features a responsive, Portuguese UI optimized for clarity and ease o
 - Attendance control and real-time results display.
 - PDF audit reports and shareable results images export.
 
+**Devotional Sharing Feature**:
+- Enhanced sharing with banner-style image generation (1080x1920 for stories).
+- DevotionalShareCard component renders background image + title + verse.
+- Uses html2canvas for image generation.
+- Supports Web Share API with file sharing for WhatsApp/social media.
+- Fallback options: download image or share link only.
+
 **Study System Features**:
 - Gamified lesson map with XP, levels, hearts, and streak tracking.
 - Ranking/Leaderboard (weekly/monthly/all-time).

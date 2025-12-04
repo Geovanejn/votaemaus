@@ -76,6 +76,31 @@ The system features a responsive, Portuguese UI optimized for clarity and ease o
 - PWA support with offline caching and push notifications.
 - In-app notification center.
 
+**Site Institucional (Public Website)**:
+- Public pages: Home, Agenda, Devocionais, Diretoria, Oracao, Quem Somos
+- Prayer request submission form with anonymous option
+- Board members display with photos and WhatsApp contact
+- Banner carousel on homepage
+- Admin dashboard at /admin/site with tabs for managing:
+  - Diretoria (board members CRUD)
+  - Pedidos de Oracao (prayer request status management)
+  - Banners (homepage carousel management)
+
+### API Routes
+
+**Site Institucional - Public Routes**:
+- `GET /api/site/board-members` - Get current board members
+- `GET /api/site/banners` - Get active banners
+- `GET /api/site/events` - Get upcoming events
+- `GET /api/site/devotionals` - Get featured devotionals
+- `POST /api/site/prayer-requests` - Submit prayer request
+
+**Site Institucional - Admin Routes**:
+- `GET/POST/PATCH/DELETE /api/admin/board-members` - Manage board members
+- `GET/PATCH /api/admin/prayer-requests` - View and update prayer request status
+- `GET/POST/PATCH/DELETE /api/admin/banners` - Manage banners
+- `GET/POST /api/admin/site-content` - Manage site content
+
 ### System Design Choices
 The architecture is designed for expandability, supporting future modules for secretariats management, devotionals, prayer requests, events, and an institutional website. Content for Christian meditation is strictly focused on reflection on God's Word.
 

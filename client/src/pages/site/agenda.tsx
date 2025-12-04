@@ -15,56 +15,67 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 
+import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
+import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
+import eventImg3 from "@assets/Layout stories_1761779211233.png";
+import eventImg4 from "@assets/Layout stories_1761779185102.png";
+import eventImg5 from "@assets/image_1762037221993.png";
+
 const mockEvents = [
   {
     id: 1,
     title: "Culto Jovem",
-    description: "Venha adorar a Deus conosco! Teremos louvor, pregação e comunhão.",
+    description: "Venha adorar a Deus conosco! Teremos louvor especial, pregação edificante e comunhão fraterna. Convidamos todos os jovens a participarem deste momento de encontro com Deus.",
     date: new Date(2025, 11, 15),
     time: "19:30",
-    location: "Igreja Sede",
+    location: "Igreja Presbiteriana de Emaús",
     category: "Culto",
     organizer: "Secretaria de Espiritualidade",
+    image: eventImg1,
   },
   {
     id: 2,
     title: "Retiro Anual UMP",
-    description: "Três dias de imersão na Palavra, adoração e comunhão com os irmãos.",
+    description: "Três dias de imersão na Palavra de Deus, adoração intensa e comunhão com os irmãos. Inscrições abertas! Valor: R$ 150,00 (inclui hospedagem e alimentação).",
     date: new Date(2025, 11, 20),
     time: "08:00",
-    location: "Sítio Recanto da Paz",
+    location: "Sítio Recanto da Paz - Jundiaí/SP",
     category: "Retiro",
     organizer: "Diretoria UMP",
+    image: eventImg2,
   },
   {
     id: 3,
     title: "Natal da UMP",
-    description: "Celebração especial de Natal com amigo secreto e confraternização.",
+    description: "Celebração especial de Natal com amigo secreto, confraternização e ceia. Cada participante deve trazer um prato para compartilhar. Amigo secreto: valor de R$ 30,00.",
     date: new Date(2025, 11, 25),
     time: "20:00",
-    location: "Igreja Sede",
+    location: "Salão de Festas - Igreja Sede",
     category: "Confraternização",
     organizer: "Secretaria Social",
+    image: eventImg3,
   },
   {
     id: 4,
     title: "Ensaio do Louvor",
-    description: "Preparação das músicas para o culto de virada de ano.",
+    description: "Preparação das músicas para o culto de virada de ano. Todos os integrantes do ministério de louvor devem comparecer. Ensaio aberto para novos talentos.",
     date: new Date(2025, 11, 28),
     time: "15:00",
-    location: "Sala de Música",
+    location: "Sala de Música - Igreja Sede",
     category: "Ensaio",
     organizer: "Ministério de Louvor",
+    image: eventImg4,
   },
   {
     id: 5,
     title: "Culto de Virada de Ano",
-    description: "Venha celebrar a entrada do novo ano em oração e gratidão.",
+    description: "Venha celebrar a entrada do novo ano em oração, gratidão e adoração. Será um momento especial para agradecer pelas bênçãos de 2025 e consagrar 2026 nas mãos do Senhor.",
     date: new Date(2025, 11, 31),
     time: "22:00",
-    location: "Igreja Sede",
+    location: "Igreja Presbiteriana de Emaús",
     category: "Culto",
     organizer: "Secretaria de Espiritualidade",
+    image: eventImg5,
   },
 ];
 
@@ -206,18 +217,25 @@ export default function AgendaPage() {
 
   return (
     <SiteLayout>
-      <section className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative overflow-hidden bg-gray-900 text-white py-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-transparent" />
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 right-10 w-64 h-64 bg-primary/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-amber-500/30 rounded-full blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-amber-500 mb-6 shadow-lg shadow-primary/30">
               <CalendarIcon className="h-8 w-8" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Agenda</h1>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-orange-400 to-amber-400 bg-clip-text text-transparent">
+              Agenda
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Confira os próximos eventos e atividades da UMP Emaús
             </p>
           </motion.div>
@@ -274,17 +292,28 @@ export default function AgendaPage() {
                         >
                           <Card className="overflow-hidden hover-elevate">
                             <CardContent className="p-0">
-                              <div className="flex">
-                                <div className="bg-primary text-primary-foreground p-4 flex flex-col items-center justify-center min-w-[90px]">
-                                  <span className="text-xs font-medium opacity-90">
-                                    {dateInfo.month}
-                                  </span>
-                                  <span className="text-3xl font-bold">
-                                    {dateInfo.day}
-                                  </span>
-                                  <span className="text-xs opacity-90">
-                                    {dateInfo.weekday}
-                                  </span>
+                              <div className="flex flex-col md:flex-row">
+                                <div className="relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden">
+                                  {event.image && (
+                                    <div 
+                                      className="absolute inset-0 bg-cover bg-center"
+                                      style={{ backgroundImage: `url(${event.image})` }}
+                                    />
+                                  )}
+                                  <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-transparent" />
+                                  <div className="absolute inset-0 flex items-center justify-center md:justify-start md:pl-4">
+                                    <div className="text-center text-white">
+                                      <span className="text-xs font-semibold text-primary block">
+                                        {dateInfo.month}
+                                      </span>
+                                      <span className="text-4xl font-bold block">
+                                        {dateInfo.day}
+                                      </span>
+                                      <span className="text-xs text-gray-300 block">
+                                        {dateInfo.weekday}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                                 <div className="p-5 flex-1">
                                   <div className="flex items-start justify-between gap-4 mb-2">
@@ -309,15 +338,15 @@ export default function AgendaPage() {
                                   
                                   <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4" />
+                                      <Clock className="h-4 w-4 text-primary" />
                                       {event.time}
                                     </span>
                                     <span className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
+                                      <MapPin className="h-4 w-4 text-primary" />
                                       {event.location}
                                     </span>
                                     <span className="flex items-center gap-1">
-                                      <Users className="h-4 w-4" />
+                                      <Users className="h-4 w-4 text-primary" />
                                       {event.organizer}
                                     </span>
                                   </div>

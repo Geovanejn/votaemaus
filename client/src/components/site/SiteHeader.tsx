@@ -24,16 +24,17 @@ export function SiteHeader() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center">
               <motion.div
-                whileHover={{ rotate: 10 }}
-                className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center justify-center"
               >
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
+                <img 
+                  src="/logo-ump.png" 
+                  alt="Logo UMP Emaús" 
+                  className="h-12 w-auto object-contain"
+                />
               </motion.div>
-              <span className="font-bold text-lg text-foreground">
-                UMP Emaús
-              </span>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1">

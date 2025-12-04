@@ -23,72 +23,85 @@ import {
 } from "@/components/ui/select";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 
+import devocionalArt1 from "@assets/Fundo Layout stories_1761783891823.png";
+import devocionalArt2 from "@assets/Layout stories_1761780888593.png";
+import devocionalArt3 from "@assets/fundo_1761781968067.png";
+import devocionalArt4 from "@assets/Sem Fundo Layout stories_1761780037463.png";
+import devocionalArt5 from "@assets/Layout feed_1761779185103.png";
+import devocionalArt6 from "@assets/Fundo Layout stories_1761780030672.png";
+
 const mockDevotionals = [
   {
     id: 1,
     title: "A Força da Oração",
     verse: "Orai sem cessar.",
     verseReference: "1 Tessalonicenses 5:17",
-    summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos.",
-    author: "Pastor João Silva",
+    summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial. Quando oramos, abrimos nosso coração para Deus e permitimos que Ele trabalhe em nossas vidas.",
+    author: "Secretaria de Espiritualidade",
     date: "04 de Dezembro, 2025",
     category: "Oração",
     isFeatured: true,
+    image: devocionalArt1,
   },
   {
     id: 2,
     title: "Fé que Move Montanhas",
     verse: "Se tiverdes fé como um grão de mostarda, direis a este monte: Passa daqui para acolá, e ele há de passar.",
     verseReference: "Mateus 17:20",
-    summary: "A fé não se mede por tamanho, mas pela sua genuinidade. Mesmo a menor fé verdadeira pode realizar grandes coisas em Deus.",
-    author: "Maria Santos",
+    summary: "A fé não se mede por tamanho, mas pela sua genuinidade. Mesmo a menor fé verdadeira pode realizar grandes coisas quando depositada em Deus.",
+    author: "Diretoria UMP",
     date: "03 de Dezembro, 2025",
     category: "Fé",
     isFeatured: false,
+    image: devocionalArt2,
   },
   {
     id: 3,
     title: "O Amor Incondicional",
     verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito.",
     verseReference: "João 3:16",
-    summary: "O amor de Deus não depende de nossas ações ou méritos. Ele nos amou primeiro, quando ainda éramos pecadores.",
-    author: "Pastor Pedro Lima",
+    summary: "O amor de Deus não depende de nossas ações ou méritos. Ele nos amou primeiro, quando ainda éramos pecadores. Esse amor transforma vidas.",
+    author: "Secretaria de Espiritualidade",
     date: "02 de Dezembro, 2025",
     category: "Amor",
     isFeatured: false,
+    image: devocionalArt3,
   },
   {
     id: 4,
     title: "Confiando em Tempos Difíceis",
     verse: "Ainda que eu andasse pelo vale da sombra da morte, não temeria mal algum.",
     verseReference: "Salmos 23:4",
-    summary: "Nos momentos mais sombrios de nossas vidas, podemos confiar que Deus está conosco e nunca nos abandonará.",
-    author: "Ana Oliveira",
+    summary: "Nos momentos mais sombrios de nossas vidas, podemos confiar que Deus está conosco e nunca nos abandonará. Ele é o nosso pastor.",
+    author: "Diretoria UMP",
     date: "01 de Dezembro, 2025",
     category: "Confiança",
     isFeatured: false,
+    image: devocionalArt4,
   },
   {
     id: 5,
     title: "Servindo ao Próximo",
     verse: "Aquele que quiser ser o maior entre vós, será vosso servo.",
     verseReference: "Mateus 20:26",
-    summary: "Jesus nos ensinou que a verdadeira grandeza está em servir. O serviço ao próximo é a expressão prática do amor de Cristo.",
-    author: "Lucas Ferreira",
+    summary: "Jesus nos ensinou que a verdadeira grandeza está em servir. O serviço ao próximo é a expressão prática do amor de Cristo em nossas vidas.",
+    author: "Secretaria Social",
     date: "30 de Novembro, 2025",
     category: "Serviço",
     isFeatured: false,
+    image: devocionalArt5,
   },
   {
     id: 6,
     title: "A Paz que Excede Todo Entendimento",
     verse: "E a paz de Deus, que excede todo o entendimento, guardará os vossos corações.",
     verseReference: "Filipenses 4:7",
-    summary: "A paz que Deus oferece vai além da compreensão humana. Ela guarda nosso coração em meio às tempestades da vida.",
-    author: "Pastor João Silva",
+    summary: "A paz que Deus oferece vai além da compreensão humana. Ela guarda nosso coração em meio às tempestades da vida e nos dá serenidade.",
+    author: "Secretaria de Espiritualidade",
     date: "29 de Novembro, 2025",
     category: "Paz",
     isFeatured: false,
+    image: devocionalArt6,
   },
 ];
 
@@ -161,28 +174,32 @@ export default function DevocionaisPage() {
               <Card className="overflow-hidden border-primary/20">
                 <CardContent className="p-0">
                   <div className="grid md:grid-cols-3">
-                    <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8 flex flex-col justify-center overflow-hidden">
-                      <div className="absolute inset-0 opacity-40">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/60 rounded-full blur-3xl" />
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/60 rounded-full blur-3xl" />
-                      </div>
-                      <div className="absolute top-4 right-4">
-                        <Sparkles className="h-6 w-6 text-primary/60" />
-                      </div>
-                      <div className="relative z-10">
-                        <p className="text-sm text-primary mb-2">{featuredDevotional.date}</p>
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-                          <BookOpen className="h-6 w-6 text-white" />
+                    <div className="relative overflow-hidden">
+                      {featuredDevotional.image && (
+                        <div 
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{ backgroundImage: `url(${featuredDevotional.image})` }}
+                        />
+                      )}
+                      <div className="relative bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70 text-white p-8 flex flex-col justify-center min-h-[300px]">
+                        <div className="absolute top-4 right-4">
+                          <Sparkles className="h-6 w-6 text-primary/60" />
                         </div>
-                        <h3 className="text-2xl font-bold mb-4" data-testid="featured-devotional-title">
-                          {featuredDevotional.title}
-                        </h3>
-                        <blockquote className="border-l-2 border-primary/50 pl-4 mb-4">
-                          <p className="italic text-gray-300">"{featuredDevotional.verse}"</p>
-                          <cite className="text-sm text-gray-400 block mt-1">
-                            — {featuredDevotional.verseReference}
-                          </cite>
-                        </blockquote>
+                        <div className="relative z-10">
+                          <p className="text-sm text-primary mb-2">{featuredDevotional.date}</p>
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+                            <BookOpen className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold mb-4" data-testid="featured-devotional-title">
+                            {featuredDevotional.title}
+                          </h3>
+                          <blockquote className="border-l-2 border-primary/50 pl-4 mb-4">
+                            <p className="italic text-gray-300">"{featuredDevotional.verse}"</p>
+                            <cite className="text-sm text-gray-400 block mt-1">
+                              - {featuredDevotional.verseReference}
+                            </cite>
+                          </blockquote>
+                        </div>
                       </div>
                     </div>
                     <div className="md:col-span-2 p-8">
@@ -256,22 +273,29 @@ export default function DevocionaisPage() {
                     <Link href={`/devocionais/${devotional.id}`}>
                       <Card className="h-full hover-elevate cursor-pointer overflow-hidden">
                         <CardContent className="p-0">
-                          <div className={`relative bg-gradient-to-br ${categoryColors[devotional.category] || "from-gray-700 to-gray-900"} p-4 overflow-hidden`}>
+                          <div className="relative h-48 overflow-hidden">
+                            {devotional.image && (
+                              <div 
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{ backgroundImage: `url(${devotional.image})` }}
+                              />
+                            )}
+                            <div className={`absolute inset-0 bg-gradient-to-br ${categoryColors[devotional.category] || "from-gray-700 to-gray-900"} opacity-80`} />
                             <div className="absolute inset-0 opacity-30">
                               <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-2xl" />
                             </div>
                             <div className="absolute top-2 right-2">
                               <Sparkles className="h-4 w-4 text-white/40" />
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 p-4 flex flex-col justify-end h-full">
                               <div className="flex items-center gap-2 text-xs text-white/80 mb-2">
                                 <Calendar className="h-3 w-3" />
                                 <span>{devotional.date}</span>
                               </div>
-                              <span className="inline-block bg-white/20 text-white px-2 py-0.5 rounded-full text-xs">
+                              <span className="inline-block bg-white/20 text-white px-2 py-0.5 rounded-full text-xs w-fit mb-2">
                                 {devotional.category}
                               </span>
-                              <h3 className="text-lg font-bold text-white mt-2" data-testid={`devotional-title-${devotional.id}`}>
+                              <h3 className="text-lg font-bold text-white" data-testid={`devotional-title-${devotional.id}`}>
                                 {devotional.title}
                               </h3>
                             </div>
@@ -282,7 +306,7 @@ export default function DevocionaisPage() {
                                 "{devotional.verse}"
                               </p>
                               <cite className="text-xs text-muted-foreground">
-                                — {devotional.verseReference}
+                                - {devotional.verseReference}
                               </cite>
                             </blockquote>
                             <p className="text-sm text-muted-foreground line-clamp-2 mb-4">

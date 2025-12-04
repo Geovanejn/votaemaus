@@ -1,18 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Calendar, Heart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+
+import devocionalBg1 from "@assets/Fundo Layout stories_1761783891823.png";
+import devocionalBg2 from "@assets/Layout stories_1761780888593.png";
+import devocionalBg3 from "@assets/fundo_1761781968067.png";
+import devocionalBg4 from "@assets/Sem Fundo Layout stories_1761780037463.png";
 
 interface BannerSlide {
   id: number;
   title: string;
   subtitle: string;
+  verse?: string;
+  verseReference?: string;
   buttonText?: string;
   buttonLink?: string;
   secondaryButtonText?: string;
   secondaryButtonLink?: string;
-  gradient: string;
+  backgroundImage?: string;
+  icon?: React.ElementType;
 }
 
 const defaultSlides: BannerSlide[] = [
@@ -24,31 +32,40 @@ const defaultSlides: BannerSlide[] = [
     buttonLink: "/quem-somos",
     secondaryButtonText: "Área do Membro",
     secondaryButtonLink: "/membro",
-    gradient: "from-black via-gray-900 to-gray-800",
+    backgroundImage: devocionalBg1,
+    icon: Users,
   },
   {
     id: 2,
-    title: "Devocional do Dia",
-    subtitle: "Fortaleça sua fé com a Palavra de Deus",
+    title: "A Força da Oração",
+    subtitle: "Devocional do Dia",
+    verse: "Orai sem cessar.",
+    verseReference: "1 Tessalonicenses 5:17",
     buttonText: "Ler Devocional",
     buttonLink: "/devocionais",
-    gradient: "from-gray-900 via-black to-gray-900",
+    backgroundImage: devocionalBg2,
+    icon: BookOpen,
   },
   {
     id: 3,
-    title: "Agenda de Eventos",
-    subtitle: "Participe dos nossos encontros e celebrações",
+    title: "Retiro Anual UMP",
+    subtitle: "20 a 22 de Dezembro",
+    verse: "Três dias de imersão na Palavra e comunhão",
     buttonText: "Ver Agenda",
     buttonLink: "/agenda",
-    gradient: "from-black via-gray-800 to-black",
+    backgroundImage: devocionalBg3,
+    icon: Calendar,
   },
   {
     id: 4,
     title: "Pedidos de Oração",
     subtitle: "Compartilhe suas necessidades conosco",
+    verse: "A oração do justo é poderosa e eficaz.",
+    verseReference: "Tiago 5:16",
     buttonText: "Enviar Pedido",
     buttonLink: "/oracao",
-    gradient: "from-gray-800 via-black to-gray-900",
+    backgroundImage: devocionalBg4,
+    icon: Heart,
   },
 ];
 
@@ -103,6 +120,7 @@ export function HeroBanner({
   }, [isPaused, autoPlayInterval, paginate]);
 
   const currentSlide = slides[currentIndex];
+  const IconComponent = currentSlide.icon;
 
   return (
     <div 
@@ -122,13 +140,20 @@ export function HeroBanner({
             x: { type: "spring", stiffness: 300, damping: 30 },
             opacity: { duration: 0.3 },
           }}
-          className={`absolute inset-0 bg-gradient-to-br ${currentSlide.gradient}`}
+          className="absolute inset-0"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-transparent" />
+          {currentSlide.backgroundImage && (
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${currentSlide.backgroundImage})` }}
+            />
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/70 to-gray-900/30" />
           
           <div className="absolute inset-0 overflow-hidden">
             <motion.div
-              className="absolute -top-20 -right-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
+              className="absolute -top-20 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
               animate={{
                 scale: [1, 1.2, 1],
                 opacity: [0.3, 0.5, 0.3],
@@ -140,7 +165,7 @@ export function HeroBanner({
               }}
             />
             <motion.div
-              className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"
+              className="absolute -bottom-20 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"
               animate={{
                 scale: [1.2, 1, 1.2],
                 opacity: [0.5, 0.3, 0.5],
@@ -151,71 +176,89 @@ export function HeroBanner({
                 ease: "easeInOut",
               }}
             />
-            <motion.div
-              className="absolute top-1/2 right-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl"
-              animate={{
-                x: [0, 50, 0],
-                y: [0, -30, 0],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
           </div>
 
-          <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center">
-            <motion.h1
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 max-w-4xl bg-gradient-to-r from-primary via-orange-400 to-amber-400 bg-clip-text text-transparent"
-              data-testid="banner-title"
-            >
-              {currentSlide.title}
-            </motion.h1>
-            
-            <motion.p
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-lg md:text-xl text-amber-200/90 mb-8 max-w-2xl font-medium"
-              data-testid="banner-subtitle"
-            >
-              {currentSlide.subtitle}
-            </motion.p>
+          <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-start text-left">
+            <div className="max-w-xl">
+              {IconComponent && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-primary/30"
+                >
+                  <IconComponent className="h-7 w-7 text-white" />
+                </motion.div>
+              )}
+              
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.15, duration: 0.4 }}
+                className="text-sm md:text-base text-primary font-semibold uppercase tracking-wider mb-2"
+              >
+                {currentSlide.subtitle}
+              </motion.p>
+              
+              <motion.h1
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent"
+                data-testid="banner-title"
+              >
+                {currentSlide.title}
+              </motion.h1>
+              
+              {currentSlide.verse && (
+                <motion.blockquote
+                  initial={{ y: 30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="border-l-4 border-primary pl-4 py-2 mb-6"
+                >
+                  <p className="text-lg md:text-xl text-amber-200/90 italic font-medium">
+                    "{currentSlide.verse}"
+                  </p>
+                  {currentSlide.verseReference && (
+                    <cite className="text-sm text-gray-400 mt-1 block not-italic">
+                      - {currentSlide.verseReference}
+                    </cite>
+                  )}
+                </motion.blockquote>
+              )}
 
-            <motion.div
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              {currentSlide.buttonText && currentSlide.buttonLink && (
-                <Link href={currentSlide.buttonLink}>
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-primary to-amber-500 text-white font-semibold px-8 shadow-lg shadow-primary/40 border-0"
-                    data-testid="banner-primary-button"
-                  >
-                    {currentSlide.buttonText}
-                  </Button>
-                </Link>
-              )}
-              {currentSlide.secondaryButtonText && currentSlide.secondaryButtonLink && (
-                <Link href={currentSlide.secondaryButtonLink}>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 backdrop-blur-sm"
-                    data-testid="banner-secondary-button"
-                  >
-                    {currentSlide.secondaryButtonText}
-                  </Button>
-                </Link>
-              )}
-            </motion.div>
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                {currentSlide.buttonText && currentSlide.buttonLink && (
+                  <Link href={currentSlide.buttonLink}>
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-primary to-amber-500 text-white font-semibold px-8 shadow-lg shadow-primary/40 border-0"
+                      data-testid="banner-primary-button"
+                    >
+                      {currentSlide.buttonText}
+                    </Button>
+                  </Link>
+                )}
+                {currentSlide.secondaryButtonText && currentSlide.secondaryButtonLink && (
+                  <Link href={currentSlide.secondaryButtonLink}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 backdrop-blur-sm"
+                      data-testid="banner-secondary-button"
+                    >
+                      {currentSlide.secondaryButtonText}
+                    </Button>
+                  </Link>
+                )}
+              </motion.div>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

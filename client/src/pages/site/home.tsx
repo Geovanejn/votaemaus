@@ -11,7 +11,6 @@ import {
   GraduationCap,
   MapPin,
   Clock,
-  Camera,
   Sparkles
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -20,14 +19,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 
+import devocionalArt from "@assets/Fundo Layout stories_1761783891823.png";
+import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
+import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
+import eventImg3 from "@assets/Layout stories_1761779211233.png";
+import instagramImg1 from "@assets/Layout feed_1761779185103.png";
+import instagramImg2 from "@assets/Layout stories_1761779185102.png";
+import instagramImg3 from "@assets/Fundo Layout stories_1761780030672.png";
+import instagramImg4 from "@assets/Sem Fundo Layout stories_1761780037463.png";
+import instagramImg5 from "@assets/fundo_1761781968067.png";
+import instagramImg6 from "@assets/Layout stories_1761780888593.png";
+
 const mockDevotional = {
   id: 1,
   title: "A Força da Oração",
   verse: "Orai sem cessar.",
   verseReference: "1 Tessalonicenses 5:17",
-  summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
-  author: "Pastor João Silva",
+  summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial. Quando oramos com fé, abrimos espaço para que Deus opere em nossas vidas de maneiras extraordinárias.",
+  author: "Secretaria de Espiritualidade",
   date: "04 de Dezembro, 2025",
+  image: devocionalArt,
 };
 
 const mockEvents = [
@@ -39,6 +50,7 @@ const mockEvents = [
     weekday: "DOM",
     time: "19:30",
     location: "Igreja Sede",
+    image: eventImg1,
   },
   {
     id: 2,
@@ -48,6 +60,7 @@ const mockEvents = [
     weekday: "SEX",
     time: "08:00",
     location: "Sítio Recanto",
+    image: eventImg2,
   },
   {
     id: 3,
@@ -57,7 +70,17 @@ const mockEvents = [
     weekday: "QUA",
     time: "20:00",
     location: "Igreja Sede",
+    image: eventImg3,
   },
+];
+
+const instagramPosts = [
+  instagramImg1,
+  instagramImg2,
+  instagramImg3,
+  instagramImg4,
+  instagramImg5,
+  instagramImg6,
 ];
 
 const quickAccessItems = [
@@ -123,25 +146,30 @@ export default function HomePage() {
             <Card className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-3">
-                  <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 flex flex-col justify-center overflow-hidden">
-                    <div className="absolute inset-0 opacity-30">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/60 rounded-full blur-3xl" />
-                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/60 rounded-full blur-3xl" />
-                    </div>
-                    <div className="absolute top-4 right-4">
-                      <Sparkles className="h-6 w-6 text-primary/50" />
-                    </div>
-                    <div className="relative z-10">
-                      <p className="text-sm text-primary mb-2">{mockDevotional.date}</p>
-                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-                        <BookOpen className="h-8 w-8 text-white" />
+                  <div className="relative overflow-hidden min-h-[280px]">
+                    {mockDevotional.image && (
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${mockDevotional.image})` }}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70" />
+                    <div className="relative p-8 flex flex-col justify-center h-full">
+                      <div className="absolute top-4 right-4">
+                        <Sparkles className="h-6 w-6 text-primary/50" />
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-2" data-testid="devotional-title">
-                        {mockDevotional.title}
-                      </h3>
-                      <p className="text-sm text-gray-400">
-                        Por: {mockDevotional.author}
-                      </p>
+                      <div className="relative z-10">
+                        <p className="text-sm text-primary mb-2">{mockDevotional.date}</p>
+                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+                          <BookOpen className="h-8 w-8 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2" data-testid="devotional-title">
+                          {mockDevotional.title}
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Por: {mockDevotional.author}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <div className="md:col-span-2 p-6 md:p-8 space-y-4">
@@ -150,7 +178,7 @@ export default function HomePage() {
                         "{mockDevotional.verse}"
                       </p>
                       <cite className="text-sm text-muted-foreground mt-1 block">
-                        — {mockDevotional.verseReference}
+                        - {mockDevotional.verseReference}
                       </cite>
                     </blockquote>
                     <p className="text-muted-foreground leading-relaxed">
@@ -194,18 +222,22 @@ export default function HomePage() {
                     <Card className="w-[280px] md:w-auto overflow-hidden hover-elevate">
                       <CardContent className="p-0">
                         <div className="flex">
-                          <div className="relative bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 flex flex-col items-center justify-center min-w-[90px] overflow-hidden">
-                            <div className="absolute inset-0 opacity-40">
-                              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/40 to-amber-500/40" />
-                            </div>
-                            <div className="relative z-10 text-center">
+                          <div className="relative min-w-[100px] min-h-[140px] overflow-hidden">
+                            {event.image && (
+                              <div 
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{ backgroundImage: `url(${event.image})` }}
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/80 to-gray-900/60" />
+                            <div className="relative z-10 h-full flex flex-col items-center justify-center text-white p-3">
                               <span className="text-xs font-semibold text-primary">
                                 {event.month}
                               </span>
-                              <span className="text-4xl font-bold block bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                              <span className="text-3xl font-bold">
                                 {event.date}
                               </span>
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-300">
                                 {event.weekday}
                               </span>
                             </div>
@@ -222,7 +254,7 @@ export default function HomePage() {
                                 <Clock className="h-3.5 w-3.5 text-primary" /> {event.time}
                               </p>
                             </div>
-                            <Link href={`/agenda/${event.id}`}>
+                            <Link href={`/agenda`}>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
@@ -287,7 +319,9 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <Camera className="h-6 w-6 text-primary" />
+              <svg className="h-6 w-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
               <h2 className="text-2xl font-bold">Instagram</h2>
             </div>
             <a 
@@ -302,7 +336,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {instagramPosts.map((img, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -310,12 +344,14 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className="aspect-square rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden cursor-pointer"
-                data-testid={`instagram-post-${i}`}
+                className="aspect-square rounded-lg overflow-hidden cursor-pointer"
+                data-testid={`instagram-post-${i + 1}`}
               >
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <Camera className="h-8 w-8 opacity-30" />
-                </div>
+                <img 
+                  src={img} 
+                  alt={`Post Instagram ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </motion.div>
             ))}
           </div>

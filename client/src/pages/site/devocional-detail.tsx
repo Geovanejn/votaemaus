@@ -1,17 +1,30 @@
+import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import html2canvas from "html2canvas";
 import { 
   ArrowLeft,
   Calendar,
   User,
   Share2,
   BookOpen,
-  Loader2
+  Loader2,
+  Download,
+  Check,
+  X
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DevotionalShareCard } from "@/components/DevotionalShareCard";
+import { useToast } from "@/hooks/use-toast";
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
@@ -47,6 +60,11 @@ function getCategory(title: string): string {
 export default function DevocionalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const devotionalId = parseInt(id || '0');
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: devotional, isLoading, isError } = useQuery<DevotionalData>({
     queryKey: ['/api/site/devotionals', devotionalId],
@@ -61,7 +79,94 @@ export default function DevocionalDetailPage() {
 
   const relatedDevotionals = allDevotionals?.filter(d => d.id !== devotionalId).slice(0, 3) || [];
 
-  const handleShare = async () => {
+  const generateShareImage = useCallback(async () => {
+    if (!shareCardRef.current || !devotional) return null;
+    
+    setIsGenerating(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#111827",
+        logging: false,
+      });
+      
+      const dataUrl = canvas.toDataURL("image/png", 0.9);
+      setGeneratedImageUrl(dataUrl);
+      return dataUrl;
+    } catch (err) {
+      console.error("Error generating image:", err);
+      toast({
+        title: "Erro ao gerar imagem",
+        description: "Tente novamente ou use o compartilhamento simples.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [devotional, toast]);
+
+  const handleOpenShareDialog = async () => {
+    setIsShareDialogOpen(true);
+    setGeneratedImageUrl(null);
+    setTimeout(() => {
+      generateShareImage();
+    }, 100);
+  };
+
+  const handleDownloadImage = async () => {
+    const imageUrl = generatedImageUrl || await generateShareImage();
+    if (!imageUrl || !devotional) return;
+
+    const link = document.createElement("a");
+    link.download = `devocional-${devotional.title.toLowerCase().replace(/\s+/g, "-")}.png`;
+    link.href = imageUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Imagem baixada",
+      description: "A imagem foi salva em seus downloads.",
+    });
+  };
+
+  const handleShareWithImage = async () => {
+    if (!devotional) return;
+
+    const imageUrl = generatedImageUrl || await generateShareImage();
+    if (!imageUrl) return;
+
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `devocional-${devotional.id}.png`, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: devotional.title,
+          text: `${devotional.verse} - ${devotional.verseReference}\n\n${window.location.href}`,
+          files: [file],
+        });
+        setIsShareDialogOpen(false);
+      } else {
+        handleDownloadImage();
+        toast({
+          title: "Imagem pronta para compartilhar",
+          description: "A imagem foi baixada. Abra o WhatsApp e anexe a imagem.",
+        });
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        console.error("Error sharing:", err);
+        handleDownloadImage();
+      }
+    }
+  };
+
+  const handleSimpleShare = async () => {
     if (navigator.share && devotional) {
       try {
         await navigator.share({
@@ -70,7 +175,9 @@ export default function DevocionalDetailPage() {
           url: window.location.href,
         });
       } catch (err) {
-        console.log("Error sharing:", err);
+        if ((err as Error).name !== "AbortError") {
+          console.log("Error sharing:", err);
+        }
       }
     }
   };
@@ -213,7 +320,7 @@ export default function DevocionalDetailPage() {
                     </div>
                     <Button 
                       variant="outline" 
-                      onClick={handleShare}
+                      onClick={handleOpenShareDialog}
                       className="gap-2"
                       data-testid="button-share-devotional"
                     >
@@ -263,6 +370,97 @@ export default function DevocionalDetailPage() {
           </div>
         </div>
       </section>
+
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              Compartilhar Devocional
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {isGenerating ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Gerando imagem...</p>
+              </div>
+            ) : generatedImageUrl ? (
+              <div className="space-y-4">
+                <div className="relative rounded-lg overflow-hidden border">
+                  <img 
+                    src={generatedImageUrl} 
+                    alt="Preview do compartilhamento"
+                    className="w-full h-auto"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <div className="bg-green-500 text-white rounded-full p-1">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleShareWithImage}
+                    className="gap-2"
+                    data-testid="button-share-with-image"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Compartilhar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadImage}
+                    className="gap-2"
+                    data-testid="button-download-image"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <X className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Erro ao gerar imagem</p>
+                <Button variant="outline" onClick={generateShareImage}>
+                  Tentar novamente
+                </Button>
+              </div>
+            )}
+            
+            <div className="border-t pt-4">
+              <Button 
+                variant="ghost" 
+                onClick={handleSimpleShare}
+                className="w-full gap-2 text-muted-foreground"
+                data-testid="button-simple-share"
+              >
+                Compartilhar apenas link
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div 
+        style={{ 
+          position: "fixed", 
+          left: "-9999px", 
+          top: "-9999px",
+          pointerEvents: "none",
+        }}
+      >
+        <DevotionalShareCard
+          ref={shareCardRef}
+          title={devotional?.title || ""}
+          verse={devotional?.verse || ""}
+          verseReference={devotional?.verseReference || ""}
+          imageUrl={imageUrl}
+        />
+      </div>
     </SiteLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { BookOpen } from "lucide-react";
-import logoFlame from "@assets/EMAÚS v3 sem fundo_1762029245059.png";
+import logoFlame from "@assets/V1_1764865428588.png";
 
 interface DevotionalShareCardProps {
   title: string;
@@ -192,16 +192,28 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
               </div>
             </div>
             
-            <span
+            <div
               style={{
-                color: "#FFA500",
-                fontSize: "20px",
-                fontWeight: 500,
-                textAlign: "center",
+                background: "rgba(255, 165, 0, 0.15)",
+                borderRadius: "12px",
+                padding: "24px 32px",
+                border: "1px solid rgba(255, 165, 0, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              Acesse e leia o devocional completo
-            </span>
+              <span
+                style={{
+                  color: "#FFA500",
+                  fontSize: "20px",
+                  fontWeight: 500,
+                  textAlign: "center",
+                }}
+              >
+                Acesse e leia o devocional completo
+              </span>
+            </div>
           </div>
         </div>
       </div>

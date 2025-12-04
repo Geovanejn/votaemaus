@@ -9,35 +9,126 @@ const devotionalsData = [
 
 Quando oramos com fe, abrimos espaco para que Deus opere em nossas vidas de maneiras extraordinarias. A oracao nao muda apenas as circunstancias ao nosso redor, mas transforma nosso coracao e nos aproxima do Criador.
 
-Paulo nos exorta a orar sem cessar - nao porque devemos estar de joelhos 24 horas por dia, mas porque devemos manter uma atitude de oracao constante, reconhecendo a presenca de Deus em todos os momentos.`,
-    summary: "A oracao e nossa conexao direta com Deus, transformando nossos coracoes.",
-    imageUrl: "/api/placeholder/800/400",
+Paulo nos exorta a orar sem cessar - nao porque devemos estar de joelhos 24 horas por dia, mas porque devemos manter uma atitude de oracao constante, reconhecendo a presenca de Deus em todos os momentos.
+
+**Por que devemos orar sem cessar?**
+
+1. **A oracao nos aproxima de Deus** - Quando oramos, entramos na presenca do Altissimo. E um privilegio que nos foi dado atraves do sacrificio de Cristo na cruz.
+
+2. **A oracao transforma nosso coracao** - Ao orar, nao apenas apresentamos nossos pedidos, mas tambem nos tornamos mais sensiveis a vontade de Deus para nossas vidas.
+
+3. **A oracao nos fortalece** - Nas batalhas espirituais, a oracao e nossa arma mais poderosa.
+
+**Aplicacao Pratica**
+
+Hoje, separe momentos especificos para orar. Faca da oracao um habito constante em sua vida.`,
+    summary: "A oracao e nossa conexao direta com Deus, transformando nossos coracoes e nos aproximando do Pai celestial.",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_92875813.jpg",
     author: "Secretaria de Espiritualidade",
   },
   {
-    title: "Confianca em Deus",
-    verse: "Confia no Senhor de todo o teu coracao.",
-    verseReference: "Proverbios 3:5",
-    content: `Confiar em Deus e um ato de fe que vai alem da nossa compreensao. Em momentos de duvida e incerteza, somos chamados a depositar nossa confianca Naquele que tudo ve e tudo sabe.
+    title: "Fe que Move Montanhas",
+    verse: "Se tiverdes fe como um grao de mostarda, direis a este monte: Passa daqui para acola, e ele ha de passar.",
+    verseReference: "Mateus 17:20",
+    content: `A fe nao se mede por tamanho, mas pela sua genuinidade. Mesmo a menor fe verdadeira pode realizar grandes coisas quando depositada em Deus.
 
-Proverbios nos ensina a nao nos apoiarmos em nosso proprio entendimento. Isso significa que, mesmo quando as coisas nao fazem sentido para nos, Deus esta no controle e tem um proposito maior.
+Jesus usou a imagem do grao de mostarda para nos ensinar que nao e a quantidade de fe que importa, mas a qualidade e o objeto dessa fe.
 
-Confiar em Deus e reconhecer que Ele e soberano sobre todas as coisas e que Seus caminhos sao mais altos que os nossos.`,
-    summary: "Confiar em Deus significa reconhecer Sua soberania sobre nossas vidas.",
-    imageUrl: "/api/placeholder/800/400",
-    author: "Secretaria de Espiritualidade",
+**O que a fe em Deus pode fazer?**
+
+1. **Mover montanhas** - Os obstaculos que parecem impossiveis sao superados quando confiamos em Deus.
+
+2. **Trazer paz** - A fe nos da seguranca mesmo em meio as tempestades.
+
+3. **Transformar vidas** - Pela fe, somos justificados e recebemos a salvacao.
+
+Jovens da UMP Emaus, sejamos um povo de fe, confiando no Senhor em todas as circunstancias.`,
+    summary: "A fe genuina, mesmo pequena, pode realizar grandes coisas quando depositada em Deus.",
+    imageUrl: "/attached_assets/Fundo Layout stories_1761783891823.png",
+    author: "Diretoria UMP",
   },
   {
-    title: "O Amor de Cristo",
-    verse: "Deus amou o mundo de tal maneira que deu o seu Filho.",
+    title: "O Amor Incondicional de Deus",
+    verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito.",
     verseReference: "Joao 3:16",
     content: `O amor de Deus e a essencia do Evangelho. Ele nos amou primeiro, mesmo quando eramos pecadores, e enviou Seu Filho para morrer por nos.
 
 Este amor nao e condicional - nao depende de nossas acoes ou meritos. E um amor gracioso que nos alcanca onde estamos e nos transforma pelo poder do Espirito Santo.
 
+**Caracteristicas do amor de Deus:**
+
+1. **E incondicional** - Deus nos ama independente de quem somos ou do que fazemos.
+
+2. **E sacrificial** - Deus deu o que tinha de mais precioso por nos.
+
+3. **E transformador** - Quando compreendemos esse amor, somos mudados.
+
 Quando compreendemos a profundidade do amor de Deus, somos motivados a amar os outros da mesma forma - incondicionalmente e sacrificialmente.`,
-    summary: "O amor de Deus e incondicional e transformador.",
-    imageUrl: "/api/placeholder/800/400",
+    summary: "O amor de Deus e incondicional, sacrificial e transformador.",
+    imageUrl: "/attached_assets/Layout stories_1761780888593.png",
+    author: "Secretaria de Espiritualidade",
+  },
+  {
+    title: "Confiando em Tempos Dificeis",
+    verse: "Ainda que eu andasse pelo vale da sombra da morte, nao temeria mal algum.",
+    verseReference: "Salmos 23:4",
+    content: `Nos momentos mais sombrios de nossas vidas, podemos confiar que Deus esta conosco e nunca nos abandonara. Ele e o nosso pastor.
+
+Davi, ao escrever este salmo, conhecia bem os vales escuros da vida. Ele enfrentou inimigos, traicoes e dificuldades. Mas sua confianca estava firmada no Senhor.
+
+**Por que nao devemos temer?**
+
+1. **Deus esta conosco** - Ele nunca nos deixa sozinhos.
+
+2. **Ele nos guia** - Sua vara e cajado nos confortam.
+
+3. **Ele prepara o caminho** - Mesmo nos momentos dificeis, Deus esta trabalhando.
+
+Jovens, confiem no Senhor em todo tempo. Ele e fiel!`,
+    summary: "Podemos confiar em Deus mesmo nos momentos mais dificeis, pois Ele nunca nos abandona.",
+    imageUrl: "/attached_assets/fundo_1761781968067.png",
+    author: "Diretoria UMP",
+  },
+  {
+    title: "Servindo ao Proximo",
+    verse: "Aquele que quiser ser o maior entre vos, sera vosso servo.",
+    verseReference: "Mateus 20:26",
+    content: `Jesus nos ensinou que a verdadeira grandeza esta em servir. O servico ao proximo e a expressao pratica do amor de Cristo em nossas vidas.
+
+Em um mundo que busca poder e posicao, Jesus nos chama para um caminho diferente - o caminho da humildade e do servico.
+
+**Como podemos servir?**
+
+1. **Na igreja** - Usando nossos dons para edificar o corpo de Cristo.
+
+2. **Na comunidade** - Sendo luz onde quer que estejamos.
+
+3. **Em casa** - Demonstrando amor atraves de pequenos gestos.
+
+Que a UMP Emaus seja conhecida pelo amor servical, refletindo Cristo em tudo o que fazemos.`,
+    summary: "A verdadeira grandeza esta em servir ao proximo com amor e humildade.",
+    imageUrl: "/attached_assets/Sem Fundo Layout stories_1761780037463.png",
+    author: "Secretaria Social",
+  },
+  {
+    title: "A Paz que Excede Todo Entendimento",
+    verse: "E a paz de Deus, que excede todo o entendimento, guardara os vossos coracoes.",
+    verseReference: "Filipenses 4:7",
+    content: `A paz que Deus oferece vai alem da compreensao humana. Ela guarda nosso coracao em meio as tempestades da vida e nos da serenidade.
+
+Esta paz nao e a ausencia de problemas, mas a presenca de Deus em meio a eles. E uma paz que o mundo nao pode dar nem tirar.
+
+**Como receber essa paz?**
+
+1. **Pela oracao** - Levando nossas preocupacoes a Deus.
+
+2. **Pela confianca** - Crendo que Deus esta no controle.
+
+3. **Pela obediencia** - Seguindo os caminhos do Senhor.
+
+Que essa paz inunde nossos coracoes hoje e sempre.`,
+    summary: "A paz de Deus guarda nosso coracao e vai alem da compreensao humana.",
+    imageUrl: "/attached_assets/Layout feed_1761779185103.png",
     author: "Secretaria de Espiritualidade",
   },
 ];
@@ -45,73 +136,81 @@ Quando compreendemos a profundidade do amor de Deus, somos motivados a amar os o
 const eventsData = [
   {
     title: "Culto Jovem",
-    description: "Venha participar do nosso culto jovem com louvor, palavra e comunhao.",
-    imageUrl: "/api/placeholder/400/300",
+    description: "Venha adorar a Deus conosco! Teremos louvor especial, pregacao edificante e comunhao fraterna. Convidamos todos os jovens a participarem deste momento de encontro com Deus.",
+    imageUrl: "/attached_assets/Eleição_2025_2026_Stories (23)_1762028290367.png",
     startDate: "2025-12-15",
     time: "19:30",
-    location: "Igreja Presbiteriana Emaus",
+    location: "Igreja Presbiteriana de Emaus",
   },
   {
     title: "Retiro Anual UMP",
-    description: "Nosso retiro anual de fim de ano. Tres dias de comunhao, estudos e diversao.",
-    imageUrl: "/api/placeholder/400/300",
+    description: "Tres dias de imersao na Palavra de Deus, adoracao intensa e comunhao com os irmaos. Inscricoes abertas! Valor: R$ 150,00 (inclui hospedagem e alimentacao).",
+    imageUrl: "/attached_assets/Eleição_2025_2026_Stories (3)_1761781308477.png",
     startDate: "2025-12-20",
     endDate: "2025-12-22",
     time: "08:00",
-    location: "Sitio Recanto da Graca",
+    location: "Sitio Recanto da Paz - Jundiai/SP",
   },
   {
     title: "Celebracao de Natal",
-    description: "Celebracao especial de Natal da UMP Emaus com cantata e ceia.",
-    imageUrl: "/api/placeholder/400/300",
+    description: "Celebracao especial de Natal com amigo secreto, confraternizacao e ceia. Cada participante deve trazer um prato para compartilhar. Amigo secreto: valor de R$ 30,00.",
+    imageUrl: "/attached_assets/Layout stories_1761779211233.png",
     startDate: "2025-12-25",
     time: "20:00",
-    location: "Igreja Presbiteriana Emaus",
+    location: "Salao de Festas - Igreja Sede",
   },
   {
-    title: "Virada de Ano",
-    description: "Culto de gratidao e vigilia de passagem de ano.",
-    imageUrl: "/api/placeholder/400/300",
+    title: "Ensaio do Louvor",
+    description: "Preparacao das musicas para o culto de virada de ano. Todos os integrantes do ministerio de louvor devem comparecer. Ensaio aberto para novos talentos.",
+    imageUrl: "/attached_assets/Layout stories_1761779185102.png",
+    startDate: "2025-12-28",
+    time: "15:00",
+    location: "Sala de Musica - Igreja Sede",
+  },
+  {
+    title: "Culto de Virada de Ano",
+    description: "Venha celebrar a entrada do novo ano em oracao, gratidao e adoracao. Sera um momento especial para agradecer pelas bencaos de 2025 e consagrar 2026 nas maos do Senhor.",
+    imageUrl: "/attached_assets/image_1762037221993.png",
     startDate: "2025-12-31",
     time: "22:00",
-    location: "Igreja Presbiteriana Emaus",
+    location: "Igreja Presbiteriana de Emaus",
   },
 ];
 
 const instagramPostsData = [
   {
-    caption: "Culto jovem ontem foi uma bencao! Deus esta agindo em nosso meio.",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Culto jovem ontem foi uma bencao! Deus esta agindo em nosso meio. #umpemaus #juventude",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_70fb5265.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-03T18:00:00Z",
   },
   {
-    caption: "Estudo biblico sobre fe. Venha crescer conosco!",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Estudo biblico sobre fe. Venha crescer conosco! #biblia #fe #umpemaus",
+    imageUrl: "/attached_assets/stock_images/christian_bible_stud_56b5ae40.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-02T15:00:00Z",
   },
   {
-    caption: "Momento de oracao pela nossa cidade.",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Momento de oracao pela nossa cidade. Unidos em oracao! #oracao #umpemaus",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_6c49260a.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-01T20:00:00Z",
   },
   {
-    caption: "Confraternizacao da juventude. Alegria em servir!",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Confraternizacao da juventude. Alegria em servir ao Senhor! #comunhao #umpemaus",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_f7bd452d.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-30T19:00:00Z",
   },
   {
-    caption: "Acampamento de inverno foi incrivel!",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Louvando ao Senhor de todo o coracao! #louvor #adoracao #umpemaus",
+    imageUrl: "/attached_assets/stock_images/christian_bible_stud_e77c4159.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-28T12:00:00Z",
   },
   {
-    caption: "Louvando ao Senhor com todo o coracao.",
-    imageUrl: "/api/placeholder/400/400",
+    caption: "Jovens comprometidos com Cristo! #juventude #umpemaus #igreja",
+    imageUrl: "/attached_assets/stock_images/christian_youth_conc_ce1b7f0c.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-25T18:00:00Z",
   },

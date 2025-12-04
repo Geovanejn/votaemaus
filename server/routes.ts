@@ -3083,6 +3083,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single devotional by ID
+  app.get("/api/site/devotionals/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const devotional = storage.getDevotionalById(id);
+      if (!devotional) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      res.json(devotional);
+    } catch (error) {
+      console.error("Get devotional by ID error:", error);
+      res.status(500).json({ message: "Erro ao buscar devocional" });
+    }
+  });
+
   // Get upcoming events
   app.get("/api/site/events", async (req, res) => {
     try {

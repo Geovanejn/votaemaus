@@ -142,6 +142,7 @@ export interface IStorage {
   // Site Content - Devotionals
   getLatestDevotional(): any | null;
   getAllDevotionals(limit?: number): any[];
+  getDevotionalById(id: number): any | null;
   createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): any;
   clearAllDevotionals(): void;
   
@@ -3243,6 +3244,31 @@ export class SQLiteStorage implements IStorage {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
+  }
+
+  getDevotionalById(id: number): any | null {
+    const row = db.prepare(`
+      SELECT * FROM devotionals 
+      WHERE id = ? AND is_published = 1
+    `).get(id) as any;
+    
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      title: row.title,
+      verse: row.verse,
+      verseReference: row.verse_reference,
+      content: row.content,
+      summary: row.summary,
+      imageUrl: row.image_url,
+      author: row.author,
+      publishedAt: row.published_at,
+      isPublished: Boolean(row.is_published),
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): any {

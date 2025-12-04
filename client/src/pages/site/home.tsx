@@ -142,6 +142,7 @@ export default function HomePage() {
     summary: "A oracao e a nossa linha direta com Deus. Atraves dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
     author: "Secretaria de Espiritualidade",
     imageUrl: devocionalArt,
+    publishedAt: new Date().toISOString(),
   };
 
   const devotional = isError ? defaultDevotional : (highlights?.devotional || defaultDevotional);

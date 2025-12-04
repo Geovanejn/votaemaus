@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Calendar as CalendarIcon,
   MapPin,
@@ -8,7 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
-  Grid
+  Grid,
+  Loader2
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -20,72 +22,39 @@ import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png
 import eventImg3 from "@assets/Layout stories_1761779211233.png";
 import eventImg4 from "@assets/Layout stories_1761779185102.png";
 import eventImg5 from "@assets/image_1762037221993.png";
+import defaultEventImg from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
 
-const mockEvents = [
-  {
-    id: 1,
-    title: "Culto Jovem",
-    description: "Venha adorar a Deus conosco! Teremos louvor especial, pregação edificante e comunhão fraterna. Convidamos todos os jovens a participarem deste momento de encontro com Deus.",
-    date: new Date(2025, 11, 15),
-    time: "19:30",
-    location: "Igreja Presbiteriana de Emaús",
-    category: "Culto",
-    organizer: "Secretaria de Espiritualidade",
-    image: eventImg1,
-  },
-  {
-    id: 2,
-    title: "Retiro Anual UMP",
-    description: "Três dias de imersão na Palavra de Deus, adoração intensa e comunhão com os irmãos. Inscrições abertas! Valor: R$ 150,00 (inclui hospedagem e alimentação).",
-    date: new Date(2025, 11, 20),
-    time: "08:00",
-    location: "Sítio Recanto da Paz - Jundiaí/SP",
-    category: "Retiro",
-    organizer: "Diretoria UMP",
-    image: eventImg2,
-  },
-  {
-    id: 3,
-    title: "Natal da UMP",
-    description: "Celebração especial de Natal com amigo secreto, confraternização e ceia. Cada participante deve trazer um prato para compartilhar. Amigo secreto: valor de R$ 30,00.",
-    date: new Date(2025, 11, 25),
-    time: "20:00",
-    location: "Salão de Festas - Igreja Sede",
-    category: "Confraternização",
-    organizer: "Secretaria Social",
-    image: eventImg3,
-  },
-  {
-    id: 4,
-    title: "Ensaio do Louvor",
-    description: "Preparação das músicas para o culto de virada de ano. Todos os integrantes do ministério de louvor devem comparecer. Ensaio aberto para novos talentos.",
-    date: new Date(2025, 11, 28),
-    time: "15:00",
-    location: "Sala de Música - Igreja Sede",
-    category: "Ensaio",
-    organizer: "Ministério de Louvor",
-    image: eventImg4,
-  },
-  {
-    id: 5,
-    title: "Culto de Virada de Ano",
-    description: "Venha celebrar a entrada do novo ano em oração, gratidão e adoração. Será um momento especial para agradecer pelas bênçãos de 2025 e consagrar 2026 nas mãos do Senhor.",
-    date: new Date(2025, 11, 31),
-    time: "22:00",
-    location: "Igreja Presbiteriana de Emaús",
-    category: "Culto",
-    organizer: "Secretaria de Espiritualidade",
-    image: eventImg5,
-  },
-];
+const fallbackImages = [eventImg1, eventImg2, eventImg3, eventImg4, eventImg5];
+
+interface EventData {
+  id: number;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  startDate: string;
+  endDate?: string;
+  time?: string;
+  location?: string;
+  isPublished?: boolean;
+}
 
 const categoryColors: Record<string, string> = {
   "Culto": "bg-blue-500",
   "Retiro": "bg-green-500",
-  "Confraternização": "bg-pink-500",
+  "Confraternizacao": "bg-pink-500",
   "Ensaio": "bg-purple-500",
   "Estudo": "bg-amber-500",
 };
+
+function getCategory(title: string): string {
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('culto')) return 'Culto';
+  if (lowerTitle.includes('retiro')) return 'Retiro';
+  if (lowerTitle.includes('natal') || lowerTitle.includes('confrat')) return 'Confraternizacao';
+  if (lowerTitle.includes('ensaio')) return 'Ensaio';
+  if (lowerTitle.includes('estudo')) return 'Estudo';
+  return 'Culto';
+}
 
 function SimpleCalendar({ 
   selectedDate, 
@@ -99,11 +68,11 @@ function SimpleCalendar({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
   const monthNames = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
   
-  const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
   
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -195,15 +164,31 @@ export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
-  const eventDates = mockEvents.map(e => e.date.toDateString());
+  const { data: eventsData, isLoading, isError } = useQuery<EventData[]>({
+    queryKey: ['/api/site/events'],
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+
+  const processedEvents = (eventsData || []).map((event, index) => ({
+    ...event,
+    date: new Date(event.startDate + 'T00:00:00'),
+    category: getCategory(event.title),
+    organizer: 'UMP Emaus',
+    image: event.imageUrl && !event.imageUrl.includes('placeholder') 
+      ? event.imageUrl 
+      : fallbackImages[index % fallbackImages.length],
+  }));
+
+  const eventDates = processedEvents.map(e => e.date.toDateString());
 
   const filteredEvents = selectedDate
-    ? mockEvents.filter(
+    ? processedEvents.filter(
         (event) => event.date.toDateString() === selectedDate.toDateString()
       )
-    : mockEvents;
+    : processedEvents;
 
-  const sortedEvents = [...(viewMode === "list" ? mockEvents : filteredEvents)].sort(
+  const sortedEvents = [...(viewMode === "list" ? processedEvents : filteredEvents)].sort(
     (a, b) => a.date.getTime() - b.date.getTime()
   );
 
@@ -236,7 +221,7 @@ export default function AgendaPage() {
               Agenda
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Confira os próximos eventos e atividades da UMP Emaús
+              Confira os proximos eventos e atividades da UMP Emaus
             </p>
           </motion.div>
         </div>
@@ -245,7 +230,7 @@ export default function AgendaPage() {
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <h2 className="text-2xl font-bold">Próximos Eventos</h2>
+            <h2 className="text-2xl font-bold">Proximos Eventos</h2>
             <div className="flex items-center gap-2">
               <Button
                 variant={viewMode === "list" ? "default" : "outline"}
@@ -263,140 +248,156 @@ export default function AgendaPage() {
                 data-testid="button-view-calendar"
               >
                 <Grid className="h-4 w-4 mr-1" />
-                Calendário
+                Calendario
               </Button>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className={viewMode === "calendar" ? "lg:col-span-2" : "lg:col-span-3"}>
-              {sortedEvents.length === 0 ? (
-                <div className="text-center py-12">
-                  <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhum evento encontrado</h3>
-                  <p className="text-muted-foreground">
-                    {viewMode === "calendar" && selectedDate
-                      ? "Não há eventos nesta data"
-                      : "Não há eventos programados"}
-                  </p>
-                </div>
-              ) : (
-                <StaggerContainer className="space-y-4">
-                  {sortedEvents.map((event) => {
-                    const dateInfo = formatDate(event.date);
-                    return (
-                      <StaggerItem key={event.id}>
-                        <motion.div
-                          whileHover={{ x: 4 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Card className="overflow-hidden hover-elevate">
-                            <CardContent className="p-0">
-                              <div className="flex flex-col md:flex-row">
-                                <div className="relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden">
-                                  {event.image && (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : isError || processedEvents.length === 0 ? (
+            <div className="text-center py-12">
+              <CalendarIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Nenhum evento programado</h3>
+              <p className="text-muted-foreground">
+                Novos eventos serao adicionados em breve.
+              </p>
+            </div>
+          ) : (
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className={viewMode === "calendar" ? "lg:col-span-2" : "lg:col-span-3"}>
+                {sortedEvents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum evento encontrado</h3>
+                    <p className="text-muted-foreground">
+                      {viewMode === "calendar" && selectedDate
+                        ? "Nao ha eventos nesta data"
+                        : "Nao ha eventos programados"}
+                    </p>
+                  </div>
+                ) : (
+                  <StaggerContainer className="space-y-4">
+                    {sortedEvents.map((event) => {
+                      const dateInfo = formatDate(event.date);
+                      return (
+                        <StaggerItem key={event.id}>
+                          <motion.div
+                            whileHover={{ x: 4 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <Card className="overflow-hidden hover-elevate">
+                              <CardContent className="p-0">
+                                <div className="flex flex-col md:flex-row">
+                                  <div className="relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden">
                                     <div 
                                       className="absolute inset-0 bg-cover bg-center"
                                       style={{ backgroundImage: `url(${event.image})` }}
                                     />
-                                  )}
-                                  <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-transparent" />
-                                  <div className="absolute inset-0 flex items-center justify-center md:justify-start md:pl-4">
-                                    <div className="text-center text-white">
-                                      <span className="text-xs font-semibold text-primary block">
-                                        {dateInfo.month}
-                                      </span>
-                                      <span className="text-4xl font-bold block">
-                                        {dateInfo.day}
-                                      </span>
-                                      <span className="text-xs text-gray-300 block">
-                                        {dateInfo.weekday}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="p-5 flex-1">
-                                  <div className="flex items-start justify-between gap-4 mb-2">
-                                    <div>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span 
-                                          className={`w-2 h-2 rounded-full ${categoryColors[event.category] || "bg-gray-500"}`} 
-                                        />
-                                        <span className="text-xs text-muted-foreground">
-                                          {event.category}
+                                    <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-transparent" />
+                                    <div className="absolute inset-0 flex items-center justify-center md:justify-start md:pl-4">
+                                      <div className="text-center text-white">
+                                        <span className="text-xs font-semibold text-primary block">
+                                          {dateInfo.month}
+                                        </span>
+                                        <span className="text-4xl font-bold block">
+                                          {dateInfo.day}
+                                        </span>
+                                        <span className="text-xs text-gray-300 block">
+                                          {dateInfo.weekday}
                                         </span>
                                       </div>
-                                      <h3 className="text-lg font-semibold" data-testid={`event-title-${event.id}`}>
-                                        {event.title}
-                                      </h3>
                                     </div>
                                   </div>
-                                  
-                                  <p className="text-sm text-muted-foreground mb-4">
-                                    {event.description}
-                                  </p>
-                                  
-                                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4 text-primary" />
-                                      {event.time}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4 text-primary" />
-                                      {event.location}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Users className="h-4 w-4 text-primary" />
-                                      {event.organizer}
-                                    </span>
+                                  <div className="p-5 flex-1">
+                                    <div className="flex items-start justify-between gap-4 mb-2">
+                                      <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span 
+                                            className={`w-2 h-2 rounded-full ${categoryColors[event.category] || "bg-gray-500"}`} 
+                                          />
+                                          <span className="text-xs text-muted-foreground">
+                                            {event.category}
+                                          </span>
+                                        </div>
+                                        <h3 className="text-lg font-semibold" data-testid={`event-title-${event.id}`}>
+                                          {event.title}
+                                        </h3>
+                                      </div>
+                                    </div>
+                                    
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                      {event.description}
+                                    </p>
+                                    
+                                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                      {event.time && (
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="h-4 w-4 text-primary" />
+                                          {event.time}
+                                        </span>
+                                      )}
+                                      {event.location && (
+                                        <span className="flex items-center gap-1">
+                                          <MapPin className="h-4 w-4 text-primary" />
+                                          {event.location}
+                                        </span>
+                                      )}
+                                      <span className="flex items-center gap-1">
+                                        <Users className="h-4 w-4 text-primary" />
+                                        {event.organizer}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </StaggerItem>
-                    );
-                  })}
-                </StaggerContainer>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </StaggerItem>
+                      );
+                    })}
+                  </StaggerContainer>
+                )}
+              </div>
+
+              {viewMode === "calendar" && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="lg:col-span-1"
+                >
+                  <Card className="sticky top-20">
+                    <CardContent className="p-4">
+                      <SimpleCalendar
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        eventDates={eventDates}
+                      />
+                      
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          * Datas sublinhadas possuem eventos
+                        </p>
+                        {selectedDate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={() => setSelectedDate(undefined)}
+                            data-testid="button-clear-date"
+                          >
+                            Limpar selecao
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
             </div>
-
-            {viewMode === "calendar" && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="lg:col-span-1"
-              >
-                <Card className="sticky top-20">
-                  <CardContent className="p-4">
-                    <SimpleCalendar
-                      selectedDate={selectedDate}
-                      onSelectDate={setSelectedDate}
-                      eventDates={eventDates}
-                    />
-                    
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        * Datas sublinhadas possuem eventos
-                      </p>
-                      {selectedDate && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full mt-2"
-                          onClick={() => setSelectedDate(undefined)}
-                          data-testid="button-clear-date"
-                        >
-                          Limpar seleção
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </div>
+          )}
         </div>
       </section>
     </SiteLayout>

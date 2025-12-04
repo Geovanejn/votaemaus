@@ -76,8 +76,8 @@ A aplicação foi construída com foco em:
 | Tecnologia | Status | Uso |
 |------------|--------|-----|
 | Express.js | Ativo | Servidor |
-| Better-SQLite3 | Ativo (dev) | Banco de dados local |
-| Drizzle ORM | Ativo | ORM |
+| PostgreSQL | Ativo | Banco de dados (Neon) |
+| Drizzle ORM | Ativo | ORM com pg-core |
 | JWT | Ativo | Autenticação |
 | Resend | Configurado | Emails transacionais |
 | OpenAI API | Configurado | Processamento IA |
@@ -325,7 +325,7 @@ shared/
 
 ---
 
-## Banco de Dados (SQLite/PostgreSQL)
+## Banco de Dados (PostgreSQL)
 
 ### Tabelas Principais - Eleições:
 - `users` - Usuários do sistema
@@ -401,7 +401,7 @@ shared/
 
 A aplicação oferece uma experiência fluida e responsiva, com feedback imediato similar a aplicativos nativos como o Duolingo. O sistema de gamificação está completo com XP, corações, streaks, missões diárias e ranking. As animações com Framer Motion proporcionam uma experiência visual agradável e moderna.
 
-A arquitetura é sólida, com separação clara entre frontend (React) e backend (Express), usando SQLite para desenvolvimento e PostgreSQL para produção. O código está bem organizado e documentado.
+A arquitetura é sólida, com separação clara entre frontend (React) e backend (Express), usando PostgreSQL via Neon Serverless. O código está bem organizado e documentado.
 
 ---
 

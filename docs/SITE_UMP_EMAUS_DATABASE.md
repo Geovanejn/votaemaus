@@ -662,12 +662,12 @@ const initialContent = [
 | `site_content` | Implementado | Nova tabela criada |
 | `instagram_posts` | Existente | Ja existia, sem alteracoes |
 
-### 9.2 SQLite (server/db.ts)
+### 9.2 PostgreSQL (server/db.ts)
 
 | Tabela | Status | Observacoes |
 |--------|--------|-------------|
-| Todas as novas tabelas | Implementado | CREATE TABLE adicionados |
-| Migrations de colunas | Implementado | ALTER TABLE com verificacoes |
+| Todas as novas tabelas | Implementado | Criadas via Drizzle ORM |
+| Schema PostgreSQL | Implementado | Usando @neondatabase/serverless |
 
 ### 9.3 Storage Interface (server/storage.ts)
 
@@ -702,15 +702,16 @@ const initialContent = [
 
 ## 10. Deploy e Producao
 
-### 10.1 Ambiente de Desenvolvimento
-- **Banco:** SQLite (`data/emaus-vota.db`)
-- **ORM:** Drizzle com better-sqlite3
-- **Inicializacao:** Automatica em `server/db.ts`
+### 10.1 Ambiente Unificado (Dev e Producao)
+- **Banco:** PostgreSQL via @neondatabase/serverless
+- **ORM:** Drizzle ORM com pg-core
+- **Conexao:** Via `DATABASE_URL`
+- **Migrations:** `npm run db:push`
+
+**Nota (Dezembro 2024):** Sistema migrado de SQLite para PostgreSQL.
 
 ### 10.2 Ambiente de Producao (Render)
 - **Banco:** PostgreSQL gerenciado pelo Render
-- **ORM:** Drizzle com pg/neon driver
-- **Conexao:** Via `DATABASE_URL`
 - **Backups:** Automaticos diarios
 - **Custo:** ~$7/mes (plano Starter)
 

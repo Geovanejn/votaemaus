@@ -50,8 +50,8 @@ Plataforma de estudos biblicos com gamificacao completa:
 | Tecnologia | Status | Uso |
 |------------|--------|-----|
 | Express.js | Ativo | Servidor HTTP |
-| Better-SQLite3 | Ativo (dev) | Banco de dados local |
-| Drizzle ORM | Ativo | ORM |
+| PostgreSQL | Ativo | Banco de dados (Neon) |
+| Drizzle ORM | Ativo | ORM com pg-core |
 | JWT | Ativo | Autenticacao |
 | Resend | Configurado | Emails transacionais |
 | OpenAI API | Configurado | Processamento IA |
@@ -141,7 +141,7 @@ Projeto/
 
 ---
 
-## 4. Banco de Dados (SQLite/PostgreSQL)
+## 4. Banco de Dados (PostgreSQL)
 
 ### 4.1 Tabelas do Sistema de Eleicoes (10 tabelas)
 | Tabela | Descricao | Status |

@@ -676,8 +676,146 @@ export async function initializeDatabase() {
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- Pedidos de Oracao
+    CREATE TABLE IF NOT EXISTS prayer_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      whatsapp TEXT,
+      category TEXT NOT NULL DEFAULT 'outros',
+      request TEXT NOT NULL,
+      is_anonymous INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      notes TEXT,
+      prayed_by INTEGER,
+      prayed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (prayed_by) REFERENCES users(id)
+    );
+
+    -- Banners do Carrossel
+    CREATE TABLE IF NOT EXISTS banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      image_url TEXT,
+      background_color TEXT,
+      link_url TEXT,
+      link_text TEXT,
+      order_index INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      starts_at TEXT,
+      ends_at TEXT,
+      created_by INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+
+    -- Membros da Diretoria
+    CREATE TABLE IF NOT EXISTS board_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      position TEXT NOT NULL,
+      photo_url TEXT,
+      instagram TEXT,
+      whatsapp TEXT,
+      bio TEXT,
+      term_start TEXT NOT NULL,
+      term_end TEXT NOT NULL,
+      order_index INTEGER NOT NULL DEFAULT 0,
+      is_current INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    -- Conteudo do Site
+    CREATE TABLE IF NOT EXISTS site_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      page TEXT NOT NULL,
+      section TEXT NOT NULL,
+      title TEXT,
+      content TEXT,
+      image_url TEXT,
+      metadata TEXT,
+      updated_by INTEGER,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(page, section),
+      FOREIGN KEY (updated_by) REFERENCES users(id)
+    );
   `);
-  console.log("Study system tables created successfully");
+  console.log("Study system and site tables created successfully");
+
+  // Migration: Add new site columns
+  try {
+    // Add secretaria column to users if it doesn't exist
+    const usersColumnsCheck = sqlite.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    const usersColumnsCheckNames = usersColumnsCheck.map(col => col.name);
+    
+    if (!usersColumnsCheckNames.includes('secretaria')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN secretaria TEXT");
+      console.log("Added secretaria column to users table");
+    }
+
+    // Add new columns to devotionals if they don't exist
+    const devotionalsColumns = sqlite.prepare("PRAGMA table_info(devotionals)").all() as Array<{ name: string }>;
+    const devotionalsColumnNames = devotionalsColumns.map(col => col.name);
+    
+    if (!devotionalsColumnNames.includes('is_featured')) {
+      sqlite.exec("ALTER TABLE devotionals ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0");
+      console.log("Added is_featured column to devotionals table");
+    }
+    if (!devotionalsColumnNames.includes('prayer')) {
+      sqlite.exec("ALTER TABLE devotionals ADD COLUMN prayer TEXT");
+      console.log("Added prayer column to devotionals table");
+    }
+
+    // Add new columns to site_events if they don't exist
+    const siteEventsColumns = sqlite.prepare("PRAGMA table_info(site_events)").all() as Array<{ name: string }>;
+    const siteEventsColumnNames = siteEventsColumns.map(col => col.name);
+    
+    if (!siteEventsColumnNames.includes('short_description')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN short_description TEXT");
+      console.log("Added short_description column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('location_url')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN location_url TEXT");
+      console.log("Added location_url column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('price')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN price TEXT");
+      console.log("Added price column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('registration_url')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN registration_url TEXT");
+      console.log("Added registration_url column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('category')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN category TEXT NOT NULL DEFAULT 'geral'");
+      console.log("Added category column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('is_featured')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0");
+      console.log("Added is_featured column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('is_all_day')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN is_all_day INTEGER NOT NULL DEFAULT 0");
+      console.log("Added is_all_day column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('created_by')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN created_by INTEGER REFERENCES users(id)");
+      console.log("Added created_by column to site_events table");
+    }
+    if (!siteEventsColumnNames.includes('updated_at')) {
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))");
+      console.log("Added updated_at column to site_events table");
+    }
+  } catch (error) {
+    console.error("Site migrations error:", error);
+  }
 
   // Migration: Add is_locked and unlock_date columns to study_lessons if they don't exist
   try {

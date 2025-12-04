@@ -19,6 +19,9 @@ export function generatePdfVerificationHash(electionId: number, electionName: st
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
+// Secretaria types
+export type Secretaria = "none" | "espiritualidade" | "marketing" | "acao_social" | "comunicacao" | "eventos" | null;
+
 // Users table
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -31,6 +34,7 @@ export const users = sqliteTable("users", {
   isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   isMember: integer("is_member", { mode: "boolean" }).notNull().default(true),
   activeMember: integer("active_member", { mode: "boolean" }).notNull().default(true),
+  secretaria: text("secretaria"), // espiritualidade, marketing, acao_social, comunicacao, eventos, none
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -375,10 +379,12 @@ export const devotionals = sqliteTable("devotionals", {
   verseReference: text("verse_reference").notNull(),
   content: text("content").notNull(),
   summary: text("summary"),
+  prayer: text("prayer"), // Oracao sugerida
   imageUrl: text("image_url"),
   author: text("author"),
   publishedAt: text("published_at").notNull().default(sql`(datetime('now'))`),
   isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
+  isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false), // Destaque do dia
   createdBy: integer("created_by").references(() => users.id),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
@@ -395,22 +401,35 @@ export type Devotional = typeof devotionals.$inferSelect;
 
 // ==================== EVENTOS ====================
 
+// Categorias de eventos
+export type EventCategory = "geral" | "culto" | "retiro" | "estudo" | "social" | "confraternizacao";
+
 export const siteEvents = sqliteTable("site_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   description: text("description"),
+  shortDescription: text("short_description"),
   imageUrl: text("image_url"),
   startDate: text("start_date").notNull(),
   endDate: text("end_date"),
   time: text("time"),
   location: text("location"),
+  locationUrl: text("location_url"), // Link do Google Maps
+  price: text("price"), // "Gratuito", "R$ 50"
+  registrationUrl: text("registration_url"), // Link para inscricao
+  category: text("category").notNull().default("geral"), // geral, culto, retiro, estudo, social, confraternizacao
   isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
+  isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false), // Aparece no banner
+  isAllDay: integer("is_all_day", { mode: "boolean" }).notNull().default(false),
+  createdBy: integer("created_by").references(() => users.id),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });
 
 export const insertSiteEventSchema = createInsertSchema(siteEvents).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export type InsertSiteEvent = z.infer<typeof insertSiteEventSchema>;
@@ -435,6 +454,119 @@ export const insertInstagramPostSchema = createInsertSchema(instagramPosts).omit
 
 export type InsertInstagramPost = z.infer<typeof insertInstagramPostSchema>;
 export type InstagramPost = typeof instagramPosts.$inferSelect;
+
+// ==================== PEDIDOS DE ORACAO ====================
+
+// Categorias de pedidos de oracao
+export type PrayerCategory = "saude" | "familia" | "trabalho" | "espiritual" | "relacionamento" | "outros";
+export type PrayerStatus = "pending" | "praying" | "answered" | "archived";
+
+export const prayerRequests = sqliteTable("prayer_requests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name"), // Nome de quem enviou (opcional se anonimo)
+  whatsapp: text("whatsapp"),
+  category: text("category").notNull().default("outros"), // saude, familia, trabalho, espiritual, relacionamento, outros
+  request: text("request").notNull(),
+  isAnonymous: integer("is_anonymous", { mode: "boolean" }).notNull().default(false),
+  status: text("status").notNull().default("pending"), // pending, praying, answered, archived
+  notes: text("notes"), // Notas internas da equipe
+  prayedBy: integer("prayed_by").references(() => users.id),
+  prayedAt: text("prayed_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertPrayerRequestSchema = createInsertSchema(prayerRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPrayerRequest = z.infer<typeof insertPrayerRequestSchema>;
+export type PrayerRequest = typeof prayerRequests.$inferSelect;
+
+// ==================== BANNERS DO CARROSSEL ====================
+
+export const banners = sqliteTable("banners", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  imageUrl: text("image_url"),
+  backgroundColor: text("background_color"), // Cor de fundo se nao houver imagem
+  linkUrl: text("link_url"),
+  linkText: text("link_text"),
+  orderIndex: integer("order_index").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  startsAt: text("starts_at"), // Data de inicio (agendado)
+  endsAt: text("ends_at"), // Data de fim (agendado)
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertBannerSchema = createInsertSchema(banners).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBanner = z.infer<typeof insertBannerSchema>;
+export type Banner = typeof banners.$inferSelect;
+
+// ==================== MEMBROS DA DIRETORIA ====================
+
+// Cargos da diretoria
+export type BoardPosition = "presidente" | "vice_presidente" | "primeiro_secretario" | "segundo_secretario" | "tesoureiro" | "conselheiro";
+
+export const boardMembers = sqliteTable("board_members", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id), // Pode ser null se nao tiver usuario
+  name: text("name").notNull(),
+  position: text("position").notNull(), // presidente, vice_presidente, primeiro_secretario, etc
+  photoUrl: text("photo_url"),
+  instagram: text("instagram"),
+  whatsapp: text("whatsapp"),
+  bio: text("bio"),
+  termStart: text("term_start").notNull(), // Ano de inicio (ex: "2024")
+  termEnd: text("term_end").notNull(), // Ano de fim (ex: "2025")
+  orderIndex: integer("order_index").notNull().default(0),
+  isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBoardMember = z.infer<typeof insertBoardMemberSchema>;
+export type BoardMember = typeof boardMembers.$inferSelect;
+
+// ==================== CONTEUDO DO SITE ====================
+
+export const siteContent = sqliteTable("site_content", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  page: text("page").notNull(), // quem-somos, contato, footer
+  section: text("section").notNull(), // historia, missao, visao, valores, localizacao
+  title: text("title"),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  metadata: text("metadata"), // JSON string para dados adicionais
+  updatedBy: integer("updated_by").references(() => users.id),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+}, (table) => ({
+  uniquePageSection: unique().on(table.page, table.section),
+}));
+
+export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
+export type SiteContent = typeof siteContent.$inferSelect;
 
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 

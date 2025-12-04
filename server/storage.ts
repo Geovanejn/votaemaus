@@ -178,6 +178,7 @@ export class SQLiteStorage implements IStorage {
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
       activeMember: Boolean(row.active_member),
+      secretaria: row.secretaria,
     };
   }
 
@@ -197,12 +198,13 @@ export class SQLiteStorage implements IStorage {
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
       activeMember: Boolean(row.active_member),
+      secretaria: row.secretaria,
     };
   }
 
   createUser(user: InsertUser): User {
     const stmt = db.prepare(
-      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member, active_member) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
+      "INSERT INTO users (full_name, email, password, has_password, photo_url, birthdate, is_admin, is_member, active_member, secretaria) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *"
     );
     const row = stmt.get(
       user.fullName,
@@ -213,7 +215,8 @@ export class SQLiteStorage implements IStorage {
       user.birthdate || null,
       user.isAdmin ? 1 : 0,
       user.isMember ? 1 : 0,
-      user.activeMember ? 1 : 0
+      user.activeMember ? 1 : 0,
+      user.secretaria || null
     ) as any;
     
     return {
@@ -227,6 +230,7 @@ export class SQLiteStorage implements IStorage {
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
       activeMember: Boolean(row.active_member),
+      secretaria: row.secretaria,
     };
   }
 
@@ -248,6 +252,7 @@ export class SQLiteStorage implements IStorage {
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
       activeMember: Boolean(row.active_member),
+      secretaria: row.secretaria,
     }));
   }
 
@@ -294,6 +299,10 @@ export class SQLiteStorage implements IStorage {
       fields.push("active_member = ?");
       values.push(updates.activeMember ? 1 : 0);
     }
+    if (updates.secretaria !== undefined) {
+      fields.push("secretaria = ?");
+      values.push(updates.secretaria);
+    }
 
     if (fields.length === 0) return user;
 
@@ -316,6 +325,7 @@ export class SQLiteStorage implements IStorage {
       isAdmin: Boolean(row.is_admin),
       isMember: Boolean(row.is_member),
       activeMember: Boolean(row.active_member),
+      secretaria: row.secretaria,
     };
   }
   

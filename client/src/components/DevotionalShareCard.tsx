@@ -192,28 +192,18 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
               </div>
             </div>
             
-            <div
+            <span
               style={{
-                background: "rgba(255, 165, 0, 0.15)",
-                borderRadius: "12px",
-                padding: "24px 32px",
-                border: "1px solid rgba(255, 165, 0, 0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                color: "#FFA500",
+                fontSize: "22px",
+                fontWeight: 600,
+                textAlign: "center",
+                textShadow: "0 0 20px rgba(255, 165, 0, 0.6), 0 0 40px rgba(255, 165, 0, 0.3)",
+                letterSpacing: "0.5px",
               }}
             >
-              <span
-                style={{
-                  color: "#FFA500",
-                  fontSize: "20px",
-                  fontWeight: 500,
-                  textAlign: "center",
-                }}
-              >
-                Acesse e leia o devocional completo
-              </span>
-            </div>
+              Acesse e leia o devocional completo
+            </span>
           </div>
         </div>
       </div>

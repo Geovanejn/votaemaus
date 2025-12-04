@@ -1,0 +1,267 @@
+import { Server as SocketIOServer, Socket } from "socket.io";
+import { Server as HTTPServer } from "http";
+import jwt from "jsonwebtoken";
+
+let io: SocketIOServer | null = null;
+
+interface ElectionRoom {
+  electionId: number;
+  clients: Set<string>;
+}
+
+interface StudyRoom {
+  userId: number;
+  socketId: string;
+}
+
+interface AuthenticatedSocket extends Socket {
+  userId?: number;
+  isAdmin?: boolean;
+  isMember?: boolean;
+}
+
+interface DecodedToken {
+  userId: number;
+  isAdmin?: boolean;
+  isMember?: boolean;
+}
+
+const electionRooms = new Map<number, ElectionRoom>();
+const studyRooms = new Map<number, StudyRoom>();
+const authenticatedSockets = new Map<string, { userId: number; isAdmin: boolean; isMember: boolean }>();
+
+export function initializeWebSocket(server: HTTPServer): SocketIOServer {
+  io = new SocketIOServer(server, {
+    cors: {
+      origin: process.env.NODE_ENV === "production" 
+        ? [process.env.REPLIT_DEV_DOMAIN || "", process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : ""]
+        : "*",
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+    transports: ["websocket", "polling"],
+  });
+
+  io.use((socket: AuthenticatedSocket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace("Bearer ", "");
+    const jwtSecret = process.env.JWT_SECRET;
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (isProduction && !jwtSecret) {
+      console.error("[WebSocket] JWT_SECRET not configured in production - rejecting connection");
+      return next(new Error("Server misconfiguration"));
+    }
+    
+    if (!token) {
+      if (isProduction) {
+        console.log(`[WebSocket] Connection without token rejected in production: ${socket.id}`);
+        return next(new Error("Authentication required"));
+      }
+      console.log(`[WebSocket] Connection without token from ${socket.id} - allowing with limited access in development`);
+      socket.userId = undefined;
+      socket.isAdmin = false;
+      socket.isMember = false;
+      return next();
+    }
+
+    try {
+      const secret = jwtSecret || "dev-only-secret-not-for-production";
+      const decoded = jwt.verify(token, secret) as DecodedToken;
+      socket.userId = decoded.userId;
+      socket.isAdmin = decoded.isAdmin || false;
+      socket.isMember = decoded.isMember || false;
+      
+      authenticatedSockets.set(socket.id, {
+        userId: decoded.userId,
+        isAdmin: socket.isAdmin,
+        isMember: socket.isMember,
+      });
+      
+      console.log(`[WebSocket] Authenticated connection: ${socket.id}, userId: ${decoded.userId}`);
+      next();
+    } catch (error) {
+      if (isProduction) {
+        console.log(`[WebSocket] Invalid token rejected in production: ${socket.id}`);
+        return next(new Error("Invalid authentication token"));
+      }
+      console.log(`[WebSocket] Invalid token from ${socket.id} - allowing with limited access in development`);
+      socket.userId = undefined;
+      socket.isAdmin = false;
+      socket.isMember = false;
+      next();
+    }
+  });
+
+  io.on("connection", (socket: AuthenticatedSocket) => {
+    console.log(`[WebSocket] Client connected: ${socket.id}, authenticated: ${!!socket.userId}`);
+
+    socket.on("join:election", ({ electionId }: { electionId: number }) => {
+      if (!socket.userId || (!socket.isAdmin && !socket.isMember)) {
+        socket.emit("error", { message: "Authentication required to join election room" });
+        console.log(`[WebSocket] Unauthorized join:election attempt from ${socket.id}`);
+        return;
+      }
+
+      const roomName = `election:${electionId}`;
+      socket.join(roomName);
+      
+      if (!electionRooms.has(electionId)) {
+        electionRooms.set(electionId, { electionId, clients: new Set() });
+      }
+      electionRooms.get(electionId)!.clients.add(socket.id);
+      
+      console.log(`[WebSocket] Client ${socket.id} (user ${socket.userId}) joined election room ${electionId}`);
+    });
+
+    socket.on("leave:election", ({ electionId }: { electionId: number }) => {
+      const roomName = `election:${electionId}`;
+      socket.leave(roomName);
+      
+      const room = electionRooms.get(electionId);
+      if (room) {
+        room.clients.delete(socket.id);
+        if (room.clients.size === 0) {
+          electionRooms.delete(electionId);
+        }
+      }
+      
+      console.log(`[WebSocket] Client ${socket.id} left election room ${electionId}`);
+    });
+
+    socket.on("join:study", ({ userId }: { userId: number }) => {
+      if (!socket.userId || socket.userId !== userId) {
+        socket.emit("error", { message: "You can only join your own study room" });
+        console.log(`[WebSocket] Unauthorized join:study attempt from ${socket.id} for user ${userId}`);
+        return;
+      }
+
+      const roomName = `study:${userId}`;
+      socket.join(roomName);
+      studyRooms.set(userId, { userId, socketId: socket.id });
+      
+      console.log(`[WebSocket] Client ${socket.id} (user ${socket.userId}) joined study room`);
+    });
+
+    socket.on("leave:study", ({ userId }: { userId: number }) => {
+      const roomName = `study:${userId}`;
+      socket.leave(roomName);
+      studyRooms.delete(userId);
+      
+      console.log(`[WebSocket] Client ${socket.id} left study room for user ${userId}`);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log(`[WebSocket] Client disconnected: ${socket.id}, reason: ${reason}`);
+      
+      authenticatedSockets.delete(socket.id);
+      
+      electionRooms.forEach((room, electionId) => {
+        room.clients.delete(socket.id);
+        if (room.clients.size === 0) {
+          electionRooms.delete(electionId);
+        }
+      });
+
+      studyRooms.forEach((room, userId) => {
+        if (room.socketId === socket.id) {
+          studyRooms.delete(userId);
+        }
+      });
+    });
+  });
+
+  console.log("[WebSocket] Server initialized");
+  return io;
+}
+
+export function getIO(): SocketIOServer | null {
+  return io;
+}
+
+export function emitElectionUpdate(electionId: number, event: string, data: unknown): void {
+  if (!io) {
+    console.warn("[WebSocket] Cannot emit, server not initialized");
+    return;
+  }
+  
+  const roomName = `election:${electionId}`;
+  io.to(roomName).emit(event, data);
+  console.log(`[WebSocket] Emitted ${event} to election room ${electionId}`);
+}
+
+export function emitVoteUpdate(electionId: number, positionId: number, candidateId: number): void {
+  emitElectionUpdate(electionId, "election:vote", {
+    electionId,
+    positionId,
+    candidateId,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function emitResultUpdate(electionId: number, positionId: number, winnerId: number | null): void {
+  emitElectionUpdate(electionId, "election:result", {
+    electionId,
+    positionId,
+    winnerId,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function emitAttendanceUpdate(electionId: number, memberId: number, present: boolean): void {
+  emitElectionUpdate(electionId, "election:attendance", {
+    electionId,
+    memberId,
+    present,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function emitStudyUpdate(userId: number, event: string, data: unknown): void {
+  if (!io) {
+    console.warn("[WebSocket] Cannot emit, server not initialized");
+    return;
+  }
+  
+  const roomName = `study:${userId}`;
+  io.to(roomName).emit(event, data);
+  console.log(`[WebSocket] Emitted ${event} to study room for user ${userId}`);
+}
+
+export function emitXPGained(userId: number, amount: number, source: string): void {
+  emitStudyUpdate(userId, "study:xp", {
+    userId,
+    amount,
+    source,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function emitAchievementUnlocked(userId: number, achievementId: number, achievementName: string): void {
+  emitStudyUpdate(userId, "study:achievement", {
+    userId,
+    achievementId,
+    achievementName,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function emitStreakUpdate(userId: number, currentStreak: number, isNewRecord: boolean): void {
+  emitStudyUpdate(userId, "study:streak", {
+    userId,
+    currentStreak,
+    isNewRecord,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export function getConnectedClients(): { elections: number; study: number; total: number } {
+  const electionClients = Array.from(electionRooms.values())
+    .reduce((sum, room) => sum + room.clients.size, 0);
+  const studyClients = studyRooms.size;
+  
+  return {
+    elections: electionClients,
+    study: studyClients,
+    total: io ? io.engine.clientsCount : 0,
+  };
+}

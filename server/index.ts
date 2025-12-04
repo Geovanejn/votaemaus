@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
 import { initBirthdayScheduler } from "./scheduler";
+import { initializeWebSocket } from "./websocket";
 import cors from "cors";
 
 const app = express();
@@ -57,6 +58,9 @@ app.use((req, res, next) => {
   initBirthdayScheduler();
   
   const server = await registerRoutes(app);
+  
+  // Initialize WebSocket server
+  initializeWebSocket(server);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

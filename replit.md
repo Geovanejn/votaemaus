@@ -1,10 +1,33 @@
-# Emaus Vota - Election Management System
+# Emaus Vota - Election Management System (DeoGlory)
 
 ## Overview
-Emaus Vota is a full-stack web application designed for managing elections within the UMP Emaus church youth group. It provides email-based authentication, role-based access control, secure voting mechanisms, and real-time result displays to ensure transparency and fairness. Key features include the generation of shareable results images and PDF audit reports. The project aims to evolve into a comprehensive UMP Emaus portal, integrating modules for devotionals, prayer requests, events, and an enhanced member area, with the election system remaining a central component.
+Emaus Vota (também conhecido como DeoGlory) is a full-stack web application designed for managing elections within the UMP Emaus church youth group. It provides email-based authentication, role-based access control, secure voting mechanisms, and real-time result displays to ensure transparency and fairness. Key features include the generation of shareable results images and PDF audit reports. The project has evolved into a comprehensive UMP Emaus portal, integrating a gamified study system (Duolingo-style), achievements, daily missions, and more.
+
+## Recent Changes (December 2024)
+
+### WebSocket with Authentication (Socket.IO)
+- **Server**: JWT authentication in connection handshake
+- **Production**: Requires JWT_SECRET env var; rejects unauthenticated connections
+- **Development**: Allows limited access for easier testing
+- **Client**: Singleton pattern prevents multiple parallel connections
+- **Events**: `join:election`, `leave:election`, `join:study`, `leave:study`
+- **Authorization**: Admins/members can join elections; users can only join their own study room
+- **Memory management**: Automatic cleanup of disconnected sockets
+
+### Theme System
+- **ThemeProvider**: Supports light/dark/system modes with localStorage persistence
+- **ThemeToggle**: Animated icon toggle component
+- **useTheme hook**: Access current theme and toggle function
+
+### Animations & UX
+- **AnimatedPage**: Framer Motion wrapper for page transitions
+- **ConnectionStatus**: Real-time WebSocket connection indicator
+- Loading states with smooth transitions
 
 ## User Preferences
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language (Portuguese - Brazil)
+- Language: Portuguese (pt-BR)
+- Branding: UMP Emaús with primary orange #FFA500
 
 ## System Architecture
 
@@ -12,25 +35,174 @@ Preferred communication style: Simple, everyday language.
 The system features a responsive, Portuguese UI optimized for clarity and ease of use, incorporating UMP Emaús branding (primary orange #FFA500) and a mobile-first Material Design approach. It includes real-time results with automatic polling, smart sorting, and visual hierarchies. Administrative tools facilitate the export of election result images and the generation of PDF audit reports. The study system utilizes a Duolingo-inspired gamified design with Framer Motion animations and also adheres to UMP Emaus branding.
 
 ### Technical Implementations
-**Frontend**: Built with React 18, TypeScript, and Vite. It uses Wouter for routing, TanStack Query for server state management, shadcn/ui on Radix UI primitives, and Tailwind CSS for styling. Authentication state is managed via React Context API, with tokens stored in local storage. Forms are handled using React Hook Form and Zod for validation.
-**Backend**: Developed with Express.js, Node.js, and TypeScript, offering RESTful API endpoints. Authentication is email-based, utilizing 6-digit verification codes and JWTs. User roles (`isAdmin`, `isMember`) enforce access control. The application supports Better-SQLite3 for development and Drizzle ORM configured for PostgreSQL, implementing election rules such as one active election, one vote per user per position, and a three-round scrutiny system.
-**Study System**: Features a gamified learning experience with a 3-stage lesson structure (Estude, Medite, Responda) and a "3 Verses = +1 Heart" recovery system. AI, via the Google Gemini API, processes uploaded PDFs to extract content. Admin can control lesson release through locking, unlocking, and scheduling.
-**Daily Missions System**: A Duolingo-inspired system providing daily challenges, refreshing every 24 hours. Missions include completing lessons, reading daily verses, timed quizzes, and biblical character studies. Rewards include XP and special badges.
+
+**Frontend**: 
+- React 18 + TypeScript + Vite
+- Wouter for routing
+- TanStack Query v5 for server state management
+- shadcn/ui on Radix UI primitives
+- Tailwind CSS for styling
+- Framer Motion for animations
+- Zustand for global state (installed)
+- Authentication via React Context API with JWT tokens in localStorage
+- React Hook Form + Zod for form validation
+
+**Backend**: 
+- Express.js + Node.js + TypeScript
+- Better-SQLite3 for development
+- Drizzle ORM configured for PostgreSQL (Neon)
+- JWT-based authentication with email verification codes
+- User roles: `isAdmin`, `isMember`
+- node-cron for scheduled tasks (birthdays, lesson releases)
+
+**Study System (Duolingo-style)**: 
+- 3-stage lesson structure (Estude, Medite, Responda)
+- "3 Verses = +1 Heart" recovery system
+- AI integration via OpenAI/Google Gemini for PDF content extraction
+- Admin controls for lesson locking, unlocking, and scheduling
+
+**Daily Missions System**: 
+- 4-5 missions per day, refreshing every 24 hours
+- Types: complete_lesson, read_daily_verse, timed_challenge, quick_quiz, bible_character, etc.
+- XP and badge rewards
 
 ### Feature Specifications
-Core functionalities encompass: email/password authentication with JWT, role-based access, comprehensive election management, secure candidate registration and voting, real-time results display, an admin panel for member management, automated majority-based position closing, a three-round scrutiny system, generation of shareable results images and PDF audit reports, an automated birthday email system, and full mobile optimization. The study system allows for structured lessons with various unit types (text, verse, meditation, reflection, multiple-choice, true/false, fill-blank).
+
+**Core Election Features (100% Complete)**:
+- Email/password authentication with JWT
+- 6-digit verification codes
+- Role-based access (admin/member)
+- Comprehensive election management
+- 3-round scrutiny system (absolute/simple majority)
+- Attendance control per position
+- Real-time results display
+- PDF audit reports generation
+- Shareable results images export
+- Automated birthday email system
+
+**Study System Features (100% Complete)**:
+- Gamified lesson map (Duolingo-style)
+- XP, levels, and progression
+- Hearts system (5 max, 6h recovery)
+- Streak tracking (consecutive days)
+- Ranking/Leaderboard (weekly/monthly/all-time)
+- Multiple exercise types: text, verse, meditation, reflection, multiple_choice, true_false, fill_blank
+- AI-powered content generation from PDFs
+
+**Gamification System (100% Complete)**:
+- 35+ achievements organized by categories
+- Daily missions with varied challenges
+- Sound feedback system (8 sound types)
+- PWA support with offline caching
+- Push notifications infrastructure
+- In-app notification center
 
 ### System Design Choices
-The architecture is designed for expandability, supporting future modules for Secretariats, Devotionals (CRUD), Prayer Requests, Events & Schedule, Current Board display, Instagram Integration, a revamped Home Page, and expanded tiered permissions. Christian meditation content is strictly defined to focus on reflection on God's Word and prayer, avoiding secular mindfulness practices.
+The architecture is designed for expandability, supporting future modules for:
+- [ ] Secretariats management
+- [ ] Devotionals (CRUD)
+- [ ] Prayer Requests
+- [ ] Events & Schedule
+- [ ] Current Board display
+- [ ] Instagram Integration
+- [ ] Revamped Home Page
+- [ ] Expanded tiered permissions
+
+Christian meditation content is strictly defined to focus on reflection on God's Word and prayer, avoiding secular mindfulness practices.
 
 ## External Dependencies
 
--   **Email Service**: Resend (for transactional emails and verification codes).
--   **UI Component Libraries**: @radix-ui/ (accessible, unstyled UI components), lucide-react (icon library), react-easy-crop (interactive image cropping).
--   **Database**: better-sqlite3 (local SQLite for development), @neondatabase/serverless (PostgreSQL deployment).
--   **Development Tools**: Drizzle Kit (database migration and schema management), tsx (direct TypeScript execution), node-cron (scheduling automated tasks).
--   **Validation**: Zod (runtime schema validation), drizzle-zod (generates Zod schemas from Drizzle tables).
--   **AI Integration**: Google Gemini API (for content generation and extraction in the study module).
+### Email Service
+- **Resend** - Transactional emails and verification codes
+
+### UI Libraries
+- **@radix-ui/** - Accessible, unstyled UI components
+- **lucide-react** - Icon library
+- **react-easy-crop** - Interactive image cropping
+- **framer-motion** - Fluid animations
+
+### Database
+- **better-sqlite3** - Local SQLite for development
+- **@neondatabase/serverless** - PostgreSQL for production
+- **drizzle-orm** - Type-safe ORM
+- **drizzle-kit** - Schema migrations
+
+### AI Integration
+- **OpenAI API** - Content generation and extraction
+- **Google Gemini API** - Alternative AI provider
+
+### Validation & Forms
+- **Zod** - Runtime schema validation
+- **drizzle-zod** - Generate Zod schemas from Drizzle tables
+- **react-hook-form** - Form handling
+
+### Utilities
+- **node-cron** - Task scheduling
+- **pdf-parse** - PDF text extraction
+- **jspdf** + **jspdf-autotable** - PDF generation
+- **html2canvas** - Image export
+- **qrcode** - QR code generation
+
+## Database Schema
+
+### Election Tables (10 tables)
+- `users` - System users with roles
+- `positions` - Available positions/roles
+- `elections` - Election instances
+- `election_positions` - Positions per election
+- `election_attendance` - Attendance per position
+- `election_winners` - Election winners
+- `candidates` - Registered candidates
+- `votes` - Cast votes
+- `verification_codes` - Email verification codes
+- `pdf_verifications` - PDF audit verification
+
+### Study System Tables (13 tables)
+- `study_profiles` - Gamification profile (XP, level, hearts, streak)
+- `study_weeks` - Weekly study content
+- `study_lessons` - Individual lessons
+- `study_units` - Units/exercises within lessons
+- `bible_verses` - Verses for reading/recovery
+- `user_lesson_progress` - User progress per lesson
+- `user_unit_progress` - User progress per unit
+- `verse_readings` - Verse reading records
+- `xp_transactions` - XP transaction log
+- `daily_activity` - Daily activity tracking
+- `achievements` - Available achievements
+- `user_achievements` - User unlocked achievements
+- `leaderboard_entries` - Ranking entries
+
+### Daily Missions Tables (3 tables)
+- `daily_missions` - Mission templates
+- `user_daily_missions` - User mission assignments
+- `daily_mission_content` - AI-generated daily content
+
+## API Endpoints Summary
+
+### Authentication (6 endpoints)
+- `POST /api/auth/login` - Initial login
+- `POST /api/auth/request-code` - Request verification code
+- `POST /api/auth/verify-code` - Verify code
+- `POST /api/auth/set-password` - Set password
+- `POST /api/auth/login-password` - Login with password
+
+### Elections (25+ endpoints)
+- CRUD for elections, candidates, votes
+- Scrutiny management
+- Attendance control
+- Results and audit endpoints
+
+### Study System (20+ endpoints)
+- Profile, weeks, lessons, units management
+- Progress tracking
+- Verse reading
+- Achievements and rankings
+
+### Daily Missions (5 endpoints)
+- `GET /api/missions/daily` - Get today's missions
+- `GET /api/missions/:id/detail` - Mission details
+- `POST /api/missions/:id/complete` - Complete mission
+- `GET /api/missions/content` - Daily AI content
 
 ## Recent Changes (December 2024)
 
@@ -59,7 +231,7 @@ The architecture is designed for expandability, supporting future modules for Se
 - User preference toggle with localStorage persistence
 - Integrated with achievement notification system
 
-### Push Notifications System (December 2024)
+### Push Notifications System
 - Complete push notification infrastructure with VAPID keys
 - `usePushNotifications` hook for managing subscriptions
 - Backend routes for subscribe/unsubscribe at `/api/notifications/*`
@@ -84,18 +256,77 @@ The architecture is designed for expandability, supporting future modules for Se
 - StatusMessage component for feedback
 - ProgressIndicator with animations
 
-### Key Files
-- `server/seed-study-data.ts` - Achievement seeding with seedAchievements()
-- `client/src/pages/study/profile.tsx` - Profile with real data + preview fallback
-- `client/src/pages/study/achievements.tsx` - Achievements listing with filters
-- `client/src/components/study/AchievementNotification.tsx` - Unlock modal component
-- `client/public/manifest.json` - PWA manifest configuration
-- `client/public/sw.js` - Service worker for offline support and push notifications
-- `client/src/hooks/use-sounds.ts` - Sound feedback hook
-- `client/src/hooks/use-push-notifications.ts` - Push notification subscription hook
-- `client/src/components/study/SoundSettings.tsx` - Sound toggle UI component
-- `client/src/components/study/NotificationSettings.tsx` - Push notification toggle
-- `client/src/components/NotificationCenter.tsx` - In-app notification center
-- `client/src/components/PageTransition.tsx` - Page transition animations
-- `client/src/components/ui/skeleton-cards.tsx` - Skeleton loading components
-- `client/src/components/ui/loading-states.tsx` - Enhanced loading UI components
+## Technical Improvements (December 2024)
+
+### WebSocket Implementation
+- Real-time updates for elections and study progress
+- Socket.IO integration for bidirectional communication
+- Automatic reconnection and fallback to polling
+
+### Theme System
+- Light/Dark mode with system preference detection
+- Custom theme colors support
+- Smooth transitions between themes
+- LocalStorage persistence
+
+### Enhanced Animations
+- Page transitions with Framer Motion
+- Interactive element animations
+- Loading state animations
+- Celebration effects
+
+## Key Files Reference
+
+### Backend
+- `server/routes.ts` - All API routes (~3000 lines)
+- `server/storage.ts` - Storage layer (~3000 lines)
+- `shared/schema.ts` - Database schema (~800 lines)
+- `server/ai.ts` - AI integration (OpenAI/Gemini)
+- `server/email.ts` - Email service (Resend)
+- `server/scheduler.ts` - Task scheduler (birthdays, etc.)
+- `server/seed-study-data.ts` - Data seeding
+
+### Frontend - Components
+- `client/src/components/study/` - 24+ gamification components
+- `client/src/components/ui/` - 50+ Shadcn UI components
+- `client/src/components/NotificationCenter.tsx` - Notification center
+- `client/src/components/PageTransition.tsx` - Page transitions
+- `client/src/components/ThemeProvider.tsx` - Theme management
+
+### Frontend - Pages
+- `client/src/pages/study/` - Study system pages
+- `client/src/pages/admin.tsx` - Election admin panel
+- `client/src/pages/login.tsx` - Authentication
+- `client/src/pages/vote.tsx` - Voting interface
+- `client/src/pages/results.tsx` - Election results
+
+### Frontend - Hooks
+- `client/src/hooks/use-sounds.ts` - Sound feedback
+- `client/src/hooks/use-push-notifications.ts` - Push notifications
+- `client/src/hooks/use-theme.ts` - Theme management
+
+### Configuration
+- `client/public/manifest.json` - PWA manifest
+- `client/public/sw.js` - Service worker
+- `vite.config.ts` - Vite configuration
+- `tailwind.config.ts` - Tailwind configuration
+
+## Performance Metrics
+
+### Expected Response Times
+- `getElectionResults`: < 100ms
+- `getPresentCount`: < 10ms
+- `getVoterAttendance`: < 50ms
+- Initial load: < 2s
+- Page navigation: < 500ms
+
+### Database Indexes
+- `idx_election_attendance_lookup` - Attendance queries
+- `idx_election_positions_status` - Position status
+- `idx_votes_lookup` - Vote counting
+- `idx_candidates_position` - Candidate lookups
+
+---
+
+*Last updated: December 04, 2025*
+*Version: 2.1 - Technical Improvements Update*

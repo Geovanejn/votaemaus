@@ -5,7 +5,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
@@ -27,10 +29,28 @@ const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-muted-foreground text-sm">Carregando...</p>
-    </div>
+    <motion.div 
+      className="min-h-screen bg-background flex flex-col items-center justify-center gap-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      >
+        <Loader2 className="h-8 w-8 text-primary" />
+      </motion.div>
+      <motion.p 
+        className="text-muted-foreground text-sm"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        Carregando...
+      </motion.p>
+    </motion.div>
   );
 }
 
@@ -115,12 +135,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </AuthProvider>
+      <ThemeProvider defaultTheme="system">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

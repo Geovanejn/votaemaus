@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   BookOpen, 
   Calendar, 
-  Users, 
   Heart, 
   ArrowRight,
   BookMarked,
@@ -11,7 +11,8 @@ import {
   GraduationCap,
   MapPin,
   Clock,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { HeroBanner } from "@/components/site/HeroBanner";
@@ -19,69 +20,59 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 
-import devocionalArt from "@assets/Fundo Layout stories_1761783891823.png";
-import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
-import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
-import eventImg3 from "@assets/Layout stories_1761779211233.png";
-import instagramImg1 from "@assets/Layout feed_1761779185103.png";
-import instagramImg2 from "@assets/Layout stories_1761779185102.png";
-import instagramImg3 from "@assets/Fundo Layout stories_1761780030672.png";
-import instagramImg4 from "@assets/Sem Fundo Layout stories_1761780037463.png";
-import instagramImg5 from "@assets/fundo_1761781968067.png";
-import instagramImg6 from "@assets/Layout stories_1761780888593.png";
+import devocionalArt from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
+import eventImg1 from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
+import eventImg2 from "@assets/stock_images/christian_church_you_d8df7c7e.jpg";
+import eventImg3 from "@assets/stock_images/christian_youth_conc_d8e3bb50.jpg";
+import instagramImg1 from "@assets/stock_images/christian_prayer_spi_70fb5265.jpg";
+import instagramImg2 from "@assets/stock_images/christian_bible_stud_56b5ae40.jpg";
+import instagramImg3 from "@assets/stock_images/christian_church_you_6c49260a.jpg";
+import instagramImg4 from "@assets/stock_images/christian_church_you_f7bd452d.jpg";
+import instagramImg5 from "@assets/stock_images/christian_bible_stud_e77c4159.jpg";
+import instagramImg6 from "@assets/stock_images/christian_youth_conc_ce1b7f0c.jpg";
 
-const mockDevotional = {
-  id: 1,
-  title: "A Força da Oração",
-  verse: "Orai sem cessar.",
-  verseReference: "1 Tessalonicenses 5:17",
-  summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial. Quando oramos com fé, abrimos espaço para que Deus opere em nossas vidas de maneiras extraordinárias.",
-  author: "Secretaria de Espiritualidade",
-  date: "04 de Dezembro, 2025",
-  image: devocionalArt,
-};
-
-const mockEvents = [
-  {
-    id: 1,
-    title: "Culto Jovem",
-    date: "15",
-    month: "DEZ",
-    weekday: "DOM",
-    time: "19:30",
-    location: "Igreja Sede",
-    image: eventImg1,
-  },
-  {
-    id: 2,
-    title: "Retiro Anual UMP",
-    date: "20",
-    month: "DEZ",
-    weekday: "SEX",
-    time: "08:00",
-    location: "Sítio Recanto",
-    image: eventImg2,
-  },
-  {
-    id: 3,
-    title: "Natal da UMP",
-    date: "25",
-    month: "DEZ",
-    weekday: "QUA",
-    time: "20:00",
-    location: "Igreja Sede",
-    image: eventImg3,
-  },
+const fallbackDevotionalImages = [devocionalArt];
+const fallbackEventImages = [eventImg1, eventImg2, eventImg3];
+const fallbackInstagramImages = [
+  instagramImg1, instagramImg2, instagramImg3, 
+  instagramImg4, instagramImg5, instagramImg6
 ];
 
-const instagramPosts = [
-  instagramImg1,
-  instagramImg2,
-  instagramImg3,
-  instagramImg4,
-  instagramImg5,
-  instagramImg6,
-];
+interface DevotionalData {
+  id: number;
+  title: string;
+  verse: string;
+  verseReference: string;
+  summary?: string;
+  author?: string;
+  publishedAt?: string;
+  imageUrl?: string;
+}
+
+interface EventData {
+  id: number;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  time?: string;
+  location?: string;
+  imageUrl?: string;
+}
+
+interface InstagramPostData {
+  id: number;
+  caption?: string;
+  imageUrl: string;
+  permalink?: string;
+  postedAt?: string;
+}
+
+interface SiteHighlights {
+  devotional: DevotionalData | null;
+  events: EventData[];
+  instagramPosts: InstagramPostData[];
+}
 
 const quickAccessItems = [
   {
@@ -102,15 +93,15 @@ const quickAccessItems = [
   },
   {
     icon: Vote,
-    title: "Emaús Vota",
-    description: "Sistema de Eleições",
+    title: "Emaus Vota",
+    description: "Sistema de Eleicoes",
     href: "/membro",
     color: "text-green-500",
     bg: "bg-green-500/10",
   },
   {
     icon: Heart,
-    title: "Oração",
+    title: "Oracao",
     description: "Envie seu pedido",
     href: "/oracao",
     color: "text-primary",
@@ -118,7 +109,62 @@ const quickAccessItems = [
   },
 ];
 
+function formatEventDate(dateStr: string) {
+  const date = new Date(dateStr + 'T00:00:00');
+  const day = date.getDate().toString().padStart(2, '0');
+  const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+  const weekdays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  return {
+    date: day,
+    month: months[date.getMonth()],
+    weekday: weekdays[date.getDay()],
+  };
+}
+
+function formatDevotionalDate(dateStr?: string) {
+  if (!dateStr) return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
 export default function HomePage() {
+  const { data: highlights, isLoading, isError } = useQuery<SiteHighlights>({
+    queryKey: ['/api/site/highlights'],
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+
+  const defaultDevotional = {
+    id: 1,
+    title: "A Forca da Oracao",
+    verse: "Orai sem cessar.",
+    verseReference: "1 Tessalonicenses 5:17",
+    summary: "A oracao e a nossa linha direta com Deus. Atraves dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
+    author: "Secretaria de Espiritualidade",
+    imageUrl: devocionalArt,
+  };
+
+  const devotional = isError ? defaultDevotional : (highlights?.devotional || defaultDevotional);
+
+  const events = (highlights?.events || []).map((event, index) => ({
+    ...event,
+    ...formatEventDate(event.startDate),
+    imageUrl: event.imageUrl && !event.imageUrl.includes('placeholder') 
+      ? event.imageUrl 
+      : fallbackEventImages[index % fallbackEventImages.length],
+  }));
+
+  const instagramPosts = (highlights?.instagramPosts || []).map((post, index) => ({
+    ...post,
+    imageUrl: post.imageUrl && !post.imageUrl.includes('placeholder') 
+      ? post.imageUrl 
+      : fallbackInstagramImages[index % fallbackInstagramImages.length],
+  }));
+
+  const devotionalImage = devotional.imageUrl && !devotional.imageUrl.includes('placeholder')
+    ? devotional.imageUrl
+    : fallbackDevotionalImages[0];
+
   return (
     <SiteLayout>
       <HeroBanner />
@@ -137,63 +183,69 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
+          {isLoading ? (
             <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-3">
-                  <div className="relative overflow-hidden min-h-[280px]">
-                    {mockDevotional.image && (
-                      <div 
-                        className="absolute inset-0 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${mockDevotional.image})` }}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70" />
-                    <div className="relative p-8 flex flex-col justify-center h-full">
-                      <div className="absolute top-4 right-4">
-                        <Sparkles className="h-6 w-6 text-primary/50" />
-                      </div>
-                      <div className="relative z-10">
-                        <p className="text-sm text-primary mb-2">{mockDevotional.date}</p>
-                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-                          <BookOpen className="h-8 w-8 text-white" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-2" data-testid="devotional-title">
-                          {mockDevotional.title}
-                        </h3>
-                        <p className="text-sm text-gray-400">
-                          Por: {mockDevotional.author}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 p-6 md:p-8 space-y-4">
-                    <blockquote className="border-l-4 border-primary pl-4 py-2 bg-primary/5 rounded-r-lg">
-                      <p className="italic text-foreground/90">
-                        "{mockDevotional.verse}"
-                      </p>
-                      <cite className="text-sm text-muted-foreground mt-1 block">
-                        - {mockDevotional.verseReference}
-                      </cite>
-                    </blockquote>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {mockDevotional.summary}
-                    </p>
-                    <Link href={`/devocionais/${mockDevotional.id}`}>
-                      <Button className="gap-2" data-testid="button-read-devotional">
-                        Ler Completo <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+              <CardContent className="p-12 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </CardContent>
             </Card>
-          </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="grid md:grid-cols-3">
+                    <div className="relative overflow-hidden min-h-[280px]">
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${devotionalImage})` }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70" />
+                      <div className="relative p-8 flex flex-col justify-center h-full">
+                        <div className="absolute top-4 right-4">
+                          <Sparkles className="h-6 w-6 text-primary/50" />
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-sm text-primary mb-2">{formatDevotionalDate(devotional.publishedAt)}</p>
+                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+                            <BookOpen className="h-8 w-8 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-white mb-2" data-testid="devotional-title">
+                            {devotional.title}
+                          </h3>
+                          <p className="text-sm text-gray-400">
+                            Por: {devotional.author || "Secretaria de Espiritualidade"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 p-6 md:p-8 space-y-4">
+                      <blockquote className="border-l-4 border-primary pl-4 py-2 bg-primary/5 rounded-r-lg">
+                        <p className="italic text-foreground/90">
+                          "{devotional.verse}"
+                        </p>
+                        <cite className="text-sm text-muted-foreground mt-1 block">
+                          - {devotional.verseReference}
+                        </cite>
+                      </blockquote>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {devotional.summary}
+                      </p>
+                      <Link href={`/devocionais/${devotional.id}`}>
+                        <Button className="gap-2" data-testid="button-read-devotional">
+                          Ler Completo <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -202,7 +254,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between gap-2 mb-8 flex-wrap">
             <div className="flex items-center gap-3">
               <Calendar className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Próximos Eventos</h2>
+              <h2 className="text-2xl font-bold">Proximos Eventos</h2>
             </div>
             <Link href="/agenda">
               <Button variant="ghost" className="gap-2" data-testid="link-all-events">
@@ -211,75 +263,89 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-            <StaggerContainer className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-3">
-              {mockEvents.map((event) => (
-                <StaggerItem key={event.id}>
-                  <motion.div
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Card className="w-[280px] md:w-auto overflow-hidden hover-elevate">
-                      <CardContent className="p-0">
-                        <div className="flex">
-                          <div className="relative min-w-[100px] min-h-[140px] overflow-hidden">
-                            {event.image && (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : events.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Nenhum evento programado no momento.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+              <StaggerContainer className="flex gap-4 min-w-max md:min-w-0 md:grid md:grid-cols-3">
+                {events.map((event) => (
+                  <StaggerItem key={event.id}>
+                    <motion.div
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className="w-[280px] md:w-auto overflow-hidden hover-elevate">
+                        <CardContent className="p-0">
+                          <div className="flex">
+                            <div className="relative min-w-[100px] min-h-[140px] overflow-hidden">
                               <div 
                                 className="absolute inset-0 bg-cover bg-center"
-                                style={{ backgroundImage: `url(${event.image})` }}
+                                style={{ backgroundImage: `url(${event.imageUrl})` }}
                               />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/80 to-gray-900/60" />
-                            <div className="relative z-10 h-full flex flex-col items-center justify-center text-white p-3">
-                              <span className="text-xs font-semibold text-primary">
-                                {event.month}
-                              </span>
-                              <span className="text-3xl font-bold">
-                                {event.date}
-                              </span>
-                              <span className="text-xs text-gray-300">
-                                {event.weekday}
-                              </span>
+                              <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/80 to-gray-900/60" />
+                              <div className="relative z-10 h-full flex flex-col items-center justify-center text-white p-3">
+                                <span className="text-xs font-semibold text-primary">
+                                  {event.month}
+                                </span>
+                                <span className="text-3xl font-bold">
+                                  {event.date}
+                                </span>
+                                <span className="text-xs text-gray-300">
+                                  {event.weekday}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="p-4 flex-1">
+                              <h3 className="font-semibold text-lg mb-2" data-testid={`event-title-${event.id}`}>
+                                {event.title}
+                              </h3>
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                {event.location && (
+                                  <p className="flex items-center gap-2">
+                                    <MapPin className="h-3.5 w-3.5 text-primary" /> {event.location}
+                                  </p>
+                                )}
+                                {event.time && (
+                                  <p className="flex items-center gap-2">
+                                    <Clock className="h-3.5 w-3.5 text-primary" /> {event.time}
+                                  </p>
+                                )}
+                              </div>
+                              <Link href={`/agenda`}>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="mt-3 gap-1 p-0 h-auto text-primary"
+                                  data-testid={`button-event-details-${event.id}`}
+                                >
+                                  Saiba mais <ArrowRight className="h-3 w-3" />
+                                </Button>
+                              </Link>
                             </div>
                           </div>
-                          <div className="p-4 flex-1">
-                            <h3 className="font-semibold text-lg mb-2" data-testid={`event-title-${event.id}`}>
-                              {event.title}
-                            </h3>
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              <p className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-primary" /> {event.location}
-                              </p>
-                              <p className="flex items-center gap-2">
-                                <Clock className="h-3.5 w-3.5 text-primary" /> {event.time}
-                              </p>
-                            </div>
-                            <Link href={`/agenda`}>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="mt-3 gap-1 p-0 h-auto text-primary"
-                                data-testid={`button-event-details-${event.id}`}
-                              >
-                                Saiba mais <ArrowRight className="h-3 w-3" />
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
-          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </StaggerItem>
+                ))}
+              </StaggerContainer>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold mb-2">Acesso Rápido</h2>
+            <h2 className="text-2xl font-bold mb-2">Acesso Rapido</h2>
             <p className="text-muted-foreground">
               Navegue pelos nossos recursos
             </p>
@@ -335,28 +401,37 @@ export default function HomePage() {
             </a>
           </div>
 
-          <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-            <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-6">
-              {instagramPosts.map((img, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="w-[120px] md:w-auto aspect-square rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
-                  data-testid={`instagram-post-${i + 1}`}
-                >
-                  <img 
-                    src={img} 
-                    alt={`Post Instagram ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-              ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          </div>
+          ) : (
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+              <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-6">
+                {(instagramPosts.length > 0 ? instagramPosts : fallbackInstagramImages.map((img, i) => ({ id: i, imageUrl: img }))).map((post, i) => (
+                  <motion.a
+                    key={post.id}
+                    href={(post as InstagramPostData).permalink || "https://instagram.com/umpemaus"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.05 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="w-[120px] md:w-auto aspect-square rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
+                    data-testid={`instagram-post-${i + 1}`}
+                  >
+                    <img 
+                      src={post.imageUrl} 
+                      alt={(post as InstagramPostData).caption || `Post Instagram ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </motion.a>
+                ))}
+              </div>
+            </div>
+          )}
 
           <p className="text-center text-muted-foreground text-sm mt-4">
             @umpemaus
@@ -373,11 +448,11 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl font-bold mb-4">
-              Precisa de oração?
+              Precisa de oracao?
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
               Compartilhe seu pedido conosco. Nossa equipe de espiritualidade 
-              estará orando por você.
+              estara orando por voce.
             </p>
             <Link href="/oracao">
               <Button 
@@ -386,7 +461,7 @@ export default function HomePage() {
                 data-testid="button-send-prayer"
               >
                 <Heart className="h-5 w-5 mr-2" />
-                Enviar Pedido de Oração
+                Enviar Pedido de Oracao
               </Button>
             </Link>
           </motion.div>

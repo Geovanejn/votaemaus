@@ -393,6 +393,49 @@ export const insertDevotionalSchema = createInsertSchema(devotionals).omit({
 export type InsertDevotional = z.infer<typeof insertDevotionalSchema>;
 export type Devotional = typeof devotionals.$inferSelect;
 
+// ==================== EVENTOS ====================
+
+export const siteEvents = sqliteTable("site_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
+  time: text("time"),
+  location: text("location"),
+  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertSiteEventSchema = createInsertSchema(siteEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSiteEvent = z.infer<typeof insertSiteEventSchema>;
+export type SiteEvent = typeof siteEvents.$inferSelect;
+
+// ==================== POSTS INSTAGRAM ====================
+
+export const instagramPosts = sqliteTable("instagram_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  caption: text("caption"),
+  imageUrl: text("image_url").notNull(),
+  permalink: text("permalink"),
+  postedAt: text("posted_at").notNull().default(sql`(datetime('now'))`),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertInstagramPostSchema = createInsertSchema(instagramPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertInstagramPost = z.infer<typeof insertInstagramPostSchema>;
+export type InstagramPost = typeof instagramPosts.$inferSelect;
+
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 
 // Perfil de gamificação do usuário

@@ -138,6 +138,26 @@ export interface IStorage {
   clearAllAchievements(): void;
   clearAllStudyProgress(): void;
   createDailyMission(data: { type: string; title: string; description: string; icon: string; xpReward: number }): any;
+  
+  // Site Content - Devotionals
+  getLatestDevotional(): any | null;
+  getAllDevotionals(limit?: number): any[];
+  createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): any;
+  clearAllDevotionals(): void;
+  
+  // Site Content - Events
+  getUpcomingEvents(limit?: number): any[];
+  getAllSiteEvents(): any[];
+  createSiteEvent(data: { title: string; description?: string; imageUrl?: string; startDate: string; endDate?: string; time?: string; location?: string; isPublished?: boolean }): any;
+  clearAllSiteEvents(): void;
+  
+  // Site Content - Instagram Posts
+  getLatestInstagramPosts(limit?: number): any[];
+  createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): any;
+  clearAllInstagramPosts(): void;
+  
+  // Site Highlights (combined)
+  getSiteHighlights(): { devotional: any | null; events: any[]; instagramPosts: any[] };
 }
 
 export class SQLiteStorage implements IStorage {
@@ -3169,6 +3189,236 @@ export class SQLiteStorage implements IStorage {
       WHERE created_at < datetime('now', '-' || ? || ' days')
     `).run(daysOld);
     return result.changes;
+  }
+
+  // ==================== SITE CONTENT - DEVOTIONALS ====================
+
+  getLatestDevotional(): any | null {
+    const row = db.prepare(`
+      SELECT * FROM devotionals 
+      WHERE is_published = 1 
+      ORDER BY published_at DESC 
+      LIMIT 1
+    `).get() as any;
+    
+    if (!row) return null;
+    
+    return {
+      id: row.id,
+      title: row.title,
+      verse: row.verse,
+      verseReference: row.verse_reference,
+      content: row.content,
+      summary: row.summary,
+      imageUrl: row.image_url,
+      author: row.author,
+      publishedAt: row.published_at,
+      isPublished: Boolean(row.is_published),
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  getAllDevotionals(limit: number = 10): any[] {
+    const rows = db.prepare(`
+      SELECT * FROM devotionals 
+      WHERE is_published = 1 
+      ORDER BY published_at DESC 
+      LIMIT ?
+    `).all(limit) as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      verse: row.verse,
+      verseReference: row.verse_reference,
+      content: row.content,
+      summary: row.summary,
+      imageUrl: row.image_url,
+      author: row.author,
+      publishedAt: row.published_at,
+      isPublished: Boolean(row.is_published),
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): any {
+    const stmt = db.prepare(`
+      INSERT INTO devotionals (title, verse, verse_reference, content, summary, image_url, author, is_published, published_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.title,
+      data.verse,
+      data.verseReference,
+      data.content,
+      data.summary || null,
+      data.imageUrl || null,
+      data.author || null,
+      data.isPublished !== false ? 1 : 0
+    ) as any;
+    
+    return {
+      id: row.id,
+      title: row.title,
+      verse: row.verse,
+      verseReference: row.verse_reference,
+      content: row.content,
+      summary: row.summary,
+      imageUrl: row.image_url,
+      author: row.author,
+      publishedAt: row.published_at,
+      isPublished: Boolean(row.is_published),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  clearAllDevotionals(): void {
+    db.prepare("DELETE FROM devotionals").run();
+  }
+
+  // ==================== SITE CONTENT - EVENTS ====================
+
+  getUpcomingEvents(limit: number = 5): any[] {
+    const rows = db.prepare(`
+      SELECT * FROM site_events 
+      WHERE is_published = 1 AND start_date >= date('now')
+      ORDER BY start_date ASC 
+      LIMIT ?
+    `).all(limit) as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.image_url,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      time: row.time,
+      location: row.location,
+      isPublished: Boolean(row.is_published),
+      createdAt: row.created_at,
+    }));
+  }
+
+  getAllSiteEvents(): any[] {
+    const rows = db.prepare(`
+      SELECT * FROM site_events 
+      ORDER BY start_date DESC
+    `).all() as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.image_url,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      time: row.time,
+      location: row.location,
+      isPublished: Boolean(row.is_published),
+      createdAt: row.created_at,
+    }));
+  }
+
+  createSiteEvent(data: { title: string; description?: string; imageUrl?: string; startDate: string; endDate?: string; time?: string; location?: string; isPublished?: boolean }): any {
+    const stmt = db.prepare(`
+      INSERT INTO site_events (title, description, image_url, start_date, end_date, time, location, is_published)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.title,
+      data.description || null,
+      data.imageUrl || null,
+      data.startDate,
+      data.endDate || null,
+      data.time || null,
+      data.location || null,
+      data.isPublished !== false ? 1 : 0
+    ) as any;
+    
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.image_url,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      time: row.time,
+      location: row.location,
+      isPublished: Boolean(row.is_published),
+      createdAt: row.created_at,
+    };
+  }
+
+  clearAllSiteEvents(): void {
+    db.prepare("DELETE FROM site_events").run();
+  }
+
+  // ==================== SITE CONTENT - INSTAGRAM POSTS ====================
+
+  getLatestInstagramPosts(limit: number = 6): any[] {
+    const rows = db.prepare(`
+      SELECT * FROM instagram_posts 
+      WHERE is_active = 1 
+      ORDER BY posted_at DESC 
+      LIMIT ?
+    `).all(limit) as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      caption: row.caption,
+      imageUrl: row.image_url,
+      permalink: row.permalink,
+      postedAt: row.posted_at,
+      isActive: Boolean(row.is_active),
+      createdAt: row.created_at,
+    }));
+  }
+
+  createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): any {
+    const stmt = db.prepare(`
+      INSERT INTO instagram_posts (caption, image_url, permalink, posted_at, is_active)
+      VALUES (?, ?, ?, ?, ?)
+      RETURNING *
+    `);
+    const row = stmt.get(
+      data.caption || null,
+      data.imageUrl,
+      data.permalink || null,
+      data.postedAt || new Date().toISOString(),
+      data.isActive !== false ? 1 : 0
+    ) as any;
+    
+    return {
+      id: row.id,
+      caption: row.caption,
+      imageUrl: row.image_url,
+      permalink: row.permalink,
+      postedAt: row.posted_at,
+      isActive: Boolean(row.is_active),
+      createdAt: row.created_at,
+    };
+  }
+
+  clearAllInstagramPosts(): void {
+    db.prepare("DELETE FROM instagram_posts").run();
+  }
+
+  // ==================== SITE HIGHLIGHTS (COMBINED) ====================
+
+  getSiteHighlights(): { devotional: any | null; events: any[]; instagramPosts: any[] } {
+    return {
+      devotional: this.getLatestDevotional(),
+      events: this.getUpcomingEvents(3),
+      instagramPosts: this.getLatestInstagramPosts(6),
+    };
   }
 }
 

@@ -3058,6 +3058,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SITE CONTENT API ====================
+
+  // Get site highlights (latest devotional, upcoming events, instagram posts)
+  app.get("/api/site/highlights", async (req, res) => {
+    try {
+      const highlights = storage.getSiteHighlights();
+      res.json(highlights);
+    } catch (error) {
+      console.error("Get site highlights error:", error);
+      res.status(500).json({ message: "Erro ao buscar destaques do site" });
+    }
+  });
+
+  // Get all devotionals
+  app.get("/api/site/devotionals", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const devotionals = storage.getAllDevotionals(limit);
+      res.json(devotionals);
+    } catch (error) {
+      console.error("Get devotionals error:", error);
+      res.status(500).json({ message: "Erro ao buscar devocionais" });
+    }
+  });
+
+  // Get upcoming events
+  app.get("/api/site/events", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const events = storage.getUpcomingEvents(limit);
+      res.json(events);
+    } catch (error) {
+      console.error("Get events error:", error);
+      res.status(500).json({ message: "Erro ao buscar eventos" });
+    }
+  });
+
+  // Get instagram posts
+  app.get("/api/site/instagram", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 6;
+      const posts = storage.getLatestInstagramPosts(limit);
+      res.json(posts);
+    } catch (error) {
+      console.error("Get instagram posts error:", error);
+      res.status(500).json({ message: "Erro ao buscar posts do Instagram" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

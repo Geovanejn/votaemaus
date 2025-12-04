@@ -651,6 +651,31 @@ export async function initializeDatabase() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (created_by) REFERENCES users(id)
     );
+
+    -- Site Events (Eventos da UMP)
+    CREATE TABLE IF NOT EXISTS site_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      image_url TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      time TEXT,
+      location TEXT,
+      is_published INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Instagram Posts
+    CREATE TABLE IF NOT EXISTS instagram_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      caption TEXT,
+      image_url TEXT NOT NULL,
+      permalink TEXT,
+      posted_at TEXT NOT NULL DEFAULT (datetime('now')),
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   console.log("Study system tables created successfully");
 

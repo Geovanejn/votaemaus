@@ -92,9 +92,62 @@ The architecture is designed for expandability, supporting future modules for se
 
 ### Database
 - **better-sqlite3** - Local SQLite for development.
-- **@neondatabase/serverless** - PostgreSQL for production.
+- **PostgreSQL** - Production database (Render managed).
 - **drizzle-orm** - Type-safe ORM.
 - **drizzle-kit** - Schema migrations.
+
+### Database Architecture
+
+**Development (Local):**
+- SQLite via `better-sqlite3`
+- Arquivo: `data/emaus-vota.db`
+- Inicializacao automatica em `server/db.ts`
+
+**Production (Render):**
+- PostgreSQL gerenciado pelo Render
+- Conexao via `DATABASE_URL`
+- Backups automaticos diarios
+- Custo: ~$7/mes (plano Starter)
+
+### Tabelas do Sistema
+
+**Autenticacao:**
+- `users` - Usuarios com campo `secretaria` para permissoes por departamento
+- `verification_codes` - Codigos de verificacao por email
+
+**Emaus Vota (Eleicoes):**
+- `positions`, `elections`, `election_positions`
+- `candidates`, `votes`, `election_winners`
+- `election_attendance`, `pdf_verifications`
+
+**DeoGlory (Estudos Gamificados):**
+- `study_profiles`, `study_weeks`, `study_lessons`, `study_units`
+- `user_lesson_progress`, `user_unit_progress`
+- `xp_transactions`, `daily_activity`, `leaderboard_entries`
+- `achievements`, `user_achievements`
+- `daily_missions`, `user_daily_missions`, `daily_mission_content`
+- `bible_verses`, `verse_readings`
+- `notifications`, `push_subscriptions`
+
+**Site Institucional:**
+- `devotionals` - Devocionais (campo `is_featured` para destaque)
+- `site_events` - Eventos com categoria, preco, link inscricao
+- `instagram_posts` - Posts integrados do Instagram
+- `prayer_requests` - Pedidos de oracao
+- `banners` - Banners do carrossel da home
+- `board_members` - Membros da diretoria
+- `site_content` - Conteudo editavel (quem somos, missao, etc.)
+
+### Sistema de Secretarias
+
+Usuarios podem pertencer a secretarias com permissoes especificas:
+- `espiritualidade` - Gerencia devocionais e pedidos de oracao
+- `marketing` - Gerencia eventos, banners e conteudo do site
+- `acao_social` - Acoes sociais
+- `comunicacao` - Comunicacao interna
+- `eventos` - Organizacao de eventos
+
+Admins tem acesso total a todos os modulos.
 
 ### AI Integration
 - **OpenAI API** - Content generation and extraction.

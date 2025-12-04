@@ -647,5 +647,78 @@ const initialContent = [
 
 ---
 
+## 9. Status de Implementacao
+
+### 9.1 Schema Drizzle (shared/schema.ts)
+
+| Tabela | Status | Observacoes |
+|--------|--------|-------------|
+| `users.secretaria` | Implementado | Campo adicionado |
+| `devotionals` | Implementado | Campos `is_featured` e `prayer` adicionados |
+| `site_events` | Implementado | Campos expandidos (category, price, registration_url, etc.) |
+| `prayer_requests` | Implementado | Nova tabela criada |
+| `banners` | Implementado | Nova tabela criada |
+| `board_members` | Implementado | Nova tabela criada |
+| `site_content` | Implementado | Nova tabela criada |
+| `instagram_posts` | Existente | Ja existia, sem alteracoes |
+
+### 9.2 SQLite (server/db.ts)
+
+| Tabela | Status | Observacoes |
+|--------|--------|-------------|
+| Todas as novas tabelas | Implementado | CREATE TABLE adicionados |
+| Migrations de colunas | Implementado | ALTER TABLE com verificacoes |
+
+### 9.3 Storage Interface (server/storage.ts)
+
+| Metodo | Status | Observacoes |
+|--------|--------|-------------|
+| User methods (secretaria) | Implementado | Campo mapeado corretamente |
+| Prayer Requests CRUD | Pendente | Adicionar metodos |
+| Banners CRUD | Pendente | Adicionar metodos |
+| Board Members CRUD | Pendente | Adicionar metodos |
+| Site Content CRUD | Pendente | Adicionar metodos |
+
+### 9.4 API Routes (server/routes.ts)
+
+| Rota | Status | Observacoes |
+|------|--------|-------------|
+| Public routes | Pendente | GET para dados publicos |
+| Admin routes | Pendente | CRUD com checkSecretaria |
+
+### 9.5 Frontend Pages
+
+| Pagina | Status | Observacoes |
+|--------|--------|-------------|
+| Home | Existente | Precisa integrar novos dados |
+| Devocionais | Pendente | Lista e detalhes |
+| Agenda | Pendente | Calendario de eventos |
+| Pedido de Oracao | Pendente | Formulario publico |
+| Quem Somos | Pendente | Conteudo editavel |
+| Diretoria | Pendente | Lista de membros |
+| Admin panels | Pendente | CRUD para cada modulo |
+
+---
+
+## 10. Deploy e Producao
+
+### 10.1 Ambiente de Desenvolvimento
+- **Banco:** SQLite (`data/emaus-vota.db`)
+- **ORM:** Drizzle com better-sqlite3
+- **Inicializacao:** Automatica em `server/db.ts`
+
+### 10.2 Ambiente de Producao (Render)
+- **Banco:** PostgreSQL gerenciado pelo Render
+- **ORM:** Drizzle com pg/neon driver
+- **Conexao:** Via `DATABASE_URL`
+- **Backups:** Automaticos diarios
+- **Custo:** ~$7/mes (plano Starter)
+
+### 10.3 Documentacao Adicional
+- Ver `docs/DEPLOY_RENDER_POSTGRESQL.md` para instrucoes completas de deploy
+
+---
+
 *Documento criado em: 04/12/2025*
-*Versao: 1.0*
+*Ultima atualizacao: 04/12/2025*
+*Versao: 1.1*

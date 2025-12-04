@@ -810,7 +810,8 @@ export async function initializeDatabase() {
       console.log("Added created_by column to site_events table");
     }
     if (!siteEventsColumnNames.includes('updated_at')) {
-      sqlite.exec("ALTER TABLE site_events ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))");
+      sqlite.exec("ALTER TABLE site_events ADD COLUMN updated_at TEXT");
+      sqlite.exec("UPDATE site_events SET updated_at = datetime('now') WHERE updated_at IS NULL");
       console.log("Added updated_at column to site_events table");
     }
   } catch (error) {

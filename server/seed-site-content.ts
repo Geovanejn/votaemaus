@@ -23,7 +23,7 @@ Paulo nos exorta a orar sem cessar - nao porque devemos estar de joelhos 24 hora
 
 Hoje, separe momentos especificos para orar. Faca da oracao um habito constante em sua vida.`,
     summary: "A oracao e nossa conexao direta com Deus, transformando nossos coracoes e nos aproximando do Pai celestial.",
-    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_92875813.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_8aee0c57.jpg",
     author: "Secretaria de Espiritualidade",
   },
   {
@@ -44,7 +44,7 @@ Jesus usou a imagem do grao de mostarda para nos ensinar que nao e a quantidade 
 
 Jovens da UMP Emaus, sejamos um povo de fe, confiando no Senhor em todas as circunstancias.`,
     summary: "A fe genuina, mesmo pequena, pode realizar grandes coisas quando depositada em Deus.",
-    imageUrl: "/attached_assets/Fundo Layout stories_1761783891823.png",
+    imageUrl: "/attached_assets/stock_images/christian_youth_bibl_8f68a2af.jpg",
     author: "Diretoria UMP",
   },
   {
@@ -65,7 +65,7 @@ Este amor nao e condicional - nao depende de nossas acoes ou meritos. E um amor 
 
 Quando compreendemos a profundidade do amor de Deus, somos motivados a amar os outros da mesma forma - incondicionalmente e sacrificialmente.`,
     summary: "O amor de Deus e incondicional, sacrificial e transformador.",
-    imageUrl: "/attached_assets/Layout stories_1761780888593.png",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_381f45cb.jpg",
     author: "Secretaria de Espiritualidade",
   },
   {
@@ -86,7 +86,7 @@ Davi, ao escrever este salmo, conhecia bem os vales escuros da vida. Ele enfrent
 
 Jovens, confiem no Senhor em todo tempo. Ele e fiel!`,
     summary: "Podemos confiar em Deus mesmo nos momentos mais dificeis, pois Ele nunca nos abandona.",
-    imageUrl: "/attached_assets/fundo_1761781968067.png",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_b3209276.jpg",
     author: "Diretoria UMP",
   },
   {
@@ -107,7 +107,7 @@ Em um mundo que busca poder e posicao, Jesus nos chama para um caminho diferente
 
 Que a UMP Emaus seja conhecida pelo amor servical, refletindo Cristo em tudo o que fazemos.`,
     summary: "A verdadeira grandeza esta em servir ao proximo com amor e humildade.",
-    imageUrl: "/attached_assets/Sem Fundo Layout stories_1761780037463.png",
+    imageUrl: "/attached_assets/stock_images/christian_youth_bibl_9076a952.jpg",
     author: "Secretaria Social",
   },
   {
@@ -128,7 +128,7 @@ Esta paz nao e a ausencia de problemas, mas a presenca de Deus em meio a eles. E
 
 Que essa paz inunde nossos coracoes hoje e sempre.`,
     summary: "A paz de Deus guarda nosso coracao e vai alem da compreensao humana.",
-    imageUrl: "/attached_assets/Layout feed_1761779185103.png",
+    imageUrl: "/attached_assets/stock_images/christian_youth_bibl_d0aeceb2.jpg",
     author: "Secretaria de Espiritualidade",
   },
 ];
@@ -137,7 +137,7 @@ const eventsData = [
   {
     title: "Culto Jovem",
     description: "Venha adorar a Deus conosco! Teremos louvor especial, pregacao edificante e comunhao fraterna. Convidamos todos os jovens a participarem deste momento de encontro com Deus.",
-    imageUrl: "/attached_assets/Eleição_2025_2026_Stories (23)_1762028290367.png",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_a986eda5.jpg",
     startDate: "2025-12-15",
     time: "19:30",
     location: "Igreja Presbiteriana de Emaus",
@@ -145,7 +145,7 @@ const eventsData = [
   {
     title: "Retiro Anual UMP",
     description: "Tres dias de imersao na Palavra de Deus, adoracao intensa e comunhao com os irmaos. Inscricoes abertas! Valor: R$ 150,00 (inclui hospedagem e alimentacao).",
-    imageUrl: "/attached_assets/Eleição_2025_2026_Stories (3)_1761781308477.png",
+    imageUrl: "/attached_assets/stock_images/christian_retreat_na_c9530bbb.jpg",
     startDate: "2025-12-20",
     endDate: "2025-12-22",
     time: "08:00",
@@ -154,7 +154,7 @@ const eventsData = [
   {
     title: "Celebracao de Natal",
     description: "Celebracao especial de Natal com amigo secreto, confraternizacao e ceia. Cada participante deve trazer um prato para compartilhar. Amigo secreto: valor de R$ 30,00.",
-    imageUrl: "/attached_assets/Layout stories_1761779211233.png",
+    imageUrl: "/attached_assets/stock_images/christmas_church_cel_ff49216a.jpg",
     startDate: "2025-12-25",
     time: "20:00",
     location: "Salao de Festas - Igreja Sede",
@@ -162,7 +162,7 @@ const eventsData = [
   {
     title: "Ensaio do Louvor",
     description: "Preparacao das musicas para o culto de virada de ano. Todos os integrantes do ministerio de louvor devem comparecer. Ensaio aberto para novos talentos.",
-    imageUrl: "/attached_assets/Layout stories_1761779185102.png",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_3185617e.jpg",
     startDate: "2025-12-28",
     time: "15:00",
     location: "Sala de Musica - Igreja Sede",
@@ -170,7 +170,7 @@ const eventsData = [
   {
     title: "Culto de Virada de Ano",
     description: "Venha celebrar a entrada do novo ano em oracao, gratidao e adoracao. Sera um momento especial para agradecer pelas bencaos de 2025 e consagrar 2026 nas maos do Senhor.",
-    imageUrl: "/attached_assets/image_1762037221993.png",
+    imageUrl: "/attached_assets/stock_images/new_year_celebration_f0bb6709.jpg",
     startDate: "2025-12-31",
     time: "22:00",
     location: "Igreja Presbiteriana de Emaus",
@@ -180,37 +180,37 @@ const eventsData = [
 const instagramPostsData = [
   {
     caption: "Culto jovem ontem foi uma bencao! Deus esta agindo em nosso meio. #umpemaus #juventude",
-    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_70fb5265.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_9f2da4a3.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-03T18:00:00Z",
   },
   {
     caption: "Estudo biblico sobre fe. Venha crescer conosco! #biblia #fe #umpemaus",
-    imageUrl: "/attached_assets/stock_images/christian_bible_stud_56b5ae40.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_youth_bibl_8f68a2af.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-02T15:00:00Z",
   },
   {
     caption: "Momento de oracao pela nossa cidade. Unidos em oracao! #oracao #umpemaus",
-    imageUrl: "/attached_assets/stock_images/christian_church_you_6c49260a.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_prayer_spi_8aee0c57.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-12-01T20:00:00Z",
   },
   {
     caption: "Confraternizacao da juventude. Alegria em servir ao Senhor! #comunhao #umpemaus",
-    imageUrl: "/attached_assets/stock_images/christian_church_you_f7bd452d.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_a986eda5.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-30T19:00:00Z",
   },
   {
     caption: "Louvando ao Senhor de todo o coracao! #louvor #adoracao #umpemaus",
-    imageUrl: "/attached_assets/stock_images/christian_bible_stud_e77c4159.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_church_you_3185617e.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-28T12:00:00Z",
   },
   {
     caption: "Jovens comprometidos com Cristo! #juventude #umpemaus #igreja",
-    imageUrl: "/attached_assets/stock_images/christian_youth_conc_ce1b7f0c.jpg",
+    imageUrl: "/attached_assets/stock_images/christian_retreat_na_deb672ba.jpg",
     permalink: "https://instagram.com/umpemaus",
     postedAt: "2025-11-25T18:00:00Z",
   },

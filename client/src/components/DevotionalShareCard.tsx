@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { BookOpen } from "lucide-react";
+import logoAnimated from "@assets/logo-animated.webp";
 
 interface DevotionalShareCardProps {
   title: string;
@@ -90,7 +91,7 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
                   marginTop: "4px",
                 }}
               >
-                UMP Emaus
+                UMP Emaús
               </span>
             </div>
           </div>
@@ -159,20 +160,16 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
                 gap: "16px",
               }}
             >
-              <div
+              <img
+                src={logoAnimated}
+                alt="UMP Emaús"
                 style={{
                   width: "80px",
                   height: "80px",
-                  borderRadius: "16px",
-                  background: "linear-gradient(135deg, #FFA500 0%, #FF6B00 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 20px rgba(255, 165, 0, 0.3)",
+                  objectFit: "contain",
                 }}
-              >
-                <span style={{ fontSize: "40px", fontWeight: 700, color: "white" }}>E</span>
-              </div>
+                crossOrigin="anonymous"
+              />
               <div>
                 <span
                   style={{
@@ -182,7 +179,7 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
                     display: "block",
                   }}
                 >
-                  Emaus Vota
+                  UMP Emaús
                 </span>
                 <span
                   style={{
@@ -199,8 +196,12 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
               style={{
                 background: "rgba(255, 165, 0, 0.15)",
                 borderRadius: "12px",
-                padding: "16px 24px",
+                padding: "24px 32px",
                 border: "1px solid rgba(255, 165, 0, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "80px",
               }}
             >
               <span
@@ -208,6 +209,7 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
                   color: "#FFA500",
                   fontSize: "20px",
                   fontWeight: 500,
+                  textAlign: "center",
                 }}
               >
                 Acesse e leia o devocional completo

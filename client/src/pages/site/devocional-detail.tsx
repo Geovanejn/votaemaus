@@ -167,7 +167,9 @@ export default function DevocionalDetailPage() {
   };
 
   const handleSimpleShare = async () => {
-    if (navigator.share && devotional) {
+    if (!devotional) return;
+    
+    if (navigator.share) {
       try {
         await navigator.share({
           title: devotional.title,
@@ -179,6 +181,14 @@ export default function DevocionalDetailPage() {
           console.log("Error sharing:", err);
         }
       }
+    } else {
+      await navigator.clipboard.writeText(
+        `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\n${window.location.href}`
+      );
+      toast({
+        title: "Link copiado",
+        description: "O link foi copiado para a area de transferencia.",
+      });
     }
   };
 
@@ -425,7 +435,7 @@ export default function DevocionalDetailPage() {
               <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <X className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Erro ao gerar imagem</p>
-                <Button variant="outline" onClick={generateShareImage}>
+                <Button variant="outline" onClick={generateShareImage} data-testid="button-retry-generate">
                   Tentar novamente
                 </Button>
               </div>

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 const footerLinks = [
   { label: "Início", href: "/" },
@@ -17,10 +18,12 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <motion.div 
-              className="flex items-center gap-2"
+              className="flex items-center gap-3"
               whileHover={{ x: 5 }}
             >
-              <span className="text-3xl">🌙</span>
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
               <div>
                 <h3 className="font-bold text-xl">UMP Emaús</h3>
                 <p className="text-sm text-gray-400">

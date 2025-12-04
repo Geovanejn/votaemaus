@@ -8,7 +8,11 @@ import {
   ArrowRight,
   BookMarked,
   Vote,
-  GraduationCap
+  GraduationCap,
+  MapPin,
+  Clock,
+  Camera,
+  Sparkles
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { HeroBanner } from "@/components/site/HeroBanner";
@@ -62,8 +66,8 @@ const quickAccessItems = [
     title: "Devocionais",
     description: "Leia a Palavra",
     href: "/devocionais",
-    color: "text-orange-500",
-    bg: "bg-orange-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
   {
     icon: GraduationCap,
@@ -86,8 +90,8 @@ const quickAccessItems = [
     title: "Oração",
     description: "Envie seu pedido",
     href: "/oracao",
-    color: "text-pink-500",
-    bg: "bg-pink-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
   },
 ];
 
@@ -156,9 +160,9 @@ export default function HomePage() {
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
-                      className="text-8xl"
+                      className="w-24 h-24 rounded-2xl bg-primary/10 flex items-center justify-center"
                     >
-                      📖
+                      <BookOpen className="h-12 w-12 text-primary" />
                     </motion.div>
                   </div>
                 </div>
@@ -193,14 +197,14 @@ export default function HomePage() {
                     <Card className="w-[280px] md:w-auto overflow-hidden hover-elevate">
                       <CardContent className="p-0">
                         <div className="flex">
-                          <div className="bg-primary text-primary-foreground p-4 flex flex-col items-center justify-center min-w-[80px]">
-                            <span className="text-xs font-medium opacity-90">
+                          <div className="bg-gray-900 dark:bg-black text-white p-4 flex flex-col items-center justify-center min-w-[80px]">
+                            <span className="text-xs font-medium text-primary">
                               {event.month}
                             </span>
                             <span className="text-3xl font-bold">
                               {event.date}
                             </span>
-                            <span className="text-xs opacity-90">
+                            <span className="text-xs text-gray-400">
                               {event.weekday}
                             </span>
                           </div>
@@ -210,10 +214,10 @@ export default function HomePage() {
                             </h3>
                             <div className="space-y-1 text-sm text-muted-foreground">
                               <p className="flex items-center gap-2">
-                                <span>📍</span> {event.location}
+                                <MapPin className="h-3.5 w-3.5" /> {event.location}
                               </p>
                               <p className="flex items-center gap-2">
-                                <span>🕐</span> {event.time}
+                                <Clock className="h-3.5 w-3.5" /> {event.time}
                               </p>
                             </div>
                             <Link href={`/agenda/${event.id}`}>
@@ -281,7 +285,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <Users className="h-6 w-6 text-primary" />
+              <Camera className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-bold">Instagram</h2>
             </div>
             <a 
@@ -304,11 +308,11 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className="aspect-square rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 overflow-hidden cursor-pointer"
+                className="aspect-square rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 overflow-hidden cursor-pointer"
                 data-testid={`instagram-post-${i}`}
               >
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <span className="text-3xl opacity-30">📷</span>
+                  <Camera className="h-8 w-8 opacity-30" />
                 </div>
               </motion.div>
             ))}
@@ -320,7 +324,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-20 bg-gray-900 dark:bg-black text-white">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -331,14 +335,14 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold mb-4">
               Precisa de oração?
             </h2>
-            <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
               Compartilhe seu pedido conosco. Nossa equipe de espiritualidade 
               estará orando por você.
             </p>
             <Link href="/oracao">
               <Button 
                 size="lg" 
-                className="bg-white text-primary hover:bg-white/90 font-semibold"
+                className="bg-primary text-primary-foreground font-semibold"
                 data-testid="button-send-prayer"
               >
                 <Heart className="h-5 w-5 mr-2" />

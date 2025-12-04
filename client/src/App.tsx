@@ -84,7 +84,7 @@ function Router() {
           <Route path="/study-preview/lesson/:id" component={LessonPage} />
           <Route path="/study-preview/achievements" component={AchievementsPage} />
           {/* Site Institucional - Public Routes */}
-          <Route path="/site" component={SiteHomePage} />
+          <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
           <Route path="/devocionais/:id" component={DevocionalDetailPage} />
           <Route path="/agenda" component={AgendaPage} />
@@ -92,7 +92,7 @@ function Router() {
           <Route path="/diretoria" component={DiretoriaPage} />
           <Route path="/oracao" component={OracaoPage} />
           <Route path="/membro" component={MembroPage} />
-          <Route path="/" component={LoginPage} />
+          <Route path="/login" component={LoginPage} />
           <Route>
             <Redirect to="/" />
           </Route>
@@ -120,7 +120,7 @@ function Router() {
           <Route path="/study/missions/:missionId" component={MissionActivityPage} />
           <Route path="/study/achievements" component={AchievementsPage} />
           {/* Site Institucional - Public Routes */}
-          <Route path="/site" component={SiteHomePage} />
+          <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
           <Route path="/devocionais/:id" component={DevocionalDetailPage} />
           <Route path="/agenda" component={AgendaPage} />
@@ -128,8 +128,9 @@ function Router() {
           <Route path="/diretoria" component={DiretoriaPage} />
           <Route path="/oracao" component={OracaoPage} />
           <Route path="/membro" component={MembroPage} />
+          <Route path="/login" component={LoginPage} />
           <Route>
-            <Redirect to="/admin" />
+            <Redirect to="/" />
           </Route>
         </Switch>
       </Suspense>
@@ -152,7 +153,7 @@ function Router() {
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
         <Route path="/study/achievements" component={AchievementsPage} />
         {/* Site Institucional - Public Routes */}
-        <Route path="/site" component={SiteHomePage} />
+        <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />
         <Route path="/devocionais/:id" component={DevocionalDetailPage} />
         <Route path="/agenda" component={AgendaPage} />
@@ -160,8 +161,9 @@ function Router() {
         <Route path="/diretoria" component={DiretoriaPage} />
         <Route path="/oracao" component={OracaoPage} />
         <Route path="/membro" component={MembroPage} />
+        <Route path="/login" component={LoginPage} />
         <Route>
-          <Redirect to="/vote" />
+          <Redirect to="/" />
         </Route>
       </Switch>
     </Suspense>

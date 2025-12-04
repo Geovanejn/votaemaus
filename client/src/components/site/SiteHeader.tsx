@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -27,9 +27,9 @@ export function SiteHeader() {
             <Link href="/" className="flex items-center gap-2">
               <motion.div
                 whileHover={{ rotate: 10 }}
-                className="text-2xl"
+                className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"
               >
-                🌙
+                <Sparkles className="h-4 w-4 text-primary-foreground" />
               </motion.div>
               <span className="font-bold text-lg text-foreground">
                 UMP Emaús

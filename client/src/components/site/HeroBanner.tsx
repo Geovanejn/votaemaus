@@ -24,7 +24,7 @@ const defaultSlides: BannerSlide[] = [
     buttonLink: "/quem-somos",
     secondaryButtonText: "Área do Membro",
     secondaryButtonLink: "/membro",
-    gradient: "from-orange-600 via-orange-500 to-amber-500",
+    gradient: "from-black via-gray-900 to-gray-800",
   },
   {
     id: 2,
@@ -32,7 +32,7 @@ const defaultSlides: BannerSlide[] = [
     subtitle: "Fortaleça sua fé com a Palavra de Deus",
     buttonText: "Ler Devocional",
     buttonLink: "/devocionais",
-    gradient: "from-gray-900 via-gray-800 to-gray-700",
+    gradient: "from-gray-900 via-black to-gray-900",
   },
   {
     id: 3,
@@ -40,7 +40,7 @@ const defaultSlides: BannerSlide[] = [
     subtitle: "Participe dos nossos encontros e celebrações",
     buttonText: "Ver Agenda",
     buttonLink: "/agenda",
-    gradient: "from-primary via-orange-500 to-yellow-500",
+    gradient: "from-black via-gray-800 to-black",
   },
   {
     id: 4,
@@ -48,7 +48,7 @@ const defaultSlides: BannerSlide[] = [
     subtitle: "Compartilhe suas necessidades conosco",
     buttonText: "Enviar Pedido",
     buttonLink: "/oracao",
-    gradient: "from-indigo-900 via-purple-800 to-indigo-700",
+    gradient: "from-gray-800 via-black to-gray-900",
   },
 ];
 
@@ -184,7 +184,7 @@ export function HeroBanner({
                 <Link href={currentSlide.buttonLink}>
                   <Button
                     size="lg"
-                    className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-8"
+                    className="bg-primary text-primary-foreground font-semibold px-8"
                     data-testid="banner-primary-button"
                   >
                     {currentSlide.buttonText}

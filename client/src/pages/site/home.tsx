@@ -121,15 +121,30 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
           >
             <Card className="overflow-hidden">
-              <CardContent className="p-6 md:p-8">
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2 space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      {mockDevotional.date}
-                    </p>
-                    <h3 className="text-2xl font-bold" data-testid="devotional-title">
-                      {mockDevotional.title}
-                    </h3>
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-3">
+                  <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8 flex flex-col justify-center overflow-hidden">
+                    <div className="absolute inset-0 opacity-30">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/60 rounded-full blur-3xl" />
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/60 rounded-full blur-3xl" />
+                    </div>
+                    <div className="absolute top-4 right-4">
+                      <Sparkles className="h-6 w-6 text-primary/50" />
+                    </div>
+                    <div className="relative z-10">
+                      <p className="text-sm text-primary mb-2">{mockDevotional.date}</p>
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+                        <BookOpen className="h-8 w-8 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-2" data-testid="devotional-title">
+                        {mockDevotional.title}
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        Por: {mockDevotional.author}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="md:col-span-2 p-6 md:p-8 space-y-4">
                     <blockquote className="border-l-4 border-primary pl-4 py-2 bg-primary/5 rounded-r-lg">
                       <p className="italic text-foreground/90">
                         "{mockDevotional.verse}"
@@ -141,29 +156,11 @@ export default function HomePage() {
                     <p className="text-muted-foreground leading-relaxed">
                       {mockDevotional.summary}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      Por: <span className="text-foreground">{mockDevotional.author}</span>
-                    </p>
                     <Link href={`/devocionais/${mockDevotional.id}`}>
                       <Button className="gap-2" data-testid="button-read-devotional">
                         Ler Completo <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
-                  </div>
-                  <div className="hidden md:flex items-center justify-center">
-                    <motion.div
-                      animate={{ 
-                        y: [0, -10, 0],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="w-24 h-24 rounded-2xl bg-primary/10 flex items-center justify-center"
-                    >
-                      <BookOpen className="h-12 w-12 text-primary" />
-                    </motion.div>
                   </div>
                 </div>
               </CardContent>
@@ -197,16 +194,21 @@ export default function HomePage() {
                     <Card className="w-[280px] md:w-auto overflow-hidden hover-elevate">
                       <CardContent className="p-0">
                         <div className="flex">
-                          <div className="bg-gray-900 dark:bg-black text-white p-4 flex flex-col items-center justify-center min-w-[80px]">
-                            <span className="text-xs font-medium text-primary">
-                              {event.month}
-                            </span>
-                            <span className="text-3xl font-bold">
-                              {event.date}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {event.weekday}
-                            </span>
+                          <div className="relative bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 flex flex-col items-center justify-center min-w-[90px] overflow-hidden">
+                            <div className="absolute inset-0 opacity-40">
+                              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/40 to-amber-500/40" />
+                            </div>
+                            <div className="relative z-10 text-center">
+                              <span className="text-xs font-semibold text-primary">
+                                {event.month}
+                              </span>
+                              <span className="text-4xl font-bold block bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                                {event.date}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {event.weekday}
+                              </span>
+                            </div>
                           </div>
                           <div className="p-4 flex-1">
                             <h3 className="font-semibold text-lg mb-2" data-testid={`event-title-${event.id}`}>
@@ -214,10 +216,10 @@ export default function HomePage() {
                             </h3>
                             <div className="space-y-1 text-sm text-muted-foreground">
                               <p className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5" /> {event.location}
+                                <MapPin className="h-3.5 w-3.5 text-primary" /> {event.location}
                               </p>
                               <p className="flex items-center gap-2">
-                                <Clock className="h-3.5 w-3.5" /> {event.time}
+                                <Clock className="h-3.5 w-3.5 text-primary" /> {event.time}
                               </p>
                             </div>
                             <Link href={`/agenda/${event.id}`}>

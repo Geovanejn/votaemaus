@@ -124,11 +124,11 @@ export function HeroBanner({
           }}
           className={`absolute inset-0 bg-gradient-to-br ${currentSlide.gradient}`}
         >
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-transparent" />
           
           <div className="absolute inset-0 overflow-hidden">
             <motion.div
-              className="absolute -top-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl"
+              className="absolute -top-20 -right-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
               animate={{
                 scale: [1, 1.2, 1],
                 opacity: [0.3, 0.5, 0.3],
@@ -140,13 +140,25 @@ export function HeroBanner({
               }}
             />
             <motion.div
-              className="absolute -bottom-20 -left-20 w-80 h-80 bg-white/5 rounded-full blur-3xl"
+              className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"
               animate={{
                 scale: [1.2, 1, 1.2],
                 opacity: [0.5, 0.3, 0.5],
               }}
               transition={{
                 duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute top-1/2 right-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl"
+              animate={{
+                x: [0, 50, 0],
+                y: [0, -30, 0],
+              }}
+              transition={{
+                duration: 10,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
@@ -158,7 +170,7 @@ export function HeroBanner({
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 max-w-4xl"
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 max-w-4xl bg-gradient-to-r from-primary via-orange-400 to-amber-400 bg-clip-text text-transparent"
               data-testid="banner-title"
             >
               {currentSlide.title}
@@ -168,7 +180,7 @@ export function HeroBanner({
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl"
+              className="text-lg md:text-xl text-amber-200/90 mb-8 max-w-2xl font-medium"
               data-testid="banner-subtitle"
             >
               {currentSlide.subtitle}
@@ -184,7 +196,7 @@ export function HeroBanner({
                 <Link href={currentSlide.buttonLink}>
                   <Button
                     size="lg"
-                    className="bg-primary text-primary-foreground font-semibold px-8"
+                    className="bg-gradient-to-r from-primary to-amber-500 text-white font-semibold px-8 shadow-lg shadow-primary/40 border-0"
                     data-testid="banner-primary-button"
                   >
                     {currentSlide.buttonText}
@@ -196,7 +208,7 @@ export function HeroBanner({
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white/10 font-semibold px-8"
+                    className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 backdrop-blur-sm"
                     data-testid="banner-secondary-button"
                   >
                     {currentSlide.secondaryButtonText}
@@ -210,7 +222,7 @@ export function HeroBanner({
 
       <button
         onClick={() => paginate(-1)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-800/70 transition-colors"
         data-testid="banner-prev-button"
       >
         <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
@@ -218,7 +230,7 @@ export function HeroBanner({
       
       <button
         onClick={() => paginate(1)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-800/70 transition-colors"
         data-testid="banner-next-button"
       >
         <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
@@ -232,10 +244,10 @@ export function HeroBanner({
               setDirection(index > currentIndex ? 1 : -1);
               setCurrentIndex(index);
             }}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+            className={`h-2.5 rounded-full transition-all duration-300 ${
               index === currentIndex 
-                ? "bg-white w-8" 
-                : "bg-white/50 hover:bg-white/70"
+                ? "bg-gradient-to-r from-primary to-amber-500 w-10" 
+                : "bg-gray-500 hover:bg-gray-400 w-2.5"
             }`}
             data-testid={`banner-dot-${index}`}
           />

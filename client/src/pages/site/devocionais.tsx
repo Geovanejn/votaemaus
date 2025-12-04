@@ -7,7 +7,8 @@ import {
   Calendar,
   User,
   ArrowRight,
-  Filter
+  Filter,
+  Sparkles
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,15 @@ const mockDevotionals = [
 
 const categories = ["Todas", "Oração", "Fé", "Amor", "Confiança", "Serviço", "Paz"];
 
+const categoryColors: Record<string, string> = {
+  "Oração": "from-primary to-orange-600",
+  "Fé": "from-blue-600 to-blue-800",
+  "Amor": "from-rose-500 to-rose-700",
+  "Confiança": "from-emerald-600 to-emerald-800",
+  "Serviço": "from-violet-600 to-violet-800",
+  "Paz": "from-cyan-600 to-cyan-800",
+};
+
 export default function DevocionaisPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -110,18 +120,25 @@ export default function DevocionaisPage() {
 
   return (
     <SiteLayout>
-      <section className="bg-gradient-to-br from-primary via-orange-500 to-amber-500 text-white py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative overflow-hidden bg-gray-900 text-white py-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-transparent" />
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 right-10 w-64 h-64 bg-primary/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-amber-500/30 rounded-full blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-amber-500 mb-6 shadow-lg shadow-primary/30">
               <BookOpen className="h-8 w-8" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Devocionais</h1>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-orange-400 to-amber-400 bg-clip-text text-transparent">
+              Devocionais
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Fortaleça sua fé diariamente com reflexões baseadas na Palavra de Deus
             </p>
           </motion.div>
@@ -144,17 +161,29 @@ export default function DevocionaisPage() {
               <Card className="overflow-hidden border-primary/20">
                 <CardContent className="p-0">
                   <div className="grid md:grid-cols-3">
-                    <div className="bg-gradient-to-br from-primary to-orange-600 text-white p-8 flex flex-col justify-center">
-                      <p className="text-sm opacity-75 mb-2">{featuredDevotional.date}</p>
-                      <h3 className="text-2xl font-bold mb-4" data-testid="featured-devotional-title">
-                        {featuredDevotional.title}
-                      </h3>
-                      <blockquote className="border-l-2 border-white/50 pl-4 mb-4">
-                        <p className="italic opacity-90">"{featuredDevotional.verse}"</p>
-                        <cite className="text-sm opacity-75 block mt-1">
-                          — {featuredDevotional.verseReference}
-                        </cite>
-                      </blockquote>
+                    <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8 flex flex-col justify-center overflow-hidden">
+                      <div className="absolute inset-0 opacity-40">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/60 rounded-full blur-3xl" />
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/60 rounded-full blur-3xl" />
+                      </div>
+                      <div className="absolute top-4 right-4">
+                        <Sparkles className="h-6 w-6 text-primary/60" />
+                      </div>
+                      <div className="relative z-10">
+                        <p className="text-sm text-primary mb-2">{featuredDevotional.date}</p>
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+                          <BookOpen className="h-6 w-6 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-4" data-testid="featured-devotional-title">
+                          {featuredDevotional.title}
+                        </h3>
+                        <blockquote className="border-l-2 border-primary/50 pl-4 mb-4">
+                          <p className="italic text-gray-300">"{featuredDevotional.verse}"</p>
+                          <cite className="text-sm text-gray-400 block mt-1">
+                            — {featuredDevotional.verseReference}
+                          </cite>
+                        </blockquote>
+                      </div>
                     </div>
                     <div className="md:col-span-2 p-8">
                       <p className="text-muted-foreground leading-relaxed mb-6">
@@ -225,32 +254,44 @@ export default function DevocionaisPage() {
                     transition={{ duration: 0.2 }}
                   >
                     <Link href={`/devocionais/${devotional.id}`}>
-                      <Card className="h-full hover-elevate cursor-pointer">
-                        <CardContent className="p-6">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                            <Calendar className="h-3 w-3" />
-                            <span>{devotional.date}</span>
-                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              {devotional.category}
-                            </span>
+                      <Card className="h-full hover-elevate cursor-pointer overflow-hidden">
+                        <CardContent className="p-0">
+                          <div className={`relative bg-gradient-to-br ${categoryColors[devotional.category] || "from-gray-700 to-gray-900"} p-4 overflow-hidden`}>
+                            <div className="absolute inset-0 opacity-30">
+                              <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-2xl" />
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <Sparkles className="h-4 w-4 text-white/40" />
+                            </div>
+                            <div className="relative z-10">
+                              <div className="flex items-center gap-2 text-xs text-white/80 mb-2">
+                                <Calendar className="h-3 w-3" />
+                                <span>{devotional.date}</span>
+                              </div>
+                              <span className="inline-block bg-white/20 text-white px-2 py-0.5 rounded-full text-xs">
+                                {devotional.category}
+                              </span>
+                              <h3 className="text-lg font-bold text-white mt-2" data-testid={`devotional-title-${devotional.id}`}>
+                                {devotional.title}
+                              </h3>
+                            </div>
                           </div>
-                          <h3 className="text-lg font-semibold mb-3" data-testid={`devotional-title-${devotional.id}`}>
-                            {devotional.title}
-                          </h3>
-                          <blockquote className="border-l-2 border-primary/30 pl-3 mb-3">
-                            <p className="text-sm italic text-muted-foreground line-clamp-2">
-                              "{devotional.verse}"
+                          <div className="p-4">
+                            <blockquote className="border-l-2 border-primary/30 pl-3 mb-3">
+                              <p className="text-sm italic text-muted-foreground line-clamp-2">
+                                "{devotional.verse}"
+                              </p>
+                              <cite className="text-xs text-muted-foreground">
+                                — {devotional.verseReference}
+                              </cite>
+                            </blockquote>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                              {devotional.summary}
                             </p>
-                            <cite className="text-xs text-muted-foreground">
-                              — {devotional.verseReference}
-                            </cite>
-                          </blockquote>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                            {devotional.summary}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <User className="h-3 w-3" />
-                            <span>{devotional.author}</span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              <span>{devotional.author}</span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>

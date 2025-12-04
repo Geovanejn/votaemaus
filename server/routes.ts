@@ -3130,6 +3130,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Submit prayer request (public)
+  app.post("/api/site/prayer-requests", async (req, res) => {
+    try {
+      const { name, whatsapp, category, request, isAnonymous } = req.body;
+      
+      if (!category || !request) {
+        return res.status(400).json({ message: "Categoria e pedido sao obrigatorios" });
+      }
+      
+      const prayerRequest = await storage.createPrayerRequest({
+        name: isAnonymous ? null : name,
+        whatsapp: isAnonymous ? null : whatsapp,
+        category,
+        request,
+        isAnonymous: isAnonymous || false,
+        status: "pending",
+      });
+      
+      res.status(201).json({ message: "Pedido de oracao recebido com sucesso", id: prayerRequest.id });
+    } catch (error) {
+      console.error("Create prayer request error:", error);
+      res.status(500).json({ message: "Erro ao enviar pedido de oracao" });
+    }
+  });
+
+  // Get board members (public)
+  app.get("/api/site/board-members", async (req, res) => {
+    try {
+      const currentOnly = req.query.current !== "false";
+      const members = await storage.getAllBoardMembers(currentOnly);
+      res.json(members);
+    } catch (error) {
+      console.error("Get board members error:", error);
+      res.status(500).json({ message: "Erro ao buscar membros da diretoria" });
+    }
+  });
+
+  // Get active banners (public)
+  app.get("/api/site/banners", async (req, res) => {
+    try {
+      const banners = await storage.getActiveBanners();
+      res.json(banners);
+    } catch (error) {
+      console.error("Get banners error:", error);
+      res.status(500).json({ message: "Erro ao buscar banners" });
+    }
+  });
+
+  // ==================== ADMIN SITE MANAGEMENT API ====================
+
+  // Get all prayer requests (admin)
+  app.get("/api/admin/prayer-requests", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const status = req.query.status as string | undefined;
+      const requests = await storage.getAllPrayerRequests(status);
+      res.json(requests);
+    } catch (error) {
+      console.error("Get prayer requests error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos de oracao" });
+    }
+  });
+
+  // Update prayer request status (admin)
+  app.patch("/api/admin/prayer-requests/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (isNaN(id) || !status) {
+        return res.status(400).json({ message: "ID e status sao obrigatorios" });
+      }
+      
+      const updated = await storage.updatePrayerRequestStatus(id, status, req.user.id);
+      if (!updated) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update prayer request error:", error);
+      res.status(500).json({ message: "Erro ao atualizar pedido de oracao" });
+    }
+  });
+
+  // Get all board members (admin)
+  app.get("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const members = await storage.getAllBoardMembers(false);
+      res.json(members);
+    } catch (error) {
+      console.error("Get board members admin error:", error);
+      res.status(500).json({ message: "Erro ao buscar membros da diretoria" });
+    }
+  });
+
+  // Create board member (admin)
+  app.post("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const member = await storage.createBoardMember(req.body);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Create board member error:", error);
+      res.status(500).json({ message: "Erro ao criar membro da diretoria" });
+    }
+  });
+
+  // Update board member (admin)
+  app.patch("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const updated = await storage.updateBoardMember(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Membro nao encontrado" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update board member error:", error);
+      res.status(500).json({ message: "Erro ao atualizar membro da diretoria" });
+    }
+  });
+
+  // Delete board member (admin)
+  app.delete("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      await storage.deleteBoardMember(id);
+      res.json({ message: "Membro removido com sucesso" });
+    } catch (error) {
+      console.error("Delete board member error:", error);
+      res.status(500).json({ message: "Erro ao remover membro da diretoria" });
+    }
+  });
+
+  // Get all banners (admin)
+  app.get("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const banners = await storage.getAllBanners();
+      res.json(banners);
+    } catch (error) {
+      console.error("Get banners admin error:", error);
+      res.status(500).json({ message: "Erro ao buscar banners" });
+    }
+  });
+
+  // Create banner (admin)
+  app.post("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const banner = await storage.createBanner({ ...req.body, createdBy: req.user.id });
+      res.status(201).json(banner);
+    } catch (error) {
+      console.error("Create banner error:", error);
+      res.status(500).json({ message: "Erro ao criar banner" });
+    }
+  });
+
+  // Update banner (admin)
+  app.patch("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const updated = await storage.updateBanner(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Banner nao encontrado" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update banner error:", error);
+      res.status(500).json({ message: "Erro ao atualizar banner" });
+    }
+  });
+
+  // Delete banner (admin)
+  app.delete("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      await storage.deleteBanner(id);
+      res.json({ message: "Banner removido com sucesso" });
+    } catch (error) {
+      console.error("Delete banner error:", error);
+      res.status(500).json({ message: "Erro ao remover banner" });
+    }
+  });
+
+  // Get site content (admin)
+  app.get("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const content = await storage.getAllSiteContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Get site content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteudo do site" });
+    }
+  });
+
+  // Update site content (admin)
+  app.post("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const content = await storage.upsertSiteContent({ ...req.body, updatedBy: req.user.id });
+      res.json(content);
+    } catch (error) {
+      console.error("Update site content error:", error);
+      res.status(500).json({ message: "Erro ao atualizar conteudo do site" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

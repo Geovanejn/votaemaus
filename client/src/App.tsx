@@ -22,6 +22,7 @@ import OracaoPage from "@/pages/site/oracao";
 import MembroPage from "@/pages/site/membro";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
+const AdminSitePage = lazy(() => import("@/pages/admin/admin-site"));
 const VotePage = lazy(() => import("@/pages/vote"));
 const ResultsPage = lazy(() => import("@/pages/results"));
 const StudyHomePage = lazy(() => import("@/pages/study/index"));
@@ -108,6 +109,7 @@ function Router() {
           <Route path="/verificar/:hash" component={VerifyPage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/admin/study" component={StudyAdminPage} />
+          <Route path="/admin/site" component={AdminSitePage} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />

@@ -36,6 +36,14 @@ import type {
   InstagramPost,
   PushSubscription,
   Notification,
+  PrayerRequest,
+  InsertPrayerRequest,
+  BoardMember,
+  InsertBoardMember,
+  Banner,
+  InsertBanner,
+  SiteContent,
+  InsertSiteContent,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -196,6 +204,29 @@ export interface IStorage {
   
   // Leaderboard Methods
   getLeaderboard(periodType: string, periodKey: string, limit?: number): Promise<any[]>;
+  
+  // Prayer Requests Methods
+  createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest>;
+  getAllPrayerRequests(status?: string): Promise<PrayerRequest[]>;
+  updatePrayerRequestStatus(id: number, status: string, prayedBy?: number): Promise<PrayerRequest | null>;
+  
+  // Board Members Methods
+  getAllBoardMembers(currentOnly?: boolean): Promise<BoardMember[]>;
+  createBoardMember(data: InsertBoardMember): Promise<BoardMember>;
+  updateBoardMember(id: number, data: Partial<InsertBoardMember>): Promise<BoardMember | null>;
+  deleteBoardMember(id: number): Promise<void>;
+  
+  // Banners Methods
+  getActiveBanners(): Promise<Banner[]>;
+  getAllBanners(): Promise<Banner[]>;
+  createBanner(data: InsertBanner): Promise<Banner>;
+  updateBanner(id: number, data: Partial<InsertBanner>): Promise<Banner | null>;
+  deleteBanner(id: number): Promise<void>;
+  
+  // Site Content Methods
+  getSiteContent(page: string, section: string): Promise<SiteContent | null>;
+  getAllSiteContent(): Promise<SiteContent[]>;
+  upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1677,6 +1708,143 @@ export class DatabaseStorage implements IStorage {
     }));
     
     return result;
+  }
+
+  // Prayer Requests Methods
+  async createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest> {
+    const [request] = await db.insert(schema.prayerRequests)
+      .values(data)
+      .returning();
+    return request;
+  }
+
+  async getAllPrayerRequests(status?: string): Promise<PrayerRequest[]> {
+    if (status) {
+      return db.select().from(schema.prayerRequests)
+        .where(eq(schema.prayerRequests.status, status))
+        .orderBy(desc(schema.prayerRequests.createdAt));
+    }
+    return db.select().from(schema.prayerRequests)
+      .orderBy(desc(schema.prayerRequests.createdAt));
+  }
+
+  async updatePrayerRequestStatus(id: number, status: string, prayedBy?: number): Promise<PrayerRequest | null> {
+    const updateData: any = { 
+      status, 
+      updatedAt: new Date() 
+    };
+    if (prayedBy) {
+      updateData.prayedBy = prayedBy;
+      updateData.prayedAt = new Date();
+    }
+    const [updated] = await db.update(schema.prayerRequests)
+      .set(updateData)
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  // Board Members Methods
+  async getAllBoardMembers(currentOnly: boolean = true): Promise<BoardMember[]> {
+    if (currentOnly) {
+      return db.select().from(schema.boardMembers)
+        .where(eq(schema.boardMembers.isCurrent, true))
+        .orderBy(asc(schema.boardMembers.orderIndex));
+    }
+    return db.select().from(schema.boardMembers)
+      .orderBy(asc(schema.boardMembers.orderIndex));
+  }
+
+  async createBoardMember(data: InsertBoardMember): Promise<BoardMember> {
+    const [member] = await db.insert(schema.boardMembers)
+      .values(data)
+      .returning();
+    return member;
+  }
+
+  async updateBoardMember(id: number, data: Partial<InsertBoardMember>): Promise<BoardMember | null> {
+    const [updated] = await db.update(schema.boardMembers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.boardMembers.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteBoardMember(id: number): Promise<void> {
+    await db.delete(schema.boardMembers).where(eq(schema.boardMembers.id, id));
+  }
+
+  // Banners Methods
+  async getActiveBanners(): Promise<Banner[]> {
+    const now = new Date();
+    return db.select().from(schema.banners)
+      .where(and(
+        eq(schema.banners.isActive, true),
+        or(
+          isNull(schema.banners.startsAt),
+          lte(schema.banners.startsAt, now)
+        ),
+        or(
+          isNull(schema.banners.endsAt),
+          gte(schema.banners.endsAt, now)
+        )
+      ))
+      .orderBy(asc(schema.banners.orderIndex));
+  }
+
+  async getAllBanners(): Promise<Banner[]> {
+    return db.select().from(schema.banners)
+      .orderBy(asc(schema.banners.orderIndex));
+  }
+
+  async createBanner(data: InsertBanner): Promise<Banner> {
+    const [banner] = await db.insert(schema.banners)
+      .values(data)
+      .returning();
+    return banner;
+  }
+
+  async updateBanner(id: number, data: Partial<InsertBanner>): Promise<Banner | null> {
+    const [updated] = await db.update(schema.banners)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.banners.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteBanner(id: number): Promise<void> {
+    await db.delete(schema.banners).where(eq(schema.banners.id, id));
+  }
+
+  // Site Content Methods
+  async getSiteContent(page: string, section: string): Promise<SiteContent | null> {
+    const [content] = await db.select().from(schema.siteContent)
+      .where(and(
+        eq(schema.siteContent.page, page),
+        eq(schema.siteContent.section, section)
+      ))
+      .limit(1);
+    return content || null;
+  }
+
+  async getAllSiteContent(): Promise<SiteContent[]> {
+    return db.select().from(schema.siteContent)
+      .orderBy(asc(schema.siteContent.page), asc(schema.siteContent.section));
+  }
+
+  async upsertSiteContent(data: InsertSiteContent): Promise<SiteContent> {
+    const existing = await this.getSiteContent(data.page, data.section);
+    if (existing) {
+      const [updated] = await db.update(schema.siteContent)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.siteContent.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(schema.siteContent)
+      .values(data)
+      .returning();
+    return created;
   }
 }
 

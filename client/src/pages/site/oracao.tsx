@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { 
   Heart,
@@ -9,8 +10,11 @@ import {
   CheckCircle,
   Shield,
   Lock,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +61,7 @@ type PrayerFormValues = z.infer<typeof prayerFormSchema>;
 
 export default function OracaoPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<PrayerFormValues>({
     resolver: zodResolver(prayerFormSchema),
@@ -73,14 +77,30 @@ export default function OracaoPage() {
 
   const isAnonymous = form.watch("isAnonymous");
 
-  const onSubmit = async (data: PrayerFormValues) => {
-    setIsSubmitting(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log("Prayer request submitted:", data);
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+  const submitMutation = useMutation({
+    mutationFn: async (data: PrayerFormValues) => {
+      return apiRequest("POST", "/api/site/prayer-requests", {
+        name: data.name,
+        whatsapp: data.whatsapp,
+        category: data.category,
+        request: data.request,
+        isAnonymous: data.isAnonymous,
+      });
+    },
+    onSuccess: () => {
+      setIsSubmitted(true);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Nao foi possivel enviar seu pedido. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: PrayerFormValues) => {
+    submitMutation.mutate(data);
   };
 
   const handleNewRequest = () => {
@@ -298,11 +318,14 @@ export default function OracaoPage() {
                         <Button 
                           type="submit" 
                           className="w-full gap-2"
-                          disabled={isSubmitting}
+                          disabled={submitMutation.isPending}
                           data-testid="button-submit-prayer"
                         >
-                          {isSubmitting ? (
-                            <>Enviando...</>
+                          {submitMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Enviando...
+                            </>
                           ) : (
                             <>
                               <Send className="h-4 w-4" />

@@ -2940,6 +2940,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== NOTIFICATION ENDPOINTS ====================
+
+  // Subscribe to push notifications
+  app.post("/api/notifications/subscribe", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { endpoint, p256dh, auth } = req.body;
+      
+      if (!endpoint || !p256dh || !auth) {
+        return res.status(400).json({ message: "Dados de inscricao invalidos" });
+      }
+      
+      storage.savePushSubscription(userId, endpoint, p256dh, auth);
+      
+      res.json({ message: "Inscrito para notificacoes com sucesso" });
+    } catch (error) {
+      console.error("Subscribe push error:", error);
+      res.status(500).json({ message: "Erro ao inscrever para notificacoes" });
+    }
+  });
+
+  // Unsubscribe from push notifications
+  app.post("/api/notifications/unsubscribe", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { endpoint } = req.body;
+      
+      if (!endpoint) {
+        return res.status(400).json({ message: "Endpoint nao fornecido" });
+      }
+      
+      storage.removePushSubscription(userId, endpoint);
+      
+      res.json({ message: "Desinscrito de notificacoes com sucesso" });
+    } catch (error) {
+      console.error("Unsubscribe push error:", error);
+      res.status(500).json({ message: "Erro ao desinscrever de notificacoes" });
+    }
+  });
+
+  // Get user notifications
+  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const notifications = storage.getUserNotifications(userId, limit, offset);
+      const unreadCount = storage.getUnreadNotificationCount(userId);
+      
+      res.json({
+        notifications,
+        unreadCount,
+        hasMore: notifications.length === limit,
+      });
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ message: "Erro ao buscar notificacoes" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const notificationId = parseInt(req.params.id);
+      
+      storage.markNotificationRead(userId, notificationId);
+      
+      res.json({ message: "Notificacao marcada como lida" });
+    } catch (error) {
+      console.error("Mark notification read error:", error);
+      res.status(500).json({ message: "Erro ao marcar notificacao como lida" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      storage.markAllNotificationsRead(userId);
+      
+      res.json({ message: "Todas as notificacoes marcadas como lidas" });
+    } catch (error) {
+      console.error("Mark all notifications read error:", error);
+      res.status(500).json({ message: "Erro ao marcar notificacoes como lidas" });
+    }
+  });
+
+  // Delete notification
+  app.delete("/api/notifications/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const notificationId = parseInt(req.params.id);
+      
+      storage.deleteNotification(userId, notificationId);
+      
+      res.json({ message: "Notificacao removida" });
+    } catch (error) {
+      console.error("Delete notification error:", error);
+      res.status(500).json({ message: "Erro ao remover notificacao" });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/notifications/unread-count", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const count = storage.getUnreadNotificationCount(userId);
+      
+      res.json({ count });
+    } catch (error) {
+      console.error("Get unread count error:", error);
+      res.status(500).json({ message: "Erro ao buscar contagem de notificacoes" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 interface StudyProfile {
   id: number;
@@ -114,15 +115,20 @@ function UserProfileHeader({
             </div>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 15 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 rounded-full bg-white/20"
-            onClick={() => setLocation('/study/profile')}
-            data-testid="button-settings"
-          >
-            <Settings className="h-5 w-5 text-white" />
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-full bg-white/20">
+              <NotificationCenter />
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 15 }}
+              whileTap={{ scale: 0.9 }}
+              className="p-2 rounded-full bg-white/20"
+              onClick={() => setLocation('/study/profile')}
+              data-testid="button-settings"
+            >
+              <Settings className="h-5 w-5 text-white" />
+            </motion.button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-4 flex-wrap">

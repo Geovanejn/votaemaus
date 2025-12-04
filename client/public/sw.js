@@ -231,3 +231,119 @@ self.addEventListener('message', (event) => {
     });
   }
 });
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received');
+  
+  let data = {
+    title: 'Emaus Vota',
+    body: 'Voce tem uma nova notificacao!',
+    icon: '/logo.png',
+    badge: '/favicon.png',
+    tag: 'default',
+    data: {}
+  };
+  
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch (e) {
+      console.log('[SW] Error parsing push data:', e);
+      data.body = event.data.text();
+    }
+  }
+  
+  const options = {
+    body: data.body,
+    icon: data.icon || '/logo.png',
+    badge: data.badge || '/favicon.png',
+    tag: data.tag || 'default',
+    data: data.data || {},
+    vibrate: [100, 50, 100],
+    actions: data.actions || [],
+    requireInteraction: data.requireInteraction || false,
+    renotify: true
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.notification.tag);
+  
+  event.notification.close();
+  
+  const data = event.notification.data || {};
+  let url = '/';
+  
+  // Route based on notification type
+  if (data.type === 'streak_reminder') {
+    url = '/study';
+  } else if (data.type === 'lesson_available') {
+    url = data.lessonId ? `/study/lesson/${data.lessonId}` : '/study';
+  } else if (data.type === 'achievement') {
+    url = '/study/achievements';
+  } else if (data.type === 'election') {
+    url = '/vote';
+  } else if (data.url) {
+    url = data.url;
+  }
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if app is already open
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin)) {
+          client.focus();
+          client.navigate(url);
+          return;
+        }
+      }
+      // Open new window if not found
+      return clients.openWindow(url);
+    })
+  );
+});
+
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed:', event.notification.tag);
+});
+
+// Handle push subscription change
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('[SW] Push subscription changed');
+  
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(self.VAPID_PUBLIC_KEY || '')
+    }).then((subscription) => {
+      // Send new subscription to server
+      return fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
+    })
+  );
+});
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  
+  return outputArray;
+}

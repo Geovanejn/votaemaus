@@ -3066,6 +3066,110 @@ export class SQLiteStorage implements IStorage {
       isActive: Boolean(row.is_active)
     };
   }
+
+  // ==================== PUSH NOTIFICATIONS ====================
+
+  savePushSubscription(userId: number, endpoint: string, p256dh: string, auth: string): void {
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO push_subscriptions (user_id, endpoint, p256dh, auth, created_at, last_used)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `);
+    stmt.run(userId, endpoint, p256dh, auth);
+  }
+
+  removePushSubscription(userId: number, endpoint: string): void {
+    db.prepare("DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?").run(userId, endpoint);
+  }
+
+  getPushSubscriptionsByUser(userId: number): any[] {
+    const rows = db.prepare("SELECT * FROM push_subscriptions WHERE user_id = ?").all(userId) as any[];
+    return rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      endpoint: row.endpoint,
+      p256dh: row.p256dh,
+      auth: row.auth,
+      createdAt: row.created_at,
+      lastUsed: row.last_used,
+    }));
+  }
+
+  getAllPushSubscriptions(): any[] {
+    const rows = db.prepare("SELECT * FROM push_subscriptions").all() as any[];
+    return rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      endpoint: row.endpoint,
+      p256dh: row.p256dh,
+      auth: row.auth,
+      createdAt: row.created_at,
+      lastUsed: row.last_used,
+    }));
+  }
+
+  // ==================== IN-APP NOTIFICATIONS ====================
+
+  createNotification(userId: number, type: string, title: string, body: string, data?: any): number {
+    const stmt = db.prepare(`
+      INSERT INTO notifications (user_id, type, title, body, data, read, created_at)
+      VALUES (?, ?, ?, ?, ?, 0, datetime('now'))
+      RETURNING id
+    `);
+    const result = stmt.get(userId, type, title, body, data ? JSON.stringify(data) : null) as any;
+    return result.id;
+  }
+
+  getUserNotifications(userId: number, limit: number = 20, offset: number = 0): any[] {
+    const rows = db.prepare(`
+      SELECT * FROM notifications 
+      WHERE user_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT ? OFFSET ?
+    `).all(userId, limit, offset) as any[];
+    
+    return rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      type: row.type,
+      title: row.title,
+      body: row.body,
+      data: row.data ? JSON.parse(row.data) : null,
+      read: Boolean(row.read),
+      readAt: row.read_at,
+      createdAt: row.created_at,
+    }));
+  }
+
+  getUnreadNotificationCount(userId: number): number {
+    const result = db.prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0").get(userId) as any;
+    return result.count;
+  }
+
+  markNotificationRead(userId: number, notificationId: number): void {
+    db.prepare(`
+      UPDATE notifications SET read = 1, read_at = datetime('now') 
+      WHERE id = ? AND user_id = ?
+    `).run(notificationId, userId);
+  }
+
+  markAllNotificationsRead(userId: number): void {
+    db.prepare(`
+      UPDATE notifications SET read = 1, read_at = datetime('now') 
+      WHERE user_id = ? AND read = 0
+    `).run(userId);
+  }
+
+  deleteNotification(userId: number, notificationId: number): void {
+    db.prepare("DELETE FROM notifications WHERE id = ? AND user_id = ?").run(notificationId, userId);
+  }
+
+  deleteOldNotifications(daysOld: number = 30): number {
+    const result = db.prepare(`
+      DELETE FROM notifications 
+      WHERE created_at < datetime('now', '-' || ? || ' days')
+    `).run(daysOld);
+    return result.changes;
+  }
 }
 
 export const storage = new SQLiteStorage();

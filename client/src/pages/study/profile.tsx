@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
-  SoundSettings 
+  SoundSettings,
+  NotificationSettings 
 } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -454,7 +455,10 @@ export default function ProfilePage() {
           transition={{ delay: 0.7 }}
         >
           <h2 className="text-xl font-black text-foreground mb-3">Preferencias</h2>
-          <SoundSettings />
+          <div className="space-y-3">
+            <SoundSettings />
+            <NotificationSettings />
+          </div>
         </motion.div>
 
         <motion.div

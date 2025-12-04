@@ -59,12 +59,43 @@ The architecture is designed for expandability, supporting future modules for Se
 - User preference toggle with localStorage persistence
 - Integrated with achievement notification system
 
+### Push Notifications System (December 2024)
+- Complete push notification infrastructure with VAPID keys
+- `usePushNotifications` hook for managing subscriptions
+- Backend routes for subscribe/unsubscribe at `/api/notifications/*`
+- Service worker push event handlers with routing
+- NotificationSettings component in user profile
+
+### In-App Notification Center
+- NotificationCenter component in study page header
+- Full CRUD operations for notifications
+- Unread count badge with real-time updates
+- Mark as read, mark all, delete functionality
+
+### Performance Optimizations
+- React.lazy for lazy loading all pages
+- Suspense with animated fallback loader
+- Skeleton loading components for various page types
+- Page transition animations with Framer Motion
+
+### UX Improvements
+- LoadingButton with state management (loading/success/error)
+- Enhanced loading states (Spinner, PulseLoader, FullPageLoader)
+- StatusMessage component for feedback
+- ProgressIndicator with animations
+
 ### Key Files
 - `server/seed-study-data.ts` - Achievement seeding with seedAchievements()
 - `client/src/pages/study/profile.tsx` - Profile with real data + preview fallback
 - `client/src/pages/study/achievements.tsx` - Achievements listing with filters
 - `client/src/components/study/AchievementNotification.tsx` - Unlock modal component
 - `client/public/manifest.json` - PWA manifest configuration
-- `client/public/sw.js` - Service worker for offline support
+- `client/public/sw.js` - Service worker for offline support and push notifications
 - `client/src/hooks/use-sounds.ts` - Sound feedback hook
+- `client/src/hooks/use-push-notifications.ts` - Push notification subscription hook
 - `client/src/components/study/SoundSettings.tsx` - Sound toggle UI component
+- `client/src/components/study/NotificationSettings.tsx` - Push notification toggle
+- `client/src/components/NotificationCenter.tsx` - In-app notification center
+- `client/src/components/PageTransition.tsx` - Page transition animations
+- `client/src/components/ui/skeleton-cards.tsx` - Skeleton loading components
+- `client/src/components/ui/loading-states.tsx` - Enhanced loading UI components

@@ -775,3 +775,59 @@ export type DailyMissionsStatus = {
   bonusXpAvailable: number;
   content?: DailyMissionContent;
 };
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+// Push Subscriptions table - stores push notification subscriptions
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(), // Public key
+  auth: text("auth").notNull(), // Auth secret
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  lastUsed: text("last_used"),
+}, (table) => ({
+  uniqueUserEndpoint: unique().on(table.userId, table.endpoint),
+}));
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  lastUsed: true,
+});
+
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// Notifications table - stores notification history
+export const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // streak_reminder, lesson_available, achievement, election, system
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  data: text("data"), // JSON with additional data
+  read: integer("read", { mode: "boolean" }).notNull().default(false),
+  readAt: text("read_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  read: true,
+  readAt: true,
+  createdAt: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
+// Notification types
+export type NotificationType = 
+  | "streak_reminder" 
+  | "lesson_available" 
+  | "achievement" 
+  | "election" 
+  | "birthday"
+  | "system";

@@ -12,6 +12,15 @@ import { motion } from "framer-motion";
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
 
+import SiteHomePage from "@/pages/site/home";
+import DevocionaisPage from "@/pages/site/devocionais";
+import DevocionalDetailPage from "@/pages/site/devocional-detail";
+import AgendaPage from "@/pages/site/agenda";
+import QuemSomosPage from "@/pages/site/quem-somos";
+import DiretoriaPage from "@/pages/site/diretoria";
+import OracaoPage from "@/pages/site/oracao";
+import MembroPage from "@/pages/site/membro";
+
 const AdminPage = lazy(() => import("@/pages/admin"));
 const VotePage = lazy(() => import("@/pages/vote"));
 const ResultsPage = lazy(() => import("@/pages/results"));
@@ -74,6 +83,15 @@ function Router() {
           <Route path="/study-preview/verses" component={VersesPage} />
           <Route path="/study-preview/lesson/:id" component={LessonPage} />
           <Route path="/study-preview/achievements" component={AchievementsPage} />
+          {/* Site Institucional - Public Routes */}
+          <Route path="/site" component={SiteHomePage} />
+          <Route path="/devocionais" component={DevocionaisPage} />
+          <Route path="/devocionais/:id" component={DevocionalDetailPage} />
+          <Route path="/agenda" component={AgendaPage} />
+          <Route path="/quem-somos" component={QuemSomosPage} />
+          <Route path="/diretoria" component={DiretoriaPage} />
+          <Route path="/oracao" component={OracaoPage} />
+          <Route path="/membro" component={MembroPage} />
           <Route path="/" component={LoginPage} />
           <Route>
             <Redirect to="/" />
@@ -101,6 +119,15 @@ function Router() {
           <Route path="/study/missions" component={MissionsPage} />
           <Route path="/study/missions/:missionId" component={MissionActivityPage} />
           <Route path="/study/achievements" component={AchievementsPage} />
+          {/* Site Institucional - Public Routes */}
+          <Route path="/site" component={SiteHomePage} />
+          <Route path="/devocionais" component={DevocionaisPage} />
+          <Route path="/devocionais/:id" component={DevocionalDetailPage} />
+          <Route path="/agenda" component={AgendaPage} />
+          <Route path="/quem-somos" component={QuemSomosPage} />
+          <Route path="/diretoria" component={DiretoriaPage} />
+          <Route path="/oracao" component={OracaoPage} />
+          <Route path="/membro" component={MembroPage} />
           <Route>
             <Redirect to="/admin" />
           </Route>
@@ -124,6 +151,15 @@ function Router() {
         <Route path="/study/missions" component={MissionsPage} />
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
         <Route path="/study/achievements" component={AchievementsPage} />
+        {/* Site Institucional - Public Routes */}
+        <Route path="/site" component={SiteHomePage} />
+        <Route path="/devocionais" component={DevocionaisPage} />
+        <Route path="/devocionais/:id" component={DevocionalDetailPage} />
+        <Route path="/agenda" component={AgendaPage} />
+        <Route path="/quem-somos" component={QuemSomosPage} />
+        <Route path="/diretoria" component={DiretoriaPage} />
+        <Route path="/oracao" component={OracaoPage} />
+        <Route path="/membro" component={MembroPage} />
         <Route>
           <Redirect to="/vote" />
         </Route>

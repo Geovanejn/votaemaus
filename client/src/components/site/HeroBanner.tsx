@@ -1,297 +1,197 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen, Calendar, Heart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 
-import devocionalBg1 from "@assets/Fundo Layout stories_1761783891823.png";
-import devocionalBg2 from "@assets/Layout stories_1761780888593.png";
-import devocionalBg3 from "@assets/fundo_1761781968067.png";
-import devocionalBg4 from "@assets/Sem Fundo Layout stories_1761780037463.png";
-
-interface BannerSlide {
+interface DevotionalData {
   id: number;
   title: string;
-  subtitle: string;
-  verse?: string;
-  verseReference?: string;
-  buttonText?: string;
-  buttonLink?: string;
-  secondaryButtonText?: string;
-  secondaryButtonLink?: string;
-  backgroundImage?: string;
-  icon?: React.ElementType;
+  verse: string;
+  verseReference: string;
+  imageUrl?: string;
 }
 
-const defaultSlides: BannerSlide[] = [
+const devotionals: DevotionalData[] = [
   {
     id: 1,
-    title: "Bem-vindo à UMP Emaús",
-    subtitle: "Unidos pela fé, servindo com amor",
-    buttonText: "Conheça-nos",
-    buttonLink: "/quem-somos",
-    secondaryButtonText: "Área do Membro",
-    secondaryButtonLink: "/membro",
-    backgroundImage: devocionalBg1,
-    icon: Users,
+    title: "A Força da Oração",
+    verse: "Orai sem cessar.",
+    verseReference: "1 Tessalonicenses 5:17",
   },
   {
     id: 2,
-    title: "A Força da Oração",
-    subtitle: "Devocional do Dia",
-    verse: "Orai sem cessar.",
-    verseReference: "1 Tessalonicenses 5:17",
-    buttonText: "Ler Devocional",
-    buttonLink: "/devocionais",
-    backgroundImage: devocionalBg2,
-    icon: BookOpen,
+    title: "Confiança em Deus",
+    verse: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.",
+    verseReference: "Provérbios 3:5",
   },
   {
     id: 3,
-    title: "Retiro Anual UMP",
-    subtitle: "20 a 22 de Dezembro",
-    verse: "Três dias de imersão na Palavra e comunhão",
-    buttonText: "Ver Agenda",
-    buttonLink: "/agenda",
-    backgroundImage: devocionalBg3,
-    icon: Calendar,
-  },
-  {
-    id: 4,
-    title: "Pedidos de Oração",
-    subtitle: "Compartilhe suas necessidades conosco",
-    verse: "A oração do justo é poderosa e eficaz.",
-    verseReference: "Tiago 5:16",
-    buttonText: "Enviar Pedido",
-    buttonLink: "/oracao",
-    backgroundImage: devocionalBg4,
-    icon: Heart,
+    title: "O Amor de Cristo",
+    verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito.",
+    verseReference: "João 3:16",
   },
 ];
 
-interface HeroBannerProps {
-  slides?: BannerSlide[];
-  autoPlayInterval?: number;
-}
-
-export function HeroBanner({ 
-  slides = defaultSlides, 
-  autoPlayInterval = 6000 
-}: HeroBannerProps) {
+export function HeroBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+
+  const goToNext = useCallback(() => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % devotionals.length);
+  }, []);
+
+  const goToPrev = useCallback(() => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + devotionals.length) % devotionals.length);
+  }, []);
+
+  const goToSlide = (index: number) => {
+    setDirection(index > currentIndex ? 1 : -1);
+    setCurrentIndex(index);
+  };
+
+  useEffect(() => {
+    const timer = setInterval(goToNext, 8000);
+    return () => clearInterval(timer);
+  }, [goToNext]);
+
+  const currentDevotional = devotionals[currentIndex];
 
   const slideVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
+      x: direction > 0 ? 100 : -100,
       opacity: 0,
     }),
     center: {
-      zIndex: 1,
       x: 0,
       opacity: 1,
     },
     exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
+      x: direction < 0 ? 100 : -100,
       opacity: 0,
     }),
   };
 
-  const paginate = useCallback((newDirection: number) => {
-    setDirection(newDirection);
-    setCurrentIndex((prevIndex) => {
-      if (newDirection === 1) {
-        return prevIndex === slides.length - 1 ? 0 : prevIndex + 1;
-      }
-      return prevIndex === 0 ? slides.length - 1 : prevIndex - 1;
-    });
-  }, [slides.length]);
-
-  useEffect(() => {
-    if (isPaused) return;
-    
-    const timer = setInterval(() => {
-      paginate(1);
-    }, autoPlayInterval);
-
-    return () => clearInterval(timer);
-  }, [isPaused, autoPlayInterval, paginate]);
-
-  const currentSlide = slides[currentIndex];
-  const IconComponent = currentSlide.icon;
-
   return (
-    <div 
-      className="relative w-full h-[70vh] md:h-[60vh] overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <AnimatePresence initial={false} custom={direction}>
-        <motion.div
-          key={currentSlide.id}
-          custom={direction}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.3 },
-          }}
-          className="absolute inset-0"
-        >
-          {currentSlide.backgroundImage && (
-            <div 
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(${currentSlide.backgroundImage})` }}
-            />
-          )}
+    <div className="relative w-full min-h-[500px] md:min-h-[550px] overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-500/15 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
+        <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2" />
+      </div>
+      
+      {currentDevotional.imageUrl && (
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+            style={{ backgroundImage: `url(${currentDevotional.imageUrl})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/60" />
+        </>
+      )}
+      
+      <div className="relative h-full container mx-auto px-4 py-16 md:py-20 flex flex-col justify-center">
+        <div className="max-w-2xl">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6"
+          >
+            <BookOpen className="h-4 w-4 text-primary" />
+            <span className="text-primary font-medium text-sm uppercase tracking-wider">
+              Devocional do Dia
+            </span>
+          </motion.div>
           
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/70 to-gray-900/30" />
-          
-          <div className="absolute inset-0 overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              className="absolute -top-20 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <motion.div
-              className="absolute -bottom-20 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"
-              animate={{
-                scale: [1.2, 1, 1.2],
-                opacity: [0.5, 0.3, 0.5],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </div>
-
-          <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-start text-left">
-            <div className="max-w-xl">
-              {IconComponent && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.4 }}
-                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-primary/30"
-                >
-                  <IconComponent className="h-7 w-7 text-white" />
-                </motion.div>
-              )}
-              
-              <motion.p
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.15, duration: 0.4 }}
-                className="text-sm md:text-base text-primary font-semibold uppercase tracking-wider mb-2"
-              >
-                {currentSlide.subtitle}
-              </motion.p>
-              
-              <motion.h1
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent"
+              key={currentDevotional.id}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+            >
+              <h1
+                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
                 data-testid="banner-title"
               >
-                {currentSlide.title}
-              </motion.h1>
+                {currentDevotional.title}
+              </h1>
               
-              {currentSlide.verse && (
-                <motion.blockquote
-                  initial={{ y: 30, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                  className="border-l-4 border-primary pl-4 py-2 mb-6"
-                >
-                  <p className="text-lg md:text-xl text-amber-200/90 italic font-medium">
-                    "{currentSlide.verse}"
-                  </p>
-                  {currentSlide.verseReference && (
-                    <cite className="text-sm text-gray-400 mt-1 block not-italic">
-                      - {currentSlide.verseReference}
-                    </cite>
-                  )}
-                </motion.blockquote>
-              )}
+              <blockquote className="border-l-4 border-primary pl-5 py-3 mb-8 bg-white/5 backdrop-blur-sm rounded-r-lg">
+                <p className="text-xl md:text-2xl text-white/90 italic font-light leading-relaxed">
+                  "{currentDevotional.verse}"
+                </p>
+                <cite className="text-base text-primary mt-3 block not-italic font-medium">
+                  — {currentDevotional.verseReference}
+                </cite>
+              </blockquote>
+            </motion.div>
+          </AnimatePresence>
 
-              <motion.div
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="flex flex-col sm:flex-row gap-4"
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            <Link href="/devocionais">
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8"
+                data-testid="banner-primary-button"
               >
-                {currentSlide.buttonText && currentSlide.buttonLink && (
-                  <Link href={currentSlide.buttonLink}>
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-primary to-amber-500 text-white font-semibold px-8 shadow-lg shadow-primary/40 border-0"
-                      data-testid="banner-primary-button"
-                    >
-                      {currentSlide.buttonText}
-                    </Button>
-                  </Link>
-                )}
-                {currentSlide.secondaryButtonText && currentSlide.secondaryButtonLink && (
-                  <Link href={currentSlide.secondaryButtonLink}>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 backdrop-blur-sm"
-                      data-testid="banner-secondary-button"
-                    >
-                      {currentSlide.secondaryButtonText}
-                    </Button>
-                  </Link>
-                )}
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+                Ler Devocional Completo
+              </Button>
+            </Link>
+            <Link href="/membro">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10 font-semibold px-8 backdrop-blur-sm"
+                data-testid="banner-secondary-button"
+              >
+                Área do Membro
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
 
       <button
-        onClick={() => paginate(-1)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-800/70 transition-colors"
+        onClick={goToPrev}
+        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors"
+        aria-label="Anterior"
         data-testid="banner-prev-button"
       >
-        <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
-      </button>
-      
-      <button
-        onClick={() => paginate(1)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-800/70 transition-colors"
-        data-testid="banner-next-button"
-      >
-        <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+        <ChevronLeft className="h-6 w-6" />
       </button>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
-        {slides.map((_, index) => (
+      <button
+        onClick={goToNext}
+        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors"
+        aria-label="Próximo"
+        data-testid="banner-next-button"
+      >
+        <ChevronRight className="h-6 w-6" />
+      </button>
+
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+        {devotionals.map((_, index) => (
           <button
             key={index}
-            onClick={() => {
-              setDirection(index > currentIndex ? 1 : -1);
-              setCurrentIndex(index);
-            }}
-            className={`h-2.5 rounded-full transition-all duration-300 ${
-              index === currentIndex 
-                ? "bg-gradient-to-r from-primary to-amber-500 w-10" 
-                : "bg-gray-500 hover:bg-gray-400 w-2.5"
+            onClick={() => goToSlide(index)}
+            className={`transition-all duration-300 ${
+              index === currentIndex
+                ? "w-8 h-2 bg-primary rounded-full"
+                : "w-2 h-2 bg-white/40 rounded-full hover:bg-white/60"
             }`}
+            aria-label={`Ir para slide ${index + 1}`}
             data-testid={`banner-dot-${index}`}
           />
         ))}

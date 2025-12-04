@@ -365,6 +365,34 @@ export type ElectionAuditData = {
   }>;
 };
 
+// ==================== DEVOCIONAIS ====================
+
+// Tabela de devocionais
+export const devotionals = sqliteTable("devotionals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  verse: text("verse").notNull(),
+  verseReference: text("verse_reference").notNull(),
+  content: text("content").notNull(),
+  summary: text("summary"),
+  imageUrl: text("image_url"),
+  author: text("author"),
+  publishedAt: text("published_at").notNull().default(sql`(datetime('now'))`),
+  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const insertDevotionalSchema = createInsertSchema(devotionals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDevotional = z.infer<typeof insertDevotionalSchema>;
+export type Devotional = typeof devotionals.$inferSelect;
+
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 
 // Perfil de gamificação do usuário

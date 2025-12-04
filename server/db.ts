@@ -633,6 +633,24 @@ export async function initializeDatabase() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    -- Devotionals (Site institucional)
+    CREATE TABLE IF NOT EXISTS devotionals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      verse TEXT NOT NULL,
+      verse_reference TEXT NOT NULL,
+      content TEXT NOT NULL,
+      summary TEXT,
+      image_url TEXT,
+      author TEXT,
+      published_at TEXT NOT NULL DEFAULT (datetime('now')),
+      is_published INTEGER NOT NULL DEFAULT 1,
+      created_by INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
   `);
   console.log("Study system tables created successfully");
 

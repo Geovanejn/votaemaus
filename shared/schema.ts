@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, integer, text, unique } from "drizzle-orm/sqlite-core";
+import { pgTable, serial, integer, text, boolean, unique, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import crypto from "crypto";
@@ -23,18 +23,18 @@ export function generatePdfVerificationHash(electionId: number, electionName: st
 export type Secretaria = "none" | "espiritualidade" | "marketing" | "acao_social" | "comunicacao" | "eventos" | null;
 
 // Users table
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  hasPassword: integer("has_password", { mode: "boolean" }).notNull().default(false),
+  hasPassword: boolean("has_password").notNull().default(false),
   photoUrl: text("photo_url"),
   birthdate: text("birthdate"),
-  isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
-  isMember: integer("is_member", { mode: "boolean" }).notNull().default(true),
-  activeMember: integer("active_member", { mode: "boolean" }).notNull().default(true),
-  secretaria: text("secretaria"), // espiritualidade, marketing, acao_social, comunicacao, eventos, none
+  isAdmin: boolean("is_admin").notNull().default(false),
+  isMember: boolean("is_member").notNull().default(true),
+  activeMember: boolean("active_member").notNull().default(true),
+  secretaria: text("secretaria"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -45,8 +45,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Positions table (fixed positions)
-export const positions = sqliteTable("positions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const positions = pgTable("positions", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
 });
 
@@ -58,22 +58,22 @@ export type InsertPosition = z.infer<typeof insertPositionSchema>;
 export type Position = typeof positions.$inferSelect;
 
 // Elections table
-export const elections = sqliteTable("elections", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const elections = pgTable("elections", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  closedAt: text("closed_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  closedAt: timestamp("closed_at"),
 });
 
 // Election Winners table - tracks which candidate won each position (for tie resolution in 3rd scrutiny)
-export const electionWinners = sqliteTable("election_winners", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const electionWinners = pgTable("election_winners", {
+  id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
   positionId: integer("position_id").notNull().references(() => positions.id),
   candidateId: integer("candidate_id").notNull().references(() => candidates.id),
-  wonAtScrutiny: integer("won_at_scrutiny").notNull(), // Which scrutiny this winner was chosen (1, 2, or 3)
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  wonAtScrutiny: integer("won_at_scrutiny").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertElectionSchema = createInsertSchema(elections).omit({
@@ -94,16 +94,16 @@ export type InsertElectionWinner = z.infer<typeof insertElectionWinnerSchema>;
 export type ElectionWinner = typeof electionWinners.$inferSelect;
 
 // Election Positions table - tracks each position within an election sequentially
-export const electionPositions = sqliteTable("election_positions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const electionPositions = pgTable("election_positions", {
+  id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
   positionId: integer("position_id").notNull().references(() => positions.id),
-  orderIndex: integer("order_index").notNull(), // Order in which positions are voted (0 = first)
-  status: text("status").notNull().default("pending"), // pending, active, completed
-  currentScrutiny: integer("current_scrutiny").notNull().default(1), // 1, 2, or 3
-  openedAt: text("opened_at"),
-  closedAt: text("closed_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  orderIndex: integer("order_index").notNull(),
+  status: text("status").notNull().default("pending"),
+  currentScrutiny: integer("current_scrutiny").notNull().default(1),
+  openedAt: timestamp("opened_at"),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertElectionPositionSchema = createInsertSchema(electionPositions).omit({
@@ -117,14 +117,14 @@ export type InsertElectionPosition = z.infer<typeof insertElectionPositionSchema
 export type ElectionPosition = typeof electionPositions.$inferSelect;
 
 // Election Attendance table - tracks which members are present for voting per position
-export const electionAttendance = sqliteTable("election_attendance", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const electionAttendance = pgTable("election_attendance", {
+  id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
-  electionPositionId: integer("election_position_id").references(() => electionPositions.id), // Link to specific position opening
+  electionPositionId: integer("election_position_id").references(() => electionPositions.id),
   memberId: integer("member_id").notNull().references(() => users.id),
-  isPresent: integer("is_present", { mode: "boolean" }).notNull().default(false),
-  markedAt: text("marked_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  isPresent: boolean("is_present").notNull().default(false),
+  markedAt: timestamp("marked_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertElectionAttendanceSchema = createInsertSchema(electionAttendance).omit({
@@ -136,15 +136,14 @@ export type InsertElectionAttendance = z.infer<typeof insertElectionAttendanceSc
 export type ElectionAttendance = typeof electionAttendance.$inferSelect;
 
 // Candidates table
-export const candidates = sqliteTable("candidates", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const candidates = pgTable("candidates", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull(), // Email to fetch Gravatar photo
-  userId: integer("user_id").notNull().references(() => users.id), // Reference to user
+  email: text("email").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   positionId: integer("position_id").notNull().references(() => positions.id),
   electionId: integer("election_id").notNull().references(() => elections.id),
 }, (table) => ({
-  // Prevent duplicate candidates for same user, position, and election
   uniqueCandidate: unique().on(table.userId, table.positionId, table.electionId),
 }));
 
@@ -156,14 +155,14 @@ export type InsertCandidate = z.infer<typeof insertCandidateSchema>;
 export type Candidate = typeof candidates.$inferSelect;
 
 // Votes table
-export const votes = sqliteTable("votes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const votes = pgTable("votes", {
+  id: serial("id").primaryKey(),
   voterId: integer("voter_id").notNull().references(() => users.id),
   candidateId: integer("candidate_id").notNull().references(() => candidates.id),
   positionId: integer("position_id").notNull().references(() => positions.id),
   electionId: integer("election_id").notNull().references(() => elections.id),
-  scrutinyRound: integer("scrutiny_round").notNull().default(1), // 1, 2, or 3
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  scrutinyRound: integer("scrutiny_round").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertVoteSchema = createInsertSchema(votes).omit({
@@ -175,13 +174,13 @@ export type InsertVote = z.infer<typeof insertVoteSchema>;
 export type Vote = typeof votes.$inferSelect;
 
 // Verification Codes table
-export const verificationCodes = sqliteTable("verification_codes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const verificationCodes = pgTable("verification_codes", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull(),
   code: text("code").notNull(),
-  expiresAt: text("expires_at").notNull(),
-  isPasswordReset: integer("is_password_reset", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  expiresAt: timestamp("expires_at").notNull(),
+  isPasswordReset: boolean("is_password_reset").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertVerificationCodeSchema = createInsertSchema(verificationCodes).omit({
@@ -193,12 +192,12 @@ export type InsertVerificationCode = z.infer<typeof insertVerificationCodeSchema
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 
 // PDF Verification table
-export const pdfVerifications = sqliteTable("pdf_verifications", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const pdfVerifications = pgTable("pdf_verifications", {
+  id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
   verificationHash: text("verification_hash").notNull().unique(),
   presidentName: text("president_name"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertPdfVerificationSchema = createInsertSchema(pdfVerifications).omit({
@@ -296,20 +295,20 @@ export type ElectionResults = {
   electionName: string;
   isActive: boolean;
   currentScrutiny: number;
-  presentCount: number; // Number of members present
-  createdAt: string; // Election opening date/time
-  closedAt: string | null; // Election closing date/time
+  presentCount: number;
+  createdAt: string;
+  closedAt: string | null;
   positions: Array<{
     positionId: number;
     positionName: string;
-    status: string; // pending, active, completed
-    currentScrutiny: number; // Current scrutiny for this position
-    orderIndex: number; // Order in which position is voted
-    totalVoters: number; // Total number of voters in this scrutiny
-    majorityThreshold: number; // Half + 1 (for scrutiny 1&2) or simple majority (scrutiny 3)
-    needsNextScrutiny: boolean; // If no candidate reached majority
-    winnerId?: number; // ID of elected candidate (if any)
-    winnerScrutiny?: number; // Which scrutiny elected the winner
+    status: string;
+    currentScrutiny: number;
+    orderIndex: number;
+    totalVoters: number;
+    majorityThreshold: number;
+    needsNextScrutiny: boolean;
+    winnerId?: number;
+    winnerScrutiny?: number;
     candidates: Array<{
       candidateId: number;
       candidateName: string;
@@ -317,8 +316,8 @@ export type ElectionResults = {
       photoUrl: string;
       voteCount: number;
       isElected: boolean;
-      electedInScrutiny?: number; // 1, 2, or 3
-      wonAtScrutiny?: number; // Alias for electedInScrutiny
+      electedInScrutiny?: number;
+      wonAtScrutiny?: number;
     }>;
   }>;
 };
@@ -371,23 +370,22 @@ export type ElectionAuditData = {
 
 // ==================== DEVOCIONAIS ====================
 
-// Tabela de devocionais
-export const devotionals = sqliteTable("devotionals", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const devotionals = pgTable("devotionals", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   verse: text("verse").notNull(),
   verseReference: text("verse_reference").notNull(),
   content: text("content").notNull(),
   summary: text("summary"),
-  prayer: text("prayer"), // Oracao sugerida
+  prayer: text("prayer"),
   imageUrl: text("image_url"),
   author: text("author"),
-  publishedAt: text("published_at").notNull().default(sql`(datetime('now'))`),
-  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
-  isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false), // Destaque do dia
+  publishedAt: timestamp("published_at").notNull().defaultNow(),
+  isPublished: boolean("is_published").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
   createdBy: integer("created_by").references(() => users.id),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertDevotionalSchema = createInsertSchema(devotionals).omit({
@@ -401,11 +399,10 @@ export type Devotional = typeof devotionals.$inferSelect;
 
 // ==================== EVENTOS ====================
 
-// Categorias de eventos
 export type EventCategory = "geral" | "culto" | "retiro" | "estudo" | "social" | "confraternizacao";
 
-export const siteEvents = sqliteTable("site_events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const siteEvents = pgTable("site_events", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   shortDescription: text("short_description"),
@@ -414,16 +411,16 @@ export const siteEvents = sqliteTable("site_events", {
   endDate: text("end_date"),
   time: text("time"),
   location: text("location"),
-  locationUrl: text("location_url"), // Link do Google Maps
-  price: text("price"), // "Gratuito", "R$ 50"
-  registrationUrl: text("registration_url"), // Link para inscricao
-  category: text("category").notNull().default("geral"), // geral, culto, retiro, estudo, social, confraternizacao
-  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
-  isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false), // Aparece no banner
-  isAllDay: integer("is_all_day", { mode: "boolean" }).notNull().default(false),
+  locationUrl: text("location_url"),
+  price: text("price"),
+  registrationUrl: text("registration_url"),
+  category: text("category").notNull().default("geral"),
+  isPublished: boolean("is_published").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  isAllDay: boolean("is_all_day").notNull().default(false),
   createdBy: integer("created_by").references(() => users.id),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertSiteEventSchema = createInsertSchema(siteEvents).omit({
@@ -437,14 +434,14 @@ export type SiteEvent = typeof siteEvents.$inferSelect;
 
 // ==================== POSTS INSTAGRAM ====================
 
-export const instagramPosts = sqliteTable("instagram_posts", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const instagramPosts = pgTable("instagram_posts", {
+  id: serial("id").primaryKey(),
   caption: text("caption"),
   imageUrl: text("image_url").notNull(),
   permalink: text("permalink"),
-  postedAt: text("posted_at").notNull().default(sql`(datetime('now'))`),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  postedAt: timestamp("posted_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertInstagramPostSchema = createInsertSchema(instagramPosts).omit({
@@ -457,23 +454,22 @@ export type InstagramPost = typeof instagramPosts.$inferSelect;
 
 // ==================== PEDIDOS DE ORACAO ====================
 
-// Categorias de pedidos de oracao
 export type PrayerCategory = "saude" | "familia" | "trabalho" | "espiritual" | "relacionamento" | "outros";
 export type PrayerStatus = "pending" | "praying" | "answered" | "archived";
 
-export const prayerRequests = sqliteTable("prayer_requests", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name"), // Nome de quem enviou (opcional se anonimo)
+export const prayerRequests = pgTable("prayer_requests", {
+  id: serial("id").primaryKey(),
+  name: text("name"),
   whatsapp: text("whatsapp"),
-  category: text("category").notNull().default("outros"), // saude, familia, trabalho, espiritual, relacionamento, outros
+  category: text("category").notNull().default("outros"),
   request: text("request").notNull(),
-  isAnonymous: integer("is_anonymous", { mode: "boolean" }).notNull().default(false),
-  status: text("status").notNull().default("pending"), // pending, praying, answered, archived
-  notes: text("notes"), // Notas internas da equipe
+  isAnonymous: boolean("is_anonymous").notNull().default(false),
+  status: text("status").notNull().default("pending"),
+  notes: text("notes"),
   prayedBy: integer("prayed_by").references(() => users.id),
-  prayedAt: text("prayed_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  prayedAt: timestamp("prayed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertPrayerRequestSchema = createInsertSchema(prayerRequests).omit({
@@ -487,21 +483,21 @@ export type PrayerRequest = typeof prayerRequests.$inferSelect;
 
 // ==================== BANNERS DO CARROSSEL ====================
 
-export const banners = sqliteTable("banners", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const banners = pgTable("banners", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   subtitle: text("subtitle"),
   imageUrl: text("image_url"),
-  backgroundColor: text("background_color"), // Cor de fundo se nao houver imagem
+  backgroundColor: text("background_color"),
   linkUrl: text("link_url"),
   linkText: text("link_text"),
   orderIndex: integer("order_index").notNull().default(0),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  startsAt: text("starts_at"), // Data de inicio (agendado)
-  endsAt: text("ends_at"), // Data de fim (agendado)
+  isActive: boolean("is_active").notNull().default(true),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
   createdBy: integer("created_by").references(() => users.id),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertBannerSchema = createInsertSchema(banners).omit({
@@ -515,24 +511,23 @@ export type Banner = typeof banners.$inferSelect;
 
 // ==================== MEMBROS DA DIRETORIA ====================
 
-// Cargos da diretoria
 export type BoardPosition = "presidente" | "vice_presidente" | "primeiro_secretario" | "segundo_secretario" | "tesoureiro" | "conselheiro";
 
-export const boardMembers = sqliteTable("board_members", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").references(() => users.id), // Pode ser null se nao tiver usuario
+export const boardMembers = pgTable("board_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
-  position: text("position").notNull(), // presidente, vice_presidente, primeiro_secretario, etc
+  position: text("position").notNull(),
   photoUrl: text("photo_url"),
   instagram: text("instagram"),
   whatsapp: text("whatsapp"),
   bio: text("bio"),
-  termStart: text("term_start").notNull(), // Ano de inicio (ex: "2024")
-  termEnd: text("term_end").notNull(), // Ano de fim (ex: "2025")
+  termStart: text("term_start").notNull(),
+  termEnd: text("term_end").notNull(),
   orderIndex: integer("order_index").notNull().default(0),
-  isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  isCurrent: boolean("is_current").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({
@@ -546,16 +541,16 @@ export type BoardMember = typeof boardMembers.$inferSelect;
 
 // ==================== CONTEUDO DO SITE ====================
 
-export const siteContent = sqliteTable("site_content", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  page: text("page").notNull(), // quem-somos, contato, footer
-  section: text("section").notNull(), // historia, missao, visao, valores, localizacao
+export const siteContent = pgTable("site_content", {
+  id: serial("id").primaryKey(),
+  page: text("page").notNull(),
+  section: text("section").notNull(),
   title: text("title"),
   content: text("content"),
   imageUrl: text("image_url"),
-  metadata: text("metadata"), // JSON string para dados adicionais
+  metadata: text("metadata"),
   updatedBy: integer("updated_by").references(() => users.id),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   uniquePageSection: unique().on(table.page, table.section),
 }));
@@ -570,9 +565,8 @@ export type SiteContent = typeof siteContent.$inferSelect;
 
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 
-// Perfil de gamificação do usuário
-export const studyProfiles = sqliteTable("study_profiles", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const studyProfiles = pgTable("study_profiles", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   totalXp: integer("total_xp").notNull().default(0),
   currentLevel: integer("current_level").notNull().default(1),
@@ -580,12 +574,12 @@ export const studyProfiles = sqliteTable("study_profiles", {
   longestStreak: integer("longest_streak").notNull().default(0),
   hearts: integer("hearts").notNull().default(5),
   heartsMax: integer("hearts_max").notNull().default(5),
-  heartsRefillAt: text("hearts_refill_at"),
+  heartsRefillAt: timestamp("hearts_refill_at"),
   lastActivityDate: text("last_activity_date"),
   dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
   timezone: text("timezone").notNull().default("America/Sao_Paulo"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   uniqueUser: unique().on(table.userId),
 }));
@@ -599,20 +593,19 @@ export const insertStudyProfileSchema = createInsertSchema(studyProfiles).omit({
 export type InsertStudyProfile = z.infer<typeof insertStudyProfileSchema>;
 export type StudyProfile = typeof studyProfiles.$inferSelect;
 
-// Semanas de estudo
-export const studyWeeks = sqliteTable("study_weeks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const studyWeeks = pgTable("study_weeks", {
+  id: serial("id").primaryKey(),
   weekNumber: integer("week_number").notNull(),
   year: integer("year").notNull(),
   title: text("title").notNull(),
   description: text("description"),
   pdfUrl: text("pdf_url"),
-  status: text("status").notNull().default("draft"), // processing, draft, published, archived
-  publishedAt: text("published_at"),
+  status: text("status").notNull().default("draft"),
+  publishedAt: timestamp("published_at"),
   createdBy: integer("created_by").references(() => users.id),
-  aiMetadata: text("ai_metadata"), // JSON string
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  aiMetadata: text("ai_metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   uniqueWeek: unique().on(table.weekNumber, table.year),
 }));
@@ -626,22 +619,21 @@ export const insertStudyWeekSchema = createInsertSchema(studyWeeks).omit({
 export type InsertStudyWeek = z.infer<typeof insertStudyWeekSchema>;
 export type StudyWeek = typeof studyWeeks.$inferSelect;
 
-// Lições dentro de cada semana
-export const studyLessons = sqliteTable("study_lessons", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const studyLessons = pgTable("study_lessons", {
+  id: serial("id").primaryKey(),
   studyWeekId: integer("study_week_id").notNull().references(() => studyWeeks.id),
   orderIndex: integer("order_index").notNull(),
   title: text("title").notNull(),
-  type: text("type").notNull().default("study"), // intro, study, meditation, challenge, review
+  type: text("type").notNull().default("study"),
   description: text("description"),
   xpReward: integer("xp_reward").notNull().default(10),
   estimatedMinutes: integer("estimated_minutes").notNull().default(5),
   icon: text("icon"),
-  isBonus: integer("is_bonus", { mode: "boolean" }).notNull().default(false),
-  isLocked: integer("is_locked", { mode: "boolean" }).notNull().default(true), // Admin controls lesson availability
-  unlockDate: text("unlock_date"), // Optional scheduled unlock date
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  isBonus: boolean("is_bonus").notNull().default(false),
+  isLocked: boolean("is_locked").notNull().default(true),
+  unlockDate: timestamp("unlock_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertStudyLessonSchema = createInsertSchema(studyLessons).omit({
@@ -653,15 +645,14 @@ export const insertStudyLessonSchema = createInsertSchema(studyLessons).omit({
 export type InsertStudyLesson = z.infer<typeof insertStudyLessonSchema>;
 export type StudyLesson = typeof studyLessons.$inferSelect;
 
-// Unidades/Exercícios dentro de cada lição
-export const studyUnits = sqliteTable("study_units", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const studyUnits = pgTable("study_units", {
+  id: serial("id").primaryKey(),
   lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
   orderIndex: integer("order_index").notNull(),
-  type: text("type").notNull(), // text, multiple_choice, true_false, fill_blank, meditation, reflection, verse
-  content: text("content").notNull(), // JSON string with exercise content
+  type: text("type").notNull(),
+  content: text("content").notNull(),
   xpValue: integer("xp_value").notNull().default(2),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertStudyUnitSchema = createInsertSchema(studyUnits).omit({
@@ -672,14 +663,13 @@ export const insertStudyUnitSchema = createInsertSchema(studyUnits).omit({
 export type InsertStudyUnit = z.infer<typeof insertStudyUnitSchema>;
 export type StudyUnit = typeof studyUnits.$inferSelect;
 
-// Versículos para recuperar vidas
-export const bibleVerses = sqliteTable("bible_verses", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  reference: text("reference").notNull(), // "João 3:16"
+export const bibleVerses = pgTable("bible_verses", {
+  id: serial("id").primaryKey(),
+  reference: text("reference").notNull(),
   text: text("text").notNull(),
   reflection: text("reflection"),
-  category: text("category"), // fé, amor, esperança
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  category: text("category"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertBibleVerseSchema = createInsertSchema(bibleVerses).omit({
@@ -690,17 +680,16 @@ export const insertBibleVerseSchema = createInsertSchema(bibleVerses).omit({
 export type InsertBibleVerse = z.infer<typeof insertBibleVerseSchema>;
 export type BibleVerse = typeof bibleVerses.$inferSelect;
 
-// Progresso do usuário em cada lição
-export const userLessonProgress = sqliteTable("user_lesson_progress", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userLessonProgress = pgTable("user_lesson_progress", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
-  status: text("status").notNull().default("locked"), // locked, available, in_progress, completed
-  startedAt: text("started_at"),
-  completedAt: text("completed_at"),
+  status: text("status").notNull().default("locked"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
   xpEarned: integer("xp_earned").notNull().default(0),
   mistakesCount: integer("mistakes_count").notNull().default(0),
-  perfectScore: integer("perfect_score", { mode: "boolean" }).notNull().default(false),
+  perfectScore: boolean("perfect_score").notNull().default(false),
   timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
 }, (table) => ({
   uniqueUserLesson: unique().on(table.userId, table.lessonId),
@@ -713,16 +702,15 @@ export const insertUserLessonProgressSchema = createInsertSchema(userLessonProgr
 export type InsertUserLessonProgress = z.infer<typeof insertUserLessonProgressSchema>;
 export type UserLessonProgress = typeof userLessonProgress.$inferSelect;
 
-// Progresso do usuário em cada unidade
-export const userUnitProgress = sqliteTable("user_unit_progress", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userUnitProgress = pgTable("user_unit_progress", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   unitId: integer("unit_id").notNull().references(() => studyUnits.id),
-  isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
-  answerGiven: text("answer_given"), // JSON string
-  isCorrect: integer("is_correct", { mode: "boolean" }),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  answerGiven: text("answer_given"),
+  isCorrect: boolean("is_correct"),
   attempts: integer("attempts").notNull().default(0),
-  completedAt: text("completed_at"),
+  completedAt: timestamp("completed_at"),
 }, (table) => ({
   uniqueUserUnit: unique().on(table.userId, table.unitId),
 }));
@@ -734,12 +722,11 @@ export const insertUserUnitProgressSchema = createInsertSchema(userUnitProgress)
 export type InsertUserUnitProgress = z.infer<typeof insertUserUnitProgressSchema>;
 export type UserUnitProgress = typeof userUnitProgress.$inferSelect;
 
-// Registro de leitura de versículos (para recuperar vidas)
-export const verseReadings = sqliteTable("verse_readings", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const verseReadings = pgTable("verse_readings", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   verseId: integer("verse_id").notNull().references(() => bibleVerses.id),
-  readAt: text("read_at").notNull().default(sql`(datetime('now'))`),
+  readAt: timestamp("read_at").notNull().defaultNow(),
   heartsRecovered: integer("hearts_recovered").notNull().default(1),
 });
 
@@ -751,15 +738,14 @@ export const insertVerseReadingSchema = createInsertSchema(verseReadings).omit({
 export type InsertVerseReading = z.infer<typeof insertVerseReadingSchema>;
 export type VerseReading = typeof verseReadings.$inferSelect;
 
-// Transações de XP
-export const xpTransactions = sqliteTable("xp_transactions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const xpTransactions = pgTable("xp_transactions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   amount: integer("amount").notNull(),
-  source: text("source").notNull(), // lesson, challenge, streak_bonus, achievement, perfect_lesson
+  source: text("source").notNull(),
   sourceId: integer("source_id"),
   description: text("description"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertXpTransactionSchema = createInsertSchema(xpTransactions).omit({
@@ -770,15 +756,14 @@ export const insertXpTransactionSchema = createInsertSchema(xpTransactions).omit
 export type InsertXpTransaction = z.infer<typeof insertXpTransactionSchema>;
 export type XpTransaction = typeof xpTransactions.$inferSelect;
 
-// Registro diário de atividade (para streak)
-export const dailyActivity = sqliteTable("daily_activity", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const dailyActivity = pgTable("daily_activity", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   activityDate: text("activity_date").notNull(),
   minutesStudied: integer("minutes_studied").notNull().default(0),
   lessonsCompleted: integer("lessons_completed").notNull().default(0),
   xpEarned: integer("xp_earned").notNull().default(0),
-  streakMaintained: integer("streak_maintained", { mode: "boolean" }).notNull().default(false),
+  streakMaintained: boolean("streak_maintained").notNull().default(false),
 }, (table) => ({
   uniqueUserDate: unique().on(table.userId, table.activityDate),
 }));
@@ -790,17 +775,16 @@ export const insertDailyActivitySchema = createInsertSchema(dailyActivity).omit(
 export type InsertDailyActivity = z.infer<typeof insertDailyActivitySchema>;
 export type DailyActivity = typeof dailyActivity.$inferSelect;
 
-// Conquistas disponíveis
-export const achievements = sqliteTable("achievements", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const achievements = pgTable("achievements", {
+  id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon"),
   xpReward: integer("xp_reward").notNull().default(0),
-  category: text("category").notNull(), // streak, xp, lessons, special
-  requirement: text("requirement"), // JSON string with requirement conditions
-  isSecret: integer("is_secret", { mode: "boolean" }).notNull().default(false),
+  category: text("category").notNull(),
+  requirement: text("requirement"),
+  isSecret: boolean("is_secret").notNull().default(false),
 });
 
 export const insertAchievementSchema = createInsertSchema(achievements).omit({
@@ -810,12 +794,11 @@ export const insertAchievementSchema = createInsertSchema(achievements).omit({
 export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
 export type Achievement = typeof achievements.$inferSelect;
 
-// Conquistas do usuário
-export const userAchievements = sqliteTable("user_achievements", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   achievementId: integer("achievement_id").notNull().references(() => achievements.id),
-  unlockedAt: text("unlocked_at").notNull().default(sql`(datetime('now'))`),
+  unlockedAt: timestamp("unlocked_at").notNull().defaultNow(),
 }, (table) => ({
   uniqueUserAchievement: unique().on(table.userId, table.achievementId),
 }));
@@ -828,15 +811,14 @@ export const insertUserAchievementSchema = createInsertSchema(userAchievements).
 export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
 export type UserAchievement = typeof userAchievements.$inferSelect;
 
-// Leaderboard entries
-export const leaderboardEntries = sqliteTable("leaderboard_entries", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const leaderboardEntries = pgTable("leaderboard_entries", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  periodType: text("period_type").notNull(), // weekly, monthly, all_time
-  periodKey: text("period_key").notNull(), // "2024-W48", "2024-12", "all"
+  periodType: text("period_type").notNull(),
+  periodKey: text("period_key").notNull(),
   xpEarned: integer("xp_earned").notNull().default(0),
   rankPosition: integer("rank_position"),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   uniqueUserPeriod: unique().on(table.userId, table.periodType, table.periodKey),
 }));
@@ -851,32 +833,30 @@ export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;
 
 // ==================== SISTEMA DE MISSÕES DIÁRIAS ====================
 
-// Tipos de missões disponíveis
 export const missionTypes = [
-  "complete_lesson",      // Conclua uma lição da trilha
-  "read_daily_verse",     // Leia o versículo do dia
-  "timed_challenge",      // Desafio cronometrado
-  "quick_quiz",           // Quiz rápido (3 perguntas)
-  "bible_character",      // Personagem bíblico do dia
-  "perfect_answers",      // Respostas perfeitas seguidas
-  "memorize_theme",       // Memorize o tema
-  "simple_prayer",        // Oração simples
-  "bible_fact",           // Fato bíblico do dia
-  "maintain_streak",      // Mantenha a sequência
+  "complete_lesson",
+  "read_daily_verse",
+  "timed_challenge",
+  "quick_quiz",
+  "bible_character",
+  "perfect_answers",
+  "memorize_theme",
+  "simple_prayer",
+  "bible_fact",
+  "maintain_streak",
 ] as const;
 
 export type MissionType = typeof missionTypes[number];
 
-// Templates de missões disponíveis
-export const dailyMissions = sqliteTable("daily_missions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  type: text("type").notNull(), // MissionType
+export const dailyMissions = pgTable("daily_missions", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  icon: text("icon").notNull(), // lucide icon name
+  icon: text("icon").notNull(),
   xpReward: integer("xp_reward").notNull().default(10),
-  requirement: text("requirement"), // JSON with specific requirements
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  requirement: text("requirement"),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const insertDailyMissionSchema = createInsertSchema(dailyMissions).omit({
@@ -886,14 +866,13 @@ export const insertDailyMissionSchema = createInsertSchema(dailyMissions).omit({
 export type InsertDailyMission = z.infer<typeof insertDailyMissionSchema>;
 export type DailyMission = typeof dailyMissions.$inferSelect;
 
-// Missões atribuídas ao usuário para o dia
-export const userDailyMissions = sqliteTable("user_daily_missions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userDailyMissions = pgTable("user_daily_missions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   missionId: integer("mission_id").notNull().references(() => dailyMissions.id),
-  assignedDate: text("assigned_date").notNull(), // YYYY-MM-DD format
-  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
-  completedAt: text("completed_at"),
+  assignedDate: text("assigned_date").notNull(),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
   xpAwarded: integer("xp_awarded").notNull().default(0),
 }, (table) => ({
   uniqueUserMissionDate: unique().on(table.userId, table.missionId, table.assignedDate),
@@ -909,16 +888,15 @@ export const insertUserDailyMissionSchema = createInsertSchema(userDailyMissions
 export type InsertUserDailyMission = z.infer<typeof insertUserDailyMissionSchema>;
 export type UserDailyMission = typeof userDailyMissions.$inferSelect;
 
-// Conteúdo gerado por AI para missões (versículo, fato, personagem)
-export const dailyMissionContent = sqliteTable("daily_mission_content", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  contentDate: text("content_date").notNull().unique(), // YYYY-MM-DD
-  dailyVerse: text("daily_verse"), // JSON: { reference, text, reflection }
-  bibleFact: text("bible_fact"), // JSON: { title, fact, source }
-  bibleCharacter: text("bible_character"), // JSON: { name, summary, lesson }
-  dailyTheme: text("daily_theme"), // JSON: { theme, explanation }
-  timedQuizQuestions: text("timed_quiz_questions"), // JSON array of questions
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+export const dailyMissionContent = pgTable("daily_mission_content", {
+  id: serial("id").primaryKey(),
+  contentDate: text("content_date").notNull().unique(),
+  dailyVerse: text("daily_verse"),
+  bibleFact: text("bible_fact"),
+  bibleCharacter: text("bible_character"),
+  dailyTheme: text("daily_theme"),
+  timedQuizQuestions: text("timed_quiz_questions"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertDailyMissionContentSchema = createInsertSchema(dailyMissionContent).omit({
@@ -964,12 +942,10 @@ export type AchievementWithStatus = Achievement & {
   unlockedAt?: string;
 };
 
-// Missão diária com status do usuário
 export type UserDailyMissionWithDetails = UserDailyMission & {
   mission: DailyMission;
 };
 
-// Resumo das missões do dia
 export type DailyMissionsStatus = {
   missions: UserDailyMissionWithDetails[];
   completedCount: number;
@@ -981,15 +957,14 @@ export type DailyMissionsStatus = {
 
 // ==================== PUSH NOTIFICATIONS ====================
 
-// Push Subscriptions table - stores push notification subscriptions
-export const pushSubscriptions = sqliteTable("push_subscriptions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   endpoint: text("endpoint").notNull(),
-  p256dh: text("p256dh").notNull(), // Public key
-  auth: text("auth").notNull(), // Auth secret
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  lastUsed: text("last_used"),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastUsed: timestamp("last_used"),
 }, (table) => ({
   uniqueUserEndpoint: unique().on(table.userId, table.endpoint),
 }));
@@ -1003,17 +978,16 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
-// Notifications table - stores notification history
-export const notifications = sqliteTable("notifications", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  type: text("type").notNull(), // streak_reminder, lesson_available, achievement, election, system
+  type: text("type").notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
-  data: text("data"), // JSON with additional data
-  read: integer("read", { mode: "boolean" }).notNull().default(false),
-  readAt: text("read_at"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  data: text("data"),
+  read: boolean("read").notNull().default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
@@ -1026,7 +1000,6 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 
-// Notification types
 export type NotificationType = 
   | "streak_reminder" 
   | "lesson_available" 

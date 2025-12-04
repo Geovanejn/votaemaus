@@ -91,23 +91,24 @@ The architecture is designed for expandability, supporting future modules for se
 - **framer-motion** - Fluid animations.
 
 ### Database
-- **better-sqlite3** - Local SQLite for development.
-- **PostgreSQL** - Production database (Render managed).
-- **drizzle-orm** - Type-safe ORM.
-- **drizzle-kit** - Schema migrations.
+- **PostgreSQL** - Neon serverless PostgreSQL for all environments (development and production)
+- **@neondatabase/serverless** - Serverless PostgreSQL driver
+- **drizzle-orm** - Type-safe ORM with PostgreSQL pg-core dialect
+- **drizzle-kit** - Schema migrations via `npm run db:push`
 
 ### Database Architecture
 
-**Development (Local):**
-- SQLite via `better-sqlite3`
-- Arquivo: `data/emaus-vota.db`
-- Inicializacao automatica em `server/db.ts`
+**All Environments (Development & Production):**
+- PostgreSQL via Neon serverless (`@neondatabase/serverless`)
+- Connection via `DATABASE_URL` environment variable
+- Schema defined in `shared/schema.ts` using `drizzle-orm/pg-core`
+- Database connection in `server/db.ts` using Pool from Neon
+- Schema push: `npm run db:push`
 
-**Production (Render):**
-- PostgreSQL gerenciado pelo Render
-- Conexao via `DATABASE_URL`
-- Backups automaticos diarios
-- Custo: ~$7/mes (plano Starter)
+**Migration Notes (December 2024):**
+- Migrated from SQLite (better-sqlite3) to PostgreSQL (Neon)
+- All SQLite-specific code removed
+- Schema uses PostgreSQL types (serial, boolean, timestamp with NOW())
 
 ### Tabelas do Sistema
 

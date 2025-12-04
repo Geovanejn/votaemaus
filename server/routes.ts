@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = loginSchema.parse(req.body);
       
-      const user = storage.getUserByEmail(validatedData.email);
+      const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
         return res.status(401).json({ message: "Email ou senha incorretos" });
       }
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = requestCodeSchema.parse(req.body);
       
-      const user = storage.getUserByEmail(validatedData.email);
+      const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
         return res.status(404).json({ message: "Este e-mail não está cadastrado no sistema. Entre em contato com o administrador." });
       }
@@ -129,13 +129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      storage.deleteVerificationCodesByEmail(validatedData.email);
+      await storage.deleteVerificationCodesByEmail(validatedData.email);
 
       const code = generateVerificationCode();
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
       const isPasswordReset = validatedData.isPasswordReset || false;
 
-      storage.createVerificationCode({
+      await storage.createVerificationCode({
         email: validatedData.email,
         code,
         expiresAt,
@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = verifyCodeSchema.parse(req.body);
       
-      const verificationCode = storage.getValidVerificationCode(
+      const verificationCode = await storage.getValidVerificationCode(
         validatedData.email,
         validatedData.code
       );
@@ -175,12 +175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Código inválido ou expirado" });
       }
 
-      const user = storage.getUserByEmail(validatedData.email);
+      const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
         return res.status(404).json({ message: "Este e-mail não está cadastrado no sistema" });
       }
 
-      storage.deleteVerificationCodesByEmail(validatedData.email);
+      await storage.deleteVerificationCodesByEmail(validatedData.email);
 
       const { password, ...userWithoutPassword } = user;
       const token = generateToken(userWithoutPassword);
@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const hashedPassword = await hashPassword(validatedData.password);
       
-      const updatedUser = storage.updateUser(req.user.id, {
+      const updatedUser = await storage.updateUser(req.user.id, {
         password: hashedPassword,
         hasPassword: true,
       });
@@ -247,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = loginPasswordSchema.parse(req.body);
       
-      const user = storage.getUserByEmail(validatedData.email);
+      const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
         return res.status(401).json({ message: "Email ou senha incorretos" });
       }
@@ -288,12 +288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = addMemberSchema.parse(req.body);
       
-      const existingUser = storage.getUserByEmail(validatedData.email);
+      const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email já cadastrado" });
       }
 
-      const user = storage.createUser({
+      const user = await storage.createUser({
         fullName: validatedData.fullName,
         email: validatedData.email,
         password: Math.random().toString(36),
@@ -326,13 +326,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = updateMemberSchema.parse(req.body);
 
       if (validatedData.email) {
-        const existingUser = storage.getUserByEmail(validatedData.email);
+        const existingUser = await storage.getUserByEmail(validatedData.email);
         if (existingUser && existingUser.id !== memberId) {
           return res.status(400).json({ message: "Este email já está sendo usado por outro membro" });
         }
       }
 
-      const updatedUser = storage.updateUser(memberId, validatedData);
+      const updatedUser = await storage.updateUser(memberId, validatedData);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "Membro não encontrado" });
@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
 
-      storage.deleteMember(memberId);
+      await storage.deleteMember(memberId);
       res.json({ message: "Membro removido com sucesso" });
     } catch (error) {
       console.error("Delete member error:", error);
@@ -374,7 +374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Nome da eleição é obrigatório" });
       }
 
-      const election = storage.createElection(name);
+      const election = await storage.createElection(name);
       res.json(election);
     } catch (error) {
       console.error("Create election error:", error);
@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const electionId = parseInt(req.params.id);
       
-      const election = storage.getElectionById(electionId);
+      const election = await storage.getElectionById(electionId);
       if (!election) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
@@ -407,13 +407,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const electionId = parseInt(req.params.id);
       
-      const election = storage.getElectionById(electionId);
+      const election = await storage.getElectionById(electionId);
       if (!election) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
 
       // Verificar se todos os cargos estão decididos
-      const positions = storage.getElectionPositions(electionId);
+      const positions = await storage.getElectionPositions(electionId);
       const allCompleted = positions.every(p => p.status === 'completed');
       
       if (!allCompleted) {
@@ -432,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/elections/history", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const history = storage.getElectionHistory();
+      const history = await storage.getElectionHistory();
       res.json(history);
     } catch (error) {
       console.error("Get election history error:", error);
@@ -446,23 +446,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:id/attendance", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const attendance = storage.getElectionAttendance(electionId);
+      const attendance = await storage.getElectionAttendance(electionId);
       
       // Get winners for this election to exclude them from attendance list
-      const winners = storage.getElectionWinners(electionId);
+      const winners = await storage.getElectionWinners(electionId);
       const winnerUserIds = new Set(winners.map(w => w.userId));
       
       // Join with user information and filter out winners
-      const attendanceWithUsers = attendance
-        .map(att => {
-          const user = storage.getUserById(att.memberId);
-          return {
-            ...att,
-            memberName: user?.fullName || '',
-            memberEmail: user?.email || '',
-          };
-        })
-        .filter(att => !winnerUserIds.has(att.memberId));
+      const attendanceWithUsersPromises = attendance.map(async (att) => {
+        const user = await storage.getUserById(att.memberId);
+        return {
+          ...att,
+          memberName: user?.fullName || '',
+          memberEmail: user?.email || '',
+        };
+      });
+      const attendanceWithUsersAll = await Promise.all(attendanceWithUsersPromises);
+      const attendanceWithUsers = attendanceWithUsersAll.filter(att => !winnerUserIds.has(att.memberId));
       
       res.json(attendanceWithUsers);
     } catch (error) {
@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/elections/:id/attendance/initialize", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      storage.initializeAttendance(electionId);
+      await storage.initializeAttendance(electionId);
       res.json({ message: "Lista de presença inicializada" });
     } catch (error) {
       console.error("Initialize attendance error:", error);
@@ -496,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "isPresent deve ser booleano" });
       }
       
-      storage.setMemberAttendance(electionId, memberId, isPresent);
+      await storage.setMemberAttendance(electionId, memberId, isPresent);
       res.json({ message: "Presença atualizada" });
     } catch (error) {
       console.error("Set attendance error:", error);
@@ -509,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:id/attendance/count", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const count = storage.getPresentCount(electionId);
+      const count = await storage.getPresentCount(electionId);
       res.json({ presentCount: count });
     } catch (error) {
       console.error("Get present count error:", error);
@@ -523,11 +523,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:id/positions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const electionPositions = storage.getElectionPositions(electionId);
+      const electionPositions = await storage.getElectionPositions(electionId);
       
       // Join with position names
+      const allPositions = await storage.getAllPositions();
       const positionsWithNames = electionPositions.map(ep => {
-        const allPositions = storage.getAllPositions();
         const position = allPositions.find(p => p.id === ep.positionId);
         return {
           ...ep,
@@ -547,14 +547,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:id/positions/active", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       
       if (!activePosition) {
         return res.json(null);
       }
       
       // Join with position name
-      const allPositions = storage.getAllPositions();
+      const allPositions = await storage.getAllPositions();
       const position = allPositions.find(p => p.id === activePosition.positionId);
       
       res.json({
@@ -572,13 +572,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/elections/:id/positions/advance-scrutiny", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       
       if (!activePosition) {
         return res.status(404).json({ message: "Nenhum cargo ativo encontrado" });
       }
       
-      storage.advancePositionScrutiny(activePosition.id);
+      await storage.advancePositionScrutiny(activePosition.id);
       res.json({ message: "Escrutínio avançado com sucesso" });
     } catch (error) {
       console.error("Advance scrutiny error:", error);
@@ -591,17 +591,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:id/positions/check-tie", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       
       if (!activePosition) {
-        return res.json({ hasTie: false, candidates: [] });
+        return res.json({ isTie: false, candidates: [] });
       }
       
-      const tieCheck = storage.checkThirdScrutinyTie(activePosition.id);
+      const tieCheck = await storage.checkThirdScrutinyTie(activePosition.id);
       
       // If there's a tie, get candidate details
-      if (tieCheck.hasTie) {
-        const candidates = storage.getCandidatesByPosition(activePosition.positionId, electionId);
+      if (tieCheck.isTie && tieCheck.candidates) {
+        const candidates = await storage.getCandidatesByPosition(activePosition.positionId, electionId);
         const tiedCandidates = tieCheck.candidates.map(tc => {
           const candidate = candidates.find(c => c.id === tc.candidateId);
           return {
@@ -611,9 +611,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
         
-        res.json({ hasTie: true, candidates: tiedCandidates, electionPositionId: activePosition.id });
+        res.json({ isTie: true, candidates: tiedCandidates, electionPositionId: activePosition.id });
       } else {
-        res.json({ hasTie: false, candidates: [] });
+        res.json({ isTie: false, candidates: [] });
       }
     } catch (error) {
       console.error("Check tie error:", error);
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dados incompletos" });
       }
       
-      storage.resolveThirdScrutinyTie(electionPositionId, winnerId);
+      await storage.resolveThirdScrutinyTie(electionPositionId, winnerId);
       res.json({ message: "Empate resolvido com sucesso" });
     } catch (error) {
       console.error("Resolve tie error:", error);
@@ -647,19 +647,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const electionId = parseInt(req.params.id);
       
       // Check if there are any present members before opening position
-      const presentCount = storage.getPresentCount(electionId);
+      const presentCount = await storage.getPresentCount(electionId);
       if (presentCount === 0) {
         return res.status(400).json({ message: "Registre primeiro a presença dos membros antes de abrir a votação" });
       }
       
-      const nextPosition = storage.openNextPosition(electionId);
+      const nextPosition = await storage.openNextPosition(electionId);
       
       if (!nextPosition) {
         return res.status(404).json({ message: "Nenhum próximo cargo disponível" });
       }
       
       // Join with position name
-      const allPositions = storage.getAllPositions();
+      const allPositions = await storage.getAllPositions();
       const position = allPositions.find(p => p.id === nextPosition.positionId);
       
       res.json({
@@ -680,16 +680,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const electionPositionId = parseInt(req.params.positionId);
       
       // Check if there are any present members before opening position
-      const presentCount = storage.getPresentCount(electionId);
+      const presentCount = await storage.getPresentCount(electionId);
       if (presentCount === 0) {
         return res.status(400).json({ message: "Confirme primeiro a presença dos membros antes de abrir a votação." });
       }
       
       // Open the specific position
-      const openedPosition = storage.openPosition(electionPositionId);
+      const openedPosition = await storage.openPosition(electionPositionId);
       
       // Join with position name
-      const allPositions = storage.getAllPositions();
+      const allPositions = await storage.getAllPositions();
       const position = allPositions.find(p => p.id === openedPosition.positionId);
       
       res.json({
@@ -715,13 +715,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify this is an active position
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       if (!activePosition || activePosition.id !== electionPositionId) {
         return res.status(400).json({ message: "Esta posição não está ativa" });
       }
       
       // Force complete the position
-      storage.forceCompletePosition(electionPositionId, reason, shouldReopen === true);
+      await storage.forceCompletePosition(electionPositionId, reason, shouldReopen === true);
       
       const message = shouldReopen 
         ? "Cargo fechado e reaberto para nova votação" 
@@ -741,7 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertCandidateSchema.parse(req.body);
       
       // Validate that the user is not an admin
-      const user = storage.getUserById(validatedData.userId);
+      const user = await storage.getUserById(validatedData.userId);
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
@@ -751,32 +751,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user is present
-      const isPresent = storage.isMemberPresent(validatedData.electionId, validatedData.userId);
+      const isPresent = await storage.isMemberPresent(validatedData.electionId, validatedData.userId);
       if (!isPresent) {
         return res.status(400).json({ message: "Apenas membros com presença confirmada podem ser candidatos" });
       }
       
       // Validate that the user is not already a winner in this election
-      const winners = storage.getElectionWinners(validatedData.electionId);
+      const winners = await storage.getElectionWinners(validatedData.electionId);
       const isAlreadyWinner = winners.some(w => w.userId === validatedData.userId);
       if (isAlreadyWinner) {
         return res.status(400).json({ message: "Este membro já foi eleito para um cargo nesta eleição" });
       }
 
       // Check if candidate is already added to this position
-      const existingCandidates = storage.getCandidatesByPosition(validatedData.positionId, validatedData.electionId);
+      const existingCandidates = await storage.getCandidatesByPosition(validatedData.positionId, validatedData.electionId);
       const isDuplicate = existingCandidates.some(c => c.userId === validatedData.userId);
       if (isDuplicate) {
         return res.status(400).json({ message: "Este candidato já foi adicionado para este cargo" });
       }
 
       // Check if the position is active before adding candidates
-      const activePosition = storage.getActiveElectionPosition(validatedData.electionId);
+      const activePosition = await storage.getActiveElectionPosition(validatedData.electionId);
       if (!activePosition || activePosition.positionId !== validatedData.positionId) {
         return res.status(400).json({ message: "A votação para este cargo ainda não foi aberta" });
       }
       
-      const candidate = storage.createCandidate(validatedData);
+      const candidate = await storage.createCandidate(validatedData);
       res.json(candidate);
     } catch (error) {
       console.error("Create candidate error:", error);
@@ -804,13 +804,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID do cargo e eleição são obrigatórios" });
       }
 
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       if (!activePosition || activePosition.positionId !== positionId) {
         return res.status(400).json({ message: "A votação para este cargo ainda não foi aberta" });
       }
 
-      const winners = storage.getElectionWinners(electionId);
-      const existingCandidates = storage.getCandidatesByPosition(positionId, electionId);
+      const winners = await storage.getElectionWinners(electionId);
+      const existingCandidates = await storage.getCandidatesByPosition(positionId, electionId);
       const createdCandidates = [];
       const errors = [];
 
@@ -821,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const user = storage.getUserById(candidate.userId);
+          const user = await storage.getUserById(candidate.userId);
           if (!user) {
             errors.push(`Usuário ${candidate.name} não encontrado`);
             continue;
@@ -832,7 +832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const isPresent = storage.isMemberPresent(electionId, candidate.userId);
+          const isPresent = await storage.isMemberPresent(electionId, candidate.userId);
           if (!isPresent) {
             errors.push(`${candidate.name} não está presente`);
             continue;
@@ -850,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const created = storage.createCandidate({
+          const created = await storage.createCandidate({
             name: candidate.name,
             email: candidate.email,
             userId: candidate.userId,
@@ -887,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/elections/active", async (req, res) => {
     try {
-      const election = storage.getActiveElection();
+      const election = await storage.getActiveElection();
       res.json(election);
     } catch (error) {
       console.error("Get active election error:", error);
@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const members = storage.getAllMembers();
+      const members = await storage.getAllMembers();
       const membersWithoutPasswords = members.map(({ password, ...user }) => user);
       res.json(membersWithoutPasswords);
     } catch (error) {
@@ -912,14 +912,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/members/non-admins", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const members = storage.getAllMembers(true); // Exclude admins
+      const members = await storage.getAllMembers(true); // Exclude admins
       let membersWithoutPasswords = members.map(({ password, ...user }) => user);
       
       // If electionId is provided, exclude members who already won a position in this election
       // and filter only members who are present
       const electionId = req.query.electionId ? parseInt(req.query.electionId as string) : null;
       if (electionId) {
-        const winners = storage.getElectionWinners(electionId);
+        const winners = await storage.getElectionWinners(electionId);
         const winnerUserIds = new Set(winners.map(w => w.userId));
         
         console.log(`\n[API /api/members/non-admins] ========== MEMBER FILTERING DEBUG ==========`);
@@ -944,9 +944,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[DEBUG] Remaining members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
         
         // Filter by presence - only include members who are present
-        membersWithoutPasswords = membersWithoutPasswords.filter(m => 
-          storage.isMemberPresent(electionId, m.id)
-        );
+        const presenceCheckPromises = membersWithoutPasswords.map(async m => ({
+          member: m,
+          isPresent: await storage.isMemberPresent(electionId, m.id)
+        }));
+        const presenceResults = await Promise.all(presenceCheckPromises);
+        membersWithoutPasswords = presenceResults.filter(r => r.isPresent).map(r => r.member);
         
         console.log(`[DEBUG] Members after presence filter:`, membersWithoutPasswords.length);
         console.log(`[DEBUG] Final members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
@@ -964,7 +967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/positions", async (req, res) => {
     try {
-      const positions = storage.getAllPositions();
+      const positions = await storage.getAllPositions();
       res.json(positions);
     } catch (error) {
       console.error("Get positions error:", error);
@@ -976,12 +979,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/candidates", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const activeElection = storage.getActiveElection();
+      const activeElection = await storage.getActiveElection();
       if (!activeElection) {
         return res.json([]);
       }
 
-      const candidates = storage.getCandidatesByElection(activeElection.id);
+      const candidates = await storage.getCandidatesByElection(activeElection.id);
       res.json(candidates);
     } catch (error) {
       console.error("Get candidates error:", error);
@@ -1000,14 +1003,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "IDs inválidos" });
       }
 
-      const candidates = storage.getCandidatesByPosition(positionId, electionId);
-      const candidatesWithPhotos = candidates.map(candidate => {
-        const user = storage.getUserById(candidate.userId);
+      const candidates = await storage.getCandidatesByPosition(positionId, electionId);
+      const candidatesWithPhotosPromises = candidates.map(async (candidate) => {
+        const user = await storage.getUserById(candidate.userId);
         return {
           ...candidate,
           photoUrl: user?.photoUrl || getGravatarUrl(candidate.email),
         };
       });
+      const candidatesWithPhotos = await Promise.all(candidatesWithPhotosPromises);
       
       res.json(candidatesWithPhotos);
     } catch (error) {
@@ -1028,13 +1032,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if voter is present
-      const isPresent = storage.isMemberPresent(electionId, voterId);
+      const isPresent = await storage.isMemberPresent(electionId, voterId);
       if (!isPresent) {
         return res.status(403).json({ message: "Apenas membros com presença confirmada podem votar" });
       }
 
       // Get active position for this election to determine scrutiny round
-      const activePosition = storage.getActiveElectionPosition(electionId);
+      const activePosition = await storage.getActiveElectionPosition(electionId);
       if (!activePosition) {
         return res.status(400).json({ message: "Nenhum cargo ativo no momento" });
       }
@@ -1046,12 +1050,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const scrutinyRound = activePosition.currentScrutiny;
 
-      const hasVoted = storage.hasUserVoted(voterId, positionId, electionId, scrutinyRound);
+      const hasVoted = await storage.hasUserVoted(voterId, positionId, electionId, scrutinyRound);
       if (hasVoted) {
         return res.status(403).json({ message: "Você já votou para esse cargo neste escrutínio." });
       }
 
-      const vote = storage.createVote({
+      const vote = await storage.createVote({
         voterId,
         candidateId,
         positionId,
@@ -1078,15 +1082,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/results/latest", async (req, res) => {
     try {
-      const results = storage.getLatestElectionResults();
+      const results = await storage.getLatestElectionResults();
       if (results) {
         // Add photo URLs to candidates (custom photo or Gravatar)
-        results.positions.forEach(position => {
-          position.candidates.forEach(candidate => {
-            const user = storage.getUserByEmail(candidate.candidateEmail);
+        for (const position of results.positions) {
+          for (const candidate of position.candidates) {
+            const user = await storage.getUserByEmail(candidate.candidateEmail);
             candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-          });
-        });
+          }
+        }
       }
       res.json(results);
     } catch (error) {
@@ -1100,19 +1104,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/results/:electionId", async (req, res) => {
     try {
       const electionId = parseInt(req.params.electionId);
-      const results = storage.getElectionResults(electionId);
+      const results = await storage.getElectionResults(electionId);
       
       if (!results) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
 
       // Add photo URLs to candidates (custom photo or Gravatar)
-      results.positions.forEach(position => {
-        position.candidates.forEach(candidate => {
-          const user = storage.getUserByEmail(candidate.candidateEmail);
+      for (const position of results.positions) {
+        for (const candidate of position.candidates) {
+          const user = await storage.getUserByEmail(candidate.candidateEmail);
           candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-        });
-      });
+        }
+      }
 
       res.json(results);
     } catch (error) {
@@ -1126,17 +1130,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:electionId/winners", async (req, res) => {
     try {
       const electionId = parseInt(req.params.electionId);
-      const winners = storage.getElectionWinners(electionId);
-      const results = storage.getElectionResults(electionId);
+      const winners = await storage.getElectionWinners(electionId);
+      const results = await storage.getElectionResults(electionId);
       
       if (!results) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
       
       // Get position, user details, and vote count for each winner
-      const formattedWinners = winners.map(w => {
-        const user = storage.getUserById(w.userId);
-        const positions = storage.getAllPositions();
+      const positions = await storage.getAllPositions();
+      const formattedWinnersPromises = winners.map(async (w) => {
+        const user = await storage.getUserById(w.userId);
         const position = positions.find(p => p.id === w.positionId);
         
         // Find vote count from results
@@ -1152,6 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           wonAtScrutiny: w.wonAtScrutiny
         };
       });
+      const formattedWinners = await Promise.all(formattedWinnersPromises);
 
       res.json(formattedWinners);
     } catch (error) {
@@ -1165,19 +1170,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/elections/:electionId/audit", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.electionId);
-      const auditData = storage.getElectionAuditData(electionId);
+      const auditData = await storage.getElectionAuditData(electionId);
       
       if (!auditData) {
         return res.status(404).json({ message: "Dados de auditoria não encontrados para esta eleição" });
       }
 
       // Add photo URLs to candidates in results
-      auditData.results.positions.forEach((position: any) => {
-        position.candidates.forEach((candidate: any) => {
-          const user = storage.getUserByEmail(candidate.candidateEmail);
+      for (const position of auditData.results.positions) {
+        for (const candidate of position.candidates) {
+          const user = await storage.getUserByEmail(candidate.candidateEmail);
           candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-        });
-      });
+        }
+      }
 
       // Generate verification hash for PDF
       const verificationHash = generatePdfVerificationHash(
@@ -1207,7 +1212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email do presidente, nome e PDF são obrigatórios" });
       }
 
-      const election = storage.getElectionById(electionId);
+      const election = await storage.getElectionById(electionId);
       if (!election) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
@@ -1262,14 +1267,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const skippedUsers = [];
 
       for (const userData of testUsers) {
-        const existingUser = storage.getUserByEmail(userData.email);
+        const existingUser = await storage.getUserByEmail(userData.email);
         if (existingUser) {
           skippedUsers.push(userData.email);
           continue;
         }
 
         const hashedPassword = await hashPassword(userData.password);
-        const user = storage.createUser({
+        const user = await storage.createUser({
           fullName: userData.fullName,
           email: userData.email,
           password: hashedPassword,
@@ -1310,7 +1315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Hash de verificação não fornecido" });
       }
 
-      const verification = storage.getPdfVerification(hash);
+      const verification = await storage.getPdfVerification(hash);
       
       if (!verification) {
         return res.status(404).json({ 
@@ -1347,7 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Hash de verificação é obrigatório" });
       }
 
-      const verification = storage.createPdfVerification(electionId, verificationHash, presidentName);
+      const verification = await storage.createPdfVerification(electionId, verificationHash, presidentName);
       res.json(verification);
     } catch (error) {
       console.error("Save verification hash error:", error);
@@ -1365,7 +1370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Nao autenticado" });
       }
-      const profile = storage.getOrCreateStudyProfile(req.user.id);
+      const profile = await storage.getOrCreateStudyProfile(req.user.id);
       res.json(profile);
     } catch (error) {
       console.error("Get study profile error:", error);
@@ -1376,7 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all published study weeks
   app.get("/api/study/weeks", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const weeks = storage.getPublishedStudyWeeks();
+      const weeks = await storage.getPublishedStudyWeeks();
       res.json(weeks);
     } catch (error) {
       console.error("Get study weeks error:", error);
@@ -1391,11 +1396,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const weekId = parseInt(req.params.weekId);
-      const week = storage.getStudyWeekById(weekId);
+      const week = await storage.getStudyWeekById(weekId);
       if (!week) {
         return res.status(404).json({ message: "Semana de estudo nao encontrada" });
       }
-      const lessons = storage.getLessonsWithProgress(req.user.id, weekId);
+      const lessons = await storage.getLessonsWithProgress(req.user.id, weekId);
       res.json({ ...week, lessons });
     } catch (error) {
       console.error("Get study week error:", error);
@@ -1410,12 +1415,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
-      const lesson = storage.getLessonById(lessonId);
+      const lesson = await storage.getLessonById(lessonId);
       if (!lesson) {
         return res.status(404).json({ message: "Licao nao encontrada" });
       }
-      const units = storage.getUnitsByLessonId(lessonId);
-      const progress = storage.getUserLessonProgress(req.user.id, lessonId);
+      const units = await storage.getUnitsByLessonId(lessonId);
+      const progress = await storage.getUserLessonProgress(req.user.id, lessonId);
       res.json({ ...lesson, units, progress });
     } catch (error) {
       console.error("Get lesson error:", error);
@@ -1430,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
-      const profile = storage.getOrCreateStudyProfile(req.user.id);
+      const profile = await storage.getOrCreateStudyProfile(req.user.id);
       
       if (profile.hearts <= 0) {
         return res.status(400).json({ 
@@ -1439,7 +1444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const progress = storage.startLesson(req.user.id, lessonId);
+      const progress = await storage.startLesson(req.user.id, lessonId);
       res.json(progress);
     } catch (error) {
       console.error("Start lesson error:", error);
@@ -1460,8 +1465,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "O campo answer e obrigatorio" });
       }
 
-      const result = storage.submitUnitAnswer(req.user.id, unitId, answer);
-      const profile = storage.getStudyProfile(req.user.id);
+      const result = await storage.submitUnitAnswer(req.user.id, unitId, answer);
+      const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
         unitProgress: result.unitProgress, 
@@ -1485,8 +1490,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const unitId = parseInt(req.params.unitId);
       
-      const result = storage.markUnitAsCompleted(req.user.id, unitId);
-      const profile = storage.getStudyProfile(req.user.id);
+      const result = await storage.markUnitAsCompleted(req.user.id, unitId);
+      const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
         unitProgress: result.unitProgress, 
@@ -1510,14 +1515,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessonId = parseInt(req.params.lessonId);
       const { xpEarned, mistakesCount, timeSpentSeconds } = req.body;
 
-      const progress = storage.completeLesson(
+      const progress = await storage.completeLesson(
         req.user.id, 
         lessonId, 
         xpEarned || 0, 
         mistakesCount || 0, 
         timeSpentSeconds || 0
       );
-      const profile = storage.getStudyProfile(req.user.id);
+      const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ progress, profile });
     } catch (error) {
@@ -1532,7 +1537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Nao autenticado" });
       }
-      const verses = storage.getUnreadVersesForUser(req.user.id);
+      const verses = await storage.getUnreadVersesForUser(req.user.id);
       res.json(verses);
     } catch (error) {
       console.error("Get verses error:", error);
@@ -1547,13 +1552,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const verseId = parseInt(req.params.verseId);
-      const verse = storage.getBibleVerseById(verseId);
+      const verse = await storage.getBibleVerseById(verseId);
       
       if (!verse) {
         return res.status(404).json({ message: "Versiculo nao encontrado" });
       }
 
-      const result = storage.readVerseAndRecoverHeart(req.user.id, verseId);
+      const result = await storage.readVerseAndRecoverHeart(req.user.id, verseId);
       res.json({ 
         verse, 
         profile: result.profile, 
@@ -1573,7 +1578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Nao autenticado" });
       }
-      const progress = storage.getVerseRecoveryProgress(req.user.id);
+      const progress = await storage.getVerseRecoveryProgress(req.user.id);
       res.json(progress);
     } catch (error) {
       console.error("Get verse recovery progress error:", error);
@@ -1587,8 +1592,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Nao autenticado" });
       }
-      const allAchievements = storage.getAllAchievements();
-      const userAchievements = storage.getUserAchievements(req.user.id);
+      const allAchievements = await storage.getAllAchievements();
+      const userAchievements = await storage.getUserAchievements(req.user.id);
       const unlockedCodes = new Set(userAchievements.map(a => a.code));
       
       const achievements = allAchievements.map(achievement => ({
@@ -1620,7 +1625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         periodKey = now.getFullYear().toString();
       }
 
-      const leaderboard = storage.getLeaderboard(periodType, periodKey, 20);
+      const leaderboard = await storage.getLeaderboard(periodType, periodKey, 20);
       res.json({ periodType, periodKey, entries: leaderboard });
     } catch (error) {
       console.error("Get leaderboard error:", error);
@@ -1640,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Check if verses already exist
-      const existingVerses = storage.getAllBibleVerses();
+      const existingVerses = await storage.getAllBibleVerses();
       if (existingVerses.length === 0) {
         // Seed Bible verses for heart recovery
         const verses = [
@@ -1662,13 +1667,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         for (const verse of verses) {
-          storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
+          await storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
           results.verses++;
         }
       }
 
       // Check if achievements already exist
-      const existingAchievements = storage.getAllAchievements();
+      const existingAchievements = await storage.getAllAchievements();
       if (existingAchievements.length === 0) {
         // Seed achievements
         const achievements = [
@@ -1690,16 +1695,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         for (const achievement of achievements) {
-          storage.createAchievement(achievement);
+          await storage.createAchievement(achievement);
           results.achievements++;
         }
       }
 
       // Check if study weeks already exist
-      const existingWeeks = storage.getPublishedStudyWeeks();
+      const existingWeeks = await storage.getPublishedStudyWeeks();
       if (existingWeeks.length === 0) {
         // Create a sample study week based on "Nao jogue sua vida fora"
-        const week = storage.createStudyWeek({
+        const week = await storage.createStudyWeek({
           weekNumber: 1,
           year: 2025,
           title: "Nao Jogue Sua Vida Fora",
@@ -1753,7 +1758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         for (const lessonData of lessonsData) {
-          const lesson = storage.createStudyLesson({
+          const lesson = await storage.createStudyLesson({
             studyWeekId: week.id,
             ...lessonData
           });
@@ -1816,7 +1821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
-              storage.createStudyUnit({
+              await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
                 type: units[i].type,
@@ -1881,7 +1886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
-              storage.createStudyUnit({
+              await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
                 type: units[i].type,
@@ -1945,7 +1950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
-              storage.createStudyUnit({
+              await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
                 type: units[i].type,
@@ -2025,7 +2030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
-              storage.createStudyUnit({
+              await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
                 type: units[i].type,
@@ -2113,7 +2118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
-              storage.createStudyUnit({
+              await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
                 type: units[i].type,
@@ -2141,7 +2146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Get all study weeks (including drafts)
   app.get("/api/study/admin/weeks", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const weeks = storage.getAllStudyWeeks();
+      const weeks = await storage.getAllStudyWeeks();
       res.json(weeks);
     } catch (error) {
       console.error("Get admin weeks error:", error);
@@ -2152,7 +2157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Get study stats
   app.get("/api/study/admin/stats", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const stats = storage.getStudyStats();
+      const stats = await storage.getStudyStats();
       res.json(stats);
     } catch (error) {
       console.error("Get admin stats error:", error);
@@ -2167,7 +2172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!weekId) {
         return res.status(400).json({ message: "ID da semana e obrigatorio" });
       }
-      const lessons = storage.getLessonsForWeek(weekId);
+      const lessons = await storage.getLessonsForWeek(weekId);
       res.json(lessons);
     } catch (error) {
       console.error("Get admin lessons error:", error);
@@ -2182,7 +2187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!title) {
         return res.status(400).json({ message: "Titulo e obrigatorio" });
       }
-      const week = storage.createStudyWeek({
+      const week = await storage.createStudyWeek({
         title,
         description: description || null,
         weekNumber: weekNumber || 1,
@@ -2200,7 +2205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/admin/weeks/:weekId/publish", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
-      const week = storage.publishStudyWeek(weekId);
+      const week = await storage.publishStudyWeek(weekId);
       if (!week) {
         return res.status(404).json({ message: "Semana nao encontrada" });
       }
@@ -2252,7 +2257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if week already exists
-      const existingWeek = storage.getStudyWeekByNumber(weekNumber, year);
+      const existingWeek = await storage.getStudyWeekByNumber(weekNumber, year);
       if (existingWeek) {
         return res.status(409).json({ 
           message: `Ja existe conteudo para a semana ${weekNumber} de ${year}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
@@ -2272,7 +2277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year);
 
       // Create the week in database
-      const week = storage.createStudyWeek({
+      const week = await storage.createStudyWeek({
         title: generatedContent.weekTitle,
         description: generatedContent.weekDescription,
         weekNumber: weekNumber,
@@ -2293,7 +2298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < generatedContent.lessons.length; i++) {
         const lessonData = generatedContent.lessons[i];
         
-        const lesson = storage.createStudyLesson({
+        const lesson = await storage.createStudyLesson({
           studyWeekId: week.id,
           orderIndex: i,
           title: lessonData.title,
@@ -2310,7 +2315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
           
-          storage.createStudyUnit({
+          await storage.createStudyUnit({
             lessonId: lesson.id,
             orderIndex: j,
             type: unitData.type,
@@ -2451,7 +2456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentWeekNumber = weekNumber || 1;
 
       // Check if week already exists
-      const existingWeek = storage.getStudyWeekByNumber(currentWeekNumber, currentYear);
+      const existingWeek = await storage.getStudyWeekByNumber(currentWeekNumber, currentYear);
       if (existingWeek) {
         return res.status(409).json({ 
           message: `Ja existe conteudo para a semana ${currentWeekNumber} de ${currentYear}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
@@ -2463,7 +2468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear);
 
       // Create the week in database
-      const week = storage.createStudyWeek({
+      const week = await storage.createStudyWeek({
         title: generatedContent.weekTitle,
         description: generatedContent.weekDescription,
         weekNumber: currentWeekNumber,
@@ -2483,7 +2488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < generatedContent.lessons.length; i++) {
         const lessonData = generatedContent.lessons[i];
         
-        const lesson = storage.createStudyLesson({
+        const lesson = await storage.createStudyLesson({
           studyWeekId: week.id,
           orderIndex: i,
           title: lessonData.title,
@@ -2500,7 +2505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
           
-          storage.createStudyUnit({
+          await storage.createStudyUnit({
             lessonId: lesson.id,
             orderIndex: j,
             type: unitData.type,
@@ -2536,10 +2541,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID da semana e titulo sao obrigatorios" });
       }
 
-      const existingLessons = storage.getLessonsForWeek(studyWeekId);
+      const existingLessons = await storage.getLessonsForWeek(studyWeekId);
       const orderIndex = existingLessons.length;
 
-      const lesson = storage.createStudyLesson({
+      const lesson = await storage.createStudyLesson({
         studyWeekId,
         orderIndex,
         title,
@@ -2564,7 +2569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessonId = parseInt(req.params.lessonId);
       const { title, type, description, xpReward, estimatedMinutes, isBonus, orderIndex } = req.body;
 
-      const lesson = storage.updateStudyLesson(lessonId, {
+      const lesson = await storage.updateStudyLesson(lessonId, {
         title,
         type,
         description,
@@ -2590,7 +2595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
-      const deleted = storage.deleteStudyLesson(lessonId);
+      const deleted = await storage.deleteStudyLesson(lessonId);
 
       if (!deleted) {
         return res.status(404).json({ message: "Licao nao encontrada" });
@@ -2607,7 +2612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/admin/lessons/:lessonId/lock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
-      const lesson = storage.lockLesson(lessonId);
+      const lesson = await storage.lockLesson(lessonId);
 
       if (!lesson) {
         return res.status(404).json({ message: "Licao nao encontrada" });
@@ -2624,7 +2629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/admin/lessons/:lessonId/unlock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
-      const lesson = storage.unlockLesson(lessonId);
+      const lesson = await storage.unlockLesson(lessonId);
 
       if (!lesson) {
         return res.status(404).json({ message: "Licao nao encontrada" });
@@ -2643,7 +2648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessonId = parseInt(req.params.lessonId);
       const { unlockDate } = req.body;
       
-      const lesson = storage.setLessonUnlockDate(lessonId, unlockDate || null);
+      const lesson = await storage.setLessonUnlockDate(lessonId, unlockDate || null);
 
       if (!lesson) {
         return res.status(404).json({ message: "Licao nao encontrada" });
@@ -2660,7 +2665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/admin/weeks/:weekId/unlock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
-      const count = storage.unlockAllLessonsForWeek(weekId);
+      const count = await storage.unlockAllLessonsForWeek(weekId);
 
       res.json({ message: `${count} licoes liberadas com sucesso` });
     } catch (error) {
@@ -2673,7 +2678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/admin/weeks/:weekId/lock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
-      const count = storage.lockAllLessonsForWeek(weekId);
+      const count = await storage.lockAllLessonsForWeek(weekId);
 
       res.json({ message: `${count} licoes bloqueadas com sucesso` });
     } catch (error) {
@@ -2692,7 +2697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Data inicial e obrigatoria" });
       }
 
-      const count = storage.setWeeklyUnlockSchedule(weekId, startDate);
+      const count = await storage.setWeeklyUnlockSchedule(weekId, startDate);
 
       res.json({ message: `Agendamento criado para ${count} licoes (uma por semana)` });
     } catch (error) {
@@ -2705,7 +2710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/admin/lessons/:lessonId/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
-      const units = storage.getUnitsForLesson(lessonId);
+      const units = await storage.getUnitsForLesson(lessonId);
       res.json(units);
     } catch (error) {
       console.error("Get units error:", error);
@@ -2722,10 +2727,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID da licao, tipo e conteudo sao obrigatorios" });
       }
 
-      const existingUnits = storage.getUnitsForLesson(lessonId);
+      const existingUnits = await storage.getUnitsForLesson(lessonId);
       const orderIndex = existingUnits.length;
 
-      const unit = storage.createStudyUnit({
+      const unit = await storage.createStudyUnit({
         lessonId,
         orderIndex,
         type,
@@ -2746,7 +2751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const unitId = parseInt(req.params.unitId);
       const { type, content, xpValue, orderIndex } = req.body;
 
-      const unit = storage.updateStudyUnit(unitId, {
+      const unit = await storage.updateStudyUnit(unitId, {
         type,
         content,
         xpValue,
@@ -2768,7 +2773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/study/admin/units/:unitId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const unitId = parseInt(req.params.unitId);
-      const deleted = storage.deleteStudyUnit(unitId);
+      const deleted = await storage.deleteStudyUnit(unitId);
 
       if (!deleted) {
         return res.status(404).json({ message: "Exercicio nao encontrado" });
@@ -2785,7 +2790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/study/admin/weeks/:weekId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
-      const deleted = storage.deleteStudyWeek(weekId);
+      const deleted = await storage.deleteStudyWeek(weekId);
 
       if (!deleted) {
         return res.status(404).json({ message: "Semana nao encontrada" });
@@ -2804,7 +2809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekId = parseInt(req.params.weekId);
       const { title, description, weekNumber, year, status } = req.body;
 
-      const week = storage.updateStudyWeek(weekId, {
+      const week = await storage.updateStudyWeek(weekId, {
         title,
         description,
         weekNumber,
@@ -2847,8 +2852,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
       // Assign missions for today if not already assigned
-      const missions = storage.assignDailyMissions(userId, today);
-      const content = storage.getDailyMissionContent(today);
+      const missions = await storage.assignDailyMissions(userId, today);
+      const content = await storage.getDailyMissionContent(today);
       
       const completedCount = missions.filter(m => m.completed).length;
       const allCompleted = missions.length > 0 && completedCount === missions.length;
@@ -2875,13 +2880,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const missionId = parseInt(req.params.missionId);
       const today = new Date().toISOString().split('T')[0];
       
-      const mission = storage.getUserMissionById(userId, missionId, today);
+      const mission = await storage.getUserMissionById(userId, missionId, today);
       
       if (!mission) {
         return res.status(404).json({ message: "Missao nao encontrada" });
       }
       
-      const content = storage.getDailyMissionContent(today);
+      const content = await storage.getDailyMissionContent(today);
       
       res.json({
         ...mission,
@@ -2900,7 +2905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const missionId = parseInt(req.params.missionId);
       const today = new Date().toISOString().split('T')[0];
       
-      const result = storage.completeMission(userId, missionId, today);
+      const result = await storage.completeMission(userId, missionId, today);
       
       if (!result) {
         return res.status(404).json({ message: "Missao nao encontrada ou ja concluida" });
@@ -2920,7 +2925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/missions/content", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const content = storage.getDailyMissionContent(today);
+      const content = await storage.getDailyMissionContent(today);
       
       res.json(content || {});
     } catch (error) {
@@ -2932,7 +2937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Initialize daily missions (seed templates)
   app.post("/api/missions/admin/init", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      storage.initializeDailyMissions();
+      await storage.initializeDailyMissions();
       res.json({ message: "Missoes diarias inicializadas com sucesso" });
     } catch (error) {
       console.error("Init daily missions error:", error);
@@ -2952,7 +2957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dados de inscricao invalidos" });
       }
       
-      storage.savePushSubscription(userId, endpoint, p256dh, auth);
+      await storage.savePushSubscription(userId, endpoint, p256dh, auth);
       
       res.json({ message: "Inscrito para notificacoes com sucesso" });
     } catch (error) {
@@ -2971,7 +2976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Endpoint nao fornecido" });
       }
       
-      storage.removePushSubscription(userId, endpoint);
+      await storage.removePushSubscription(userId, endpoint);
       
       res.json({ message: "Desinscrito de notificacoes com sucesso" });
     } catch (error) {
@@ -2987,8 +2992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
       
-      const notifications = storage.getUserNotifications(userId, limit, offset);
-      const unreadCount = storage.getUnreadNotificationCount(userId);
+      const notifications = await storage.getUserNotifications(userId, limit, offset);
+      const unreadCount = await storage.getUnreadNotificationCount(userId);
       
       res.json({
         notifications,
@@ -3007,7 +3012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const notificationId = parseInt(req.params.id);
       
-      storage.markNotificationRead(userId, notificationId);
+      await storage.markNotificationRead(userId, notificationId);
       
       res.json({ message: "Notificacao marcada como lida" });
     } catch (error) {
@@ -3021,7 +3026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       
-      storage.markAllNotificationsRead(userId);
+      await storage.markAllNotificationsRead(userId);
       
       res.json({ message: "Todas as notificacoes marcadas como lidas" });
     } catch (error) {
@@ -3036,7 +3041,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const notificationId = parseInt(req.params.id);
       
-      storage.deleteNotification(userId, notificationId);
+      await storage.deleteNotification(userId, notificationId);
       
       res.json({ message: "Notificacao removida" });
     } catch (error) {
@@ -3049,7 +3054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/notifications/unread-count", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      const count = storage.getUnreadNotificationCount(userId);
+      const count = await storage.getUnreadNotificationCount(userId);
       
       res.json({ count });
     } catch (error) {
@@ -3063,7 +3068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get site highlights (latest devotional, upcoming events, instagram posts)
   app.get("/api/site/highlights", async (req, res) => {
     try {
-      const highlights = storage.getSiteHighlights();
+      const highlights = await storage.getSiteHighlights();
       res.json(highlights);
     } catch (error) {
       console.error("Get site highlights error:", error);
@@ -3075,7 +3080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/devotionals", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const devotionals = storage.getAllDevotionals(limit);
+      const devotionals = await storage.getAllDevotionals(limit);
       res.json(devotionals);
     } catch (error) {
       console.error("Get devotionals error:", error);
@@ -3090,7 +3095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      const devotional = storage.getDevotionalById(id);
+      const devotional = await storage.getDevotionalById(id);
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
@@ -3105,7 +3110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/events", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const events = storage.getUpcomingEvents(limit);
+      const events = await storage.getUpcomingEvents(limit);
       res.json(events);
     } catch (error) {
       console.error("Get events error:", error);
@@ -3117,7 +3122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/instagram", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 6;
-      const posts = storage.getLatestInstagramPosts(limit);
+      const posts = await storage.getLatestInstagramPosts(limit);
       res.json(posts);
     } catch (error) {
       console.error("Get instagram posts error:", error);

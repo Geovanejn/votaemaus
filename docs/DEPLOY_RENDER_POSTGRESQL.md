@@ -2,21 +2,17 @@
 
 ## Visao Geral
 
-Este documento detalha como fazer deploy do sistema UMP Emaus no Render usando PostgreSQL como banco de dados de producao.
+Este documento detalha como fazer deploy do sistema UMP Emaus no Render usando PostgreSQL como banco de dados.
 
 ## Arquitetura de Banco de Dados
 
-### Desenvolvimento (Local)
-- **SQLite** via `better-sqlite3`
-- Arquivo: `data/emaus-vota.db`
-- Inicializacao automatica em `server/db.ts`
-- Ideal para desenvolvimento rapido sem configuracao externa
+### Ambiente Unificado (Desenvolvimento e Producao)
+- **PostgreSQL** via Neon Serverless (`@neondatabase/serverless`)
+- Conexao via variavel de ambiente `DATABASE_URL`
+- Schema definido em `shared/schema.ts` usando `drizzle-orm/pg-core`
+- Migrations via `npm run db:push`
 
-### Producao (Render)
-- **PostgreSQL** gerenciado pelo Render
-- Conexao via `DATABASE_URL`
-- Backups automaticos diarios inclusos
-- Alta disponibilidade e escalabilidade
+**Nota (Dezembro 2024):** O sistema foi migrado de SQLite para PostgreSQL. Todas as referencias a SQLite foram removidas.
 
 ## Tabelas do Sistema
 
@@ -29,7 +25,7 @@ O sistema possui as seguintes tabelas organizadas por modulo:
 | `verification_codes` | Codigos de verificacao por email |
 
 **Campos importantes na tabela `users`:**
-- `id` - ID unico
+- `id` - ID unico (serial)
 - `full_name` - Nome completo
 - `email` - Email unico
 - `password` - Senha hash (bcrypt)
@@ -60,7 +56,7 @@ O sistema possui as seguintes tabelas organizadas por modulo:
 | `bible_verses` | Versiculos biblicos para leitura |
 | `user_lesson_progress` | Progresso do usuario nas licoes |
 | `user_unit_progress` | Progresso do usuario nos exercicios |
-| `verse_readings` | Leituras de versiculos |
+| `user_verse_readings` | Leituras de versiculos |
 | `xp_transactions` | Transacoes de XP |
 | `daily_activity` | Atividade diaria |
 | `achievements` | Conquistas disponiveis |
@@ -142,44 +138,15 @@ Ou configure um **Pre-deploy Command**:
 npm run db:push
 ```
 
-## Migracao de Dados do SQLite para PostgreSQL
+## Desenvolvimento Local
 
-Se voce ja tem dados no SQLite local e quer migrar para producao:
+Para desenvolvimento local, configure a variavel `DATABASE_URL` apontando para um banco PostgreSQL (Neon, local, etc.):
 
-### Opcao 1: Script de Migracao (Recomendado)
-
-Crie um script `scripts/migrate-to-postgres.ts`:
-
-```typescript
-import Database from 'better-sqlite3';
-import { Pool } from 'pg';
-
-const sqlite = new Database('data/emaus-vota.db');
-const pg = new Pool({ connectionString: process.env.DATABASE_URL });
-
-async function migrate() {
-  // Migrar usuarios
-  const users = sqlite.prepare('SELECT * FROM users').all();
-  for (const user of users) {
-    await pg.query(
-      'INSERT INTO users (id, full_name, email, password, ...) VALUES ($1, $2, $3, $4, ...)',
-      [user.id, user.full_name, user.email, user.password, ...]
-    );
-  }
-  // Repetir para outras tabelas...
-}
-
-migrate().then(() => console.log('Migracao concluida!'));
-```
-
-### Opcao 2: Export/Import Manual
-
-1. Exporte dados do SQLite:
 ```bash
-sqlite3 data/emaus-vota.db ".mode csv" ".output users.csv" "SELECT * FROM users;"
+DATABASE_URL=postgresql://user:password@host:5432/database_name
 ```
 
-2. Importe no PostgreSQL via Render Shell ou ferramenta como DBeaver/pgAdmin.
+O sistema usa `@neondatabase/serverless` que funciona com qualquer banco PostgreSQL.
 
 ## Backup e Recuperacao
 
@@ -227,7 +194,6 @@ Configure no Render:
 - [ ] JWT_SECRET configurada
 - [ ] RESEND_API_KEY configurada (para emails)
 - [ ] Migrations aplicadas (`npm run db:push`)
-- [ ] Dados migrados (se necessario)
 - [ ] Health check funcionando
 - [ ] SSL habilitado (automatico no Render)
 - [ ] Dominio customizado configurado (opcional)
@@ -255,3 +221,4 @@ Configure no Render:
 - **Render Docs**: https://render.com/docs
 - **Drizzle ORM**: https://orm.drizzle.team
 - **PostgreSQL**: https://www.postgresql.org/docs/
+- **Neon**: https://neon.tech/docs

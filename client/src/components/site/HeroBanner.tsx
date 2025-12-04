@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 
+import devocionalImg1 from "@assets/Fundo Layout stories_1761783891823.png";
+import devocionalImg2 from "@assets/Layout stories_1761779211233.png";
+import devocionalImg3 from "@assets/fundo_1761781968067.png";
+
 interface DevotionalData {
   id: number;
   title: string;
@@ -18,18 +22,21 @@ const devotionals: DevotionalData[] = [
     title: "A Força da Oração",
     verse: "Orai sem cessar.",
     verseReference: "1 Tessalonicenses 5:17",
+    imageUrl: devocionalImg1,
   },
   {
     id: 2,
     title: "Confiança em Deus",
     verse: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.",
     verseReference: "Provérbios 3:5",
+    imageUrl: devocionalImg2,
   },
   {
     id: 3,
     title: "O Amor de Cristo",
     verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito.",
     verseReference: "João 3:16",
+    imageUrl: devocionalImg3,
   },
 ];
 
@@ -85,15 +92,15 @@ export function HeroBanner() {
       {currentDevotional.imageUrl && (
         <>
           <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
             style={{ backgroundImage: `url(${currentDevotional.imageUrl})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/85 to-gray-900/70" />
         </>
       )}
       
       <div className="relative h-full container mx-auto px-4 py-16 md:py-20 flex flex-col justify-center">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl ml-8 md:ml-16 lg:ml-20">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -114,17 +121,17 @@ export function HeroBanner() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.4, ease: "easeInOut" }}
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
             >
               <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
+                className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight pr-4"
                 data-testid="banner-title"
               >
                 {currentDevotional.title}
               </h1>
               
-              <blockquote className="border-l-4 border-primary pl-5 py-3 mb-8 bg-white/5 backdrop-blur-sm rounded-r-lg">
-                <p className="text-xl md:text-2xl text-white/90 italic font-light leading-relaxed">
+              <blockquote className="border-l-4 border-primary pl-5 py-3 mb-8 bg-white/5 backdrop-blur-sm rounded-r-lg mr-4 md:mr-8">
+                <p className="text-lg md:text-2xl text-white/90 italic font-light leading-relaxed">
                   "{currentDevotional.verse}"
                 </p>
                 <cite className="text-base text-primary mt-3 block not-italic font-medium">
@@ -163,33 +170,39 @@ export function HeroBanner() {
         </div>
       </div>
 
-      <button
+      <motion.button
         onClick={goToPrev}
-        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-black/30 transition-all duration-300"
         aria-label="Anterior"
         data-testid="banner-prev-button"
       >
-        <ChevronLeft className="h-6 w-6" />
-      </button>
+        <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+      </motion.button>
 
-      <button
+      <motion.button
         onClick={goToNext}
-        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 transition-colors"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-black/30 transition-all duration-300"
         aria-label="Próximo"
         data-testid="banner-next-button"
       >
-        <ChevronRight className="h-6 w-6" />
-      </button>
+        <ChevronRight className="h-5 w-5 md:h-6 md:w-6" />
+      </motion.button>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
         {devotionals.map((_, index) => (
-          <button
+          <motion.button
             key={index}
             onClick={() => goToSlide(index)}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
             className={`transition-all duration-300 ${
               index === currentIndex
-                ? "w-8 h-2 bg-primary rounded-full"
-                : "w-2 h-2 bg-white/40 rounded-full hover:bg-white/60"
+                ? "w-6 h-2 bg-primary rounded-full shadow-lg shadow-primary/30"
+                : "w-2 h-2 bg-white/30 rounded-full hover:bg-white/50"
             }`}
             aria-label={`Ir para slide ${index + 1}`}
             data-testid={`banner-dot-${index}`}

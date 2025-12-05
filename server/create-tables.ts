@@ -312,7 +312,7 @@ export async function createAllTables(pool: Pool) {
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    -- Study Lesson Progress table
+    -- Study Lesson Progress table (legacy)
     CREATE TABLE IF NOT EXISTS study_lesson_progress (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
@@ -326,6 +326,183 @@ export async function createAllTables(pool: Pool) {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, lesson_id)
+    );
+
+    -- Study Units table
+    CREATE TABLE IF NOT EXISTS study_units (
+      id SERIAL PRIMARY KEY,
+      lesson_id INTEGER NOT NULL REFERENCES study_lessons(id),
+      order_index INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      content TEXT NOT NULL,
+      xp_value INTEGER NOT NULL DEFAULT 2,
+      stage TEXT NOT NULL DEFAULT 'estude',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- Bible Verses table
+    CREATE TABLE IF NOT EXISTS bible_verses (
+      id SERIAL PRIMARY KEY,
+      reference TEXT NOT NULL,
+      text TEXT NOT NULL,
+      reflection TEXT,
+      category TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- User Lesson Progress table (new)
+    CREATE TABLE IF NOT EXISTS user_lesson_progress (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      lesson_id INTEGER NOT NULL REFERENCES study_lessons(id),
+      status TEXT NOT NULL DEFAULT 'locked',
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      mistakes_count INTEGER NOT NULL DEFAULT 0,
+      perfect_score BOOLEAN NOT NULL DEFAULT false,
+      time_spent_seconds INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, lesson_id)
+    );
+
+    -- User Unit Progress table
+    CREATE TABLE IF NOT EXISTS user_unit_progress (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      unit_id INTEGER NOT NULL REFERENCES study_units(id),
+      is_completed BOOLEAN NOT NULL DEFAULT false,
+      answer_given TEXT,
+      is_correct BOOLEAN,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      completed_at TIMESTAMP,
+      UNIQUE(user_id, unit_id)
+    );
+
+    -- Verse Readings table
+    CREATE TABLE IF NOT EXISTS verse_readings (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      verse_id INTEGER NOT NULL REFERENCES bible_verses(id),
+      read_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      hearts_recovered INTEGER NOT NULL DEFAULT 1
+    );
+
+    -- XP Transactions table
+    CREATE TABLE IF NOT EXISTS xp_transactions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      amount INTEGER NOT NULL,
+      source TEXT NOT NULL,
+      source_id INTEGER,
+      description TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- Daily Activity table
+    CREATE TABLE IF NOT EXISTS daily_activity (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      activity_date TEXT NOT NULL,
+      minutes_studied INTEGER NOT NULL DEFAULT 0,
+      lessons_completed INTEGER NOT NULL DEFAULT 0,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      streak_maintained BOOLEAN NOT NULL DEFAULT false,
+      UNIQUE(user_id, activity_date)
+    );
+
+    -- Achievements table
+    CREATE TABLE IF NOT EXISTS achievements (
+      id SERIAL PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      description TEXT,
+      icon TEXT,
+      xp_reward INTEGER NOT NULL DEFAULT 0,
+      category TEXT NOT NULL,
+      requirement TEXT,
+      is_secret BOOLEAN NOT NULL DEFAULT false
+    );
+
+    -- User Achievements table
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      achievement_id INTEGER NOT NULL REFERENCES achievements(id),
+      unlocked_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, achievement_id)
+    );
+
+    -- Leaderboard Entries table
+    CREATE TABLE IF NOT EXISTS leaderboard_entries (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      period_type TEXT NOT NULL,
+      period_key TEXT NOT NULL,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      rank_position INTEGER,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, period_type, period_key)
+    );
+
+    -- Daily Missions table
+    CREATE TABLE IF NOT EXISTS daily_missions (
+      id SERIAL PRIMARY KEY,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      xp_reward INTEGER NOT NULL DEFAULT 10,
+      requirement TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT true
+    );
+
+    -- User Daily Missions table
+    CREATE TABLE IF NOT EXISTS user_daily_missions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      mission_id INTEGER NOT NULL REFERENCES daily_missions(id),
+      assigned_date TEXT NOT NULL,
+      completed BOOLEAN NOT NULL DEFAULT false,
+      completed_at TIMESTAMP,
+      xp_awarded INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, mission_id, assigned_date)
+    );
+
+    -- Daily Mission Content table
+    CREATE TABLE IF NOT EXISTS daily_mission_content (
+      id SERIAL PRIMARY KEY,
+      content_date TEXT NOT NULL UNIQUE,
+      daily_verse TEXT,
+      bible_fact TEXT,
+      bible_character TEXT,
+      daily_theme TEXT,
+      timed_quiz_questions TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- Push Subscriptions table
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      endpoint TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      last_used TIMESTAMP,
+      UNIQUE(user_id, endpoint)
+    );
+
+    -- Notifications table
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      data TEXT,
+      read BOOLEAN NOT NULL DEFAULT false,
+      read_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `;
 

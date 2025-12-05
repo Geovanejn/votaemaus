@@ -105,3 +105,8 @@ waitForPort = 5000
 [agent]
 expertMode = true
 integrations = ["javascript_openai:1.0.0", "javascript_gemini:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "c85bbaefe62f332180abffb00922a6c857e3ad54ccde82b0c96f909a7e8176cc"

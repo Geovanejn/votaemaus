@@ -1246,69 +1246,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/dev/seed-test-users", async (req, res) => {
-    try {
-      if (app.get("env") !== "development") {
-        return res.status(403).json({ message: "Este endpoint só está disponível em desenvolvimento" });
-      }
-
-      const testUsers = [
-        { fullName: "Admin Teste", email: "admin@teste.com", password: "senha123", isAdmin: true },
-        { fullName: "João Silva", email: "joao@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Maria Santos", email: "maria@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Pedro Oliveira", email: "pedro@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Ana Costa", email: "ana@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Carlos Pereira", email: "carlos@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Juliana Lima", email: "juliana@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Roberto Alves", email: "roberto@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Fernanda Souza", email: "fernanda@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Lucas Martins", email: "lucas@teste.com", password: "senha123", isAdmin: false },
-        { fullName: "Patricia Rocha", email: "patricia@teste.com", password: "senha123", isAdmin: false },
-      ];
-
-      const createdUsers = [];
-      const skippedUsers = [];
-
-      for (const userData of testUsers) {
-        const existingUser = await storage.getUserByEmail(userData.email);
-        if (existingUser) {
-          skippedUsers.push(userData.email);
-          continue;
-        }
-
-        const hashedPassword = await hashPassword(userData.password);
-        const user = await storage.createUser({
-          fullName: userData.fullName,
-          email: userData.email,
-          password: hashedPassword,
-          isAdmin: userData.isAdmin,
-          isMember: true,
-        });
-
-        createdUsers.push({
-          email: user.email,
-          fullName: user.fullName,
-          isAdmin: user.isAdmin,
-        });
-      }
-
-      res.json({
-        message: "Usuários de teste criados com sucesso",
-        created: createdUsers,
-        skipped: skippedUsers,
-        credentials: {
-          admin: { email: "admin@teste.com", password: "senha123" },
-          members: { email: "qualquer@teste.com", password: "senha123" }
-        }
-      });
-    } catch (error) {
-      console.error("Seed test users error:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Erro ao criar usuários de teste" 
-      });
-    }
-  });
-
   // Public route to verify PDF authenticity
   app.get("/api/verify/:hash", async (req, res) => {
     try {
@@ -2866,7 +2803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Seed study data with real content (resets all DeoGlory data) - admin or espiritualidade
   app.post("/api/study/admin/seed", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const { seedAllData } = await import("./seed-study-data");
+      const { seedAllData } = await import("../scripts/seed-study-data");
       await seedAllData();
       res.json({ 
         message: "Todos os dados do sistema DeoGlory foram resetados e novos dados inseridos com sucesso",

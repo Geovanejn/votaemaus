@@ -3,13 +3,15 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import type { User } from "@shared/schema";
 
+// JWT_SECRET é OBRIGATÓRIO em todos os ambientes para segurança
 if (!process.env.JWT_SECRET) {
-  console.warn("AVISO: JWT_SECRET nao definido! Usando secret padrao apenas para desenvolvimento.");
+  throw new Error(
+    "ERRO CRITICO: JWT_SECRET nao definido! " +
+    "Configure o secret JWT_SECRET nas variaveis de ambiente antes de iniciar o servidor."
+  );
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" 
-  ? (() => { throw new Error("JWT_SECRET obrigatorio em producao"); })()
-  : "dev-only-secret-key-change-in-prod");
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface AuthRequest extends Request {
   user?: Omit<User, "password"> & { id: number };

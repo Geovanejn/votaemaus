@@ -11,9 +11,19 @@ async function main() {
 
   console.log("1. Criando usuário administrador...");
   
-  const adminEmail = "marketingumpemaus@gmail.com";
+  // Email pode vir de env ou usar padrão
+  const adminEmail = process.env.ADMIN_EMAIL || "marketingumpemaus@gmail.com";
   const adminName = "UMP Emaús";
-  const adminPassword = "umpEmaus2025#";
+  
+  // SENHA OBRIGATÓRIA via variável de ambiente - nunca usar valor padrão!
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminPassword) {
+    console.error("   ✗ ERRO: ADMIN_PASSWORD deve estar definido nas variáveis de ambiente!");
+    console.log("   Defina o secret ADMIN_PASSWORD antes de executar este script.");
+    console.log("   Use uma senha forte e única para o administrador.");
+    process.exit(1);
+  }
   
   try {
     const [existingAdmin] = await db.select()
@@ -81,9 +91,9 @@ async function main() {
   }
 
   console.log("\n=== Inicialização concluída! ===");
-  console.log(`\nCredenciais do administrador:`);
+  console.log(`\nAdministrador configurado:`);
   console.log(`   Email: ${adminEmail}`);
-  console.log(`   Senha: ${adminPassword}`);
+  console.log(`   (A senha foi definida via variável de ambiente ADMIN_PASSWORD)`);
   console.log(`\nAgora você pode fazer login no sistema.`);
   
   process.exit(0);

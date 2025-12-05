@@ -37,6 +37,7 @@ const AchievementsPage = lazy(() => import("@/pages/study/achievements"));
 const SeasonsPage = lazy(() => import("@/pages/study/seasons"));
 const SeasonDetailPage = lazy(() => import("@/pages/study/season-detail"));
 const FinalChallengePage = lazy(() => import("@/pages/study/final-challenge"));
+const SeasonRankingPage = lazy(() => import("@/pages/study/season-ranking"));
 const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 
@@ -127,6 +128,7 @@ function Router() {
           <Route path="/study/seasons" component={SeasonsPage} />
           <Route path="/study/season/:id" component={SeasonDetailPage} />
           <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
+          <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -163,6 +165,7 @@ function Router() {
         <Route path="/study/seasons" component={SeasonsPage} />
         <Route path="/study/season/:id" component={SeasonDetailPage} />
         <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
+        <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

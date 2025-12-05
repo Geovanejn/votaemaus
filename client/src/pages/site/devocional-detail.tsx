@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import html2canvas from "html2canvas";
 import { 
   ArrowLeft,
@@ -12,7 +13,9 @@ import {
   Loader2,
   Download,
   Check,
-  X
+  X,
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { DevotionalShareCard } from "@/components/DevotionalShareCard";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
@@ -38,6 +42,7 @@ interface DevotionalData {
   imageUrl?: string;
   author?: string;
   publishedAt?: string;
+  isRead?: boolean;
 }
 
 function formatDate(dateStr?: string): string {
@@ -65,6 +70,7 @@ export default function DevocionalDetailPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const { data: devotional, isLoading, isError } = useQuery<DevotionalData>({
     queryKey: ['/api/site/devotionals', devotionalId],
@@ -72,12 +78,59 @@ export default function DevocionalDetailPage() {
     enabled: devotionalId > 0,
   });
 
+  const { data: readStatus } = useQuery<{ isRead: boolean }>({
+    queryKey: ['/api/study/devotional-status', devotionalId],
+    enabled: isAuthenticated && devotionalId > 0,
+  });
+
+  const isAlreadyRead = readStatus?.isRead === true;
+
   const { data: allDevotionals } = useQuery<DevotionalData[]>({
     queryKey: ['/api/site/devotionals'],
     staleTime: 5 * 60 * 1000,
   });
 
   const relatedDevotionals = allDevotionals?.filter(d => d.id !== devotionalId).slice(0, 3) || [];
+
+  const markAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/study/devotional-read/${devotionalId}`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/devotional-status", devotionalId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/weekly-goal"] });
+      
+      if (!data.alreadyRead) {
+        toast({
+          title: "Devocional marcado como lido!",
+          description: "Voce ganhou pontos para sua meta semanal.",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao marcar como lido",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMarkAsRead = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Faca login para continuar",
+        description: "Voce precisa estar logado para marcar o devocional como lido.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isAlreadyRead || markAsReadMutation.isPending) {
+      return;
+    }
+    markAsReadMutation.mutate();
+  };
 
   const generateShareImage = useCallback(async () => {
     if (!shareCardRef.current || !devotional) return null;
@@ -371,15 +424,35 @@ export default function DevocionalDetailPage() {
                         <p className="text-sm text-muted-foreground">{date}</p>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleOpenShareDialog}
-                      className="gap-2"
-                      data-testid="button-share-devotional"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Compartilhar
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isAuthenticated && (
+                        <Button 
+                          variant={isAlreadyRead ? "default" : "outline"}
+                          onClick={handleMarkAsRead}
+                          disabled={isAlreadyRead || markAsReadMutation.isPending}
+                          className="gap-2"
+                          data-testid="button-mark-read"
+                        >
+                          {markAsReadMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isAlreadyRead ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                          {isAlreadyRead ? "Lido" : "Marcar como lido"}
+                        </Button>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        onClick={handleOpenShareDialog}
+                        className="gap-2"
+                        data-testid="button-share-devotional"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        Compartilhar
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

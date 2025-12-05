@@ -3623,12 +3623,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Verificar status de leitura do devocional
+  app.get("/api/study/devotional-status/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const devotionalId = parseInt(req.params.id);
+      if (isNaN(devotionalId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const isRead = await storage.hasReadDevotional(req.user!.id, devotionalId);
+      res.json({ isRead });
+    } catch (error) {
+      console.error("Check devotional status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
   // Marcar devocional como lido (para meta semanal)
   app.post("/api/study/devotional-read/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const devotionalId = parseInt(req.params.id);
       if (isNaN(devotionalId)) {
         return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const alreadyRead = await storage.hasReadDevotional(req.user!.id, devotionalId);
+      if (alreadyRead) {
+        return res.json({ success: true, message: "Devocional ja foi lido", alreadyRead: true });
       }
 
       const weekKey = getCurrentWeekKey();

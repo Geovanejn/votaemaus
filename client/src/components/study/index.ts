@@ -24,6 +24,7 @@ export { StudyContent } from "./StudyContent";
 export { AchievementNotification, useAchievementNotification } from "./AchievementNotification";
 export { SoundSettings } from "./SoundSettings";
 export { NotificationSettings } from "./NotificationSettings";
+export { WeeklyGoalsWidget } from "./weekly-goals-widget";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";

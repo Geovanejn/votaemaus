@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
@@ -17,7 +17,8 @@ import {
   Crown,
   Play,
   Award,
-  ChevronRight
+  ChevronRight,
+  Medal
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -424,14 +425,26 @@ export default function SeasonDetailPage() {
               <p className="text-sm text-white/80 truncate">{season.subtitle}</p>
             )}
           </div>
-          {userProgress && userProgress.isMastered && (
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Crown className="h-6 w-6 text-white drop-shadow-lg" />
-            </motion.div>
-          )}
+          <div className="flex items-center gap-2">
+            <Link href={`/study/season/${seasonId}/ranking`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20"
+                data-testid="button-ranking"
+              >
+                <Medal className="h-5 w-5" />
+              </Button>
+            </Link>
+            {userProgress && userProgress.isMastered && (
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Crown className="h-6 w-6 text-white drop-shadow-lg" />
+              </motion.div>
+            )}
+          </div>
         </div>
 
         {userProgress && (

@@ -4,7 +4,8 @@ import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
   LearningPath,
-  useCelebration
+  useCelebration,
+  WeeklyGoalsWidget
 } from "@/components/study";
 import type { LessonItem, StageType, StageItem } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -428,10 +429,11 @@ export default function StudyHomePage() {
         profile={profile} 
       />
       
-      <DailyGoalSection 
-        lessonsCompleted={lessonsCompleted} 
-        totalLessons={lessons.length}
-      />
+      <div className="px-4 py-4">
+        <div className="max-w-lg mx-auto">
+          <WeeklyGoalsWidget />
+        </div>
+      </div>
 
       {lessons.length > 0 ? (
         <LearningPath 

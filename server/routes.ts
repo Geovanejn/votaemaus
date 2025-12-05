@@ -3172,18 +3172,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Submit prayer request (public) - Rate limited to prevent spam
   app.post("/api/site/prayer-requests", prayerLimiter, async (req, res) => {
     try {
-      const { name, whatsapp, category, request, isAnonymous } = req.body;
+      const { name, whatsapp, category, request } = req.body;
       
-      if (!category || !request) {
-        return res.status(400).json({ message: "Categoria e pedido sao obrigatorios" });
+      if (!name || !category || !request) {
+        return res.status(400).json({ message: "Nome, categoria e pedido sao obrigatorios" });
       }
       
       const prayerRequest = await storage.createPrayerRequest({
-        name: isAnonymous ? null : name,
-        whatsapp: isAnonymous ? null : whatsapp,
+        name,
+        whatsapp,
         category,
         request,
-        isAnonymous: isAnonymous || false,
         status: "pending",
       });
       
@@ -4019,6 +4018,279 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Toggle lesson lock error:", error);
       res.status(500).json({ message: "Erro ao alterar estado da lição" });
+    }
+  });
+
+  // ==================== PAINEL ESPIRITUALIDADE API ====================
+
+  // Listar todos os devocionais (admin/espiritualidade)
+  app.get("/api/espiritualidade/devotionals", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const devotionals = await storage.getAllDevotionalsAdmin();
+      res.json(devotionals);
+    } catch (error) {
+      console.error("Get all devotionals admin error:", error);
+      res.status(500).json({ message: "Erro ao buscar devocionais" });
+    }
+  });
+
+  // Buscar devocional por ID (admin/espiritualidade)
+  app.get("/api/espiritualidade/devotionals/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const devotional = await storage.getDevotionalById(id);
+      if (!devotional) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      res.json(devotional);
+    } catch (error) {
+      console.error("Get devotional by id error:", error);
+      res.status(500).json({ message: "Erro ao buscar devocional" });
+    }
+  });
+
+  // Criar novo devocional (admin/espiritualidade)
+  app.post("/api/espiritualidade/devotionals", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, author, isPublished, isFeatured, scheduledAt } = req.body;
+      
+      if (!title || !verse || !verseReference || !content) {
+        return res.status(400).json({ message: "Titulo, versiculo, referencia e conteudo sao obrigatorios" });
+      }
+      
+      const devotional = await storage.createDevotional({
+        title,
+        verse,
+        verseReference,
+        content,
+        contentHtml,
+        summary,
+        prayer,
+        imageUrl,
+        author: author || req.user?.fullName || "Espiritualidade UMP",
+        isPublished: isPublished || false,
+        isFeatured: isFeatured || false,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+        createdBy: req.user?.id
+      });
+      
+      res.status(201).json(devotional);
+    } catch (error) {
+      console.error("Create devotional error:", error);
+      res.status(500).json({ message: "Erro ao criar devocional" });
+    }
+  });
+
+  // Atualizar devocional (admin/espiritualidade)
+  app.put("/api/espiritualidade/devotionals/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, author, isPublished, isFeatured, scheduledAt } = req.body;
+      
+      const devotional = await storage.updateDevotional(id, {
+        title,
+        verse,
+        verseReference,
+        content,
+        contentHtml,
+        summary,
+        prayer,
+        imageUrl,
+        author,
+        isPublished,
+        isFeatured,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null
+      });
+      
+      if (!devotional) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      
+      res.json(devotional);
+    } catch (error) {
+      console.error("Update devotional error:", error);
+      res.status(500).json({ message: "Erro ao atualizar devocional" });
+    }
+  });
+
+  // Excluir devocional (admin/espiritualidade)
+  app.delete("/api/espiritualidade/devotionals/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteDevotional(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      
+      res.json({ message: "Devocional excluido com sucesso" });
+    } catch (error) {
+      console.error("Delete devotional error:", error);
+      res.status(500).json({ message: "Erro ao excluir devocional" });
+    }
+  });
+
+  // Publicar devocional (admin/espiritualidade)
+  app.post("/api/espiritualidade/devotionals/:id/publish", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const devotional = await storage.publishDevotional(id);
+      
+      if (!devotional) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      
+      res.json(devotional);
+    } catch (error) {
+      console.error("Publish devotional error:", error);
+      res.status(500).json({ message: "Erro ao publicar devocional" });
+    }
+  });
+
+  // Despublicar devocional (admin/espiritualidade)
+  app.post("/api/espiritualidade/devotionals/:id/unpublish", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const devotional = await storage.unpublishDevotional(id);
+      
+      if (!devotional) {
+        return res.status(404).json({ message: "Devocional nao encontrado" });
+      }
+      
+      res.json(devotional);
+    } catch (error) {
+      console.error("Unpublish devotional error:", error);
+      res.status(500).json({ message: "Erro ao despublicar devocional" });
+    }
+  });
+
+  // Listar pedidos de oracao pendentes (admin/espiritualidade)
+  app.get("/api/espiritualidade/prayers", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const status = req.query.status as string;
+      let prayers;
+      
+      if (status === "pending") {
+        prayers = await storage.getPendingPrayerRequests();
+      } else if (status === "approved") {
+        prayers = await storage.getApprovedPrayerRequests();
+      } else {
+        prayers = await storage.getAllPrayerRequests(status);
+      }
+      
+      res.json(prayers);
+    } catch (error) {
+      console.error("Get prayers error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos de oracao" });
+    }
+  });
+
+  // Buscar pedido de oracao por ID (admin/espiritualidade)
+  app.get("/api/espiritualidade/prayers/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const prayer = await storage.getPrayerRequestById(id);
+      
+      if (!prayer) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      res.json(prayer);
+    } catch (error) {
+      console.error("Get prayer by id error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedido de oracao" });
+    }
+  });
+
+  // Aprovar pedido de oracao (admin/espiritualidade)
+  app.patch("/api/espiritualidade/prayers/:id/approve", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const prayer = await storage.approvePrayerRequest(id, req.user!.id);
+      
+      if (!prayer) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      res.json(prayer);
+    } catch (error) {
+      console.error("Approve prayer error:", error);
+      res.status(500).json({ message: "Erro ao aprovar pedido de oracao" });
+    }
+  });
+
+  // Rejeitar pedido de oracao (admin/espiritualidade)
+  app.patch("/api/espiritualidade/prayers/:id/reject", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { reason } = req.body;
+      const prayer = await storage.rejectPrayerRequest(id, req.user!.id, reason);
+      
+      if (!prayer) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      res.json(prayer);
+    } catch (error) {
+      console.error("Reject prayer error:", error);
+      res.status(500).json({ message: "Erro ao rejeitar pedido de oracao" });
+    }
+  });
+
+  // Mural da oracao publico (pedidos aprovados)
+  app.get("/api/site/prayer-wall", async (req, res) => {
+    try {
+      const prayers = await storage.getApprovedPrayerRequests();
+      res.json(prayers);
+    } catch (error) {
+      console.error("Get prayer wall error:", error);
+      res.status(500).json({ message: "Erro ao buscar mural de oracao" });
+    }
+  });
+
+  // Incrementar contador "Estou orando" (publico)
+  app.post("/api/site/prayer-wall/:id/pray", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const prayer = await storage.incrementPrayerCount(id);
+      
+      if (!prayer) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      res.json({ inPrayerCount: prayer.inPrayerCount });
+    } catch (error) {
+      console.error("Increment prayer count error:", error);
+      res.status(500).json({ message: "Erro ao registrar oracao" });
+    }
+  });
+
+  // Dashboard estatisticas espiritualidade
+  app.get("/api/espiritualidade/stats", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const [allDevotionals, pendingPrayers, approvedPrayers] = await Promise.all([
+        storage.getAllDevotionalsAdmin(),
+        storage.getPendingPrayerRequests(),
+        storage.getApprovedPrayerRequests()
+      ]);
+      
+      const publishedDevotionals = allDevotionals.filter(d => d.isPublished);
+      const draftDevotionals = allDevotionals.filter(d => !d.isPublished);
+      
+      res.json({
+        devotionals: {
+          total: allDevotionals.length,
+          published: publishedDevotionals.length,
+          drafts: draftDevotionals.length
+        },
+        prayers: {
+          pending: pendingPrayers.length,
+          approved: approvedPrayers.length
+        }
+      });
+    } catch (error) {
+      console.error("Get espiritualidade stats error:", error);
+      res.status(500).json({ message: "Erro ao buscar estatisticas" });
     }
   });
 

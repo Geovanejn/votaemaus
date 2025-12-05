@@ -378,11 +378,13 @@ export const devotionals = pgTable("devotionals", {
   verse: text("verse").notNull(),
   verseReference: text("verse_reference").notNull(),
   content: text("content").notNull(),
+  contentHtml: text("content_html"),
   summary: text("summary"),
   prayer: text("prayer"),
   imageUrl: text("image_url"),
   author: text("author"),
   publishedAt: timestamp("published_at").notNull().defaultNow(),
+  scheduledAt: timestamp("scheduled_at"),
   isPublished: boolean("is_published").notNull().default(true),
   isFeatured: boolean("is_featured").notNull().default(false),
   createdBy: integer("created_by").references(() => users.id),
@@ -457,19 +459,29 @@ export type InstagramPost = typeof instagramPosts.$inferSelect;
 // ==================== PEDIDOS DE ORACAO ====================
 
 export type PrayerCategory = "saude" | "familia" | "trabalho" | "espiritual" | "relacionamento" | "outros";
-export type PrayerStatus = "pending" | "praying" | "answered" | "archived";
+export type PrayerStatus = "pending" | "approved" | "rejected" | "praying" | "answered" | "archived";
 
 export const prayerRequests = pgTable("prayer_requests", {
   id: serial("id").primaryKey(),
-  name: text("name"),
+  name: text("name").notNull(),
   whatsapp: text("whatsapp"),
   category: text("category").notNull().default("outros"),
   request: text("request").notNull(),
-  isAnonymous: boolean("is_anonymous").notNull().default(false),
   status: text("status").notNull().default("pending"),
   notes: text("notes"),
   prayedBy: integer("prayed_by").references(() => users.id),
   prayedAt: timestamp("prayed_at"),
+  isModerated: boolean("is_moderated").notNull().default(false),
+  moderatedBy: integer("moderated_by").references(() => users.id),
+  moderatedAt: timestamp("moderated_at"),
+  isApproved: boolean("is_approved").notNull().default(false),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  inPrayerCount: integer("in_prayer_count").notNull().default(0),
+  hasProfanity: boolean("has_profanity").default(false),
+  hasHateSpeech: boolean("has_hate_speech").default(false),
+  hasSexualContent: boolean("has_sexual_content").default(false),
+  moderationDetails: text("moderation_details"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -478,6 +490,17 @@ export const insertPrayerRequestSchema = createInsertSchema(prayerRequests).omit
   id: true,
   createdAt: true,
   updatedAt: true,
+  isModerated: true,
+  moderatedBy: true,
+  moderatedAt: true,
+  isApproved: true,
+  approvedAt: true,
+  approvedBy: true,
+  inPrayerCount: true,
+  hasProfanity: true,
+  hasHateSpeech: true,
+  hasSexualContent: true,
+  moderationDetails: true,
 });
 
 export type InsertPrayerRequest = z.infer<typeof insertPrayerRequestSchema>;

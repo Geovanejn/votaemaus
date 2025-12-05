@@ -152,8 +152,13 @@ export interface IStorage {
   
   getLatestDevotional(): Promise<any | null>;
   getAllDevotionals(limit?: number): Promise<any[]>;
+  getAllDevotionalsAdmin(): Promise<any[]>;
   getDevotionalById(id: number): Promise<any | null>;
-  createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): Promise<any>;
+  createDevotional(data: { title: string; verse: string; verseReference: string; content: string; contentHtml?: string; summary?: string; prayer?: string; imageUrl?: string; author?: string; isPublished?: boolean; isFeatured?: boolean; scheduledAt?: Date; createdBy?: number }): Promise<any>;
+  updateDevotional(id: number, data: Partial<{ title: string; verse: string; verseReference: string; content: string; contentHtml?: string; summary?: string; prayer?: string; imageUrl?: string; author?: string; isPublished?: boolean; isFeatured?: boolean; scheduledAt?: Date | null }>): Promise<any | null>;
+  deleteDevotional(id: number): Promise<boolean>;
+  publishDevotional(id: number): Promise<any | null>;
+  unpublishDevotional(id: number): Promise<any | null>;
   clearAllDevotionals(): Promise<void>;
   
   getUpcomingEvents(limit?: number): Promise<any[]>;
@@ -210,7 +215,14 @@ export interface IStorage {
   // Prayer Requests Methods
   createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest>;
   getAllPrayerRequests(status?: string): Promise<PrayerRequest[]>;
+  getPrayerRequestById(id: number): Promise<PrayerRequest | null>;
+  getApprovedPrayerRequests(): Promise<PrayerRequest[]>;
+  getPendingPrayerRequests(): Promise<PrayerRequest[]>;
   updatePrayerRequestStatus(id: number, status: string, prayedBy?: number): Promise<PrayerRequest | null>;
+  approvePrayerRequest(id: number, approvedBy: number): Promise<PrayerRequest | null>;
+  rejectPrayerRequest(id: number, moderatedBy: number, reason?: string): Promise<PrayerRequest | null>;
+  incrementPrayerCount(id: number): Promise<PrayerRequest | null>;
+  moderatePrayerRequest(id: number, data: { isModerated: boolean; moderatedBy: number; hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest | null>;
   
   // Board Members Methods
   getAllBoardMembers(currentOnly?: boolean): Promise<BoardMember[]>;
@@ -1275,14 +1287,61 @@ export class DatabaseStorage implements IStorage {
     return devotional || null;
   }
 
-  async createDevotional(data: { title: string; verse: string; verseReference: string; content: string; summary?: string; imageUrl?: string; author?: string; isPublished?: boolean }): Promise<any> {
+  async createDevotional(data: { title: string; verse: string; verseReference: string; content: string; contentHtml?: string; summary?: string; prayer?: string; imageUrl?: string; author?: string; isPublished?: boolean; isFeatured?: boolean; scheduledAt?: Date; createdBy?: number }): Promise<any> {
     const [devotional] = await db.insert(schema.devotionals)
       .values({
         ...data,
-        isPublished: data.isPublished ?? true,
+        isPublished: data.isPublished ?? false,
+        isFeatured: data.isFeatured ?? false,
       })
       .returning();
     return devotional;
+  }
+
+  async getAllDevotionalsAdmin(): Promise<any[]> {
+    return db.select().from(schema.devotionals)
+      .orderBy(desc(schema.devotionals.createdAt));
+  }
+
+  async updateDevotional(id: number, data: Partial<{ title: string; verse: string; verseReference: string; content: string; contentHtml?: string; summary?: string; prayer?: string; imageUrl?: string; author?: string; isPublished?: boolean; isFeatured?: boolean; scheduledAt?: Date | null }>): Promise<any | null> {
+    const [devotional] = await db.update(schema.devotionals)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionals.id, id))
+      .returning();
+    return devotional || null;
+  }
+
+  async deleteDevotional(id: number): Promise<boolean> {
+    const result = await db.delete(schema.devotionals)
+      .where(eq(schema.devotionals.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async publishDevotional(id: number): Promise<any | null> {
+    const [devotional] = await db.update(schema.devotionals)
+      .set({
+        isPublished: true,
+        publishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionals.id, id))
+      .returning();
+    return devotional || null;
+  }
+
+  async unpublishDevotional(id: number): Promise<any | null> {
+    const [devotional] = await db.update(schema.devotionals)
+      .set({
+        isPublished: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionals.id, id))
+      .returning();
+    return devotional || null;
   }
 
   async clearAllDevotionals(): Promise<void> {
@@ -1915,6 +1974,84 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.prayerRequests.id, id))
       .returning();
     return updated || null;
+  }
+
+  async getPrayerRequestById(id: number): Promise<PrayerRequest | null> {
+    const [request] = await db.select().from(schema.prayerRequests)
+      .where(eq(schema.prayerRequests.id, id))
+      .limit(1);
+    return request || null;
+  }
+
+  async getApprovedPrayerRequests(): Promise<PrayerRequest[]> {
+    return db.select().from(schema.prayerRequests)
+      .where(eq(schema.prayerRequests.isApproved, true))
+      .orderBy(desc(schema.prayerRequests.approvedAt));
+  }
+
+  async getPendingPrayerRequests(): Promise<PrayerRequest[]> {
+    return db.select().from(schema.prayerRequests)
+      .where(and(
+        eq(schema.prayerRequests.status, 'pending'),
+        eq(schema.prayerRequests.isApproved, false)
+      ))
+      .orderBy(desc(schema.prayerRequests.createdAt));
+  }
+
+  async approvePrayerRequest(id: number, approvedBy: number): Promise<PrayerRequest | null> {
+    const [request] = await db.update(schema.prayerRequests)
+      .set({
+        isApproved: true,
+        approvedAt: new Date(),
+        approvedBy: approvedBy,
+        isModerated: true,
+        moderatedBy: approvedBy,
+        moderatedAt: new Date(),
+        status: 'approved',
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return request || null;
+  }
+
+  async rejectPrayerRequest(id: number, moderatedBy: number, reason?: string): Promise<PrayerRequest | null> {
+    const [request] = await db.update(schema.prayerRequests)
+      .set({
+        isApproved: false,
+        isModerated: true,
+        moderatedBy: moderatedBy,
+        moderatedAt: new Date(),
+        status: 'rejected',
+        notes: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return request || null;
+  }
+
+  async incrementPrayerCount(id: number): Promise<PrayerRequest | null> {
+    const [request] = await db.update(schema.prayerRequests)
+      .set({
+        inPrayerCount: sql`${schema.prayerRequests.inPrayerCount} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return request || null;
+  }
+
+  async moderatePrayerRequest(id: number, data: { isModerated: boolean; moderatedBy: number; hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest | null> {
+    const [request] = await db.update(schema.prayerRequests)
+      .set({
+        ...data,
+        moderatedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return request || null;
   }
 
   // Board Members Methods

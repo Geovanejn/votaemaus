@@ -1777,30 +1777,57 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 
 ### 18.8 Checklist de Implementação
 
+**Última atualização:** 05/12/2025 - Painel Espiritualidade MVP
+
 #### Backend
 
-- [ ] Criar middleware `requireEspiritualidade` em `server/auth.ts`
-- [ ] Adicionar métodos de CRUD de devocionais em `server/storage.ts`
-- [ ] Criar rotas `/api/espiritualidade/devotionals` em `server/routes.ts`
-- [ ] Mover/duplicar rotas de oração para `/api/espiritualidade/`
+- [x] Criar middleware `requireEspiritualidade` em `server/auth.ts` (já existia como `requireAdminOrEspiritualidade`)
+- [x] Adicionar métodos de CRUD de devocionais em `server/storage.ts` (getAllDevotionalsAdmin, updateDevotional, deleteDevotional, publishDevotional, unpublishDevotional)
+- [x] Criar rotas `/api/espiritualidade/devotionals` em `server/routes.ts` (CRUD completo, publish/unpublish)
+- [x] Mover/duplicar rotas de oração para `/api/espiritualidade/` (approve/reject com moderação)
+- [x] Adicionar campos contentHtml e scheduledAt na tabela devotionals (schema atualizado)
+- [x] Adicionar campos de moderação em prayerRequests (isModerated, moderatedBy, isApproved, hasProfanity, etc.)
+- [x] Remover campo isAnonymous da tabela prayerRequests
 - [ ] Implementar rota do Mural da Oração (`/api/site/prayer-wall`)
-- [ ] Adicionar sistema de moderação automática (filtro de palavras)
+- [ ] Adicionar sistema de moderação automática com Gemini (filtro de palavras)
 
 #### Frontend
 
-- [ ] Criar página `EspiritualidadeDashboard.tsx`
-- [ ] Criar página `DevotionalList.tsx` com listagem e filtros
-- [ ] Criar componente `DevotionalEditor.tsx` com TipTap
-- [ ] Criar página `PrayerModerationList.tsx`
-- [ ] Atualizar `oracao.tsx` para incluir Mural da Oração
-- [ ] Remover opção "anônimo" do formulário de oração
+- [x] Criar página `EspiritualidadeDashboard.tsx` (client/src/pages/admin/)
+- [x] Criar página de listagem de devocionais `EspiritualidadeDevocionais.tsx` com CRUD
+- [x] Criar editor de devocional `EspiritualidadeDevocionalEditor.tsx` com TipTap
+- [x] Criar página de moderação `EspiritualidadeOracoes.tsx` (aprovar/rejeitar pedidos)
+- [x] Criar componente `RichTextEditor.tsx` com TipTap (bold, italic, underline, H2/H3, listas, links, YouTube)
+- [x] Atualizar navegação na página Admin para incluir botão "Painel Espiritualidade"
+- [x] Registrar rotas /admin/espiritualidade/* em App.tsx
+- [ ] Atualizar `oracao.tsx` para incluir Mural da Oração interativo
+- [ ] Remover opção "anônimo" do formulário de oração no frontend
 - [ ] Adicionar botão "Estou em Oração" com contador
-- [ ] Atualizar navegação/sidebar para incluir Painel Espiritualidade
 
 #### Dependências
 
-- [ ] Instalar TipTap: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-youtube`, etc.
-- [ ] Instalar bad-words para filtro de palavras
+- [x] Instalar TipTap: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-youtube`, `@tiptap/extension-link`, `@tiptap/extension-underline`, `@tiptap/extension-placeholder`
+- [ ] Instalar ou implementar filtro de palavras inapropriadas
+
+### 18.9 O Que Falta Para Completar MVP
+
+1. **Mural da Oração Público**
+   - Rota `/api/site/prayer-wall` para listar pedidos aprovados
+   - Atualizar página `/oracao` para exibir mural interativo
+   - Botão "Estou em Oração" com contador
+
+2. **Formulário de Oração**
+   - Remover checkbox/opção anônima do frontend
+   - Campo nome passar a ser obrigatório
+
+3. **Moderação Automática**
+   - Integrar Gemini para análise de conteúdo
+   - Filtrar palavrões, discurso de ódio, conteúdo sexual
+
+4. **Painel Marketing** (próxima fase)
+   - Dashboard de eventos
+   - CRUD de eventos com calendário ICS
+   - Gerenciador da diretoria
 
 ---
 
@@ -1817,5 +1844,5 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 ---
 
 *Documento atualizado em 05/12/2025*
-*Versão: 2.1 - Adicionada seção 18 (Estado Atual do Código)*
-*Status: Pronto para Implementação*
+*Versão: 2.2 - Painel Espiritualidade MVP implementado*
+*Status: Em implementação - Painel Espiritualidade 70% completo*

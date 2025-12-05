@@ -40,6 +40,7 @@ import {
   ChevronUp,
   RotateCw,
   BookOpen,
+  Heart,
 } from "lucide-react";
 import {
   Collapsible,
@@ -1068,6 +1069,14 @@ export default function AdminPage() {
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
                     Sistema de Estudos
+                  </Button>
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-[#9333ea] to-[#a855f7] text-white hover:from-[#7e22ce] hover:to-[#9333ea]"
+                    onClick={() => setLocation("/admin/espiritualidade")}
+                    data-testid="button-espiritualidade-admin"
+                  >
+                    <Heart className="w-4 h-4 mr-2" />
+                    Painel Espiritualidade
                   </Button>
                 </CardContent>
               </Card>

@@ -23,6 +23,10 @@ import MembroPage from "@/pages/site/membro";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
 const AdminSitePage = lazy(() => import("@/pages/admin/admin-site"));
+const EspiritualidadeDashboard = lazy(() => import("@/pages/admin/EspiritualidadeDashboard"));
+const EspiritualidadeDevocionais = lazy(() => import("@/pages/admin/EspiritualidadeDevocionais"));
+const EspiritualidadeDevocionalEditor = lazy(() => import("@/pages/admin/EspiritualidadeDevocionalEditor"));
+const EspiritualidadeOracoes = lazy(() => import("@/pages/admin/EspiritualidadeOracoes"));
 const VotePage = lazy(() => import("@/pages/vote"));
 const ResultsPage = lazy(() => import("@/pages/results"));
 const StudyHomePage = lazy(() => import("@/pages/study/index"));
@@ -114,6 +118,10 @@ function Router() {
           <Route path="/admin" component={AdminPage} />
           <Route path="/admin/study" component={StudyAdminPage} />
           <Route path="/admin/site" component={AdminSitePage} />
+          <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
+          <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
+          <Route path="/admin/espiritualidade/devocionais/:id" component={EspiritualidadeDevocionalEditor} />
+          <Route path="/admin/espiritualidade/oracoes" component={EspiritualidadeOracoes} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />

@@ -133,6 +133,52 @@ interface AIStatus {
   message: string;
 }
 
+interface Season {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  coverImageUrl: string | null;
+  pdfUrl: string | null;
+  aiExtractedTitle: string | null;
+  status: string;
+  totalLessons: number;
+  publishedAt: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdBy: number | null;
+  aiMetadata: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SeasonLesson {
+  id: number;
+  seasonId: number;
+  title: string;
+  description: string | null;
+  type: string;
+  orderIndex: number;
+  xpReward: number;
+  icon: string | null;
+  isLocked: boolean;
+  unlockDate: string | null;
+  unitsCount?: number;
+}
+
+interface FinalChallenge {
+  id: number;
+  seasonId: number;
+  title: string;
+  description: string | null;
+  questions: string;
+  timeLimitSeconds: number;
+  questionCount: number;
+  xpReward: number;
+  perfectXpBonus: number;
+  isActive: boolean;
+}
+
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
   processing: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -218,6 +264,21 @@ export default function StudyAdminPage() {
     title: "",
   });
 
+  const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
+  const [isCreateSeasonOpen, setIsCreateSeasonOpen] = useState(false);
+  const [editingSeason, setEditingSeason] = useState<Season | null>(null);
+  const [seasonPdfFile, setSeasonPdfFile] = useState<File | null>(null);
+  const [generateFinalChallenge, setGenerateFinalChallenge] = useState(true);
+  const [viewingSeasonLessons, setViewingSeasonLessons] = useState(false);
+  const [selectedSeasonLesson, setSelectedSeasonLesson] = useState<SeasonLesson | null>(null);
+  const [viewingSeasonUnits, setViewingSeasonUnits] = useState(false);
+  
+  const [newSeason, setNewSeason] = useState({
+    title: "",
+    subtitle: "",
+    description: "",
+  });
+
   const { data: weeks = [], isLoading: loadingWeeks } = useQuery<StudyWeek[]>({
     queryKey: ["/api/study/admin/weeks"],
     staleTime: 30000,
@@ -246,6 +307,30 @@ export default function StudyAdminPage() {
     queryKey: ["/api/ai/status"],
     staleTime: 60000,
     enabled: !!user?.isAdmin,
+  });
+
+  const { data: seasons = [], isLoading: loadingSeasons } = useQuery<Season[]>({
+    queryKey: ["/api/study/admin/seasons"],
+    staleTime: 30000,
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: seasonLessons = [], isLoading: loadingSeasonLessons } = useQuery<SeasonLesson[]>({
+    queryKey: ["/api/study/admin/seasons", selectedSeason?.id, "lessons"],
+    enabled: !!selectedSeason && viewingSeasonLessons && !!user?.isAdmin,
+    staleTime: 30000,
+  });
+
+  const { data: seasonUnits = [], isLoading: loadingSeasonUnits } = useQuery<StudyUnit[]>({
+    queryKey: ["/api/study/admin/lessons", selectedSeasonLesson?.id, "units"],
+    enabled: !!selectedSeasonLesson && viewingSeasonUnits && !!user?.isAdmin,
+    staleTime: 30000,
+  });
+
+  const { data: finalChallenge } = useQuery<FinalChallenge>({
+    queryKey: ["/api/study/seasons", selectedSeason?.id, "final-challenge"],
+    enabled: !!selectedSeason && !!user?.isAdmin,
+    staleTime: 30000,
   });
 
   if (authLoading) {
@@ -508,6 +593,126 @@ export default function StudyAdminPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const createSeasonMutation = useMutation({
+    mutationFn: async (data: typeof newSeason) => {
+      return apiRequest("POST", "/api/study/admin/seasons", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      setIsCreateSeasonOpen(false);
+      setNewSeason({ title: "", subtitle: "", description: "" });
+      toast({ title: "Temporada criada", description: "A nova temporada foi criada com sucesso." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao criar temporada", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateSeasonMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: number; title?: string; subtitle?: string; description?: string }) => {
+      return apiRequest("PUT", `/api/study/admin/seasons/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      setIsCreateSeasonOpen(false);
+      setEditingSeason(null);
+      toast({ title: "Temporada atualizada", description: "As alterações foram salvas." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteSeasonMutation = useMutation({
+    mutationFn: async (seasonId: number) => {
+      return apiRequest("DELETE", `/api/study/admin/seasons/${seasonId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      setSelectedSeason(null);
+      setViewingSeasonLessons(false);
+      toast({ title: "Temporada excluída", description: "A temporada foi removida com sucesso." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const publishSeasonMutation = useMutation({
+    mutationFn: async (seasonId: number) => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/publish`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Temporada publicada", description: "A temporada está disponível para os usuários." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao publicar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const importSeasonPDFMutation = useMutation({
+    mutationFn: async ({ seasonId, file, generateChallenge }: { seasonId: number; file: File; generateChallenge: boolean }) => {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      formData.append("generateFinalChallenge", generateChallenge.toString());
+      
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/study/admin/seasons/${seasonId}/import-pdf`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao importar PDF");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", selectedSeason?.id, "lessons"] });
+      setSeasonPdfFile(null);
+      toast({ 
+        title: "PDF importado com sucesso", 
+        description: `${data.lessonsCreated} lições foram criadas a partir do PDF.` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao importar PDF", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const generateFinalChallengeMutation = useMutation({
+    mutationFn: async (seasonId: number) => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/generate-final-challenge`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/seasons", selectedSeason?.id, "final-challenge"] });
+      toast({ title: "Desafio final gerado", description: "O desafio final foi criado com IA." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao gerar desafio", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleSeasonLessonLockMutation = useMutation({
+    mutationFn: async ({ seasonId, lessonId }: { seasonId: number; lessonId: number }) => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/lessons/${lessonId}/toggle-lock`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", selectedSeason?.id, "lessons"] });
+      toast({ title: "Status alterado", description: "O bloqueio da lição foi alterado." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao alterar bloqueio", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1058,6 +1263,378 @@ export default function StudyAdminPage() {
                     <Button variant="ghost" size="icon" onClick={() => confirmDelete("unit", unit.id, `Exercício ${unit.orderIndex + 1}`)} data-testid={`delete-unit-${unit.id}`}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSeasons = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Temporadas</h2>
+          <p className="text-sm text-muted-foreground">Gerencie as temporadas de estudo (como séries de estudos)</p>
+        </div>
+        <Button onClick={() => { setEditingSeason(null); setNewSeason({ title: "", subtitle: "", description: "" }); setIsCreateSeasonOpen(true); }} data-testid="button-new-season">
+          <Plus className="w-4 h-4 mr-2" />
+          Nova Temporada
+        </Button>
+      </div>
+
+      {loadingSeasons ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : seasons.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-16 w-16 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-semibold">Nenhuma temporada criada</h3>
+            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
+              Crie uma temporada e depois importe um PDF para gerar lições automaticamente com IA.
+            </p>
+            <Button className="mt-6" onClick={() => { setEditingSeason(null); setNewSeason({ title: "", subtitle: "", description: "" }); setIsCreateSeasonOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeira Temporada
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <AnimatePresence>
+            {seasons.map((season, index) => (
+              <motion.div key={season.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ delay: index * 0.1 }}>
+                <Card className="overflow-hidden">
+                  <div className="h-2 bg-gradient-to-r from-[#58CC02] to-[#7BD937]" />
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{season.title}</CardTitle>
+                        {season.subtitle && <CardDescription className="truncate">{season.subtitle}</CardDescription>}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" data-testid={`season-menu-${season.id}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { 
+                            setEditingSeason(season); 
+                            setNewSeason({ title: season.title, subtitle: season.subtitle || "", description: season.description || "" }); 
+                            setIsCreateSeasonOpen(true); 
+                          }}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedSeason(season); setViewingSeasonLessons(true); }}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Gerenciar Lições
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setLocation(`/study/seasons/${season.id}`)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          {season.status === "draft" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => publishSeasonMutation.mutate(season.id)} className="text-green-600">
+                                <Play className="w-4 h-4 mr-2" />
+                                Publicar
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => confirmDelete("season", season.id, season.title)} className="text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{season.description || "Sem descrição"}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={statusColors[season.status]}>{statusLabels[season.status]}</Badge>
+                      {season.totalLessons > 0 && (
+                        <Badge variant="outline">
+                          <BookOpen className="w-3 h-3 mr-1" />
+                          {season.totalLessons} lições
+                        </Badge>
+                      )}
+                      {season.aiMetadata && <Badge variant="outline"><Brain className="w-3 h-3 mr-1" />IA</Badge>}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-muted/30 px-4 py-3 flex gap-2">
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setSelectedSeason(season); setViewingSeasonLessons(true); }} data-testid={`manage-season-${season.id}`}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Gerenciar
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSeasonLessons = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button variant="ghost" size="icon" onClick={() => { setSelectedSeason(null); setViewingSeasonLessons(false); setSelectedSeasonLesson(null); setViewingSeasonUnits(false); }} data-testid="button-back-seasons">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl font-semibold truncate">{selectedSeason?.title}</h2>
+          <p className="text-sm text-muted-foreground">{selectedSeason?.subtitle || "Temporada de estudos"}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            id="season-pdf-upload"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setSeasonPdfFile(file);
+            }}
+          />
+          {seasonPdfFile ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="max-w-[150px]">
+                <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
+                <span className="truncate">{seasonPdfFile.name}</span>
+              </Badge>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => setSeasonPdfFile(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Switch 
+                  checked={generateFinalChallenge} 
+                  onCheckedChange={setGenerateFinalChallenge}
+                  data-testid="switch-generate-challenge"
+                />
+                <Label className="text-xs">Desafio Final</Label>
+              </div>
+              <Button 
+                onClick={() => selectedSeason && importSeasonPDFMutation.mutate({ 
+                  seasonId: selectedSeason.id, 
+                  file: seasonPdfFile, 
+                  generateChallenge: generateFinalChallenge 
+                })}
+                disabled={importSeasonPDFMutation.isPending}
+                data-testid="button-import-pdf"
+              >
+                {importSeasonPDFMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processando...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4 mr-2" />Gerar Lições com IA</>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => document.getElementById("season-pdf-upload")?.click()} data-testid="button-upload-pdf">
+              <FileUp className="w-4 h-4 mr-2" />
+              Importar PDF
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {importSeasonPDFMutation.isPending && (
+        <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-300" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Processando PDF com IA...</h3>
+              <p className="text-sm text-muted-foreground">Extraindo conteúdo e gerando lições. Isso pode levar alguns minutos.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {finalChallenge && (
+        <Card className="border-[#58CC02]/30 bg-[#58CC02]/5">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="w-12 h-12 rounded-full bg-[#58CC02]/20 flex items-center justify-center">
+              <Target className="h-6 w-6 text-[#58CC02]" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Desafio Final Configurado</h3>
+              <p className="text-sm text-muted-foreground">{finalChallenge.questionCount} questões - {Math.floor(finalChallenge.timeLimitSeconds / 60)}:{String(finalChallenge.timeLimitSeconds % 60).padStart(2, '0')} minutos</p>
+            </div>
+            <Badge className="bg-[#58CC02] text-white">{finalChallenge.xpReward} XP</Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      {!finalChallenge && seasonLessons.length > 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <Target className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Desafio Final</h3>
+              <p className="text-sm text-muted-foreground">Gere um desafio final com IA baseado nas lições da temporada.</p>
+            </div>
+            <Button 
+              onClick={() => selectedSeason && generateFinalChallengeMutation.mutate(selectedSeason.id)}
+              disabled={generateFinalChallengeMutation.isPending}
+              data-testid="button-generate-challenge"
+            >
+              {generateFinalChallengeMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Gerar Desafio
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {loadingSeasonLessons ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : seasonLessons.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <BookOpen className="h-16 w-16 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-semibold">Nenhuma lição ainda</h3>
+            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
+              Importe um PDF para gerar lições automaticamente com IA.
+            </p>
+            <Button className="mt-6" variant="outline" onClick={() => document.getElementById("season-pdf-upload")?.click()}>
+              <FileUp className="w-4 h-4 mr-2" />
+              Importar PDF
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {seasonLessons.map((lesson, index) => (
+            <motion.div key={lesson.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+              <Card className={`hover-elevate ${lesson.isLocked ? 'opacity-60' : ''}`}>
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                    style={{
+                      background: lesson.isLocked 
+                        ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)'
+                        : 'linear-gradient(135deg, #58CC02 0%, #7BD937 100%)',
+                      boxShadow: lesson.isLocked 
+                        ? '0 4px 0 0 #4B5563'
+                        : '0 4px 0 0 #46A302',
+                    }}
+                  >
+                    {lesson.isLocked ? <Lock className="w-5 h-5" /> : lesson.orderIndex}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-medium truncate">{lesson.title}</h3>
+                      {lesson.isLocked && (
+                        <Badge variant="secondary" className="bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Bloqueada
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate mt-1">{lesson.description || "Sem descrição"}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline">
+                      <Zap className="w-3 h-3 mr-1 text-[#FFC800]" />
+                      {lesson.xpReward} XP
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => selectedSeason && toggleSeasonLessonLockMutation.mutate({ seasonId: selectedSeason.id, lessonId: lesson.id })}
+                      disabled={toggleSeasonLessonLockMutation.isPending}
+                      data-testid={`toggle-season-lock-${lesson.id}`}
+                    >
+                      {lesson.isLocked ? <Unlock className="w-4 h-4 text-green-600" /> : <Lock className="w-4 h-4 text-gray-500" />}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => { setSelectedSeasonLesson(lesson); setViewingSeasonUnits(true); }} 
+                      data-testid={`view-season-units-${lesson.id}`}
+                    >
+                      <ListChecks className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSeasonUnits = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button variant="ghost" size="icon" onClick={() => { setViewingSeasonUnits(false); setSelectedSeasonLesson(null); }} data-testid="button-back-season-lessons">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{selectedSeason?.title}</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+          <h2 className="text-xl font-semibold truncate">{selectedSeasonLesson?.title}</h2>
+        </div>
+      </div>
+
+      {loadingSeasonUnits ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : seasonUnits.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <ListChecks className="h-16 w-16 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-semibold">Nenhum exercício ainda</h3>
+            <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">Os exercícios são gerados automaticamente pelo PDF.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {seasonUnits.map((unit, index) => (
+            <motion.div key={unit.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+              <Card className="hover-elevate">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold flex-shrink-0">
+                    {unit.orderIndex + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline">{unitTypeLabels[unit.type] || unit.type}</Badge>
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Zap className="w-3 h-3 text-[#FFC800]" />{unit.xpValue} XP
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1 truncate text-muted-foreground">
+                      {unit.content.question || unit.content.title || unit.content.text?.substring(0, 50) || "Conteúdo"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

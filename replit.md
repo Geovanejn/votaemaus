@@ -205,19 +205,123 @@ The architecture is designed for expandability, supporting future modules for se
 ### Sistema de Secretarias
 
 Usuarios podem pertencer a secretarias com permissoes especificas:
-- `espiritualidade` - Acesso ao painel /admin/study (DeoGlory) para gerenciar semanas de estudo, licoes, exercicios e geracao de conteudo por IA
-- `marketing` - Acesso ao painel /admin/site para gerenciar diretoria, pedidos de oracao, banners e conteudo do site
+- `espiritualidade` - Acesso ao painel /admin/espiritualidade para gerenciar devocionais e pedidos de oracao
+- `marketing` - Acesso ao painel /admin/marketing para gerenciar eventos, diretoria, banners e paginas do site
 - (Secretarias acao_social, comunicacao, eventos foram removidas do sistema)
 
 **Permissoes de Acesso:**
 - Admins (isAdmin=true): Acesso total a todos os modulos
-- Secretaria Espiritualidade: /admin/study + APIs de estudo e IA
-- Secretaria Marketing: /admin/site + APIs de site institucional
+- Secretaria Espiritualidade: /admin/espiritualidade + APIs de devocionais e oracao
+- Secretaria Marketing: /admin/marketing + APIs de eventos e site institucional
 
 **Middleware de Autorizacao:**
 - `requireAdmin`: Apenas admins
 - `requireAdminOrMarketing`: Admins ou secretaria marketing
 - `requireAdminOrEspiritualidade`: Admins ou secretaria espiritualidade
+
+---
+
+## Painel Espiritualidade (A IMPLEMENTAR)
+
+### Responsabilidades
+O Painel de Espiritualidade (`/admin/espiritualidade`) e responsavel por:
+1. **Criar, gerenciar e publicar devocionais**
+2. **Controlar a pagina de devocionais** (o que aparece no site publico)
+3. **Controlar a pagina de oracao** (moderacao de pedidos)
+
+### Estrutura de Dados Existente
+
+**Tabela `devotionals`** (shared/schema.ts):
+- `id`: serial (auto-incremento)
+- `title`: texto (obrigatorio)
+- `verse`: texto do versiculo (obrigatorio)
+- `verseReference`: referencia biblica (obrigatorio)
+- `content`: conteudo completo
+- `summary`: resumo
+- `prayer`: oracao
+- `imageUrl`: imagem de capa
+- `author`: autor
+- `publishedAt`: data de publicacao
+- `isPublished`: boolean (publicado ou rascunho)
+- `isFeatured`: boolean (destaque na home)
+- `createdBy`: referencia ao usuario criador
+- `createdAt`, `updatedAt`: timestamps
+
+**Tabela `prayer_requests`** (shared/schema.ts):
+- `id`: serial (auto-incremento)
+- `name`: nome do solicitante
+- `whatsapp`: contato opcional
+- `category`: saude, familia, trabalho, espiritual, relacionamento, outros
+- `request`: texto do pedido (obrigatorio)
+- `isAnonymous`: boolean (anonimo - A SER REMOVIDO conforme melhorias)
+- `status`: pending, praying, answered, archived
+- `notes`: anotacoes da moderacao
+- `prayedBy`: quem esta orando
+- `prayedAt`: quando comecou a orar
+- `createdAt`, `updatedAt`: timestamps
+
+### Rotas Existentes
+
+**Devocionais - Publicas:**
+- `GET /api/site/devotionals` - Lista devocionais publicados (limite configuravel)
+- `GET /api/site/devotionals/:id` - Detalhes de um devocional
+
+**Pedidos de Oracao - Publicas:**
+- `POST /api/site/prayer-requests` - Enviar pedido de oracao (rate limited)
+
+**Pedidos de Oracao - Admin (atualmente em /api/admin):**
+- `GET /api/admin/prayer-requests` - Listar todos os pedidos (filtravel por status)
+- `PATCH /api/admin/prayer-requests/:id` - Atualizar status do pedido
+
+### Funcionalidades a Implementar (ver docs/MELHORIAS_SECRETARIAS.md)
+
+**1. CRUD Completo de Devocionais:**
+- [ ] Criar rota POST /api/espiritualidade/devotionals
+- [ ] Criar rota PUT /api/espiritualidade/devotionals/:id
+- [ ] Criar rota DELETE /api/espiritualidade/devotionals/:id
+- [ ] Editor rich text com TipTap para conteudo
+- [ ] Upload de imagem de capa
+- [ ] Sistema de rascunhos e agendamento
+
+**2. Pagina Admin de Devocionais:**
+- [ ] Listagem com filtros (publicados, rascunhos, todos)
+- [ ] Formulario de criacao/edicao com TipTap
+- [ ] Preview antes de publicar
+- [ ] Botao publicar/despublicar
+- [ ] Definir destaque (isFeatured)
+
+**3. Gerenciamento de Pedidos de Oracao:**
+- [ ] Mover rotas para /api/espiritualidade/prayer-requests
+- [ ] Remover opcao anonimo (nome obrigatorio)
+- [ ] Sistema de moderacao automatica (filtro de palavras)
+- [ ] Interface de aprovacao/rejeicao
+- [ ] Mural da Oracao (pedidos aprovados visiveis)
+- [ ] Botao "Estou em Oracao" com contador
+
+**4. Componentes Frontend Necessarios:**
+- [ ] `EspiritualidadeDashboard.tsx` - Dashboard principal
+- [ ] `DevotionalEditor.tsx` - Editor com TipTap
+- [ ] `DevotionalList.tsx` - Lista de devocionais admin
+- [ ] `PrayerModerationList.tsx` - Lista de moderacao
+- [ ] `PrayerWall.tsx` - Mural da Oracao publico
+
+### Arquivos Existentes Relacionados
+
+**Frontend:**
+- `client/src/pages/site/devocionais.tsx` - Listagem publica
+- `client/src/pages/site/devocional-detail.tsx` - Detalhe publico
+- `client/src/pages/site/oracao.tsx` - Pagina publica de oracao
+- `client/src/pages/admin/admin-site.tsx` - Admin atual (tabs mistas)
+- `client/src/components/DevotionalShareCard.tsx` - Card de compartilhamento
+
+**Backend:**
+- `server/routes.ts` - Rotas existentes (linhas ~3118-3250)
+- `server/storage.ts` - Metodos de storage existentes
+- `shared/schema.ts` - Schemas de devotionals e prayer_requests
+
+### Dependencias a Instalar
+- TipTap (editor rich text): @tiptap/react, @tiptap/starter-kit, @tiptap/extension-youtube, etc.
+- bad-words (filtro de palavras para moderacao)
 
 ### AI Integration
 - **Google Gemini API** - EXCLUSIVE AI provider for ALL content generation (lessons, missions, exercises, summaries).

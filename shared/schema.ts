@@ -654,6 +654,7 @@ export const studyUnits = pgTable("study_units", {
   type: text("type").notNull(),
   content: text("content").notNull(),
   xpValue: integer("xp_value").notNull().default(2),
+  stage: text("stage").notNull().default("estude"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

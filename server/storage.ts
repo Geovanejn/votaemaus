@@ -866,6 +866,7 @@ export class DatabaseStorage implements IStorage {
         type: data.type,
         content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content),
         xpValue: data.xpValue || 2,
+        stage: data.stage || 'estude',
       })
       .returning();
     return unit;

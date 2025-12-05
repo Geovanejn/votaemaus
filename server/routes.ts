@@ -2314,7 +2314,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         totalLessons++;
 
-        // Create units for this lesson
+        // Create units for this lesson - determine stage based on lesson type
+        const stageMap: Record<string, string> = {
+          'study': 'estude',
+          'meditation': 'medite',
+          'challenge': 'responda'
+        };
+        const stage = stageMap[lessonData.type] || 'estude';
+
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
           
@@ -2323,7 +2330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             orderIndex: j,
             type: unitData.type,
             content: unitData.content,
-            xpValue: unitData.xpValue
+            xpValue: unitData.xpValue,
+            stage: stage
           });
           totalUnits++;
         }
@@ -2504,7 +2512,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         totalLessons++;
 
-        // Create units for this lesson
+        // Create units for this lesson - determine stage based on lesson type
+        const stageMap: Record<string, string> = {
+          'study': 'estude',
+          'meditation': 'medite',
+          'challenge': 'responda'
+        };
+        const stage = stageMap[lessonData.type] || 'estude';
+
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
           
@@ -2513,7 +2528,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             orderIndex: j,
             type: unitData.type,
             content: unitData.content,
-            xpValue: unitData.xpValue
+            xpValue: unitData.xpValue,
+            stage: stage
           });
           totalUnits++;
         }
@@ -2724,10 +2740,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Create a new unit - admin or espiritualidade
   app.post("/api/study/admin/units", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const { lessonId, type, content, xpValue } = req.body;
+      const { lessonId, type, content, xpValue, stage } = req.body;
 
       if (!lessonId || !type || !content) {
         return res.status(400).json({ message: "ID da licao, tipo e conteudo sao obrigatorios" });
+      }
+
+      // Get lesson to determine stage if not provided
+      let unitStage = stage;
+      if (!unitStage) {
+        const lesson = await storage.getLessonById(lessonId);
+        if (lesson) {
+          const stageMap: Record<string, string> = {
+            'study': 'estude',
+            'meditation': 'medite',
+            'challenge': 'responda'
+          };
+          unitStage = stageMap[lesson.type] || 'estude';
+        }
       }
 
       const existingUnits = await storage.getUnitsForLesson(lessonId);
@@ -2738,7 +2768,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderIndex,
         type,
         content,
-        xpValue: xpValue || 5
+        xpValue: xpValue || 5,
+        stage: unitStage || 'estude'
       });
 
       res.json(unit);

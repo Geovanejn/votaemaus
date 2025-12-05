@@ -340,8 +340,8 @@ async function unlockScheduledLessons() {
 
 ### 5.1 Requisitos
 
-- **API OpenAI** ou similar para extracao de conteudo
-- Secret: `OPENAI_API_KEY` ou equivalente
+- **Google Gemini API** - UNICA API de IA utilizada no projeto
+- Secret: `GEMINI_API_KEY` (obrigatoria)
 
 ### 5.2 Prompt de Extracao
 

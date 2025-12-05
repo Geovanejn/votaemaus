@@ -80,7 +80,7 @@ A aplicação foi construída com foco em:
 | Drizzle ORM | Ativo | ORM com pg-core |
 | JWT | Ativo | Autenticação |
 | Resend | Configurado | Emails transacionais |
-| OpenAI API | Configurado | Processamento IA |
+| Google Gemini | ÚNICO PROVEDOR | TODA geração de IA |
 | pdf-parse | Instalado | Extração de PDFs |
 
 ### 2. Sistema de Votação (Emaús Vota)
@@ -266,7 +266,7 @@ transition={{ duration: 2, repeat: Infinity }}
 | Sistema de Streak | OK | Contador de dias consecutivos |
 | Missões Diárias | OK | Sistema de 4-5 missões por dia |
 | Ranking | OK | Leaderboard semanal/mensal |
-| IA para PDFs | OK | OpenAI/Google Gemini configurado |
+| IA para PDFs | OK | Google Gemini configurado (ÚNICO) |
 | 3 Estágios por Lição | OK | Estude, Medite, Responda |
 | Autenticação Email | OK | Código 6 dígitos + senha |
 | Sistema de Votação | OK | 3 escrutínios, maioria absoluta/simples |

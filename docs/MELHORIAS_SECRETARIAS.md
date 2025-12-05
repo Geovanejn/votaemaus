@@ -1559,10 +1559,11 @@ npm install ical-generator
 
 | Integração | Status | Uso |
 |------------|--------|-----|
-| Gemini (Google) | Configurado | Missões diárias, geração de conteúdo |
-| OpenAI | Configurado | Extração de PDF, exercícios (NÃO usar para missões) |
+| Gemini (Google) | ÚNICO PROVEDOR | TODA geração de conteúdo: lições, missões, exercícios, resumos |
 | Multer | Instalado | Upload de arquivos |
 | Resend | Configurado | Emails transacionais |
+
+**IMPORTANTE:** OpenAI foi COMPLETAMENTE REMOVIDO do projeto. Usar APENAS Gemini.
 
 ---
 

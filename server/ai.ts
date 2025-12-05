@@ -715,7 +715,5 @@ export function isAIConfigured(): boolean {
   return !!process.env.GEMINI_API_KEY;
 }
 
-// Keep backward compatibility
-export function isOpenAIConfigured(): boolean {
-  return isAIConfigured();
-}
+// NOTA: Este projeto usa EXCLUSIVAMENTE Gemini AI (Google)
+// OpenAI foi completamente removido do projeto

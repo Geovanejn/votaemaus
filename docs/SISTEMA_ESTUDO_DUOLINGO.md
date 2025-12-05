@@ -62,8 +62,9 @@ Criar uma plataforma de estudo/meditação gamificada que replica a experiência
 ### 2.3 Recursos de IA
 | Recurso | Status | Detalhes |
 |---------|--------|----------|
-| **OpenAI API Key** | Configurada | Armazenada em Replit Secrets |
-| **Modelo** | GPT-4 | Para extração de PDF e geração de conteúdo |
+| **Gemini API Key** | Configurada | Armazenada em Replit Secrets |
+| **Modelo** | Gemini 2.0 Flash | Para extração de PDF e geração de conteúdo |
+| **OpenAI** | REMOVIDO | Projeto usa EXCLUSIVAMENTE Gemini |
 
 ---
 

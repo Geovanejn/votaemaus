@@ -38,7 +38,7 @@ The system features a responsive, Portuguese UI optimized for clarity and ease o
 **Study System (Duolingo-style)**:
 - 3-stage lesson structure (Estude, Medite, Responda)
 - Gamified elements: XP, levels, hearts system, streaks, leaderboard.
-- AI integration via OpenAI/Google Gemini for content extraction and generation.
+- AI integration via Google Gemini EXCLUSIVELY for content extraction and generation.
 
 **Daily Missions System**:
 - Daily refreshing missions (e.g., complete_lesson, read_daily_verse) with XP and badge rewards.
@@ -207,9 +207,7 @@ The architecture is designed for expandability, supporting future modules for se
 Usuarios podem pertencer a secretarias com permissoes especificas:
 - `espiritualidade` - Acesso ao painel /admin/study (DeoGlory) para gerenciar semanas de estudo, licoes, exercicios e geracao de conteudo por IA
 - `marketing` - Acesso ao painel /admin/site para gerenciar diretoria, pedidos de oracao, banners e conteudo do site
-- `acao_social` - Acoes sociais
-- `comunicacao` - Comunicacao interna
-- `eventos` - Organizacao de eventos
+- (Secretarias acao_social, comunicacao, eventos foram removidas do sistema)
 
 **Permissoes de Acesso:**
 - Admins (isAdmin=true): Acesso total a todos os modulos
@@ -222,8 +220,8 @@ Usuarios podem pertencer a secretarias com permissoes especificas:
 - `requireAdminOrEspiritualidade`: Admins ou secretaria espiritualidade
 
 ### AI Integration
-- **OpenAI API** - Content generation and extraction.
-- **Google Gemini API** - Alternative AI provider.
+- **Google Gemini API** - EXCLUSIVE AI provider for ALL content generation (lessons, missions, exercises, summaries).
+- OpenAI has been completely removed from this project.
 
 ### Validation & Forms
 - **Zod** - Runtime schema validation.

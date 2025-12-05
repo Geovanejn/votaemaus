@@ -54,8 +54,8 @@ Plataforma de estudos biblicos com gamificacao completa:
 | Drizzle ORM | Ativo | ORM com pg-core |
 | JWT | Ativo | Autenticacao |
 | Resend | Configurado | Emails transacionais |
-| OpenAI API | Configurado | Processamento IA |
-| Google Gemini | Configurado | IA alternativa |
+| Google Gemini | ÚNICO PROVEDOR | TODA IA (lições, missões, exercícios, resumos) |
+| OpenAI | REMOVIDO | Não é mais usado neste projeto |
 | pdf-parse | Instalado | Extracao de PDFs |
 | node-cron | Ativo | Agendador |
 | multer | Ativo | Upload de arquivos |

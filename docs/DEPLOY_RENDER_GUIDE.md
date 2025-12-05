@@ -71,8 +71,7 @@ Ou use: https://generate-secret.vercel.app/32
 | Variavel | Valor | Descricao |
 |----------|-------|-----------|
 | `RESEND_API_KEY` | `re_xxxxxxxx` | Envio de emails |
-| `OPENAI_API_KEY` | `sk-xxxxxxxx` | IA para gerar conteudo |
-| `GOOGLE_API_KEY` | `AIza...` | Alternativa ao OpenAI |
+| `GEMINI_API_KEY` | `AIza...` | IA para gerar conteudo (OBRIGATORIO) |
 
 ---
 

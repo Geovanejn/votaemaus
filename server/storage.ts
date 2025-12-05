@@ -886,8 +886,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStudyLesson(lessonId: number): Promise<boolean> {
+    // Delete user progress first (foreign key constraint)
+    await db.delete(schema.userLessonProgress).where(eq(schema.userLessonProgress.lessonId, lessonId));
+    // Delete units
     await db.delete(schema.studyUnits).where(eq(schema.studyUnits.lessonId, lessonId));
-    const result = await db.delete(schema.studyLessons).where(eq(schema.studyLessons.id, lessonId));
+    // Delete lesson
+    await db.delete(schema.studyLessons).where(eq(schema.studyLessons.id, lessonId));
     return true;
   }
 

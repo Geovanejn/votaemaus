@@ -580,6 +580,10 @@ export const studyProfiles = pgTable("study_profiles", {
   lastActivityDate: text("last_activity_date"),
   dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
   timezone: text("timezone").notNull().default("America/Sao_Paulo"),
+  weeklyLessonsGoal: integer("weekly_lessons_goal").notNull().default(1),
+  weeklyVersesGoal: integer("weekly_verses_goal").notNull().default(7),
+  weeklyMissionsGoal: integer("weekly_missions_goal").notNull().default(3),
+  weeklyDevotionalsGoal: integer("weekly_devotionals_goal").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -595,6 +599,196 @@ export const insertStudyProfileSchema = createInsertSchema(studyProfiles).omit({
 export type InsertStudyProfile = z.infer<typeof insertStudyProfileSchema>;
 export type StudyProfile = typeof studyProfiles.$inferSelect;
 
+// ==================== TEMPORADAS (SEASONS) ====================
+
+export type SeasonStatus = "draft" | "processing" | "published" | "archived";
+
+export const seasons = pgTable("seasons", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  description: text("description"),
+  coverImageUrl: text("cover_image_url"),
+  pdfUrl: text("pdf_url"),
+  aiExtractedTitle: text("ai_extracted_title"),
+  status: text("status").notNull().default("draft"),
+  totalLessons: integer("total_lessons").notNull().default(0),
+  publishedAt: timestamp("published_at"),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  createdBy: integer("created_by").references(() => users.id),
+  aiMetadata: text("ai_metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSeasonSchema = createInsertSchema(seasons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSeason = z.infer<typeof insertSeasonSchema>;
+export type Season = typeof seasons.$inferSelect;
+
+// ==================== DESAFIO FINAL DA TEMPORADA ====================
+
+export const seasonFinalChallenges = pgTable("season_final_challenges", {
+  id: serial("id").primaryKey(),
+  seasonId: integer("season_id").notNull().references(() => seasons.id),
+  title: text("title").notNull().default("Desafio Final"),
+  description: text("description"),
+  questions: text("questions").notNull(),
+  questionCount: integer("question_count").notNull().default(15),
+  timeLimitSeconds: integer("time_limit_seconds").notNull().default(150),
+  xpReward: integer("xp_reward").notNull().default(100),
+  perfectXpBonus: integer("perfect_xp_bonus").notNull().default(50),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSeasonFinalChallengeSchema = createInsertSchema(seasonFinalChallenges).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSeasonFinalChallenge = z.infer<typeof insertSeasonFinalChallengeSchema>;
+export type SeasonFinalChallenge = typeof seasonFinalChallenges.$inferSelect;
+
+// ==================== PROGRESSO DO USUARIO NO DESAFIO FINAL ====================
+
+export const userFinalChallengeProgress = pgTable("user_final_challenge_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  challengeId: integer("challenge_id").notNull().references(() => seasonFinalChallenges.id),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  timeSpentSeconds: integer("time_spent_seconds"),
+  correctAnswers: integer("correct_answers").notNull().default(0),
+  totalQuestions: integer("total_questions").notNull().default(15),
+  xpEarned: integer("xp_earned").notNull().default(0),
+  isPerfect: boolean("is_perfect").notNull().default(false),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  answersGiven: text("answers_given"),
+  challengeToken: text("challenge_token"),
+}, (table) => ({
+  uniqueUserChallenge: unique().on(table.userId, table.challengeId),
+}));
+
+export const insertUserFinalChallengeProgressSchema = createInsertSchema(userFinalChallengeProgress).omit({
+  id: true,
+});
+
+export type InsertUserFinalChallengeProgress = z.infer<typeof insertUserFinalChallengeProgressSchema>;
+export type UserFinalChallengeProgress = typeof userFinalChallengeProgress.$inferSelect;
+
+// ==================== PROGRESSO DO USUARIO NA TEMPORADA ====================
+
+export const userSeasonProgress = pgTable("user_season_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  seasonId: integer("season_id").notNull().references(() => seasons.id),
+  lessonsCompleted: integer("lessons_completed").notNull().default(0),
+  totalLessons: integer("total_lessons").notNull().default(0),
+  bonusLessonsCompleted: integer("bonus_lessons_completed").notNull().default(0),
+  xpEarned: integer("xp_earned").notNull().default(0),
+  correctAnswers: integer("correct_answers").notNull().default(0),
+  totalAnswers: integer("total_answers").notNull().default(0),
+  heartsLost: integer("hearts_lost").notNull().default(0),
+  finalChallengeCompleted: boolean("final_challenge_completed").notNull().default(false),
+  finalChallengePerfect: boolean("final_challenge_perfect").notNull().default(false),
+  isMastered: boolean("is_mastered").notNull().default(false),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  lastActivityAt: timestamp("last_activity_at"),
+}, (table) => ({
+  uniqueUserSeason: unique().on(table.userId, table.seasonId),
+}));
+
+export const insertUserSeasonProgressSchema = createInsertSchema(userSeasonProgress).omit({
+  id: true,
+});
+
+export type InsertUserSeasonProgress = z.infer<typeof insertUserSeasonProgressSchema>;
+export type UserSeasonProgress = typeof userSeasonProgress.$inferSelect;
+
+// ==================== RANKING POR TEMPORADA ====================
+
+export const seasonRankings = pgTable("season_rankings", {
+  id: serial("id").primaryKey(),
+  seasonId: integer("season_id").notNull().references(() => seasons.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  xpEarned: integer("xp_earned").notNull().default(0),
+  lessonsCompleted: integer("lessons_completed").notNull().default(0),
+  correctPercentage: integer("correct_percentage").notNull().default(0),
+  finalChallengeScore: integer("final_challenge_score"),
+  isMastered: boolean("is_mastered").notNull().default(false),
+  rankPosition: integer("rank_position"),
+  isWinner: boolean("is_winner").notNull().default(false),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueSeasonUser: unique().on(table.seasonId, table.userId),
+}));
+
+export const insertSeasonRankingSchema = createInsertSchema(seasonRankings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertSeasonRanking = z.infer<typeof insertSeasonRankingSchema>;
+export type SeasonRanking = typeof seasonRankings.$inferSelect;
+
+// ==================== PROGRESSO DA META SEMANAL ====================
+
+export const weeklyGoalProgress = pgTable("weekly_goal_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  weekKey: text("week_key").notNull(),
+  lessonsCompleted: integer("lessons_completed").notNull().default(0),
+  versesRead: integer("verses_read").notNull().default(0),
+  missionsCompleted: integer("missions_completed").notNull().default(0),
+  devotionalsRead: integer("devotionals_read").notNull().default(0),
+  isGoalMet: boolean("is_goal_met").notNull().default(false),
+  xpBonus: integer("xp_bonus").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserWeek: unique().on(table.userId, table.weekKey),
+}));
+
+export const insertWeeklyGoalProgressSchema = createInsertSchema(weeklyGoalProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWeeklyGoalProgress = z.infer<typeof insertWeeklyGoalProgressSchema>;
+export type WeeklyGoalProgress = typeof weeklyGoalProgress.$inferSelect;
+
+// ==================== LEITURA DE DEVOCIONAIS (CONFIRMACAO) ====================
+
+export const devotionalReadings = pgTable("devotional_readings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  devotionalId: integer("devotional_id").notNull().references(() => devotionals.id),
+  readAt: timestamp("read_at").notNull().defaultNow(),
+  weekKey: text("week_key"),
+}, (table) => ({
+  uniqueUserDevotional: unique().on(table.userId, table.devotionalId),
+}));
+
+export const insertDevotionalReadingSchema = createInsertSchema(devotionalReadings).omit({
+  id: true,
+  readAt: true,
+});
+
+export type InsertDevotionalReading = z.infer<typeof insertDevotionalReadingSchema>;
+export type DevotionalReading = typeof devotionalReadings.$inferSelect;
+
+// ==================== SEMANAS DE ESTUDO (LEGADO - mantido para compatibilidade) ====================
+
 export const studyWeeks = pgTable("study_weeks", {
   id: serial("id").primaryKey(),
   weekNumber: integer("week_number").notNull(),
@@ -606,6 +800,7 @@ export const studyWeeks = pgTable("study_weeks", {
   publishedAt: timestamp("published_at"),
   createdBy: integer("created_by").references(() => users.id),
   aiMetadata: text("ai_metadata"),
+  seasonId: integer("season_id").references(() => seasons.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -621,10 +816,14 @@ export const insertStudyWeekSchema = createInsertSchema(studyWeeks).omit({
 export type InsertStudyWeek = z.infer<typeof insertStudyWeekSchema>;
 export type StudyWeek = typeof studyWeeks.$inferSelect;
 
+// ==================== LICOES DE ESTUDO ====================
+
 export const studyLessons = pgTable("study_lessons", {
   id: serial("id").primaryKey(),
-  studyWeekId: integer("study_week_id").notNull().references(() => studyWeeks.id),
+  studyWeekId: integer("study_week_id").references(() => studyWeeks.id),
+  seasonId: integer("season_id").references(() => seasons.id),
   orderIndex: integer("order_index").notNull(),
+  lessonNumber: integer("lesson_number"),
   title: text("title").notNull(),
   type: text("type").notNull().default("study"),
   description: text("description"),
@@ -632,7 +831,11 @@ export const studyLessons = pgTable("study_lessons", {
   estimatedMinutes: integer("estimated_minutes").notNull().default(5),
   icon: text("icon"),
   isBonus: boolean("is_bonus").notNull().default(false),
+  hasBonusQuiz: boolean("has_bonus_quiz").notNull().default(false),
+  bonusQuizQuestions: text("bonus_quiz_questions"),
   isLocked: boolean("is_locked").notNull().default(true),
+  isReleased: boolean("is_released").notNull().default(false),
+  releaseDate: timestamp("release_date"),
   unlockDate: timestamp("unlock_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -784,10 +987,12 @@ export const achievements = pgTable("achievements", {
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon"),
+  customIconUrl: text("custom_icon_url"),
   xpReward: integer("xp_reward").notNull().default(0),
   category: text("category").notNull(),
   requirement: text("requirement"),
   isSecret: boolean("is_secret").notNull().default(false),
+  seasonId: integer("season_id").references(() => seasons.id),
 });
 
 export const insertAchievementSchema = createInsertSchema(achievements).omit({
@@ -1010,3 +1215,75 @@ export type NotificationType =
   | "election" 
   | "birthday"
   | "system";
+
+// ==================== TIPOS COMPOSTOS PARA TEMPORADAS ====================
+
+export type SeasonWithLessons = Season & {
+  lessons: StudyLesson[];
+  progress?: UserSeasonProgress;
+  finalChallenge?: SeasonFinalChallenge;
+};
+
+export type SeasonRankingEntry = SeasonRanking & {
+  user: Pick<User, 'id' | 'fullName' | 'photoUrl'>;
+};
+
+export type SeasonLeaderboard = {
+  seasonId: number;
+  seasonTitle: string;
+  rankings: SeasonRankingEntry[];
+  totalParticipants: number;
+  isFinished: boolean;
+};
+
+export type FinalChallengeQuestion = {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation?: string;
+};
+
+export type FinalChallengeResult = {
+  challengeId: number;
+  userId: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  timeSpentSeconds: number;
+  xpEarned: number;
+  isPerfect: boolean;
+  isMastered: boolean;
+};
+
+export type WeeklyGoalStatus = {
+  weekKey: string;
+  goals: {
+    lessons: { current: number; target: number; completed: boolean };
+    verses: { current: number; target: number; completed: boolean };
+    missions: { current: number; target: number; completed: boolean };
+    devotionals: { current: number; target: number; completed: boolean };
+  };
+  isGoalMet: boolean;
+  xpBonus: number;
+};
+
+export type LessonStage = "estude" | "medite" | "responda";
+
+export type LessonWithProgress = StudyLesson & {
+  progress?: UserLessonProgress;
+  units?: StudyUnit[];
+  currentStage?: LessonStage;
+  stageProgress?: {
+    estude: { completed: number; total: number };
+    medite: { completed: number; total: number };
+    responda: { completed: number; total: number };
+  };
+};
+
+export type ShareableImage = {
+  type: "ranking" | "achievement" | "season_mastery";
+  entityId: number;
+  imageDataUrl?: string;
+  title: string;
+  subtitle?: string;
+};

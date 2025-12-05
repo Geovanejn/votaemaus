@@ -227,6 +227,49 @@ export interface IStorage {
   getSiteContent(page: string, section: string): Promise<SiteContent | null>;
   getAllSiteContent(): Promise<SiteContent[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
+  
+  // Season Methods
+  getAllSeasons(): Promise<schema.Season[]>;
+  getPublishedSeasons(): Promise<schema.Season[]>;
+  getSeasonById(id: number): Promise<schema.Season | null>;
+  createSeason(data: schema.InsertSeason): Promise<schema.Season>;
+  updateSeason(id: number, data: Partial<schema.InsertSeason>): Promise<schema.Season | null>;
+  deleteSeason(id: number): Promise<boolean>;
+  publishSeason(id: number): Promise<schema.Season | null>;
+  getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]>;
+  createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson>;
+  releaseLessonInSeason(lessonId: number): Promise<schema.StudyLesson | null>;
+  
+  // Final Challenge Methods
+  getSeasonFinalChallenge(seasonId: number): Promise<schema.SeasonFinalChallenge | null>;
+  createFinalChallenge(data: schema.InsertSeasonFinalChallenge): Promise<schema.SeasonFinalChallenge>;
+  updateFinalChallenge(id: number, data: Partial<schema.InsertSeasonFinalChallenge>): Promise<schema.SeasonFinalChallenge | null>;
+  startFinalChallenge(userId: number, challengeId: number): Promise<{ progress: schema.UserFinalChallengeProgress; token: string }>;
+  submitFinalChallenge(userId: number, challengeId: number, token: string, answers: number[]): Promise<schema.FinalChallengeResult>;
+  getUserFinalChallengeProgress(userId: number, challengeId: number): Promise<schema.UserFinalChallengeProgress | null>;
+  
+  // User Season Progress Methods
+  getUserSeasonProgress(userId: number, seasonId: number): Promise<schema.UserSeasonProgress | null>;
+  updateUserSeasonProgress(userId: number, seasonId: number, data: Partial<schema.InsertUserSeasonProgress>): Promise<schema.UserSeasonProgress>;
+  
+  // Season Ranking Methods
+  getSeasonRankings(seasonId: number, limit?: number): Promise<schema.SeasonRankingEntry[]>;
+  updateSeasonRanking(seasonId: number, userId: number): Promise<schema.SeasonRanking>;
+  finalizeSeasonRankings(seasonId: number): Promise<void>;
+  
+  // Weekly Goal Methods
+  getWeeklyGoalProgress(userId: number, weekKey: string): Promise<schema.WeeklyGoalProgress | null>;
+  updateWeeklyGoalProgress(userId: number, weekKey: string, data: Partial<schema.InsertWeeklyGoalProgress>): Promise<schema.WeeklyGoalProgress>;
+  getWeeklyGoalStatus(userId: number, weekKey: string): Promise<schema.WeeklyGoalStatus>;
+  incrementWeeklyLesson(userId: number, weekKey: string): Promise<void>;
+  incrementWeeklyVerse(userId: number, weekKey: string): Promise<void>;
+  incrementWeeklyMission(userId: number, weekKey: string): Promise<void>;
+  incrementWeeklyDevotional(userId: number, weekKey: string): Promise<void>;
+  
+  // Devotional Reading Methods
+  confirmDevotionalRead(userId: number, devotionalId: number, weekKey?: string): Promise<schema.DevotionalReading>;
+  hasReadDevotional(userId: number, devotionalId: number): Promise<boolean>;
+  getDevotionalReadings(userId: number, limit?: number): Promise<schema.DevotionalReading[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1889,6 +1932,498 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return created;
+  }
+
+  // ==================== SEASON METHODS ====================
+
+  async getAllSeasons(): Promise<schema.Season[]> {
+    return db.select().from(schema.seasons)
+      .orderBy(desc(schema.seasons.createdAt));
+  }
+
+  async getPublishedSeasons(): Promise<schema.Season[]> {
+    return db.select().from(schema.seasons)
+      .where(eq(schema.seasons.status, "published"))
+      .orderBy(desc(schema.seasons.publishedAt));
+  }
+
+  async getSeasonById(id: number): Promise<schema.Season | null> {
+    const [season] = await db.select().from(schema.seasons)
+      .where(eq(schema.seasons.id, id))
+      .limit(1);
+    return season || null;
+  }
+
+  async createSeason(data: schema.InsertSeason): Promise<schema.Season> {
+    const [season] = await db.insert(schema.seasons)
+      .values(data)
+      .returning();
+    return season;
+  }
+
+  async updateSeason(id: number, data: Partial<schema.InsertSeason>): Promise<schema.Season | null> {
+    const [updated] = await db.update(schema.seasons)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.seasons.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteSeason(id: number): Promise<boolean> {
+    const result = await db.delete(schema.seasons)
+      .where(eq(schema.seasons.id, id));
+    return true;
+  }
+
+  async publishSeason(id: number): Promise<schema.Season | null> {
+    const [updated] = await db.update(schema.seasons)
+      .set({ status: "published", publishedAt: new Date(), updatedAt: new Date() })
+      .where(eq(schema.seasons.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]> {
+    return db.select().from(schema.studyLessons)
+      .where(eq(schema.studyLessons.seasonId, seasonId))
+      .orderBy(asc(schema.studyLessons.orderIndex));
+  }
+
+  async createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson> {
+    const [lesson] = await db.insert(schema.studyLessons)
+      .values({
+        seasonId: data.seasonId,
+        orderIndex: data.orderIndex,
+        lessonNumber: data.lessonNumber,
+        title: data.title,
+        type: data.type || "study",
+        description: data.description,
+        xpReward: data.xpReward || 10,
+        estimatedMinutes: data.estimatedMinutes || 5,
+        icon: data.icon,
+        isBonus: data.isBonus || false,
+        isLocked: true,
+        isReleased: false,
+      })
+      .returning();
+    return lesson;
+  }
+
+  async releaseLessonInSeason(lessonId: number): Promise<schema.StudyLesson | null> {
+    const [updated] = await db.update(schema.studyLessons)
+      .set({ isReleased: true, isLocked: false, releaseDate: new Date(), updatedAt: new Date() })
+      .where(eq(schema.studyLessons.id, lessonId))
+      .returning();
+    return updated || null;
+  }
+
+  // ==================== FINAL CHALLENGE METHODS ====================
+
+  async getSeasonFinalChallenge(seasonId: number): Promise<schema.SeasonFinalChallenge | null> {
+    const [challenge] = await db.select().from(schema.seasonFinalChallenges)
+      .where(eq(schema.seasonFinalChallenges.seasonId, seasonId))
+      .limit(1);
+    return challenge || null;
+  }
+
+  async createFinalChallenge(data: schema.InsertSeasonFinalChallenge): Promise<schema.SeasonFinalChallenge> {
+    const [challenge] = await db.insert(schema.seasonFinalChallenges)
+      .values(data)
+      .returning();
+    return challenge;
+  }
+
+  async updateFinalChallenge(id: number, data: Partial<schema.InsertSeasonFinalChallenge>): Promise<schema.SeasonFinalChallenge | null> {
+    const [updated] = await db.update(schema.seasonFinalChallenges)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.seasonFinalChallenges.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async startFinalChallenge(userId: number, challengeId: number): Promise<{ progress: schema.UserFinalChallengeProgress; token: string }> {
+    const token = `${userId}-${challengeId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    
+    const existing = await this.getUserFinalChallengeProgress(userId, challengeId);
+    if (existing && existing.isCompleted) {
+      throw new Error("Desafio já foi completado");
+    }
+
+    if (existing) {
+      const [updated] = await db.update(schema.userFinalChallengeProgress)
+        .set({ startedAt: new Date(), challengeToken: token })
+        .where(eq(schema.userFinalChallengeProgress.id, existing.id))
+        .returning();
+      return { progress: updated, token };
+    }
+
+    const [progress] = await db.insert(schema.userFinalChallengeProgress)
+      .values({
+        userId,
+        challengeId,
+        startedAt: new Date(),
+        challengeToken: token,
+      })
+      .returning();
+    return { progress, token };
+  }
+
+  async submitFinalChallenge(userId: number, challengeId: number, token: string, answers: number[]): Promise<schema.FinalChallengeResult> {
+    const progress = await this.getUserFinalChallengeProgress(userId, challengeId);
+    if (!progress) {
+      throw new Error("Desafio não iniciado");
+    }
+    if (progress.challengeToken !== token) {
+      throw new Error("Token inválido");
+    }
+    if (progress.isCompleted) {
+      throw new Error("Desafio já foi completado");
+    }
+
+    const challenge = await db.select().from(schema.seasonFinalChallenges)
+      .where(eq(schema.seasonFinalChallenges.id, challengeId))
+      .limit(1)
+      .then(r => r[0]);
+    
+    if (!challenge) {
+      throw new Error("Desafio não encontrado");
+    }
+
+    const now = new Date();
+    const startedAt = new Date(progress.startedAt);
+    const timeSpentSeconds = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
+    
+    if (timeSpentSeconds > challenge.timeLimitSeconds + 10) {
+      throw new Error("Tempo esgotado");
+    }
+
+    const questions: schema.FinalChallengeQuestion[] = JSON.parse(challenge.questions);
+    let correctAnswers = 0;
+    for (let i = 0; i < questions.length; i++) {
+      if (answers[i] === questions[i].correctAnswer) {
+        correctAnswers++;
+      }
+    }
+
+    const isPerfect = correctAnswers === challenge.questionCount && timeSpentSeconds <= challenge.timeLimitSeconds;
+    let xpEarned = challenge.xpReward;
+    if (isPerfect) {
+      xpEarned += challenge.perfectXpBonus;
+    }
+
+    const [updated] = await db.update(schema.userFinalChallengeProgress)
+      .set({
+        completedAt: now,
+        timeSpentSeconds,
+        correctAnswers,
+        xpEarned,
+        isPerfect,
+        isCompleted: true,
+        answersGiven: JSON.stringify(answers),
+      })
+      .where(eq(schema.userFinalChallengeProgress.id, progress.id))
+      .returning();
+
+    if (isPerfect) {
+      await this.updateUserSeasonProgress(userId, challenge.seasonId, {
+        finalChallengeCompleted: true,
+        finalChallengePerfect: true,
+        isMastered: true,
+      });
+    } else {
+      await this.updateUserSeasonProgress(userId, challenge.seasonId, {
+        finalChallengeCompleted: true,
+      });
+    }
+
+    return {
+      challengeId,
+      userId,
+      correctAnswers,
+      totalQuestions: challenge.questionCount,
+      timeSpentSeconds,
+      xpEarned,
+      isPerfect,
+      isMastered: isPerfect,
+    };
+  }
+
+  async getUserFinalChallengeProgress(userId: number, challengeId: number): Promise<schema.UserFinalChallengeProgress | null> {
+    const [progress] = await db.select().from(schema.userFinalChallengeProgress)
+      .where(and(
+        eq(schema.userFinalChallengeProgress.userId, userId),
+        eq(schema.userFinalChallengeProgress.challengeId, challengeId)
+      ))
+      .limit(1);
+    return progress || null;
+  }
+
+  // ==================== USER SEASON PROGRESS METHODS ====================
+
+  async getUserSeasonProgress(userId: number, seasonId: number): Promise<schema.UserSeasonProgress | null> {
+    const [progress] = await db.select().from(schema.userSeasonProgress)
+      .where(and(
+        eq(schema.userSeasonProgress.userId, userId),
+        eq(schema.userSeasonProgress.seasonId, seasonId)
+      ))
+      .limit(1);
+    return progress || null;
+  }
+
+  async updateUserSeasonProgress(userId: number, seasonId: number, data: Partial<schema.InsertUserSeasonProgress>): Promise<schema.UserSeasonProgress> {
+    const existing = await this.getUserSeasonProgress(userId, seasonId);
+    
+    if (existing) {
+      const [updated] = await db.update(schema.userSeasonProgress)
+        .set({ ...data, lastActivityAt: new Date() })
+        .where(eq(schema.userSeasonProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const season = await this.getSeasonById(seasonId);
+    const [created] = await db.insert(schema.userSeasonProgress)
+      .values({
+        userId,
+        seasonId,
+        totalLessons: season?.totalLessons || 0,
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+        ...data,
+      })
+      .returning();
+    return created;
+  }
+
+  // ==================== SEASON RANKING METHODS ====================
+
+  async getSeasonRankings(seasonId: number, limit: number = 50): Promise<schema.SeasonRankingEntry[]> {
+    const rankings = await db.select({
+      id: schema.seasonRankings.id,
+      seasonId: schema.seasonRankings.seasonId,
+      userId: schema.seasonRankings.userId,
+      xpEarned: schema.seasonRankings.xpEarned,
+      lessonsCompleted: schema.seasonRankings.lessonsCompleted,
+      correctPercentage: schema.seasonRankings.correctPercentage,
+      finalChallengeScore: schema.seasonRankings.finalChallengeScore,
+      isMastered: schema.seasonRankings.isMastered,
+      rankPosition: schema.seasonRankings.rankPosition,
+      isWinner: schema.seasonRankings.isWinner,
+      updatedAt: schema.seasonRankings.updatedAt,
+      user: {
+        id: schema.users.id,
+        fullName: schema.users.fullName,
+        photoUrl: schema.users.photoUrl,
+      },
+    })
+    .from(schema.seasonRankings)
+    .innerJoin(schema.users, eq(schema.seasonRankings.userId, schema.users.id))
+    .where(eq(schema.seasonRankings.seasonId, seasonId))
+    .orderBy(desc(schema.seasonRankings.xpEarned))
+    .limit(limit);
+
+    return rankings as schema.SeasonRankingEntry[];
+  }
+
+  async updateSeasonRanking(seasonId: number, userId: number): Promise<schema.SeasonRanking> {
+    const progress = await this.getUserSeasonProgress(userId, seasonId);
+    
+    const xpEarned = progress?.xpEarned || 0;
+    const lessonsCompleted = progress?.lessonsCompleted || 0;
+    const correctPercentage = progress?.totalAnswers ? 
+      Math.round((progress.correctAnswers / progress.totalAnswers) * 100) : 0;
+    const isMastered = progress?.isMastered || false;
+
+    const [existing] = await db.select().from(schema.seasonRankings)
+      .where(and(
+        eq(schema.seasonRankings.seasonId, seasonId),
+        eq(schema.seasonRankings.userId, userId)
+      ))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db.update(schema.seasonRankings)
+        .set({ xpEarned, lessonsCompleted, correctPercentage, isMastered, updatedAt: new Date() })
+        .where(eq(schema.seasonRankings.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(schema.seasonRankings)
+      .values({ seasonId, userId, xpEarned, lessonsCompleted, correctPercentage, isMastered })
+      .returning();
+    return created;
+  }
+
+  async finalizeSeasonRankings(seasonId: number): Promise<void> {
+    const rankings = await db.select().from(schema.seasonRankings)
+      .where(eq(schema.seasonRankings.seasonId, seasonId))
+      .orderBy(desc(schema.seasonRankings.xpEarned));
+
+    for (let i = 0; i < rankings.length; i++) {
+      await db.update(schema.seasonRankings)
+        .set({ 
+          rankPosition: i + 1, 
+          isWinner: i === 0,
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.seasonRankings.id, rankings[i].id));
+    }
+  }
+
+  // ==================== WEEKLY GOAL METHODS ====================
+
+  async getWeeklyGoalProgress(userId: number, weekKey: string): Promise<schema.WeeklyGoalProgress | null> {
+    const [progress] = await db.select().from(schema.weeklyGoalProgress)
+      .where(and(
+        eq(schema.weeklyGoalProgress.userId, userId),
+        eq(schema.weeklyGoalProgress.weekKey, weekKey)
+      ))
+      .limit(1);
+    return progress || null;
+  }
+
+  async updateWeeklyGoalProgress(userId: number, weekKey: string, data: Partial<schema.InsertWeeklyGoalProgress>): Promise<schema.WeeklyGoalProgress> {
+    const existing = await this.getWeeklyGoalProgress(userId, weekKey);
+    
+    if (existing) {
+      const [updated] = await db.update(schema.weeklyGoalProgress)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.weeklyGoalProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(schema.weeklyGoalProgress)
+      .values({ userId, weekKey, ...data })
+      .returning();
+    return created;
+  }
+
+  async getWeeklyGoalStatus(userId: number, weekKey: string): Promise<schema.WeeklyGoalStatus> {
+    const profile = await this.getStudyProfile(userId);
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+
+    const goals = {
+      lessons: {
+        current: progress?.lessonsCompleted || 0,
+        target: profile?.weeklyLessonsGoal || 1,
+        completed: (progress?.lessonsCompleted || 0) >= (profile?.weeklyLessonsGoal || 1),
+      },
+      verses: {
+        current: progress?.versesRead || 0,
+        target: profile?.weeklyVersesGoal || 7,
+        completed: (progress?.versesRead || 0) >= (profile?.weeklyVersesGoal || 7),
+      },
+      missions: {
+        current: progress?.missionsCompleted || 0,
+        target: profile?.weeklyMissionsGoal || 3,
+        completed: (progress?.missionsCompleted || 0) >= (profile?.weeklyMissionsGoal || 3),
+      },
+      devotionals: {
+        current: progress?.devotionalsRead || 0,
+        target: profile?.weeklyDevotionalsGoal || 1,
+        completed: (progress?.devotionalsRead || 0) >= (profile?.weeklyDevotionalsGoal || 1),
+      },
+    };
+
+    const isGoalMet = goals.lessons.completed && goals.verses.completed && 
+                      goals.missions.completed && goals.devotionals.completed;
+    
+    return {
+      weekKey,
+      goals,
+      isGoalMet,
+      xpBonus: progress?.xpBonus || 0,
+    };
+  }
+
+  async incrementWeeklyLesson(userId: number, weekKey: string): Promise<void> {
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+    await this.updateWeeklyGoalProgress(userId, weekKey, {
+      lessonsCompleted: (progress?.lessonsCompleted || 0) + 1,
+    });
+    await this.checkAndAwardWeeklyGoalBonus(userId, weekKey);
+  }
+
+  async incrementWeeklyVerse(userId: number, weekKey: string): Promise<void> {
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+    await this.updateWeeklyGoalProgress(userId, weekKey, {
+      versesRead: (progress?.versesRead || 0) + 1,
+    });
+    await this.checkAndAwardWeeklyGoalBonus(userId, weekKey);
+  }
+
+  async incrementWeeklyMission(userId: number, weekKey: string): Promise<void> {
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+    await this.updateWeeklyGoalProgress(userId, weekKey, {
+      missionsCompleted: (progress?.missionsCompleted || 0) + 1,
+    });
+    await this.checkAndAwardWeeklyGoalBonus(userId, weekKey);
+  }
+
+  async incrementWeeklyDevotional(userId: number, weekKey: string): Promise<void> {
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+    await this.updateWeeklyGoalProgress(userId, weekKey, {
+      devotionalsRead: (progress?.devotionalsRead || 0) + 1,
+    });
+    await this.checkAndAwardWeeklyGoalBonus(userId, weekKey);
+  }
+
+  private async checkAndAwardWeeklyGoalBonus(userId: number, weekKey: string): Promise<void> {
+    const status = await this.getWeeklyGoalStatus(userId, weekKey);
+    const progress = await this.getWeeklyGoalProgress(userId, weekKey);
+    
+    if (status.isGoalMet && !progress?.isGoalMet) {
+      const xpBonus = 50;
+      await this.updateWeeklyGoalProgress(userId, weekKey, {
+        isGoalMet: true,
+        xpBonus,
+      });
+      
+      const profile = await this.getStudyProfile(userId);
+      if (profile) {
+        await db.update(schema.studyProfiles)
+          .set({ totalXp: profile.totalXp + xpBonus, updatedAt: new Date() })
+          .where(eq(schema.studyProfiles.id, profile.id));
+      }
+    }
+  }
+
+  // ==================== DEVOTIONAL READING METHODS ====================
+
+  async confirmDevotionalRead(userId: number, devotionalId: number, weekKey?: string): Promise<schema.DevotionalReading> {
+    const existing = await this.hasReadDevotional(userId, devotionalId);
+    if (existing) {
+      throw new Error("Devocional já foi confirmado como lido");
+    }
+
+    const [reading] = await db.insert(schema.devotionalReadings)
+      .values({ userId, devotionalId, weekKey })
+      .returning();
+    
+    if (weekKey) {
+      await this.incrementWeeklyDevotional(userId, weekKey);
+    }
+
+    return reading;
+  }
+
+  async hasReadDevotional(userId: number, devotionalId: number): Promise<boolean> {
+    const [reading] = await db.select().from(schema.devotionalReadings)
+      .where(and(
+        eq(schema.devotionalReadings.userId, userId),
+        eq(schema.devotionalReadings.devotionalId, devotionalId)
+      ))
+      .limit(1);
+    return !!reading;
+  }
+
+  async getDevotionalReadings(userId: number, limit: number = 10): Promise<schema.DevotionalReading[]> {
+    return db.select().from(schema.devotionalReadings)
+      .where(eq(schema.devotionalReadings.userId, userId))
+      .orderBy(desc(schema.devotionalReadings.readAt))
+      .limit(limit);
   }
 }
 

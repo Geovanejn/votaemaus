@@ -1,4 +1,4 @@
-import { Home, Compass, Trophy, User } from "lucide-react";
+import { Home, Compass, Trophy, User, BookOpen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -12,6 +12,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: "", icon: Home, label: "Início", activeColor: "#1CB0F6" },
+  { path: "/seasons", icon: BookOpen, label: "Estudos", activeColor: "#FFA500" },
   { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
   { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
   { path: "/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
@@ -40,6 +41,10 @@ export function BottomNav() {
           if (item.path === "") {
             isActive = location === baseRoute || 
               location.startsWith(baseRoute + "/lesson");
+          } else if (item.path === "/seasons") {
+            isActive = location === fullPath || 
+              location.startsWith(baseRoute + "/seasons") ||
+              location.startsWith(baseRoute + "/season/");
           } else {
             isActive = isActive || location.startsWith(fullPath);
           }

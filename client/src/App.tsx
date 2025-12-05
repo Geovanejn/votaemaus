@@ -34,6 +34,8 @@ const RankingPage = lazy(() => import("@/pages/study/ranking"));
 const MissionsPage = lazy(() => import("@/pages/study/missions"));
 const MissionActivityPage = lazy(() => import("@/pages/study/mission-activity"));
 const AchievementsPage = lazy(() => import("@/pages/study/achievements"));
+const SeasonsPage = lazy(() => import("@/pages/study/seasons"));
+const SeasonDetailPage = lazy(() => import("@/pages/study/season-detail"));
 const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 
@@ -121,6 +123,8 @@ function Router() {
           <Route path="/study/missions" component={MissionsPage} />
           <Route path="/study/missions/:missionId" component={MissionActivityPage} />
           <Route path="/study/achievements" component={AchievementsPage} />
+          <Route path="/study/seasons" component={SeasonsPage} />
+          <Route path="/study/season/:id" component={SeasonDetailPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -154,6 +158,8 @@ function Router() {
         <Route path="/study/missions" component={MissionsPage} />
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
         <Route path="/study/achievements" component={AchievementsPage} />
+        <Route path="/study/seasons" component={SeasonsPage} />
+        <Route path="/study/season/:id" component={SeasonDetailPage} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

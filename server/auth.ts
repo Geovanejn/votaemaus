@@ -15,7 +15,8 @@ export function generateToken(user: Omit<User, "password">): string {
       id: user.id, 
       email: user.email, 
       isAdmin: user.isAdmin,
-      isMember: user.isMember 
+      isMember: user.isMember,
+      secretaria: user.secretaria
     },
     JWT_SECRET,
     { expiresIn: "2h" }
@@ -72,6 +73,28 @@ export function requireMember(
 ) {
   if (!req.user?.isMember && !req.user?.isAdmin) {
     return res.status(403).json({ message: "Acesso negado: apenas membros" });
+  }
+  next();
+}
+
+export function requireAdminOrMarketing(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
+    return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de marketing" });
+  }
+  next();
+}
+
+export function requireAdminOrEspiritualidade(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user?.isAdmin && req.user?.secretaria !== "espiritualidade") {
+    return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de espiritualidade" });
   }
   next();
 }

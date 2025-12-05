@@ -167,13 +167,21 @@ The architecture is designed for expandability, supporting future modules for se
 ### Sistema de Secretarias
 
 Usuarios podem pertencer a secretarias com permissoes especificas:
-- `espiritualidade` - Gerencia devocionais e pedidos de oracao
-- `marketing` - Gerencia eventos, banners e conteudo do site
+- `espiritualidade` - Acesso ao painel /admin/study (DeoGlory) para gerenciar semanas de estudo, licoes, exercicios e geracao de conteudo por IA
+- `marketing` - Acesso ao painel /admin/site para gerenciar diretoria, pedidos de oracao, banners e conteudo do site
 - `acao_social` - Acoes sociais
 - `comunicacao` - Comunicacao interna
 - `eventos` - Organizacao de eventos
 
-Admins tem acesso total a todos os modulos.
+**Permissoes de Acesso:**
+- Admins (isAdmin=true): Acesso total a todos os modulos
+- Secretaria Espiritualidade: /admin/study + APIs de estudo e IA
+- Secretaria Marketing: /admin/site + APIs de site institucional
+
+**Middleware de Autorizacao:**
+- `requireAdmin`: Apenas admins
+- `requireAdminOrMarketing`: Admins ou secretaria marketing
+- `requireAdminOrEspiritualidade`: Admins ou secretaria espiritualidade
 
 ### AI Integration
 - **OpenAI API** - Content generation and extraction.

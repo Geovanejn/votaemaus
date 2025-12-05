@@ -8,6 +8,8 @@ import {
   authenticateToken, 
   requireAdmin, 
   requireMember,
+  requireAdminOrMarketing,
+  requireAdminOrEspiritualidade,
   type AuthRequest 
 } from "./auth";
 import { 
@@ -2144,8 +2146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Get all study weeks (including drafts)
-  app.get("/api/study/admin/weeks", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Get all study weeks (including drafts) - admin or espiritualidade
+  app.get("/api/study/admin/weeks", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weeks = await storage.getAllStudyWeeks();
       res.json(weeks);
@@ -2155,8 +2157,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Get study stats
-  app.get("/api/study/admin/stats", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Get study stats - admin or espiritualidade
+  app.get("/api/study/admin/stats", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const stats = await storage.getStudyStats();
       res.json(stats);
@@ -2166,8 +2168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Get lessons for a week
-  app.get("/api/study/admin/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Get lessons for a week - admin or espiritualidade
+  app.get("/api/study/admin/lessons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.query.weekId as string);
       if (!weekId) {
@@ -2181,8 +2183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Create a new study week
-  app.post("/api/study/admin/weeks", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Create a new study week - admin or espiritualidade
+  app.post("/api/study/admin/weeks", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const { title, description, weekNumber, year } = req.body;
       if (!title) {
@@ -2202,8 +2204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Publish a study week
-  app.post("/api/study/admin/weeks/:weekId/publish", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Publish a study week - admin or espiritualidade
+  app.post("/api/study/admin/weeks/:weekId/publish", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const week = await storage.publishStudyWeek(weekId);
@@ -2221,8 +2223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-POWERED CONTENT GENERATION ROUTES
   // ============================================
 
-  // Check if AI is configured
-  app.get("/api/ai/status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Check if AI is configured - admin or espiritualidade
+  app.get("/api/ai/status", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       res.json({ 
         configured: isAIConfigured(),
@@ -2235,8 +2237,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate complete study week content from PDF and save to database
-  app.post("/api/ai/generate-week-from-pdf", authenticateToken, requireAdmin, upload.single('pdf'), async (req: AuthRequest, res) => {
+  // Generate complete study week content from PDF and save to database - admin or espiritualidade
+  app.post("/api/ai/generate-week-from-pdf", authenticateToken, requireAdminOrEspiritualidade, upload.single('pdf'), async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(503).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2343,8 +2345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate complete study week content from text
-  app.post("/api/ai/generate-week", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Generate complete study week content from text - admin or espiritualidade
+  app.post("/api/ai/generate-week", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2371,8 +2373,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate exercises from a topic
-  app.post("/api/ai/generate-exercises", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Generate exercises from a topic - admin or espiritualidade
+  app.post("/api/ai/generate-exercises", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2394,8 +2396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate reflection questions from text
-  app.post("/api/ai/generate-reflections", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Generate reflection questions from text - admin or espiritualidade
+  app.post("/api/ai/generate-reflections", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2417,8 +2419,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Summarize text
-  app.post("/api/ai/summarize", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Summarize text - admin or espiritualidade
+  app.post("/api/ai/summarize", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2440,8 +2442,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create week with AI-generated content and save to database
-  app.post("/api/ai/create-week-with-content", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Create week with AI-generated content and save to database - admin or espiritualidade
+  app.post("/api/ai/create-week-with-content", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       if (!isAIConfigured()) {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
@@ -2533,8 +2535,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Create a new lesson
-  app.post("/api/study/admin/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Create a new lesson - admin or espiritualidade
+  app.post("/api/study/admin/lessons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const { studyWeekId, title, type, description, xpReward, estimatedMinutes, isBonus } = req.body;
       
@@ -2564,8 +2566,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Update a lesson
-  app.put("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Update a lesson - admin or espiritualidade
+  app.put("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const { title, type, description, xpReward, estimatedMinutes, isBonus, orderIndex } = req.body;
@@ -2592,8 +2594,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Delete a lesson
-  app.delete("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Delete a lesson - admin or espiritualidade
+  app.delete("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const deleted = await storage.deleteStudyLesson(lessonId);
@@ -2609,8 +2611,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Lock a lesson
-  app.post("/api/study/admin/lessons/:lessonId/lock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Lock a lesson - admin or espiritualidade
+  app.post("/api/study/admin/lessons/:lessonId/lock", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const lesson = await storage.lockLesson(lessonId);
@@ -2626,8 +2628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Unlock a lesson
-  app.post("/api/study/admin/lessons/:lessonId/unlock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Unlock a lesson - admin or espiritualidade
+  app.post("/api/study/admin/lessons/:lessonId/unlock", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const lesson = await storage.unlockLesson(lessonId);
@@ -2643,8 +2645,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Set unlock date for a lesson
-  app.post("/api/study/admin/lessons/:lessonId/schedule", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Set unlock date for a lesson - admin or espiritualidade
+  app.post("/api/study/admin/lessons/:lessonId/schedule", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const { unlockDate } = req.body;
@@ -2662,8 +2664,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Unlock all lessons for a week
-  app.post("/api/study/admin/weeks/:weekId/unlock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Unlock all lessons for a week - admin or espiritualidade
+  app.post("/api/study/admin/weeks/:weekId/unlock-all", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const count = await storage.unlockAllLessonsForWeek(weekId);
@@ -2675,8 +2677,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Lock all lessons for a week
-  app.post("/api/study/admin/weeks/:weekId/lock-all", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Lock all lessons for a week - admin or espiritualidade
+  app.post("/api/study/admin/weeks/:weekId/lock-all", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const count = await storage.lockAllLessonsForWeek(weekId);
@@ -2688,8 +2690,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Set weekly unlock schedule (one lesson per week)
-  app.post("/api/study/admin/weeks/:weekId/schedule-weekly", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Set weekly unlock schedule (one lesson per week) - admin or espiritualidade
+  app.post("/api/study/admin/weeks/:weekId/schedule-weekly", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const { startDate } = req.body;
@@ -2707,8 +2709,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Get units for a lesson
-  app.get("/api/study/admin/lessons/:lessonId/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Get units for a lesson - admin or espiritualidade
+  app.get("/api/study/admin/lessons/:lessonId/units", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       const units = await storage.getUnitsForLesson(lessonId);
@@ -2719,8 +2721,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Create a new unit
-  app.post("/api/study/admin/units", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Create a new unit - admin or espiritualidade
+  app.post("/api/study/admin/units", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const { lessonId, type, content, xpValue } = req.body;
 
@@ -2746,8 +2748,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Update a unit
-  app.put("/api/study/admin/units/:unitId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Update a unit - admin or espiritualidade
+  app.put("/api/study/admin/units/:unitId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const unitId = parseInt(req.params.unitId);
       const { type, content, xpValue, orderIndex } = req.body;
@@ -2770,8 +2772,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Delete a unit
-  app.delete("/api/study/admin/units/:unitId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Delete a unit - admin or espiritualidade
+  app.delete("/api/study/admin/units/:unitId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const unitId = parseInt(req.params.unitId);
       const deleted = await storage.deleteStudyUnit(unitId);
@@ -2787,8 +2789,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Delete a week
-  app.delete("/api/study/admin/weeks/:weekId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Delete a week - admin or espiritualidade
+  app.delete("/api/study/admin/weeks/:weekId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const deleted = await storage.deleteStudyWeek(weekId);
@@ -2804,8 +2806,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Update a week
-  app.put("/api/study/admin/weeks/:weekId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Update a week - admin or espiritualidade
+  app.put("/api/study/admin/weeks/:weekId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const weekId = parseInt(req.params.weekId);
       const { title, description, weekNumber, year, status } = req.body;
@@ -2829,8 +2831,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Seed study data with real content (resets all DeoGlory data)
-  app.post("/api/study/admin/seed", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Admin: Seed study data with real content (resets all DeoGlory data) - admin or espiritualidade
+  app.post("/api/study/admin/seed", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const { seedAllData } = await import("./seed-study-data");
       await seedAllData();
@@ -3181,10 +3183,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== ADMIN SITE MANAGEMENT API ====================
 
-  // Get all prayer requests (admin)
+  // Get all prayer requests (admin or marketing)
   app.get("/api/admin/prayer-requests", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const status = req.query.status as string | undefined;
@@ -3196,10 +3198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update prayer request status (admin)
+  // Update prayer request status (admin or marketing)
   app.patch("/api/admin/prayer-requests/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const id = parseInt(req.params.id);
@@ -3220,10 +3222,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all board members (admin)
+  // Get all board members (admin or marketing)
   app.get("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const members = await storage.getAllBoardMembers(false);
@@ -3234,10 +3236,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create board member (admin)
+  // Create board member (admin or marketing)
   app.post("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const member = await storage.createBoardMember(req.body);
@@ -3248,10 +3250,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update board member (admin)
+  // Update board member (admin or marketing)
   app.patch("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const id = parseInt(req.params.id);
@@ -3269,10 +3271,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete board member (admin)
+  // Delete board member (admin or marketing)
   app.delete("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const id = parseInt(req.params.id);
@@ -3287,10 +3289,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all banners (admin)
+  // Get all banners (admin or marketing)
   app.get("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const banners = await storage.getAllBanners();
@@ -3301,10 +3303,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create banner (admin)
+  // Create banner (admin or marketing)
   app.post("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const banner = await storage.createBanner({ ...req.body, createdBy: req.user.id });
@@ -3315,10 +3317,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update banner (admin)
+  // Update banner (admin or marketing)
   app.patch("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const id = parseInt(req.params.id);
@@ -3336,10 +3338,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete banner (admin)
+  // Delete banner (admin or marketing)
   app.delete("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const id = parseInt(req.params.id);
@@ -3354,10 +3356,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get site content (admin)
+  // Get site content (admin or marketing)
   app.get("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const content = await storage.getAllSiteContent();
@@ -3368,10 +3370,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update site content (admin)
+  // Update site content (admin or marketing)
   app.post("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin) {
+      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
         return res.status(403).json({ message: "Acesso negado" });
       }
       const content = await storage.upsertSiteContent({ ...req.body, updatedBy: req.user.id });

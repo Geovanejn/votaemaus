@@ -887,10 +887,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStudyLesson(lessonId: number): Promise<boolean> {
-    // Delete user progress first (foreign key constraint)
+    // First, get all unit IDs for this lesson
+    const units = await db.select({ id: schema.studyUnits.id })
+      .from(schema.studyUnits)
+      .where(eq(schema.studyUnits.lessonId, lessonId));
+    const unitIds = units.map(u => u.id);
+    
+    // Delete user unit progress first (foreign key constraint to studyUnits)
+    if (unitIds.length > 0) {
+      await db.delete(schema.userUnitProgress).where(inArray(schema.userUnitProgress.unitId, unitIds));
+    }
+    
+    // Delete user lesson progress (foreign key constraint to studyLessons)
     await db.delete(schema.userLessonProgress).where(eq(schema.userLessonProgress.lessonId, lessonId));
+    
     // Delete units
     await db.delete(schema.studyUnits).where(eq(schema.studyUnits.lessonId, lessonId));
+    
     // Delete lesson
     await db.delete(schema.studyLessons).where(eq(schema.studyLessons.id, lessonId));
     return true;
@@ -909,6 +922,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStudyUnit(unitId: number): Promise<boolean> {
+    // Delete user unit progress first (foreign key constraint)
+    await db.delete(schema.userUnitProgress).where(eq(schema.userUnitProgress.unitId, unitId));
+    // Delete the unit
     await db.delete(schema.studyUnits).where(eq(schema.studyUnits.id, unitId));
     return true;
   }
@@ -1490,6 +1506,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async addXp(userId: number, amount: number, source: string, sourceId?: number): Promise<void> {
+    // Ensure the study profile exists before adding XP
+    await this.getOrCreateStudyProfile(userId);
+    
     await db.insert(schema.xpTransactions).values({
       userId,
       amount,

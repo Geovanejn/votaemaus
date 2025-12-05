@@ -635,21 +635,56 @@ export class DatabaseStorage implements IStorage {
     const presentCount = await this.getPresentCount(electionId);
     const winners = await this.getElectionWinners(electionId);
 
-    const positionResults = await Promise.all(positions.map(async (ep) => {
-      const positionInfo = await db.select().from(schema.positions)
-        .where(eq(schema.positions.id, ep.positionId))
-        .limit(1);
+    // Optimized: Batch fetch all position info in one query
+    const positionIds = positions.map(p => p.positionId);
+    const allPositionInfo = positionIds.length > 0
+      ? await db.select().from(schema.positions).where(inArray(schema.positions.id, positionIds))
+      : [];
+    const positionInfoMap = new Map(allPositionInfo.map(p => [p.id, p]));
+
+    // Optimized: Batch fetch all candidates for all positions in this election
+    // Ordered by id for deterministic results (matching original getCandidatesByPosition behavior)
+    const allCandidates = await db.select().from(schema.candidates)
+      .where(eq(schema.candidates.electionId, electionId))
+      .orderBy(asc(schema.candidates.id));
+
+    // Optimized: Batch fetch all vote counts grouped by candidate and scrutiny
+    const allVoteCounts = await db.select({
+      candidateId: schema.votes.candidateId,
+      scrutinyRound: schema.votes.scrutinyRound,
+      count: sql<number>`count(*)`,
+    })
+      .from(schema.votes)
+      .where(eq(schema.votes.electionId, electionId))
+      .groupBy(schema.votes.candidateId, schema.votes.scrutinyRound);
+    
+    // Create a map for quick lookup: "candidateId-scrutiny" -> count
+    const voteCountMap = new Map(
+      allVoteCounts.map(v => [`${v.candidateId}-${v.scrutinyRound}`, Number(v.count)])
+    );
+
+    // Optimized: Batch fetch voter counts per position and scrutiny
+    const allVoterCounts = await db.select({
+      positionId: schema.votes.positionId,
+      scrutinyRound: schema.votes.scrutinyRound,
+      count: sql<number>`count(distinct voter_id)`,
+    })
+      .from(schema.votes)
+      .where(eq(schema.votes.electionId, electionId))
+      .groupBy(schema.votes.positionId, schema.votes.scrutinyRound);
+    
+    const voterCountMap = new Map(
+      allVoterCounts.map(v => [`${v.positionId}-${v.scrutinyRound}`, Number(v.count)])
+    );
+
+    // Now process positions without additional queries
+    const positionResults = positions.map(ep => {
+      const positionInfo = positionInfoMap.get(ep.positionId);
       
-      const candidates = await this.getCandidatesByPosition(ep.positionId, electionId);
+      const candidates = allCandidates.filter(c => c.positionId === ep.positionId);
       
-      const candidateResults = await Promise.all(candidates.map(async (c) => {
-        const [voteResult] = await db.select({ count: sql<number>`count(*)` })
-          .from(schema.votes)
-          .where(and(
-            eq(schema.votes.candidateId, c.id),
-            eq(schema.votes.scrutinyRound, ep.currentScrutiny)
-          ));
-        
+      const candidateResults = candidates.map(c => {
+        const voteCount = voteCountMap.get(`${c.id}-${ep.currentScrutiny}`) || 0;
         const winner = winners.find(w => w.candidateId === c.id);
         
         return {
@@ -657,22 +692,14 @@ export class DatabaseStorage implements IStorage {
           candidateName: c.name,
           candidateEmail: c.email,
           photoUrl: schema.getGravatarUrl(c.email),
-          voteCount: Number(voteResult?.count || 0),
+          voteCount,
           isElected: !!winner,
           electedInScrutiny: winner?.wonAtScrutiny,
           wonAtScrutiny: winner?.wonAtScrutiny,
         };
-      }));
+      });
 
-      const [voterCountResult] = await db.select({ count: sql<number>`count(distinct voter_id)` })
-        .from(schema.votes)
-        .where(and(
-          eq(schema.votes.positionId, ep.positionId),
-          eq(schema.votes.electionId, electionId),
-          eq(schema.votes.scrutinyRound, ep.currentScrutiny)
-        ));
-      
-      const totalVoters = Number(voterCountResult?.count || 0);
+      const totalVoters = voterCountMap.get(`${ep.positionId}-${ep.currentScrutiny}`) || 0;
       const majorityThreshold = ep.currentScrutiny < 3 
         ? Math.floor(totalVoters / 2) + 1 
         : Math.ceil(totalVoters / 2);
@@ -685,7 +712,7 @@ export class DatabaseStorage implements IStorage {
 
       return {
         positionId: ep.positionId,
-        positionName: positionInfo[0]?.name || '',
+        positionName: positionInfo?.name || '',
         status: ep.status,
         currentScrutiny: ep.currentScrutiny,
         orderIndex: ep.orderIndex,
@@ -696,7 +723,7 @@ export class DatabaseStorage implements IStorage {
         winnerScrutiny: winnerCandidate?.wonAtScrutiny,
         candidates: candidateResults,
       };
-    }));
+    });
 
     return {
       electionId: election.id,
@@ -1362,23 +1389,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLessonsWithProgress(userId: number, weekId: number): Promise<any[]> {
-    const lessons = await this.getLessonsForWeek(weekId);
-    const result = await Promise.all(lessons.map(async (lesson: any) => {
-      const [progress] = await db.select().from(schema.userLessonProgress)
-        .where(and(
-          eq(schema.userLessonProgress.userId, userId),
-          eq(schema.userLessonProgress.lessonId, lesson.id)
-        ))
-        .limit(1);
-      
-      return {
-        ...lesson,
-        status: progress?.status || 'locked',
-        xpEarned: progress?.xpEarned || 0,
-        perfectScore: progress?.perfectScore || false,
-      };
+    // Optimized: Single query with LEFT JOIN instead of N+1 queries
+    const lessonsWithProgress = await db.select({
+      id: schema.studyLessons.id,
+      studyWeekId: schema.studyLessons.studyWeekId,
+      orderIndex: schema.studyLessons.orderIndex,
+      title: schema.studyLessons.title,
+      type: schema.studyLessons.type,
+      description: schema.studyLessons.description,
+      xpReward: schema.studyLessons.xpReward,
+      estimatedMinutes: schema.studyLessons.estimatedMinutes,
+      icon: schema.studyLessons.icon,
+      isBonus: schema.studyLessons.isBonus,
+      isLocked: schema.studyLessons.isLocked,
+      unlockDate: schema.studyLessons.unlockDate,
+      seasonId: schema.studyLessons.seasonId,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      isReleased: schema.studyLessons.isReleased,
+      progressStatus: schema.userLessonProgress.status,
+      progressXpEarned: schema.userLessonProgress.xpEarned,
+      progressPerfectScore: schema.userLessonProgress.perfectScore,
+    })
+      .from(schema.studyLessons)
+      .leftJoin(
+        schema.userLessonProgress,
+        and(
+          eq(schema.userLessonProgress.lessonId, schema.studyLessons.id),
+          eq(schema.userLessonProgress.userId, userId)
+        )
+      )
+      .where(eq(schema.studyLessons.studyWeekId, weekId))
+      .orderBy(asc(schema.studyLessons.orderIndex));
+
+    return lessonsWithProgress.map(row => ({
+      id: row.id,
+      studyWeekId: row.studyWeekId,
+      orderIndex: row.orderIndex,
+      title: row.title,
+      type: row.type,
+      description: row.description,
+      xpReward: row.xpReward,
+      estimatedMinutes: row.estimatedMinutes,
+      icon: row.icon,
+      isBonus: row.isBonus,
+      isLocked: row.isLocked,
+      unlockDate: row.unlockDate,
+      seasonId: row.seasonId,
+      lessonNumber: row.lessonNumber,
+      isReleased: row.isReleased,
+      status: row.progressStatus || 'locked',
+      xpEarned: row.progressXpEarned || 0,
+      perfectScore: row.progressPerfectScore || false,
     }));
-    return result;
   }
 
   async getUserLessonProgress(userId: number, lessonId: number): Promise<any | null> {
@@ -1595,18 +1657,36 @@ export class DatabaseStorage implements IStorage {
       return { isTie: false };
     }
     
-    const candidates = await this.getCandidatesByPosition(position.positionId, position.electionId);
-    const voteResults = await Promise.all(candidates.map(async (c) => {
-      const [result] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.votes)
-        .where(and(
-          eq(schema.votes.candidateId, c.id),
+    // Optimized: Single query with JOIN and GROUP BY instead of N+1 queries
+    const candidatesWithVotes = await db.select({
+      id: schema.candidates.id,
+      userId: schema.candidates.userId,
+      name: schema.candidates.name,
+      email: schema.candidates.email,
+      positionId: schema.candidates.positionId,
+      electionId: schema.candidates.electionId,
+      voteCount: sql<number>`count(${schema.votes.id})`,
+    })
+      .from(schema.candidates)
+      .leftJoin(
+        schema.votes,
+        and(
+          eq(schema.votes.candidateId, schema.candidates.id),
           eq(schema.votes.scrutinyRound, 3)
-        ));
-      return { ...c, voteCount: Number(result?.count || 0) };
+        )
+      )
+      .where(and(
+        eq(schema.candidates.positionId, position.positionId),
+        eq(schema.candidates.electionId, position.electionId)
+      ))
+      .groupBy(schema.candidates.id);
+
+    const voteResults = candidatesWithVotes.map(c => ({
+      ...c,
+      voteCount: Number(c.voteCount || 0),
     }));
     
-    const maxVotes = Math.max(...voteResults.map(c => c.voteCount));
+    const maxVotes = Math.max(...voteResults.map(c => c.voteCount), 0);
     const tiedCandidates = voteResults.filter(c => c.voteCount === maxVotes);
     
     return {
@@ -1778,29 +1858,29 @@ export class DatabaseStorage implements IStorage {
 
   // Leaderboard Methods
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    const profiles = await db.select({
+    // Optimized: Single query with JOIN instead of N+1 queries
+    const profilesWithUsers = await db.select({
       userId: schema.studyProfiles.userId,
       totalXp: schema.studyProfiles.totalXp,
       currentStreak: schema.studyProfiles.currentStreak,
       currentLevel: schema.studyProfiles.currentLevel,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
     })
       .from(schema.studyProfiles)
+      .innerJoin(schema.users, eq(schema.studyProfiles.userId, schema.users.id))
       .orderBy(desc(schema.studyProfiles.totalXp))
       .limit(limit);
     
-    const result = await Promise.all(profiles.map(async (p, index) => {
-      const user = await this.getUserById(p.userId);
-      return {
-        rank: index + 1,
-        userId: p.userId,
-        username: user?.fullName || 'Unknown',
-        totalXp: p.totalXp,
-        level: p.currentLevel,
-        currentStreak: p.currentStreak,
-      };
+    return profilesWithUsers.map((p, index) => ({
+      rank: index + 1,
+      userId: p.userId,
+      username: p.fullName || 'Unknown',
+      photoUrl: p.photoUrl,
+      totalXp: p.totalXp,
+      level: p.currentLevel,
+      currentStreak: p.currentStreak,
     }));
-    
-    return result;
   }
 
   // Prayer Requests Methods

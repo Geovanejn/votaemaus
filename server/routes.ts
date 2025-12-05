@@ -3653,8 +3653,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const weekKey = getCurrentWeekKey();
+      // confirmDevotionalRead ja chama incrementWeeklyDevotional internamente quando weekKey e fornecido
       await storage.confirmDevotionalRead(req.user!.id, devotionalId, weekKey);
-      await storage.incrementWeeklyDevotional(req.user!.id, weekKey);
       res.json({ success: true, message: "Leitura registrada" });
     } catch (error) {
       console.error("Mark devotional read error:", error);

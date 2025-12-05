@@ -101,6 +101,31 @@ The system features a responsive, Portuguese UI optimized for clarity and ease o
 - `GET/POST/PATCH/DELETE /api/admin/banners` - Manage banners
 - `GET/POST /api/admin/site-content` - Manage site content
 
+**Sistema de Temporadas - Public Routes**:
+- `GET /api/study/seasons` - Listar temporadas publicadas
+- `GET /api/study/seasons/:id` - Detalhes da temporada
+- `GET /api/study/seasons/:id/lessons` - Licoes da temporada
+- `GET /api/study/seasons/:id/progress` - Progresso do usuario
+- `GET /api/study/seasons/:id/rankings` - Rankings da temporada
+- `GET /api/study/seasons/:id/final-challenge` - Desafio final
+- `POST /api/study/seasons/:id/final-challenge/start` - Iniciar desafio
+- `POST /api/study/seasons/:id/final-challenge/submit` - Enviar respostas
+
+**Sistema de Temporadas - Admin Routes**:
+- `GET/POST/PUT/DELETE /api/study/admin/seasons` - CRUD temporadas
+- `POST /api/study/admin/seasons/:id/publish` - Publicar temporada
+- `POST /api/study/admin/seasons/:id/import-pdf` - Importar PDF com IA
+- `POST /api/study/admin/seasons/:id/final-challenge` - Criar desafio
+- `POST /api/study/admin/seasons/:id/generate-final-challenge` - Gerar desafio com IA
+
+**Metas Semanais Routes**:
+- `GET /api/study/weekly-goals/progress` - Progresso das metas
+- `POST /api/study/weekly-goals/confirm-lesson` - Confirmar licao
+- `POST /api/study/weekly-goals/confirm-verse` - Confirmar versiculo
+- `POST /api/study/weekly-goals/confirm-mission` - Confirmar missao
+- `GET /api/study/devotional-status/:id` - Status de leitura
+- `POST /api/study/devotional-read/:id` - Marcar devocional lido
+
 ### System Design Choices
 The architecture is designed for expandability, supporting future modules for secretariats management, devotionals, prayer requests, events, and an institutional website. Content for Christian meditation is strictly focused on reflection on God's Word.
 
@@ -154,6 +179,19 @@ The architecture is designed for expandability, supporting future modules for se
 - `daily_missions`, `user_daily_missions`, `daily_mission_content`
 - `bible_verses`, `verse_readings`
 - `notifications`, `push_subscriptions`
+
+**Sistema de Temporadas (Dezembro 2024):**
+- `seasons` - Temporadas de estudo (baseadas em revistas EBD)
+- `season_final_challenges` - Desafio final cronometrado por temporada
+- `user_season_progress` - Progresso do usuario por temporada
+- `season_rankings` - Ranking por temporada
+- `weekly_goal_progress` - Progresso das metas semanais
+- `devotional_readings` - Confirmacao de leitura de devocionais
+- `study_lessons.seasonId` - Campo de ligacao entre licoes e temporadas
+
+**Metas Semanais:**
+- Campos em `study_profiles`: `weeklyLessonsGoal`, `weeklyVersesGoal`, `weeklyMissionsGoal`, `weeklyDevotionalsGoal`
+- Leitura de devocionais incrementa meta semanal via `confirmDevotionalRead`
 
 **Site Institucional:**
 - `devotionals` - Devocionais (campo `is_featured` para destaque)

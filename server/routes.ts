@@ -303,6 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: false,
         isMember: true,
         activeMember: validatedData.activeMember,
+        secretaria: validatedData.secretaria,
       } as any);
 
       const { password, ...userWithoutPassword } = user;

@@ -242,6 +242,7 @@ export const addMemberSchema = z.object({
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
   activeMember: z.boolean().default(true),
+  secretaria: z.string().optional(),
 });
 
 export type AddMemberData = z.infer<typeof addMemberSchema>;
@@ -252,6 +253,7 @@ export const updateMemberSchema = z.object({
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
   activeMember: z.boolean().optional(),
+  secretaria: z.string().optional(),
 });
 
 export type UpdateMemberData = z.infer<typeof updateMemberSchema>;

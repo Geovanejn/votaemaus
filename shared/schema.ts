@@ -1287,3 +1287,35 @@ export type ShareableImage = {
   title: string;
   subtitle?: string;
 };
+
+// ==================== AUDIT LOGS ====================
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  resourceId: integer("resource_id"),
+  details: text("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type AuditAction = 
+  | "create"
+  | "update" 
+  | "delete"
+  | "login"
+  | "logout"
+  | "password_reset"
+  | "approve"
+  | "reject";

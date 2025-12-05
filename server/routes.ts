@@ -36,6 +36,70 @@ import {
   isAIConfigured 
 } from "./ai";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
+
+// ==================== RATE LIMITING CONFIGURATION ====================
+
+// Rate limiter geral para APIs publicas (100 req/15min)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // limite de 100 requisicoes por janela
+  message: { message: "Muitas requisicoes. Tente novamente em alguns minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter rigoroso para autenticacao (5 req/15min)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // limite de 5 tentativas
+  message: { message: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter para envio de codigos (3 req/hora)
+const codeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 3, // limite de 3 envios por hora
+  message: { message: "Muitos codigos solicitados. Tente novamente em 1 hora." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter para pedidos de oracao (10 req/hora)
+const prayerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10, // limite de 10 pedidos por hora
+  message: { message: "Muitos pedidos enviados. Tente novamente mais tarde." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ==================== AUDIT LOGGING HELPER ====================
+
+async function logAuditAction(
+  userId: number | undefined,
+  action: string,
+  resource: string,
+  resourceId?: number,
+  details?: string,
+  req?: { ip?: string; headers?: { [key: string]: string | string[] | undefined } }
+) {
+  try {
+    await storage.createAuditLog({
+      userId: userId || null,
+      action,
+      resource,
+      resourceId: resourceId || null,
+      details: details || null,
+      ipAddress: req?.ip || null,
+      userAgent: (req?.headers?.['user-agent'] as string) || null,
+    });
+  } catch (error) {
+    console.error("[Audit Log] Failed to create log:", error);
+  }
+}
 import { PDFParse } from "pdf-parse";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
@@ -79,7 +143,10 @@ function getIconForLessonType(type: string): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.post("/api/auth/login", async (req, res) => {
+  // Aplicar rate limiter geral para APIs publicas do site
+  app.use("/api/site", generalLimiter);
+
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
     try {
       const validatedData = loginSchema.parse(req.body);
       
@@ -114,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/request-code", async (req, res) => {
+  app.post("/api/auth/request-code", codeLimiter, async (req, res) => {
     try {
       const validatedData = requestCodeSchema.parse(req.body);
       
@@ -164,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/verify-code", async (req, res) => {
+  app.post("/api/auth/verify-code", authLimiter, async (req, res) => {
     try {
       const validatedData = verifyCodeSchema.parse(req.body);
       
@@ -245,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login-password", async (req, res) => {
+  app.post("/api/auth/login-password", authLimiter, async (req, res) => {
     try {
       const validatedData = loginPasswordSchema.parse(req.body);
       
@@ -3102,8 +3169,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Submit prayer request (public)
-  app.post("/api/site/prayer-requests", async (req, res) => {
+  // Submit prayer request (public) - Rate limited to prevent spam
+  app.post("/api/site/prayer-requests", prayerLimiter, async (req, res) => {
     try {
       const { name, whatsapp, category, request, isAnonymous } = req.body;
       
@@ -3178,6 +3245,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Pedido nao encontrado" });
       }
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "update", "prayer_request", id, `Status alterado para: ${status}`, req);
+      
       res.json(updated);
     } catch (error) {
       console.error("Update prayer request error:", error);
@@ -3200,6 +3271,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/board-members", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const member = await storage.createBoardMember(req.body);
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "create", "board_member", member.id, `Criado: ${req.body.name} - ${req.body.position}`, req);
+      
       res.status(201).json(member);
     } catch (error) {
       console.error("Create board member error:", error);
@@ -3218,6 +3293,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Membro nao encontrado" });
       }
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "update", "board_member", id, `Atualizado: ${updated.name}`, req);
+      
       res.json(updated);
     } catch (error) {
       console.error("Update board member error:", error);
@@ -3232,6 +3311,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      
+      // Audit log before deletion
+      await logAuditAction(req.user?.id, "delete", "board_member", id, "Membro removido", req);
+      
       await storage.deleteBoardMember(id);
       res.json({ message: "Membro removido com sucesso" });
     } catch (error) {
@@ -3255,6 +3338,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const banner = await storage.createBanner({ ...req.body, createdBy: req.user!.id });
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "create", "banner", banner.id, `Criado: ${req.body.title}`, req);
+      
       res.status(201).json(banner);
     } catch (error) {
       console.error("Create banner error:", error);
@@ -3273,6 +3360,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updated) {
         return res.status(404).json({ message: "Banner nao encontrado" });
       }
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "update", "banner", id, `Atualizado: ${updated.title}`, req);
+      
       res.json(updated);
     } catch (error) {
       console.error("Update banner error:", error);
@@ -3287,11 +3378,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      
+      // Audit log before deletion
+      await logAuditAction(req.user?.id, "delete", "banner", id, "Banner removido", req);
+      
       await storage.deleteBanner(id);
       res.json({ message: "Banner removido com sucesso" });
     } catch (error) {
       console.error("Delete banner error:", error);
       res.status(500).json({ message: "Erro ao remover banner" });
+    }
+  });
+
+  // ==================== AUDIT LOGS API ====================
+
+  // Get audit logs (admin only)
+  app.get("/api/admin/audit-logs", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const resource = req.query.resource as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      
+      const logs = await storage.getAuditLogs({ userId, resource, limit });
+      res.json(logs);
+    } catch (error) {
+      console.error("Get audit logs error:", error);
+      res.status(500).json({ message: "Erro ao buscar logs de auditoria" });
     }
   });
 

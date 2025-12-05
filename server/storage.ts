@@ -44,6 +44,8 @@ import type {
   InsertBanner,
   SiteContent,
   InsertSiteContent,
+  AuditLog,
+  InsertAuditLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -226,6 +228,10 @@ export interface IStorage {
   // Site Content Methods
   getSiteContent(page: string, section: string): Promise<SiteContent | null>;
   getAllSiteContent(): Promise<SiteContent[]>;
+  
+  // Audit Logs
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(filters?: { userId?: number; resource?: string; limit?: number }): Promise<AuditLog[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
   
   // Season Methods
@@ -1932,6 +1938,35 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return created;
+  }
+
+  // ==================== AUDIT LOG METHODS ====================
+
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [auditLog] = await db.insert(schema.auditLogs)
+      .values(log)
+      .returning();
+    return auditLog;
+  }
+
+  async getAuditLogs(filters?: { userId?: number; resource?: string; limit?: number }): Promise<AuditLog[]> {
+    let query = db.select().from(schema.auditLogs);
+    
+    const conditions = [];
+    if (filters?.userId) {
+      conditions.push(eq(schema.auditLogs.userId, filters.userId));
+    }
+    if (filters?.resource) {
+      conditions.push(eq(schema.auditLogs.resource, filters.resource));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+    
+    return query
+      .orderBy(desc(schema.auditLogs.createdAt))
+      .limit(filters?.limit || 100);
   }
 
   // ==================== SEASON METHODS ====================

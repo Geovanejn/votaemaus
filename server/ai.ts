@@ -46,6 +46,58 @@ export interface GeneratedWeekContent {
   lessons: GeneratedLesson[];
 }
 
+function extractJsonFromResponse(text: string): string {
+  // Try multiple patterns to extract JSON from markdown code blocks
+  const patterns = [
+    /```json\s*([\s\S]*?)```/i,
+    /```\s*([\s\S]*?)```/,
+    /^\s*(\{[\s\S]*\})\s*$/,
+    /^\s*(\[[\s\S]*\])\s*$/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const extracted = match[1].trim();
+      // Verify it looks like JSON
+      if (extracted.startsWith('{') || extracted.startsWith('[')) {
+        return extracted;
+      }
+    }
+  }
+  
+  // If no pattern matched, try to find JSON object/array directly
+  const jsonStart = text.indexOf('{');
+  const arrayStart = text.indexOf('[');
+  
+  if (jsonStart !== -1 || arrayStart !== -1) {
+    const startIndex = jsonStart === -1 ? arrayStart : 
+                       arrayStart === -1 ? jsonStart : 
+                       Math.min(jsonStart, arrayStart);
+    const isArray = text[startIndex] === '[';
+    
+    // Find matching closing bracket
+    let depth = 0;
+    let endIndex = -1;
+    for (let i = startIndex; i < text.length; i++) {
+      if (text[i] === (isArray ? '[' : '{')) depth++;
+      else if (text[i] === (isArray ? ']' : '}')) {
+        depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+    
+    if (endIndex !== -1) {
+      return text.substring(startIndex, endIndex + 1);
+    }
+  }
+  
+  return text.trim();
+}
+
 async function generateWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
   
@@ -62,9 +114,8 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string): Pro
   const response = result.response;
   const text = response.text();
   
-  // Extract JSON from response (Gemini may wrap it in markdown code blocks)
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-  return jsonMatch[1]?.trim() || text.trim();
+  // Extract JSON from response using robust parsing
+  return extractJsonFromResponse(text);
 }
 
 export async function generateStudyContentFromText(

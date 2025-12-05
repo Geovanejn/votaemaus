@@ -1986,9 +1986,6 @@ export default function AdminPage() {
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="acao_social">Ação Social</SelectItem>
-                  <SelectItem value="comunicacao">Comunicação</SelectItem>
-                  <SelectItem value="eventos">Eventos</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2106,9 +2103,6 @@ export default function AdminPage() {
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="acao_social">Ação Social</SelectItem>
-                  <SelectItem value="comunicacao">Comunicação</SelectItem>
-                  <SelectItem value="eventos">Eventos</SelectItem>
                 </SelectContent>
               </Select>
             </div>

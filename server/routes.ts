@@ -3172,24 +3172,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Submit prayer request (public) - Rate limited to prevent spam
   app.post("/api/site/prayer-requests", prayerLimiter, async (req, res) => {
     try {
-      const { name, whatsapp, category, request } = req.body;
+      const { name, whatsapp, category, request, isPrivate } = req.body;
       
       if (!name || !category || !request) {
         return res.status(400).json({ message: "Nome, categoria e pedido sao obrigatorios" });
       }
       
+      if (name.trim().length < 2) {
+        return res.status(400).json({ message: "Nome deve ter pelo menos 2 caracteres" });
+      }
+      
       const prayerRequest = await storage.createPrayerRequest({
-        name,
+        name: name.trim(),
         whatsapp,
         category,
         request,
-        status: "pending",
+        status: isPrivate ? "archived" : "pending",
       });
       
       res.status(201).json({ message: "Pedido de oracao recebido com sucesso", id: prayerRequest.id });
     } catch (error) {
       console.error("Create prayer request error:", error);
       res.status(500).json({ message: "Erro ao enviar pedido de oracao" });
+    }
+  });
+
+  // Get approved prayer requests for the public prayer wall (Mural da Oracao)
+  app.get("/api/site/prayer-requests/approved", async (req, res) => {
+    try {
+      const requests = await storage.getApprovedPrayerRequests();
+      const publicRequests = requests.map(r => ({
+        id: r.id,
+        name: r.name,
+        request: r.request,
+        category: r.category,
+        inPrayerCount: r.inPrayerCount,
+        createdAt: r.createdAt,
+      }));
+      res.json(publicRequests);
+    } catch (error) {
+      console.error("Get approved prayer requests error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos aprovados" });
+    }
+  });
+
+  // Increment prayer count (public) - Someone is praying for this request
+  app.post("/api/site/prayer-requests/:id/pray", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const updated = await storage.incrementPrayerCount(id);
+      if (!updated) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      res.json({ success: true, inPrayerCount: updated.inPrayerCount });
+    } catch (error) {
+      console.error("Increment prayer count error:", error);
+      res.status(500).json({ message: "Erro ao registrar oracao" });
     }
   });
 

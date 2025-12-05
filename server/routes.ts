@@ -3153,11 +3153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== ADMIN SITE MANAGEMENT API ====================
 
   // Get all prayer requests (admin or marketing)
-  app.get("/api/admin/prayer-requests", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/admin/prayer-requests", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const status = req.query.status as string | undefined;
       const requests = await storage.getAllPrayerRequests(status);
       res.json(requests);
@@ -3168,11 +3165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update prayer request status (admin or marketing)
-  app.patch("/api/admin/prayer-requests/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/admin/prayer-requests/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const id = parseInt(req.params.id);
       const { status } = req.body;
       
@@ -3180,7 +3174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID e status sao obrigatorios" });
       }
       
-      const updated = await storage.updatePrayerRequestStatus(id, status, req.user.id);
+      const updated = await storage.updatePrayerRequestStatus(id, status, req.user!.id);
       if (!updated) {
         return res.status(404).json({ message: "Pedido nao encontrado" });
       }
@@ -3192,11 +3186,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all board members (admin or marketing)
-  app.get("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/admin/board-members", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const members = await storage.getAllBoardMembers(false);
       res.json(members);
     } catch (error) {
@@ -3206,11 +3197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create board member (admin or marketing)
-  app.post("/api/admin/board-members", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/admin/board-members", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const member = await storage.createBoardMember(req.body);
       res.status(201).json(member);
     } catch (error) {
@@ -3220,11 +3208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update board member (admin or marketing)
-  app.patch("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/admin/board-members/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
@@ -3241,11 +3226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete board member (admin or marketing)
-  app.delete("/api/admin/board-members/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/admin/board-members/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
@@ -3259,11 +3241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all banners (admin or marketing)
-  app.get("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const banners = await storage.getAllBanners();
       res.json(banners);
     } catch (error) {
@@ -3273,12 +3252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create banner (admin or marketing)
-  app.post("/api/admin/banners", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-      const banner = await storage.createBanner({ ...req.body, createdBy: req.user.id });
+      const banner = await storage.createBanner({ ...req.body, createdBy: req.user!.id });
       res.status(201).json(banner);
     } catch (error) {
       console.error("Create banner error:", error);
@@ -3287,11 +3263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update banner (admin or marketing)
-  app.patch("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/admin/banners/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
@@ -3308,11 +3281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete banner (admin or marketing)
-  app.delete("/api/admin/banners/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/admin/banners/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
@@ -3326,11 +3296,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get site content (admin or marketing)
-  app.get("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/admin/site-content", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
       const content = await storage.getAllSiteContent();
       res.json(content);
     } catch (error) {
@@ -3340,12 +3307,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update site content (admin or marketing)
-  app.post("/api/admin/site-content", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/admin/site-content", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-      const content = await storage.upsertSiteContent({ ...req.body, updatedBy: req.user.id });
+      const content = await storage.upsertSiteContent({ ...req.body, updatedBy: req.user!.id });
       res.json(content);
     } catch (error) {
       console.error("Update site content error:", error);

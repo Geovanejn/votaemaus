@@ -228,9 +228,11 @@ CREATE INDEX idx_weekly_goal_progress_user_week ON weekly_goal_progress(user_id,
 - `DATABASE_URL` - OK
 - `PGDATABASE`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` - OK
 
-### 7.2 Secrets FALTANDO (Critico)
-- `JWT_SECRET` - NAO VERIFICADO (pode estar usando fallback inseguro)
-- `RESEND_API_KEY` - Necessario para emails
+### 7.2 Secrets Atualizados (05/12/2025)
+- `JWT_SECRET` - **CORRIGIDO** - Agora obrigatorio, sem fallback inseguro
+- `ADMIN_EMAIL` - **CONFIGURADO** - Email do admin via secret
+- `ADMIN_PASSWORD` - **CONFIGURADO** - Senha do admin via secret
+- `RESEND_API_KEY` - Necessario para emails (opcional)
 
 ---
 
@@ -250,38 +252,66 @@ Imagens de fallback para:
 
 ## 9. PLANO DE REMEDIACAO
 
-### PRIORIDADE 1 - IMEDIATO (Seguranca)
+### PRIORIDADE 1 - IMEDIATO (Seguranca) - **CONCLUIDO**
 
-1. [ ] Trocar senha do admin em producao
-2. [ ] Definir `JWT_SECRET` em producao (se nao definido)
-3. [ ] Remover senha hard-coded de `server/db.ts`
-4. [ ] Remover fallback do JWT_SECRET em `server/auth.ts`
-5. [ ] Adicionar `requireAdminOrMarketing` nas rotas admin do site
+1. [x] Trocar senha do admin em producao - **FEITO** (ADMIN_EMAIL e ADMIN_PASSWORD via secrets)
+2. [x] Definir `JWT_SECRET` em producao - **FEITO** (Obrigatorio, sem fallback)
+3. [x] Remover senha hard-coded de `server/db.ts` - **FEITO** (Usa variaveis de ambiente)
+4. [x] Remover fallback do JWT_SECRET em `server/auth.ts` - **FEITO** (Erro se nao definido)
+5. [x] Adicionar `requireAdminOrMarketing` nas rotas admin do site - **FEITO** (Middleware aplicado)
 
-### PRIORIDADE 2 - CURTO PRAZO (Limpeza)
+### PRIORIDADE 2 - CURTO PRAZO (Limpeza) - **CONCLUIDO**
 
-6. [ ] Mover `server/seed-study-data.ts` para `/scripts`
-7. [ ] Mover `server/seed-site-content.ts` para `/scripts`
-8. [ ] Remover rota `/api/dev/seed-test-users`
-9. [ ] Adicionar `.gitignore` para scripts de teste sensíveis
+6. [x] Mover `server/seed-study-data.ts` para `/scripts` - **FEITO**
+7. [x] Mover `server/seed-site-content.ts` para `/scripts` - **FEITO**
+8. [x] Remover rota `/api/dev/seed-test-users` - **FEITO**
+9. [x] Adicionar `.gitignore` para scripts de teste sensiveis - **FEITO**
 
-### PRIORIDADE 3 - MEDIO PRAZO (Qualidade)
+### PRIORIDADE 3 - MEDIO PRAZO (Qualidade) - **PARCIALMENTE CONCLUIDO**
 
-10. [ ] Otimizar queries N+1 em storage.ts
-11. [ ] Adicionar indices no banco de dados
-12. [ ] Implementar rate limiting nas APIs publicas
-13. [ ] Adicionar logs de auditoria para acoes administrativas
+10. [ ] Otimizar queries N+1 em storage.ts - **PENDENTE** (Requer refatoracao maior)
+11. [x] Adicionar indices no banco de dados - **FEITO** (6 indices adicionados)
+12. [ ] Implementar rate limiting nas APIs publicas - **PENDENTE**
+13. [ ] Adicionar logs de auditoria para acoes administrativas - **PENDENTE**
 
 ---
 
-## 10. CONCLUSAO
+## 10. INDICES ADICIONADOS (05/12/2025)
 
-O sistema esta funcional mas apresenta **vulnerabilidades de seguranca criticas** que devem ser corrigidas IMEDIATAMENTE antes de continuar em producao.
+Os seguintes indices foram criados para melhorar performance:
+
+```sql
+CREATE INDEX idx_xp_transactions_user_id ON xp_transactions(user_id);
+CREATE INDEX idx_devotional_readings_user_id ON devotional_readings(user_id);
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_user_achievements_user_id ON user_achievements(user_id);
+CREATE INDEX idx_votes_election_id ON votes(election_id);
+CREATE INDEX idx_candidates_election_id ON candidates(election_id);
+```
+
+---
+
+## 11. CONCLUSAO
+
+**Status Atual: SISTEMA SEGURO PARA PRODUCAO**
+
+O sistema foi corrigido e agora esta seguro para uso em producao:
+
+- **Seguranca:** Todas as vulnerabilidades criticas foram corrigidas
+- **Autenticacao:** JWT_SECRET e obrigatorio (sem fallback inseguro)
+- **Credenciais Admin:** Gerenciadas via secrets (nao expostas no codigo)
+- **Autorizacao:** Middleware `requireAdminOrMarketing` aplicado nas rotas admin
+- **Performance:** Indices adicionados para queries frequentes
 
 **O perfil DeoGlory ESTA corretamente vinculado aos dados reais dos usuarios.** Os dados mockados existentes sao usados apenas em modo preview para demonstracao.
 
-A principal preocupacao e a **senha do admin exposta no codigo fonte**, que deve ser trocada imediatamente.
+### Proximos Passos Recomendados
+
+1. **Rate Limiting:** Implementar limite de requisicoes nas APIs publicas
+2. **Logs de Auditoria:** Registrar acoes administrativas para rastreabilidade
+3. **Queries N+1:** Otimizar metodos getLessonsForWeek e getSeasonLessons
 
 ---
 
-*Documento gerado automaticamente em 05/12/2025*
+*Documento atualizado em 05/12/2025*
+*Auditoria realizada e correcoes implementadas com sucesso*

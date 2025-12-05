@@ -4,6 +4,7 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { createAllTables } from "./create-tables";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -42,11 +43,7 @@ async function createAdminIfNotExists() {
       console.log(`Admin user already exists: ${adminEmail}`);
     }
   } catch (error: any) {
-    if (error?.message?.includes("does not exist")) {
-      console.log("Tables not yet created, skipping admin creation (will be created after db:push)");
-    } else {
-      console.error("Error creating admin user:", error);
-    }
+    console.error("Error creating admin user:", error);
   }
 }
 
@@ -72,9 +69,7 @@ async function createDefaultPositions() {
         console.log(`Position created: ${pos.name}`);
       }
     } catch (error: any) {
-      if (error?.message?.includes("does not exist")) {
-        break;
-      }
+      console.error(`Error creating position ${pos.name}:`, error);
     }
   }
 }
@@ -86,8 +81,10 @@ export async function initializeDatabase() {
     const result = await pool.query('SELECT NOW()');
     console.log("PostgreSQL connection successful:", result.rows[0].now);
     
-    console.log("Running database schema push via Drizzle...");
+    // Create all tables first
+    await createAllTables(pool);
     
+    // Then create admin and positions
     await createAdminIfNotExists();
     await createDefaultPositions();
     

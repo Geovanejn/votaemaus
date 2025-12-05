@@ -72,6 +72,7 @@ export default function AdminPage() {
     photoUrl: "",
     birthdate: "",
     activeMember: false,
+    secretaria: "" as string,
   });
   const [editingMember, setEditingMember] = useState<{
     id: number;
@@ -80,6 +81,7 @@ export default function AdminPage() {
     photoUrl?: string;
     birthdate?: string;
     activeMember?: boolean;
+    secretaria?: string;
   } | null>(null);
   
   const exportImageRef = useRef<ExportResultsImageHandle>(null);
@@ -116,7 +118,7 @@ export default function AdminPage() {
     staleTime: 10000,
   });
 
-  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string; activeMember?: boolean }>>({
+  const { data: members = [] } = useQuery<Array<{ id: number; fullName: string; email: string; isAdmin: boolean; photoUrl?: string; birthdate?: string; activeMember?: boolean; secretaria?: string }>>({
     queryKey: ["/api/members"],
     staleTime: 30000,
   });
@@ -317,7 +319,7 @@ export default function AdminPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember: boolean }) => {
+    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember: boolean; secretaria?: string }) => {
       return await apiRequest("POST", "/api/admin/members", member);
     },
     onSuccess: () => {
@@ -327,7 +329,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: false });
+      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: false, secretaria: "" });
     },
     onError: (error: Error) => {
       toast({
@@ -359,7 +361,7 @@ export default function AdminPage() {
   });
 
   const updateMemberMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; secretaria?: string }> }) => {
       return await apiRequest("PATCH", `/api/admin/members/${id}`, data);
     },
     onSuccess: () => {
@@ -900,6 +902,7 @@ export default function AdminPage() {
       photoUrl: newMember.photoUrl || undefined,
       birthdate: newMember.birthdate || undefined,
       activeMember: newMember.activeMember,
+      secretaria: newMember.secretaria || undefined,
     });
   };
 
@@ -909,7 +912,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean }) => {
+  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; secretaria?: string }) => {
     setEditingMember(member);
     setIsEditMemberOpen(true);
   };
@@ -934,6 +937,7 @@ export default function AdminPage() {
         photoUrl: editingMember.photoUrl || undefined,
         birthdate: editingMember.birthdate || undefined,
         activeMember: editingMember.activeMember,
+        secretaria: editingMember.secretaria || undefined,
       },
     });
   };
@@ -1959,6 +1963,28 @@ export default function AdminPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="member-secretaria">Secretaria (Opcional)</Label>
+              <Select
+                value={newMember.secretaria}
+                onValueChange={(value) =>
+                  setNewMember({ ...newMember, secretaria: value })
+                }
+              >
+                <SelectTrigger id="member-secretaria" data-testid="select-member-secretaria">
+                  <SelectValue placeholder="Selecione uma secretaria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="acao_social">Ação Social</SelectItem>
+                  <SelectItem value="comunicacao">Comunicação</SelectItem>
+                  <SelectItem value="eventos">Eventos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="member-photo">Foto do Membro (Opcional)</Label>
               <Input
                 id="member-photo"
@@ -2054,6 +2080,28 @@ export default function AdminPage() {
               <Label htmlFor="edit-member-active" className="cursor-pointer">
                 Sócio Ativo
               </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-member-secretaria">Secretaria (Opcional)</Label>
+              <Select
+                value={editingMember?.secretaria || "none"}
+                onValueChange={(value) =>
+                  setEditingMember(editingMember ? { ...editingMember, secretaria: value } : null)
+                }
+              >
+                <SelectTrigger id="edit-member-secretaria" data-testid="select-edit-member-secretaria">
+                  <SelectValue placeholder="Selecione uma secretaria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="acao_social">Ação Social</SelectItem>
+                  <SelectItem value="comunicacao">Comunicação</SelectItem>
+                  <SelectItem value="eventos">Eventos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

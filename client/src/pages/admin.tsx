@@ -1078,6 +1078,14 @@ export default function AdminPage() {
                     <Heart className="w-4 h-4 mr-2" />
                     Painel Espiritualidade
                   </Button>
+                  <Button
+                    className="w-full justify-start bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] text-white hover:from-[#0284c7] hover:to-[#0ea5e9]"
+                    onClick={() => setLocation("/admin/marketing")}
+                    data-testid="button-marketing-admin"
+                  >
+                    <ChartBar className="w-4 h-4 mr-2" />
+                    Painel Marketing
+                  </Button>
                 </CardContent>
               </Card>
             </div>

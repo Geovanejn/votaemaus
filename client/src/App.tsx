@@ -27,6 +27,11 @@ const EspiritualidadeDashboard = lazy(() => import("@/pages/admin/Espiritualidad
 const EspiritualidadeDevocionais = lazy(() => import("@/pages/admin/EspiritualidadeDevocionais"));
 const EspiritualidadeDevocionalEditor = lazy(() => import("@/pages/admin/EspiritualidadeDevocionalEditor"));
 const EspiritualidadeOracoes = lazy(() => import("@/pages/admin/EspiritualidadeOracoes"));
+const MarketingDashboard = lazy(() => import("@/pages/admin/MarketingDashboard"));
+const MarketingEventos = lazy(() => import("@/pages/admin/MarketingEventos"));
+const MarketingEventoEditor = lazy(() => import("@/pages/admin/MarketingEventoEditor"));
+const MarketingDiretoria = lazy(() => import("@/pages/admin/MarketingDiretoria"));
+const MarketingDiretoriaEditor = lazy(() => import("@/pages/admin/MarketingDiretoriaEditor"));
 const VotePage = lazy(() => import("@/pages/vote"));
 const ResultsPage = lazy(() => import("@/pages/results"));
 const StudyHomePage = lazy(() => import("@/pages/study/index"));
@@ -122,6 +127,11 @@ function Router() {
           <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
           <Route path="/admin/espiritualidade/devocionais/:id" component={EspiritualidadeDevocionalEditor} />
           <Route path="/admin/espiritualidade/oracoes" component={EspiritualidadeOracoes} />
+          <Route path="/admin/marketing" component={MarketingDashboard} />
+          <Route path="/admin/marketing/eventos" component={MarketingEventos} />
+          <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />
+          <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
+          <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />
@@ -174,6 +184,16 @@ function Router() {
         <Route path="/study/season/:id" component={SeasonDetailPage} />
         <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
         <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
+        {/* Secretaria Panels - Access controlled by backend */}
+        <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
+        <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
+        <Route path="/admin/espiritualidade/devocionais/:id" component={EspiritualidadeDevocionalEditor} />
+        <Route path="/admin/espiritualidade/oracoes" component={EspiritualidadeOracoes} />
+        <Route path="/admin/marketing" component={MarketingDashboard} />
+        <Route path="/admin/marketing/eventos" component={MarketingEventos} />
+        <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />
+        <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
+        <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

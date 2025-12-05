@@ -3365,6 +3365,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== MARKETING ADMIN ROUTES ====================
+
+  // Get marketing stats
+  app.get("/api/marketing/stats", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const stats = await storage.getMarketingStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Get marketing stats error:", error);
+      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+    }
+  });
+
+  // Get users for board member selection (marketing can select from active members)
+  app.get("/api/marketing/users", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      // Return only active members with basic info for selection
+      const users = allUsers
+        .filter(u => u.activeMember && u.isMember)
+        .map(u => ({
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          photoUrl: u.photoUrl,
+        }));
+      res.json(users);
+    } catch (error) {
+      console.error("Get users for marketing error:", error);
+      res.status(500).json({ message: "Erro ao buscar usuarios" });
+    }
+  });
+
+  // Get all events (admin or marketing)
+  app.get("/api/admin/events", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const events = await storage.getAllSiteEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Get events admin error:", error);
+      res.status(500).json({ message: "Erro ao buscar eventos" });
+    }
+  });
+
+  // Get single event (admin or marketing)
+  app.get("/api/admin/events/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const event = await storage.getSiteEventById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Get event error:", error);
+      res.status(500).json({ message: "Erro ao buscar evento" });
+    }
+  });
+
+  // Create event (admin or marketing)
+  app.post("/api/admin/events", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const event = await storage.createSiteEvent({ ...req.body, createdBy: req.user!.id });
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "create", "event", event.id, `Criado: ${req.body.title}`, req);
+      
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Create event error:", error);
+      res.status(500).json({ message: "Erro ao criar evento" });
+    }
+  });
+
+  // Update event (admin or marketing)
+  app.patch("/api/admin/events/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const updated = await storage.updateSiteEvent(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      // Audit log
+      await logAuditAction(req.user?.id, "update", "event", id, `Atualizado: ${updated.title}`, req);
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update event error:", error);
+      res.status(500).json({ message: "Erro ao atualizar evento" });
+    }
+  });
+
+  // Delete event (admin or marketing)
+  app.delete("/api/admin/events/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      // Audit log before deletion
+      await logAuditAction(req.user?.id, "delete", "event", id, "Evento removido", req);
+      
+      await storage.deleteSiteEvent(id);
+      res.json({ message: "Evento removido com sucesso" });
+    } catch (error) {
+      console.error("Delete event error:", error);
+      res.status(500).json({ message: "Erro ao remover evento" });
+    }
+  });
+
+  // Export events to ICS calendar format
+  app.get("/api/site/events/calendar.ics", async (req, res) => {
+    try {
+      const events = await storage.getUpcomingEvents();
+      
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//UMP Emaus//Calendario de Eventos//PT',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:UMP Emaus - Eventos',
+        ...events.map(event => {
+          const startDate = event.startDate.replace(/-/g, '');
+          const endDate = event.endDate ? event.endDate.replace(/-/g, '') : startDate;
+          const uid = `event-${event.id}@umpemaus.com`;
+          return [
+            'BEGIN:VEVENT',
+            `UID:${uid}`,
+            `DTSTART;VALUE=DATE:${startDate}`,
+            `DTEND;VALUE=DATE:${endDate}`,
+            `SUMMARY:${event.title.replace(/[,;\\]/g, '')}`,
+            event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n').replace(/[,;\\]/g, '')}` : '',
+            event.location ? `LOCATION:${event.location.replace(/[,;\\]/g, '')}` : '',
+            'END:VEVENT'
+          ].filter(Boolean).join('\r\n');
+        }),
+        'END:VCALENDAR'
+      ].join('\r\n');
+      
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="ump-emaus-eventos.ics"');
+      res.send(icsContent);
+    } catch (error) {
+      console.error("Export calendar error:", error);
+      res.status(500).json({ message: "Erro ao exportar calendario" });
+    }
+  });
+
   // Get all banners (admin or marketing)
   app.get("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {

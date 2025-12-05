@@ -13,7 +13,10 @@ import {
   Mail,
   Lock,
   KeyRound,
-  LogOut
+  LogOut,
+  Heart,
+  Megaphone,
+  Settings
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -574,8 +577,47 @@ function LoginForm() {
   );
 }
 
+const secretariaPanels = [
+  {
+    id: "espiritualidade",
+    title: "Painel Espiritualidade",
+    subtitle: "Gerenciamento Devocional",
+    description: "Gerencie devocionais, pedidos de oracao e conteudo espiritual da UMP.",
+    icon: Heart,
+    color: "from-purple-500 to-purple-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    href: "/admin/espiritualidade",
+    secretaria: "espiritualidade",
+    features: [
+      "Criar e editar devocionais",
+      "Moderar pedidos de oracao",
+      "Gerenciar conteudo espiritual",
+    ],
+  },
+  {
+    id: "marketing",
+    title: "Painel Marketing",
+    subtitle: "Eventos e Comunicacao",
+    description: "Gerencie eventos, diretoria e a comunicacao visual da UMP.",
+    icon: Megaphone,
+    color: "from-cyan-500 to-cyan-600",
+    buttonColor: "bg-cyan-600 hover:bg-cyan-700",
+    href: "/admin/marketing",
+    secretaria: "marketing",
+    features: [
+      "Criar e gerenciar eventos",
+      "Editar membros da diretoria",
+      "Exportar calendario",
+    ],
+  },
+];
+
 function SystemsSelection() {
   const { user, logout } = useAuth();
+
+  const userSecretariaPanels = secretariaPanels.filter(
+    panel => user?.isAdmin || user?.secretaria === panel.secretaria
+  );
 
   return (
     <>
@@ -635,6 +677,78 @@ function SystemsSelection() {
           </StaggerItem>
         ))}
       </StaggerContainer>
+
+      {userSecretariaPanels.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-12 max-w-5xl mx-auto"
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Settings className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Paineis de Gestao</h3>
+          </div>
+          <StaggerContainer className="grid md:grid-cols-2 gap-6">
+            {userSecretariaPanels.map((panel) => (
+              <StaggerItem key={panel.id}>
+                <motion.div
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full"
+                >
+                  <Card className="h-full overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className={`bg-gradient-to-br ${panel.color} p-6 text-white`}>
+                        <div className="flex items-center gap-3">
+                          <panel.icon className="h-8 w-8" />
+                          <div>
+                            <h2 className="text-xl font-bold" data-testid={`panel-title-${panel.id}`}>
+                              {panel.title}
+                            </h2>
+                            <p className="opacity-90 text-sm">
+                              {panel.subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-5">
+                        <p className="text-muted-foreground text-sm mb-4">
+                          {panel.description}
+                        </p>
+                        
+                        <ul className="space-y-1 mb-4">
+                          {panel.features.map((feature, index) => (
+                            <li 
+                              key={index}
+                              className="flex items-center gap-2 text-xs text-muted-foreground"
+                            >
+                              <div className="w-1 h-1 rounded-full bg-primary" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+
+                        <Link href={panel.href}>
+                          <Button 
+                            className={`w-full gap-2 ${panel.buttonColor} text-white`}
+                            size="sm"
+                            data-testid={`button-access-${panel.id}`}
+                          >
+                            Acessar Painel
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

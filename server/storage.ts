@@ -1383,6 +1383,77 @@ export class DatabaseStorage implements IStorage {
     await db.delete(schema.siteEvents);
   }
 
+  async getSiteEventById(id: number): Promise<any | null> {
+    const [event] = await db.select().from(schema.siteEvents)
+      .where(eq(schema.siteEvents.id, id))
+      .limit(1);
+    return event || null;
+  }
+
+  async updateSiteEvent(id: number, data: Partial<{
+    title: string;
+    description: string | null;
+    shortDescription: string | null;
+    imageUrl: string | null;
+    startDate: string;
+    endDate: string | null;
+    time: string | null;
+    location: string | null;
+    locationUrl: string | null;
+    price: string | null;
+    registrationUrl: string | null;
+    category: string;
+    isPublished: boolean;
+    isFeatured: boolean;
+    isAllDay: boolean;
+  }>): Promise<any | null> {
+    const [event] = await db.update(schema.siteEvents)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.siteEvents.id, id))
+      .returning();
+    return event || null;
+  }
+
+  async deleteSiteEvent(id: number): Promise<boolean> {
+    const result = await db.delete(schema.siteEvents)
+      .where(eq(schema.siteEvents.id, id));
+    return true;
+  }
+
+  async getMarketingStats(): Promise<{
+    events: { total: number; upcoming: number; past: number };
+    boardMembers: { total: number; active: number };
+  }> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [allEvents, upcomingEvents, allMembers, activeMembers] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(schema.siteEvents),
+      db.select({ count: sql<number>`count(*)` }).from(schema.siteEvents)
+        .where(gte(schema.siteEvents.startDate, today)),
+      db.select({ count: sql<number>`count(*)` }).from(schema.boardMembers),
+      db.select({ count: sql<number>`count(*)` }).from(schema.boardMembers)
+        .where(eq(schema.boardMembers.isCurrent, true)),
+    ]);
+
+    const totalEvents = Number(allEvents[0]?.count || 0);
+    const upcoming = Number(upcomingEvents[0]?.count || 0);
+    
+    return {
+      events: {
+        total: totalEvents,
+        upcoming,
+        past: totalEvents - upcoming,
+      },
+      boardMembers: {
+        total: Number(allMembers[0]?.count || 0),
+        active: Number(activeMembers[0]?.count || 0),
+      },
+    };
+  }
+
   // Instagram Posts
   async getLatestInstagramPosts(limit?: number): Promise<any[]> {
     let query = db.select().from(schema.instagramPosts)

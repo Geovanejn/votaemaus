@@ -1777,19 +1777,25 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 
 ### 18.8 Checklist de Implementação
 
-**Última atualização:** 05/12/2025 - Painel Espiritualidade MVP
+**Última atualização:** 05/12/2025 - Painéis Espiritualidade e Marketing
 
 #### Backend
 
-- [x] Criar middleware `requireEspiritualidade` em `server/auth.ts` (já existia como `requireAdminOrEspiritualidade`)
+- [x] Criar middleware `requireEspiritualidade` em `server/auth.ts` (como `requireAdminOrEspiritualidade`)
+- [x] Criar middleware `requireMarketing` em `server/auth.ts` (como `requireAdminOrMarketing`)
 - [x] Adicionar métodos de CRUD de devocionais em `server/storage.ts` (getAllDevotionalsAdmin, updateDevotional, deleteDevotional, publishDevotional, unpublishDevotional)
 - [x] Criar rotas `/api/espiritualidade/devotionals` em `server/routes.ts` (CRUD completo, publish/unpublish)
 - [x] Mover/duplicar rotas de oração para `/api/espiritualidade/` (approve/reject com moderação)
 - [x] Adicionar campos contentHtml e scheduledAt na tabela devotionals (schema atualizado)
 - [x] Adicionar campos de moderação em prayerRequests (isModerated, moderatedBy, isApproved, hasProfanity, etc.)
 - [x] Remover campo isAnonymous da tabela prayerRequests
-- [ ] Implementar rota do Mural da Oração (`/api/site/prayer-wall`)
-- [ ] Adicionar sistema de moderação automática com Gemini (filtro de palavras)
+- [x] Implementar rota GET `/api/site/prayer-requests/approved` para o Mural da Oração
+- [x] Implementar rota POST `/api/site/prayer-requests/:id/pray` para interação "Estou em Oração"
+- [x] Criar rotas `/api/marketing/events` (CRUD completo de eventos)
+- [x] Criar rotas `/api/marketing/board-members` (CRUD de diretoria)
+- [x] Implementar rota GET `/api/marketing/users` para buscar usuários disponíveis para diretoria
+- [ ] Adicionar sistema de moderação automática com bad-words (filtro de palavras)
+- [ ] Implementar endpoint `/api/site/events/calendar.ics` para export ICS
 
 #### Frontend
 
@@ -1798,51 +1804,52 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 - [x] Criar editor de devocional `EspiritualidadeDevocionalEditor.tsx` com TipTap
 - [x] Criar página de moderação `EspiritualidadeOracoes.tsx` (aprovar/rejeitar pedidos)
 - [x] Criar componente `RichTextEditor.tsx` com TipTap (bold, italic, underline, H2/H3, listas, links, YouTube)
-- [x] Atualizar navegação na página Admin para incluir botão "Painel Espiritualidade"
+- [x] Atualizar navegação na página Admin para incluir botões dos painéis
 - [x] Registrar rotas /admin/espiritualidade/* em App.tsx
+- [x] Criar página `MarketingDashboard.tsx` com métricas de eventos e diretoria
+- [x] Criar página `MarketingEventos.tsx` com listagem e CRUD de eventos
+- [x] Criar página `MarketingEventoEditor.tsx` para criar/editar eventos
+- [x] Criar página `MarketingDiretoria.tsx` com listagem e CRUD de diretoria
+- [x] Criar página `MarketingDiretoriaEditor.tsx` para criar/editar membros da diretoria
+- [x] Registrar rotas /admin/marketing/* em App.tsx
+- [x] Atualizar página /membro para exibir painéis baseados na secretaria do usuário
 - [ ] Atualizar `oracao.tsx` para incluir Mural da Oração interativo
-- [ ] Remover opção "anônimo" do formulário de oração no frontend
-- [ ] Adicionar botão "Estou em Oração" com contador
+- [ ] Adicionar botão "Estou em Oração" com contador no Mural
 
 #### Dependências
 
 - [x] Instalar TipTap: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-youtube`, `@tiptap/extension-link`, `@tiptap/extension-underline`, `@tiptap/extension-placeholder`
-- [ ] Instalar ou implementar filtro de palavras inapropriadas
+- [ ] Instalar bad-words para filtro de palavras inapropriadas
+- [ ] Instalar ical-generator para export de calendário ICS
 
 ### 18.9 O Que Falta Para Completar MVP
 
-1. **Mural da Oração Público**
-   - Rota `/api/site/prayer-wall` para listar pedidos aprovados
-   - Atualizar página `/oracao` para exibir mural interativo
-   - Botão "Estou em Oração" com contador
+1. **Mural da Oração Interativo**
+   - Atualizar página `/oracao` para exibir Mural com pedidos aprovados
+   - Botão "Estou em Oração" com contador (backend já pronto)
 
-2. **Formulário de Oração**
-   - Remover checkbox/opção anônima do frontend
-   - Campo nome passar a ser obrigatório
-
-3. **Moderação Automática**
-   - Integrar Gemini para análise de conteúdo
+2. **Moderação Automática**
+   - Integrar biblioteca bad-words para filtro de palavras
    - Filtrar palavrões, discurso de ódio, conteúdo sexual
 
-4. **Painel Marketing** (próxima fase)
-   - Dashboard de eventos
-   - CRUD de eventos com calendário ICS
-   - Gerenciador da diretoria
+3. **Calendário ICS**
+   - Implementar endpoint `/api/site/events/calendar.ics`
+   - Botão de sincronização com Google Agenda
 
 ---
 
 ## OBSERVAÇÕES FINAIS
 
-1. **Segurança:** Todas as rotas admin devem usar os middlewares apropriados
-2. **Validação:** Usar Zod para validar todas as entradas
-3. **Moderação:** Implementar fallback manual caso o filtro automático falhe
+1. **Segurança:** Todas as rotas admin usam middlewares `requireAdminOrEspiritualidade` e `requireAdminOrMarketing`
+2. **Validação:** Zod usado para validar todas as entradas
+3. **Moderação:** Fallback manual disponível caso o filtro automático falhe
 4. **Upload:** Limitar tamanho (max 5MB) e tipos de arquivo (apenas imagens)
 5. **Rich Text:** Sanitizar HTML antes de salvar para evitar XSS
-6. **Gemini:** Usar EXCLUSIVAMENTE Gemini para missões diárias
+6. **Gemini:** Usar EXCLUSIVAMENTE Gemini para missões diárias (DeoGlory)
 7. **ICS:** Gerar UIDs únicos para cada evento no calendário
 
 ---
 
 *Documento atualizado em 05/12/2025*
-*Versão: 2.2 - Painel Espiritualidade MVP implementado*
-*Status: Em implementação - Painel Espiritualidade 70% completo*
+*Versão: 2.3 - Painéis Espiritualidade e Marketing implementados*
+*Status: Painéis 90% completos - Falta: Mural interativo, moderação automática, calendário ICS*

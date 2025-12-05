@@ -1628,10 +1628,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async readVerseAndRecoverHeart(userId: number, verseId: number): Promise<any> {
-    const [existing] = await db.select().from(schema.userVerseReadings)
+    const [existing] = await db.select().from(schema.verseReadings)
       .where(and(
-        eq(schema.userVerseReadings.userId, userId),
-        eq(schema.userVerseReadings.verseId, verseId)
+        eq(schema.verseReadings.userId, userId),
+        eq(schema.verseReadings.verseId, verseId)
       ))
       .limit(1);
     
@@ -1639,7 +1639,7 @@ export class DatabaseStorage implements IStorage {
       return { alreadyRead: true, heartsRecovered: 0 };
     }
     
-    await db.insert(schema.userVerseReadings)
+    await db.insert(schema.verseReadings)
       .values({ userId, verseId, readAt: new Date() });
     
     const profile = await this.getStudyProfile(userId);
@@ -1657,8 +1657,8 @@ export class DatabaseStorage implements IStorage {
     const totalVerses = await db.select({ count: sql<number>`count(*)` })
       .from(schema.bibleVerses);
     const readVerses = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.userVerseReadings)
-      .where(eq(schema.userVerseReadings.userId, userId));
+      .from(schema.verseReadings)
+      .where(eq(schema.verseReadings.userId, userId));
     
     const profile = await this.getStudyProfile(userId);
     
@@ -1694,7 +1694,7 @@ export class DatabaseStorage implements IStorage {
       userId: schema.studyProfiles.userId,
       totalXp: schema.studyProfiles.totalXp,
       currentStreak: schema.studyProfiles.currentStreak,
-      level: schema.studyProfiles.level,
+      currentLevel: schema.studyProfiles.currentLevel,
     })
       .from(schema.studyProfiles)
       .orderBy(desc(schema.studyProfiles.totalXp))
@@ -1707,7 +1707,7 @@ export class DatabaseStorage implements IStorage {
         userId: p.userId,
         username: user?.fullName || 'Unknown',
         totalXp: p.totalXp,
-        level: p.level,
+        level: p.currentLevel,
         currentStreak: p.currentStreak,
       };
     }));

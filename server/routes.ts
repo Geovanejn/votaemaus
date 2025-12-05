@@ -1523,7 +1523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lessonId, 
         xpEarned || 0, 
         mistakesCount || 0, 
-        timeSpentSeconds || 0
+        timeSpentSeconds || 0,
+        mistakesCount === 0
       );
       const profile = await storage.getStudyProfile(req.user.id);
       

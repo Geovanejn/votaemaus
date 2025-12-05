@@ -1247,7 +1247,10 @@ export class DatabaseStorage implements IStorage {
   async createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): Promise<any> {
     const [post] = await db.insert(schema.instagramPosts)
       .values({
-        ...data,
+        caption: data.caption,
+        imageUrl: data.imageUrl,
+        permalink: data.permalink,
+        postedAt: data.postedAt ? new Date(data.postedAt) : new Date(),
         isActive: data.isActive ?? true,
       })
       .returning();

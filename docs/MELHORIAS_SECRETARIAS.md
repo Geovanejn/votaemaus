@@ -2,7 +2,7 @@
 
 **Data:** 05/12/2025
 **Status:** Documentação - Aprovado pelo Arquiteto
-**Versão:** 2.0
+**Versão:** 2.1
 
 ---
 
@@ -25,6 +25,7 @@
 15. [Geração de Calendário ICS](#15-geração-de-calendário-ics)
 16. [Dependências Necessárias](#16-dependências-necessárias)
 17. [Cronograma de Implementação](#17-cronograma-de-implementação)
+18. [Estado Atual do Código - Painel Espiritualidade](#18-estado-atual-do-código---painel-espiritualidade)
 
 ---
 
@@ -1631,6 +1632,178 @@ npm install ical-generator
 
 ---
 
+## 18. ESTADO ATUAL DO CÓDIGO - PAINEL ESPIRITUALIDADE
+
+### 18.1 Responsabilidades do Painel
+
+O Painel de Espiritualidade (`/admin/espiritualidade`) é responsável por:
+1. **Criar, gerenciar e publicar devocionais**
+2. **Controlar a página de devocionais** (o que aparece no site público)
+3. **Controlar a página de oração** (moderação de pedidos)
+
+### 18.2 Estrutura de Dados Existente
+
+#### Tabela `devotionals` (shared/schema.ts - linha 375)
+
+```typescript
+export const devotionals = pgTable("devotionals", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  verse: text("verse").notNull(),
+  verseReference: text("verse_reference").notNull(),
+  content: text("content").notNull(),
+  summary: text("summary"),
+  prayer: text("prayer"),
+  imageUrl: text("image_url"),
+  author: text("author"),
+  publishedAt: timestamp("published_at").notNull().defaultNow(),
+  isPublished: boolean("is_published").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+```
+
+#### Tabela `prayer_requests` (shared/schema.ts - linha 462)
+
+```typescript
+export type PrayerCategory = "saude" | "familia" | "trabalho" | "espiritual" | "relacionamento" | "outros";
+export type PrayerStatus = "pending" | "praying" | "answered" | "archived";
+
+export const prayerRequests = pgTable("prayer_requests", {
+  id: serial("id").primaryKey(),
+  name: text("name"),
+  whatsapp: text("whatsapp"),
+  category: text("category").notNull().default("outros"),
+  request: text("request").notNull(),
+  isAnonymous: boolean("is_anonymous").notNull().default(false), // A SER REMOVIDO
+  status: text("status").notNull().default("pending"),
+  notes: text("notes"),
+  prayedBy: integer("prayed_by").references(() => users.id),
+  prayedAt: timestamp("prayed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+```
+
+### 18.3 Rotas de API Existentes
+
+#### Devocionais - Rotas Públicas (server/routes.ts ~linha 3118)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/site/devotionals` | Lista devocionais publicados (limite configurável) |
+| GET | `/api/site/devotionals/:id` | Detalhes de um devocional específico |
+
+#### Pedidos de Oração - Rotas Públicas (server/routes.ts ~linha 3173)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/site/prayer-requests` | Enviar pedido de oração (rate limited) |
+
+#### Pedidos de Oração - Rotas Admin (server/routes.ts ~linha 3222)
+
+| Método | Rota | Middleware | Descrição |
+|--------|------|------------|-----------|
+| GET | `/api/admin/prayer-requests` | requireAdminOrMarketing | Listar pedidos (filtrável por status) |
+| PATCH | `/api/admin/prayer-requests/:id` | requireAdminOrMarketing | Atualizar status do pedido |
+
+### 18.4 Métodos de Storage Existentes (server/storage.ts)
+
+#### Devocionais
+
+```typescript
+// Métodos já implementados
+getAllDevotionals(limit?: number): Promise<Devotional[]>
+getDevotionalById(id: number): Promise<Devotional | null>
+getLatestDevotional(): Promise<Devotional | null>
+
+// Métodos A IMPLEMENTAR
+createDevotional(data: InsertDevotional): Promise<Devotional>
+updateDevotional(id: number, data: Partial<InsertDevotional>): Promise<Devotional>
+deleteDevotional(id: number): Promise<void>
+getAllDevotionalsAdmin(): Promise<Devotional[]> // Incluir rascunhos
+```
+
+#### Pedidos de Oração
+
+```typescript
+// Métodos já implementados
+createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest>
+getAllPrayerRequests(status?: string): Promise<PrayerRequest[]>
+updatePrayerRequestStatus(id: number, status: string): Promise<PrayerRequest>
+
+// Métodos A IMPLEMENTAR
+getApprovedPrayerRequests(): Promise<PrayerRequest[]> // Para Mural
+incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
+```
+
+### 18.5 Componentes Frontend Existentes
+
+| Arquivo | Descrição | Status |
+|---------|-----------|--------|
+| `client/src/pages/site/devocionais.tsx` | Listagem pública de devocionais | EXISTENTE |
+| `client/src/pages/site/devocional-detail.tsx` | Detalhe de devocional | EXISTENTE |
+| `client/src/pages/site/oracao.tsx` | Página pública de oração | EXISTENTE |
+| `client/src/pages/admin/admin-site.tsx` | Admin atual (tabs mistas) | EXISTENTE |
+| `client/src/components/DevotionalShareCard.tsx` | Card de compartilhamento | EXISTENTE |
+
+### 18.6 Componentes Frontend A CRIAR
+
+| Componente | Localização | Descrição |
+|------------|-------------|-----------|
+| `EspiritualidadeDashboard.tsx` | `pages/admin/espiritualidade/` | Dashboard principal com métricas |
+| `DevotionalList.tsx` | `pages/admin/espiritualidade/` | Lista de devocionais (publicados + rascunhos) |
+| `DevotionalEditor.tsx` | `pages/admin/espiritualidade/` | Editor com TipTap para criar/editar |
+| `PrayerModerationList.tsx` | `pages/admin/espiritualidade/` | Lista de moderação de pedidos |
+| `PrayerWall.tsx` | `components/site/` | Mural da Oração público |
+
+### 18.7 Rotas API A CRIAR
+
+#### Novas rotas para `/api/espiritualidade/`
+
+| Método | Rota | Middleware | Descrição |
+|--------|------|------------|-----------|
+| GET | `/api/espiritualidade/devotionals` | requireEspiritualidade | Listar TODOS (incluindo rascunhos) |
+| POST | `/api/espiritualidade/devotionals` | requireEspiritualidade | Criar novo devocional |
+| PUT | `/api/espiritualidade/devotionals/:id` | requireEspiritualidade | Atualizar devocional |
+| DELETE | `/api/espiritualidade/devotionals/:id` | requireEspiritualidade | Excluir devocional |
+| PATCH | `/api/espiritualidade/devotionals/:id/publish` | requireEspiritualidade | Publicar/Despublicar |
+| GET | `/api/espiritualidade/prayer-requests` | requireEspiritualidade | Listar pedidos para moderação |
+| PATCH | `/api/espiritualidade/prayer-requests/:id` | requireEspiritualidade | Aprovar/Rejeitar pedido |
+| GET | `/api/site/prayer-wall` | - (público) | Pedidos aprovados para o Mural |
+| POST | `/api/site/prayer-wall/:id/pray` | authenticateToken | Marcar "Estou em Oração" |
+
+### 18.8 Checklist de Implementação
+
+#### Backend
+
+- [ ] Criar middleware `requireEspiritualidade` em `server/auth.ts`
+- [ ] Adicionar métodos de CRUD de devocionais em `server/storage.ts`
+- [ ] Criar rotas `/api/espiritualidade/devotionals` em `server/routes.ts`
+- [ ] Mover/duplicar rotas de oração para `/api/espiritualidade/`
+- [ ] Implementar rota do Mural da Oração (`/api/site/prayer-wall`)
+- [ ] Adicionar sistema de moderação automática (filtro de palavras)
+
+#### Frontend
+
+- [ ] Criar página `EspiritualidadeDashboard.tsx`
+- [ ] Criar página `DevotionalList.tsx` com listagem e filtros
+- [ ] Criar componente `DevotionalEditor.tsx` com TipTap
+- [ ] Criar página `PrayerModerationList.tsx`
+- [ ] Atualizar `oracao.tsx` para incluir Mural da Oração
+- [ ] Remover opção "anônimo" do formulário de oração
+- [ ] Adicionar botão "Estou em Oração" com contador
+- [ ] Atualizar navegação/sidebar para incluir Painel Espiritualidade
+
+#### Dependências
+
+- [ ] Instalar TipTap: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-youtube`, etc.
+- [ ] Instalar bad-words para filtro de palavras
+
+---
+
 ## OBSERVAÇÕES FINAIS
 
 1. **Segurança:** Todas as rotas admin devem usar os middlewares apropriados
@@ -1644,5 +1817,5 @@ npm install ical-generator
 ---
 
 *Documento atualizado em 05/12/2025*
-*Versão: 2.0 - Aprovado pelo Arquiteto*
+*Versão: 2.1 - Adicionada seção 18 (Estado Atual do Código)*
 *Status: Pronto para Implementação*

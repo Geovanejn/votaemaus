@@ -3416,6 +3416,578 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== TEMPORADAS (SEASONS) ====================
+
+  // Função auxiliar para obter a chave da semana atual
+  function getCurrentWeekKey(): string {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const weekNumber = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+    return `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+  }
+
+  // Listar temporadas publicadas (usuário autenticado)
+  app.get("/api/study/seasons", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasons = await storage.getPublishedSeasons();
+      res.json(seasons);
+    } catch (error) {
+      console.error("Get seasons error:", error);
+      res.status(500).json({ message: "Erro ao buscar temporadas" });
+    }
+  });
+
+  // Obter temporada com lições
+  app.get("/api/study/seasons/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      const lessons = await storage.getLessonsForSeason(seasonId);
+      const progress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
+      const finalChallenge = await storage.getSeasonFinalChallenge(seasonId);
+
+      res.json({
+        ...season,
+        lessons,
+        progress,
+        finalChallenge: finalChallenge ? { 
+          id: finalChallenge.id,
+          title: finalChallenge.title,
+          description: finalChallenge.description,
+          timeLimitSeconds: finalChallenge.timeLimitSeconds,
+          questionCount: finalChallenge.questionCount,
+          isActive: finalChallenge.isActive
+        } : null
+      });
+    } catch (error) {
+      console.error("Get season error:", error);
+      res.status(500).json({ message: "Erro ao buscar temporada" });
+    }
+  });
+
+  // Obter desafio final da temporada
+  app.get("/api/study/seasons/:id/final-challenge", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      const progress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
+      const lessonsCompleted = progress?.lessonsCompleted || 0;
+      if (lessonsCompleted < season.totalLessons) {
+        return res.status(403).json({ message: "Complete todas as lições antes de acessar o desafio final" });
+      }
+
+      const challenge = await storage.getSeasonFinalChallenge(seasonId);
+      if (!challenge || !challenge.isActive) {
+        return res.status(404).json({ message: "Desafio final não disponível" });
+      }
+
+      const questions = JSON.parse(challenge.questions);
+      res.json({
+        id: challenge.id,
+        title: challenge.title,
+        description: challenge.description,
+        timeLimitSeconds: challenge.timeLimitSeconds,
+        questionCount: challenge.questionCount,
+        questions: questions.map((q: any, index: number) => ({
+          id: index + 1,
+          question: q.question,
+          options: q.options
+        }))
+      });
+    } catch (error) {
+      console.error("Get final challenge error:", error);
+      res.status(500).json({ message: "Erro ao buscar desafio final" });
+    }
+  });
+
+  // Submeter respostas do desafio final
+  app.post("/api/study/seasons/:id/final-challenge/submit", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const { answers, token } = req.body;
+      if (!Array.isArray(answers)) {
+        return res.status(400).json({ message: "Respostas inválidas" });
+      }
+
+      const challenge = await storage.getSeasonFinalChallenge(seasonId);
+      if (!challenge) {
+        return res.status(404).json({ message: "Desafio não encontrado" });
+      }
+
+      const result = await storage.submitFinalChallenge(req.user!.id, challenge.id, token || "", answers);
+      res.json(result);
+    } catch (error) {
+      console.error("Submit final challenge error:", error);
+      res.status(500).json({ message: "Erro ao submeter desafio" });
+    }
+  });
+
+  // Iniciar desafio final (obter token)
+  app.post("/api/study/seasons/:id/final-challenge/start", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const challenge = await storage.getSeasonFinalChallenge(seasonId);
+      if (!challenge) {
+        return res.status(404).json({ message: "Desafio não encontrado" });
+      }
+
+      const result = await storage.startFinalChallenge(req.user!.id, challenge.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Start final challenge error:", error);
+      res.status(500).json({ message: "Erro ao iniciar desafio" });
+    }
+  });
+
+  // Obter ranking da temporada
+  app.get("/api/study/seasons/:id/ranking", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const ranking = await storage.getSeasonRankings(seasonId, limit);
+      res.json(ranking);
+    } catch (error) {
+      console.error("Get season ranking error:", error);
+      res.status(500).json({ message: "Erro ao buscar ranking" });
+    }
+  });
+
+  // Obter progresso da meta semanal
+  app.get("/api/study/weekly-goal", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weekKey = getCurrentWeekKey();
+      const weeklyGoal = await storage.getWeeklyGoalStatus(req.user!.id, weekKey);
+      res.json(weeklyGoal);
+    } catch (error) {
+      console.error("Get weekly goal error:", error);
+      res.status(500).json({ message: "Erro ao buscar meta semanal" });
+    }
+  });
+
+  // Incrementar progresso da meta semanal
+  app.post("/api/study/weekly-goal/increment", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { type } = req.body;
+      const weekKey = getCurrentWeekKey();
+      
+      switch (type) {
+        case "lessons":
+          await storage.incrementWeeklyLesson(req.user!.id, weekKey);
+          break;
+        case "verses":
+          await storage.incrementWeeklyVerse(req.user!.id, weekKey);
+          break;
+        case "missions":
+          await storage.incrementWeeklyMission(req.user!.id, weekKey);
+          break;
+        case "devotionals":
+          await storage.incrementWeeklyDevotional(req.user!.id, weekKey);
+          break;
+        default:
+          return res.status(400).json({ message: "Tipo inválido" });
+      }
+      
+      const weeklyGoal = await storage.getWeeklyGoalStatus(req.user!.id, weekKey);
+      res.json(weeklyGoal);
+    } catch (error) {
+      console.error("Increment weekly goal error:", error);
+      res.status(500).json({ message: "Erro ao atualizar meta" });
+    }
+  });
+
+  // Marcar devocional como lido (para meta semanal)
+  app.post("/api/study/devotional-read/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const devotionalId = parseInt(req.params.id);
+      if (isNaN(devotionalId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const weekKey = getCurrentWeekKey();
+      await storage.confirmDevotionalRead(req.user!.id, devotionalId, weekKey);
+      await storage.incrementWeeklyDevotional(req.user!.id, weekKey);
+      res.json({ success: true, message: "Leitura registrada" });
+    } catch (error) {
+      console.error("Mark devotional read error:", error);
+      res.status(500).json({ message: "Erro ao registrar leitura" });
+    }
+  });
+
+  // Confirmar leitura do versículo do dia
+  app.post("/api/study/daily-verse/confirm", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weekKey = getCurrentWeekKey();
+      await storage.incrementWeeklyVerse(req.user!.id, weekKey);
+      res.json({ success: true, message: "Leitura do versículo confirmada" });
+    } catch (error) {
+      console.error("Confirm daily verse error:", error);
+      res.status(500).json({ message: "Erro ao confirmar leitura" });
+    }
+  });
+
+  // ==================== ADMINISTRAÇÃO DE TEMPORADAS ====================
+
+  // Listar todas as temporadas (admin)
+  app.get("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasons = await storage.getAllSeasons();
+      res.json(seasons);
+    } catch (error) {
+      console.error("Get all seasons error:", error);
+      res.status(500).json({ message: "Erro ao buscar temporadas" });
+    }
+  });
+
+  // Criar temporada
+  app.post("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const season = await storage.createSeason({
+        ...req.body,
+        createdBy: req.user!.id
+      });
+      res.status(201).json(season);
+    } catch (error) {
+      console.error("Create season error:", error);
+      res.status(500).json({ message: "Erro ao criar temporada" });
+    }
+  });
+
+  // Atualizar temporada
+  app.put("/api/study/admin/seasons/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.updateSeason(seasonId, req.body);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+      res.json(season);
+    } catch (error) {
+      console.error("Update season error:", error);
+      res.status(500).json({ message: "Erro ao atualizar temporada" });
+    }
+  });
+
+  // Deletar temporada
+  app.delete("/api/study/admin/seasons/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      await storage.deleteSeason(seasonId);
+      res.json({ message: "Temporada removida com sucesso" });
+    } catch (error) {
+      console.error("Delete season error:", error);
+      res.status(500).json({ message: "Erro ao remover temporada" });
+    }
+  });
+
+  // Publicar temporada
+  app.post("/api/study/admin/seasons/:id/publish", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.publishSeason(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+      res.json(season);
+    } catch (error) {
+      console.error("Publish season error:", error);
+      res.status(500).json({ message: "Erro ao publicar temporada" });
+    }
+  });
+
+  // Importar PDF e gerar lições com IA
+  app.post("/api/study/admin/seasons/:id/import-pdf", authenticateToken, requireAdminOrEspiritualidade, upload.single('pdf'), async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Arquivo PDF não enviado" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      if (!isAIConfigured()) {
+        return res.status(500).json({ message: "IA não configurada" });
+      }
+
+      await storage.updateSeason(seasonId, { status: "processing" });
+
+      const pdfData = await parsePdfBuffer(req.file.buffer);
+      const pdfText = pdfData.text;
+
+      const generateFinalChallenge = req.body.generateFinalChallenge === "true";
+
+      const now = new Date();
+      const weekNumber = Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 604800000);
+      const lessonsData = await generateStudyContentFromText(pdfText, weekNumber, now.getFullYear());
+
+      if (!lessonsData || !lessonsData.lessons || lessonsData.lessons.length === 0) {
+        await storage.updateSeason(seasonId, { status: "draft" });
+        return res.status(500).json({ message: "Erro ao processar PDF com IA" });
+      }
+
+      await storage.updateSeason(seasonId, {
+        aiExtractedTitle: lessonsData.weekTitle || season.title,
+        totalLessons: lessonsData.lessons.length
+      });
+
+      const createdLessons = [];
+      for (let i = 0; i < lessonsData.lessons.length; i++) {
+        const lessonData = lessonsData.lessons[i];
+        const lesson = await storage.createSeasonLesson({
+          seasonId,
+          title: lessonData.title,
+          description: lessonData.description || "",
+          type: "study",
+          orderIndex: i + 1,
+          xpReward: 50,
+          icon: "book-open"
+        });
+
+        if (lessonData.units && lessonData.units.length > 0) {
+          for (let j = 0; j < lessonData.units.length; j++) {
+            const unit = lessonData.units[j];
+            await storage.createStudyUnit({
+              lessonId: lesson.id,
+              type: unit.type,
+              content: unit.content,
+              orderIndex: j,
+              xpValue: 10,
+              stage: unit.stage || "estude"
+            });
+          }
+        }
+
+        createdLessons.push(lesson);
+      }
+
+      if (generateFinalChallenge && lessonsData.lessons.length > 0) {
+        const lessonTitles = lessonsData.lessons.map((l: any) => l.title).join(", ");
+        const challengeUnits = await generateExercisesFromTopic(
+          `Gere 15 perguntas para desafio final sobre: ${lessonTitles}`,
+          15
+        );
+        
+        if (challengeUnits && challengeUnits.length > 0) {
+          const questions = challengeUnits.map((u: any, idx: number) => ({
+            id: idx + 1,
+            question: u.content?.question || u.content,
+            options: u.content?.options || [],
+            correctAnswer: u.content?.correctAnswer || 0,
+            explanation: u.content?.explanation || ""
+          }));
+
+          await storage.createFinalChallenge({
+            seasonId,
+            title: "Desafio Final",
+            description: `Desafio final da temporada ${season.title}`,
+            questions: JSON.stringify(questions),
+            timeLimitSeconds: 150,
+            questionCount: questions.length,
+            xpReward: 200,
+            perfectXpBonus: 100,
+            isActive: true
+          });
+        }
+      }
+
+      await storage.updateSeason(seasonId, { status: "draft" });
+
+      res.json({
+        message: "PDF processado com sucesso",
+        lessonsCreated: createdLessons.length,
+        lessons: createdLessons
+      });
+    } catch (error) {
+      console.error("Import PDF error:", error);
+      await storage.updateSeason(parseInt(req.params.id), { status: "draft" });
+      res.status(500).json({ message: "Erro ao importar PDF" });
+    }
+  });
+
+  // Criar/atualizar desafio final
+  app.post("/api/study/admin/seasons/:id/final-challenge", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const { title, description, questions, timeLimitSeconds, xpReward, perfectXpBonus } = req.body;
+
+      const existing = await storage.getSeasonFinalChallenge(seasonId);
+      if (existing) {
+        const updated = await storage.updateFinalChallenge(existing.id, {
+          title,
+          description,
+          questions: JSON.stringify(questions),
+          timeLimitSeconds: timeLimitSeconds || 150,
+          questionCount: questions.length,
+          xpReward: xpReward || 200,
+          perfectXpBonus: perfectXpBonus || 100
+        });
+        return res.json(updated);
+      }
+
+      const challenge = await storage.createFinalChallenge({
+        seasonId,
+        title: title || "Desafio Final",
+        description,
+        questions: JSON.stringify(questions),
+        timeLimitSeconds: timeLimitSeconds || 150,
+        questionCount: questions.length,
+        xpReward: xpReward || 200,
+        perfectXpBonus: perfectXpBonus || 100,
+        isActive: true
+      });
+      res.status(201).json(challenge);
+    } catch (error) {
+      console.error("Create final challenge error:", error);
+      res.status(500).json({ message: "Erro ao criar desafio final" });
+    }
+  });
+
+  // Gerar desafio final com IA
+  app.post("/api/study/admin/seasons/:id/generate-final-challenge", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      const lessons = await storage.getLessonsForSeason(seasonId);
+      if (lessons.length === 0) {
+        return res.status(400).json({ message: "Temporada não possui lições" });
+      }
+
+      if (!isAIConfigured()) {
+        return res.status(500).json({ message: "IA não configurada" });
+      }
+
+      const lessonTitles = lessons.map((l: any) => l.title).join(", ");
+      const challengeUnits = await generateExercisesFromTopic(
+        `Gere 15 perguntas de múltipla escolha para um desafio final sobre os temas: ${lessonTitles}. 
+        A temporada é "${season.title}". 
+        Cada pergunta deve ter 4 opções e apenas 1 correta.`,
+        15
+      );
+
+      if (!challengeUnits || challengeUnits.length === 0) {
+        return res.status(500).json({ message: "Erro ao gerar perguntas com IA" });
+      }
+
+      const questions = challengeUnits.map((u: any, idx: number) => ({
+        id: idx + 1,
+        question: u.content?.question || u.content,
+        options: u.content?.options || [],
+        correctAnswer: u.content?.correctAnswer || 0,
+        explanation: u.content?.explanation || ""
+      }));
+
+      const existing = await storage.getSeasonFinalChallenge(seasonId);
+      if (existing) {
+        const updated = await storage.updateFinalChallenge(existing.id, {
+          questions: JSON.stringify(questions),
+          questionCount: questions.length
+        });
+        return res.json({ message: "Desafio atualizado", challenge: updated });
+      }
+
+      const challenge = await storage.createFinalChallenge({
+        seasonId,
+        title: "Desafio Final",
+        description: `Desafio final da temporada ${season.title}`,
+        questions: JSON.stringify(questions),
+        timeLimitSeconds: 150,
+        questionCount: questions.length,
+        xpReward: 200,
+        perfectXpBonus: 100,
+        isActive: true
+      });
+
+      res.status(201).json({ message: "Desafio criado", challenge });
+    } catch (error) {
+      console.error("Generate final challenge error:", error);
+      res.status(500).json({ message: "Erro ao gerar desafio final" });
+    }
+  });
+
+  // Liberar/bloquear lição de temporada
+  app.post("/api/study/admin/seasons/:seasonId/lessons/:lessonId/toggle-lock", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.seasonId);
+      const lessonId = parseInt(req.params.lessonId);
+      
+      if (isNaN(seasonId) || isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const lesson = await storage.getLessonById(lessonId);
+      if (!lesson || lesson.seasonId !== seasonId) {
+        return res.status(404).json({ message: "Lição não encontrada" });
+      }
+
+      const updated = await storage.updateStudyLesson(lessonId, {
+        isLocked: !lesson.isLocked
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Toggle lesson lock error:", error);
+      res.status(500).json({ message: "Erro ao alterar estado da lição" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

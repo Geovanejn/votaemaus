@@ -55,7 +55,7 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string): Pro
       temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 32768,
     },
   });
 
@@ -183,15 +183,17 @@ ETAPA 3 - RESPONDA (stage: "responda"):
 - APENAS esta etapa causa perda de vidas quando o usuário erra
 
 Regras Adicionais:
-1. Crie 1-3 lições por semana (uma lição principal e opcionais extras)
-2. Cada lição deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
-3. Use APENAS a versão ARA (Almeida Revista e Atualizada) para todos os versículos
-4. O texto de leitura deve ser substantivo (mínimo 100 palavras)
-5. Inclua 2-4 perguntas de múltipla escolha ou verdadeiro/falso por lição (etapa RESPONDA)
-6. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
-7. As perguntas devem testar compreensão do texto de leitura
-8. O conteúdo deve ser edificante e encorajador
-9. Use português brasileiro correto COM TODOS OS ACENTOS
+1. OBRIGATÓRIO: Crie 5 a 7 lições por semana, uma para cada dia de estudo (Segunda a Domingo)
+2. Analise o PDF e divida o conteúdo em lições diárias com temas conectados
+3. Cada lição deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
+4. Use APENAS a versão ARA (Almeida Revista e Atualizada) para todos os versículos
+5. O texto de leitura deve ser substantivo (mínimo 100 palavras por tópico)
+6. Inclua 3-5 perguntas de múltipla escolha ou verdadeiro/falso por lição (etapa RESPONDA)
+7. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
+8. As perguntas devem testar compreensão do texto de leitura
+9. O conteúdo deve ser edificante e encorajador
+10. Use português brasileiro correto COM TODOS OS ACENTOS
+11. Se o PDF contiver múltiplos tópicos/seções, crie uma lição para cada tópico principal
 
 REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 - A frase DEVE ter contexto suficiente para o usuário entender o que preencher

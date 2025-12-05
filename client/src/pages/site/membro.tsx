@@ -190,6 +190,10 @@ function LoginForm() {
         title: "Login realizado com sucesso!",
         description: `Bem-vindo, ${result.user.fullName}`,
       });
+      
+      if (result.user.isAdmin) {
+        setLocation("/admin");
+      }
     } catch (error) {
       toast({
         title: "Erro ao verificar código",
@@ -221,6 +225,10 @@ function LoginForm() {
         title: "Login realizado com sucesso!",
         description: `Bem-vindo, ${result.user.fullName}`,
       });
+      
+      if (result.user.isAdmin) {
+        setLocation("/admin");
+      }
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
@@ -264,6 +272,10 @@ function LoginForm() {
 
       setShowSetPasswordDialog(false);
       setPendingUser(null);
+      
+      if (updatedUser.isAdmin) {
+        setLocation("/admin");
+      }
     } catch (error) {
       toast({
         title: "Erro ao definir senha",

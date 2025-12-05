@@ -661,7 +661,14 @@ function SystemsSelection() {
 }
 
 export default function MembroPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  // Redirect admin users to admin panel
+  if (isAuthenticated && isAdmin && !isLoading) {
+    setLocation("/admin");
+    return null;
+  }
 
   return (
     <SiteLayout>

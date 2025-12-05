@@ -1372,7 +1372,12 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(schema.userUnitProgress.id, existing.id))
         .returning();
-      return { progress: updated, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0 };
+      
+      // Award XP only on first correct answer (not on retries)
+      if (isCorrect && !existing.isCorrect) {
+        await this.addXp(userId, unit.xpValue, 'unit', unitId);
+      }
+      return { progress: updated, isCorrect, xpEarned: (isCorrect && !existing.isCorrect) ? unit.xpValue : 0 };
     }
     
     const [progress] = await db.insert(schema.userUnitProgress)
@@ -1386,6 +1391,11 @@ export class DatabaseStorage implements IStorage {
         completedAt: isCorrect ? new Date() : null,
       })
       .returning();
+    
+    // Award XP for correct answer on first attempt
+    if (isCorrect) {
+      await this.addXp(userId, unit.xpValue, 'unit', unitId);
+    }
     return { progress, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0 };
   }
 
@@ -1417,12 +1427,19 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     if (existing) {
+      // Don't award XP again if already completed
+      if (!existing.isCompleted) {
+        await this.addXp(userId, unit.xpValue, 'unit', unitId);
+      }
       const [updated] = await db.update(schema.userUnitProgress)
         .set({ isCompleted: true, completedAt: new Date() })
         .where(eq(schema.userUnitProgress.id, existing.id))
         .returning();
-      return { progress: updated, xpEarned: unit.xpValue };
+      return { unitProgress: updated, xpAwarded: existing.isCompleted ? 0 : unit.xpValue };
     }
+    
+    // Award XP for first completion
+    await this.addXp(userId, unit.xpValue, 'unit', unitId);
     
     const [progress] = await db.insert(schema.userUnitProgress)
       .values({
@@ -1432,7 +1449,7 @@ export class DatabaseStorage implements IStorage {
         completedAt: new Date(),
       })
       .returning();
-    return { progress, xpEarned: unit.xpValue };
+    return { unitProgress: progress, xpAwarded: unit.xpValue };
   }
 
   async completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any> {

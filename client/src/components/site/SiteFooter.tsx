@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import logoFlame from "@assets/V1_1764865428588.png";
 
 const footerLinks = [
   { label: "Início", href: "/" },
@@ -21,9 +21,11 @@ export function SiteFooter() {
               className="flex items-center gap-3"
               whileHover={{ x: 5 }}
             >
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img 
+                src={logoFlame} 
+                alt="Logo UMP Emaús" 
+                className="w-12 h-12 object-contain"
+              />
               <div>
                 <h3 className="font-bold text-xl">UMP Emaús</h3>
                 <p className="text-sm text-gray-400">
@@ -32,8 +34,7 @@ export function SiteFooter() {
               </div>
             </motion.div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Somos jovens unidos pela fé, pelo amor a Cristo e pelo desejo 
-              de servir a Deus e ao próximo.
+              Alegres na esperança, fortes na fé, dedicados no amor e unidos no trabalho.
             </p>
           </div>
 

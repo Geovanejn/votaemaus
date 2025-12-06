@@ -87,8 +87,6 @@ export function HeroBanner() {
       imageUrl: d.imageUrl || defaultDevotionalImg,
       linkUrl: `/devocionais/${d.id}`,
       linkText: 'Ler Devocional',
-      secondaryLinkUrl: '/membro',
-      secondaryLinkText: 'Area do Membro',
       icon: BookOpen,
       badge: 'Devocional do Dia',
     });
@@ -105,8 +103,6 @@ export function HeroBanner() {
       imageUrl: e.imageUrl || defaultEventImg,
       linkUrl: `/agenda/${e.id}`,
       linkText: 'Ver Detalhes',
-      secondaryLinkUrl: '/agenda',
-      secondaryLinkText: 'Ver Agenda',
       icon: Calendar,
       badge: 'Proximo Evento',
     });
@@ -123,8 +119,6 @@ export function HeroBanner() {
       imageUrl: p.imageUrl || defaultInstagramImg,
       linkUrl: p.permalink || 'https://instagram.com/umpemaus',
       linkText: 'Ver no Instagram',
-      secondaryLinkUrl: '/membro',
-      secondaryLinkText: 'Area do Membro',
       icon: Instagram,
       badge: 'Instagram',
     });
@@ -140,8 +134,6 @@ export function HeroBanner() {
       imageUrl: defaultDevotionalImg,
       linkUrl: '/devocionais',
       linkText: 'Ler Devocional',
-      secondaryLinkUrl: '/membro',
-      secondaryLinkText: 'Area do Membro',
       icon: BookOpen,
       badge: 'Devocional do Dia',
     },

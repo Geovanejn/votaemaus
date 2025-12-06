@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { eq, and, desc, asc, sql, isNull, gt, lt, gte, lte, ne, or, inArray } from "drizzle-orm";
 import { sendCongratulationsEmail } from "./email";
+import { getTodayBrazilDate } from "./utils/date";
 import * as schema from "@shared/schema";
 import type {
   User,
@@ -1365,7 +1366,7 @@ export class DatabaseStorage implements IStorage {
 
   // Site Events
   async getUpcomingEvents(limit?: number): Promise<any[]> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayBrazilDate();
     let query = db.select().from(schema.siteEvents)
       .where(and(
         eq(schema.siteEvents.isPublished, true),
@@ -1442,7 +1443,7 @@ export class DatabaseStorage implements IStorage {
     events: { total: number; upcoming: number; past: number };
     boardMembers: { total: number; active: number };
   }> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayBrazilDate();
     
     const [allEvents, upcomingEvents, allMembers, activeMembers] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(schema.siteEvents),

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { getTodayBrazilDate } from "./utils/date";
 import { 
   generateToken, 
   hashPassword, 
@@ -2889,7 +2890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/missions/daily", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const today = getTodayBrazilDate();
       
       // Assign missions for today if not already assigned
       const missions = await storage.assignDailyMissions(userId, today);
@@ -2918,7 +2919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const missionId = parseInt(req.params.missionId);
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayBrazilDate();
       
       const mission = await storage.getUserMissionById(userId, missionId, today);
       
@@ -2943,7 +2944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const missionId = parseInt(req.params.missionId);
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayBrazilDate();
       
       const result = await storage.completeMission(userId, missionId, today);
       
@@ -2964,7 +2965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get daily mission content (verse, fact, character)
   app.get("/api/missions/content", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayBrazilDate();
       const content = await storage.getDailyMissionContent(today);
       
       res.json(content || {});

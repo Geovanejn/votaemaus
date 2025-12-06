@@ -18,7 +18,10 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  ExternalLink,
+  AlertCircle
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -839,6 +842,160 @@ function BannersTab() {
   );
 }
 
+interface InstagramData {
+  configured: boolean;
+  posts: Array<{
+    id: number;
+    caption?: string;
+    imageUrl: string;
+    permalink?: string;
+    postedAt?: string;
+    isActive: boolean;
+  }>;
+  message?: string;
+}
+
+function InstagramTab() {
+  const { toast } = useToast();
+
+  const { data, isLoading, refetch } = useQuery<InstagramData>({
+    queryKey: ['/api/admin/instagram'],
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/instagram/sync");
+    },
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instagram'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/site/instagram'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/site/highlights'] });
+      toast({ 
+        title: "Sucesso", 
+        description: response?.message || "Posts sincronizados com sucesso" 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Erro", 
+        description: "Erro ao sincronizar posts do Instagram", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const posts = data?.posts || [];
+  const configured = data?.configured || false;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Instagram</h3>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os posts do Instagram exibidos no site
+          </p>
+        </div>
+        <Button 
+          onClick={() => syncMutation.mutate()} 
+          disabled={syncMutation.isPending || !configured}
+          data-testid="button-sync-instagram"
+        >
+          {syncMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Sincronizar
+        </Button>
+      </div>
+
+      {!configured && (
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-700 dark:text-amber-400">
+                  API do Instagram nao configurada
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Para conectar o Instagram, configure as variaveis de ambiente:
+                </p>
+                <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside">
+                  <li>INSTAGRAM_ACCESS_TOKEN</li>
+                  <li>INSTAGRAM_USER_ID</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {posts.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <svg className="h-12 w-12 mx-auto mb-4 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+            </svg>
+            <p>Nenhum post sincronizado</p>
+            {configured && (
+              <p className="text-sm mt-2">Clique em "Sincronizar" para buscar os posts</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {posts.map((post) => (
+            <Card key={post.id} className="overflow-hidden" data-testid={`card-instagram-${post.id}`}>
+              <CardContent className="p-0">
+                <div className="aspect-square relative bg-muted">
+                  <img
+                    src={post.imageUrl}
+                    alt={post.caption || "Post do Instagram"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://placehold.co/400x400?text=Imagem";
+                    }}
+                  />
+                </div>
+                <div className="p-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                    {post.caption || "Sem legenda"}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {post.postedAt ? new Date(post.postedAt).toLocaleDateString("pt-BR") : ""}
+                    </span>
+                    {post.permalink && (
+                      <a 
+                        href={post.permalink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminSitePage() {
   return (
     <div className="p-6">
@@ -855,7 +1012,7 @@ export default function AdminSitePage() {
       </div>
 
       <Tabs defaultValue="board" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3" data-testid="tabs-admin-site">
+        <TabsList className="grid w-full grid-cols-4" data-testid="tabs-admin-site">
           <TabsTrigger value="board" data-testid="tab-board">
             <Users className="h-4 w-4 mr-2" />
             Diretoria
@@ -867,6 +1024,12 @@ export default function AdminSitePage() {
           <TabsTrigger value="banners" data-testid="tab-banners">
             <Image className="h-4 w-4 mr-2" />
             Banners
+          </TabsTrigger>
+          <TabsTrigger value="instagram" data-testid="tab-instagram">
+            <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+            </svg>
+            Instagram
           </TabsTrigger>
         </TabsList>
 
@@ -880,6 +1043,10 @@ export default function AdminSitePage() {
 
         <TabsContent value="banners">
           <BannersTab />
+        </TabsContent>
+
+        <TabsContent value="instagram">
+          <InstagramTab />
         </TabsContent>
       </Tabs>
     </div>

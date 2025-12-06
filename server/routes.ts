@@ -48,6 +48,7 @@ import {
   notifyNewComment,
   notifySeasonPublished
 } from "./notifications";
+import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
 
@@ -3977,6 +3978,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete banner error:", error);
       res.status(500).json({ message: "Erro ao remover banner" });
+    }
+  });
+
+  // ==================== INSTAGRAM ADMIN API ====================
+
+  // Get Instagram status and posts (admin or marketing)
+  app.get("/api/admin/instagram", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const posts = await storage.getLatestInstagramPosts(12);
+      const configured = isInstagramConfigured();
+      res.json({ 
+        configured, 
+        posts,
+        message: configured ? null : "Instagram API nao configurada. Configure INSTAGRAM_ACCESS_TOKEN e INSTAGRAM_USER_ID."
+      });
+    } catch (error) {
+      console.error("Get Instagram admin error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados do Instagram" });
+    }
+  });
+
+  // Sync Instagram posts (admin or marketing)
+  app.post("/api/admin/instagram/sync", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      if (!isInstagramConfigured()) {
+        return res.status(400).json({ 
+          message: "Instagram API nao configurada. Configure INSTAGRAM_ACCESS_TOKEN e INSTAGRAM_USER_ID." 
+        });
+      }
+      
+      const result = await syncInstagramPosts();
+      await logAuditAction(req.user?.id, "sync", "instagram", undefined, `Sincronizados ${result.synced} posts`, req);
+      
+      res.json({ 
+        message: `Sincronizacao concluida: ${result.synced} posts sincronizados`,
+        synced: result.synced,
+        errors: result.errors
+      });
+    } catch (error) {
+      console.error("Sync Instagram error:", error);
+      res.status(500).json({ message: "Erro ao sincronizar Instagram" });
     }
   });
 

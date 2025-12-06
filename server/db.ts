@@ -53,28 +53,24 @@ async function seedAdminUser() {
   }
   
   try {
-    // Primeiro, verifica se já existe um usuário com esse email
     const [existingUser] = await db.select()
       .from(schema.users)
       .where(eq(schema.users.email, adminEmail.toLowerCase().trim()))
       .limit(1);
     
-    const hashedPassword = await hashPassword(adminPassword);
-    
     if (existingUser) {
-      // Usuário existe, atualiza para admin e reseta a senha
+      if (existingUser.isAdmin) {
+        console.log(`Admin ${adminEmail} ja existe e esta configurado.`);
+        return;
+      }
       await db.update(schema.users)
-        .set({ 
-          isAdmin: true,
-          password: hashedPassword,
-          hasPassword: true
-        })
+        .set({ isAdmin: true })
         .where(eq(schema.users.id, existingUser.id));
-      console.log(`Usuario ${adminEmail} configurado como admin.`);
+      console.log(`Usuario ${adminEmail} promovido a admin (senha mantida).`);
       return;
     }
     
-    // Não existe usuário com esse email, cria um novo
+    const hashedPassword = await hashPassword(adminPassword);
     await db.insert(schema.users).values({
       fullName: "Administrador",
       email: adminEmail.toLowerCase().trim(),

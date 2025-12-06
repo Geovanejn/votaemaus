@@ -3075,6 +3075,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscribe to push notifications (anonymous visitors)
+  app.post("/api/notifications/subscribe-anonymous", async (req, res) => {
+    try {
+      const { endpoint, p256dh, auth } = req.body;
+      
+      if (!endpoint || !p256dh || !auth) {
+        return res.status(400).json({ message: "Dados de inscricao invalidos" });
+      }
+      
+      await storage.saveAnonymousPushSubscription(endpoint, p256dh, auth);
+      
+      res.json({ message: "Inscrito para notificacoes com sucesso" });
+    } catch (error) {
+      console.error("Subscribe anonymous push error:", error);
+      res.status(500).json({ message: "Erro ao inscrever para notificacoes" });
+    }
+  });
+
+  // Unsubscribe from push notifications (anonymous visitors)
+  app.post("/api/notifications/unsubscribe-anonymous", async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      
+      if (!endpoint) {
+        return res.status(400).json({ message: "Endpoint nao fornecido" });
+      }
+      
+      await storage.removeAnonymousPushSubscription(endpoint);
+      
+      res.json({ message: "Desinscrito de notificacoes com sucesso" });
+    } catch (error) {
+      console.error("Unsubscribe anonymous push error:", error);
+      res.status(500).json({ message: "Erro ao desinscrever de notificacoes" });
+    }
+  });
+
   // Get user notifications
   app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res) => {
     try {

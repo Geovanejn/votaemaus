@@ -36,6 +36,7 @@ import type {
   SiteEvent,
   InstagramPost,
   PushSubscription,
+  AnonymousPushSubscription,
   Notification,
   PrayerRequest,
   InsertPrayerRequest,
@@ -213,6 +214,13 @@ export interface IStorage {
   // DeoGlory Scheduler Methods
   getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]>;
   getInactiveUsersByDays(days: number): Promise<{ userId: number; daysSinceLastActivity: number }[]>;
+  
+  // Anonymous Push Subscription Methods (for visitors)
+  saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
+  removeAnonymousPushSubscription(endpoint: string): Promise<void>;
+  getAllAnonymousPushSubscriptions(): Promise<AnonymousPushSubscription[]>;
+  updateAnonymousPushSubscriptionLastUsed(subscriptionId: number): Promise<void>;
+  deleteAnonymousPushSubscriptionByEndpoint(endpoint: string): Promise<void>;
   
   // Bible Verse Methods
   getBibleVerseById(id: number): Promise<any | null>;
@@ -3053,6 +3061,46 @@ export class DatabaseStorage implements IStorage {
       userId: p.userId,
       daysSinceLastActivity: days
     }));
+  }
+
+  // ==================== ANONYMOUS PUSH SUBSCRIPTION METHODS ====================
+
+  async saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void> {
+    const [existing] = await db.select().from(schema.anonymousPushSubscriptions)
+      .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint))
+      .limit(1);
+    
+    if (existing) {
+      await db.update(schema.anonymousPushSubscriptions)
+        .set({ p256dh, auth, lastUsed: new Date() })
+        .where(eq(schema.anonymousPushSubscriptions.id, existing.id));
+    } else {
+      await db.insert(schema.anonymousPushSubscriptions).values({
+        endpoint,
+        p256dh,
+        auth,
+      });
+    }
+  }
+
+  async removeAnonymousPushSubscription(endpoint: string): Promise<void> {
+    await db.delete(schema.anonymousPushSubscriptions)
+      .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint));
+  }
+
+  async getAllAnonymousPushSubscriptions(): Promise<AnonymousPushSubscription[]> {
+    return db.select().from(schema.anonymousPushSubscriptions);
+  }
+
+  async updateAnonymousPushSubscriptionLastUsed(subscriptionId: number): Promise<void> {
+    await db.update(schema.anonymousPushSubscriptions)
+      .set({ lastUsed: new Date() })
+      .where(eq(schema.anonymousPushSubscriptions.id, subscriptionId));
+  }
+
+  async deleteAnonymousPushSubscriptionByEndpoint(endpoint: string): Promise<void> {
+    await db.delete(schema.anonymousPushSubscriptions)
+      .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint));
   }
 }
 

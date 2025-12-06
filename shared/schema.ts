@@ -1257,6 +1257,24 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
+export const anonymousPushSubscriptions = pgTable("anonymous_push_subscriptions", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastUsed: timestamp("last_used"),
+});
+
+export const insertAnonymousPushSubscriptionSchema = createInsertSchema(anonymousPushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  lastUsed: true,
+});
+
+export type InsertAnonymousPushSubscription = z.infer<typeof insertAnonymousPushSubscriptionSchema>;
+export type AnonymousPushSubscription = typeof anonymousPushSubscriptions.$inferSelect;
+
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),

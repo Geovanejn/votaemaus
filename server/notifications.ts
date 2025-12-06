@@ -1,6 +1,6 @@
 import webpush from "web-push";
 import { storage } from "./storage";
-import type { User, PushSubscription } from "@shared/schema";
+import type { User, PushSubscription, AnonymousPushSubscription } from "@shared/schema";
 import {
   sendNewPrayerRequestEmail,
   sendNewCommentEmail,
@@ -154,6 +154,71 @@ export async function sendPushToAllMembers(
   const userIds = members.map(m => m.id);
 
   return sendPushToUsers(userIds, payload);
+}
+
+export async function sendAnonymousPushNotification(
+  subscription: AnonymousPushSubscription,
+  payload: NotificationPayload
+): Promise<boolean> {
+  if (!webPushConfigured) {
+    return false;
+  }
+
+  try {
+    const pushSubscription = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      },
+    };
+
+    await webpush.sendNotification(
+      pushSubscription,
+      JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        icon: payload.icon || "/logo.png",
+        badge: payload.badge || "/favicon.png",
+        data: {
+          url: payload.url || "/",
+          ...payload.data,
+        },
+        tag: payload.tag,
+      })
+    );
+
+    await storage.updateAnonymousPushSubscriptionLastUsed(subscription.id);
+    return true;
+  } catch (error: any) {
+    console.error("[Push] Error sending anonymous notification:", error);
+    
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      console.log(`[Push] Anonymous subscription expired/invalid, removing: ${subscription.endpoint}`);
+      await storage.deleteAnonymousPushSubscriptionByEndpoint(subscription.endpoint);
+    }
+    
+    return false;
+  }
+}
+
+export async function sendPushToAllAnonymousVisitors(
+  payload: NotificationPayload
+): Promise<{ sent: number; failed: number }> {
+  const subscriptions = await storage.getAllAnonymousPushSubscriptions();
+  let sent = 0;
+  let failed = 0;
+
+  for (const subscription of subscriptions) {
+    const success = await sendAnonymousPushNotification(subscription, payload);
+    if (success) {
+      sent++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { sent, failed };
 }
 
 export async function createInAppNotification(

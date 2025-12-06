@@ -2,49 +2,29 @@ import { Filter } from "bad-words";
 
 const filter = new Filter();
 
-filter.addWords(
-  "palavrao1",
-  "palavrao2",
-  "merda",
-  "porra",
-  "caralho",
-  "foda",
-  "fodido",
-  "fodida",
-  "puta",
-  "putaria",
-  "buceta",
-  "bunda",
-  "corno",
-  "viado",
-  "bicha",
-  "sapatao",
-  "vagabundo",
-  "vagabunda",
-  "arrombado",
-  "arrombada",
-  "cuzao",
-  "cu",
-  "desgraca",
-  "desgraçado",
-  "desgraçada",
-  "inferno",
-  "diabo",
-  "demonio",
-  "satanas",
-  "maldito",
-  "maldita",
-  "imbecil",
-  "idiota",
-  "babaca",
-  "otario",
-  "otaria",
-  "escroto",
-  "nojento",
-  "nojenta",
-  "lixo",
-  "verme"
-);
+// Lista expandida de palavras improprias em portugues
+const palavrasProibidasPT = [
+  // Baixo calao
+  "merda", "porra", "caralho", "foda", "fodase", "fodasse", "buceta", "pau", "pinto",
+  "rola", "bosta", "cagar", "cagada", "cu", "cuzao", "cuzinho", "cacete", "pqp",
+  "fodido", "fodida", "puta", "putaria", "bunda",
+  
+  // Xingamentos
+  "idiota", "imbecil", "retardado", "babaca", "otario", "otaria", "fdp", "filhodaputa",
+  "vagabundo", "vagabunda", "vadia", "piranha", "arrombado", "arrombada",
+  "corno", "escroto", "nojento", "nojenta", "lixo", "verme",
+  
+  // Discurso de odio
+  "viado", "veado", "bicha", "sapatao", "traveco",
+  
+  // Religiosos ofensivos (contexto inapropriado)
+  "desgraca", "desgraçado", "desgraçada", "maldito", "maldita",
+  
+  // Variacoes comuns
+  "merda", "m3rda", "p0rra", "c4ralho", "put4", "fod4",
+];
+
+filter.addWords(...palavrasProibidasPT);
 
 export interface ModerationResult {
   hasProfanity: boolean;

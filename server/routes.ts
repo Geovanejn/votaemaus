@@ -3234,13 +3234,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Determinar status inicial - sempre "pending" exceto para privados
       let status: "pending" | "approved" | "rejected" | "archived" = isPrivate ? "archived" : "pending";
-      let moderationReason: string | undefined;
+      const shouldAutoApprove = !isPrivate && !moderation.hasProfanity;
       
-      if (moderation.hasProfanity) {
-        status = "pending";
-        moderationReason = moderation.details;
-      }
+      // Apenas enviar dados de moderacao se houver problemas detectados
+      const moderationData = moderation.hasProfanity ? {
+        hasProfanity: moderation.hasProfanity,
+        hasHateSpeech: moderation.hasHateSpeech,
+        hasSexualContent: moderation.hasSexualContent,
+        moderationDetails: moderation.details,
+      } : undefined;
       
       const prayerRequest = await storage.createPrayerRequest({
         name: name.trim(),
@@ -3248,9 +3252,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         request: moderation.hasProfanity ? moderation.cleanedText : request,
         status,
-      });
+      }, moderationData);
       
-      res.status(201).json({ message: "Pedido de oracao recebido com sucesso", id: prayerRequest.id });
+      // Se conteudo limpo e nao privado, aprovar automaticamente
+      if (shouldAutoApprove) {
+        await storage.autoApprovePrayerRequest(prayerRequest.id);
+      }
+      
+      const message = moderation.hasProfanity 
+        ? "Pedido enviado e sera analisado antes de ser publicado."
+        : "Pedido de oracao publicado com sucesso!";
+      
+      res.status(201).json({ message, id: prayerRequest.id, autoApproved: shouldAutoApprove });
     } catch (error) {
       console.error("Create prayer request error:", error);
       res.status(500).json({ message: "Erro ao enviar pedido de oracao" });

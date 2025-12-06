@@ -217,13 +217,14 @@ export interface IStorage {
   getLeaderboard(periodType: string, periodKey: string, limit?: number): Promise<any[]>;
   
   // Prayer Requests Methods
-  createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest>;
+  createPrayerRequest(data: InsertPrayerRequest, moderationData?: { hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest>;
   getAllPrayerRequests(status?: string): Promise<PrayerRequest[]>;
   getPrayerRequestById(id: number): Promise<PrayerRequest | null>;
   getApprovedPrayerRequests(): Promise<PrayerRequest[]>;
   getPendingPrayerRequests(): Promise<PrayerRequest[]>;
   updatePrayerRequestStatus(id: number, status: string, prayedBy?: number): Promise<PrayerRequest | null>;
   approvePrayerRequest(id: number, approvedBy: number): Promise<PrayerRequest | null>;
+  autoApprovePrayerRequest(id: number): Promise<PrayerRequest | null>;
   rejectPrayerRequest(id: number, moderatedBy: number, reason?: string): Promise<PrayerRequest | null>;
   incrementPrayerCount(id: number): Promise<PrayerRequest | null>;
   moderatePrayerRequest(id: number, data: { isModerated: boolean; moderatedBy: number; hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest | null>;
@@ -2030,9 +2031,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Prayer Requests Methods
-  async createPrayerRequest(data: InsertPrayerRequest): Promise<PrayerRequest> {
+  async createPrayerRequest(data: InsertPrayerRequest, moderationData?: { hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest> {
+    const insertData = {
+      ...data,
+      ...(moderationData && {
+        hasProfanity: moderationData.hasProfanity,
+        hasHateSpeech: moderationData.hasHateSpeech,
+        hasSexualContent: moderationData.hasSexualContent,
+        moderationDetails: moderationData.moderationDetails,
+        // isModerated sera definido como true apenas quando um moderador revisar manualmente
+      }),
+    };
     const [request] = await db.insert(schema.prayerRequests)
-      .values(data)
+      .values(insertData)
       .returning();
     return request;
   }
@@ -2096,6 +2107,25 @@ export class DatabaseStorage implements IStorage {
         moderatedAt: new Date(),
         status: 'approved',
         updatedAt: new Date(),
+      })
+      .where(eq(schema.prayerRequests.id, id))
+      .returning();
+    return request || null;
+  }
+
+  async autoApprovePrayerRequest(id: number): Promise<PrayerRequest | null> {
+    const now = new Date();
+    const [request] = await db.update(schema.prayerRequests)
+      .set({
+        isApproved: true,
+        approvedAt: now,
+        // approvedBy permanece null para indicar aprovacao automatica pelo sistema
+        isModerated: true,
+        moderatedAt: now,
+        // moderatedBy permanece null para indicar moderacao automatica pelo sistema
+        moderationDetails: 'Aprovado automaticamente - conteudo limpo',
+        status: 'approved',
+        updatedAt: now,
       })
       .where(eq(schema.prayerRequests.id, id))
       .returning();

@@ -3276,22 +3276,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Increment prayer count (public) - Someone is praying for this request
+  // Check if session is praying for a specific request
+  app.get("/api/site/prayer-requests/:id/is-praying", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const sessionId = req.query.sessionId as string;
+      
+      if (isNaN(id) || !sessionId) {
+        return res.status(400).json({ message: "ID e sessionId sao obrigatorios" });
+      }
+      
+      const isPraying = await storage.checkIfPraying(id, sessionId);
+      res.json({ isPraying });
+    } catch (error) {
+      console.error("Check praying error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
+  // Get praying status for multiple prayer requests
+  app.get("/api/site/prayer-requests/praying-status", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId as string;
+      const ids = req.query.ids as string;
+      
+      if (!sessionId || !ids) {
+        return res.status(400).json({ message: "sessionId e ids sao obrigatorios" });
+      }
+      
+      const prayerRequestIds = ids.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+      if (prayerRequestIds.length === 0) {
+        return res.json({ prayingIds: [] });
+      }
+      
+      const prayingSet = await storage.getPrayingSessionsForRequests(prayerRequestIds, sessionId);
+      res.json({ prayingIds: Array.from(prayingSet) });
+    } catch (error) {
+      console.error("Get praying status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
+  // Toggle prayer status (public) - Someone is praying for this request
   app.post("/api/site/prayer-requests/:id/pray", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const { sessionId } = req.body;
+      
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
       
-      const updated = await storage.incrementPrayerCount(id);
-      if (!updated) {
-        return res.status(404).json({ message: "Pedido nao encontrado" });
+      if (!sessionId) {
+        return res.status(400).json({ message: "sessionId e obrigatorio" });
       }
       
-      res.json({ success: true, inPrayerCount: updated.inPrayerCount });
+      const result = await storage.togglePraying(id, sessionId);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Pedido nao encontrado ou nao aprovado" });
+      }
+      
+      res.json({ success: true, isPraying: result.isPraying, inPrayerCount: result.inPrayerCount });
     } catch (error) {
-      console.error("Increment prayer count error:", error);
+      console.error("Toggle prayer error:", error);
       res.status(500).json({ message: "Erro ao registrar oracao" });
     }
   });

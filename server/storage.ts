@@ -2129,6 +2129,78 @@ export class DatabaseStorage implements IStorage {
     return request || null;
   }
 
+  async checkIfPraying(prayerRequestId: number, sessionId: string): Promise<boolean> {
+    const [reaction] = await db.select()
+      .from(schema.prayerReactions)
+      .where(and(
+        eq(schema.prayerReactions.prayerRequestId, prayerRequestId),
+        eq(schema.prayerReactions.sessionId, sessionId)
+      ))
+      .limit(1);
+    return !!reaction;
+  }
+
+  async togglePraying(prayerRequestId: number, sessionId: string): Promise<{ isPraying: boolean; inPrayerCount: number } | null> {
+    // First, verify that the prayer request exists and is approved
+    const [existingRequest] = await db.select()
+      .from(schema.prayerRequests)
+      .where(and(
+        eq(schema.prayerRequests.id, prayerRequestId),
+        eq(schema.prayerRequests.isApproved, true)
+      ))
+      .limit(1);
+    
+    if (!existingRequest) {
+      return null; // Request not found or not approved
+    }
+    
+    const isPraying = await this.checkIfPraying(prayerRequestId, sessionId);
+    
+    if (isPraying) {
+      // Remove reaction and decrement count
+      await db.delete(schema.prayerReactions)
+        .where(and(
+          eq(schema.prayerReactions.prayerRequestId, prayerRequestId),
+          eq(schema.prayerReactions.sessionId, sessionId)
+        ));
+      
+      const [request] = await db.update(schema.prayerRequests)
+        .set({
+          inPrayerCount: sql`GREATEST(${schema.prayerRequests.inPrayerCount} - 1, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.prayerRequests.id, prayerRequestId))
+        .returning();
+      
+      return { isPraying: false, inPrayerCount: request?.inPrayerCount || 0 };
+    } else {
+      // Add reaction and increment count
+      await db.insert(schema.prayerReactions)
+        .values({ prayerRequestId, sessionId })
+        .onConflictDoNothing();
+      
+      const [request] = await db.update(schema.prayerRequests)
+        .set({
+          inPrayerCount: sql`${schema.prayerRequests.inPrayerCount} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.prayerRequests.id, prayerRequestId))
+        .returning();
+      
+      return { isPraying: true, inPrayerCount: request?.inPrayerCount || 0 };
+    }
+  }
+
+  async getPrayingSessionsForRequests(prayerRequestIds: number[], sessionId: string): Promise<Set<number>> {
+    const reactions = await db.select({ prayerRequestId: schema.prayerReactions.prayerRequestId })
+      .from(schema.prayerReactions)
+      .where(and(
+        inArray(schema.prayerReactions.prayerRequestId, prayerRequestIds),
+        eq(schema.prayerReactions.sessionId, sessionId)
+      ));
+    return new Set(reactions.map(r => r.prayerRequestId));
+  }
+
   async moderatePrayerRequest(id: number, data: { isModerated: boolean; moderatedBy: number; hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest | null> {
     const [request] = await db.update(schema.prayerRequests)
       .set({

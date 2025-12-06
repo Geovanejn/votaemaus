@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,9 +79,25 @@ async function fetchApprovedPrayers(): Promise<ApprovedPrayer[]> {
   return response.json();
 }
 
+// Generate unique visitor ID for anonymous users
+function getOrCreateSessionId(): string {
+  const key = 'prayer_session_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export default function OracaoPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [prayingIds, setPrayingIds] = useState<Set<number>>(new Set());
+  const [localCounts, setLocalCounts] = useState<Record<number, number>>({});
   const { toast } = useToast();
+  
+  // Get or create unique session ID
+  const sessionId = useMemo(() => getOrCreateSessionId(), []);
 
   const form = useForm<PrayerFormValues>({
     resolver: zodResolver(prayerFormSchema),
@@ -99,6 +115,21 @@ export default function OracaoPage() {
     queryFn: fetchApprovedPrayers,
     staleTime: 30 * 1000,
   });
+
+  // Fetch praying status for all approved prayers when data loads
+  useEffect(() => {
+    if (approvedPrayers && approvedPrayers.length > 0 && sessionId) {
+      const ids = approvedPrayers.map(p => p.id).join(',');
+      fetch(`/api/site/prayer-requests/praying-status?sessionId=${encodeURIComponent(sessionId)}&ids=${ids}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.prayingIds) {
+            setPrayingIds(new Set(data.prayingIds));
+          }
+        })
+        .catch(err => console.error('Error fetching praying status:', err));
+    }
+  }, [approvedPrayers, sessionId]);
 
   const submitMutation = useMutation({
     mutationFn: async (data: PrayerFormValues) => {
@@ -127,17 +158,36 @@ export default function OracaoPage() {
       const response = await fetch(`/api/site/prayer-requests/${prayerId}/pray`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
       });
       if (!response.ok) {
         throw new Error('Erro ao registrar oracao');
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site/prayer-requests/approved'] });
+    onSuccess: (data, prayerId) => {
+      // Update local state immediately for better UX
+      setPrayingIds(prev => {
+        const newSet = new Set(prev);
+        if (data.isPraying) {
+          newSet.add(prayerId);
+        } else {
+          newSet.delete(prayerId);
+        }
+        return newSet;
+      });
+      
+      // Update local count for immediate feedback
+      setLocalCounts(prev => ({
+        ...prev,
+        [prayerId]: data.inPrayerCount,
+      }));
+      
       toast({
-        title: "Obrigado!",
-        description: "Sua oracao foi registrada.",
+        title: data.isPraying ? "Obrigado!" : "Desmarcado",
+        description: data.isPraying 
+          ? "Sua oracao foi registrada." 
+          : "Voce desmarcou sua oracao.",
       });
     },
     onError: (error: Error) => {
@@ -447,18 +497,18 @@ export default function OracaoPage() {
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <HandHeart className="h-3 w-3" />
-                                {prayer.inPrayerCount} pessoa{prayer.inPrayerCount !== 1 ? 's' : ''} orando
+                                {(localCounts[prayer.id] ?? prayer.inPrayerCount)} pessoa{(localCounts[prayer.id] ?? prayer.inPrayerCount) !== 1 ? 's' : ''} orando
                               </span>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="gap-1"
+                                variant={prayingIds.has(prayer.id) ? "default" : "outline"}
+                                className={`gap-1 transition-all duration-300 ${prayingIds.has(prayer.id) ? "bg-primary text-primary-foreground" : ""}`}
                                 onClick={() => prayMutation.mutate(prayer.id)}
                                 disabled={prayMutation.isPending}
                                 data-testid={`button-pray-${prayer.id}`}
                               >
-                                <HandHeart className="h-3 w-3" />
-                                Estou Orando
+                                <HandHeart className={`h-3 w-3 ${prayingIds.has(prayer.id) ? "fill-current" : ""}`} />
+                                {prayingIds.has(prayer.id) ? "Orando" : "Estou Orando"}
                               </Button>
                             </div>
                           </CardContent>

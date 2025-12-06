@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
+import { LocationPicker } from "@/components/ui/location-picker";
 import {
   Form,
   FormControl,
@@ -361,35 +362,28 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Local</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Endereco ou nome do local" {...field} data-testid="input-location" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="locationUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link do Local (Google Maps)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://maps.google.com/..." {...field} data-testid="input-location-url" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Local</FormLabel>
+                    <FormControl>
+                      <LocationPicker
+                        value={field.value}
+                        locationUrl={form.watch("locationUrl") || ""}
+                        onLocationChange={field.onChange}
+                        onLocationUrlChange={(url) => form.setValue("locationUrl", url)}
+                        placeholder="Digite o endereco ou nome do local"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Digite para buscar enderecos. O link do Google Maps sera preenchido automaticamente.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

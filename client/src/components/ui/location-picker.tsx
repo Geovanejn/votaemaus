@@ -88,6 +88,12 @@ export function LocationPicker({
     const newValue = e.target.value;
     setInputValue(newValue);
     onLocationChange(newValue);
+    
+    // Clear locationUrl when user edits manually - the URL should only be set
+    // when selecting from autocomplete suggestions
+    if (locationUrl) {
+      onLocationUrlChange("");
+    }
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);

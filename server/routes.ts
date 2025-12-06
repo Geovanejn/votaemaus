@@ -4696,6 +4696,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/espiritualidade/prayers/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const prayer = await storage.getPrayerRequestById(id);
+      if (!prayer) {
+        return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      await logAuditAction(req.user?.id, "delete", "prayer_request", id, `Pedido de oracao removido: ${prayer.name}`, req);
+      
+      await storage.deletePrayerRequest(id);
+      
+      res.json({ message: "Pedido de oracao removido com sucesso" });
+    } catch (error) {
+      console.error("Delete prayer error:", error);
+      res.status(500).json({ message: "Erro ao remover pedido de oracao" });
+    }
+  });
+
   // Mural da oracao publico (pedidos aprovados)
   app.get("/api/site/prayer-wall", async (req, res) => {
     try {

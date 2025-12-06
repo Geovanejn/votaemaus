@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check, X, Clock, CheckCircle, AlertCircle, Heart, Users } from "lucide-react";
+import { ArrowLeft, Check, X, Clock, CheckCircle, AlertCircle, Heart, Users, Trash2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -79,6 +79,21 @@ export default function EspiritualidadeOracoes() {
     },
     onError: () => {
       toast({ title: "Erro ao rejeitar pedido", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/espiritualidade/prayers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=approved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/stats"] });
+      toast({ title: "Pedido excluído com sucesso!" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao excluir pedido", variant: "destructive" });
     },
   });
 
@@ -261,7 +276,66 @@ export default function EspiritualidadeOracoes() {
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {approvedPrayers?.map((prayer) => renderPrayerCard(prayer, false))}
+              {approvedPrayers?.map((prayer) => (
+                <Card key={prayer.id} className="flex flex-col" data-testid={`card-prayer-approved-${prayer.id}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default" className="text-xs">
+                          Aprovado
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {categoryLabels[prayer.category] || prayer.category}
+                        </Badge>
+                      </div>
+                      {prayer.inPrayerCount > 0 && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          {prayer.inPrayerCount}
+                        </div>
+                      )}
+                    </div>
+                    <CardTitle className="text-base font-medium">
+                      {prayer.name}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {prayer.createdAt && format(new Date(prayer.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col">
+                    <p className="text-sm text-muted-foreground mb-4 flex-1">
+                      {prayer.request}
+                    </p>
+                    <div className="flex gap-2 flex-wrap pt-2 border-t">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-destructive" data-testid={`button-delete-prayer-${prayer.id}`}>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir pedido de oração?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. O pedido será removido permanentemente do mural de oração.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(prayer.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>

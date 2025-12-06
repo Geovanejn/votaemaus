@@ -228,6 +228,7 @@ export interface IStorage {
   rejectPrayerRequest(id: number, moderatedBy: number, reason?: string): Promise<PrayerRequest | null>;
   incrementPrayerCount(id: number): Promise<PrayerRequest | null>;
   moderatePrayerRequest(id: number, data: { isModerated: boolean; moderatedBy: number; hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest | null>;
+  deletePrayerRequest(id: number): Promise<void>;
   
   // Board Members Methods
   getAllBoardMembers(currentOnly?: boolean): Promise<BoardMember[]>;
@@ -2241,6 +2242,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.prayerRequests.id, id))
       .returning();
     return request || null;
+  }
+
+  async deletePrayerRequest(id: number): Promise<void> {
+    await db.delete(schema.prayerReactions)
+      .where(eq(schema.prayerReactions.prayerRequestId, id));
+    await db.delete(schema.prayerRequests)
+      .where(eq(schema.prayerRequests.id, id));
   }
 
   // Board Members Methods

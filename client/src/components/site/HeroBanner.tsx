@@ -39,6 +39,7 @@ interface HighlightsData {
   devotional: DevotionalData | null;
   events: EventData[];
   instagramPosts: InstagramPostData[];
+  featuredInstagramPost: InstagramPostData | null;
 }
 
 type BannerSlide = {
@@ -108,8 +109,8 @@ export function HeroBanner() {
     });
   }
 
-  if (highlights?.instagramPosts && highlights.instagramPosts.length > 0) {
-    const p = highlights.instagramPosts[0];
+  if (highlights?.featuredInstagramPost) {
+    const p = highlights.featuredInstagramPost;
     slides.push({
       type: 'instagram',
       id: p.id,

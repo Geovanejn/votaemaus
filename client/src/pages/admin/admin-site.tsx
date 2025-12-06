@@ -21,7 +21,8 @@ import {
   EyeOff,
   RefreshCw,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Star
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -851,6 +852,7 @@ interface InstagramData {
     permalink?: string;
     postedAt?: string;
     isActive: boolean;
+    isFeaturedBanner?: boolean;
   }>;
   message?: string;
 }
@@ -881,6 +883,34 @@ function InstagramTab() {
         description: "Erro ao sincronizar posts do Instagram", 
         variant: "destructive" 
       });
+    },
+  });
+
+  const featureMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("PATCH", `/api/admin/instagram/${id}/feature`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instagram'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/site/highlights'] });
+      toast({ title: "Sucesso", description: "Post definido como destaque do banner" });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Erro ao definir destaque", variant: "destructive" });
+    },
+  });
+
+  const unfeatureMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/instagram/${id}/feature`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/instagram'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/site/highlights'] });
+      toast({ title: "Sucesso", description: "Destaque removido" });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Erro ao remover destaque", variant: "destructive" });
     },
   });
 
@@ -966,25 +996,48 @@ function InstagramTab() {
                       (e.target as HTMLImageElement).src = "https://placehold.co/400x400?text=Imagem";
                     }}
                   />
+                  {post.isFeaturedBanner && (
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-amber-500 text-white">
+                        <Star className="h-3 w-3 mr-1 fill-current" />
+                        Destaque
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                     {post.caption || "Sem legenda"}
                   </p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-muted-foreground">
                       {post.postedAt ? new Date(post.postedAt).toLocaleDateString("pt-BR") : ""}
                     </span>
-                    {post.permalink && (
-                      <a 
-                        href={post.permalink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary"
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant={post.isFeaturedBanner ? "default" : "ghost"}
+                        onClick={() => post.isFeaturedBanner 
+                          ? unfeatureMutation.mutate(post.id) 
+                          : featureMutation.mutate(post.id)
+                        }
+                        disabled={featureMutation.isPending || unfeatureMutation.isPending}
+                        title={post.isFeaturedBanner ? "Remover destaque" : "Destacar no banner"}
+                        data-testid={`button-feature-instagram-${post.id}`}
                       >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    )}
+                        <Star className={`h-4 w-4 ${post.isFeaturedBanner ? "fill-current" : ""}`} />
+                      </Button>
+                      {post.permalink && (
+                        <a 
+                          href={post.permalink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

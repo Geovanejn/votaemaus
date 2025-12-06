@@ -445,6 +445,7 @@ export const instagramPosts = pgTable("instagram_posts", {
   permalink: text("permalink"),
   postedAt: timestamp("posted_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
+  isFeaturedBanner: boolean("is_featured_banner").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

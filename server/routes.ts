@@ -3986,7 +3986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get Instagram status and posts (admin or marketing)
   app.get("/api/admin/instagram", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      const posts = await storage.getLatestInstagramPosts(12);
+      const posts = await storage.getInstagramPostsForAdmin();
       const configured = isInstagramConfigured();
       res.json({ 
         configured, 
@@ -4019,6 +4019,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Sync Instagram error:", error);
       res.status(500).json({ message: "Erro ao sincronizar Instagram" });
+    }
+  });
+
+  // Set Instagram post as featured banner (admin or marketing)
+  app.patch("/api/admin/instagram/:id/feature", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+
+      const post = await storage.getInstagramPostById(id);
+      if (!post) {
+        return res.status(404).json({ message: "Post nao encontrado" });
+      }
+
+      const updated = await storage.setFeaturedInstagramPost(id);
+      await logAuditAction(req.user?.id, "update", "instagram", id, `Post definido como destaque do banner`, req);
+
+      res.json({ 
+        message: "Post definido como destaque do banner com sucesso",
+        post: updated
+      });
+    } catch (error) {
+      console.error("Feature Instagram post error:", error);
+      res.status(500).json({ message: "Erro ao definir post como destaque" });
+    }
+  });
+
+  // Remove featured banner from Instagram post (admin or marketing)
+  app.delete("/api/admin/instagram/:id/feature", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+
+      await storage.removeFeaturedInstagramPost(id);
+
+      await logAuditAction(req.user?.id, "update", "instagram", id, `Post removido do destaque do banner`, req);
+
+      res.json({ message: "Post removido do destaque" });
+    } catch (error) {
+      console.error("Remove featured Instagram post error:", error);
+      res.status(500).json({ message: "Erro ao remover destaque" });
     }
   });
 

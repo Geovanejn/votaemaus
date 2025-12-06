@@ -174,8 +174,13 @@ export interface IStorage {
   getLatestInstagramPosts(limit?: number): Promise<any[]>;
   createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): Promise<any>;
   clearAllInstagramPosts(): Promise<void>;
+  getFeaturedInstagramPost(): Promise<any | null>;
+  setFeaturedInstagramPost(id: number): Promise<any | null>;
+  removeFeaturedInstagramPost(id: number): Promise<void>;
+  getInstagramPostById(id: number): Promise<any | null>;
+  getInstagramPostsForAdmin(): Promise<any[]>;
   
-  getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[] }>;
+  getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null }>;
   
   // Study Profile Methods
   getStudyProfile(userId: number): Promise<any | null>;
@@ -1522,14 +1527,51 @@ export class DatabaseStorage implements IStorage {
     await db.delete(schema.instagramPosts);
   }
 
-  async getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[] }> {
-    const [devotional, events, instagramPosts] = await Promise.all([
+  async getFeaturedInstagramPost(): Promise<any | null> {
+    const [post] = await db.select().from(schema.instagramPosts)
+      .where(eq(schema.instagramPosts.isFeaturedBanner, true))
+      .limit(1);
+    return post || null;
+  }
+
+  async setFeaturedInstagramPost(id: number): Promise<any | null> {
+    await db.update(schema.instagramPosts)
+      .set({ isFeaturedBanner: false });
+    
+    const [updated] = await db.update(schema.instagramPosts)
+      .set({ isFeaturedBanner: true })
+      .where(eq(schema.instagramPosts.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async getInstagramPostById(id: number): Promise<any | null> {
+    const [post] = await db.select().from(schema.instagramPosts)
+      .where(eq(schema.instagramPosts.id, id))
+      .limit(1);
+    return post || null;
+  }
+
+  async removeFeaturedInstagramPost(id: number): Promise<void> {
+    await db.update(schema.instagramPosts)
+      .set({ isFeaturedBanner: false })
+      .where(eq(schema.instagramPosts.id, id));
+  }
+
+  async getInstagramPostsForAdmin(): Promise<any[]> {
+    return db.select().from(schema.instagramPosts)
+      .orderBy(desc(schema.instagramPosts.postedAt));
+  }
+
+  async getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null }> {
+    const [devotional, events, instagramPosts, featuredInstagramPost] = await Promise.all([
       this.getLatestDevotional(),
       this.getUpcomingEvents(5),
       this.getLatestInstagramPosts(6),
+      this.getFeaturedInstagramPost(),
     ]);
     
-    return { devotional, events, instagramPosts };
+    return { devotional, events, instagramPosts, featuredInstagramPost };
   }
 
   // Study Profile Methods

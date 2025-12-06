@@ -45,11 +45,11 @@ export default function EspiritualidadeOracoes() {
   const { toast } = useToast();
 
   const { data: pendingPrayers, isLoading: isLoadingPending } = useQuery<PrayerRequest[]>({
-    queryKey: ["/api/espiritualidade/prayers", "pending"],
+    queryKey: ["/api/espiritualidade/prayers?status=pending"],
   });
 
   const { data: approvedPrayers, isLoading: isLoadingApproved } = useQuery<PrayerRequest[]>({
-    queryKey: ["/api/espiritualidade/prayers", "approved"],
+    queryKey: ["/api/espiritualidade/prayers?status=approved"],
   });
 
   const approveMutation = useMutation({
@@ -57,7 +57,8 @@ export default function EspiritualidadeOracoes() {
       return apiRequest("PATCH", `/api/espiritualidade/prayers/${id}/approve`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=approved"] });
       queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/stats"] });
       toast({ title: "Pedido aprovado com sucesso!" });
     },
@@ -71,7 +72,8 @@ export default function EspiritualidadeOracoes() {
       return apiRequest("PATCH", `/api/espiritualidade/prayers/${id}/reject`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/prayers?status=approved"] });
       queryClient.invalidateQueries({ queryKey: ["/api/espiritualidade/stats"] });
       toast({ title: "Pedido rejeitado!" });
     },

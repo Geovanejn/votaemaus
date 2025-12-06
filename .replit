@@ -104,7 +104,7 @@ waitForPort = 5000
 
 [agent]
 expertMode = true
-integrations = ["javascript_openai:1.0.0", "javascript_gemini:1.0.0"]
+integrations = ["javascript_openai:1.0.0", "javascript_gemini:1.0.0", "google-calendar:1.0.0"]
 
 [userenv]
 

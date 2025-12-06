@@ -3600,6 +3600,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate Google Calendar add URL for event
+  app.get("/api/site/events/:id/google-calendar-url", async (req, res) => {
+    try {
+      const { generateGoogleCalendarAddUrl } = await import("./utils/google-calendar");
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const event = await storage.getSiteEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      const googleCalendarUrl = generateGoogleCalendarAddUrl(event);
+      res.json({ url: googleCalendarUrl });
+    } catch (error) {
+      console.error("Generate Google Calendar URL error:", error);
+      res.status(500).json({ message: "Erro ao gerar URL do Google Calendar" });
+    }
+  });
+
+  // Get Google Calendar subscribe URL for all events
+  app.get("/api/site/events/google-calendar-subscribe", async (req, res) => {
+    try {
+      const { generateGoogleCalendarSubscribeUrl } = await import("./utils/google-calendar");
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['host'] || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      const subscribeUrl = generateGoogleCalendarSubscribeUrl(baseUrl);
+      res.json({ url: subscribeUrl });
+    } catch (error) {
+      console.error("Generate Google Calendar subscribe URL error:", error);
+      res.status(500).json({ message: "Erro ao gerar URL de inscricao do Google Calendar" });
+    }
+  });
+
+  // Sync events to Google Calendar (admin only)
+  app.post("/api/admin/events/sync-google-calendar", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { syncAllEventsToGoogleCalendar } = await import("./utils/google-calendar");
+      const events = await storage.getUpcomingEvents();
+      
+      const result = await syncAllEventsToGoogleCalendar(events);
+      
+      if (result.success) {
+        res.json({ 
+          message: `${result.synced} evento(s) sincronizado(s) com sucesso!`,
+          synced: result.synced,
+          failed: result.failed
+        });
+      } else {
+        res.status(207).json({
+          message: `Sincronizacao parcial: ${result.synced} sucesso, ${result.failed} falha(s)`,
+          synced: result.synced,
+          failed: result.failed,
+          errors: result.errors
+        });
+      }
+    } catch (error) {
+      console.error("Sync Google Calendar error:", error);
+      res.status(500).json({ message: "Erro ao sincronizar com Google Calendar" });
+    }
+  });
+
   // Get all banners (admin or marketing)
   app.get("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {

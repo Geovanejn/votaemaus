@@ -1996,12 +1996,11 @@ export const devotionalComments = pgTable("devotional_comments", {
 ### 20.3 Itens Pendentes (Próximos Passos)
 
 #### Alta Prioridade
-1. **Mural da Oração Interativo**
-   - [ ] Atualizar `/oracao.tsx` com seção Mural da Oração
-   - [ ] Criar componente PrayerWall.tsx para exibir pedidos aprovados
-   - [ ] Implementar botão "Estou em Oração" com contador
-   - [ ] Criar API GET /api/site/prayer-requests/approved
-   - [ ] Criar API POST /api/site/prayer-requests/:id/pray
+1. **Mural da Oração Interativo** ✅ IMPLEMENTADO (06/12/2025)
+   - [x] Atualizar `/oracao.tsx` com seção Mural da Oração
+   - [x] Implementar botão "Estou em Oração" com contador
+   - [x] Criar API GET /api/site/prayer-requests/approved
+   - [x] Criar API POST /api/site/prayer-requests/:id/pray
 
 2. **API de Comentários de Devocionais**
    - [ ] GET /api/site/devotionals/:id/comments (públicos aprovados)
@@ -2023,11 +2022,14 @@ export const devotionalComments = pgTable("devotional_comments", {
    - [ ] Integrar no endpoint de pedidos de oração
    - [ ] Integrar no endpoint de comentários
 
-5. **Calendário ICS Completo**
-   - [ ] Instalar pacote ical-generator
-   - [ ] Criar utilitário ics-generator.ts
-   - [ ] Implementar endpoint GET /api/site/events/calendar.ics
-   - [ ] Adicionar botão "Sincronizar com Google Agenda" na página Agenda
+5. **Sincronização Google Calendar** ✅ IMPLEMENTADO (06/12/2025)
+   - [x] Instalar pacote ical-generator
+   - [x] Implementar endpoint GET /api/site/events/calendar.ics
+   - [x] Criar utilitário google-calendar.ts para integração OAuth
+   - [x] Adicionar botão "Sincronizar com Google Agenda" na página Agenda
+   - [x] Adicionar botão "Adicionar ao Google Agenda" em cada evento individual
+   - [x] Criar endpoint GET /api/site/events/:id/google-calendar-url
+   - [x] Criar endpoint GET /api/site/events/google-calendar-subscribe
 
 #### Baixa Prioridade
 6. **Melhorias nos Eventos**

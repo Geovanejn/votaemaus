@@ -10,9 +10,9 @@ import {
   ChevronRight,
   List,
   Grid,
-  Loader2,
-  Download
+  Loader2
 } from "lucide-react";
+import { SiGooglecalendar } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -236,11 +236,22 @@ export default function AgendaPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open("/api/site/events/calendar.ics", "_blank")}
-                data-testid="button-download-calendar"
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/site/events/google-calendar-subscribe");
+                    const data = await response.json();
+                    if (data.url) {
+                      window.open(data.url, "_blank");
+                    }
+                  } catch (error) {
+                    console.error("Error getting Google Calendar URL:", error);
+                    window.open("/api/site/events/calendar.ics", "_blank");
+                  }
+                }}
+                data-testid="button-sync-google-calendar"
               >
-                <Download className="h-4 w-4 mr-1" />
-                Baixar Calendario
+                <SiGooglecalendar className="h-4 w-4 mr-1" />
+                Sincronizar com Google Agenda
               </Button>
               <Button
                 variant={viewMode === "list" ? "default" : "outline"}
@@ -359,6 +370,28 @@ export default function AgendaPage() {
                                         <Users className="h-4 w-4 text-primary" />
                                         {event.organizer}
                                       </span>
+                                    </div>
+                                    <div className="mt-4">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            const response = await fetch(`/api/site/events/${event.id}/google-calendar-url`);
+                                            const data = await response.json();
+                                            if (data.url) {
+                                              window.open(data.url, "_blank");
+                                            }
+                                          } catch (error) {
+                                            console.error("Error getting Google Calendar URL:", error);
+                                          }
+                                        }}
+                                        data-testid={`button-add-to-calendar-${event.id}`}
+                                      >
+                                        <SiGooglecalendar className="h-4 w-4 mr-1" />
+                                        Adicionar ao Google Agenda
+                                      </Button>
                                     </div>
                                   </div>
                                 </div>

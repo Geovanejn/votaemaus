@@ -45,7 +45,8 @@ import {
   notifyNewEvent, 
   notifyNewPrayerRequest, 
   notifyPrayerApproved,
-  notifyNewComment
+  notifyNewComment,
+  notifySeasonPublished
 } from "./notifications";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
@@ -3265,7 +3266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (shouldAutoApprove) {
         await storage.autoApprovePrayerRequest(prayerRequest.id);
       } else if (!isPrivate) {
-        notifyNewPrayerRequest(prayerRequest.id, name.trim()).catch(err => 
+        notifyNewPrayerRequest(prayerRequest.id, name.trim(), category, request).catch(err => 
           console.error("[Notifications] Error notifying new prayer request:", err)
         );
       }
@@ -3644,7 +3645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "create", "event", event.id, `Criado: ${req.body.title}`, req);
       
       if (req.body.isPublished !== false) {
-        notifyNewEvent(event.id, req.body.title).catch(err => 
+        notifyNewEvent(event.id, event.title, event.startDate, event.location).catch(err => 
           console.error("[Notifications] Error notifying new event:", err)
         );
       }
@@ -4314,6 +4315,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
+      
+      notifySeasonPublished(season.id, season.title, season.description).catch(err => 
+        console.error("[Notifications] Error notifying season published:", err)
+      );
+      
       res.json(season);
     } catch (error) {
       console.error("Publish season error:", error);
@@ -4941,7 +4947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const devotional = await storage.getDevotionalById(devotionalId);
       if (devotional) {
-        notifyNewComment(devotionalId, devotional.title, name.trim()).catch(err => 
+        notifyNewComment(devotionalId, devotional.title, name.trim(), content.trim()).catch(err => 
           console.error("[Notifications] Error notifying new comment:", err)
         );
       }

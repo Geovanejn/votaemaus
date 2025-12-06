@@ -1,6 +1,14 @@
 import webpush from "web-push";
 import { storage } from "./storage";
 import type { User, PushSubscription } from "@shared/schema";
+import {
+  sendNewPrayerRequestEmail,
+  sendNewCommentEmail,
+  sendNewDevotionalEmail,
+  sendNewEventEmail,
+  sendSeasonPublishedEmail,
+  isEmailConfigured,
+} from "./email";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
@@ -134,7 +142,7 @@ export async function sendPushToSecretaria(
   const admins = await storage.getAdminUsers();
   
   const allUsers = [...users, ...admins];
-  const uniqueUserIds = [...new Set(allUsers.map(u => u.id))];
+  const uniqueUserIds = Array.from(new Set(allUsers.map(u => u.id)));
 
   return sendPushToUsers(uniqueUserIds, payload);
 }
@@ -187,6 +195,10 @@ export async function notifyNewDevotional(
       payload.body,
       { devotionalId, url: payload.url }
     );
+    
+    if (isEmailConfigured() && member.email) {
+      await sendNewDevotionalEmail(member.email, member.fullName, title, devotionalId);
+    }
   }
 
   console.log(`[Notifications] New devotional notification sent to ${members.length} members`);
@@ -194,7 +206,9 @@ export async function notifyNewDevotional(
 
 export async function notifyNewEvent(
   eventId: number,
-  title: string
+  title: string,
+  eventDate?: string,
+  eventLocation?: string | null
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Novo Evento",
@@ -215,6 +229,10 @@ export async function notifyNewEvent(
       payload.body,
       { eventId, url: payload.url }
     );
+    
+    if (isEmailConfigured() && member.email && eventDate) {
+      await sendNewEventEmail(member.email, member.fullName, title, eventDate, eventLocation || null);
+    }
   }
 
   console.log(`[Notifications] New event notification sent to ${members.length} members`);
@@ -222,7 +240,9 @@ export async function notifyNewEvent(
 
 export async function notifyNewPrayerRequest(
   requestId: number,
-  requesterName: string
+  requesterName: string,
+  category?: string,
+  requestText?: string
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Novo Pedido de Oracao",
@@ -234,6 +254,28 @@ export async function notifyNewPrayerRequest(
 
   const result = await sendPushToSecretaria("espiritualidade", payload);
   console.log(`[Notifications] Prayer request notification: ${result.sent} sent, ${result.failed} failed`);
+
+  if (isEmailConfigured() && category && requestText) {
+    const users = await storage.getUsersBySecretaria("espiritualidade");
+    const admins = await storage.getAdminUsers();
+    const allUsers = [...users, ...admins];
+    const uniqueUsers = allUsers.filter((user, index, self) => 
+      index === self.findIndex(u => u.id === user.id)
+    );
+
+    for (const user of uniqueUsers) {
+      if (user.email) {
+        await sendNewPrayerRequestEmail(
+          user.email,
+          user.fullName,
+          requesterName,
+          category,
+          requestText
+        );
+      }
+    }
+    console.log(`[Notifications] Prayer request email sent to ${uniqueUsers.length} espiritualidade members`);
+  }
 }
 
 export async function notifyPrayerApproved(
@@ -261,7 +303,8 @@ export async function notifyPrayerApproved(
 export async function notifyNewComment(
   devotionalId: number,
   devotionalTitle: string,
-  commenterName: string
+  commenterName: string,
+  commentText?: string
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Novo Comentario",
@@ -273,11 +316,34 @@ export async function notifyNewComment(
 
   const result = await sendPushToSecretaria("espiritualidade", payload);
   console.log(`[Notifications] New comment notification: ${result.sent} sent, ${result.failed} failed`);
+
+  if (isEmailConfigured() && commentText) {
+    const users = await storage.getUsersBySecretaria("espiritualidade");
+    const admins = await storage.getAdminUsers();
+    const allUsers = [...users, ...admins];
+    const uniqueUsers = allUsers.filter((user, index, self) => 
+      index === self.findIndex(u => u.id === user.id)
+    );
+
+    for (const user of uniqueUsers) {
+      if (user.email) {
+        await sendNewCommentEmail(
+          user.email,
+          user.fullName,
+          commenterName,
+          devotionalTitle,
+          commentText
+        );
+      }
+    }
+    console.log(`[Notifications] Comment email sent to ${uniqueUsers.length} espiritualidade members`);
+  }
 }
 
 export async function notifySeasonPublished(
   seasonId: number,
-  seasonTitle: string
+  seasonTitle: string,
+  seasonDescription?: string | null
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Nova Temporada DeoGlory!",
@@ -298,6 +364,10 @@ export async function notifySeasonPublished(
       payload.body,
       { seasonId, url: payload.url }
     );
+    
+    if (isEmailConfigured() && member.email) {
+      await sendSeasonPublishedEmail(member.email, member.fullName, seasonTitle, seasonDescription || null);
+    }
   }
 
   console.log(`[Notifications] Season published notification sent to ${members.length} members`);

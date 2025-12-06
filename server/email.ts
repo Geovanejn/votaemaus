@@ -532,3 +532,520 @@ export async function sendAuditPDFEmail(
     return false;
   }
 }
+
+// ==================== NOTIFICATION EMAILS ====================
+
+export async function sendNewPrayerRequestEmail(
+  recipientEmail: string,
+  recipientName: string,
+  requesterName: string,
+  category: string,
+  requestPreview: string
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New prayer request notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    const preview = requestPreview.length > 150 ? requestPreview.substring(0, 150) + '...' : requestPreview;
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novo Pedido de Oração - ${category}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Pedido de Oração</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um novo pedido de oração foi recebido e precisa de sua atenção:
+            </p>
+            <div style="background-color: #F3E8FF; border-left: 4px solid #6B46C1; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #6B46C1; font-weight: bold; font-size: 14px;">Categoria: ${category}</p>
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${requesterName}</p>
+              <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Acesse o painel de espiritualidade para revisar e aprovar o pedido.
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Secretaria de Espiritualidade</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    console.log(`✓ Prayer request notification email sent to ${recipientEmail}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending prayer request notification email:", error);
+    return false;
+  }
+}
+
+export async function sendNewCommentEmail(
+  recipientEmail: string,
+  recipientName: string,
+  commenterName: string,
+  devotionalTitle: string,
+  commentPreview: string
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New comment notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    const preview = commentPreview.length > 150 ? commentPreview.substring(0, 150) + '...' : commentPreview;
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novo Comentário em "${devotionalTitle}"`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Comentário</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um novo comentário foi recebido no devocional e precisa de aprovação:
+            </p>
+            <div style="background-color: #EFF6FF; border-left: 4px solid #2563EB; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #2563EB; font-weight: bold; font-size: 14px;">Devocional: ${devotionalTitle}</p>
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${commenterName}</p>
+              <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Acesse o painel de espiritualidade para revisar e aprovar o comentário.
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Secretaria de Espiritualidade</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    console.log(`✓ Comment notification email sent to ${recipientEmail}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending comment notification email:", error);
+    return false;
+  }
+}
+
+export async function sendNewDevotionalEmail(
+  recipientEmail: string,
+  recipientName: string,
+  devotionalTitle: string,
+  devotionalId: number
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New devotional notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novo Devocional: ${devotionalTitle}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Devocional</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um novo devocional foi publicado para você:
+            </p>
+            <div style="background-color: #ECFDF5; border-left: 4px solid #059669; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #059669; font-weight: bold; font-size: 18px;">${devotionalTitle}</p>
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Aproveite este momento de reflexão e crescimento espiritual!
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending devotional notification email:", error);
+    return false;
+  }
+}
+
+export async function sendNewEventEmail(
+  recipientEmail: string,
+  recipientName: string,
+  eventTitle: string,
+  eventDate: string,
+  eventLocation: string | null
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New event notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novo Evento: ${eventTitle}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um novo evento foi adicionado à agenda:
+            </p>
+            <div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #DC2626; font-weight: bold; font-size: 18px;">${eventTitle}</p>
+              <p style="margin: 0 0 5px 0; color: #666; font-size: 14px;">Data: ${eventDate}</p>
+              ${eventLocation ? `<p style="margin: 0; color: #666; font-size: 14px;">Local: ${eventLocation}</p>` : ''}
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Marque na sua agenda e participe!
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending event notification email:", error);
+    return false;
+  }
+}
+
+export async function sendSeasonPublishedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  seasonTitle: string,
+  seasonDescription: string | null
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Season published notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Nova Temporada DeoGlory: ${seasonTitle}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Temporada DeoGlory!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Uma nova temporada de estudos está disponível no DeoGlory:
+            </p>
+            <div style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #FFA500; font-weight: bold; font-size: 18px;">${seasonTitle}</p>
+              ${seasonDescription ? `<p style="margin: 0; color: #666; font-size: 14px;">${seasonDescription}</p>` : ''}
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Comece seus estudos agora e ganhe XP!
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending season published email:", error);
+    return false;
+  }
+}
+
+export async function sendSeasonEndedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  seasonTitle: string,
+  lessonsCompleted: number,
+  totalLessons: number,
+  xpEarned: number,
+  correctPercentage: number
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Season ended notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    const completionRate = Math.round((lessonsCompleted / totalLessons) * 100);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Temporada Finalizada: ${seasonTitle} - Seu Relatório`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Temporada Finalizada!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Parabéns, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              A temporada "${seasonTitle}" chegou ao fim. Confira seu desempenho:
+            </p>
+            <div style="background-color: #F5F3FF; border-radius: 8px; padding: 25px; margin: 20px 0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <div style="text-align: center; flex: 1;">
+                  <p style="margin: 0; color: #7C3AED; font-size: 28px; font-weight: bold;">${lessonsCompleted}/${totalLessons}</p>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Lições Completas</p>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <p style="margin: 0; color: #FFA500; font-size: 28px; font-weight: bold;">${xpEarned}</p>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">XP Ganho</p>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <p style="margin: 0; color: #10B981; font-size: 28px; font-weight: bold;">${correctPercentage}%</p>
+                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Acertos</p>
+                </div>
+              </div>
+              <div style="background-color: #E9D5FF; height: 8px; border-radius: 4px; margin-top: 15px;">
+                <div style="background-color: #7C3AED; height: 8px; border-radius: 4px; width: ${completionRate}%;"></div>
+              </div>
+              <p style="margin: 10px 0 0 0; text-align: center; color: #7C3AED; font-size: 14px; font-weight: bold;">${completionRate}% Completo</p>
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
+              Continue crescendo na Palavra! Novas temporadas virão em breve.
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending season ended email:", error);
+    return false;
+  }
+}
+
+export async function sendBonusEventEmail(
+  recipientEmail: string,
+  recipientName: string,
+  eventName: string,
+  eventDescription: string,
+  bonusXp: number
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Bonus event notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Evento Especial DeoGlory: ${eventName}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Evento Especial!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um evento especial está acontecendo no DeoGlory:
+            </p>
+            <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #F59E0B; font-weight: bold; font-size: 18px;">${eventName}</p>
+              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">${eventDescription}</p>
+              ${bonusXp > 0 ? `<p style="margin: 0; color: #059669; font-weight: bold; font-size: 14px;">Bônus: +${bonusXp} XP</p>` : ''}
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Não perca essa oportunidade de ganhar XP extra!
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending bonus event email:", error);
+    return false;
+  }
+}
+
+export async function sendLessonAvailableEmail(
+  recipientEmail: string,
+  recipientName: string,
+  lessonTitle: string,
+  seasonTitle: string
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Lesson available notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const emailPayload: any = {
+      from: "Emaús Vota <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Nova Lição Disponível: ${lessonTitle}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Lição Disponível!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Uma nova lição foi liberada para você estudar:
+            </p>
+            <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 5px 0; color: #3B82F6; font-weight: bold; font-size: 16px;">${lessonTitle}</p>
+              <p style="margin: 0; color: #666; font-size: 13px;">Temporada: ${seasonTitle}</p>
+            </div>
+            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+              Acesse o DeoGlory e continue sua jornada de aprendizado!
+            </p>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending lesson available email:", error);
+    return false;
+  }
+}
+
+export function isEmailConfigured(): boolean {
+  return resend !== null;
+}

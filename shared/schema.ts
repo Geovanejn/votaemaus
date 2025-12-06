@@ -506,6 +506,54 @@ export const insertPrayerRequestSchema = createInsertSchema(prayerRequests).omit
 export type InsertPrayerRequest = z.infer<typeof insertPrayerRequestSchema>;
 export type PrayerRequest = typeof prayerRequests.$inferSelect;
 
+// ==================== REACOES DE ORACAO (ESTOU EM ORACAO) ====================
+
+export const prayerReactions = pgTable("prayer_reactions", {
+  id: serial("id").primaryKey(),
+  prayerRequestId: integer("prayer_request_id").notNull().references(() => prayerRequests.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueReaction: unique().on(table.prayerRequestId, table.sessionId),
+}));
+
+export const insertPrayerReactionSchema = createInsertSchema(prayerReactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPrayerReaction = z.infer<typeof insertPrayerReactionSchema>;
+export type PrayerReaction = typeof prayerReactions.$inferSelect;
+
+// ==================== COMENTARIOS DE DEVOCIONAIS ====================
+
+export const devotionalComments = pgTable("devotional_comments", {
+  id: serial("id").primaryKey(),
+  devotionalId: integer("devotional_id").notNull().references(() => devotionals.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  isApproved: boolean("is_approved").notNull().default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  isHighlighted: boolean("is_highlighted").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDevotionalCommentSchema = createInsertSchema(devotionalComments).omit({
+  id: true,
+  isApproved: true,
+  approvedBy: true,
+  approvedAt: true,
+  isHighlighted: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDevotionalComment = z.infer<typeof insertDevotionalCommentSchema>;
+export type DevotionalComment = typeof devotionalComments.$inferSelect;
+
 // ==================== BANNERS DO CARROSSEL ====================
 
 export const banners = pgTable("banners", {

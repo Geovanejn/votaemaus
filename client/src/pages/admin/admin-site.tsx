@@ -78,11 +78,10 @@ interface BoardMember {
 
 interface PrayerRequest {
   id: number;
-  name?: string;
+  name: string;
   whatsapp?: string;
   category: string;
   request: string;
-  isAnonymous: boolean;
   status: string;
   createdAt: string;
   processedBy?: number;
@@ -534,15 +533,10 @@ function PrayerRequestsTab() {
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {getStatusBadge(request.status)}
                       <Badge variant="outline">{getCategoryLabel(request.category)}</Badge>
-                      {request.isAnonymous && (
-                        <Badge variant="secondary">Anonimo</Badge>
-                      )}
                     </div>
                     <p className="text-sm mb-2">{request.request}</p>
                     <div className="text-xs text-muted-foreground">
-                      {!request.isAnonymous && request.name && (
-                        <span className="mr-4">De: {request.name}</span>
-                      )}
+                      <span className="mr-4">De: {request.name}</span>
                       <span>
                         Recebido em: {new Date(request.createdAt).toLocaleDateString("pt-BR")}
                       </span>

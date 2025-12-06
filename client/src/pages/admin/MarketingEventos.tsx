@@ -122,7 +122,10 @@ export default function MarketingEventos() {
   };
 
   const isUpcoming = (dateStr: string) => {
-    return new Date(dateStr) >= new Date();
+    const eventDate = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate >= today;
   };
 
   return (

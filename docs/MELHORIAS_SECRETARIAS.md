@@ -2002,25 +2002,24 @@ export const devotionalComments = pgTable("devotional_comments", {
    - [x] Criar API GET /api/site/prayer-requests/approved
    - [x] Criar API POST /api/site/prayer-requests/:id/pray
 
-2. **API de Comentários de Devocionais**
-   - [ ] GET /api/site/devotionals/:id/comments (públicos aprovados)
-   - [ ] POST /api/site/devotionals/:id/comments (adicionar comentário)
-   - [ ] GET /api/espiritualidade/comments (todos para moderação)
-   - [ ] PATCH /api/espiritualidade/comments/:id/approve
-   - [ ] DELETE /api/espiritualidade/comments/:id
+2. **API de Comentários de Devocionais** ✅ IMPLEMENTADO (06/12/2025)
+   - [x] GET /api/site/devotionals/:id/comments (públicos aprovados)
+   - [x] POST /api/site/devotionals/:id/comments (adicionar comentário)
+   - [x] GET /api/espiritualidade/comments (todos para moderação)
+   - [x] PATCH /api/espiritualidade/comments/:id/approve
+   - [x] DELETE /api/espiritualidade/comments/:id
 
-3. **Seção de Comentários no Devocional**
-   - [ ] Criar componente DevotionalComments.tsx
-   - [ ] Criar componente CommentCard.tsx
-   - [ ] Criar componente CommentForm.tsx
-   - [ ] Integrar na página devocional-detail.tsx
+3. **Seção de Comentários no Devocional** ✅ IMPLEMENTADO (06/12/2025)
+   - [x] Criar componente DevotionalComments.tsx
+   - [x] CommentCard e CommentForm integrados no DevotionalComments.tsx
+   - [x] Integrar na página devocional-detail.tsx
 
 #### Média Prioridade
-4. **Moderação Automática**
-   - [ ] Instalar pacote bad-words
-   - [ ] Criar utilitário profanity-filter.ts
-   - [ ] Integrar no endpoint de pedidos de oração
-   - [ ] Integrar no endpoint de comentários
+4. **Moderação Automática** ✅ IMPLEMENTADO (06/12/2025)
+   - [x] Instalar pacote bad-words
+   - [x] Criar utilitário profanity-filter.ts
+   - [x] Integrar no endpoint de pedidos de oração
+   - [x] Integrar no endpoint de comentários
 
 5. **Sincronização Google Calendar** ✅ IMPLEMENTADO (06/12/2025)
    - [x] Instalar pacote ical-generator
@@ -2044,17 +2043,17 @@ export const devotionalComments = pgTable("devotional_comments", {
 
 ### 20.4 Estimativa de Tempo Restante
 
-| Item | Tempo Estimado |
-|------|----------------|
-| Mural da Oração Interativo | 2-3 horas |
-| API Comentários + Frontend | 3-4 horas |
-| Moderação Automática | 1-2 horas |
-| Calendário ICS | 1-2 horas |
-| Melhorias em Eventos | 2-3 horas |
-| **Total Restante** | **9-14 horas** |
+| Item | Status |
+|------|--------|
+| Mural da Oração Interativo | ✅ Concluído |
+| API Comentários + Frontend | ✅ Concluído |
+| Moderação Automática | ✅ Concluído |
+| Calendário ICS | ✅ Concluído |
+| Melhorias em Eventos | Pendente (Baixa Prioridade) |
+| Página de Estatísticas Admin | Pendente (Baixa Prioridade) |
 
 ---
 
 *Documento atualizado em 06/12/2025*
-*Versão: 2.5 - Análise completa de implementação*
-*Status: MVP ~88% completo - Principais funcionalidades implementadas*
+*Versão: 2.6 - Sistema de comentários e moderação implementados*
+*Status: MVP ~95% completo - Todas funcionalidades principais implementadas*

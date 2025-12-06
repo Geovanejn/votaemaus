@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import { Upload, Trash2, Loader2, ImageIcon } from "lucide-react";
 
@@ -21,6 +22,7 @@ export function ImageUpload({
   className,
   disabled = false,
 }: ImageUploadProps) {
+  const { toast } = useToast();
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +68,11 @@ export function ImageUpload({
       onChange(data.url);
     } catch (error) {
       console.error("Upload error:", error);
-      onChange(croppedImage);
+      toast({
+        title: "Erro no upload",
+        description: "Nao foi possivel enviar a imagem. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
       setTempImageSrc(null);

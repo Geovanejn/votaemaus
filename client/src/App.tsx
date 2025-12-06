@@ -33,6 +33,7 @@ const MarketingEventos = lazy(() => import("@/pages/admin/MarketingEventos"));
 const MarketingEventoEditor = lazy(() => import("@/pages/admin/MarketingEventoEditor"));
 const MarketingDiretoria = lazy(() => import("@/pages/admin/MarketingDiretoria"));
 const MarketingDiretoriaEditor = lazy(() => import("@/pages/admin/MarketingDiretoriaEditor"));
+const MarketingQuemSomos = lazy(() => import("@/pages/admin/MarketingQuemSomos"));
 const VotePage = lazy(() => import("@/pages/vote"));
 const ResultsPage = lazy(() => import("@/pages/results"));
 const StudyHomePage = lazy(() => import("@/pages/study/index"));
@@ -134,6 +135,7 @@ function Router() {
           <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />
           <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
           <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
+          <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />
@@ -197,6 +199,7 @@ function Router() {
         <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />
         <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
         <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
+        <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

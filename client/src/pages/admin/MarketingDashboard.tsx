@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight } from "lucide-react";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText } from "lucide-react";
 
 interface MarketingStats {
   events: {
@@ -107,7 +107,7 @@ export default function MarketingDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card data-testid="card-events-section">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -166,6 +166,29 @@ export default function MarketingDashboard() {
                 <Button variant="outline" className="w-full justify-start" data-testid="button-add-member">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Adicionar Membro
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-site-section">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Paginas do Site
+            </CardTitle>
+            <CardDescription>
+              Edite o conteudo das paginas do site
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <Link href="/admin/marketing/quem-somos">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-edit-quem-somos">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Editar Quem Somos
+                  <ArrowUpRight className="h-4 w-4 ml-auto" />
                 </Button>
               </Link>
             </div>

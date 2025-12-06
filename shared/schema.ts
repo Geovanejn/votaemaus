@@ -1390,31 +1390,3 @@ export type AuditAction =
   | "password_reset"
   | "approve"
   | "reject";
-
-// ==================== SITE CONTENT (Quem Somos, etc.) ====================
-
-export const siteContent = pgTable("site_content", {
-  id: serial("id").primaryKey(),
-  key: text("key").notNull().unique(),
-  title: text("title"),
-  content: text("content").notNull(),
-  metadata: text("metadata"),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  updatedBy: integer("updated_by").references(() => users.id),
-});
-
-export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
-  id: true,
-  updatedAt: true,
-});
-
-export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
-export type SiteContent = typeof siteContent.$inferSelect;
-
-export type SiteContentKey = 
-  | "quem_somos_history"
-  | "quem_somos_mission"
-  | "quem_somos_vision"
-  | "quem_somos_values"
-  | "quem_somos_timeline"
-  | "quem_somos_contact";

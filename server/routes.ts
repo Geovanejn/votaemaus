@@ -3530,6 +3530,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SITE CONTENT ROUTES ====================
+
+  // Get all site content (admin/marketing)
+  app.get("/api/marketing/site-content", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const content = await storage.getAllSiteContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Get site content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteudo do site" });
+    }
+  });
+
+  // Get site content by page and section (admin/marketing)
+  app.get("/api/marketing/site-content/:page/:section", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { page, section } = req.params;
+      const content = await storage.getSiteContent(page, section);
+      res.json(content);
+    } catch (error) {
+      console.error("Get site content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteudo do site" });
+    }
+  });
+
+  // Upsert site content (admin/marketing)
+  app.put("/api/marketing/site-content", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { page, section, title, content, imageUrl, metadata } = req.body;
+      if (!page || !section) {
+        return res.status(400).json({ message: "Pagina e secao sao obrigatorios" });
+      }
+      const saved = await storage.upsertSiteContent({
+        page,
+        section,
+        title,
+        content,
+        imageUrl,
+        metadata,
+        updatedBy: req.user!.id,
+      });
+      
+      await logAuditAction(req.user?.id, "update", "site_content", saved.id, `${page}/${section}`, req);
+      
+      res.json(saved);
+    } catch (error) {
+      console.error("Upsert site content error:", error);
+      res.status(500).json({ message: "Erro ao salvar conteudo do site" });
+    }
+  });
+
+  // Public: Get site content for a page
+  app.get("/api/site-content/:page", async (req, res) => {
+    try {
+      const { page } = req.params;
+      const allContent = await storage.getAllSiteContent();
+      const pageContent = allContent.filter(c => c.page === page);
+      
+      // Convert to object keyed by section
+      const contentMap: Record<string, any> = {};
+      for (const item of pageContent) {
+        contentMap[item.section] = {
+          title: item.title,
+          content: item.content,
+          imageUrl: item.imageUrl,
+          metadata: item.metadata ? JSON.parse(item.metadata) : null,
+        };
+      }
+      
+      res.json(contentMap);
+    } catch (error) {
+      console.error("Get public site content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteudo" });
+    }
+  });
+
   // Get all events (admin or marketing)
   app.get("/api/admin/events", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {

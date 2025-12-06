@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { 
   Church,
@@ -13,8 +14,18 @@ import {
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const values = [
+interface SiteContentSection {
+  title: string;
+  content: string;
+  imageUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+type SiteContentMap = Record<string, SiteContentSection>;
+
+const defaultValues = [
   {
     icon: BookOpen,
     title: "Palavra de Deus",
@@ -37,7 +48,7 @@ const values = [
   },
 ];
 
-const timeline = [
+const defaultTimeline = [
   {
     year: "1990",
     title: "Fundação",
@@ -65,7 +76,52 @@ const timeline = [
   },
 ];
 
+const iconMap: Record<string, typeof BookOpen> = {
+  BookOpen,
+  Heart,
+  Church,
+  Target,
+};
+
 export default function QuemSomosPage() {
+  const { data: siteContent, isLoading } = useQuery<SiteContentMap>({
+    queryKey: ["/api/site-content/quem-somos"],
+  });
+
+  const getContent = (section: string): SiteContentSection | undefined => {
+    return siteContent?.[section];
+  };
+
+  const historia = getContent("historia");
+  const missao = getContent("missao");
+  const visao = getContent("visao");
+  const valoresContent = getContent("valores");
+  const timelineContent = getContent("timeline");
+  const endereco = getContent("endereco");
+  const horarios = getContent("horarios");
+  const telefone = getContent("telefone");
+  const email = getContent("email");
+
+  const parseJsonContent = (content: string | undefined, fallback: unknown[]) => {
+    if (!content) return fallback;
+    try {
+      return JSON.parse(content);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const values = valoresContent?.content 
+    ? parseJsonContent(valoresContent.content, defaultValues).map((v: { icon?: string; title: string; description: string }) => ({
+        ...v,
+        icon: iconMap[v.icon || "Heart"] || Heart,
+      }))
+    : defaultValues;
+
+  const timeline = timelineContent?.content 
+    ? parseJsonContent(timelineContent.content, defaultTimeline)
+    : defaultTimeline;
+
   return (
     <SiteLayout>
       <section className="bg-gradient-to-br from-gray-900 via-gray-800 to-primary/80 text-white py-20">
@@ -96,19 +152,23 @@ export default function QuemSomosPage() {
               className="text-center mb-12"
             >
               <h2 className="text-3xl font-bold mb-6">Nossa História</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                A União de Mocidade Presbiteriana Emaús nasceu do desejo de jovens 
-                presbiterianos de crescer na fé, servir a Deus e fazer a diferença 
-                na comunidade. Ao longo dos anos, temos formado líderes, promovido 
-                estudos bíblicos e mantido viva a chama do evangelho entre a juventude.
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : (
+                <p className="text-lg text-muted-foreground leading-relaxed" data-testid="text-historia">
+                  {historia?.content || `A União de Mocidade Presbiteriana Emaús nasceu do desejo de jovens 
+                  presbiterianos de crescer na fé, servir a Deus e fazer a diferença 
+                  na comunidade. Ao longo dos anos, temos formado líderes, promovido 
+                  estudos bíblicos e mantido viva a chama do evangelho entre a juventude.`}
+                </p>
+              )}
             </motion.div>
 
             <div className="relative">
               <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border hidden md:block" />
               
               <div className="space-y-8">
-                {timeline.map((item, index) => (
+                {timeline.map((item: { year: string; title: string; description: string }, index: number) => (
                   <motion.div
                     key={item.year}
                     initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
@@ -158,11 +218,15 @@ export default function QuemSomosPage() {
                     <Target className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="text-xl font-bold mb-3">Missão</h3>
-                  <p className="text-muted-foreground leading-relaxed" data-testid="text-mission">
-                    Formar jovens comprometidos com Cristo, capacitando-os para 
-                    o serviço na igreja e na sociedade, através do estudo da 
-                    Palavra, da oração e da comunhão fraternal.
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : (
+                    <p className="text-muted-foreground leading-relaxed" data-testid="text-mission">
+                      {missao?.content || `Formar jovens comprometidos com Cristo, capacitando-os para 
+                      o serviço na igreja e na sociedade, através do estudo da 
+                      Palavra, da oração e da comunhão fraternal.`}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -178,11 +242,15 @@ export default function QuemSomosPage() {
                     <Eye className="h-6 w-6 text-primary" />
                   </div>
                   <h3 className="text-xl font-bold mb-3">Visão</h3>
-                  <p className="text-muted-foreground leading-relaxed" data-testid="text-vision">
-                    Ser referência na formação de jovens cristãos que impactem 
-                    positivamente suas famílias, comunidades e a sociedade, 
-                    vivendo os princípios do Reino de Deus.
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : (
+                    <p className="text-muted-foreground leading-relaxed" data-testid="text-vision">
+                      {visao?.content || `Ser referência na formação de jovens cristãos que impactem 
+                      positivamente suas famílias, comunidades e a sociedade, 
+                      vivendo os princípios do Reino de Deus.`}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -205,7 +273,7 @@ export default function QuemSomosPage() {
           </motion.div>
 
           <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {values.map((value) => (
+            {values.map((value: { icon: typeof BookOpen; title: string; description: string }) => (
               <StaggerItem key={value.title}>
                 <Card className="h-full text-center hover-elevate">
                   <CardContent className="p-6">
@@ -259,10 +327,13 @@ export default function QuemSomosPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold mb-1">Endereço</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Rua da Igreja, 123 - Centro<br />
-                          Cidade - Estado, CEP 00000-000
-                        </p>
+                        {isLoading ? (
+                          <Skeleton className="h-10 w-48" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground whitespace-pre-line" data-testid="text-endereco">
+                            {endereco?.content || `Rua da Igreja, 123 - Centro\nCidade - Estado, CEP 00000-000`}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -272,10 +343,13 @@ export default function QuemSomosPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold mb-1">Horários</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Culto Jovem: Domingo às 19:30<br />
-                          Estudo Bíblico: Quarta às 19:30
-                        </p>
+                        {isLoading ? (
+                          <Skeleton className="h-10 w-48" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground whitespace-pre-line" data-testid="text-horarios">
+                            {horarios?.content || `Culto Jovem: Domingo às 19:30\nEstudo Bíblico: Quarta às 19:30`}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -285,9 +359,13 @@ export default function QuemSomosPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold mb-1">Contato</h4>
-                        <p className="text-sm text-muted-foreground">
-                          (11) 99999-9999
-                        </p>
+                        {isLoading ? (
+                          <Skeleton className="h-5 w-32" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground" data-testid="text-telefone">
+                            {telefone?.content || "(11) 99999-9999"}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -297,9 +375,13 @@ export default function QuemSomosPage() {
                       </div>
                       <div>
                         <h4 className="font-semibold mb-1">E-mail</h4>
-                        <p className="text-sm text-muted-foreground">
-                          contato@umpemaus.org.br
-                        </p>
+                        {isLoading ? (
+                          <Skeleton className="h-5 w-40" />
+                        ) : (
+                          <p className="text-sm text-muted-foreground" data-testid="text-email">
+                            {email?.content || "contato@umpemaus.org.br"}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

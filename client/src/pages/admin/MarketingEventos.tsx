@@ -115,17 +115,20 @@ export default function MarketingEventos() {
 
   const formatDate = (dateStr: string) => {
     try {
-      return format(new Date(dateStr), "dd MMM yyyy", { locale: ptBR });
+      // Add T12:00:00 to avoid timezone issues (noon is safe from date boundary issues)
+      return format(new Date(dateStr + 'T12:00:00'), "dd MMM yyyy", { locale: ptBR });
     } catch {
       return dateStr;
     }
   };
 
   const isUpcoming = (dateStr: string) => {
-    const eventDate = new Date(dateStr + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return eventDate >= today;
+    // Get today's date in Brazil timezone (America/Sao_Paulo)
+    const today = new Date().toLocaleDateString('en-CA', { 
+      timeZone: 'America/Sao_Paulo' 
+    });
+    // Compare as strings in YYYY-MM-DD format
+    return dateStr >= today;
   };
 
   return (

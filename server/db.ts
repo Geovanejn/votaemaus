@@ -48,33 +48,36 @@ async function seedAdminUser() {
   const adminPassword = process.env.ADMIN_PASSWORD;
   
   if (!adminEmail || !adminPassword) {
-    console.log("ADMIN_EMAIL ou ADMIN_PASSWORD nao definidos. Pulando criacao do admin.");
+    console.log("ADMIN_EMAIL ou ADMIN_PASSWORD nao definidos. Pulando configuracao do admin.");
     return;
   }
   
   try {
-    const [existingAdmin] = await db.select()
+    // Primeiro, verifica se já existe um usuário com esse email
+    const [existingUser] = await db.select()
       .from(schema.users)
-      .where(eq(schema.users.email, adminEmail))
+      .where(eq(schema.users.email, adminEmail.toLowerCase().trim()))
       .limit(1);
-    
-    if (existingAdmin) {
-      if (!existingAdmin.isAdmin) {
-        await db.update(schema.users)
-          .set({ isAdmin: true })
-          .where(eq(schema.users.id, existingAdmin.id));
-        console.log(`Usuario ${adminEmail} atualizado para admin.`);
-      } else {
-        console.log(`Admin ${adminEmail} ja existe.`);
-      }
-      return;
-    }
     
     const hashedPassword = await hashPassword(adminPassword);
     
+    if (existingUser) {
+      // Usuário existe, atualiza para admin e reseta a senha
+      await db.update(schema.users)
+        .set({ 
+          isAdmin: true,
+          password: hashedPassword,
+          hasPassword: true
+        })
+        .where(eq(schema.users.id, existingUser.id));
+      console.log(`Usuario ${adminEmail} configurado como admin.`);
+      return;
+    }
+    
+    // Não existe usuário com esse email, cria um novo
     await db.insert(schema.users).values({
       fullName: "Administrador",
-      email: adminEmail,
+      email: adminEmail.toLowerCase().trim(),
       password: hashedPassword,
       hasPassword: true,
       isAdmin: true,
@@ -85,7 +88,7 @@ async function seedAdminUser() {
     
     console.log(`Admin criado com sucesso: ${adminEmail}`);
   } catch (error: any) {
-    console.error("Erro ao criar admin:", error.message);
+    console.error("Erro ao configurar admin:", error.message);
   }
 }
 

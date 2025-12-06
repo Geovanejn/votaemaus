@@ -3668,9 +3668,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/events/google-calendar-subscribe", async (req, res) => {
     try {
       const { generateGoogleCalendarSubscribeUrl } = await import("./utils/google-calendar");
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers['host'] || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
+      
+      // Use Replit's public domain instead of localhost
+      const replitDomain = process.env.REPLIT_DOMAINS || process.env.REPLIT_DEV_DOMAIN;
+      let baseUrl: string;
+      
+      if (replitDomain) {
+        // Use the first domain if multiple are provided (comma-separated)
+        const domain = replitDomain.split(',')[0].trim();
+        baseUrl = `https://${domain}`;
+      } else {
+        // Fallback for local development
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers['host'] || 'localhost:5000';
+        baseUrl = `${protocol}://${host}`;
+      }
       
       const subscribeUrl = generateGoogleCalendarSubscribeUrl(baseUrl);
       res.json({ url: subscribeUrl });

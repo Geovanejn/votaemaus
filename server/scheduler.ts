@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
+import { notifyStreakReminder, notifyInactivity } from "./notifications";
 
 function getTodayDateString(): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -71,7 +72,74 @@ export function initBirthdayScheduler(): void {
     timezone: 'America/Sao_Paulo'
   });
   
-  console.log('[Birthday Scheduler] ✓ Initialized - will run daily at 07:00 AM (America/Sao_Paulo)');
+  console.log('[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails };
+async function sendStreakReminders(): Promise<void> {
+  console.log('[DeoGlory Scheduler] Running streak reminder check...');
+  
+  try {
+    const usersWithStreak = await storage.getUsersWithActiveStreakNotStudiedToday();
+    
+    if (usersWithStreak.length === 0) {
+      console.log('[DeoGlory Scheduler] No users with active streak needing reminder');
+      return;
+    }
+    
+    console.log(`[DeoGlory Scheduler] Found ${usersWithStreak.length} user(s) with active streak needing reminder`);
+    
+    for (const user of usersWithStreak) {
+      try {
+        await notifyStreakReminder(user.userId, user.currentStreak);
+        console.log(`[DeoGlory Scheduler] Sent streak reminder to user ${user.userId} (streak: ${user.currentStreak})`);
+      } catch (error) {
+        console.error(`[DeoGlory Scheduler] Error sending streak reminder to user ${user.userId}:`, error);
+      }
+    }
+    
+    console.log(`[DeoGlory Scheduler] Streak reminder completed. Sent ${usersWithStreak.length} notification(s)`);
+  } catch (error) {
+    console.error('[DeoGlory Scheduler] Error during streak reminder check:', error);
+  }
+}
+
+async function sendInactivityReminders(): Promise<void> {
+  console.log('[DeoGlory Scheduler] Running inactivity check...');
+  
+  const inactivityDays = [2, 3, 5, 7, 10, 15];
+  let totalSent = 0;
+  
+  try {
+    for (const days of inactivityDays) {
+      const inactiveUsers = await storage.getInactiveUsersByDays(days);
+      
+      for (const user of inactiveUsers) {
+        try {
+          await notifyInactivity(user.userId, user.daysSinceLastActivity);
+          totalSent++;
+          console.log(`[DeoGlory Scheduler] Sent ${days}-day inactivity reminder to user ${user.userId}`);
+        } catch (error) {
+          console.error(`[DeoGlory Scheduler] Error sending inactivity reminder to user ${user.userId}:`, error);
+        }
+      }
+    }
+    
+    console.log(`[DeoGlory Scheduler] Inactivity check completed. Sent ${totalSent} notification(s)`);
+  } catch (error) {
+    console.error('[DeoGlory Scheduler] Error during inactivity check:', error);
+  }
+}
+
+export function initDeoGlorySchedulers(): void {
+  cron.schedule('0 18 * * *', sendStreakReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[DeoGlory Scheduler] Streak reminder initialized - will run daily at 18:00 (America/Sao_Paulo)');
+  
+  cron.schedule('0 10 * * *', sendInactivityReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[DeoGlory Scheduler] Inactivity check initialized - will run daily at 10:00 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders };

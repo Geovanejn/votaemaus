@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler } from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers } from "./scheduler";
 import { initializeWebSocket } from "./websocket";
 import cors from "cors";
 import path from "path";
@@ -59,6 +59,7 @@ app.use((req, res, next) => {
 (async () => {
   await initializeDatabase();
   initBirthdayScheduler();
+  initDeoGlorySchedulers();
   
   const server = await registerRoutes(app);
   

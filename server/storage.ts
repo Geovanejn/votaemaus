@@ -210,6 +210,10 @@ export interface IStorage {
   getActiveMembers(): Promise<User[]>;
   createNotification(data: { userId: number; type: string; title: string; body: string; data?: string | null }): Promise<Notification>;
   
+  // DeoGlory Scheduler Methods
+  getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]>;
+  getInactiveUsersByDays(days: number): Promise<{ userId: number; daysSinceLastActivity: number }[]>;
+  
   // Bible Verse Methods
   getBibleVerseById(id: number): Promise<any | null>;
   getAllBibleVerses(): Promise<any[]>;
@@ -2989,6 +2993,66 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return notification;
+  }
+
+  async getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]> {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+
+    const profiles = await db.select({
+      userId: schema.studyProfiles.userId,
+      currentStreak: schema.studyProfiles.currentStreak,
+      lastActivityDate: schema.studyProfiles.lastActivityDate,
+    })
+    .from(schema.studyProfiles)
+    .innerJoin(schema.users, eq(schema.studyProfiles.userId, schema.users.id))
+    .where(and(
+      gt(schema.studyProfiles.currentStreak, 0),
+      eq(schema.users.isMember, true),
+      eq(schema.users.activeMember, true),
+      sql`${schema.studyProfiles.lastActivityDate} IS NOT NULL`,
+      ne(schema.studyProfiles.lastActivityDate, today)
+    ));
+
+    return profiles.map(p => ({
+      userId: p.userId,
+      currentStreak: p.currentStreak
+    }));
+  }
+
+  async getInactiveUsersByDays(days: number): Promise<{ userId: number; daysSinceLastActivity: number }[]> {
+    const now = new Date();
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() - days);
+    
+    const targetDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(targetDate);
+
+    const profiles = await db.select({
+      userId: schema.studyProfiles.userId,
+      lastActivityDate: schema.studyProfiles.lastActivityDate,
+    })
+    .from(schema.studyProfiles)
+    .innerJoin(schema.users, eq(schema.studyProfiles.userId, schema.users.id))
+    .where(and(
+      eq(schema.users.isMember, true),
+      eq(schema.users.activeMember, true),
+      sql`${schema.studyProfiles.lastActivityDate} IS NOT NULL`,
+      eq(schema.studyProfiles.lastActivityDate, targetDateStr)
+    ));
+
+    return profiles.map(p => ({
+      userId: p.userId,
+      daysSinceLastActivity: days
+    }));
   }
 }
 

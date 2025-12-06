@@ -201,6 +201,15 @@ export interface IStorage {
   markAllNotificationsRead(userId: number): Promise<void>;
   deleteNotification(userId: number, notificationId: number): Promise<void>;
   
+  // Push Notification Methods (for notifications.ts)
+  getPushSubscriptionsByUserId(userId: number): Promise<PushSubscription[]>;
+  updatePushSubscriptionLastUsed(subscriptionId: number): Promise<void>;
+  deletePushSubscription(userId: number, endpoint: string): Promise<void>;
+  getUsersBySecretaria(secretaria: string): Promise<User[]>;
+  getAdminUsers(): Promise<User[]>;
+  getActiveMembers(): Promise<User[]>;
+  createNotification(data: { userId: number; type: string; title: string; body: string; data?: string | null }): Promise<Notification>;
+  
   // Bible Verse Methods
   getBibleVerseById(id: number): Promise<any | null>;
   getAllBibleVerses(): Promise<any[]>;
@@ -2924,6 +2933,62 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDevotionalComment(id: number): Promise<void> {
     await db.delete(schema.devotionalComments).where(eq(schema.devotionalComments.id, id));
+  }
+
+  // ==================== PUSH NOTIFICATION METHODS ====================
+
+  async getPushSubscriptionsByUserId(userId: number): Promise<PushSubscription[]> {
+    return db.select().from(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.userId, userId));
+  }
+
+  async updatePushSubscriptionLastUsed(subscriptionId: number): Promise<void> {
+    await db.update(schema.pushSubscriptions)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(schema.pushSubscriptions.id, subscriptionId));
+  }
+
+  async deletePushSubscription(userId: number, endpoint: string): Promise<void> {
+    await db.delete(schema.pushSubscriptions)
+      .where(and(
+        eq(schema.pushSubscriptions.userId, userId),
+        eq(schema.pushSubscriptions.endpoint, endpoint)
+      ));
+  }
+
+  async getUsersBySecretaria(secretaria: string): Promise<User[]> {
+    return db.select().from(schema.users)
+      .where(and(
+        eq(schema.users.secretaria, secretaria),
+        eq(schema.users.isMember, true),
+        eq(schema.users.activeMember, true)
+      ));
+  }
+
+  async getAdminUsers(): Promise<User[]> {
+    return db.select().from(schema.users)
+      .where(eq(schema.users.isAdmin, true));
+  }
+
+  async getActiveMembers(): Promise<User[]> {
+    return db.select().from(schema.users)
+      .where(and(
+        eq(schema.users.isMember, true),
+        eq(schema.users.activeMember, true)
+      ));
+  }
+
+  async createNotification(data: { userId: number; type: string; title: string; body: string; data?: string | null }): Promise<Notification> {
+    const [notification] = await db.insert(schema.notifications)
+      .values({
+        userId: data.userId,
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        data: data.data || null,
+      })
+      .returning();
+    return notification;
   }
 }
 

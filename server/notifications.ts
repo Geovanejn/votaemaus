@@ -1,0 +1,424 @@
+import webpush from "web-push";
+import { storage } from "./storage";
+import type { User, PushSubscription } from "@shared/schema";
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+const VAPID_SUBJECT = "mailto:suporte@emausvota.com.br";
+
+let webPushConfigured = false;
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    webPushConfigured = true;
+    console.log("[Push] Web Push configured successfully");
+  } catch (error) {
+    console.error("[Push] Failed to configure web push:", error);
+  }
+} else {
+  console.log("[Push] VAPID keys not configured - push notifications disabled");
+}
+
+export interface NotificationPayload {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  url?: string;
+  tag?: string;
+  data?: Record<string, any>;
+}
+
+export type NotificationType =
+  | "new_devotional"
+  | "new_event"
+  | "new_prayer_request"
+  | "prayer_approved"
+  | "new_comment"
+  | "streak_reminder"
+  | "lesson_available"
+  | "season_published"
+  | "season_ended"
+  | "achievement"
+  | "inactivity_reminder"
+  | "daily_verse"
+  | "system";
+
+export async function sendPushNotification(
+  subscription: PushSubscription,
+  payload: NotificationPayload
+): Promise<boolean> {
+  if (!webPushConfigured) {
+    console.log("[Push] Web push not configured, skipping notification");
+    return false;
+  }
+
+  try {
+    const pushSubscription = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      },
+    };
+
+    await webpush.sendNotification(
+      pushSubscription,
+      JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        icon: payload.icon || "/logo.png",
+        badge: payload.badge || "/favicon.png",
+        data: {
+          url: payload.url || "/",
+          ...payload.data,
+        },
+        tag: payload.tag,
+      })
+    );
+
+    await storage.updatePushSubscriptionLastUsed(subscription.id);
+    return true;
+  } catch (error: any) {
+    console.error("[Push] Error sending notification:", error);
+    
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      console.log(`[Push] Subscription expired/invalid, removing: ${subscription.endpoint}`);
+      await storage.deletePushSubscription(subscription.userId, subscription.endpoint);
+    }
+    
+    return false;
+  }
+}
+
+export async function sendPushToUser(
+  userId: number,
+  payload: NotificationPayload
+): Promise<number> {
+  const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+  let successCount = 0;
+
+  for (const subscription of subscriptions) {
+    const success = await sendPushNotification(subscription, payload);
+    if (success) successCount++;
+  }
+
+  return successCount;
+}
+
+export async function sendPushToUsers(
+  userIds: number[],
+  payload: NotificationPayload
+): Promise<{ sent: number; failed: number }> {
+  let sent = 0;
+  let failed = 0;
+
+  for (const userId of userIds) {
+    const count = await sendPushToUser(userId, payload);
+    if (count > 0) {
+      sent++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { sent, failed };
+}
+
+export async function sendPushToSecretaria(
+  secretaria: "espiritualidade" | "marketing",
+  payload: NotificationPayload
+): Promise<{ sent: number; failed: number }> {
+  const users = await storage.getUsersBySecretaria(secretaria);
+  const admins = await storage.getAdminUsers();
+  
+  const allUsers = [...users, ...admins];
+  const uniqueUserIds = [...new Set(allUsers.map(u => u.id))];
+
+  return sendPushToUsers(uniqueUserIds, payload);
+}
+
+export async function sendPushToAllMembers(
+  payload: NotificationPayload
+): Promise<{ sent: number; failed: number }> {
+  const members = await storage.getActiveMembers();
+  const userIds = members.map(m => m.id);
+
+  return sendPushToUsers(userIds, payload);
+}
+
+export async function createInAppNotification(
+  userId: number,
+  type: NotificationType,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+): Promise<void> {
+  await storage.createNotification({
+    userId,
+    type,
+    title,
+    body,
+    data: data ? JSON.stringify(data) : null,
+  });
+}
+
+export async function notifyNewDevotional(
+  devotionalId: number,
+  title: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Novo Devocional",
+    body: `"${title}" foi publicado. Leia agora!`,
+    url: `/devocionais/${devotionalId}`,
+    tag: `devotional-${devotionalId}`,
+    icon: "/logo.png",
+  };
+
+  const members = await storage.getActiveMembers();
+  
+  for (const member of members) {
+    await sendPushToUser(member.id, payload);
+    await createInAppNotification(
+      member.id,
+      "new_devotional",
+      payload.title,
+      payload.body,
+      { devotionalId, url: payload.url }
+    );
+  }
+
+  console.log(`[Notifications] New devotional notification sent to ${members.length} members`);
+}
+
+export async function notifyNewEvent(
+  eventId: number,
+  title: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Novo Evento",
+    body: `"${title}" foi adicionado a agenda. Confira!`,
+    url: `/agenda/${eventId}`,
+    tag: `event-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  const members = await storage.getActiveMembers();
+  
+  for (const member of members) {
+    await sendPushToUser(member.id, payload);
+    await createInAppNotification(
+      member.id,
+      "new_event",
+      payload.title,
+      payload.body,
+      { eventId, url: payload.url }
+    );
+  }
+
+  console.log(`[Notifications] New event notification sent to ${members.length} members`);
+}
+
+export async function notifyNewPrayerRequest(
+  requestId: number,
+  requesterName: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Novo Pedido de Oracao",
+    body: `${requesterName} enviou um pedido de oracao.`,
+    url: "/admin/espiritualidade/oracoes",
+    tag: `prayer-${requestId}`,
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToSecretaria("espiritualidade", payload);
+  console.log(`[Notifications] Prayer request notification: ${result.sent} sent, ${result.failed} failed`);
+}
+
+export async function notifyPrayerApproved(
+  userId: number,
+  prayerRequestId: number
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Pedido de Oracao Aprovado",
+    body: "Seu pedido de oracao foi aprovado e esta no Mural da Oracao!",
+    url: "/oracao",
+    tag: `prayer-approved-${prayerRequestId}`,
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+  await createInAppNotification(
+    userId,
+    "prayer_approved",
+    payload.title,
+    payload.body,
+    { prayerRequestId, url: payload.url }
+  );
+}
+
+export async function notifyNewComment(
+  devotionalId: number,
+  devotionalTitle: string,
+  commenterName: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Novo Comentario",
+    body: `${commenterName} comentou em "${devotionalTitle}"`,
+    url: "/admin/espiritualidade/comentarios",
+    tag: `comment-${devotionalId}`,
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToSecretaria("espiritualidade", payload);
+  console.log(`[Notifications] New comment notification: ${result.sent} sent, ${result.failed} failed`);
+}
+
+export async function notifySeasonPublished(
+  seasonId: number,
+  seasonTitle: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Nova Temporada DeoGlory!",
+    body: `"${seasonTitle}" esta disponivel. Comece a estudar agora!`,
+    url: "/study",
+    tag: `season-${seasonId}`,
+    icon: "/logo.png",
+  };
+
+  const members = await storage.getActiveMembers();
+  
+  for (const member of members) {
+    await sendPushToUser(member.id, payload);
+    await createInAppNotification(
+      member.id,
+      "season_published",
+      payload.title,
+      payload.body,
+      { seasonId, url: payload.url }
+    );
+  }
+
+  console.log(`[Notifications] Season published notification sent to ${members.length} members`);
+}
+
+export async function notifyLessonAvailable(
+  userId: number,
+  lessonTitle: string,
+  seasonTitle: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Nova Licao Disponivel!",
+    body: `"${lessonTitle}" de "${seasonTitle}" esta liberada.`,
+    url: "/study",
+    tag: "lesson-available",
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+  await createInAppNotification(
+    userId,
+    "lesson_available",
+    payload.title,
+    payload.body,
+    { url: payload.url }
+  );
+}
+
+export async function notifyStreakReminder(
+  userId: number,
+  currentStreak: number
+): Promise<void> {
+  const messages = [
+    `Seu streak de ${currentStreak} dias esta em risco!`,
+    `Nao perca seu streak! ${currentStreak} dias de dedicacao.`,
+    `So uma licao rapida para manter seu streak de ${currentStreak} dias!`,
+  ];
+
+  const message = messages[Math.floor(Math.random() * messages.length)];
+
+  const payload: NotificationPayload = {
+    title: "DeoGlory - Mantenha seu Streak!",
+    body: message,
+    url: "/study",
+    tag: "streak-reminder",
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+}
+
+export async function notifyInactivity(
+  userId: number,
+  daysSinceLastAccess: number
+): Promise<void> {
+  const messages: Record<number, string> = {
+    2: "Sentimos sua falta! Seu streak esta em risco.",
+    3: "Opa! Ja faz 3 dias. Volte para continuar crescendo!",
+    5: "Nao desista! 5 dias longe, mas nunca e tarde para voltar.",
+    7: "Uma semana sem estudar? Vamos retomar juntos!",
+    10: "10 dias! Sua jornada espiritual precisa de voce.",
+    15: "15 dias longe... Que tal um novo comeco hoje?",
+  };
+
+  const message = messages[daysSinceLastAccess];
+  if (!message) return;
+
+  const payload: NotificationPayload = {
+    title: "DeoGlory sente sua falta!",
+    body: message,
+    url: "/study",
+    tag: "inactivity-reminder",
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+  await createInAppNotification(
+    userId,
+    "inactivity_reminder",
+    payload.title,
+    payload.body,
+    { daysSinceLastAccess, url: payload.url }
+  );
+}
+
+export async function notifyAchievement(
+  userId: number,
+  achievementName: string,
+  achievementDescription: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Nova Conquista Desbloqueada!",
+    body: `${achievementName}: ${achievementDescription}`,
+    url: "/study/achievements",
+    tag: `achievement-${achievementName}`,
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+  await createInAppNotification(
+    userId,
+    "achievement",
+    payload.title,
+    payload.body,
+    { achievementName, url: payload.url }
+  );
+}
+
+export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Versiculo do Dia",
+    body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
+    url: "/study",
+    tag: "daily-verse",
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Daily verse notification: ${result.sent} sent, ${result.failed} failed`);
+}
+
+export function isWebPushConfigured(): boolean {
+  return webPushConfigured;
+}

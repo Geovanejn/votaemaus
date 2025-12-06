@@ -110,3 +110,6 @@ integrations = ["javascript_openai:1.0.0", "javascript_gemini:1.0.0", "google-ca
 
 [userenv.shared]
 JWT_SECRET = "c85bbaefe62f332180abffb00922a6c857e3ad54ccde82b0c96f909a7e8176cc"
+VAPID_PUBLIC_KEY = "BJyzrSxzvZ1RVtMvUD8MtIfZakvF_-xQRYiC_fol-LRUf_Dq3pVYNIBPp5gH9Rty8damPdTHJqm76spzKAIiseQ"
+VAPID_PRIVATE_KEY = "QQTUaduFzdA0uLolnsh8AbHrQNV3N2ncJUHJ0maWnwc"
+VITE_VAPID_PUBLIC_KEY = "BJyzrSxzvZ1RVtMvUD8MtIfZakvF_-xQRYiC_fol-LRUf_Dq3pVYNIBPp5gH9Rty8damPdTHJqm76spzKAIiseQ"

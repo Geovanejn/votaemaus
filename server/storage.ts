@@ -54,6 +54,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<Omit<User, 'id'>>): Promise<User | undefined>;
   getAllMembers(excludeAdmins?: boolean): Promise<User[]>;
+  getAllUsers(): Promise<User[]>;
   deleteMember(id: number): Promise<void>;
   
   getAllPositions(): Promise<Position[]>;
@@ -315,6 +316,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(schema.users)
       .where(eq(schema.users.isMember, true))
       .orderBy(asc(schema.users.fullName));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(schema.users).orderBy(asc(schema.users.fullName));
   }
 
   async updateUser(id: number, updates: Partial<Omit<User, 'id'>>): Promise<User | undefined> {

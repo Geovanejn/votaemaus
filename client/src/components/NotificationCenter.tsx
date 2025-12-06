@@ -202,7 +202,7 @@ export function NotificationCenter() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`relative p-3 cursor-pointer hover-elevate ${
+                    className={`group relative p-3 cursor-pointer hover-elevate ${
                       !notification.read ? 'bg-primary/5' : ''
                     }`}
                     onClick={() => handleNotificationClick(notification)}

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -18,6 +20,7 @@ const menuItems = [
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
+  const { isAuthenticated } = useAuth();
 
   return (
     <>
@@ -56,6 +59,7 @@ export function SiteHeader() {
             </nav>
 
             <div className="flex items-center gap-2">
+              {isAuthenticated && <NotificationCenter />}
               <ThemeToggle />
               
               <Link href="/membro" className="hidden sm:block">

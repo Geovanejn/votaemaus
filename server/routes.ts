@@ -40,6 +40,13 @@ import multer from "multer";
 import rateLimit from "express-rate-limit";
 import { moderateContent, shouldAutoReject } from "./profanity-filter";
 import { isGoogleMapsConfigured, getPlaceAutocomplete, getPlaceDetails } from "./utils/google-maps";
+import { 
+  notifyNewDevotional, 
+  notifyNewEvent, 
+  notifyNewPrayerRequest, 
+  notifyPrayerApproved,
+  notifyNewComment
+} from "./notifications";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
 
@@ -3257,6 +3264,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Se conteudo limpo e nao privado, aprovar automaticamente
       if (shouldAutoApprove) {
         await storage.autoApprovePrayerRequest(prayerRequest.id);
+      } else if (!isPrivate) {
+        notifyNewPrayerRequest(prayerRequest.id, name.trim()).catch(err => 
+          console.error("[Notifications] Error notifying new prayer request:", err)
+        );
       }
       
       const message = moderation.hasProfanity 
@@ -3555,6 +3566,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Audit log
       await logAuditAction(req.user?.id, "create", "event", event.id, `Criado: ${req.body.title}`, req);
+      
+      if (req.body.isPublished !== false) {
+        notifyNewEvent(event.id, req.body.title).catch(err => 
+          console.error("[Notifications] Error notifying new event:", err)
+        );
+      }
       
       res.status(201).json(event);
     } catch (error) {
@@ -4535,6 +4552,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user?.id
       });
       
+      if (isPublished) {
+        notifyNewDevotional(devotional.id, title).catch(err => 
+          console.error("[Notifications] Error notifying new devotional:", err)
+        );
+      }
+      
       res.status(201).json(devotional);
     } catch (error) {
       console.error("Create devotional error:", error);
@@ -4671,6 +4694,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!prayer) {
         return res.status(404).json({ message: "Pedido nao encontrado" });
+      }
+      
+      if (prayer.userId) {
+        notifyPrayerApproved(prayer.userId, prayer.id).catch(err => 
+          console.error("[Notifications] Error notifying prayer approved:", err)
+        );
       }
       
       res.json(prayer);
@@ -4833,6 +4862,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: moderation.hasProfanity ? moderation.cleanedText : content.trim(),
         userId: userId || null,
       });
+      
+      const devotional = await storage.getDevotionalById(devotionalId);
+      if (devotional) {
+        notifyNewComment(devotionalId, devotional.title, name.trim()).catch(err => 
+          console.error("[Notifications] Error notifying new comment:", err)
+        );
+      }
       
       res.status(201).json({ message: "Comentario enviado! Aguardando aprovacao.", id: comment.id });
     } catch (error) {

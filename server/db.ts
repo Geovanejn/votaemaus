@@ -4,6 +4,7 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { createAllTables } from "./create-tables";
+import { hashPassword } from "./auth";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -42,6 +43,52 @@ async function createDefaultPositions() {
   }
 }
 
+async function seedAdminUser() {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminEmail || !adminPassword) {
+    console.log("ADMIN_EMAIL ou ADMIN_PASSWORD nao definidos. Pulando criacao do admin.");
+    return;
+  }
+  
+  try {
+    const [existingAdmin] = await db.select()
+      .from(schema.users)
+      .where(eq(schema.users.email, adminEmail))
+      .limit(1);
+    
+    if (existingAdmin) {
+      if (!existingAdmin.isAdmin) {
+        await db.update(schema.users)
+          .set({ isAdmin: true })
+          .where(eq(schema.users.id, existingAdmin.id));
+        console.log(`Usuario ${adminEmail} atualizado para admin.`);
+      } else {
+        console.log(`Admin ${adminEmail} ja existe.`);
+      }
+      return;
+    }
+    
+    const hashedPassword = await hashPassword(adminPassword);
+    
+    await db.insert(schema.users).values({
+      fullName: "Administrador",
+      email: adminEmail,
+      password: hashedPassword,
+      hasPassword: true,
+      isAdmin: true,
+      isMember: true,
+      activeMember: true,
+      secretaria: null,
+    });
+    
+    console.log(`Admin criado com sucesso: ${adminEmail}`);
+  } catch (error: any) {
+    console.error("Erro ao criar admin:", error.message);
+  }
+}
+
 export async function initializeDatabase() {
   console.log("Initializing PostgreSQL database connection...");
   
@@ -51,6 +98,7 @@ export async function initializeDatabase() {
     
     await createAllTables(pool);
     await createDefaultPositions();
+    await seedAdminUser();
     
     console.log("Database initialized successfully!");
   } catch (error) {

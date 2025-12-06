@@ -10,7 +10,8 @@ import {
   ChevronRight,
   List,
   Grid,
-  Loader2
+  Loader2,
+  Download
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -231,7 +232,16 @@ export default function AgendaPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <h2 className="text-2xl font-bold">Proximos Eventos</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("/api/site/events/calendar.ics", "_blank")}
+                data-testid="button-download-calendar"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Baixar Calendario
+              </Button>
               <Button
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"

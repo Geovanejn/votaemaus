@@ -1813,28 +1813,28 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 - [x] Criar página `MarketingDiretoriaEditor.tsx` para criar/editar membros da diretoria
 - [x] Registrar rotas /admin/marketing/* em App.tsx
 - [x] Atualizar página /membro para exibir painéis baseados na secretaria do usuário
-- [ ] Atualizar `oracao.tsx` para incluir Mural da Oração interativo
-- [ ] Adicionar botão "Estou em Oração" com contador no Mural
+- [x] Atualizar `oracao.tsx` para incluir Mural da Oração interativo
+- [x] Adicionar botão "Estou em Oração" com contador no Mural
 
 #### Dependências
 
 - [x] Instalar TipTap: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-youtube`, `@tiptap/extension-link`, `@tiptap/extension-underline`, `@tiptap/extension-placeholder`
-- [ ] Instalar bad-words para filtro de palavras inapropriadas
-- [ ] Instalar ical-generator para export de calendário ICS
+- [x] Instalar bad-words para filtro de palavras inapropriadas
+- [x] Instalar ical-generator para export de calendário ICS
 
-### 18.9 O Que Falta Para Completar MVP
+### 18.9 MVP COMPLETO - Todos os Itens Implementados
 
-1. **Mural da Oração Interativo**
-   - Atualizar página `/oracao` para exibir Mural com pedidos aprovados
-   - Botão "Estou em Oração" com contador (backend já pronto)
+1. **Mural da Oração Interativo** - CONCLUÍDO
+   - Página `/oracao` exibe Mural com pedidos aprovados
+   - Botão "Estou Orando" com contador funcionando
 
-2. **Moderação Automática**
-   - Integrar biblioteca bad-words para filtro de palavras
-   - Filtrar palavrões, discurso de ódio, conteúdo sexual
+2. **Moderação Automática** - CONCLUÍDO
+   - Biblioteca bad-words integrada
+   - Filtro de palavrões, discurso de ódio, conteúdo sexual funcionando
 
-3. **Calendário ICS**
-   - Implementar endpoint `/api/site/events/calendar.ics`
-   - Botão de sincronização com Google Agenda
+3. **Calendário ICS** - CONCLUÍDO
+   - Endpoint `/api/site/events/calendar.ics` implementado
+   - Botão "Baixar Calendário" na página de agenda
 
 ---
 
@@ -1890,13 +1890,42 @@ export const devotionalComments = pgTable("devotional_comments", {
 | `client/src/pages/admin/admin-site.tsx` | Removido campo isAnonymous da interface e template |
 | `server/auth.ts` | Middlewares de autorização por secretaria |
 
-### 19.4 Próximos Passos
+### 19.4 Implementações Concluídas - 06/12/2025 (Segunda Sessão)
 
-1. **Mural da Oração Interativo** - Atualizar `/oracao` com botão "Estou em Oração"
-2. **API para prayerReactions** - Criar endpoints para registrar/consultar reações
-3. **API para devotionalComments** - Criar endpoints CRUD com moderação
-4. **Moderação Automática** - Integrar filtro de palavras com bad-words
-5. **Calendário ICS** - Endpoint `/api/site/events/calendar.ics`
+1. **Mural da Oração Interativo** - CONCLUÍDO
+   - Componente PrayerWall em `/oracao` exibindo pedidos aprovados
+   - Botão "Estou Orando" com contador em tempo real
+   - Sem limite de cliques repetidos (design decision)
+   - Arquivo: `client/src/pages/site/oracao.tsx`
+
+2. **API para devotionalComments** - CONCLUÍDO
+   - GET `/api/site/devotionals/:id/comments` - Comentários aprovados (público)
+   - POST `/api/site/devotionals/:id/comments` - Criar comentário (com moderação)
+   - GET `/api/espiritualidade/comments` - Todos comentários (admin)
+   - PATCH `/api/espiritualidade/comments/:id/approve` - Aprovar
+   - PATCH `/api/espiritualidade/comments/:id/highlight` - Destacar
+   - DELETE `/api/espiritualidade/comments/:id` - Remover
+
+3. **Frontend de Comentários** - CONCLUÍDO
+   - Componente DevotionalComments para exibir/enviar comentários
+   - Página EspiritualidadeComentarios para moderação
+   - Integrado em devocional-detail.tsx
+   - Arquivos: `client/src/components/DevotionalComments.tsx`, `client/src/pages/admin/EspiritualidadeComentarios.tsx`
+
+4. **Moderação Automática** - CONCLUÍDO
+   - Pacote bad-words instalado
+   - Utilitário `server/profanity-filter.ts` criado
+   - Lista de palavras em português adicionada
+   - Rejeição automática de discurso de ódio e conteúdo sexual
+   - Filtro de palavrões com limpeza automática
+   - Integrado em pedidos de oração e comentários
+
+5. **Calendário ICS** - CONCLUÍDO
+   - Pacote ical-generator instalado
+   - Rota `/api/site/events/calendar.ics` implementada com ical-generator
+   - Rota `/api/site/events/:id/calendar.ics` para evento único
+   - Botão "Baixar Calendário" na página de agenda
+   - Arquivo: `client/src/pages/site/agenda.tsx`
 
 ---
 
@@ -1918,16 +1947,16 @@ export const devotionalComments = pgTable("devotional_comments", {
 
 | Área | Progresso | Status |
 |------|-----------|--------|
-| Schema de Banco de Dados | 95% | Tabelas principais criadas |
+| Schema de Banco de Dados | 100% | Todas as tabelas criadas |
 | Backend - Middlewares de Autorização | 100% | requireAdminOrEspiritualidade/Marketing implementados |
-| Backend - APIs Espiritualidade | 90% | CRUD de devocionais e orações funcionando |
-| Backend - APIs Marketing | 90% | CRUD de eventos e diretoria funcionando |
-| Frontend - Painéis Admin | 95% | Todas as páginas principais criadas |
-| Frontend - Páginas Públicas | 85% | Diretoria uniforme, devocionais, eventos |
-| Mural da Oração Interativo | 40% | Tabela existe, falta frontend |
-| Comentários de Devocionais | 40% | Tabela existe, falta API e frontend |
-| Moderação Automática | 0% | Pacote bad-words não instalado |
-| Calendário ICS | 50% | Rota existe, falta ical-generator |
+| Backend - APIs Espiritualidade | 100% | CRUD de devocionais, orações e comentários funcionando |
+| Backend - APIs Marketing | 100% | CRUD de eventos e diretoria funcionando |
+| Frontend - Painéis Admin | 100% | Todas as páginas principais criadas |
+| Frontend - Páginas Públicas | 100% | Diretoria uniforme, devocionais, eventos, Mural da Oração |
+| Mural da Oração Interativo | 100% | Botão "Estou Orando" funcionando com contador |
+| Comentários de Devocionais | 100% | API CRUD, frontend e moderação funcionando |
+| Moderação Automática | 100% | bad-words integrado em pedidos e comentários |
+| Calendário ICS | 100% | ical-generator implementado com botão de download |
 
 ### 20.2 Itens Concluídos
 

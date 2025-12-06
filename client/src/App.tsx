@@ -27,6 +27,7 @@ const EspiritualidadeDashboard = lazy(() => import("@/pages/admin/Espiritualidad
 const EspiritualidadeDevocionais = lazy(() => import("@/pages/admin/EspiritualidadeDevocionais"));
 const EspiritualidadeDevocionalEditor = lazy(() => import("@/pages/admin/EspiritualidadeDevocionalEditor"));
 const EspiritualidadeOracoes = lazy(() => import("@/pages/admin/EspiritualidadeOracoes"));
+const EspiritualidadeComentarios = lazy(() => import("@/pages/admin/EspiritualidadeComentarios"));
 const MarketingDashboard = lazy(() => import("@/pages/admin/MarketingDashboard"));
 const MarketingEventos = lazy(() => import("@/pages/admin/MarketingEventos"));
 const MarketingEventoEditor = lazy(() => import("@/pages/admin/MarketingEventoEditor"));
@@ -127,6 +128,7 @@ function Router() {
           <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
           <Route path="/admin/espiritualidade/devocionais/:id" component={EspiritualidadeDevocionalEditor} />
           <Route path="/admin/espiritualidade/oracoes" component={EspiritualidadeOracoes} />
+          <Route path="/admin/espiritualidade/comentarios" component={EspiritualidadeComentarios} />
           <Route path="/admin/marketing" component={MarketingDashboard} />
           <Route path="/admin/marketing/eventos" component={MarketingEventos} />
           <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />
@@ -189,6 +191,7 @@ function Router() {
         <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
         <Route path="/admin/espiritualidade/devocionais/:id" component={EspiritualidadeDevocionalEditor} />
         <Route path="/admin/espiritualidade/oracoes" component={EspiritualidadeOracoes} />
+        <Route path="/admin/espiritualidade/comentarios" component={EspiritualidadeComentarios} />
         <Route path="/admin/marketing" component={MarketingDashboard} />
         <Route path="/admin/marketing/eventos" component={MarketingEventos} />
         <Route path="/admin/marketing/eventos/:id" component={MarketingEventoEditor} />

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
 
 interface EspiritualidadeStats {
   devotionals: {
@@ -169,6 +169,12 @@ export default function EspiritualidadeDashboard() {
               <Button variant="outline" className="w-full justify-start" data-testid="button-manage-prayers">
                 <Heart className="h-4 w-4 mr-2" />
                 Moderar Pedidos de Oração
+              </Button>
+            </Link>
+            <Link href="/admin/espiritualidade/comentarios">
+              <Button variant="outline" className="w-full justify-start" data-testid="button-manage-comments">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Moderar Comentarios
               </Button>
             </Link>
           </CardContent>

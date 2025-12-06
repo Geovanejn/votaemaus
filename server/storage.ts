@@ -46,6 +46,8 @@ import type {
   InsertSiteContent,
   AuditLog,
   InsertAuditLog,
+  DevotionalComment,
+  InsertDevotionalComment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -289,6 +291,14 @@ export interface IStorage {
   confirmDevotionalRead(userId: number, devotionalId: number, weekKey?: string): Promise<schema.DevotionalReading>;
   hasReadDevotional(userId: number, devotionalId: number): Promise<boolean>;
   getDevotionalReadings(userId: number, limit?: number): Promise<schema.DevotionalReading[]>;
+  
+  // Devotional Comments Methods
+  getApprovedDevotionalComments(devotionalId: number): Promise<DevotionalComment[]>;
+  getAllDevotionalComments(): Promise<DevotionalComment[]>;
+  createDevotionalComment(data: InsertDevotionalComment): Promise<DevotionalComment>;
+  approveDevotionalComment(id: number, approvedBy: number): Promise<DevotionalComment | null>;
+  highlightDevotionalComment(id: number, isHighlighted: boolean): Promise<DevotionalComment | null>;
+  deleteDevotionalComment(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2752,6 +2762,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.devotionalReadings.userId, userId))
       .orderBy(desc(schema.devotionalReadings.readAt))
       .limit(limit);
+  }
+
+  // ==================== DEVOTIONAL COMMENTS METHODS ====================
+
+  async getApprovedDevotionalComments(devotionalId: number): Promise<DevotionalComment[]> {
+    return db.select().from(schema.devotionalComments)
+      .where(and(
+        eq(schema.devotionalComments.devotionalId, devotionalId),
+        eq(schema.devotionalComments.isApproved, true)
+      ))
+      .orderBy(desc(schema.devotionalComments.createdAt));
+  }
+
+  async getAllDevotionalComments(): Promise<DevotionalComment[]> {
+    return db.select().from(schema.devotionalComments)
+      .orderBy(desc(schema.devotionalComments.createdAt));
+  }
+
+  async createDevotionalComment(data: InsertDevotionalComment): Promise<DevotionalComment> {
+    const [comment] = await db.insert(schema.devotionalComments)
+      .values(data)
+      .returning();
+    return comment;
+  }
+
+  async approveDevotionalComment(id: number, approvedBy: number): Promise<DevotionalComment | null> {
+    const [comment] = await db.update(schema.devotionalComments)
+      .set({
+        isApproved: true,
+        approvedBy,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionalComments.id, id))
+      .returning();
+    return comment || null;
+  }
+
+  async highlightDevotionalComment(id: number, isHighlighted: boolean): Promise<DevotionalComment | null> {
+    const [comment] = await db.update(schema.devotionalComments)
+      .set({
+        isHighlighted,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionalComments.id, id))
+      .returning();
+    return comment || null;
+  }
+
+  async deleteDevotionalComment(id: number): Promise<void> {
+    await db.delete(schema.devotionalComments).where(eq(schema.devotionalComments.id, id));
   }
 }
 

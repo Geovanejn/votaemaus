@@ -37,6 +37,7 @@ import {
 } from "./ai";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
+import { moderateContent, shouldAutoReject } from "./profanity-filter";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
 
@@ -3182,12 +3183,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Nome deve ter pelo menos 2 caracteres" });
       }
       
+      const moderation = moderateContent(request);
+      
+      if (shouldAutoReject(moderation)) {
+        return res.status(400).json({ 
+          message: "Seu pedido contem conteudo inapropriado e nao pode ser enviado.",
+          moderated: true 
+        });
+      }
+      
+      let status: "pending" | "approved" | "rejected" | "archived" = isPrivate ? "archived" : "pending";
+      let moderationReason: string | undefined;
+      
+      if (moderation.hasProfanity) {
+        status = "pending";
+        moderationReason = moderation.details;
+      }
+      
       const prayerRequest = await storage.createPrayerRequest({
         name: name.trim(),
         whatsapp,
         category,
-        request,
-        status: isPrivate ? "archived" : "pending",
+        request: moderation.hasProfanity ? moderation.cleanedText : request,
+        status,
       });
       
       res.status(201).json({ message: "Pedido de oracao recebido com sucesso", id: prayerRequest.id });
@@ -3483,42 +3501,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export events to ICS calendar format
+  // Export events to ICS calendar format (using ical-generator for better compatibility)
   app.get("/api/site/events/calendar.ics", async (req, res) => {
     try {
+      const ical = await import("ical-generator");
       const events = await storage.getUpcomingEvents();
       
-      const icsContent = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//UMP Emaus//Calendario de Eventos//PT',
-        'CALSCALE:GREGORIAN',
-        'METHOD:PUBLISH',
-        'X-WR-CALNAME:UMP Emaus - Eventos',
-        ...events.map(event => {
-          const startDate = event.startDate.replace(/-/g, '');
-          const endDate = event.endDate ? event.endDate.replace(/-/g, '') : startDate;
-          const uid = `event-${event.id}@umpemaus.com`;
-          return [
-            'BEGIN:VEVENT',
-            `UID:${uid}`,
-            `DTSTART;VALUE=DATE:${startDate}`,
-            `DTEND;VALUE=DATE:${endDate}`,
-            `SUMMARY:${event.title.replace(/[,;\\]/g, '')}`,
-            event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n').replace(/[,;\\]/g, '')}` : '',
-            event.location ? `LOCATION:${event.location.replace(/[,;\\]/g, '')}` : '',
-            'END:VEVENT'
-          ].filter(Boolean).join('\r\n');
-        }),
-        'END:VCALENDAR'
-      ].join('\r\n');
+      const calendar = ical.default({
+        name: "UMP Emaus - Eventos",
+        prodId: { company: "UMP Emaus", product: "Calendario", language: "PT" },
+        timezone: "America/Sao_Paulo",
+      });
       
-      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="ump-emaus-eventos.ics"');
-      res.send(icsContent);
+      events.forEach(event => {
+        const startDate = new Date(event.startDate);
+        const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+        
+        if (event.time && !event.isAllDay) {
+          const [hours, minutes] = event.time.split(":").map(Number);
+          startDate.setHours(hours || 0, minutes || 0);
+          endDate.setHours((hours || 0) + 2, minutes || 0);
+        }
+        
+        calendar.createEvent({
+          id: `event-${event.id}@umpemaus.com`,
+          start: startDate,
+          end: endDate,
+          allDay: event.isAllDay || false,
+          summary: event.title,
+          description: event.description || undefined,
+          location: event.location || undefined,
+          url: event.registrationUrl || undefined,
+          categories: [{ name: event.category }],
+        });
+      });
+      
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="ump-emaus-eventos.ics"');
+      res.send(calendar.toString());
     } catch (error) {
       console.error("Export calendar error:", error);
       res.status(500).json({ message: "Erro ao exportar calendario" });
+    }
+  });
+
+  // Export single event to ICS
+  app.get("/api/site/events/:id/calendar.ics", async (req, res) => {
+    try {
+      const ical = await import("ical-generator");
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const event = await storage.getSiteEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      const calendar = ical.default({
+        name: event.title,
+        prodId: { company: "UMP Emaus", product: "Evento", language: "PT" },
+        timezone: "America/Sao_Paulo",
+      });
+      
+      const startDate = new Date(event.startDate);
+      const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+      
+      if (event.time && !event.isAllDay) {
+        const [hours, minutes] = event.time.split(":").map(Number);
+        startDate.setHours(hours || 0, minutes || 0);
+        endDate.setHours((hours || 0) + 2, minutes || 0);
+      }
+      
+      calendar.createEvent({
+        id: `event-${event.id}@umpemaus.com`,
+        start: startDate,
+        end: endDate,
+        allDay: event.isAllDay || false,
+        summary: event.title,
+        description: event.description || undefined,
+        location: event.location || undefined,
+        url: event.registrationUrl || undefined,
+        categories: [{ name: event.category }],
+      });
+      
+      const filename = event.title.toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .substring(0, 30);
+      
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}.ics"`);
+      res.send(calendar.toString());
+    } catch (error) {
+      console.error("Export single event calendar error:", error);
+      res.status(500).json({ message: "Erro ao exportar evento" });
     }
   });
 
@@ -4491,6 +4569,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get espiritualidade stats error:", error);
       res.status(500).json({ message: "Erro ao buscar estatisticas" });
+    }
+  });
+
+  // ==================== DEVOTIONAL COMMENTS ROUTES ====================
+
+  // Get approved comments for a devotional (public)
+  app.get("/api/site/devotionals/:id/comments", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const comments = await storage.getApprovedDevotionalComments(id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Get devotional comments error:", error);
+      res.status(500).json({ message: "Erro ao buscar comentarios" });
+    }
+  });
+
+  // Add comment to a devotional (public)
+  app.post("/api/site/devotionals/:id/comments", async (req, res) => {
+    try {
+      const devotionalId = parseInt(req.params.id);
+      if (isNaN(devotionalId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const { name, content, userId } = req.body;
+      
+      if (!name || !content) {
+        return res.status(400).json({ message: "Nome e comentario sao obrigatorios" });
+      }
+      
+      if (name.trim().length < 2) {
+        return res.status(400).json({ message: "Nome deve ter pelo menos 2 caracteres" });
+      }
+      
+      if (content.trim().length < 3) {
+        return res.status(400).json({ message: "Comentario deve ter pelo menos 3 caracteres" });
+      }
+      
+      if (content.trim().length > 500) {
+        return res.status(400).json({ message: "Comentario deve ter no maximo 500 caracteres" });
+      }
+      
+      const moderation = moderateContent(content);
+      
+      if (shouldAutoReject(moderation)) {
+        return res.status(400).json({ 
+          message: "Seu comentario contem conteudo inapropriado e nao pode ser enviado.",
+          moderated: true 
+        });
+      }
+      
+      const comment = await storage.createDevotionalComment({
+        devotionalId,
+        name: name.trim(),
+        content: moderation.hasProfanity ? moderation.cleanedText : content.trim(),
+        userId: userId || null,
+      });
+      
+      res.status(201).json({ message: "Comentario enviado! Aguardando aprovacao.", id: comment.id });
+    } catch (error) {
+      console.error("Create devotional comment error:", error);
+      res.status(500).json({ message: "Erro ao enviar comentario" });
+    }
+  });
+
+  // Get all comments for moderation (admin/espiritualidade)
+  app.get("/api/espiritualidade/comments", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const comments = await storage.getAllDevotionalComments();
+      res.json(comments);
+    } catch (error) {
+      console.error("Get all comments error:", error);
+      res.status(500).json({ message: "Erro ao buscar comentarios" });
+    }
+  });
+
+  // Approve a comment (admin/espiritualidade)
+  app.patch("/api/espiritualidade/comments/:id/approve", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const comment = await storage.approveDevotionalComment(id, req.user!.id);
+      if (!comment) {
+        return res.status(404).json({ message: "Comentario nao encontrado" });
+      }
+      
+      await logAuditAction(req.user?.id, "update", "devotional_comment", id, "Comentario aprovado", req);
+      
+      res.json(comment);
+    } catch (error) {
+      console.error("Approve comment error:", error);
+      res.status(500).json({ message: "Erro ao aprovar comentario" });
+    }
+  });
+
+  // Highlight/unhighlight a comment (admin/espiritualidade)
+  app.patch("/api/espiritualidade/comments/:id/highlight", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const { isHighlighted } = req.body;
+      const comment = await storage.highlightDevotionalComment(id, isHighlighted === true);
+      if (!comment) {
+        return res.status(404).json({ message: "Comentario nao encontrado" });
+      }
+      
+      res.json(comment);
+    } catch (error) {
+      console.error("Highlight comment error:", error);
+      res.status(500).json({ message: "Erro ao destacar comentario" });
+    }
+  });
+
+  // Delete a comment (admin/espiritualidade)
+  app.delete("/api/espiritualidade/comments/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      await logAuditAction(req.user?.id, "delete", "devotional_comment", id, "Comentario removido", req);
+      
+      await storage.deleteDevotionalComment(id);
+      res.json({ message: "Comentario removido com sucesso" });
+    } catch (error) {
+      console.error("Delete comment error:", error);
+      res.status(500).json({ message: "Erro ao remover comentario" });
     }
   });
 

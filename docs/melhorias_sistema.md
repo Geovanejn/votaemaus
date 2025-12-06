@@ -21,8 +21,9 @@
 | 7 | Notificacoes para Espiritualidade (Comentarios/Pedidos de Oracao) | CONCLUIDA |
 | 8 | Notificacoes para Membros (Devocionais/Eventos/Pedidos) | CONCLUIDA |
 | 9 | Notificacoes para Visitantes (nao-membros) via navegador | PENDENTE |
-| 10 | Notificacoes DeoGlory Completas | PARCIAL |
-| 11 | Conexao Real com Instagram @umpemaus | PENDENTE |
+| 10 | Notificacoes DeoGlory Completas | CONCLUIDA |
+| 11 | Conexao Real com Instagram @umpemaus | CONCLUIDA |
+| 12 | Versiculo do Dia as 07:00 | CONCLUIDA |
 
 ---
 
@@ -57,8 +58,9 @@ Este documento detalha as melhorias solicitadas para o sistema UMP Emaus:
 | 7 | Notificacoes Espiritualidade | Email e push para novos comentarios/pedidos | CONCLUIDA |
 | 8 | Notificacoes Membros | Email e push para devocionais/eventos | CONCLUIDA |
 | 9 | Notificacoes Visitantes | Push via navegador para nao-membros | PENDENTE |
-| 10 | Notificacoes DeoGlory | Sistema completo estilo Duolingo | PARCIAL |
-| 11 | Instagram Real | Conexao via Meta API | PENDENTE |
+| 10 | Notificacoes DeoGlory | Sistema completo estilo Duolingo | CONCLUIDA |
+| 11 | Instagram Real | Conexao via Meta API | CONCLUIDA |
+| 12 | Versiculo do Dia | Push notification as 07:00 | CONCLUIDA |
 
 ---
 

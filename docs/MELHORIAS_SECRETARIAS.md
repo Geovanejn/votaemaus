@@ -1838,6 +1838,68 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 
 ---
 
+## 19. STATUS DAS IMPLEMENTAÇÕES
+
+### 19.1 Implementações Concluídas - Sessão 06/12/2025
+
+| Item | Status | Descrição |
+|------|--------|-----------|
+| Middlewares de Autorização | IMPLEMENTADO | `requireAdminOrEspiritualidade` e `requireAdminOrMarketing` em `server/auth.ts` |
+| Tabela prayerReactions | IMPLEMENTADO | Sistema "Estou em Oração" com unique constraint por sessionId |
+| Tabela devotionalComments | IMPLEMENTADO | Comentários de devocionais com moderação e destaque |
+| Campo isAnonymous Removido | IMPLEMENTADO | Removido de `client/src/pages/admin/admin-site.tsx` - nome agora obrigatório |
+| Layout Uniforme Diretoria | JÁ IMPLEMENTADO | Página `/site/diretoria.tsx` já tinha layout uniforme verificado |
+| MarketingDiretoriaEditor | JÁ IMPLEMENTADO | Editor com seleção de usuário do banco já funcionando |
+
+### 19.2 Novas Tabelas Criadas
+
+```typescript
+// prayer_reactions - Sistema "Estou em Oração"
+// Localização: shared/schema.ts linhas 511-526
+export const prayerReactions = pgTable("prayer_reactions", {
+  id: serial("id").primaryKey(),
+  prayerRequestId: integer("prayer_request_id").notNull().references(() => prayerRequests.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueReaction: unique().on(table.prayerRequestId, table.sessionId),
+}));
+
+// devotional_comments - Comentários de devocionais
+// Localização: shared/schema.ts linhas 528-555
+export const devotionalComments = pgTable("devotional_comments", {
+  id: serial("id").primaryKey(),
+  devotionalId: integer("devotional_id").notNull().references(() => devotionals.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  isApproved: boolean("is_approved").notNull().default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  isHighlighted: boolean("is_highlighted").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+```
+
+### 19.3 Arquivos Modificados
+
+| Arquivo | Modificação |
+|---------|-------------|
+| `shared/schema.ts` | Adicionadas tabelas prayerReactions e devotionalComments |
+| `client/src/pages/admin/admin-site.tsx` | Removido campo isAnonymous da interface e template |
+| `server/auth.ts` | Middlewares de autorização por secretaria |
+
+### 19.4 Próximos Passos
+
+1. **Mural da Oração Interativo** - Atualizar `/oracao` com botão "Estou em Oração"
+2. **API para prayerReactions** - Criar endpoints para registrar/consultar reações
+3. **API para devotionalComments** - Criar endpoints CRUD com moderação
+4. **Moderação Automática** - Integrar filtro de palavras com bad-words
+5. **Calendário ICS** - Endpoint `/api/site/events/calendar.ics`
+
+---
+
 ## OBSERVAÇÕES FINAIS
 
 1. **Segurança:** Todas as rotas admin usam middlewares `requireAdminOrEspiritualidade` e `requireAdminOrMarketing`
@@ -1850,6 +1912,6 @@ incrementPrayingCount(id: number): Promise<void> // Para "Estou em Oração"
 
 ---
 
-*Documento atualizado em 05/12/2025*
-*Versão: 2.3 - Painéis Espiritualidade e Marketing implementados*
-*Status: Painéis 90% completos - Falta: Mural interativo, moderação automática, calendário ICS*
+*Documento atualizado em 06/12/2025*
+*Versão: 2.4 - Novas tabelas prayerReactions e devotionalComments*
+*Status: Painéis 92% completos - Falta: Mural interativo, API reactions/comments, moderação automática, calendário ICS*

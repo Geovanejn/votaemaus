@@ -22,8 +22,7 @@ async function createDefaultPositions() {
     { name: "Vice-Presidente" },
     { name: "1º Secretário" },
     { name: "2º Secretário" },
-    { name: "1º Tesoureiro" },
-    { name: "2º Tesoureiro" },
+    { name: "Tesoureiro" },
   ];
 
   for (const pos of positions) {

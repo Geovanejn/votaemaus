@@ -68,8 +68,7 @@ async function main() {
     { name: "Vice-Presidente", description: "Vice-Presidente da UMP" },
     { name: "1º Secretário", description: "Primeiro Secretário" },
     { name: "2º Secretário", description: "Segundo Secretário" },
-    { name: "1º Tesoureiro", description: "Primeiro Tesoureiro" },
-    { name: "2º Tesoureiro", description: "Segundo Tesoureiro" },
+    { name: "Tesoureiro", description: "Tesoureiro da UMP" },
   ];
 
   for (const pos of defaultPositions) {

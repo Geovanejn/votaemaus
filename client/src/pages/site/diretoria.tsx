@@ -71,21 +71,11 @@ const defaultBoardMembers: BoardMember[] = [
   {
     id: 5,
     name: "Ana Carolina Lima",
-    position: "1o Tesoureiro",
+    position: "Tesoureiro",
     bio: "Cuida das financas e prestacao de contas da mocidade.",
     termStart: "2024",
     termEnd: "2025",
     orderIndex: 4,
-    isCurrent: true,
-  },
-  {
-    id: 6,
-    name: "Pedro Henrique Costa",
-    position: "2o Tesoureiro",
-    bio: "Auxilia na gestao financeira da mocidade.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 5,
     isCurrent: true,
   },
 ];

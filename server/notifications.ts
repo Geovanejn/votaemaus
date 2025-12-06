@@ -266,7 +266,9 @@ export async function notifyNewDevotional(
     }
   }
 
-  console.log(`[Notifications] New devotional notification sent to ${members.length} members`);
+  // Also notify anonymous visitors
+  const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
+  console.log(`[Notifications] New devotional notification sent to ${members.length} members and ${anonymousResult.sent} anonymous visitors`);
 }
 
 export async function notifyNewEvent(
@@ -300,7 +302,9 @@ export async function notifyNewEvent(
     }
   }
 
-  console.log(`[Notifications] New event notification sent to ${members.length} members`);
+  // Also notify anonymous visitors
+  const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
+  console.log(`[Notifications] New event notification sent to ${members.length} members and ${anonymousResult.sent} anonymous visitors`);
 }
 
 export async function notifyNewPrayerRequest(
@@ -551,7 +555,10 @@ export async function notifyDailyVerse(verse: string, reference: string): Promis
   };
 
   const result = await sendPushToAllMembers(payload);
-  console.log(`[Notifications] Daily verse notification: ${result.sent} sent, ${result.failed} failed`);
+  
+  // Also notify anonymous visitors
+  const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
+  console.log(`[Notifications] Daily verse notification: ${result.sent} members sent, ${anonymousResult.sent} anonymous visitors sent`);
 }
 
 export function isWebPushConfigured(): boolean {

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { VisitorNotificationPrompt } from "@/components/visitor-notification-prompt";
 
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
@@ -88,32 +89,35 @@ function Router() {
 
   if (!isAuthenticated) {
     return (
-      <Suspense fallback={<PageLoader />}>
-        <Switch>
-          <Route path="/verificar/:hash" component={VerifyPage} />
-          <Route path="/results" component={ResultsPage} />
-          <Route path="/study-preview" component={StudyPreviewPage} />
-          <Route path="/study-preview/explore" component={ExplorePage} />
-          <Route path="/study-preview/ranking" component={RankingPage} />
-          <Route path="/study-preview/profile" component={ProfilePage} />
-          <Route path="/study-preview/verses" component={VersesPage} />
-          <Route path="/study-preview/lesson/:id" component={LessonPage} />
-          <Route path="/study-preview/achievements" component={AchievementsPage} />
-          {/* Site Institucional - Public Routes */}
-          <Route path="/" component={SiteHomePage} />
-          <Route path="/devocionais" component={DevocionaisPage} />
-          <Route path="/devocionais/:id" component={DevocionalDetailPage} />
-          <Route path="/agenda" component={AgendaPage} />
-          <Route path="/quem-somos" component={QuemSomosPage} />
-          <Route path="/diretoria" component={DiretoriaPage} />
-          <Route path="/oracao" component={OracaoPage} />
-          <Route path="/membro" component={MembroPage} />
-          <Route path="/login" component={LoginPage} />
-          <Route>
-            <Redirect to="/" />
-          </Route>
-        </Switch>
-      </Suspense>
+      <>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/verificar/:hash" component={VerifyPage} />
+            <Route path="/results" component={ResultsPage} />
+            <Route path="/study-preview" component={StudyPreviewPage} />
+            <Route path="/study-preview/explore" component={ExplorePage} />
+            <Route path="/study-preview/ranking" component={RankingPage} />
+            <Route path="/study-preview/profile" component={ProfilePage} />
+            <Route path="/study-preview/verses" component={VersesPage} />
+            <Route path="/study-preview/lesson/:id" component={LessonPage} />
+            <Route path="/study-preview/achievements" component={AchievementsPage} />
+            {/* Site Institucional - Public Routes */}
+            <Route path="/" component={SiteHomePage} />
+            <Route path="/devocionais" component={DevocionaisPage} />
+            <Route path="/devocionais/:id" component={DevocionalDetailPage} />
+            <Route path="/agenda" component={AgendaPage} />
+            <Route path="/quem-somos" component={QuemSomosPage} />
+            <Route path="/diretoria" component={DiretoriaPage} />
+            <Route path="/oracao" component={OracaoPage} />
+            <Route path="/membro" component={MembroPage} />
+            <Route path="/login" component={LoginPage} />
+            <Route>
+              <Redirect to="/" />
+            </Route>
+          </Switch>
+        </Suspense>
+        <VisitorNotificationPrompt />
+      </>
     );
   }
 

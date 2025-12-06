@@ -1912,6 +1912,118 @@ export const devotionalComments = pgTable("devotional_comments", {
 
 ---
 
+## 20. ANÁLISE DE IMPLEMENTAÇÃO - 06/12/2025 (Atualizado)
+
+### 20.1 Resumo do Status Atual
+
+| Área | Progresso | Status |
+|------|-----------|--------|
+| Schema de Banco de Dados | 95% | Tabelas principais criadas |
+| Backend - Middlewares de Autorização | 100% | requireAdminOrEspiritualidade/Marketing implementados |
+| Backend - APIs Espiritualidade | 90% | CRUD de devocionais e orações funcionando |
+| Backend - APIs Marketing | 90% | CRUD de eventos e diretoria funcionando |
+| Frontend - Painéis Admin | 95% | Todas as páginas principais criadas |
+| Frontend - Páginas Públicas | 85% | Diretoria uniforme, devocionais, eventos |
+| Mural da Oração Interativo | 40% | Tabela existe, falta frontend |
+| Comentários de Devocionais | 40% | Tabela existe, falta API e frontend |
+| Moderação Automática | 0% | Pacote bad-words não instalado |
+| Calendário ICS | 50% | Rota existe, falta ical-generator |
+
+### 20.2 Itens Concluídos
+
+#### Backend
+- [x] Tipo Secretaria atualizado para apenas "none" | "espiritualidade" | "marketing" | null
+- [x] Campo isAnonymous removido da tabela prayer_requests
+- [x] Campo locationUrl adicionado na tabela site_events
+- [x] Tabela devotionalComments criada
+- [x] Tabela prayerReactions criada
+- [x] Middlewares requireAdminOrEspiritualidade e requireAdminOrMarketing
+- [x] APIs CRUD para devocionais (/api/espiritualidade/devotionals)
+- [x] APIs CRUD para pedidos de oração (/api/espiritualidade/prayer-requests)
+- [x] APIs CRUD para eventos (/api/marketing/events)
+- [x] APIs CRUD para diretoria (/api/marketing/board-members)
+- [x] API para buscar usuários para diretoria (/api/marketing/users)
+- [x] Rota básica para calendário ICS (parcialmente implementada)
+
+#### Frontend
+- [x] EspiritualidadeDashboard.tsx - Dashboard com métricas
+- [x] EspiritualidadeDevocionais.tsx - Lista de devocionais
+- [x] EspiritualidadeDevocionalEditor.tsx - Editor com TipTap
+- [x] EspiritualidadeOracoes.tsx - Moderação de pedidos
+- [x] MarketingDashboard.tsx - Dashboard com métricas
+- [x] MarketingEventos.tsx - Lista de eventos
+- [x] MarketingEventoEditor.tsx - Editor de eventos
+- [x] MarketingDiretoria.tsx - Lista de membros
+- [x] MarketingDiretoriaEditor.tsx - Editor com seleção de usuário
+- [x] RichTextEditor.tsx - Componente TipTap completo
+- [x] Página Diretoria com layout uniforme (todos cards iguais)
+- [x] Rotas /admin/espiritualidade/* registradas em App.tsx
+- [x] Rotas /admin/marketing/* registradas em App.tsx
+
+#### Dependências
+- [x] TipTap instalado (@tiptap/react, @tiptap/starter-kit, extensões)
+- [x] Sistema de navegação condicional por secretaria
+
+### 20.3 Itens Pendentes (Próximos Passos)
+
+#### Alta Prioridade
+1. **Mural da Oração Interativo**
+   - [ ] Atualizar `/oracao.tsx` com seção Mural da Oração
+   - [ ] Criar componente PrayerWall.tsx para exibir pedidos aprovados
+   - [ ] Implementar botão "Estou em Oração" com contador
+   - [ ] Criar API GET /api/site/prayer-requests/approved
+   - [ ] Criar API POST /api/site/prayer-requests/:id/pray
+
+2. **API de Comentários de Devocionais**
+   - [ ] GET /api/site/devotionals/:id/comments (públicos aprovados)
+   - [ ] POST /api/site/devotionals/:id/comments (adicionar comentário)
+   - [ ] GET /api/espiritualidade/comments (todos para moderação)
+   - [ ] PATCH /api/espiritualidade/comments/:id/approve
+   - [ ] DELETE /api/espiritualidade/comments/:id
+
+3. **Seção de Comentários no Devocional**
+   - [ ] Criar componente DevotionalComments.tsx
+   - [ ] Criar componente CommentCard.tsx
+   - [ ] Criar componente CommentForm.tsx
+   - [ ] Integrar na página devocional-detail.tsx
+
+#### Média Prioridade
+4. **Moderação Automática**
+   - [ ] Instalar pacote bad-words
+   - [ ] Criar utilitário profanity-filter.ts
+   - [ ] Integrar no endpoint de pedidos de oração
+   - [ ] Integrar no endpoint de comentários
+
+5. **Calendário ICS Completo**
+   - [ ] Instalar pacote ical-generator
+   - [ ] Criar utilitário ics-generator.ts
+   - [ ] Implementar endpoint GET /api/site/events/calendar.ics
+   - [ ] Adicionar botão "Sincronizar com Google Agenda" na página Agenda
+
+#### Baixa Prioridade
+6. **Melhorias nos Eventos**
+   - [ ] Adicionar campos requiresRegistration, registrationDeadline, maxAttendees, icsUid
+   - [ ] Implementar formulário de inscrição em eventos
+   - [ ] Contador de vagas disponíveis
+
+7. **Página de Estatísticas Admin**
+   - [ ] Gráficos de leitura de devocionais
+   - [ ] Métricas de engajamento nas orações
+   - [ ] Relatório de eventos por período
+
+### 20.4 Estimativa de Tempo Restante
+
+| Item | Tempo Estimado |
+|------|----------------|
+| Mural da Oração Interativo | 2-3 horas |
+| API Comentários + Frontend | 3-4 horas |
+| Moderação Automática | 1-2 horas |
+| Calendário ICS | 1-2 horas |
+| Melhorias em Eventos | 2-3 horas |
+| **Total Restante** | **9-14 horas** |
+
+---
+
 *Documento atualizado em 06/12/2025*
-*Versão: 2.4 - Novas tabelas prayerReactions e devotionalComments*
-*Status: Painéis 92% completos - Falta: Mural interativo, API reactions/comments, moderação automática, calendário ICS*
+*Versão: 2.5 - Análise completa de implementação*
+*Status: MVP ~88% completo - Principais funcionalidades implementadas*

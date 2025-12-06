@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ interface ImageCropDialogProps {
   onOpenChange: (open: boolean) => void;
   imageSrc: string;
   onCropComplete: (croppedImage: string) => void;
+  aspectRatio?: number;
 }
 
 interface CropArea {
@@ -28,7 +29,8 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
 
 async function getCroppedImg(
   imageSrc: string,
-  pixelCrop: CropArea
+  pixelCrop: CropArea,
+  aspectRatio: number = 1
 ): Promise<string> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -38,9 +40,11 @@ async function getCroppedImg(
     throw new Error("No 2d context");
   }
 
-  const maxSize = 800;
-  canvas.width = maxSize;
-  canvas.height = maxSize;
+  const isSquare = aspectRatio === 1;
+  const maxWidth = isSquare ? 400 : 800;
+  const maxHeight = Math.round(maxWidth / aspectRatio);
+  canvas.width = maxWidth;
+  canvas.height = maxHeight;
 
   ctx.drawImage(
     image,
@@ -50,11 +54,20 @@ async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    maxSize,
-    maxSize
+    maxWidth,
+    maxHeight
   );
 
-  return canvas.toDataURL("image/jpeg", 0.85);
+  let quality = 0.75;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  
+  const maxSizeBytes = 500 * 1024;
+  while (dataUrl.length > maxSizeBytes && quality > 0.3) {
+    quality -= 0.1;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+
+  return dataUrl;
 }
 
 export default function ImageCropDialog({
@@ -62,17 +75,26 @@ export default function ImageCropDialog({
   onOpenChange,
   imageSrc,
   onCropComplete,
+  aspectRatio = 1,
 }: ImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
 
+  useEffect(() => {
+    if (open) {
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+    }
+  }, [open]);
+
   const onCropChange = useCallback((location: { x: number; y: number }) => {
     setCrop(location);
   }, []);
 
-  const onZoomChange = useCallback((zoom: number) => {
-    setZoom(zoom);
+  const onZoomChange = useCallback((newZoom: number) => {
+    setZoom(newZoom);
   }, []);
 
   const onCropAreaChange = useCallback(
@@ -86,32 +108,38 @@ export default function ImageCropDialog({
     if (!croppedAreaPixels) return;
 
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, aspectRatio);
       onCropComplete(croppedImage);
       onOpenChange(false);
     } catch (e) {
       console.error("Error cropping image:", e);
     }
-  }, [croppedAreaPixels, imageSrc, onCropComplete, onOpenChange]);
+  }, [croppedAreaPixels, imageSrc, onCropComplete, onOpenChange, aspectRatio]);
+
+  const isSquare = aspectRatio === 1;
+  const dialogTitle = isSquare ? "Ajustar Foto" : "Ajustar Imagem";
+  const dialogDescription = isSquare 
+    ? "Posicione e ajuste o zoom da imagem para centralizar o rosto"
+    : "Posicione e ajuste o zoom para enquadrar a imagem";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Ajustar Foto</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Posicione e ajuste o zoom da imagem para centralizar o rosto
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
+          <div className="relative w-full h-96 bg-muted rounded-md overflow-hidden">
             <Cropper
               image={imageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
+              aspect={aspectRatio}
+              cropShape={isSquare ? "round" : "rect"}
+              showGrid={!isSquare}
               onCropChange={onCropChange}
               onZoomChange={onZoomChange}
               onCropAreaChange={onCropAreaChange}
@@ -138,7 +166,7 @@ export default function ImageCropDialog({
               Cancelar
             </Button>
             <Button onClick={handleSave} data-testid="button-save-crop">
-              Salvar Foto
+              Salvar
             </Button>
           </div>
         </div>

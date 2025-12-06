@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import {
   Select,
   SelectContent,
@@ -36,7 +37,7 @@ const memberFormSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   position: z.string().min(1, "Cargo e obrigatorio"),
   bio: z.string().optional(),
-  photoUrl: z.string().url("URL invalida").optional().or(z.literal("")),
+  photoUrl: z.string().optional().or(z.literal("")),
   instagram: z.string().optional(),
   whatsapp: z.string().optional(),
   termStart: z.string().min(4, "Ano de inicio e obrigatorio"),
@@ -363,19 +364,20 @@ export default function MarketingDiretoriaEditor({ params }: { params?: { id: st
                 name="photoUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>URL da Foto</FormLabel>
+                    <FormLabel>Foto do Membro</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="https://exemplo.com/foto.jpg" 
-                        {...field} 
-                        data-testid="input-photo"
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        aspectRatio={IMAGE_UPLOAD_CONFIGS.board.aspectRatio}
+                        placeholder={IMAGE_UPLOAD_CONFIGS.board.placeholder}
                         disabled={!!selectedUserId && !!selectedUser?.photoUrl}
                       />
                     </FormControl>
                     <FormDescription>
                       {selectedUserId && selectedUser?.photoUrl 
                         ? "Foto preenchida automaticamente do usuario vinculado" 
-                        : "URL de uma foto do membro (opcional)"}
+                        : "Foto quadrada (1:1) do membro"}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

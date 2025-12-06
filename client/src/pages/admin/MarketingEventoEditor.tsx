@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import {
   Form,
   FormControl,
@@ -33,7 +34,7 @@ const eventFormSchema = z.object({
   title: z.string().min(3, "Titulo deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
-  imageUrl: z.string().url("URL invalida").optional().or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
   startDate: z.string().min(1, "Data de inicio e obrigatoria"),
   endDate: z.string().optional(),
   time: z.string().optional(),
@@ -229,46 +230,52 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-category">
-                            <SelectValue placeholder="Selecione uma categoria" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL da Imagem</FormLabel>
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <Input placeholder="https://exemplo.com/imagem.jpg" {...field} data-testid="input-image" />
+                        <SelectTrigger data-testid="select-category">
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagem do Evento</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                        aspectRatio={IMAGE_UPLOAD_CONFIGS.event.aspectRatio}
+                        placeholder={IMAGE_UPLOAD_CONFIGS.event.placeholder}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Imagem em formato 16:9 (landscape) para banners do evento
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

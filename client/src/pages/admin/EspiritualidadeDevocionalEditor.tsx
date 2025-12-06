@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Link, useParams, useLocation } from "wouter";
 import { ArrowLeft, Save, Eye, Star } from "lucide-react";
@@ -330,10 +331,18 @@ export default function EspiritualidadeDevocionalEditor() {
                     name="imageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>URL da Imagem (opcional)</FormLabel>
+                        <FormLabel>Imagem de Capa (opcional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="https://..." {...field} data-testid="input-image" />
+                          <ImageUpload
+                            value={field.value}
+                            onChange={field.onChange}
+                            aspectRatio={IMAGE_UPLOAD_CONFIGS.devotional.aspectRatio}
+                            placeholder={IMAGE_UPLOAD_CONFIGS.devotional.placeholder}
+                          />
                         </FormControl>
+                        <FormDescription>
+                          Imagem em formato 16:9 (landscape) para capa do devocional
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

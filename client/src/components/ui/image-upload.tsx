@@ -43,9 +43,34 @@ export function ImageUpload({
     }
   };
 
-  const handleCropComplete = (croppedImage: string) => {
-    onChange(croppedImage);
-    setTempImageSrc(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleCropComplete = async (croppedImage: string) => {
+    setIsUploading(true);
+    try {
+      const blob = await fetch(croppedImage).then((r) => r.blob());
+      const formData = new FormData();
+      formData.append("file", blob, "image.jpg");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      onChange(data.url);
+    } catch (error) {
+      console.error("Upload error:", error);
+      onChange(croppedImage);
+    } finally {
+      setIsUploading(false);
+      setTempImageSrc(null);
+    }
   };
 
   const handleRemove = () => {
@@ -104,18 +129,27 @@ export function ImageUpload({
         <button
           type="button"
           onClick={handleClick}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           className={cn(
             "w-full border-2 border-dashed border-border rounded-md p-6 text-center cursor-pointer transition-colors",
             "hover-elevate",
-            disabled && "opacity-50 cursor-not-allowed",
+            (disabled || isUploading) && "opacity-50 cursor-not-allowed",
             isSquare ? "aspect-square max-w-[200px]" : "aspect-video"
           )}
           data-testid="button-select-image"
         >
           <div className="flex flex-col items-center justify-center h-full gap-2">
-            <ImageIcon className="h-8 w-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{placeholder}</span>
+            {isUploading ? (
+              <>
+                <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                <span className="text-sm text-muted-foreground">Enviando...</span>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{placeholder}</span>
+              </>
+            )}
           </div>
         </button>
       )}

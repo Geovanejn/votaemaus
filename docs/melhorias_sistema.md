@@ -1,8 +1,25 @@
 # Melhorias do Sistema UMP Emaus
 
 **Data:** 06/12/2025
-**Status:** Documentacao - Pendente Aprovacao do Arquiteto
-**Versao:** 1.0
+**Status:** Em Implementacao
+**Versao:** 1.1
+**Ultima Atualizacao:** 06/12/2025
+
+---
+
+## STATUS DE IMPLEMENTACAO
+
+| Fase | Descricao | Status |
+|------|-----------|--------|
+| 1 | Correcao de bug de data de eventos | CONCLUIDA |
+| 1 | Correcao de URL do Google Calendar | CONCLUIDA |
+| 2 | Upload de Imagens nos Paineis | PENDENTE |
+| 3 | Integracao com Google Maps | PENDENTE |
+| 4 | Botao "Estou Orando" | PENDENTE |
+| 5 | Moderacao Automatica | PENDENTE |
+| 6 | Gerenciamento de Exclusao | PENDENTE |
+| 7 | Sistema de Notificacoes | PENDENTE |
+| 8 | Notificacoes DeoGlory | PENDENTE |
 
 ---
 

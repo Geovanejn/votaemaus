@@ -3617,8 +3617,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       events.forEach(event => {
-        const startDate = new Date(event.startDate);
-        const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+        // Use T12:00:00 to avoid timezone issues (noon is safe from day boundaries)
+        const startDate = new Date(event.startDate + 'T12:00:00');
+        const endDate = event.endDate ? new Date(event.endDate + 'T12:00:00') : new Date(event.startDate + 'T12:00:00');
         
         if (event.time && !event.isAllDay) {
           const [hours, minutes] = event.time.split(":").map(Number);
@@ -3668,8 +3669,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timezone: "America/Sao_Paulo",
       });
       
-      const startDate = new Date(event.startDate);
-      const endDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
+      // Use T12:00:00 to avoid timezone issues (noon is safe from day boundaries)
+      const startDate = new Date(event.startDate + 'T12:00:00');
+      const endDate = event.endDate ? new Date(event.endDate + 'T12:00:00') : new Date(event.startDate + 'T12:00:00');
       
       if (event.time && !event.isAllDay) {
         const [hours, minutes] = event.time.split(":").map(Number);

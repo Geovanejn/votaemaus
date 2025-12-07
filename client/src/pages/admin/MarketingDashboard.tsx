@@ -29,6 +29,12 @@ interface InstagramPost {
   isFeaturedBanner: boolean;
 }
 
+interface InstagramApiResponse {
+  configured: boolean;
+  posts: InstagramPost[];
+  message: string | null;
+}
+
 export default function MarketingDashboard() {
   const { toast } = useToast();
   
@@ -36,9 +42,12 @@ export default function MarketingDashboard() {
     queryKey: ["/api/marketing/stats"],
   });
 
-  const { data: instagramPosts, isLoading: isLoadingInstagram } = useQuery<InstagramPost[]>({
+  const { data: instagramData, isLoading: isLoadingInstagram, isError: isInstagramError } = useQuery<InstagramApiResponse>({
     queryKey: ["/api/admin/instagram"],
   });
+
+  const instagramPosts = instagramData?.posts;
+  const isInstagramConfigured = instagramData?.configured ?? false;
 
   const syncInstagramMutation = useMutation({
     mutationFn: async () => {
@@ -289,6 +298,18 @@ export default function MarketingDashboard() {
               {[...Array(8)].map((_, i) => (
                 <Skeleton key={i} className="aspect-square rounded-md" />
               ))}
+            </div>
+          ) : isInstagramError ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Instagram className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Erro ao carregar posts do Instagram</p>
+              <p className="text-sm">Tente novamente mais tarde</p>
+            </div>
+          ) : !isInstagramConfigured ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Instagram className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Instagram nao configurado</p>
+              <p className="text-sm">{instagramData?.message || "Configure INSTAGRAM_ACCESS_TOKEN e INSTAGRAM_USER_ID nos secrets."}</p>
             </div>
           ) : instagramPosts && instagramPosts.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

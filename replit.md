@@ -1,65 +1,100 @@
-# Emaus Vota - Election Management System (DeoGlory)
+# Site UMP Emaús
 
-## Overview
-Emaus Vota (DeoGlory) is a full-stack web application designed for managing elections within the UMP Emaus church youth group, featuring secure voting, role-based access, and real-time results. It has evolved into a comprehensive UMP Emaus portal, incorporating a gamified study system (Duolingo-style), achievements, daily missions, and PWA support. The project aims to foster transparency, fairness, and engagement within the youth group.
+## Visão Geral
+Sistema web completo para a União de Mocidade Presbiteriana (UMP) da Igreja Presbiteriana Emaús. Inclui site público, área de membros e painel administrativo.
 
-## User Preferences
-- Preferred communication style: Simple, everyday language (Portuguese - Brazil)
-- Language: Portuguese (pt-BR)
-- Branding: UMP Emaús with primary orange #FFA500
+## Configuração de Ambiente
 
-## System Architecture
+### Variáveis de Ambiente Obrigatórias (Secrets)
 
-### UI/UX Decisions
-The system features a responsive, Portuguese UI with a mobile-first Material Design approach, optimized for clarity and ease of use, and branded with UMP Emaús' primary orange (#FFA500). It includes real-time election results, a gamified Duolingo-inspired study system with Framer Motion animations, and PWA support with offline caching and push notifications.
+| Variável | Descrição |
+|----------|-----------|
+| `DATABASE_URL` | URL de conexão PostgreSQL (automático no Replit) |
+| `SESSION_SECRET` | Chave secreta para sessões |
+| `JWT_SECRET` | Chave para tokens JWT |
+| `ADMIN_EMAIL` | Email do administrador raiz |
+| `ADMIN_PASSWORD` | Senha do administrador raiz |
+| `INSTAGRAM_ACCESS_TOKEN` | Token de acesso da API do Instagram |
+| `INSTAGRAM_USER_ID` | ID do usuário Instagram @umpemaus |
+| `VAPID_PUBLIC_KEY` | Chave pública para notificações push |
+| `VAPID_PRIVATE_KEY` | Chave privada para notificações push |
 
-### Technical Implementations
-**Frontend**: React 18, TypeScript, Vite, Wouter for routing, TanStack Query v5, shadcn/ui on Radix UI, Tailwind CSS, Framer Motion, Zustand, React Context API for authentication (JWT in localStorage), React Hook Form, Zod.
-**Backend**: Express.js, Node.js, TypeScript, Drizzle ORM for PostgreSQL (Neon), JWT authentication with email verification, `isAdmin` and `isMember` roles, node-cron for scheduled tasks.
-**WebSocket**: Socket.IO with JWT for real-time updates.
-**Study System**: 3-stage lessons, XP, levels, hearts, streaks, leaderboard, AI integration via Google Gemini for content generation.
-**Daily Missions**: Daily refreshing missions with XP and badge rewards.
-**Gamification**: 35+ achievements, optional sound feedback.
+### Administrador Raiz
 
-### Feature Specifications
-**Core Election Features**: Email/password authentication, role-based access, 3-round election management, attendance control, real-time results, PDF audit reports, shareable results images.
-**Devotional Sharing**: Enhanced sharing with banner-style image generation (html2canvas) and Web Share API integration.
-**Study System**: Gamified lesson map, ranking/leaderboard, multiple exercise types, AI-powered content generation.
-**Gamification & Engagement**: Achievements, daily missions, PWA support, in-app notification center.
-**Site Institucional (Public Website)**: Public pages (Home, Agenda, Devocionais, Diretoria, Oracao, Quem Somos), prayer request submission, board members display, banner carousel.
-**Admin Dashboards**: Separate admin panels for site content management (board members, prayer requests, banners, site content) and study season management (CRUD seasons, publish, import PDF with AI, generate final challenge with AI).
+O administrador raiz é criado automaticamente na inicialização do banco quando `ADMIN_EMAIL` e `ADMIN_PASSWORD` estão definidos como secrets. Se o usuário já existir, ele é promovido a admin.
 
-### System Design Choices
-The architecture is designed for expandability, supporting future modules. Content for Christian meditation focuses strictly on God's Word.
+### Integração Instagram
 
-## External Dependencies
+**Como configurar:**
+1. Acesse [developers.facebook.com](https://developers.facebook.com/)
+2. Crie um app do tipo "Business"
+3. Configure a Instagram Graph API
+4. Adicione sua conta como "Instagram Tester" em Roles > Instagram Testers
+5. Aceite o convite em [instagram.com/accounts/manage_access/](https://instagram.com/accounts/manage_access/)
+6. Gere um token de acesso de longa duração (60 dias)
+7. Adicione `INSTAGRAM_ACCESS_TOKEN` e `INSTAGRAM_USER_ID` nos secrets
 
-### Email Service
-- **Resend**: Transactional emails and verification codes.
+**Sincronização:**
+- Os posts são sincronizados automaticamente a cada 6 horas
+- É possível sincronizar manualmente no painel de marketing
+- Posts podem ser destacados para aparecer no banner da home
 
-### UI Libraries
-- **@radix-ui/**: Accessible, unstyled UI components.
-- **lucide-react**: Icon library.
-- **react-easy-crop**: Interactive image cropping.
-- **framer-motion**: Fluid animations.
+## Estrutura do Projeto
 
-### Database
-- **PostgreSQL**: Neon serverless PostgreSQL for all environments.
-- **@neondatabase/serverless**: Serverless PostgreSQL driver.
-- **drizzle-orm**: Type-safe ORM with PostgreSQL pg-core dialect.
-- **drizzle-kit**: Schema migrations.
+```
+├── client/                 # Frontend React
+│   ├── src/
+│   │   ├── components/    # Componentes reutilizáveis
+│   │   ├── pages/         # Páginas da aplicação
+│   │   │   ├── admin/     # Painel administrativo
+│   │   │   ├── member/    # Área do membro
+│   │   │   └── site/      # Site público
+│   │   └── lib/           # Utilitários
+├── server/                 # Backend Express
+│   ├── routes.ts          # Rotas da API
+│   ├── storage.ts         # Interface de armazenamento
+│   ├── instagram.ts       # Integração Instagram
+│   ├── scheduler.ts       # Tarefas agendadas
+│   └── db.ts              # Conexão com banco
+└── shared/                 # Código compartilhado
+    └── schema.ts          # Esquema do banco (Drizzle)
+```
 
-### AI Integration
-- **Google Gemini API**: EXCLUSIVE AI provider for all content generation (lessons, missions, exercises, summaries).
+## Funcionalidades
 
-### Validation & Forms
-- **Zod**: Runtime schema validation.
-- **drizzle-zod**: Generate Zod schemas from Drizzle tables.
-- **react-hook-form**: Form handling.
+### Site Público
+- Home com banner destacado do Instagram
+- Devocionais diários
+- Agenda de eventos
+- Página "Quem Somos"
+- Diretoria
 
-### Utilities
-- **node-cron**: Task scheduling.
-- **pdf-parse**: PDF text extraction.
-- **jspdf** + **jspdf-autotable**: PDF generation.
-- **html2canvas**: Image export.
-- **qrcode**: QR code generation.
+### Área do Membro
+- Login/Cadastro
+- Perfil pessoal
+- Notificações push
+- Participação em eventos
+
+### Painel Admin
+- Gerenciamento de eventos
+- Gerenciamento de diretoria
+- Devocionais
+- **Instagram**: sincronização e destaque de posts no banner
+- Gerenciamento de membros
+
+## Comandos
+
+```bash
+npm run dev      # Desenvolvimento
+npm run build    # Build para produção
+npm run start    # Iniciar em produção
+npm run db:push  # Sincronizar esquema do banco
+```
+
+## Últimas Alterações
+
+### 07/12/2025
+- Configuração do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
+- Integração Instagram configurada e funcionando com posts reais do @umpemaus
+- Adicionada seção de Instagram no painel de marketing
+- Funcionalidade de destacar post do Instagram no banner da home

@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText } from "lucide-react";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarketingStats {
   events: {
@@ -17,9 +19,71 @@ interface MarketingStats {
   };
 }
 
+interface InstagramPost {
+  id: number;
+  caption: string | null;
+  imageUrl: string;
+  permalink: string;
+  postedAt: string;
+  isActive: boolean;
+  isFeaturedBanner: boolean;
+}
+
 export default function MarketingDashboard() {
+  const { toast } = useToast();
+  
   const { data: stats, isLoading } = useQuery<MarketingStats>({
     queryKey: ["/api/marketing/stats"],
+  });
+
+  const { data: instagramPosts, isLoading: isLoadingInstagram } = useQuery<InstagramPost[]>({
+    queryKey: ["/api/admin/instagram"],
+  });
+
+  const syncInstagramMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/instagram/sync");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/instagram"] });
+      toast({
+        title: "Sincronizado",
+        description: `${data.synced} posts sincronizados do Instagram`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao sincronizar posts do Instagram",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const featurePostMutation = useMutation({
+    mutationFn: async ({ id, feature }: { id: number; feature: boolean }) => {
+      if (feature) {
+        await apiRequest("PATCH", `/api/admin/instagram/${id}/feature`);
+      } else {
+        await apiRequest("DELETE", `/api/admin/instagram/${id}/feature`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/instagram"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/site/highlights"] });
+      toast({
+        title: "Atualizado",
+        description: "Post atualizado com sucesso",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar post",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -195,6 +259,99 @@ export default function MarketingDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card data-testid="card-instagram-section">
+        <CardHeader>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Instagram className="h-5 w-5" />
+                Instagram @umpemaus
+              </CardTitle>
+              <CardDescription>
+                Gerencie os posts do Instagram e escolha qual destacar no banner da home
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => syncInstagramMutation.mutate()}
+              disabled={syncInstagramMutation.isPending}
+              variant="outline"
+              data-testid="button-sync-instagram"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncInstagramMutation.isPending ? "animate-spin" : ""}`} />
+              {syncInstagramMutation.isPending ? "Sincronizando..." : "Sincronizar"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingInstagram ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <Skeleton key={i} className="aspect-square rounded-md" />
+              ))}
+            </div>
+          ) : instagramPosts && instagramPosts.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {instagramPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className={`relative group rounded-md overflow-hidden border ${
+                    post.isFeaturedBanner ? "ring-2 ring-primary" : ""
+                  }`}
+                  data-testid={`card-instagram-post-${post.id}`}
+                >
+                  <img
+                    src={post.imageUrl}
+                    alt={post.caption || "Post do Instagram"}
+                    className="aspect-square object-cover w-full"
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                    <div className="flex justify-end gap-2">
+                      <a
+                        href={post.permalink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-white/20 rounded-full"
+                        data-testid={`link-instagram-post-${post.id}`}
+                      >
+                        <ExternalLink className="h-4 w-4 text-white" />
+                      </a>
+                    </div>
+                    <div className="space-y-2">
+                      {post.caption && (
+                        <p className="text-white text-xs line-clamp-2">{post.caption}</p>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={post.isFeaturedBanner ? "secondary" : "default"}
+                        onClick={() => featurePostMutation.mutate({ id: post.id, feature: !post.isFeaturedBanner })}
+                        disabled={featurePostMutation.isPending}
+                        className="w-full"
+                        data-testid={`button-feature-post-${post.id}`}
+                      >
+                        <Star className={`h-4 w-4 mr-2 ${post.isFeaturedBanner ? "fill-current" : ""}`} />
+                        {post.isFeaturedBanner ? "Remover Destaque" : "Destacar no Banner"}
+                      </Button>
+                    </div>
+                  </div>
+                  {post.isFeaturedBanner && (
+                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-current" />
+                      Destaque
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Instagram className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum post do Instagram sincronizado</p>
+              <p className="text-sm">Clique em "Sincronizar" para buscar os posts mais recentes</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

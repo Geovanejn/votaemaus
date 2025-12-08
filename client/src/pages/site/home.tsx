@@ -21,6 +21,7 @@ import { InstagramPostModal, InstagramPostData } from "@/components/site/Instagr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
+import { parseTipTapContent } from "@/lib/utils";
 
 import devocionalArt from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 import eventImg1 from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
@@ -231,7 +232,7 @@ export default function HomePage() {
                         </cite>
                       </blockquote>
                       <p className="text-muted-foreground leading-relaxed">
-                        {devotional.summary}
+                        {parseTipTapContent(devotional.summary)}
                       </p>
                       <Link href={`/devocionais/${devotional.id}`}>
                         <Button className="gap-2" data-testid="button-read-devotional">

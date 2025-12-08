@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
+import { parseTipTapContent } from "@/lib/utils";
 
 import devocionalArt1 from "@assets/Fundo Layout stories_1761783891823.png";
 import devocionalArt2 from "@assets/Layout stories_1761780888593.png";
@@ -194,7 +195,7 @@ export default function DevocionaisPage() {
                         </div>
                         <div className="md:col-span-2 p-8">
                           <p className="text-muted-foreground leading-relaxed mb-6">
-                            {featuredDevotional.summary}
+                            {parseTipTapContent(featuredDevotional.summary)}
                           </p>
                           <div className="flex items-center justify-between flex-wrap gap-4">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -298,7 +299,7 @@ export default function DevocionaisPage() {
                                   </cite>
                                 </blockquote>
                                 <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                                  {devotional.summary}
+                                  {parseTipTapContent(devotional.summary)}
                                 </p>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <User className="h-3 w-3" />

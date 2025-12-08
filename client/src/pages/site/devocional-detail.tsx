@@ -30,6 +30,7 @@ import { DevotionalShareCard } from "@/components/DevotionalShareCard";
 import { DevotionalComments } from "@/components/DevotionalComments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { parseTipTapContent } from "@/lib/utils";
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
@@ -321,7 +322,7 @@ export default function DevocionalDetailPage() {
     ? devotional.imageUrl 
     : defaultDevImg;
 
-  const contentText = devotional.content || devotional.summary || '';
+  const contentText = parseTipTapContent(devotional.content) || parseTipTapContent(devotional.summary) || '';
 
   return (
     <SiteLayout>

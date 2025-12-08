@@ -559,8 +559,10 @@ export default function MarketingQuemSomos() {
                       {section.type === "location" && (
                         <div className="space-y-4">
                           <LocationInput
-                            value={locationData}
-                            onChange={setLocationData}
+                            locationName={locationData.locationName}
+                            locationUrl={locationData.locationUrl}
+                            onLocationNameChange={(name) => setLocationData({ ...locationData, locationName: name })}
+                            onLocationUrlChange={(url) => setLocationData({ ...locationData, locationUrl: url })}
                           />
                           <div className="space-y-2">
                             <Label htmlFor={`content-${section.key}`}>Endereco completo (opcional)</Label>

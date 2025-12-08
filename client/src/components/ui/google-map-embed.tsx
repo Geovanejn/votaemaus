@@ -80,20 +80,22 @@ export function GoogleMapEmbed({
     );
   }
 
-  if (!embedUrl || hasError || !address) {
+  if (!embedUrl || hasError) {
+    const displayAddress = address || (placeId ? "Ver localizacao" : null);
     return (
       <div 
         className={`flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-md ${className}`}
         style={{ height }}
+        data-testid="map-fallback-container"
       >
         <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-        {address ? (
+        {displayAddress ? (
           <>
             <p className="text-sm text-muted-foreground text-center px-4 mb-4">
-              {address}
+              {displayAddress}
             </p>
             {mapsUrl && showOpenButton && (
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild data-testid="button-open-maps-fallback">
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Abrir no Google Maps
@@ -126,7 +128,7 @@ export function GoogleMapEmbed({
       />
       {mapsUrl && showOpenButton && (
         <div className="absolute bottom-3 right-3">
-          <Button variant="secondary" size="sm" asChild className="shadow-md">
+          <Button variant="secondary" size="sm" asChild className="shadow-md" data-testid="button-open-maps">
             <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
               Abrir

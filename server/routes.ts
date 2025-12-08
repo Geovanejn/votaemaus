@@ -40,6 +40,7 @@ import {
   isAIConfigured 
 } from "./ai";
 import multer from "multer";
+import sharp from "sharp";
 import rateLimit from "express-rate-limit";
 import { moderateContent, shouldAutoReject } from "./profanity-filter";
 import { isGoogleMapsConfigured, getPlaceAutocomplete, getPlaceDetails } from "./utils/google-maps";
@@ -142,11 +143,11 @@ const upload = multer({
   }
 });
 
-// Configure multer for image uploads
+// Configure multer for image uploads (8MB limit)
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+    fileSize: 8 * 1024 * 1024, // 8MB limit for images
   },
   fileFilter: (req, file, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -157,6 +158,11 @@ const imageUpload = multer({
     }
   }
 });
+
+// Image compression settings
+const MAX_IMAGE_WIDTH = 1920;
+const MAX_IMAGE_HEIGHT = 1080;
+const JPEG_QUALITY = 85;
 
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -190,11 +196,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Nenhum arquivo enviado" });
       }
 
-      const fileExtension = req.file.mimetype.split('/')[1] === 'jpeg' ? 'jpg' : req.file.mimetype.split('/')[1];
-      const fileName = `${randomUUID()}.${fileExtension}`;
+      // Compress and resize image using sharp
+      const fileName = `${randomUUID()}.jpg`;
       const filePath = path.join(uploadsDir, fileName);
 
-      await fs.promises.writeFile(filePath, req.file.buffer);
+      try {
+        // Get image metadata
+        const metadata = await sharp(req.file.buffer).metadata();
+        const originalWidth = metadata.width || 0;
+        const originalHeight = metadata.height || 0;
+
+        // Calculate new dimensions while preserving aspect ratio
+        let width = originalWidth;
+        let height = originalHeight;
+
+        if (originalWidth > MAX_IMAGE_WIDTH || originalHeight > MAX_IMAGE_HEIGHT) {
+          const aspectRatio = originalWidth / originalHeight;
+          if (aspectRatio > MAX_IMAGE_WIDTH / MAX_IMAGE_HEIGHT) {
+            width = MAX_IMAGE_WIDTH;
+            height = Math.round(MAX_IMAGE_WIDTH / aspectRatio);
+          } else {
+            height = MAX_IMAGE_HEIGHT;
+            width = Math.round(MAX_IMAGE_HEIGHT * aspectRatio);
+          }
+        }
+
+        // Process and save image
+        await sharp(req.file.buffer)
+          .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: JPEG_QUALITY, progressive: true })
+          .toFile(filePath);
+
+        const stats = await fs.promises.stat(filePath);
+        console.log(`[Upload] Image compressed: ${(req.file.size / 1024).toFixed(1)}KB -> ${(stats.size / 1024).toFixed(1)}KB`);
+      } catch (sharpError) {
+        console.error("[Upload] Sharp error, saving original:", sharpError);
+        // Fallback: save original file if sharp fails
+        await fs.promises.writeFile(filePath, req.file.buffer);
+      }
 
       const url = `/uploads/${fileName}`;
       res.json({ url, fileName });

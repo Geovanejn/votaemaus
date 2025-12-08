@@ -35,6 +35,26 @@ interface InstagramChildrenResponse {
   }>;
 }
 
+export interface InstagramComment {
+  id: string;
+  text: string;
+  username: string;
+  timestamp: string;
+}
+
+interface InstagramCommentsResponse {
+  data: Array<{
+    id: string;
+    text: string;
+    username: string;
+    timestamp: string;
+  }>;
+  paging?: {
+    cursors: { before: string; after: string };
+    next?: string;
+  };
+}
+
 export function isInstagramConfigured(): boolean {
   return !!(INSTAGRAM_ACCESS_TOKEN && INSTAGRAM_USER_ID);
 }
@@ -172,6 +192,34 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
   } catch (error) {
     console.error("[Instagram] Sync error:", error);
     return { synced: 0, errors: 1 };
+  }
+}
+
+export async function fetchInstagramComments(instagramId: string, limit: number = 50): Promise<InstagramComment[]> {
+  if (!isInstagramConfigured()) {
+    console.log("[Instagram] API not configured - cannot fetch comments");
+    return [];
+  }
+
+  try {
+    const fields = "id,text,username,timestamp";
+    const url = `https://graph.instagram.com/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("[Instagram] Comments API error:", response.status, errorData);
+      return [];
+    }
+    
+    const data: InstagramCommentsResponse = await response.json();
+    console.log(`[Instagram] Fetched ${data.data?.length || 0} comments for post ${instagramId}`);
+    
+    return data.data || [];
+  } catch (error) {
+    console.error("[Instagram] Error fetching comments:", error);
+    return [];
   }
 }
 

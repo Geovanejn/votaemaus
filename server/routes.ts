@@ -48,7 +48,7 @@ import {
   notifyNewComment,
   notifySeasonPublished
 } from "./notifications";
-import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
+import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
 
@@ -3254,6 +3254,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get instagram posts error:", error);
       res.status(500).json({ message: "Erro ao buscar posts do Instagram" });
+    }
+  });
+
+  // Get instagram post comments
+  app.get("/api/site/instagram/:instagramId/comments", async (req, res) => {
+    try {
+      const { instagramId } = req.params;
+      if (!instagramId) {
+        return res.status(400).json({ message: "Instagram ID é obrigatório" });
+      }
+      const comments = await fetchInstagramComments(instagramId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Get instagram comments error:", error);
+      res.status(500).json({ message: "Erro ao buscar comentários" });
     }
   });
 

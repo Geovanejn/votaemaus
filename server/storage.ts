@@ -172,7 +172,7 @@ export interface IStorage {
   clearAllSiteEvents(): Promise<void>;
   
   getLatestInstagramPosts(limit?: number): Promise<any[]>;
-  createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): Promise<any>;
+  createInstagramPost(data: { instagramId?: string; caption?: string; imageUrl: string; videoUrl?: string; mediaType?: string; permalink?: string; likesCount?: number; commentsCount?: number; postedAt?: string; isActive?: boolean }): Promise<any>;
   clearAllInstagramPosts(): Promise<void>;
   getFeaturedInstagramPost(): Promise<any | null>;
   setFeaturedInstagramPost(id: number): Promise<any | null>;
@@ -1510,12 +1510,17 @@ export class DatabaseStorage implements IStorage {
     return query;
   }
 
-  async createInstagramPost(data: { caption?: string; imageUrl: string; permalink?: string; postedAt?: string; isActive?: boolean }): Promise<any> {
+  async createInstagramPost(data: { instagramId?: string; caption?: string; imageUrl: string; videoUrl?: string; mediaType?: string; permalink?: string; likesCount?: number; commentsCount?: number; postedAt?: string; isActive?: boolean }): Promise<any> {
     const [post] = await db.insert(schema.instagramPosts)
       .values({
+        instagramId: data.instagramId,
         caption: data.caption,
         imageUrl: data.imageUrl,
+        videoUrl: data.videoUrl,
+        mediaType: data.mediaType || "IMAGE",
         permalink: data.permalink,
+        likesCount: data.likesCount ?? 0,
+        commentsCount: data.commentsCount ?? 0,
         postedAt: data.postedAt ? new Date(data.postedAt) : new Date(),
         isActive: data.isActive ?? true,
       })

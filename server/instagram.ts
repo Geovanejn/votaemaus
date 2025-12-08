@@ -62,7 +62,7 @@ export function isInstagramConfigured(): boolean {
 async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildrenResponse["data"]> {
   try {
     const fields = "id,media_type,media_url,thumbnail_url";
-    const url = `https://graph.instagram.com/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v18.0/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
     
@@ -87,7 +87,7 @@ export async function fetchInstagramPosts(limit: number = 12): Promise<Instagram
 
   try {
     const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
-    const url = `https://graph.instagram.com/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
     
@@ -203,7 +203,7 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
 
   try {
     const fields = "id,text,username,timestamp";
-    const url = `https://graph.instagram.com/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v18.0/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
     
@@ -230,7 +230,7 @@ export async function refreshInstagramToken(): Promise<boolean> {
   }
   
   try {
-    const url = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.FACEBOOK_APP_ID || ''}&client_secret=${process.env.FACEBOOK_APP_SECRET || ''}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
     

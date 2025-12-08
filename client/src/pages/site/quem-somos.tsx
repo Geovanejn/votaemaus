@@ -318,9 +318,21 @@ export default function QuemSomosPage() {
                       <Skeleton className="h-20 w-full" />
                     ) : (
                       <LocationCard
-                        name={endereco?.metadata ? (JSON.parse(endereco.metadata as string)?.locationName || "Igreja Presbiteriana Emaus") : "Igreja Presbiteriana Emaus"}
-                        url={endereco?.metadata ? (JSON.parse(endereco.metadata as string)?.locationUrl || null) : null}
-                        address={endereco?.content || `Rua da Igreja, 123 - Centro\nCidade - Estado, CEP 00000-000`}
+                        name={(() => {
+                          if (!endereco?.metadata) return "Igreja Presbiteriana Emaús";
+                          const meta = typeof endereco.metadata === 'string' 
+                            ? (() => { try { return JSON.parse(endereco.metadata as string); } catch { return {}; } })()
+                            : endereco.metadata;
+                          return (meta as Record<string, unknown>)?.locationName as string || "Igreja Presbiteriana Emaús";
+                        })()}
+                        url={(() => {
+                          if (!endereco?.metadata) return "https://maps.app.goo.gl/FiqeyqfXabQB6aPr7?g_st=ac";
+                          const meta = typeof endereco.metadata === 'string' 
+                            ? (() => { try { return JSON.parse(endereco.metadata as string); } catch { return {}; } })()
+                            : endereco.metadata;
+                          return (meta as Record<string, unknown>)?.locationUrl as string || "https://maps.app.goo.gl/FiqeyqfXabQB6aPr7?g_st=ac";
+                        })()}
+                        address={endereco?.content || `Rua Abigail Maia, 205 - Jardim Soraia\nSão Paulo - SP`}
                       />
                     )}
 

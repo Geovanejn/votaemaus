@@ -126,46 +126,24 @@ export function SiteFooter() {
           <div className="space-y-4">
             <h4 className="font-semibold text-lg flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
-              Localizacao
+              Localização
             </h4>
-            {(() => {
-              let metadata: Record<string, unknown> = {};
-              try {
-                if (endereco?.metadata) {
-                  metadata = typeof endereco.metadata === 'string' 
-                    ? JSON.parse(endereco.metadata) 
-                    : endereco.metadata as Record<string, unknown>;
-                }
-              } catch {
-                metadata = {};
-              }
-              const locationName = (metadata?.locationName as string) || "Igreja Presbiteriana Emaus";
-              const locationUrl = metadata?.locationUrl as string | undefined;
-              
-              return (
-                <div className="space-y-2">
-                  {locationUrl ? (
-                    <a
-                      href={locationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors group"
-                      data-testid="footer-location-link"
-                    >
-                      <span className="underline-offset-2 group-hover:underline">{locationName}</span>
-                      <ExternalLink className="h-3 w-3 opacity-60" />
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">{locationName}</span>
-                  )}
-                  {endereco?.content && (
-                    <p className="text-gray-400 text-xs leading-relaxed whitespace-pre-line">
-                      {endereco.content}
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
+            <div className="space-y-2">
+              <a
+                href="https://maps.app.goo.gl/FiqeyqfXabQB6aPr7?g_st=ac"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors group"
+                data-testid="footer-location-link"
+              >
+                <span className="underline-offset-2 group-hover:underline">Igreja Presbiteriana Emaús</span>
+                <ExternalLink className="h-3 w-3 opacity-60" />
+              </a>
+              <p className="text-gray-400 text-xs leading-relaxed">
+                Rua Abigail Maia, 205 - Jardim Soraia<br />
+                São Paulo - SP
+              </p>
+            </div>
           </div>
         </div>
 

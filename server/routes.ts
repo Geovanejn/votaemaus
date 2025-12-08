@@ -248,6 +248,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== GOOGLE MAPS API ====================
 
+  app.get("/api/maps/config", generalLimiter, async (req, res) => {
+    try {
+      const configured = isGoogleMapsConfigured();
+      res.json({ 
+        configured,
+        publicKey: configured ? process.env.GOOGLE_MAPS_API_KEY : null
+      });
+    } catch (error) {
+      console.error("[Google Maps] Config check error:", error);
+      res.status(500).json({ configured: false, publicKey: null });
+    }
+  });
+
   app.get("/api/maps/autocomplete", generalLimiter, async (req, res) => {
     try {
       if (!isGoogleMapsConfigured()) {

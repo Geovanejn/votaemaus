@@ -1,6 +1,18 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import logoFlame from "@assets/V1_1764865428588.png";
+import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
+import { MapPin } from "lucide-react";
+
+interface SiteContentSection {
+  title: string;
+  content: string;
+  imageUrl?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+type SiteContentMap = Record<string, SiteContentSection>;
 
 const footerLinks = [
   { label: "Início", href: "/" },
@@ -12,10 +24,16 @@ const footerLinks = [
 ];
 
 export function SiteFooter() {
+  const { data: siteContent } = useQuery<SiteContentMap>({
+    queryKey: ["/api/site-content/quem-somos"],
+  });
+
+  const endereco = siteContent?.endereco;
+
   return (
     <footer className="bg-gray-900 dark:bg-black text-white">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <motion.div 
               className="flex items-center gap-3"
@@ -104,6 +122,25 @@ export function SiteFooter() {
                 contato@umpemaus.org.br
               </p>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold text-lg flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Localizacao
+            </h4>
+            <div className="rounded-md overflow-hidden">
+              <GoogleMapEmbed 
+                address={endereco?.content || "Igreja Presbiteriana Emaus, Sao Paulo, Brasil"}
+                height="180px"
+                showOpenButton={false}
+              />
+            </div>
+            {endereco?.content && (
+              <p className="text-gray-400 text-xs leading-relaxed whitespace-pre-line">
+                {endereco.content}
+              </p>
+            )}
           </div>
         </div>
 

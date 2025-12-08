@@ -15,6 +15,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 
 interface SiteContentSection {
   title: string;
@@ -312,14 +313,12 @@ export default function QuemSomosPage() {
             <Card>
               <CardContent className="p-0 overflow-hidden">
                 <div className="grid md:grid-cols-2">
-                  <div className="aspect-video md:aspect-auto bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground">
-                        Mapa será integrado aqui
-                      </p>
-                    </div>
-                  </div>
+                  <GoogleMapEmbed 
+                    address={endereco?.content || "Igreja Presbiteriana Emaus, Sao Paulo, Brasil"}
+                    height="100%"
+                    className="aspect-video md:aspect-auto min-h-[250px]"
+                    showOpenButton={true}
+                  />
                   <div className="p-8 space-y-6">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

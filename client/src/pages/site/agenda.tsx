@@ -10,13 +10,17 @@ import {
   ChevronRight,
   List,
   Grid,
-  Loader2
+  Loader2,
+  X,
+  ExternalLink
 } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 
 import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
 import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
@@ -36,7 +40,10 @@ interface EventData {
   endDate?: string;
   time?: string;
   location?: string;
+  locationUrl?: string;
   isPublished?: boolean;
+  organizer?: string;
+  category?: string;
 }
 
 const categoryColors: Record<string, string> = {
@@ -164,6 +171,7 @@ function SimpleCalendar({
 export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
 
   const { data: eventsData, isLoading, isError } = useQuery<EventData[]>({
     queryKey: ['/api/site/events'],
@@ -309,7 +317,11 @@ export default function AgendaPage() {
                             whileHover={{ x: 4 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Card className="overflow-hidden hover-elevate">
+                            <Card 
+                              className="overflow-hidden hover-elevate cursor-pointer"
+                              onClick={() => setSelectedEvent(event)}
+                              data-testid={`card-event-${event.id}`}
+                            >
                               <CardContent className="p-0">
                                 <div className="flex flex-col md:flex-row">
                                   <div className="relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden">
@@ -443,6 +455,105 @@ export default function AgendaPage() {
           )}
         </div>
       </section>
+
+      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedEvent && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl">{selectedEvent.title}</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {selectedEvent.imageUrl && (
+                  <div className="aspect-video rounded-lg overflow-hidden">
+                    <img 
+                      src={selectedEvent.imageUrl} 
+                      alt={selectedEvent.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {selectedEvent.description && (
+                  <p className="text-muted-foreground">{selectedEvent.description}</p>
+                )}
+
+                <div className="grid gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-primary" />
+                    <span>
+                      {new Date(selectedEvent.startDate).toLocaleDateString("pt-BR", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric"
+                      })}
+                    </span>
+                  </div>
+                  
+                  {selectedEvent.time && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" />
+                      <span>{selectedEvent.time}</span>
+                    </div>
+                  )}
+                  
+                  {selectedEvent.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span>{selectedEvent.location}</span>
+                      {selectedEvent.locationUrl && (
+                        <Button variant="ghost" size="sm" asChild className="ml-auto">
+                          <a href={selectedEvent.locationUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Ver no Maps
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {selectedEvent.location && (
+                  <div className="rounded-lg overflow-hidden">
+                    <GoogleMapEmbed 
+                      address={selectedEvent.location}
+                      locationUrl={selectedEvent.locationUrl}
+                      height="200px"
+                      showOpenButton={true}
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="default"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/site/events/${selectedEvent.id}/google-calendar-url`);
+                        const data = await response.json();
+                        if (data.url) {
+                          window.open(data.url, "_blank");
+                        }
+                      } catch (error) {
+                        console.error("Error getting Google Calendar URL:", error);
+                      }
+                    }}
+                    data-testid="modal-button-add-to-calendar"
+                  >
+                    <SiGooglecalendar className="h-4 w-4 mr-2" />
+                    Adicionar ao Google Agenda
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                    Fechar
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </SiteLayout>
   );
 }

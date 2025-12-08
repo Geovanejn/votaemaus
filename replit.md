@@ -93,8 +93,14 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 08/12/2025
+- Removida integracao com Google Maps (nao usada)
+- Adicionados componentes simples para links de localizacao (LocationLink e LocationInput)
+- Localizacoes agora sao exibidas como links clicaveis que abrem no Google Maps
+- Atualizado footer, pagina Quem Somos e Agenda para usar os novos componentes
+
 ### 07/12/2025
-- Configuração do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
-- Integração Instagram configurada e funcionando com posts reais do @umpemaus
-- Adicionada seção de Instagram no painel de marketing
+- Configuracao do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
+- Integracao Instagram configurada e funcionando com posts reais do @umpemaus
+- Adicionada secao de Instagram no painel de marketing
 - Funcionalidade de destacar post do Instagram no banner da home

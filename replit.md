@@ -94,6 +94,9 @@ npm run db:push  # Sincronizar esquema do banco
 ## Últimas Alterações
 
 ### 08/12/2025
+- Adicionada rota `/agenda/:id` para deep-linking de eventos
+- Botao "Ver Detalhes" do banner agora abre diretamente o dialog do evento
+- Adicionado LocationInput no painel Marketing > Quem Somos para editar endereco
 - Removida integracao com Google Maps (nao usada)
 - Adicionados componentes simples para links de localizacao (LocationLink e LocationInput)
 - Localizacoes agora sao exibidas como links clicaveis que abrem no Google Maps

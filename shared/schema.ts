@@ -443,6 +443,7 @@ export const instagramPosts = pgTable("instagram_posts", {
   instagramId: text("instagram_id"),
   caption: text("caption"),
   imageUrl: text("image_url").notNull(),
+  videoUrl: text("video_url"),
   mediaType: text("media_type").default("IMAGE"),
   permalink: text("permalink"),
   likesCount: integer("likes_count").default(0),

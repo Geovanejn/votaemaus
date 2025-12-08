@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { HeroBanner } from "@/components/site/HeroBanner";
+import { InstagramPostModal, InstagramPostData } from "@/components/site/InstagramPostModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
@@ -58,14 +60,6 @@ interface EventData {
   time?: string;
   location?: string;
   imageUrl?: string;
-}
-
-interface InstagramPostData {
-  id: number;
-  caption?: string;
-  imageUrl: string;
-  permalink?: string;
-  postedAt?: string;
 }
 
 interface SiteHighlights {
@@ -128,6 +122,9 @@ function formatDevotionalDate(dateStr?: string) {
 }
 
 export default function HomePage() {
+  const [selectedPost, setSelectedPost] = useState<InstagramPostData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const { data: highlights, isLoading, isError } = useQuery<SiteHighlights>({
     queryKey: ['/api/site/highlights'],
     staleTime: 5 * 60 * 1000,
@@ -410,11 +407,13 @@ export default function HomePage() {
             <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
               <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-6">
                 {(instagramPosts.length > 0 ? instagramPosts : fallbackInstagramImages.map((img, i) => ({ id: i, imageUrl: img }))).map((post, i) => (
-                  <motion.a
+                  <motion.div
                     key={post.id}
-                    href={(post as InstagramPostData).permalink || "https://instagram.com/umpemaus"}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => {
+                      const fullPost = post as InstagramPostData;
+                      setSelectedPost(fullPost);
+                      setIsModalOpen(true);
+                    }}
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
@@ -428,7 +427,7 @@ export default function HomePage() {
                       alt={(post as InstagramPostData).caption || `Post Instagram ${i + 1}`}
                       className="w-full h-full object-cover"
                     />
-                  </motion.a>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -468,6 +467,17 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+
+      <InstagramPostModal
+        post={selectedPost}
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) {
+            setSelectedPost(null);
+          }
+        }}
+      />
     </SiteLayout>
   );
 }

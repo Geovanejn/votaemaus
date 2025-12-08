@@ -26,8 +26,37 @@ interface InstagramMediaResponse {
   };
 }
 
+interface InstagramChildrenResponse {
+  data: Array<{
+    id: string;
+    media_type: "IMAGE" | "VIDEO";
+    media_url: string;
+    thumbnail_url?: string;
+  }>;
+}
+
 export function isInstagramConfigured(): boolean {
   return !!(INSTAGRAM_ACCESS_TOKEN && INSTAGRAM_USER_ID);
+}
+
+async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildrenResponse["data"]> {
+  try {
+    const fields = "id,media_type,media_url,thumbnail_url";
+    const url = `https://graph.instagram.com/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`[Instagram] Failed to fetch carousel children for ${mediaId}`);
+      return [];
+    }
+    
+    const data: InstagramChildrenResponse = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error(`[Instagram] Error fetching carousel children:`, error);
+    return [];
+  }
 }
 
 export async function fetchInstagramPosts(limit: number = 12): Promise<InstagramMediaItem[]> {
@@ -78,6 +107,7 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
       instagramId: string;
       caption?: string;
       imageUrl: string;
+      videoUrl?: string;
       mediaType: string;
       permalink: string;
       likesCount: number;
@@ -87,15 +117,33 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
     }> = [];
     
     for (const post of posts) {
-      const imageUrl = post.media_type === "VIDEO" && post.thumbnail_url 
-        ? post.thumbnail_url 
-        : post.media_url;
+      let imageUrl = post.media_url;
+      let videoUrl: string | undefined = undefined;
+      let mediaType = post.media_type;
+      
+      if (post.media_type === "VIDEO") {
+        imageUrl = post.thumbnail_url || post.media_url;
+        videoUrl = post.media_url;
+      } else if (post.media_type === "CAROUSEL_ALBUM") {
+        const children = await fetchCarouselChildren(post.id);
+        const videoChild = children.find(child => child.media_type === "VIDEO");
+        const firstImageChild = children.find(child => child.media_type === "IMAGE");
+        
+        if (videoChild) {
+          mediaType = "VIDEO";
+          imageUrl = videoChild.thumbnail_url || firstImageChild?.media_url || children[0]?.media_url || post.media_url;
+          videoUrl = videoChild.media_url;
+        } else if (children.length > 0 && children[0].media_url) {
+          imageUrl = children[0].media_url;
+        }
+      }
         
       newPosts.push({
         instagramId: post.id,
         caption: post.caption,
         imageUrl: imageUrl,
-        mediaType: post.media_type,
+        videoUrl: videoUrl,
+        mediaType: mediaType,
         permalink: post.permalink,
         likesCount: post.like_count || 0,
         commentsCount: post.comments_count || 0,

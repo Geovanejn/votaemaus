@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
+import { LocationLink } from "@/components/ui/location-link";
 
 import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
 import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
@@ -516,12 +516,11 @@ export default function AgendaPage() {
                 </div>
 
                 {selectedEvent.location && (
-                  <div className="rounded-lg overflow-hidden">
-                    <GoogleMapEmbed 
-                      address={selectedEvent.location}
-                      locationUrl={selectedEvent.locationUrl}
-                      height="200px"
-                      showOpenButton={true}
+                  <div className="pt-2">
+                    <LocationLink
+                      name={selectedEvent.location}
+                      url={selectedEvent.locationUrl}
+                      variant="card"
                     />
                   </div>
                 )}

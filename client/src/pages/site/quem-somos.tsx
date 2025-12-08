@@ -15,7 +15,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
+import { LocationCard } from "@/components/ui/location-link";
 
 interface SiteContentSection {
   title: string;
@@ -311,30 +311,18 @@ export default function QuemSomosPage() {
 
           <div className="max-w-4xl mx-auto">
             <Card>
-              <CardContent className="p-0 overflow-hidden">
-                <div className="grid md:grid-cols-2">
-                  <GoogleMapEmbed 
-                    address={endereco?.content || "Igreja Presbiteriana Emaus, Sao Paulo, Brasil"}
-                    height="100%"
-                    className="aspect-video md:aspect-auto min-h-[250px]"
-                    showOpenButton={true}
-                  />
-                  <div className="p-8 space-y-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <MapPin className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">Endereço</h4>
-                        {isLoading ? (
-                          <Skeleton className="h-10 w-48" />
-                        ) : (
-                          <p className="text-sm text-muted-foreground whitespace-pre-line" data-testid="text-endereco">
-                            {endereco?.content || `Rua da Igreja, 123 - Centro\nCidade - Estado, CEP 00000-000`}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+              <CardContent className="p-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    {isLoading ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : (
+                      <LocationCard
+                        name={endereco?.metadata ? (JSON.parse(endereco.metadata as string)?.locationName || "Igreja Presbiteriana Emaus") : "Igreja Presbiteriana Emaus"}
+                        url={endereco?.metadata ? (JSON.parse(endereco.metadata as string)?.locationUrl || null) : null}
+                        address={endereco?.content || `Rua da Igreja, 123 - Centro\nCidade - Estado, CEP 00000-000`}
+                      />
+                    )}
 
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

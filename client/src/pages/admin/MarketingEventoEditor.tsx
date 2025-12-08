@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
-import { LocationPicker } from "@/components/ui/location-picker";
+import { LocationInput } from "@/components/ui/location-input";
 import {
   Form,
   FormControl,
@@ -362,28 +362,20 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Local</FormLabel>
-                    <FormControl>
-                      <LocationPicker
-                        value={field.value}
-                        locationUrl={form.watch("locationUrl") || ""}
-                        onLocationChange={field.onChange}
-                        onLocationUrlChange={(url) => form.setValue("locationUrl", url)}
-                        placeholder="Digite o endereco ou nome do local"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Digite para buscar enderecos. O link do Google Maps sera preenchido automaticamente.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormItem>
+                <FormControl>
+                  <LocationInput
+                    locationName={form.watch("location") || ""}
+                    locationUrl={form.watch("locationUrl") || ""}
+                    onLocationNameChange={(name) => form.setValue("location", name)}
+                    onLocationUrlChange={(url) => form.setValue("locationUrl", url)}
+                    namePlaceholder="Ex: Igreja Presbiteriana Emaus"
+                    urlPlaceholder="https://maps.google.com/..."
+                    nameLabel="Nome do Local"
+                    urlLabel="Link do Google Maps"
+                  />
+                </FormControl>
+              </FormItem>
 
               <FormField
                 control={form.control}

@@ -2,8 +2,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import logoFlame from "@assets/V1_1764865428588.png";
-import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
-import { MapPin } from "lucide-react";
+import { MapPin, ExternalLink } from "lucide-react";
 
 interface SiteContentSection {
   title: string;
@@ -129,18 +128,44 @@ export function SiteFooter() {
               <MapPin className="h-5 w-5 text-primary" />
               Localizacao
             </h4>
-            <div className="rounded-md overflow-hidden">
-              <GoogleMapEmbed 
-                address={endereco?.content || "Igreja Presbiteriana Emaus, Sao Paulo, Brasil"}
-                height="180px"
-                showOpenButton={false}
-              />
-            </div>
-            {endereco?.content && (
-              <p className="text-gray-400 text-xs leading-relaxed whitespace-pre-line">
-                {endereco.content}
-              </p>
-            )}
+            {(() => {
+              let metadata: Record<string, unknown> = {};
+              try {
+                if (endereco?.metadata) {
+                  metadata = typeof endereco.metadata === 'string' 
+                    ? JSON.parse(endereco.metadata) 
+                    : endereco.metadata as Record<string, unknown>;
+                }
+              } catch {
+                metadata = {};
+              }
+              const locationName = (metadata?.locationName as string) || "Igreja Presbiteriana Emaus";
+              const locationUrl = metadata?.locationUrl as string | undefined;
+              
+              return (
+                <div className="space-y-2">
+                  {locationUrl ? (
+                    <a
+                      href={locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-gray-400 hover:text-primary transition-colors group"
+                      data-testid="footer-location-link"
+                    >
+                      <span className="underline-offset-2 group-hover:underline">{locationName}</span>
+                      <ExternalLink className="h-3 w-3 opacity-60" />
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">{locationName}</span>
+                  )}
+                  {endereco?.content && (
+                    <p className="text-gray-400 text-xs leading-relaxed whitespace-pre-line">
+                      {endereco.content}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

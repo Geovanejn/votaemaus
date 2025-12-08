@@ -43,7 +43,6 @@ import multer from "multer";
 import sharp from "sharp";
 import rateLimit from "express-rate-limit";
 import { moderateContent, shouldAutoReject } from "./profanity-filter";
-import { isGoogleMapsConfigured, getPlaceAutocomplete, getPlaceDetails } from "./utils/google-maps";
 import { 
   notifyNewDevotional, 
   notifyNewEvent, 
@@ -246,58 +245,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== STATIC FILES FOR UPLOADS ====================
   app.use("/uploads", (await import("express")).default.static(uploadsDir));
 
-  // ==================== GOOGLE MAPS API ====================
-
-  app.get("/api/maps/config", generalLimiter, async (req, res) => {
-    try {
-      const configured = isGoogleMapsConfigured();
-      res.json({ 
-        configured,
-        publicKey: configured ? process.env.GOOGLE_MAPS_API_KEY : null
-      });
-    } catch (error) {
-      console.error("[Google Maps] Config check error:", error);
-      res.status(500).json({ configured: false, publicKey: null });
-    }
-  });
-
-  app.get("/api/maps/autocomplete", generalLimiter, async (req, res) => {
-    try {
-      if (!isGoogleMapsConfigured()) {
-        return res.status(503).json({ message: "Google Maps not configured", predictions: [] });
-      }
-
-      const input = req.query.input as string;
-      if (!input || input.length < 3) {
-        return res.json({ predictions: [] });
-      }
-
-      const predictions = await getPlaceAutocomplete(input);
-      res.json({ predictions });
-    } catch (error) {
-      console.error("[Google Maps] Autocomplete error:", error);
-      res.status(500).json({ message: "Failed to fetch autocomplete predictions", predictions: [] });
-    }
-  });
-
-  app.get("/api/maps/details", generalLimiter, async (req, res) => {
-    try {
-      if (!isGoogleMapsConfigured()) {
-        return res.status(503).json({ message: "Google Maps not configured" });
-      }
-
-      const placeId = req.query.placeId as string;
-      if (!placeId) {
-        return res.status(400).json({ message: "placeId is required" });
-      }
-
-      const details = await getPlaceDetails(placeId);
-      res.json(details);
-    } catch (error) {
-      console.error("[Google Maps] Details error:", error);
-      res.status(500).json({ message: "Failed to fetch place details" });
-    }
-  });
 
   app.post("/api/auth/login", authLimiter, async (req, res) => {
     try {

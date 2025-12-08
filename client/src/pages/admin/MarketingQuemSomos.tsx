@@ -286,20 +286,21 @@ export default function MarketingQuemSomos() {
   const handleEdit = (section: string, sectionType: string) => {
     const existing = getContentForSection(section);
     
+    // Always store the existing title in formData to preserve it on save
+    setFormData({
+      ...formData,
+      [section]: {
+        title: existing?.title || "",
+        content: existing?.content || "",
+      },
+    });
+    
     if (sectionType === "values") {
       const parsed = parseJsonContent<ValueItem>(existing?.content, []);
       setValuesData(parsed.length > 0 ? parsed : [{ icon: "Heart", title: "", description: "" }]);
     } else if (sectionType === "timeline") {
       const parsed = parseJsonContent<TimelineItem>(existing?.content, []);
       setTimelineData(parsed.length > 0 ? parsed : [{ year: "", title: "", description: "" }]);
-    } else {
-      setFormData({
-        ...formData,
-        [section]: {
-          title: existing?.title || "",
-          content: existing?.content || "",
-        },
-      });
     }
     setEditingSection(section);
   };

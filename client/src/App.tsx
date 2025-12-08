@@ -21,6 +21,7 @@ import QuemSomosPage from "@/pages/site/quem-somos";
 import DiretoriaPage from "@/pages/site/diretoria";
 import OracaoPage from "@/pages/site/oracao";
 import MembroPage from "@/pages/site/membro";
+import PoliticaPrivacidadePage from "@/pages/site/politica-privacidade";
 
 const AdminPage = lazy(() => import("@/pages/admin"));
 const AdminSitePage = lazy(() => import("@/pages/admin/admin-site"));
@@ -110,6 +111,7 @@ function Router() {
             <Route path="/diretoria" component={DiretoriaPage} />
             <Route path="/oracao" component={OracaoPage} />
             <Route path="/membro" component={MembroPage} />
+            <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
             <Route path="/login" component={LoginPage} />
             <Route>
               <Redirect to="/" />
@@ -164,6 +166,7 @@ function Router() {
           <Route path="/diretoria" component={DiretoriaPage} />
           <Route path="/oracao" component={OracaoPage} />
           <Route path="/membro" component={MembroPage} />
+          <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
           <Route path="/login" component={LoginPage} />
           <Route>
             <Redirect to="/" />
@@ -213,6 +216,7 @@ function Router() {
         <Route path="/diretoria" component={DiretoriaPage} />
         <Route path="/oracao" component={OracaoPage} />
         <Route path="/membro" component={MembroPage} />
+        <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
         <Route path="/login" component={LoginPage} />
         <Route>
           <Redirect to="/" />

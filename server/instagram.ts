@@ -11,6 +11,8 @@ interface InstagramMediaItem {
   permalink: string;
   timestamp: string;
   thumbnail_url?: string;
+  like_count?: number;
+  comments_count?: number;
 }
 
 interface InstagramMediaResponse {
@@ -35,7 +37,7 @@ export async function fetchInstagramPosts(limit: number = 12): Promise<Instagram
   }
 
   try {
-    const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url";
+    const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
     const url = `https://graph.instagram.com/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
@@ -73,9 +75,13 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
     }
     
     const newPosts: Array<{
+      instagramId: string;
       caption?: string;
       imageUrl: string;
+      mediaType: string;
       permalink: string;
+      likesCount: number;
+      commentsCount: number;
       postedAt: string;
       isActive: boolean;
     }> = [];
@@ -86,9 +92,13 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
         : post.media_url;
         
       newPosts.push({
+        instagramId: post.id,
         caption: post.caption,
         imageUrl: imageUrl,
+        mediaType: post.media_type,
         permalink: post.permalink,
+        likesCount: post.like_count || 0,
+        commentsCount: post.comments_count || 0,
         postedAt: post.timestamp,
         isActive: true,
       });

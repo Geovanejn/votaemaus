@@ -440,9 +440,13 @@ export type SiteEvent = typeof siteEvents.$inferSelect;
 
 export const instagramPosts = pgTable("instagram_posts", {
   id: serial("id").primaryKey(),
+  instagramId: text("instagram_id"),
   caption: text("caption"),
   imageUrl: text("image_url").notNull(),
+  mediaType: text("media_type").default("IMAGE"),
   permalink: text("permalink"),
+  likesCount: integer("likes_count").default(0),
+  commentsCount: integer("comments_count").default(0),
   postedAt: timestamp("posted_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
   isFeaturedBanner: boolean("is_featured_banner").notNull().default(false),

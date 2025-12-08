@@ -23,9 +23,11 @@ import {
   Plus,
   Trash2,
   BookOpen,
-  Church
+  Church,
+  ExternalLink
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LocationInput } from "@/components/ui/location-input";
 import type { SiteContent } from "@shared/schema";
 
 interface ContentSection {
@@ -62,7 +64,7 @@ const sections = [
   { key: "visao", label: "Visao", icon: Eye, description: "A visao da organizacao", type: "text" },
   { key: "valores", label: "Valores", icon: Heart, description: "Os valores que norteiam a UMP", type: "values" },
   { key: "timeline", label: "Linha do Tempo", icon: History, description: "Marcos historicos", type: "timeline" },
-  { key: "endereco", label: "Endereco", icon: MapPin, description: "Endereco fisico", type: "text" },
+  { key: "endereco", label: "Endereco", icon: MapPin, description: "Endereco fisico com link para o Maps", type: "location" },
   { key: "horarios", label: "Horarios", icon: Clock, description: "Horarios de cultos e estudos", type: "text" },
   { key: "telefone", label: "Telefone", icon: Phone, description: "Numero de contato", type: "text" },
   { key: "email", label: "E-mail", icon: Mail, description: "E-mail de contato", type: "text" },
@@ -235,12 +237,18 @@ function TimelineEditor({
   );
 }
 
+interface LocationData {
+  locationName: string;
+  locationUrl: string;
+}
+
 export default function MarketingQuemSomos() {
   const { toast } = useToast();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, { title: string; content: string }>>({});
   const [valuesData, setValuesData] = useState<ValueItem[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineItem[]>([]);
+  const [locationData, setLocationData] = useState<LocationData>({ locationName: "", locationUrl: "" });
 
   const { data: siteContent, isLoading } = useQuery<SiteContent[]>({
     queryKey: ["/api/marketing/site-content"],
@@ -301,12 +309,36 @@ export default function MarketingQuemSomos() {
     } else if (sectionType === "timeline") {
       const parsed = parseJsonContent<TimelineItem>(existing?.content, []);
       setTimelineData(parsed.length > 0 ? parsed : [{ year: "", title: "", description: "" }]);
+    } else if (sectionType === "location") {
+      let metadata: LocationData = { locationName: "", locationUrl: "" };
+      try {
+        if (existing?.metadata) {
+          const parsed = typeof existing.metadata === 'string' 
+            ? JSON.parse(existing.metadata) 
+            : existing.metadata;
+          metadata = {
+            locationName: parsed.locationName || "",
+            locationUrl: parsed.locationUrl || ""
+          };
+        }
+      } catch {
+        metadata = { locationName: "", locationUrl: "" };
+      }
+      setLocationData(metadata);
+      setFormData({
+        ...formData,
+        [section]: {
+          title: existing?.title || "",
+          content: existing?.content || "",
+        },
+      });
     }
     setEditingSection(section);
   };
 
   const handleSave = (section: string, sectionType: string) => {
     let content = "";
+    let metadata: string | undefined;
     
     if (sectionType === "values") {
       const validValues = valuesData.filter(v => v.title.trim() !== "");
@@ -314,6 +346,9 @@ export default function MarketingQuemSomos() {
     } else if (sectionType === "timeline") {
       const validItems = timelineData.filter(t => t.year.trim() !== "" || t.title.trim() !== "");
       content = JSON.stringify(validItems);
+    } else if (sectionType === "location") {
+      content = formData[section]?.content || "";
+      metadata = JSON.stringify(locationData);
     } else {
       const data = formData[section];
       if (!data) return;
@@ -325,6 +360,7 @@ export default function MarketingQuemSomos() {
       section,
       title: formData[section]?.title || "",
       content,
+      metadata,
     });
   };
 
@@ -333,6 +369,7 @@ export default function MarketingQuemSomos() {
     setFormData({});
     setValuesData([]);
     setTimelineData([]);
+    setLocationData({ locationName: "", locationUrl: "" });
   };
 
   const renderPreview = (section: string, sectionType: string) => {
@@ -370,6 +407,48 @@ export default function MarketingQuemSomos() {
             </div>
           ))}
           {items.length > 3 && <p className="text-xs text-muted-foreground">+{items.length - 3} mais...</p>}
+        </div>
+      );
+    }
+    
+    if (sectionType === "location") {
+      let metadata: LocationData = { locationName: "", locationUrl: "" };
+      try {
+        if (content?.metadata) {
+          const parsed = typeof content.metadata === 'string' 
+            ? JSON.parse(content.metadata) 
+            : content.metadata;
+          metadata = {
+            locationName: parsed.locationName || "",
+            locationUrl: parsed.locationUrl || ""
+          };
+        }
+      } catch {
+        metadata = { locationName: "", locationUrl: "" };
+      }
+      
+      if (!metadata.locationName && !content?.content) {
+        return <p className="text-sm text-muted-foreground italic">Nenhum endereco definido</p>;
+      }
+      
+      return (
+        <div className="space-y-2">
+          {metadata.locationName && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span className="font-medium">{metadata.locationName}</span>
+              {metadata.locationUrl && (
+                <a href={metadata.locationUrl} target="_blank" rel="noopener noreferrer" className="text-primary">
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
+          {content?.content && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {content.content.length > 100 ? content.content.substring(0, 100) + "..." : content.content}
+            </p>
+          )}
         </div>
       );
     }
@@ -475,6 +554,32 @@ export default function MarketingQuemSomos() {
                       
                       {section.type === "timeline" && (
                         <TimelineEditor items={timelineData} onChange={setTimelineData} />
+                      )}
+                      
+                      {section.type === "location" && (
+                        <div className="space-y-4">
+                          <LocationInput
+                            value={locationData}
+                            onChange={setLocationData}
+                          />
+                          <div className="space-y-2">
+                            <Label htmlFor={`content-${section.key}`}>Endereco completo (opcional)</Label>
+                            <Textarea
+                              id={`content-${section.key}`}
+                              value={sectionFormData?.content || ""}
+                              onChange={(e) => setFormData({
+                                ...formData,
+                                [section.key]: {
+                                  ...sectionFormData,
+                                  content: e.target.value,
+                                },
+                              })}
+                              placeholder="Rua, numero, bairro, cidade..."
+                              rows={3}
+                              data-testid={`input-content-${section.key}`}
+                            />
+                          </div>
+                        </div>
                       )}
                       
                       <div className="flex gap-2">

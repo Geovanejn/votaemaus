@@ -107,6 +107,7 @@ function Router() {
             <Route path="/devocionais" component={DevocionaisPage} />
             <Route path="/devocionais/:id" component={DevocionalDetailPage} />
             <Route path="/agenda" component={AgendaPage} />
+            <Route path="/agenda/:id" component={AgendaPage} />
             <Route path="/quem-somos" component={QuemSomosPage} />
             <Route path="/diretoria" component={DiretoriaPage} />
             <Route path="/oracao" component={OracaoPage} />
@@ -162,6 +163,7 @@ function Router() {
           <Route path="/devocionais" component={DevocionaisPage} />
           <Route path="/devocionais/:id" component={DevocionalDetailPage} />
           <Route path="/agenda" component={AgendaPage} />
+          <Route path="/agenda/:id" component={AgendaPage} />
           <Route path="/quem-somos" component={QuemSomosPage} />
           <Route path="/diretoria" component={DiretoriaPage} />
           <Route path="/oracao" component={OracaoPage} />
@@ -212,6 +214,7 @@ function Router() {
         <Route path="/devocionais" component={DevocionaisPage} />
         <Route path="/devocionais/:id" component={DevocionalDetailPage} />
         <Route path="/agenda" component={AgendaPage} />
+        <Route path="/agenda/:id" component={AgendaPage} />
         <Route path="/quem-somos" component={QuemSomosPage} />
         <Route path="/diretoria" component={DiretoriaPage} />
         <Route path="/oracao" component={OracaoPage} />

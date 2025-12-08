@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import { 
   Calendar as CalendarIcon,
   MapPin,
@@ -169,6 +170,7 @@ function SimpleCalendar({
 }
 
 export default function AgendaPage() {
+  const params = useParams<{ id?: string }>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
@@ -178,6 +180,16 @@ export default function AgendaPage() {
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
+
+  useEffect(() => {
+    if (params.id && eventsData && eventsData.length > 0) {
+      const eventId = parseInt(params.id, 10);
+      const event = eventsData.find(e => e.id === eventId);
+      if (event) {
+        setSelectedEvent(event);
+      }
+    }
+  }, [params.id, eventsData]);
 
   const processedEvents = (eventsData || []).map((event, index) => ({
     ...event,

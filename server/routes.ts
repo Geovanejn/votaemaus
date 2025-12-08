@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
 import { getTodayBrazilDate } from "./utils/date";
 import { 
   generateToken, 
@@ -139,6 +142,22 @@ const upload = multer({
   }
 });
 
+// Configure multer for image uploads
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens JPEG, PNG ou WebP são permitidas'));
+    }
+  }
+});
+
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -157,6 +176,36 @@ function getIconForLessonType(type: string): string {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Aplicar rate limiter geral para APIs publicas do site
   app.use("/api/site", generalLimiter);
+
+  // ==================== UPLOADS DIRECTORY ====================
+  const uploadsDir = path.join(process.cwd(), "server", "public", "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // ==================== IMAGE UPLOAD API ====================
+  app.post("/api/upload", authenticateToken, imageUpload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      const fileExtension = req.file.mimetype.split('/')[1] === 'jpeg' ? 'jpg' : req.file.mimetype.split('/')[1];
+      const fileName = `${randomUUID()}.${fileExtension}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      await fs.promises.writeFile(filePath, req.file.buffer);
+
+      const url = `/uploads/${fileName}`;
+      res.json({ url, fileName });
+    } catch (error) {
+      console.error("[Upload] Error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload do arquivo" });
+    }
+  });
+
+  // ==================== STATIC FILES FOR UPLOADS ====================
+  app.use("/uploads", (await import("express")).default.static(uploadsDir));
 
   // ==================== GOOGLE MAPS API ====================
 

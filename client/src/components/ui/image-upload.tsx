@@ -54,10 +54,17 @@ export function ImageUpload({
       const formData = new FormData();
       formData.append("file", blob, "image.jpg");
 
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
+        headers,
       });
 
       if (!response.ok) {

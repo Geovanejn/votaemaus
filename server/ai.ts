@@ -2,8 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// Using gemini-1.5-flash which has better free tier support
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Using gemini-2.5-flash as specified by user
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export interface GeneratedLesson {
   title: string;

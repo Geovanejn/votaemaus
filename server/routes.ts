@@ -1527,8 +1527,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Licao nao encontrada" });
       }
       const units = await storage.getUnitsByLessonId(lessonId);
+      const unitsWithParsedContent = units.map((unit: any) => ({
+        ...unit,
+        content: typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content
+      }));
       const progress = await storage.getUserLessonProgress(req.user.id, lessonId);
-      res.json({ ...lesson, units, progress });
+      res.json({ ...lesson, units: unitsWithParsedContent, progress });
     } catch (error) {
       console.error("Get lesson error:", error);
       res.status(500).json({ message: "Erro ao buscar licao" });

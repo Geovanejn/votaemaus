@@ -65,10 +65,20 @@ export default function VersesPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/study/verses/recovery-progress'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/verses'] });
       
-      if (data.heartRecovered) {
+      if (data.alreadyRead) {
+        toast({
+          title: "Versículo já lido!",
+          description: "Você já leu este versículo antes.",
+        });
+      } else if (data.heartRecovered) {
         toast({
           title: "Vida recuperada!",
           description: "Você leu 3 versículos e ganhou +1 vida!",
+        });
+      } else if (data.heartsFull) {
+        toast({
+          title: "Vidas cheias!",
+          description: "Suas vidas já estão no máximo. O progresso foi reiniciado.",
         });
       } else {
         toast({
@@ -87,13 +97,6 @@ export default function VersesPage() {
   });
 
   const handleVerseRead = (verseId: number) => {
-    if (profile && profile.hearts >= profile.maxHearts) {
-      toast({
-        title: "Vidas cheias!",
-        description: "Você já tem todas as suas vidas. Continue estudando!",
-      });
-      return;
-    }
     readVerseMutation.mutate(verseId);
   };
 

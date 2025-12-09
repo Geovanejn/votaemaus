@@ -661,6 +661,7 @@ export const studyProfiles = pgTable("study_profiles", {
   weeklyVersesGoal: integer("weekly_verses_goal").notNull().default(7),
   weeklyMissionsGoal: integer("weekly_missions_goal").notNull().default(3),
   weeklyDevotionalsGoal: integer("weekly_devotionals_goal").notNull().default(1),
+  versesReadForRecovery: integer("verses_read_for_recovery").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({

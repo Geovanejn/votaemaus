@@ -1573,8 +1573,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const progress = await storage.startLesson(req.user.id, lessonId);
-      res.json(progress);
+      const result = await storage.startLesson(req.user.id, lessonId);
+      
+      if (result.alreadyCompleted) {
+        return res.status(400).json({ 
+          message: "Esta licao ja foi concluida. Nao e possivel refaze-la.",
+          alreadyCompleted: true,
+          progress: result.progress
+        });
+      }
+      
+      res.json(result);
     } catch (error) {
       console.error("Start lesson error:", error);
       res.status(500).json({ message: "Erro ao iniciar licao" });

@@ -1741,6 +1741,9 @@ export class DatabaseStorage implements IStorage {
   async startLesson(userId: number, lessonId: number): Promise<any> {
     const existing = await this.getUserLessonProgress(userId, lessonId);
     if (existing) {
+      if (existing.status === 'completed') {
+        return { alreadyCompleted: true, progress: existing };
+      }
       const [updated] = await db.update(schema.userLessonProgress)
         .set({ status: 'in_progress', startedAt: new Date() })
         .where(eq(schema.userLessonProgress.id, existing.id))
@@ -2138,37 +2141,93 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     if (existing) {
-      return { alreadyRead: true, heartsRecovered: 0 };
+      const profile = await this.getStudyProfile(userId);
+      return { 
+        alreadyRead: true, 
+        heartRecovered: false,
+        heartsRecovered: 0,
+        versesRead: profile?.versesReadForRecovery || 0,
+        versesNeeded: 3,
+        profile
+      };
     }
     
     await db.insert(schema.verseReadings)
       .values({ userId, verseId, readAt: new Date() });
     
     const profile = await this.getStudyProfile(userId);
-    if (profile && profile.hearts < 5) {
-      await db.update(schema.studyProfiles)
-        .set({ hearts: Math.min(5, profile.hearts + 1), updatedAt: new Date() })
-        .where(eq(schema.studyProfiles.userId, userId));
-      return { alreadyRead: false, heartsRecovered: 1 };
+    if (!profile) {
+      return { alreadyRead: false, heartRecovered: false, heartsRecovered: 0, versesRead: 0, versesNeeded: 3 };
     }
     
-    return { alreadyRead: false, heartsRecovered: 0 };
+    const newVersesCount = (profile.versesReadForRecovery || 0) + 1;
+    
+    if (newVersesCount >= 3) {
+      if (profile.hearts < profile.heartsMax) {
+        await db.update(schema.studyProfiles)
+          .set({ 
+            hearts: Math.min(profile.heartsMax, profile.hearts + 1), 
+            versesReadForRecovery: 0,
+            updatedAt: new Date() 
+          })
+          .where(eq(schema.studyProfiles.userId, userId));
+        
+        const updatedProfile = await this.getStudyProfile(userId);
+        return { 
+          alreadyRead: false, 
+          heartRecovered: true,
+          heartsRecovered: 1,
+          versesRead: 0,
+          versesNeeded: 3,
+          profile: updatedProfile
+        };
+      } else {
+        await db.update(schema.studyProfiles)
+          .set({ 
+            versesReadForRecovery: 0,
+            updatedAt: new Date() 
+          })
+          .where(eq(schema.studyProfiles.userId, userId));
+        
+        const updatedProfile = await this.getStudyProfile(userId);
+        return { 
+          alreadyRead: false, 
+          heartRecovered: false,
+          heartsRecovered: 0,
+          heartsFull: true,
+          versesRead: 0,
+          versesNeeded: 3,
+          profile: updatedProfile
+        };
+      }
+    } else {
+      await db.update(schema.studyProfiles)
+        .set({ 
+          versesReadForRecovery: newVersesCount,
+          updatedAt: new Date() 
+        })
+        .where(eq(schema.studyProfiles.userId, userId));
+      
+      const updatedProfile = await this.getStudyProfile(userId);
+      return { 
+        alreadyRead: false, 
+        heartRecovered: false,
+        heartsRecovered: 0,
+        versesRead: newVersesCount,
+        versesNeeded: 3,
+        profile: updatedProfile
+      };
+    }
   }
 
   async getVerseRecoveryProgress(userId: number): Promise<any> {
-    const totalVerses = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.bibleVerses);
-    const readVerses = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.verseReadings)
-      .where(eq(schema.verseReadings.userId, userId));
-    
     const profile = await this.getStudyProfile(userId);
     
     return {
-      totalVerses: Number(totalVerses[0]?.count || 0),
-      readVerses: Number(readVerses[0]?.count || 0),
-      currentHearts: profile?.hearts || 5,
-      maxHearts: 5,
+      versesRead: profile?.versesReadForRecovery || 0,
+      versesNeeded: 3,
+      hearts: profile?.hearts || 5,
+      maxHearts: profile?.heartsMax || 5,
     };
   }
 

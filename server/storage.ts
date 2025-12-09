@@ -1770,7 +1770,7 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
-    const isCorrect = this.checkAnswer(content, answer);
+    const isCorrect = this.checkAnswer(unit.type, content, answer);
     
     if (existing) {
       const [updated] = await db.update(schema.userUnitProgress)
@@ -1810,20 +1810,32 @@ export class DatabaseStorage implements IStorage {
     return { progress, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0 };
   }
 
-  private checkAnswer(content: any, answer: any): boolean {
-    if (content.type === 'multiple_choice') {
+  private checkAnswer(unitType: string, content: any, answer: any): boolean {
+    if (unitType === 'multiple_choice') {
+      const correctIndex = content.correctIndex;
+      if (correctIndex !== undefined) {
+        return correctIndex === answer;
+      }
       return content.correctAnswer === answer;
     }
-    if (content.type === 'true_false') {
+    if (unitType === 'true_false') {
+      const isTrue = content.isTrue;
+      if (isTrue !== undefined) {
+        return isTrue === answer;
+      }
       return content.correctAnswer === answer;
     }
-    if (content.type === 'fill_blank') {
-      const correctAnswers = content.correctAnswers || [content.correctAnswer];
+    if (unitType === 'fill_blank') {
+      const correctAnswer = content.correctAnswer;
+      if (correctAnswer) {
+        return correctAnswer.toLowerCase().trim() === String(answer).toLowerCase().trim();
+      }
+      const correctAnswers = content.correctAnswers || [];
       return correctAnswers.some((a: string) => 
         a.toLowerCase().trim() === String(answer).toLowerCase().trim()
       );
     }
-    return true;
+    return false;
   }
 
   async markUnitAsCompleted(userId: number, unitId: number): Promise<any> {

@@ -280,7 +280,8 @@ ETAPA 1 - ESTUDE (stage: "estude"):
 - Uma unidade "text" para a CONCLUSÃO
 
 ETAPA 2 - MEDITE (stage: "medite") - SEPARADA DO ESTUDO:
-- Unidades "reflection" com APLICAÇÕES PRÁTICAS
+- OBRIGATÓRIO: Inclua NO MÍNIMO 3 unidades de aplicação prática
+- Unidades "reflection" com APLICAÇÕES PRÁTICAS (como aplicar na vida diária)
 - Unidades "meditation" com MEDITAÇÃO CRISTÃ (oração, reflexão na Palavra - SEM técnicas de respiração)
 
 ETAPA 3 - RESPONDA (stage: "responda"):
@@ -728,16 +729,61 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
       });
     
     // Validate minimum content requirements
-    const estudeUnits = lesson.units.filter(u => u.stage === "estude");
-    const respondaUnits = lesson.units.filter(u => u.stage === "responda" && 
+    let estudeUnits = lesson.units.filter(u => u.stage === "estude");
+    let mediteUnits = lesson.units.filter(u => u.stage === "medite" && 
+      (u.type === "meditation" || u.type === "reflection"));
+    let respondaUnits = lesson.units.filter(u => u.stage === "responda" && 
       (u.type === "multiple_choice" || u.type === "true_false" || u.type === "fill_blank"));
     
-    // Log warnings if content doesn't meet requirements
+    // Enforce minimum 3 applications in medite section
+    if (mediteUnits.length < 3) {
+      console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${mediteUnits.length} applications. Adding ${3 - mediteUnits.length} more.`);
+      const applicationTemplates = [
+        { title: "Aplicacao na Vida Diaria", body: "Como posso aplicar esse ensinamento hoje em minhas decisoes e relacionamentos?", reflectionPrompt: "Pense em uma situacao recente onde esse principio poderia ter guiado suas acoes." },
+        { title: "Oracao de Compromisso", body: "Faca uma oracao pedindo a Deus sabedoria para viver esse ensinamento no seu cotidiano.", reflectionPrompt: "Dedique um momento para orar e se comprometer com essa verdade." },
+        { title: "Pratica Semanal", body: "Escolha uma acao concreta para praticar esse ensinamento durante esta semana.", reflectionPrompt: "Qual sera sua acao pratica para viver esse principio?" }
+      ];
+      
+      const maxOrderIndex = Math.max(...lesson.units.map(u => u.orderIndex || 0), 0);
+      for (let i = mediteUnits.length; i < 3; i++) {
+        const template = applicationTemplates[i % applicationTemplates.length];
+        lesson.units.push({
+          type: "reflection",
+          stage: "medite",
+          orderIndex: maxOrderIndex + i + 1,
+          content: template,
+          xpValue: 3
+        });
+      }
+    }
+    
+    // Enforce minimum 5 questions in responda section
+    if (respondaUnits.length < 5) {
+      console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${respondaUnits.length} questions. Adding ${5 - respondaUnits.length} more.`);
+      const questionTemplates = [
+        { type: "true_false", content: { statement: "Este ensinamento nos ajuda a viver de forma mais alinhada com a vontade de Deus.", isTrue: true, explanationCorrect: "Correto! Os ensinamentos biblicos sempre nos guiam para a vontade de Deus.", explanationIncorrect: "A resposta correta e Verdadeiro. Os ensinamentos biblicos nos direcionam a Deus." } },
+        { type: "true_false", content: { statement: "Podemos aplicar este principio apenas em situacoes especificas da igreja.", isTrue: false, explanationCorrect: "Correto! Os principios biblicos se aplicam a toda nossa vida.", explanationIncorrect: "A resposta correta e Falso. Os principios biblicos valem para toda a vida." } },
+        { type: "multiple_choice", content: { question: "Qual deve ser nossa resposta a esse ensinamento?", options: ["Ignorar e seguir nosso caminho", "Meditar e aplicar em nossa vida", "Guardar apenas para momentos de crise", "Deixar para depois"], correctIndex: 1, explanationCorrect: "Isso mesmo! Devemos meditar e aplicar os ensinamentos em nossa vida.", explanationIncorrect: "A resposta correta e meditar e aplicar em nossa vida." } },
+        { type: "true_false", content: { statement: "A Palavra de Deus e relevante para os desafios da vida moderna.", isTrue: true, explanationCorrect: "Correto! A Biblia e atemporal e relevante para todas as epocas.", explanationIncorrect: "A resposta correta e Verdadeiro. A Biblia e sempre relevante." } },
+        { type: "multiple_choice", content: { question: "Como devemos responder quando enfrentamos dificuldades em aplicar esses principios?", options: ["Desistir e aceitar a derrota", "Buscar forca em Deus e persistir", "Esperar por circunstancias melhores", "Questionar se os principios funcionam"], correctIndex: 1, explanationCorrect: "Correto! Devemos buscar forca em Deus para continuar.", explanationIncorrect: "A resposta correta e buscar forca em Deus e persistir." } }
+      ];
+      
+      const maxOrderIndex = Math.max(...lesson.units.map(u => u.orderIndex || 0), 0);
+      for (let i = respondaUnits.length; i < 5; i++) {
+        const template = questionTemplates[i % questionTemplates.length];
+        lesson.units.push({
+          type: template.type,
+          stage: "responda",
+          orderIndex: maxOrderIndex + 10 + i,
+          content: template.content,
+          xpValue: 5
+        });
+      }
+    }
+    
+    // Log final validation status
     if (estudeUnits.length < 6) {
       console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${estudeUnits.length} study screens (minimum 6 required)`);
-    }
-    if (respondaUnits.length < 5) {
-      console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${respondaUnits.length} questions (minimum 5 required)`);
     }
     
     lesson.units = lesson.units

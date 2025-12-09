@@ -831,5 +831,149 @@ export function isAIConfigured(): boolean {
   return !!process.env.GEMINI_API_KEY;
 }
 
-// NOTA: Este projeto usa EXCLUSIVAMENTE Gemini AI (Google)
-// OpenAI foi completamente removido do projeto
+export async function generateDailyVerseWithAI(): Promise<{ verse: string; reference: string } | null> {
+  if (!isAIConfigured()) {
+    console.log("[AI] Gemini not configured, cannot generate daily verse");
+    return null;
+  }
+
+  try {
+    const today = new Date();
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+    
+    const prompt = `Você é um pastor experiente. Selecione um versículo bíblico inspirador e edificante para o dia de hoje (dia ${dayOfYear} do ano).
+
+Critérios:
+- Deve ser um versículo real da Bíblia
+- Deve trazer esperança, encorajamento ou sabedoria
+- Pode ser do Antigo ou Novo Testamento
+- Varie entre diferentes livros da Bíblia
+
+Responda APENAS em formato JSON:
+{
+  "verse": "Texto completo do versículo",
+  "reference": "Livro Capítulo:Versículo"
+}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("[AI] Could not extract JSON from daily verse response");
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      verse: parsed.verse,
+      reference: parsed.reference
+    };
+  } catch (error) {
+    console.error("[AI] Error generating daily verse:", error);
+    return null;
+  }
+}
+
+export async function generateRecoveryVersesWithAI(count: number = 5): Promise<Array<{ verse: string; reference: string; reflection: string }> | null> {
+  if (!isAIConfigured()) {
+    console.log("[AI] Gemini not configured, cannot generate recovery verses");
+    return null;
+  }
+
+  try {
+    const prompt = `Você é um conselheiro espiritual experiente. Gere ${count} versículos bíblicos de conforto e recuperação para pessoas que estão passando por momentos difíceis.
+
+Cada versículo deve:
+- Ser um versículo real da Bíblia
+- Trazer conforto, paz e esperança
+- Ser apropriado para momentos de dificuldade ou desânimo
+- Incluir uma breve reflexão de como aplicar na vida
+
+Responda APENAS em formato JSON:
+{
+  "verses": [
+    {
+      "verse": "Texto completo do versículo",
+      "reference": "Livro Capítulo:Versículo",
+      "reflection": "Breve reflexão de aplicação (1-2 frases)"
+    }
+  ]
+}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("[AI] Could not extract JSON from recovery verses response");
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed.verses;
+  } catch (error) {
+    console.error("[AI] Error generating recovery verses:", error);
+    return null;
+  }
+}
+
+export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
+  if (!isAIConfigured()) {
+    console.log("[AI] Gemini not configured, cannot generate daily missions");
+    return null;
+  }
+
+  try {
+    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const today = new Date();
+    const dayName = dayNames[today.getDay()];
+    
+    const prompt = `Você é um mentor espiritual. Crie 3 missões diárias para ${dayName} que incentivem o crescimento espiritual e prática da fé.
+
+As missões devem:
+- Ser práticas e alcançáveis em um dia
+- Variar em dificuldade (fácil, média, desafiadora)
+- Incluir ações como: leitura bíblica, oração, atos de bondade, reflexão, gratidão
+- Ter recompensas de XP proporcionais (10 para fácil, 25 para média, 50 para desafiadora)
+
+Responda APENAS em formato JSON:
+{
+  "missions": [
+    {
+      "title": "Título curto da missão",
+      "description": "Descrição clara do que fazer",
+      "xpReward": 10,
+      "type": "easy"
+    },
+    {
+      "title": "Título curto da missão",
+      "description": "Descrição clara do que fazer",
+      "xpReward": 25,
+      "type": "medium"
+    },
+    {
+      "title": "Título curto da missão",
+      "description": "Descrição clara do que fazer",
+      "xpReward": 50,
+      "type": "hard"
+    }
+  ]
+}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("[AI] Could not extract JSON from daily missions response");
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    return parsed.missions;
+  } catch (error) {
+    console.error("[AI] Error generating daily missions:", error);
+    return null;
+  }
+}

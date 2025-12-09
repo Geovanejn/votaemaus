@@ -178,6 +178,24 @@ function getIconForLessonType(type: string): string {
   return icons[type] || "star";
 }
 
+function getWeekKeyForLesson(): string {
+  // Use Brazil timezone (America/Sao_Paulo) to calculate week number
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const brazilDateStr = formatter.format(new Date());
+  const [year, month, day] = brazilDateStr.split('-').map(Number);
+  
+  // Create date object for Brazil's current date
+  const brazilDate = new Date(year, month - 1, day);
+  const startOfYear = new Date(year, 0, 1);
+  const weekNumber = Math.ceil(((brazilDate.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Aplicar rate limiter geral para APIs publicas do site
   app.use("/api/site", generalLimiter);
@@ -1634,6 +1652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeSpentSeconds || 0,
         mistakesCount === 0
       );
+      
+      // Increment weekly lesson count for weekly goals
+      const weekKey = getWeekKeyForLesson();
+      await storage.incrementWeeklyLesson(req.user.id, weekKey);
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ progress, profile });
@@ -1742,6 +1765,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get leaderboard error:", error);
       res.status(500).json({ message: "Erro ao buscar ranking" });
+    }
+  });
+
+  // Get practice exercises from completed lessons
+  app.get("/api/study/practice-exercises", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      // Get all completed lessons for this user
+      const completedLessons = await storage.getCompletedLessonsWithExercises(req.user.id);
+      
+      // Collect all exercise units from completed lessons
+      const exercises: any[] = [];
+      
+      for (const lesson of completedLessons) {
+        const units = await storage.getUnitsByLessonId(lesson.id);
+        
+        for (const unit of units) {
+          if (unit.stage === "responda" && 
+              ["multiple_choice", "true_false", "fill_blank"].includes(unit.type)) {
+            const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
+            exercises.push({
+              id: unit.id,
+              type: unit.type,
+              stage: unit.stage,
+              content,
+              lessonId: lesson.id,
+              lessonTitle: lesson.title
+            });
+          }
+        }
+      }
+      
+      res.json({ exercises });
+    } catch (error) {
+      console.error("Get practice exercises error:", error);
+      res.status(500).json({ message: "Erro ao buscar exercicios de pratica" });
     }
   });
 

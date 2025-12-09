@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
+import { generateDailyVerseWithAI, isAIConfigured } from "./ai";
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.", reference: "Joao 3:16" },
@@ -186,7 +187,28 @@ async function sendDailyVerse(): Promise<void> {
   console.log('[Daily Verse Scheduler] Sending daily verse notification...');
   
   try {
-    const { verse, reference } = getRandomBibleVerse();
+    let verse: string;
+    let reference: string;
+    
+    if (isAIConfigured()) {
+      const aiVerse = await generateDailyVerseWithAI();
+      if (aiVerse) {
+        verse = aiVerse.verse;
+        reference = aiVerse.reference;
+        console.log('[Daily Verse Scheduler] Using AI-generated verse');
+      } else {
+        const fallback = getRandomBibleVerse();
+        verse = fallback.verse;
+        reference = fallback.reference;
+        console.log('[Daily Verse Scheduler] AI failed, using fallback verse');
+      }
+    } else {
+      const fallback = getRandomBibleVerse();
+      verse = fallback.verse;
+      reference = fallback.reference;
+      console.log('[Daily Verse Scheduler] AI not configured, using fallback verse');
+    }
+    
     await notifyDailyVerse(verse, reference);
     console.log(`[Daily Verse Scheduler] Sent: ${reference}`);
   } catch (error) {
@@ -195,10 +217,10 @@ async function sendDailyVerse(): Promise<void> {
 }
 
 export function initDailyVerseScheduler(): void {
-  cron.schedule('0 7 * * *', sendDailyVerse, {
+  cron.schedule('0 6 * * *', sendDailyVerse, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Daily Verse Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)');
+  console.log('[Daily Verse Scheduler] Initialized - will run daily at 06:00 AM (America/Sao_Paulo)');
 }
 
 async function runInstagramSync(): Promise<void> {

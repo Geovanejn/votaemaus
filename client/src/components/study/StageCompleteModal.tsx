@@ -40,9 +40,9 @@ const stageConfig = {
 };
 
 const nextStageLabels: Record<StageType, string> = {
-  estude: "Ir para Estude",
-  medite: "Ir para Medite",
-  responda: "Ir para Responda"
+  estude: "Continuar",
+  medite: "Continuar",
+  responda: "Concluir"
 };
 
 export function StageCompleteModal({
@@ -57,7 +57,7 @@ export function StageCompleteModal({
   const { sounds } = useSounds();
   const hasPlayedRef = useRef(false);
   
-  const buttonText = nextStage ? nextStageLabels[nextStage] : "Continuar";
+  const buttonText = nextStage ? "Continuar" : "Concluir";
 
   useEffect(() => {
     if (isOpen && !hasPlayedRef.current) {

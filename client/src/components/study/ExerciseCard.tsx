@@ -35,38 +35,50 @@ export function MultipleChoiceExercise({
   return (
     <div className="flex flex-col h-full" data-testid="exercise-multiple-choice">
       <div className="flex-1 flex flex-col justify-center px-4">
-        <h2 className="text-xl font-bold text-foreground mb-6 text-center">
-          {question}
-        </h2>
+        <Card className="p-5 mb-6 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-primary/20">
+          <h2 className="text-lg font-bold text-foreground text-center leading-relaxed">
+            {question}
+          </h2>
+        </Card>
 
-        <div className="flex flex-col gap-3 max-w-full px-2">
-          {options.map((option, index) => (
-            <Button
-              key={index}
-              variant="outline"
-              className={cn(
-                "w-full min-h-[60px] h-auto py-4 px-4 text-left justify-start text-base font-medium transition-all",
-                "border-2 whitespace-normal break-words",
-                selectedIndex === index && !isAnswered && "border-primary bg-primary/5",
-                isAnswered && index === correctIndex && "border-green-500 bg-green-50 dark:bg-green-900/20",
-                isAnswered && selectedIndex === index && index !== correctIndex && "border-red-500 bg-red-50 dark:bg-red-900/20"
-              )}
-              onClick={() => handleSelect(index)}
-              disabled={isAnswered}
-              data-testid={`button-option-${index}`}
-            >
-              <span className={cn(
-                "flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full border-2 mr-3 text-sm font-bold",
-                selectedIndex === index ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"
-              )}>
-                {String.fromCharCode(65 + index)}
-              </span>
-              <span className="flex-1 break-words overflow-hidden">{option}</span>
-              {isAnswered && index === correctIndex && (
-                <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 ml-2" />
-              )}
-            </Button>
-          ))}
+        <div className="flex flex-col gap-3 max-w-full">
+          {options.map((option, index) => {
+            const isSelected = selectedIndex === index;
+            const isCorrect = index === correctIndex;
+            const showCorrect = isAnswered && isCorrect;
+            const showWrong = isAnswered && isSelected && !isCorrect;
+            
+            return (
+              <button
+                key={index}
+                className={cn(
+                  "w-full min-h-[56px] py-4 px-4 rounded-xl text-left flex items-center gap-3 transition-all duration-200",
+                  "border-2 shadow-sm",
+                  !isAnswered && !isSelected && "bg-card border-border hover:border-primary/50 hover:shadow-md",
+                  !isAnswered && isSelected && "bg-primary/10 border-primary shadow-md",
+                  showCorrect && "bg-green-50 dark:bg-green-900/30 border-green-500 shadow-green-100 dark:shadow-green-900/20",
+                  showWrong && "bg-red-50 dark:bg-red-900/30 border-red-500 shadow-red-100 dark:shadow-red-900/20"
+                )}
+                onClick={() => handleSelect(index)}
+                disabled={isAnswered}
+                data-testid={`button-option-${index}`}
+              >
+                <span className={cn(
+                  "flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold transition-colors",
+                  !isAnswered && !isSelected && "bg-muted text-muted-foreground",
+                  !isAnswered && isSelected && "bg-primary text-primary-foreground",
+                  showCorrect && "bg-green-500 text-white",
+                  showWrong && "bg-red-500 text-white"
+                )}>
+                  {String.fromCharCode(65 + index)}
+                </span>
+                <span className="flex-1 text-base font-medium break-words">{option}</span>
+                {showCorrect && (
+                  <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -74,7 +86,10 @@ export function MultipleChoiceExercise({
         <Button
           onClick={handleVerify}
           disabled={selectedIndex === null || isAnswered}
-          className="w-full py-6 text-lg font-bold"
+          className={cn(
+            "w-full py-6 text-lg font-bold transition-all",
+            selectedIndex !== null && !isAnswered && "shadow-lg"
+          )}
           data-testid="button-verify"
         >
           VERIFICAR
@@ -109,44 +124,55 @@ export function TrueFalseExercise({
     onAnswer(selected === isTrue, selected);
   };
 
+  const showTrueCorrect = isAnswered && isTrue;
+  const showTrueWrong = isAnswered && selected === true && !isTrue;
+  const showFalseCorrect = isAnswered && !isTrue;
+  const showFalseWrong = isAnswered && selected === false && isTrue;
+
   return (
     <div className="flex flex-col h-full" data-testid="exercise-true-false">
       <div className="flex-1 flex flex-col justify-center px-4">
-        <Card className="p-6 mb-6">
-          <p className="text-lg text-foreground text-center italic">
+        <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-primary/20">
+          <p className="text-lg text-foreground text-center leading-relaxed font-medium">
             "{statement}"
           </p>
         </Card>
 
         <div className="flex gap-4">
-          <Button
-            variant="outline"
+          <button
             className={cn(
-              "flex-1 py-8 text-lg font-bold border-2",
-              selected === true && !isAnswered && "border-primary bg-primary/5",
-              isAnswered && isTrue && "border-green-500 bg-green-50 dark:bg-green-900/20",
-              isAnswered && selected === true && !isTrue && "border-red-500 bg-red-50 dark:bg-red-900/20"
+              "flex-1 py-6 rounded-xl text-lg font-bold border-2 transition-all duration-200 shadow-sm",
+              !isAnswered && selected !== true && "bg-card border-border hover:border-green-400 hover:shadow-md",
+              !isAnswered && selected === true && "bg-green-50 dark:bg-green-900/20 border-green-500 shadow-md",
+              showTrueCorrect && "bg-green-100 dark:bg-green-900/40 border-green-500 text-green-700 dark:text-green-300",
+              showTrueWrong && "bg-red-100 dark:bg-red-900/40 border-red-500 text-red-700 dark:text-red-300"
             )}
             onClick={() => handleSelect(true)}
             disabled={isAnswered}
             data-testid="button-true"
           >
-            VERDADEIRO
-          </Button>
-          <Button
-            variant="outline"
+            <span className="flex items-center justify-center gap-2">
+              {showTrueCorrect && <CheckCircle2 className="h-5 w-5" />}
+              VERDADEIRO
+            </span>
+          </button>
+          <button
             className={cn(
-              "flex-1 py-8 text-lg font-bold border-2",
-              selected === false && !isAnswered && "border-primary bg-primary/5",
-              isAnswered && !isTrue && "border-green-500 bg-green-50 dark:bg-green-900/20",
-              isAnswered && selected === false && isTrue && "border-red-500 bg-red-50 dark:bg-red-900/20"
+              "flex-1 py-6 rounded-xl text-lg font-bold border-2 transition-all duration-200 shadow-sm",
+              !isAnswered && selected !== false && "bg-card border-border hover:border-red-400 hover:shadow-md",
+              !isAnswered && selected === false && "bg-red-50 dark:bg-red-900/20 border-red-500 shadow-md",
+              showFalseCorrect && "bg-green-100 dark:bg-green-900/40 border-green-500 text-green-700 dark:text-green-300",
+              showFalseWrong && "bg-red-100 dark:bg-red-900/40 border-red-500 text-red-700 dark:text-red-300"
             )}
             onClick={() => handleSelect(false)}
             disabled={isAnswered}
             data-testid="button-false"
           >
-            FALSO
-          </Button>
+            <span className="flex items-center justify-center gap-2">
+              {showFalseCorrect && <CheckCircle2 className="h-5 w-5" />}
+              FALSO
+            </span>
+          </button>
         </div>
       </div>
 
@@ -154,7 +180,10 @@ export function TrueFalseExercise({
         <Button
           onClick={handleVerify}
           disabled={selected === null || isAnswered}
-          className="w-full py-6 text-lg font-bold"
+          className={cn(
+            "w-full py-6 text-lg font-bold transition-all",
+            selected !== null && !isAnswered && "shadow-lg"
+          )}
           data-testid="button-verify"
         >
           VERIFICAR

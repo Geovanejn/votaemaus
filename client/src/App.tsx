@@ -53,6 +53,7 @@ const FinalChallengePage = lazy(() => import("@/pages/study/final-challenge"));
 const SeasonRankingPage = lazy(() => import("@/pages/study/season-ranking"));
 const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
+const PracticePage = lazy(() => import("@/pages/study/practice"));
 
 function PageLoader() {
   return (
@@ -158,6 +159,7 @@ function Router() {
           <Route path="/study/season/:id" component={SeasonDetailPage} />
           <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
           <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
+          <Route path="/study/practice" component={PracticePage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -197,6 +199,7 @@ function Router() {
         <Route path="/study/season/:id" component={SeasonDetailPage} />
         <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
         <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
+        <Route path="/study/practice" component={PracticePage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
         <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />

@@ -193,6 +193,7 @@ export interface IStorage {
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   getStudyStats(): Promise<any>;
+  getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
   
   // Third Scrutiny Methods
   checkThirdScrutinyTie(electionPositionId: number): Promise<{ isTie: boolean; candidates?: any[] }>;
@@ -1956,6 +1957,31 @@ export class DatabaseStorage implements IStorage {
       totalUnits: Number(unitCount?.count || 0),
       totalStudents: Number(profileCount?.count || 0),
     };
+  }
+
+  async getCompletedLessonsWithExercises(userId: number): Promise<any[]> {
+    // Get all completed lessons for this user
+    const completedProgress = await db.select({
+      lessonId: schema.userLessonProgress.lessonId,
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ));
+    
+    if (completedProgress.length === 0) {
+      return [];
+    }
+    
+    const lessonIds = completedProgress.map(p => p.lessonId);
+    
+    // Get lesson details for completed lessons
+    const lessons = await db.select()
+      .from(schema.studyLessons)
+      .where(inArray(schema.studyLessons.id, lessonIds));
+    
+    return lessons;
   }
 
   // Third Scrutiny Methods

@@ -2895,11 +2895,18 @@ export class DatabaseStorage implements IStorage {
     const isGoalMet = goals.lessons.completed && goals.verses.completed && 
                       goals.missions.completed && goals.devotionals.completed;
     
+    // Calculate overall progress as average of all goal progress percentages
+    // Guard against zero targets to prevent NaN/Infinity
+    const totalProgress = [goals.lessons, goals.verses, goals.missions, goals.devotionals]
+      .reduce((sum, goal) => sum + Math.min(goal.current / Math.max(goal.target, 1), 1), 0);
+    const overallProgress = Math.round((totalProgress / 4) * 100);
+    
     return {
       weekKey,
       goals,
       isGoalMet,
       xpBonus: progress?.xpBonus || 0,
+      overallProgress,
     };
   }
 

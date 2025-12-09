@@ -10,6 +10,7 @@ interface StageCompleteModalProps {
   onClose: () => void;
   xpEarned: number;
   stageType: StageType;
+  nextStage?: StageType | null;
 }
 
 const stageConfig = {
@@ -36,14 +37,23 @@ const stageConfig = {
   }
 };
 
+const nextStageLabels: Record<StageType, string> = {
+  estude: "Ir para Estude",
+  medite: "Ir para Medite",
+  responda: "Ir para Responda"
+};
+
 export function StageCompleteModal({
   isOpen,
   onClose,
   xpEarned,
-  stageType
+  stageType,
+  nextStage
 }: StageCompleteModalProps) {
   const config = stageConfig[stageType];
   const Icon = config.icon;
+  
+  const buttonText = nextStage ? nextStageLabels[nextStage] : "Continuar";
 
   return (
     <AnimatePresence>
@@ -134,7 +144,7 @@ export function StageCompleteModal({
                     )}
                     data-testid="button-continue-stage"
                   >
-                    Continuar
+                    {buttonText}
                     <ChevronRight className="h-5 w-5 ml-1" />
                   </Button>
                 </motion.div>

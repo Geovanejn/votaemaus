@@ -1639,10 +1639,11 @@ export class DatabaseStorage implements IStorage {
 
     // Get stage progress for each lesson
     const lessonsWithStageProgress = await Promise.all(lessonsWithProgress.map(async (row) => {
-      // Get all units for this lesson
+      // Get all units for this lesson with type information
       const units = await db.select({
         id: schema.studyUnits.id,
         stage: schema.studyUnits.stage,
+        type: schema.studyUnits.type,
       }).from(schema.studyUnits)
         .where(eq(schema.studyUnits.lessonId, row.id));
       
@@ -1662,16 +1663,35 @@ export class DatabaseStorage implements IStorage {
       
       const completedUnitIds = new Set(completedUnits.map(u => u.unitId));
       
-      // Calculate stage progress
+      // Calculate stage progress - only count types that are actually shown in each stage
+      // Estude: only text and verse types
+      // Medite: only meditation and reflection types
+      // Responda: only exercise types (multiple_choice, true_false, fill_blank)
       const stageProgress = {
         estude: { completed: 0, total: 0 },
         medite: { completed: 0, total: 0 },
         responda: { completed: 0, total: 0 },
       };
       
+      const estudeTypes = ['text', 'verse'];
+      const mediteTypes = ['meditation', 'reflection'];
+      const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+      
       for (const unit of units) {
         const stage = (unit.stage || 'estude') as 'estude' | 'medite' | 'responda';
-        if (stageProgress[stage]) {
+        const unitType = unit.type || 'text';
+        
+        // Only count units whose type matches their stage
+        let shouldCount = false;
+        if (stage === 'estude' && estudeTypes.includes(unitType)) {
+          shouldCount = true;
+        } else if (stage === 'medite' && mediteTypes.includes(unitType)) {
+          shouldCount = true;
+        } else if (stage === 'responda' && respondaTypes.includes(unitType)) {
+          shouldCount = true;
+        }
+        
+        if (shouldCount && stageProgress[stage]) {
           stageProgress[stage].total++;
           if (completedUnitIds.has(unit.id)) {
             stageProgress[stage].completed++;

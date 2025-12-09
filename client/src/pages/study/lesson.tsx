@@ -653,7 +653,7 @@ export default function LessonPage() {
   const handleStageModalClose = async () => {
     if (!stageCompleteData) return;
     
-    const { xp, stageType } = stageCompleteData;
+    const { xp, stageType, nextStage } = stageCompleteData;
     
     if (stageType !== 'responda') {
       setDisplayXp(prev => prev + xp);
@@ -667,6 +667,9 @@ export default function LessonPage() {
     
     if (stageType === 'responda') {
       await handleLessonCompletion();
+    } else if (nextStage) {
+      // Navigate to the next stage within the same lesson
+      setLocation(`/study/lesson/${lessonId}?stage=${nextStage}`);
     } else {
       setLocation("/study");
     }
@@ -791,6 +794,7 @@ export default function LessonPage() {
           onClose={handleStageModalClose}
           xpEarned={stageCompleteData.xp}
           stageType={stageCompleteData.stageType}
+          nextStage={stageCompleteData.nextStage as "estude" | "medite" | "responda" | null}
         />
       )}
     </div>

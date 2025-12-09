@@ -1856,7 +1856,7 @@ export default function StudyAdminPage() {
             </DialogTitle>
             <DialogDescription>Envie um PDF ou cole o texto da revista/devocional para gerar lições automaticamente.</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 py-4">
+          <ScrollArea className="flex-1 min-h-0 py-4">
             <div className="space-y-4 pr-4">
               <div className="p-4 bg-muted rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
@@ -2054,7 +2054,7 @@ export default function StudyAdminPage() {
             <DialogTitle>{editingUnit ? "Editar Exercício" : "Novo Exercício"}</DialogTitle>
             <DialogDescription>{editingUnit ? "Atualize os dados do exercício." : "Adicione um novo exercício a esta lição."}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 py-4">
+          <ScrollArea className="flex-1 min-h-0 py-4">
             <div className="space-y-4 pr-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

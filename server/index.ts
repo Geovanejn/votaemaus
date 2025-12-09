@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initInstagramScheduler } from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler } from "./scheduler";
 import { initializeWebSocket } from "./websocket";
 import cors from "cors";
 import path from "path";
@@ -61,6 +61,7 @@ app.use((req, res, next) => {
   initBirthdayScheduler();
   initDeoGlorySchedulers();
   initDailyVerseScheduler();
+  initRecoveryVersesScheduler();
   initInstagramScheduler();
   
   const server = await registerRoutes(app);

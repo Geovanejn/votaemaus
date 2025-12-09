@@ -2423,13 +2423,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         totalLessons++;
 
-        // Create units for this lesson - determine stage based on lesson type
+        // Create units for this lesson - use unit's stage from AI, fallback to lesson type
         const stageMap: Record<string, string> = {
           'study': 'estude',
           'meditation': 'medite',
           'challenge': 'responda'
         };
-        const stage = stageMap[lessonData.type] || 'estude';
+        const defaultStage = stageMap[lessonData.type] || 'estude';
 
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
@@ -2440,7 +2440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: unitData.type,
             content: unitData.content,
             xpValue: unitData.xpValue,
-            stage: stage
+            stage: unitData.stage || defaultStage
           });
           totalUnits++;
         }
@@ -2621,13 +2621,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         totalLessons++;
 
-        // Create units for this lesson - determine stage based on lesson type
+        // Create units for this lesson - use unit's stage from AI, fallback to lesson type
         const stageMap: Record<string, string> = {
           'study': 'estude',
           'meditation': 'medite',
           'challenge': 'responda'
         };
-        const stage = stageMap[lessonData.type] || 'estude';
+        const defaultStage = stageMap[lessonData.type] || 'estude';
 
         for (let j = 0; j < lessonData.units.length; j++) {
           const unitData = lessonData.units[j];
@@ -2638,7 +2638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: unitData.type,
             content: unitData.content,
             xpValue: unitData.xpValue,
-            stage: stage
+            stage: unitData.stage || defaultStage
           });
           totalUnits++;
         }

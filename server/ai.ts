@@ -47,6 +47,41 @@ export interface GeneratedWeekContent {
   lessons: GeneratedLesson[];
 }
 
+function repairJson(jsonString: string): string {
+  let repaired = jsonString;
+  
+  // Remove trailing commas before closing brackets
+  repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+  
+  // Fix unescaped newlines in strings
+  repaired = repaired.replace(/([^\\])\\n(?=.*")/g, '$1\\\\n');
+  
+  // Fix common issues with quotes
+  // Remove control characters that break JSON
+  repaired = repaired.replace(/[\x00-\x1F\x7F]/g, (char) => {
+    if (char === '\n' || char === '\r' || char === '\t') {
+      return char;
+    }
+    return '';
+  });
+  
+  // Fix truncated JSON - try to close open structures
+  const openBraces = (repaired.match(/{/g) || []).length;
+  const closeBraces = (repaired.match(/}/g) || []).length;
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/]/g) || []).length;
+  
+  // Add missing closing braces/brackets
+  for (let i = 0; i < openBrackets - closeBrackets; i++) {
+    repaired += ']';
+  }
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    repaired += '}';
+  }
+  
+  return repaired;
+}
+
 function extractJsonFromResponse(text: string): string {
   // Try multiple patterns to extract JSON from markdown code blocks
   const patterns = [
@@ -97,6 +132,24 @@ function extractJsonFromResponse(text: string): string {
   }
   
   return text.trim();
+}
+
+function safeJsonParse(jsonString: string): any {
+  // First attempt: try parsing as-is
+  try {
+    return JSON.parse(jsonString);
+  } catch (firstError) {
+    console.warn('[AI] First JSON parse failed, attempting repair...');
+    
+    // Second attempt: try to repair and parse
+    try {
+      const repaired = repairJson(jsonString);
+      return JSON.parse(repaired);
+    } catch (secondError) {
+      console.error('[AI] JSON repair failed:', secondError);
+      throw firstError; // Throw original error for better diagnostics
+    }
+  }
 }
 
 async function generateWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -265,7 +318,7 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
       throw new Error("Resposta vazia da IA");
     }
 
-    const parsed = JSON.parse(content) as GeneratedWeekContent;
+    const parsed = safeJsonParse(content) as GeneratedWeekContent;
     return validateAndCleanContent(parsed);
   } catch (error) {
     console.error("Erro ao gerar conteudo com IA:", error);
@@ -304,7 +357,7 @@ Retorne APENAS o JSON, sem explicacoes adicionais.`;
       throw new Error("Resposta vazia da IA");
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = safeJsonParse(content);
     return parsed.exercises || [];
   } catch (error) {
     console.error("Erro ao gerar exercicios:", error);
@@ -336,7 +389,7 @@ Retorne APENAS o JSON, sem explicacoes adicionais.`;
       throw new Error("Resposta vazia da IA");
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = safeJsonParse(content);
     return parsed.questions || [];
   } catch (error) {
     console.error("Erro ao gerar perguntas:", error);

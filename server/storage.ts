@@ -1637,26 +1637,74 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.studyLessons.studyWeekId, weekId))
       .orderBy(asc(schema.studyLessons.orderIndex));
 
-    return lessonsWithProgress.map(row => ({
-      id: row.id,
-      studyWeekId: row.studyWeekId,
-      orderIndex: row.orderIndex,
-      title: row.title,
-      type: row.type,
-      description: row.description,
-      xpReward: row.xpReward,
-      estimatedMinutes: row.estimatedMinutes,
-      icon: row.icon,
-      isBonus: row.isBonus,
-      isLocked: row.isLocked,
-      unlockDate: row.unlockDate,
-      seasonId: row.seasonId,
-      lessonNumber: row.lessonNumber,
-      isReleased: row.isReleased,
-      status: row.progressStatus || 'locked',
-      xpEarned: row.progressXpEarned || 0,
-      perfectScore: row.progressPerfectScore || false,
+    // Get stage progress for each lesson
+    const lessonsWithStageProgress = await Promise.all(lessonsWithProgress.map(async (row) => {
+      // Get all units for this lesson
+      const units = await db.select({
+        id: schema.studyUnits.id,
+        stage: schema.studyUnits.stage,
+      }).from(schema.studyUnits)
+        .where(eq(schema.studyUnits.lessonId, row.id));
+      
+      // Get completed units for this user
+      const unitIds = units.map(u => u.id);
+      let completedUnits: { unitId: number }[] = [];
+      if (unitIds.length > 0) {
+        completedUnits = await db.select({
+          unitId: schema.userUnitProgress.unitId,
+        }).from(schema.userUnitProgress)
+          .where(and(
+            eq(schema.userUnitProgress.userId, userId),
+            eq(schema.userUnitProgress.isCompleted, true),
+            inArray(schema.userUnitProgress.unitId, unitIds)
+          ));
+      }
+      
+      const completedUnitIds = new Set(completedUnits.map(u => u.unitId));
+      
+      // Calculate stage progress
+      const stageProgress = {
+        estude: { completed: 0, total: 0 },
+        medite: { completed: 0, total: 0 },
+        responda: { completed: 0, total: 0 },
+      };
+      
+      for (const unit of units) {
+        const stage = (unit.stage || 'estude') as 'estude' | 'medite' | 'responda';
+        if (stageProgress[stage]) {
+          stageProgress[stage].total++;
+          if (completedUnitIds.has(unit.id)) {
+            stageProgress[stage].completed++;
+          }
+        }
+      }
+      
+      return {
+        id: row.id,
+        studyWeekId: row.studyWeekId,
+        orderIndex: row.orderIndex,
+        title: row.title,
+        type: row.type,
+        description: row.description,
+        xpReward: row.xpReward,
+        estimatedMinutes: row.estimatedMinutes,
+        icon: row.icon,
+        isBonus: row.isBonus,
+        isLocked: row.isLocked,
+        unlockDate: row.unlockDate,
+        seasonId: row.seasonId,
+        lessonNumber: row.lessonNumber,
+        isReleased: row.isReleased,
+        status: row.progressStatus || 'locked',
+        xpEarned: row.progressXpEarned || 0,
+        perfectScore: row.progressPerfectScore || false,
+        progress: {
+          stageProgress
+        }
+      };
     }));
+    
+    return lessonsWithStageProgress;
   }
 
   async getUserLessonProgress(userId: number, lessonId: number): Promise<any | null> {

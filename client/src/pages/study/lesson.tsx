@@ -151,6 +151,7 @@ export default function LessonPage() {
     nextStage: string | null;
     nextIndex: number;
   } | null>(null);
+  const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { 
     data: lessonData, 
@@ -672,12 +673,25 @@ export default function LessonPage() {
   };
 
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
+  
+  // Handle progress updates from StudyContent
+  const handleStudyProgress = (current: number, total: number) => {
+    setStudyProgress({ current, total });
+  };
+  
+  // Calculate header progress - use study progress when in study mode, otherwise use unit progress
+  const headerCurrentStep = showStudyContent && studyProgress 
+    ? studyProgress.current 
+    : currentUnitIndex + 1;
+  const headerTotalSteps = showStudyContent && studyProgress 
+    ? studyProgress.total 
+    : totalUnits;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
       <StudyHeader
-        currentStep={currentUnitIndex + 1}
-        totalSteps={totalUnits}
+        currentStep={headerCurrentStep}
+        totalSteps={headerTotalSteps}
         hearts={currentHearts}
         maxHearts={profileData?.maxHearts || 5}
         onClose={handleClose}
@@ -691,6 +705,7 @@ export default function LessonPage() {
             lessonTitle={lessonData.title}
             sections={studySections}
             onComplete={handleStudyComplete}
+            onProgress={handleStudyProgress}
           />
         ) : (
           <>

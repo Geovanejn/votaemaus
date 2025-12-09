@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ interface StudyContentProps {
   lessonTitle: string;
   sections: StudySection[];
   onComplete: () => void;
+  onProgress?: (current: number, total: number) => void;
 }
 
 function VerseSection({ title, reference, content }: { title?: string; reference?: string; content: string }) {
@@ -83,7 +84,7 @@ function ConclusionSection({ title, content }: { title?: string; content: string
   );
 }
 
-export function StudyContent({ lessonTitle, sections: rawSections, onComplete }: StudyContentProps) {
+export function StudyContent({ lessonTitle, sections: rawSections, onComplete, onProgress }: StudyContentProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   const sections = rawSections.length > 0 ? rawSections : [
@@ -91,6 +92,15 @@ export function StudyContent({ lessonTitle, sections: rawSections, onComplete }:
   ];
   
   const totalSections = sections.length;
+  
+  // Report progress to parent whenever currentIndex changes
+  useEffect(() => {
+    if (onProgress) {
+      onProgress(currentIndex + 1, totalSections);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, totalSections]);
+  
   const currentSection = sections[currentIndex];
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === totalSections - 1;

@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Lightbulb, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useSounds } from "@/hooks/use-sounds";
+import { useEffect, useRef } from "react";
 
 interface FeedbackOverlayProps {
   isVisible: boolean;
@@ -22,6 +24,28 @@ export function FeedbackOverlay({
   heartsLost = 0,
   onContinue
 }: FeedbackOverlayProps) {
+  const { sounds } = useSounds();
+  const hasPlayedRef = useRef(false);
+
+  useEffect(() => {
+    if (isVisible && !hasPlayedRef.current) {
+      hasPlayedRef.current = true;
+      if (isCorrect) {
+        sounds.success();
+        if (xpEarned > 0) {
+          setTimeout(() => sounds.xp(), 200);
+        }
+      } else {
+        sounds.error();
+        if (heartsLost > 0) {
+          setTimeout(() => sounds.heartLoss(), 200);
+        }
+      }
+    } else if (!isVisible) {
+      hasPlayedRef.current = false;
+    }
+  }, [isVisible, isCorrect, xpEarned, heartsLost, sounds]);
+
   return (
     <AnimatePresence>
       {isVisible && (

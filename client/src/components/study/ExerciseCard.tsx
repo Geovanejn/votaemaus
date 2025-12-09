@@ -215,38 +215,66 @@ export function TextContent({
 interface FillBlankExerciseProps {
   question: string;
   correctAnswer: string;
+  options?: string[];
   onAnswer: (isCorrect: boolean, userAnswer: string) => void;
+}
+
+function generateOptions(correctAnswer: string): string[] {
+  const distractors = [
+    "amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida",
+    "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória",
+    "Cristo", "Deus", "Espírito", "céu", "terra", "santo", "justo", "eterno"
+  ];
+  
+  const shuffled = distractors
+    .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase())
+    .sort(() => Math.random() - 0.5);
+  
+  const options = [correctAnswer, ...shuffled.slice(0, 3)];
+  return options.sort(() => Math.random() - 0.5);
 }
 
 export function FillBlankExercise({
   question,
   correctAnswer,
+  options: providedOptions,
   onAnswer
 }: FillBlankExerciseProps) {
-  const [userAnswer, setUserAnswer] = useState("");
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [generatedOptions] = useState(() => providedOptions || generateOptions(correctAnswer));
+
+  const handleSelect = (option: string) => {
+    if (isAnswered) return;
+    setSelectedAnswer(option);
+  };
 
   const handleVerify = () => {
-    if (!userAnswer.trim()) return;
+    if (!selectedAnswer) return;
     setIsAnswered(true);
-    const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
-    onAnswer(isCorrect, userAnswer);
+    const isCorrect = selectedAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    onAnswer(isCorrect, selectedAnswer);
   };
 
   const renderQuestionWithBlank = () => {
+    const displayAnswer = selectedAnswer || "___";
+    const isCorrectAnswer = selectedAnswer?.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    
     if (!question || question.trim() === "") {
       return (
         <>
           <span className="block mb-2 text-muted-foreground">Complete a lacuna:</span>
           <span className={cn(
-            "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+            "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
             isAnswered 
-              ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
-                ? "border-green-500 text-green-600 dark:text-green-400"
-                : "border-red-500 text-red-600 dark:text-red-400"
-              : "border-primary"
+              ? isCorrectAnswer
+                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+              : selectedAnswer 
+                ? "bg-primary/10 text-primary border-2 border-primary"
+                : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
           )}>
-            {userAnswer || "___"}
+            {displayAnswer}
           </span>
         </>
       );
@@ -259,14 +287,16 @@ export function FillBlankExercise({
         <>
           <span>{question} </span>
           <span className={cn(
-            "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+            "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
             isAnswered 
-              ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
-                ? "border-green-500 text-green-600 dark:text-green-400"
-                : "border-red-500 text-red-600 dark:text-red-400"
-              : "border-primary"
+              ? isCorrectAnswer
+                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+              : selectedAnswer 
+                ? "bg-primary/10 text-primary border-2 border-primary"
+                : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
           )}>
-            {userAnswer || "___"}
+            {displayAnswer}
           </span>
         </>
       );
@@ -279,14 +309,16 @@ export function FillBlankExercise({
       <>
         <span>{beforeBlank}</span>
         <span className={cn(
-          "inline-block min-w-[80px] mx-1 px-2 py-1 border-b-2 text-center font-bold",
+          "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
           isAnswered 
-            ? userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
-              ? "border-green-500 text-green-600 dark:text-green-400"
-              : "border-red-500 text-red-600 dark:text-red-400"
-            : "border-primary"
+            ? isCorrectAnswer
+              ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+              : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+            : selectedAnswer 
+              ? "bg-primary/10 text-primary border-2 border-primary"
+              : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
         )}>
-          {userAnswer || "___"}
+          {displayAnswer}
         </span>
         <span>{afterBlank}</span>
       </>
@@ -300,24 +332,44 @@ export function FillBlankExercise({
           Complete a frase
         </h2>
         
-        <Card className="p-6 mb-6">
+        <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <p className="text-lg text-foreground text-center leading-relaxed">
             {renderQuestionWithBlank()}
           </p>
         </Card>
 
-        <Input
-          type="text"
-          value={userAnswer}
-          onChange={(e) => setUserAnswer(e.target.value)}
-          placeholder="Digite sua resposta..."
-          disabled={isAnswered}
-          className="py-4 text-lg"
-          data-testid="input-fill-blank-answer"
-        />
+        <div className="grid grid-cols-2 gap-3">
+          {generatedOptions.map((option, index) => {
+            const isSelected = selectedAnswer === option;
+            const isCorrect = option.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+            
+            return (
+              <Button
+                key={index}
+                variant="outline"
+                className={cn(
+                  "min-h-[56px] h-auto py-3 px-4 text-base font-semibold transition-all",
+                  "border-2 whitespace-normal break-words",
+                  !isAnswered && isSelected && "border-primary bg-primary/10 text-primary shadow-md",
+                  !isAnswered && !isSelected && "hover:border-primary/50 hover:bg-primary/5",
+                  isAnswered && isCorrect && "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300",
+                  isAnswered && isSelected && !isCorrect && "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                )}
+                onClick={() => handleSelect(option)}
+                disabled={isAnswered}
+                data-testid={`button-option-${index}`}
+              >
+                {option}
+                {isAnswered && isCorrect && (
+                  <CheckCircle2 className="h-5 w-5 ml-2 flex-shrink-0" />
+                )}
+              </Button>
+            );
+          })}
+        </div>
 
-        {isAnswered && userAnswer.trim().toLowerCase() !== correctAnswer.trim().toLowerCase() && (
-          <p className="mt-2 text-sm text-muted-foreground text-center">
+        {isAnswered && selectedAnswer?.trim().toLowerCase() !== correctAnswer.trim().toLowerCase() && (
+          <p className="mt-4 text-sm text-muted-foreground text-center">
             Resposta correta: <span className="font-bold text-green-600 dark:text-green-400">{correctAnswer}</span>
           </p>
         )}
@@ -326,8 +378,11 @@ export function FillBlankExercise({
       <div className="p-4 border-t">
         <Button
           onClick={handleVerify}
-          disabled={!userAnswer.trim() || isAnswered}
-          className="w-full py-6 text-lg font-bold"
+          disabled={!selectedAnswer || isAnswered}
+          className={cn(
+            "w-full py-6 text-lg font-bold transition-all",
+            selectedAnswer && !isAnswered && "bg-primary hover:bg-primary/90 shadow-lg"
+          )}
           data-testid="button-verify-fill-blank"
         >
           VERIFICAR

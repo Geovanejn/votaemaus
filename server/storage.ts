@@ -1772,6 +1772,18 @@ export class DatabaseStorage implements IStorage {
     const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
     const isCorrect = this.checkAnswer(unit.type, content, answer);
     
+    // Deduzir vida quando resposta está errada (apenas na primeira tentativa errada)
+    let heartLost = false;
+    if (!isCorrect && (!existing || existing.isCorrect !== false)) {
+      const profile = await this.getStudyProfile(userId);
+      if (profile && profile.hearts > 0) {
+        await db.update(schema.studyProfiles)
+          .set({ hearts: profile.hearts - 1 })
+          .where(eq(schema.studyProfiles.userId, userId));
+        heartLost = true;
+      }
+    }
+    
     if (existing) {
       const [updated] = await db.update(schema.userUnitProgress)
         .set({
@@ -1788,7 +1800,7 @@ export class DatabaseStorage implements IStorage {
       if (isCorrect && !existing.isCorrect) {
         await this.addXp(userId, unit.xpValue, 'unit', unitId);
       }
-      return { progress: updated, isCorrect, xpEarned: (isCorrect && !existing.isCorrect) ? unit.xpValue : 0 };
+      return { unitProgress: updated, isCorrect, xpEarned: (isCorrect && !existing.isCorrect) ? unit.xpValue : 0, heartLost };
     }
     
     const [progress] = await db.insert(schema.userUnitProgress)
@@ -1807,7 +1819,7 @@ export class DatabaseStorage implements IStorage {
     if (isCorrect) {
       await this.addXp(userId, unit.xpValue, 'unit', unitId);
     }
-    return { progress, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0 };
+    return { unitProgress: progress, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0, heartLost };
   }
 
   private checkAnswer(unitType: string, content: any, answer: any): boolean {

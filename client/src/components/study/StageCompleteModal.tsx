@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, BookOpen, Heart, ChevronRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSounds } from "@/hooks/use-sounds";
+import { useEffect, useRef } from "react";
 
 type StageType = "estude" | "medite" | "responda";
 
@@ -52,8 +54,22 @@ export function StageCompleteModal({
 }: StageCompleteModalProps) {
   const config = stageConfig[stageType];
   const Icon = config.icon;
+  const { sounds } = useSounds();
+  const hasPlayedRef = useRef(false);
   
   const buttonText = nextStage ? nextStageLabels[nextStage] : "Continuar";
+
+  useEffect(() => {
+    if (isOpen && !hasPlayedRef.current) {
+      hasPlayedRef.current = true;
+      sounds.achievement();
+      if (xpEarned > 0) {
+        setTimeout(() => sounds.xp(), 300);
+      }
+    } else if (!isOpen) {
+      hasPlayedRef.current = false;
+    }
+  }, [isOpen, xpEarned, sounds]);
 
   return (
     <AnimatePresence>

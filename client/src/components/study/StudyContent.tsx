@@ -110,12 +110,14 @@ export function StudyContent({ lessonTitle, sections: rawSections, onComplete, o
       onComplete();
     } else {
       setCurrentIndex(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
   const goPrev = () => {
     if (!isFirst) {
       setCurrentIndex(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   

@@ -240,12 +240,13 @@ Regras Adicionais:
 3. Cada lição deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
 4. Use APENAS a versão ARA (Almeida Revista e Atualizada) para todos os versículos
 5. O texto de leitura deve ser substantivo (mínimo 100 palavras por tópico)
-6. Inclua 3-5 perguntas de múltipla escolha ou verdadeiro/falso por lição (etapa RESPONDA)
-7. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
-8. As perguntas devem testar compreensão do texto de leitura
-9. O conteúdo deve ser edificante e encorajador
-10. Use português brasileiro correto COM TODOS OS ACENTOS
-11. Se o PDF contiver múltiplos tópicos/seções, crie uma lição para cada tópico principal
+6. OBRIGATÓRIO: Inclua EXATAMENTE 5 perguntas por lição (etapa RESPONDA) - misture múltipla escolha, verdadeiro/falso e complete a frase
+7. OBRIGATÓRIO: A etapa ESTUDE deve ter NO MÍNIMO 6 telas (1 versículo base + 4 ou mais tópicos + 1 conclusão)
+8. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
+9. As perguntas devem testar compreensão do texto de leitura
+10. O conteúdo deve ser edificante e encorajador
+11. Use português brasileiro correto COM TODOS OS ACENTOS
+12. Se o PDF contiver múltiplos tópicos/seções, crie uma lição para cada tópico principal
 
 REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 - A frase DEVE ter contexto suficiente para o usuário entender o que preencher
@@ -671,7 +672,22 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
         }
         
         return normalizeUnitContent(unit);
-      })
+      });
+    
+    // Validate minimum content requirements
+    const estudeUnits = lesson.units.filter(u => u.stage === "estude");
+    const respondaUnits = lesson.units.filter(u => u.stage === "responda" && 
+      (u.type === "multiple_choice" || u.type === "true_false" || u.type === "fill_blank"));
+    
+    // Log warnings if content doesn't meet requirements
+    if (estudeUnits.length < 6) {
+      console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${estudeUnits.length} study screens (minimum 6 required)`);
+    }
+    if (respondaUnits.length < 5) {
+      console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${respondaUnits.length} questions (minimum 5 required)`);
+    }
+    
+    lesson.units = lesson.units
       // Post-normalization: filter out fill_blank units that still lack proper context
       .filter(unit => {
         if (unit.type === "fill_blank") {

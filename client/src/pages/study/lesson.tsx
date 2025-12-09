@@ -349,6 +349,12 @@ export default function LessonPage() {
   }
 
   const allUnits = [...lessonData.units].sort((a, b) => {
+    // Special ordering for medite stage: reflection (applications) before meditation (prayer)
+    if (a.stage === 'medite' && b.stage === 'medite') {
+      // reflection comes before meditation
+      if (a.type === 'reflection' && b.type === 'meditation') return -1;
+      if (a.type === 'meditation' && b.type === 'reflection') return 1;
+    }
     const orderDiff = (a.orderIndex || 0) - (b.orderIndex || 0);
     return orderDiff !== 0 ? orderDiff : (a.id || 0) - (b.id || 0);
   });

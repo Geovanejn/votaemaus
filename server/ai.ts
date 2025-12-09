@@ -844,15 +844,16 @@ export async function generateDailyVerseWithAI(): Promise<{ verse: string; refer
     const prompt = `Você é um pastor experiente. Selecione um versículo bíblico inspirador e edificante para o dia de hoje (dia ${dayOfYear} do ano).
 
 Critérios:
-- Deve ser um versículo real da Bíblia
+- Deve ser um versículo real da Bíblia na versão ARA (Almeida Revista e Atualizada)
 - Deve trazer esperança, encorajamento ou sabedoria
 - Pode ser do Antigo ou Novo Testamento
 - Varie entre diferentes livros da Bíblia
+- Use APENAS texto da versão ARA
 
 Responda APENAS em formato JSON:
 {
-  "verse": "Texto completo do versículo",
-  "reference": "Livro Capítulo:Versículo"
+  "verse": "Texto completo do versículo na versão ARA",
+  "reference": "Livro Capítulo:Versículo (ARA)"
 }`;
 
     const result = await model.generateContent(prompt);
@@ -885,17 +886,18 @@ export async function generateRecoveryVersesWithAI(count: number = 5): Promise<A
     const prompt = `Você é um conselheiro espiritual experiente. Gere ${count} versículos bíblicos de conforto e recuperação para pessoas que estão passando por momentos difíceis.
 
 Cada versículo deve:
-- Ser um versículo real da Bíblia
+- Ser um versículo real da Bíblia na versão ARA (Almeida Revista e Atualizada)
 - Trazer conforto, paz e esperança
 - Ser apropriado para momentos de dificuldade ou desânimo
 - Incluir uma breve reflexão de como aplicar na vida
+- Use APENAS texto da versão ARA
 
 Responda APENAS em formato JSON:
 {
   "verses": [
     {
-      "verse": "Texto completo do versículo",
-      "reference": "Livro Capítulo:Versículo",
+      "verse": "Texto completo do versículo na versão ARA",
+      "reference": "Livro Capítulo:Versículo (ARA)",
       "reflection": "Breve reflexão de aplicação (1-2 frases)"
     }
   ]

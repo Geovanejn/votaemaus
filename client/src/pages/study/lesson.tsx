@@ -209,6 +209,7 @@ export default function LessonPage() {
       }
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     }
   });
 
@@ -223,6 +224,7 @@ export default function LessonPage() {
       }
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     }
   });
 
@@ -659,7 +661,7 @@ export default function LessonPage() {
   const handleStageModalClose = async () => {
     if (!stageCompleteData) return;
     
-    const { xp, stageType } = stageCompleteData;
+    const { xp, stageType, nextStage } = stageCompleteData;
     
     if (stageType !== 'responda') {
       setDisplayXp(prev => prev + xp);
@@ -670,11 +672,12 @@ export default function LessonPage() {
     
     queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     
     if (stageType === 'responda') {
       await handleLessonCompletion();
     } else {
-      setLocation("/study");
+      setLocation(`/study?lesson=${lessonId}&stage=${nextStage || 'medite'}`);
     }
   };
 

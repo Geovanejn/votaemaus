@@ -269,7 +269,7 @@ function LessonGroup({
   const LINE_HEIGHT = LAST_ICON_CENTER - ICON_SIZE / 2 - LINE_TOP;
   
   return (
-    <div className="relative">
+    <div id={`lesson-${lesson.id}`} className="relative" data-testid={`lesson-group-${lesson.id}`}>
       <div 
         className="mb-5"
         style={{ marginLeft: RAIL_WIDTH + 16 }}

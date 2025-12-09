@@ -1,4 +1,5 @@
-import { useLocation } from "wouter";
+import { useEffect, useRef } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { 
@@ -88,7 +89,7 @@ function UserProfileHeader({
   
   return (
     <div 
-      className="px-4 pt-6 pb-8"
+      className="px-4 pt-4 pb-4"
       style={{
         background: 'linear-gradient(180deg, #FFC800 0%, #FFD633 100%)',
       }}
@@ -132,47 +133,45 @@ function UserProfileHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-4 flex-wrap">
+        <div className="grid grid-cols-4 gap-2 mt-3">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF9600] shadow-lg"
-            style={{ boxShadow: '0 4px 0 0 #CC7700' }}
+            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#FF9600] shadow-md"
+            style={{ boxShadow: '0 3px 0 0 #CC7700' }}
           >
-            <Flame className="h-5 w-5 text-white" />
-            <span className="font-bold text-white">{profile.currentStreak}</span>
-            <span className="text-white/80 text-sm">dias</span>
+            <Flame className="h-4 w-4 text-white" />
+            <span className="font-bold text-white text-sm">{profile.currentStreak}</span>
           </motion.div>
           
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#58CC02] shadow-lg"
-            style={{ boxShadow: '0 4px 0 0 #46A302' }}
+            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#58CC02] shadow-md"
+            style={{ boxShadow: '0 3px 0 0 #46A302' }}
           >
-            <Zap className="h-5 w-5 text-white" />
-            <span className="font-bold text-white">{profile.totalXp}</span>
-            <span className="text-white/80 text-sm">XP</span>
+            <Zap className="h-4 w-4 text-white" />
+            <span className="font-bold text-white text-sm">{profile.totalXp}</span>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF4B4B] shadow-lg cursor-pointer"
-            style={{ boxShadow: '0 4px 0 0 #CC3333' }}
+            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#FF4B4B] shadow-md cursor-pointer"
+            style={{ boxShadow: '0 3px 0 0 #CC3333' }}
             onClick={() => setLocation('/study/verses')}
             data-testid="button-hearts"
           >
-            <Heart className="h-5 w-5 text-white fill-white" />
-            <span className="font-bold text-white">{profile.hearts}/{profile.heartsMax}</span>
+            <Heart className="h-4 w-4 text-white fill-white" />
+            <span className="font-bold text-white text-sm">{profile.hearts}/{profile.heartsMax}</span>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1CB0F6] shadow-lg cursor-pointer"
-            style={{ boxShadow: '0 4px 0 0 #0D94D7' }}
+            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#1CB0F6] shadow-md cursor-pointer"
+            style={{ boxShadow: '0 3px 0 0 #0D94D7' }}
             onClick={() => setLocation('/study/missions')}
             data-testid="button-missions"
           >
-            <Target className="h-5 w-5 text-white" />
-            <span className="font-bold text-white text-sm">Missões</span>
+            <Target className="h-4 w-4 text-white" />
+            <span className="font-bold text-white text-xs">Missões</span>
           </motion.div>
         </div>
       </div>
@@ -280,8 +279,10 @@ function EmptyState() {
 
 export default function StudyHomePage() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { CelebrationComponent } = useCelebration();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const scrollAttemptedRef = useRef(false);
 
   const { data: profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -302,6 +303,24 @@ export default function StudyHomePage() {
 
   const isLoading = authLoading || profileLoading || weeksLoading || lessonsLoading;
   const hasError = profileError || weeksError || lessonsError;
+
+  useEffect(() => {
+    if (!isLoading && weekData?.lessons && searchString && !scrollAttemptedRef.current) {
+      const params = new URLSearchParams(searchString);
+      const lessonId = params.get('lesson');
+      
+      if (lessonId) {
+        scrollAttemptedRef.current = true;
+        setTimeout(() => {
+          const element = document.getElementById(`lesson-${lessonId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          window.history.replaceState({}, '', '/study');
+        }, 100);
+      }
+    }
+  }, [isLoading, weekData, searchString]);
 
   const handleRetry = () => {
     refetchProfile();

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, Target, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,10 +65,7 @@ export function LessonComplete({
   const accuracy = Math.max(0, 100 - mistakesCount * 10);
   const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-  // Scroll to top when completion screen appears
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  // No scroll - will be handled by redirect with lesson parameter
 
   return (
     <div 

@@ -136,7 +136,7 @@ function UserProfileHeader({
         <div className="grid grid-cols-4 gap-2 mt-3">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#FF9600] shadow-md"
+            className="flex flex-col items-center justify-center px-2 py-2.5 rounded-lg bg-[#FF9600] shadow-md"
             style={{ boxShadow: '0 3px 0 0 #CC7700' }}
           >
             <Flame className="h-4 w-4 text-white" />

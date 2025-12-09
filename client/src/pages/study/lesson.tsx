@@ -594,7 +594,7 @@ export default function LessonPage() {
   };
 
   const handleLessonComplete = () => {
-    setLocation("/study");
+    setLocation(`/study?lesson=${lessonId}`);
   };
 
   if (isCompleted) {

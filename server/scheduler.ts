@@ -166,15 +166,15 @@ async function sendInactivityReminders(): Promise<void> {
 }
 
 export function initDeoGlorySchedulers(): void {
-  cron.schedule('45 14 * * *', sendStreakReminders, {
+  cron.schedule('30 15 * * *', sendStreakReminders, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[DeoGlory Scheduler] Streak reminder initialized - will run daily at 14:45 (America/Sao_Paulo)');
+  console.log('[DeoGlory Scheduler] Streak reminder initialized - will run daily at 15:30 (America/Sao_Paulo)');
   
-  cron.schedule('45 14 * * *', sendInactivityReminders, {
+  cron.schedule('30 15 * * *', sendInactivityReminders, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[DeoGlory Scheduler] Inactivity check initialized - will run daily at 14:45 (America/Sao_Paulo)');
+  console.log('[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)');
 }
 
 function getRandomBibleVerse(): { verse: string; reference: string } {
@@ -217,10 +217,10 @@ async function sendDailyVerse(): Promise<void> {
 }
 
 export function initDailyVerseScheduler(): void {
-  cron.schedule('45 14 * * *', sendDailyVerse, {
+  cron.schedule('30 15 * * *', sendDailyVerse, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Daily Verse Scheduler] Initialized - will run daily at 14:45 (America/Sao_Paulo)');
+  console.log('[Daily Verse Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)');
 }
 
 async function runInstagramSync(): Promise<void> {

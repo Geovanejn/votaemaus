@@ -2417,28 +2417,31 @@ export class DatabaseStorage implements IStorage {
 
   // Leaderboard Methods
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Optimized: Single query with JOIN instead of N+1 queries
-    const profilesWithUsers = await db.select({
-      userId: schema.studyProfiles.userId,
+    // Get all non-admin users with their study profiles (LEFT JOIN to include users without profiles)
+    const usersWithProfiles = await db.select({
+      userId: schema.users.id,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
       totalXp: schema.studyProfiles.totalXp,
       currentStreak: schema.studyProfiles.currentStreak,
       currentLevel: schema.studyProfiles.currentLevel,
-      fullName: schema.users.fullName,
-      photoUrl: schema.users.photoUrl,
     })
-      .from(schema.studyProfiles)
-      .innerJoin(schema.users, eq(schema.studyProfiles.userId, schema.users.id))
-      .orderBy(desc(schema.studyProfiles.totalXp))
+      .from(schema.users)
+      .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
+      .where(eq(schema.users.isAdmin, false))
       .limit(limit);
     
-    return profilesWithUsers.map((p, index) => ({
+    // Sort by XP (treating null as 0) and assign ranks
+    const sortedUsers = usersWithProfiles.sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
+    
+    return sortedUsers.map((p, index) => ({
       rank: index + 1,
       userId: p.userId,
       username: p.fullName || 'Unknown',
       photoUrl: p.photoUrl,
-      totalXp: p.totalXp,
-      level: p.currentLevel,
-      currentStreak: p.currentStreak,
+      totalXp: p.totalXp || 0,
+      level: p.currentLevel || 1,
+      currentStreak: p.currentStreak || 0,
     }));
   }
 

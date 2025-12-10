@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { BottomNav, HeartsDisplay } from "@/components/study";
+import { useAuth } from "@/lib/auth";
+import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,10 +15,12 @@ import {
   Flame,
   ChevronRight,
   Lock,
-  Check
+  Check,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import type { StudyProfile } from "@shared/schema";
 
 interface VerseCategory {
   id: string;
@@ -36,74 +39,32 @@ interface DailyVerse {
   isCompleted: boolean;
 }
 
-const mockCategories: VerseCategory[] = [
-  { 
-    id: "faith", 
-    name: "Fe", 
-    icon: Star, 
-    color: "#FFC800", 
-    shadowColor: "#CC9F00",
-    versesCount: 12, 
-    completedCount: 5,
-    isLocked: false
-  },
-  { 
-    id: "love", 
-    name: "Amor", 
-    icon: Heart, 
-    color: "#FF4B4B", 
-    shadowColor: "#CC3B3B",
-    versesCount: 10, 
-    completedCount: 3,
-    isLocked: false
-  },
-  { 
-    id: "hope", 
-    name: "Esperanca", 
-    icon: Sun, 
-    color: "#58CC02", 
-    shadowColor: "#46A302",
-    versesCount: 8, 
-    completedCount: 2,
-    isLocked: false
-  },
-  { 
-    id: "strength", 
-    name: "Forca", 
-    icon: Shield, 
-    color: "#1CB0F6", 
-    shadowColor: "#1899D6",
-    versesCount: 15, 
-    completedCount: 0,
-    isLocked: false
-  },
-  { 
-    id: "wisdom", 
-    name: "Sabedoria", 
-    icon: Sparkles, 
-    color: "#A560E8", 
-    shadowColor: "#8A4DC7",
-    versesCount: 10, 
-    completedCount: 0,
-    isLocked: true
-  },
-  { 
-    id: "peace", 
-    name: "Paz", 
-    icon: Flame, 
-    color: "#FF9600", 
-    shadowColor: "#CC7700",
-    versesCount: 8, 
-    completedCount: 0,
-    isLocked: true
-  },
-];
-
-const mockDailyVerse: DailyVerse = {
-  reference: "Filipenses 4:13",
-  text: "Tudo posso naquele que me fortalece.",
-  isCompleted: false
+const iconMap: Record<string, typeof Heart> = {
+  faith: Star,
+  love: Heart,
+  hope: Sun,
+  strength: Shield,
+  wisdom: Sparkles,
+  peace: Flame
 };
+
+const categoryConfig: Record<string, { color: string; shadowColor: string }> = {
+  faith: { color: "#FFC800", shadowColor: "#CC9F00" },
+  love: { color: "#FF4B4B", shadowColor: "#CC3B3B" },
+  hope: { color: "#58CC02", shadowColor: "#46A302" },
+  strength: { color: "#1CB0F6", shadowColor: "#1899D6" },
+  wisdom: { color: "#A560E8", shadowColor: "#8A4DC7" },
+  peace: { color: "#FF9600", shadowColor: "#CC7700" }
+};
+
+const defaultCategories: VerseCategory[] = [
+  { id: "faith", name: "Fe", icon: Star, color: "#FFC800", shadowColor: "#CC9F00", versesCount: 0, completedCount: 0, isLocked: false },
+  { id: "love", name: "Amor", icon: Heart, color: "#FF4B4B", shadowColor: "#CC3B3B", versesCount: 0, completedCount: 0, isLocked: false },
+  { id: "hope", name: "Esperanca", icon: Sun, color: "#58CC02", shadowColor: "#46A302", versesCount: 0, completedCount: 0, isLocked: false },
+  { id: "strength", name: "Forca", icon: Shield, color: "#1CB0F6", shadowColor: "#1899D6", versesCount: 0, completedCount: 0, isLocked: false },
+  { id: "wisdom", name: "Sabedoria", icon: Sparkles, color: "#A560E8", shadowColor: "#8A4DC7", versesCount: 0, completedCount: 0, isLocked: true },
+  { id: "peace", name: "Paz", icon: Flame, color: "#FF9600", shadowColor: "#CC7700", versesCount: 0, completedCount: 0, isLocked: true }
+];
 
 function CategoryCard({ 
   category, 
@@ -196,8 +157,36 @@ function CategoryCard({
   );
 }
 
-function DailyVerseCard({ verse }: { verse: DailyVerse }) {
+function DailyVerseCard({ verse }: { verse: DailyVerse | null }) {
   const [, setLocation] = useLocation();
+
+  if (!verse) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card 
+          className="overflow-hidden border-2 border-[#FFC800]/30"
+          data-testid="daily-verse-card"
+        >
+          <div 
+            className="p-4"
+            style={{
+              background: 'linear-gradient(135deg, #FFC800 0%, #FFD633 100%)',
+            }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="h-5 w-5 text-white" />
+              <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
+            </div>
+            <p className="text-white font-bold text-lg">Carregando...</p>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -217,7 +206,7 @@ function DailyVerseCard({ verse }: { verse: DailyVerse }) {
         >
           <div className="flex items-center gap-2 mb-2">
             <BookOpen className="h-5 w-5 text-white" />
-            <span className="text-sm font-bold text-white/90">Versículo do Dia</span>
+            <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
           </div>
           <p className="text-white font-bold text-lg">{verse.reference}</p>
         </div>
@@ -236,7 +225,7 @@ function DailyVerseCard({ verse }: { verse: DailyVerse }) {
             {verse.isCompleted ? (
               <span className="flex items-center gap-2">
                 <Check className="h-4 w-4" />
-                CONCLUÍDO
+                CONCLUIDO
               </span>
             ) : (
               "LER AGORA"
@@ -248,10 +237,10 @@ function DailyVerseCard({ verse }: { verse: DailyVerse }) {
   );
 }
 
-function HeartsRecoveryCard() {
+function HeartsRecoveryCard({ profile }: { profile: StudyProfile | undefined }) {
   const [, setLocation] = useLocation();
-  const currentHearts = 3;
-  const maxHearts = 5;
+  const currentHearts = profile?.hearts ?? 5;
+  const maxHearts = profile?.heartsMax ?? 5;
 
   return (
     <motion.div
@@ -267,7 +256,7 @@ function HeartsRecoveryCard() {
           <div>
             <p className="font-bold text-foreground mb-1">Recuperar Vidas</p>
             <p className="text-sm text-muted-foreground">
-              Leia versículos para ganhar vidas
+              Leia versiculos para ganhar vidas
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -301,11 +290,56 @@ function HeartsRecoveryCard() {
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ExplorePage() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
+
+  const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
+    queryKey: ['/api/study/profile'],
+    enabled: isAuthenticated,
+  });
+
+  const { data: versesData } = useQuery<{ verses: any[]; categories: any[] }>({
+    queryKey: ['/api/study/verses'],
+    enabled: isAuthenticated,
+  });
 
   const handleCategoryClick = (categoryId: string) => {
     setLocation(`/study/verses?category=${categoryId}`);
+  };
+
+  if (profileLoading) {
+    return <LoadingState />;
+  }
+
+  const categories: VerseCategory[] = defaultCategories.map(cat => {
+    const config = categoryConfig[cat.id] || { color: "#888888", shadowColor: "#666666" };
+    return {
+      ...cat,
+      icon: iconMap[cat.id] || Star,
+      ...config
+    };
+  });
+
+  const dailyVerse: DailyVerse | null = versesData?.verses?.[0] ? {
+    reference: versesData.verses[0].reference || "Filipenses 4:13",
+    text: versesData.verses[0].text || "Tudo posso naquele que me fortalece.",
+    isCompleted: false
+  } : {
+    reference: "Filipenses 4:13",
+    text: "Tudo posso naquele que me fortalece.",
+    isCompleted: false
   };
 
   return (
@@ -318,15 +352,15 @@ export default function ExplorePage() {
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-6">
-        <DailyVerseCard verse={mockDailyVerse} />
+        <DailyVerseCard verse={dailyVerse} />
         
-        <HeartsRecoveryCard />
+        <HeartsRecoveryCard profile={profile} />
 
         <div>
-          <h2 className="font-bold text-lg text-foreground mb-4">Categorias de Versículos</h2>
+          <h2 className="font-bold text-lg text-foreground mb-4">Categorias de Versiculos</h2>
           
           <div className="space-y-3">
-            {mockCategories.map((category, index) => (
+            {categories.map((category, index) => (
               <CategoryCard
                 key={category.id}
                 category={category}

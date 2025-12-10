@@ -253,6 +253,8 @@ export interface IStorage {
   getAllAchievements(): Promise<any[]>;
   getUserAchievements(userId: number): Promise<any[]>;
   createAchievement(data: any): Promise<any>;
+  unlockAchievement(userId: number, achievementId: number): Promise<any | null>;
+  checkAndUnlockAchievements(userId: number, context: { event: string; value?: number }): Promise<any[]>;
   
   // Leaderboard Methods
   getLeaderboard(periodType: string, periodKey: string, limit?: number): Promise<any[]>;
@@ -2261,6 +2263,129 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return achievement;
+  }
+
+  async unlockAchievement(userId: number, achievementId: number): Promise<any | null> {
+    try {
+      const [existing] = await db.select().from(schema.userAchievements)
+        .where(and(
+          eq(schema.userAchievements.userId, userId),
+          eq(schema.userAchievements.achievementId, achievementId)
+        ))
+        .limit(1);
+      
+      if (existing) {
+        return null;
+      }
+
+      const [achievement] = await db.select().from(schema.achievements)
+        .where(eq(schema.achievements.id, achievementId))
+        .limit(1);
+      
+      if (!achievement) {
+        return null;
+      }
+
+      const [userAchievement] = await db.insert(schema.userAchievements)
+        .values({ userId, achievementId })
+        .returning();
+
+      if (achievement.xpReward > 0) {
+        await this.addCrystals(userId, Math.floor(achievement.xpReward / 10), "achievement", `Conquista: ${achievement.name}`);
+        const profile = await this.getStudyProfile(userId);
+        if (profile) {
+          await db.update(schema.studyProfiles)
+            .set({ totalXp: profile.totalXp + achievement.xpReward, updatedAt: new Date() })
+            .where(eq(schema.studyProfiles.id, profile.id));
+        }
+      }
+
+      return { userAchievement, achievement };
+    } catch (error) {
+      console.error("[Achievement] Error unlocking:", error);
+      return null;
+    }
+  }
+
+  async checkAndUnlockAchievements(userId: number, context: { event: string; value?: number }): Promise<any[]> {
+    const unlockedAchievements: any[] = [];
+    
+    try {
+      const profile = await this.getStudyProfile(userId);
+      if (!profile) return unlockedAchievements;
+
+      const allAchievements = await this.getAllAchievements();
+      const userAchievements = await this.getUserAchievements(userId);
+      const unlockedIds = new Set(userAchievements.map(ua => ua.achievementId));
+
+      const completedLessonsCount = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.userLessonProgress)
+        .where(and(
+          eq(schema.userLessonProgress.userId, userId),
+          eq(schema.userLessonProgress.status, 'completed')
+        ));
+      const lessonsCompleted = Number(completedLessonsCount[0]?.count || 0);
+
+      for (const achievement of allAchievements) {
+        if (unlockedIds.has(achievement.id)) continue;
+
+        let requirement: any = {};
+        
+        try {
+          requirement = achievement.requirement ? JSON.parse(achievement.requirement) : {};
+        } catch {
+          requirement = {};
+        }
+
+        // Check ALL requirements must be met (conjunctive logic)
+        const requirementKeys = Object.keys(requirement);
+        if (requirementKeys.length === 0) {
+          // Handle event-based achievements (no static requirements)
+          if (achievement.code === 'perfect_lesson' && context.event === 'lesson_complete' && context.value === 1) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          continue;
+        }
+
+        let allCriteriaMet = true;
+        
+        for (const key of requirementKeys) {
+          const requiredValue = requirement[key];
+          
+          switch (key) {
+            case 'streak':
+              if (profile.currentStreak < requiredValue) allCriteriaMet = false;
+              break;
+            case 'lessons':
+              if (lessonsCompleted < requiredValue) allCriteriaMet = false;
+              break;
+            case 'xp':
+              if (profile.totalXp < requiredValue) allCriteriaMet = false;
+              break;
+            case 'level':
+              if (profile.currentLevel < requiredValue) allCriteriaMet = false;
+              break;
+            default:
+              // Unknown requirement type, skip
+              break;
+          }
+          
+          if (!allCriteriaMet) break;
+        }
+
+        if (allCriteriaMet) {
+          const result = await this.unlockAchievement(userId, achievement.id);
+          if (result) {
+            unlockedAchievements.push(result);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("[Achievement] Error checking achievements:", error);
+    }
+
+    return unlockedAchievements;
   }
 
   // Leaderboard Methods

@@ -1,6 +1,7 @@
 import { ArrowLeft, X, BookOpen, Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeartsDisplay } from "./HeartsDisplay";
+import { CrystalDisplay } from "./CrystalDisplay";
 import { ProgressBar } from "./ProgressBar";
 import { cn } from "@/lib/utils";
 
@@ -107,11 +108,14 @@ export function StudyHeader({
           </div>
         )}
 
-        <HeartsDisplay
-          current={hearts}
-          max={maxHearts}
-          size="md"
-        />
+        <div className="flex items-center gap-2">
+          <CrystalDisplay size="md" />
+          <HeartsDisplay
+            current={hearts}
+            max={maxHearts}
+            size="md"
+          />
+        </div>
       </div>
     </header>
   );

@@ -102,6 +102,19 @@ npm run db:push  # Sincronizar esquema do banco
 - Localizacoes agora sao exibidas como links clicaveis que abrem no Google Maps
 - Atualizado footer, pagina Quem Somos e Agenda para usar os novos componentes
 
+### 10/12/2025 - DeoGlory Study System Fixes
+- **Crystal Display**: Adicionado componente CrystalDisplay.tsx para mostrar saldo de cristais no frontend
+- **StudyHeader**: Atualizado para incluir exibicao de cristais junto com coracoes
+- **Profile Page**: Adicionado CrystalBalanceCard na pagina de perfil do DeoGlory
+- **Achievement Unlocking**: Implementada logica de desbloqueio automatico de conquistas
+  - Funcao `checkAndUnlockAchievements()` verifica requisitos apos licoes completadas
+  - Funcao `unlockAchievement()` desbloqueia conquistas e concede XP/cristais
+  - Logica corrigida para exigir TODOS os criterios (conjuntiva) nao apenas um
+- **Daily Verse Endpoint**: Adicionado GET `/api/study/daily-verse` separado dos versiculos de recuperacao
+- **Achievements Seeding**: Atualizado seed de conquistas com requisitos JSON para auto-unlock
+  - Categorias: streak, lessons, xp, special
+  - 22 conquistas com criterios claros de desbloqueio
+
 ### 07/12/2025
 - Configuracao do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
 - Integracao Instagram configurada e funcionando com posts reais do @umpemaus

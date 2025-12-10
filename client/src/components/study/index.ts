@@ -1,4 +1,5 @@
 export { HeartsDisplay } from "./HeartsDisplay";
+export { CrystalDisplay, CrystalBalanceCard } from "./CrystalDisplay";
 export { XPDisplay } from "./XPDisplay";
 export { StreakBadge } from "./StreakBadge";
 export { LevelBadge } from "./LevelBadge";

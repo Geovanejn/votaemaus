@@ -4,7 +4,8 @@ import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
   SoundSettings,
-  NotificationSettings 
+  NotificationSettings,
+  CrystalBalanceCard
 } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -343,6 +344,7 @@ export default function ProfilePage() {
               color="#58CC02" 
             />
           </div>
+          <CrystalBalanceCard className="mt-3" />
         </motion.div>
 
         <motion.div

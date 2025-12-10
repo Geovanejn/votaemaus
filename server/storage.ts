@@ -234,6 +234,7 @@ export interface IStorage {
   resetStreak(userId: number): Promise<void>;
   updateStreakWarningDay(userId: number, day: number): Promise<void>;
   incrementStreak(userId: number): Promise<{ newStreak: number; isNewRecord: boolean }>;
+  checkAndAwardLessonCrystals(userId: number, isPerfect: boolean): Promise<{ crystalsAwarded: number; rewards: Array<{ type: string; amount: number; description: string }> }>;
   
   // Anonymous Push Subscription Methods (for visitors)
   saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
@@ -3717,6 +3718,125 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.studyProfiles.userId, userId));
     
     return { newStreak, isNewRecord };
+  }
+
+  async checkAndAwardLessonCrystals(userId: number, isPerfect: boolean): Promise<{ crystalsAwarded: number; rewards: Array<{ type: string; amount: number; description: string }> }> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile) {
+      throw new Error("Study profile not found");
+    }
+    
+    const rewards: Array<{ type: string; amount: number; description: string }> = [];
+    let totalCrystals = 0;
+    
+    const now = new Date();
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(now);
+    
+    const isNewDay = profile.lastLessonDate !== today;
+    const lastLessonDate = profile.lastLessonDate;
+    
+    const getYesterday = () => {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(yesterday);
+    };
+    
+    const yesterday = getYesterday();
+    const wasStudyingYesterday = lastLessonDate === yesterday;
+    const isConsecutiveDay = wasStudyingYesterday || lastLessonDate === today;
+    
+    let newConsecutivePerfect: number;
+    let newConsecutiveLessons: number;
+    let newLessonsToday: number;
+    let newWeeklyStreak: number;
+    
+    if (isNewDay) {
+      newLessonsToday = 1;
+      if (wasStudyingYesterday) {
+        newWeeklyStreak = (profile.weeklyLessonsStreak || 0) + 1;
+        newConsecutivePerfect = isPerfect ? (profile.consecutivePerfectLessons || 0) + 1 : 0;
+        newConsecutiveLessons = (profile.consecutiveLessons || 0) + 1;
+      } else {
+        newWeeklyStreak = 1;
+        newConsecutivePerfect = isPerfect ? 1 : 0;
+        newConsecutiveLessons = 1;
+      }
+    } else {
+      newLessonsToday = (profile.totalLessonsCompletedToday || 0) + 1;
+      newWeeklyStreak = profile.weeklyLessonsStreak || 1;
+      newConsecutivePerfect = isPerfect ? (profile.consecutivePerfectLessons || 0) + 1 : 0;
+      newConsecutiveLessons = (profile.consecutiveLessons || 0) + 1;
+    }
+    
+    if (isPerfect) {
+      await this.addCrystals(userId, 3, "perfect_lesson", "Licao perfeita! Sem erros.");
+      rewards.push({ type: "perfect_lesson", amount: 3, description: "Licao perfeita! Sem erros." });
+      totalCrystals += 3;
+    }
+    
+    if (newConsecutivePerfect === 2) {
+      await this.addCrystals(userId, 5, "perfect_streak_2", "Sequencia de 2 licoes perfeitas!");
+      rewards.push({ type: "perfect_streak_2", amount: 5, description: "Sequencia de 2 licoes perfeitas!" });
+      totalCrystals += 5;
+    } else if (newConsecutivePerfect === 3) {
+      await this.addCrystals(userId, 8, "perfect_streak_3", "Incrivel! 3 licoes perfeitas seguidas!");
+      rewards.push({ type: "perfect_streak_3", amount: 8, description: "Incrivel! 3 licoes perfeitas seguidas!" });
+      totalCrystals += 8;
+    } else if (newConsecutivePerfect === 5) {
+      await this.addCrystals(userId, 15, "perfect_streak_5", "Extraordinario! 5 licoes perfeitas seguidas!");
+      rewards.push({ type: "perfect_streak_5", amount: 15, description: "Extraordinario! 5 licoes perfeitas seguidas!" });
+      totalCrystals += 15;
+    }
+    
+    if (newConsecutiveLessons === 3) {
+      await this.addCrystals(userId, 5, "lesson_streak_3", "3 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_3", amount: 5, description: "3 licoes concluidas em sequencia!" });
+      totalCrystals += 5;
+    } else if (newConsecutiveLessons === 5) {
+      await this.addCrystals(userId, 10, "lesson_streak_5", "5 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_5", amount: 10, description: "5 licoes concluidas em sequencia!" });
+      totalCrystals += 10;
+    } else if (newConsecutiveLessons === 7) {
+      await this.addCrystals(userId, 20, "lesson_streak_7", "Impressionante! 7 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_7", amount: 20, description: "Impressionante! 7 licoes concluidas em sequencia!" });
+      totalCrystals += 20;
+    }
+    
+    if (isNewDay && newLessonsToday === 1) {
+      await this.addCrystals(userId, 2, "first_lesson_of_day", "Primeira licao do dia!");
+      rewards.push({ type: "first_lesson_of_day", amount: 2, description: "Primeira licao do dia!" });
+      totalCrystals += 2;
+    }
+    
+    if (newWeeklyStreak === 7) {
+      await this.addCrystals(userId, 25, "weekly_lessons_streak", "1 semana estudando todos os dias!");
+      rewards.push({ type: "weekly_lessons_streak", amount: 25, description: "1 semana estudando todos os dias!" });
+      totalCrystals += 25;
+      newWeeklyStreak = 0;
+    }
+    
+    await db.update(schema.studyProfiles)
+      .set({ 
+        consecutivePerfectLessons: newConsecutivePerfect,
+        consecutiveLessons: newConsecutiveLessons,
+        totalLessonsCompletedToday: newLessonsToday,
+        lastLessonDate: today,
+        weeklyLessonsStreak: newWeeklyStreak,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    return { crystalsAwarded: totalCrystals, rewards };
   }
 }
 

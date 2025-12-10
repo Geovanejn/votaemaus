@@ -1667,15 +1667,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekKey = getWeekKeyForLesson();
       await storage.incrementWeeklyLesson(req.user.id, weekKey);
       
-      // Increment streak and award crystals
+      // Increment streak
       const streakResult = await storage.incrementStreak(req.user.id);
       
-      // Award crystals for completing a lesson (base: 2 crystals)
-      let crystalsAwarded = 2;
-      if (mistakesCount === 0) {
-        crystalsAwarded += 3; // Bonus for perfect score
-      }
-      await storage.addCrystals(req.user.id, crystalsAwarded, "lesson_complete", `Licao completada${mistakesCount === 0 ? ' (perfeita!)' : ''}`);
+      // Check and award crystals based on criteria (perfect lesson, streaks, etc.)
+      const isPerfect = mistakesCount === 0;
+      const crystalRewards = await storage.checkAndAwardLessonCrystals(req.user.id, isPerfect);
       
       // Check for streak milestones
       let milestoneReward = null;
@@ -1697,7 +1694,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         streakInfo: {
           newStreak: streakResult.newStreak,
           isNewRecord: streakResult.isNewRecord,
-          crystalsAwarded,
+          crystalsAwarded: crystalRewards.crystalsAwarded,
+          crystalRewards: crystalRewards.rewards,
           milestoneReward
         },
         unlockedAchievements: unlockedAchievements.map(ua => ua.achievement)

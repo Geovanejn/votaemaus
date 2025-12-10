@@ -667,6 +667,11 @@ export const studyProfiles = pgTable("study_profiles", {
   lastLessonCompletedAt: timestamp("last_lesson_completed_at"),
   streakWarningDay: integer("streak_warning_day").notNull().default(0),
   totalStreakFreezeUsed: integer("total_streak_freeze_used").notNull().default(0),
+  consecutivePerfectLessons: integer("consecutive_perfect_lessons").notNull().default(0),
+  consecutiveLessons: integer("consecutive_lessons").notNull().default(0),
+  totalLessonsCompletedToday: integer("total_lessons_completed_today").notNull().default(0),
+  lastLessonDate: text("last_lesson_date"),
+  weeklyLessonsStreak: integer("weekly_lessons_streak").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -685,7 +690,15 @@ export type StudyProfile = typeof studyProfiles.$inferSelect;
 // ==================== TRANSACOES DE CRISTAIS ====================
 
 export type CrystalTransactionType = 
-  | "lesson_complete"
+  | "perfect_lesson"
+  | "perfect_streak_2"
+  | "perfect_streak_3"
+  | "perfect_streak_5"
+  | "lesson_streak_3"
+  | "lesson_streak_5"
+  | "lesson_streak_7"
+  | "first_lesson_of_day"
+  | "weekly_lessons_streak"
   | "streak_milestone"
   | "weekly_goal"
   | "freeze_purchase"

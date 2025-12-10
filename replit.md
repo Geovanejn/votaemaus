@@ -115,6 +115,26 @@ npm run db:push  # Sincronizar esquema do banco
   - Categorias: streak, lessons, xp, special
   - 22 conquistas com criterios claros de desbloqueio
 
+### 10/12/2025 - Sistema de Criterios para Cristais
+- **Novo sistema de recompensas**: Cristais nao sao mais dados em toda licao
+- **Criterios implementados**:
+  - Licao perfeita (sem erros): 3 cristais
+  - Sequencia de 2 licoes perfeitas: +5 cristais bonus
+  - Sequencia de 3 licoes perfeitas: +8 cristais bonus
+  - Sequencia de 5 licoes perfeitas: +15 cristais bonus
+  - 3 licoes consecutivas: 5 cristais
+  - 5 licoes consecutivas: 10 cristais
+  - 7 licoes consecutivas: 20 cristais
+  - Primeira licao do dia: 2 cristais
+  - 1 semana estudando todos os dias (7 dias consecutivos): 25 cristais
+- **Novos campos no studyProfiles**:
+  - consecutivePerfectLessons: sequencia de licoes perfeitas
+  - consecutiveLessons: sequencia de licoes (qualquer resultado)
+  - totalLessonsCompletedToday: licoes feitas hoje
+  - lastLessonDate: data da ultima licao
+  - weeklyLessonsStreak: dias consecutivos de estudo
+- **Logica de reset**: Counters sao resetados quando o usuario pula um dia
+
 ### 07/12/2025
 - Configuracao do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
 - Integracao Instagram configurada e funcionando com posts reais do @umpemaus

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { HeartCrack, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { HeartCrack, Loader2, AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   StudyHeader,
@@ -140,6 +140,7 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [lessonStarted, setLessonStarted] = useState(false);
   const [noHeartsError, setNoHeartsError] = useState(false);
+  const [alreadyCompletedError, setAlreadyCompletedError] = useState(false);
   const [finalProfile, setFinalProfile] = useState<StudyProfile | null>(null);
   const [finalXpFromServer, setFinalXpFromServer] = useState<number | null>(null);
   const [waitingForAnswer, setWaitingForAnswer] = useState(false);
@@ -182,6 +183,8 @@ export default function LessonPage() {
     onError: (error: Error) => {
       if (error.message.includes("vidas") || error.message.includes("hearts") || error.message.includes("heartsNeeded")) {
         setNoHeartsError(true);
+      } else if (error.message.includes("concluida") || error.message.includes("alreadyCompleted") || error.message.includes("completed")) {
+        setAlreadyCompletedError(true);
       }
     }
   });
@@ -229,10 +232,10 @@ export default function LessonPage() {
   });
 
   useEffect(() => {
-    if (lessonData && !lessonStarted && !startLessonMutation.isPending && !noHeartsError && !startLessonMutation.isError) {
+    if (lessonData && !lessonStarted && !startLessonMutation.isPending && !noHeartsError && !alreadyCompletedError && !startLessonMutation.isError) {
       startLessonMutation.mutate();
     }
-  }, [lessonData, lessonStarted, noHeartsError]);
+  }, [lessonData, lessonStarted, noHeartsError, alreadyCompletedError]);
 
   useEffect(() => {
     if (lessonData?.units && stageParam && !initialStageSet) {
@@ -256,6 +259,33 @@ export default function LessonPage() {
           <Button onClick={() => setLocation("/login")} data-testid="button-login">
             Fazer Login
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadyCompletedError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4" data-testid="already-completed">
+        <div className="text-center max-w-sm">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle className="h-8 w-8 text-green-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Licao ja concluida!
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            Voce ja completou esta licao. Continue sua jornada de estudo com outras licoes disponiveis.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => setLocation("/study")}
+              className="w-full py-6 font-bold"
+              data-testid="button-continue-study"
+            >
+              CONTINUAR ESTUDANDO
+            </Button>
+          </div>
         </div>
       </div>
     );

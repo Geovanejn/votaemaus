@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -202,35 +202,48 @@ function AchievementIcon({ icon, unlocked, size = "normal" }: { icon: string; un
 }
 
 function ShareableAchievementCard({ achievement, onClose }: { achievement: Achievement; onClose: () => void }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
   
   const handleShare = async () => {
     try {
+      const shareText = `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`;
       const shareData = {
         title: `Conquista Desbloqueada: ${achievement.name}`,
         text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
         url: window.location.origin
       };
       
-      if (navigator.share && navigator.canShare(shareData)) {
+      const canUseNativeShare = navigator.share && 
+        (typeof navigator.canShare === 'function' ? navigator.canShare(shareData) : true);
+      
+      if (canUseNativeShare) {
         await navigator.share(shareData);
         toast({
           title: "Compartilhado!",
           description: "Sua conquista foi compartilhada com sucesso."
         });
       } else {
-        await navigator.clipboard.writeText(
-          `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`
-        );
+        await navigator.clipboard.writeText(shareText);
         toast({
           title: "Link copiado!",
           description: "O texto foi copiado para a area de transferencia."
         });
       }
     } catch (error) {
-      console.error("Share error:", error);
+      if ((error as Error).name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(
+            `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`
+          );
+          toast({
+            title: "Link copiado!",
+            description: "O texto foi copiado para a area de transferencia."
+          });
+        } catch {
+          console.error("Share error:", error);
+        }
+      }
     }
   };
   

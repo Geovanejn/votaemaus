@@ -832,8 +832,20 @@ export function isAIConfigured(): boolean {
 }
 
 export async function generateDailyVerseWithAI(): Promise<{ verse: string; reference: string } | null> {
+  const { getDailyVerse } = await import("./bible-api.js");
+  
+  try {
+    const bibleApiResult = await getDailyVerse();
+    if (bibleApiResult) {
+      console.log("[BibleAPI] Daily verse fetched successfully from ABíbliaDigital");
+      return bibleApiResult;
+    }
+  } catch (error) {
+    console.warn("[BibleAPI] Failed to fetch daily verse, falling back to Gemini:", error);
+  }
+
   if (!isAIConfigured()) {
-    console.log("[AI] Gemini not configured, cannot generate daily verse");
+    console.log("[AI] Gemini not configured and Bible API failed");
     return null;
   }
 
@@ -877,8 +889,20 @@ Responda APENAS em formato JSON:
 }
 
 export async function generateRecoveryVersesWithAI(count: number = 5): Promise<Array<{ verse: string; reference: string; reflection: string }> | null> {
+  const { getRecoveryVerses } = await import("./bible-api.js");
+  
+  try {
+    const bibleApiResult = await getRecoveryVerses(count);
+    if (bibleApiResult && bibleApiResult.length > 0) {
+      console.log(`[BibleAPI] ${bibleApiResult.length} recovery verses fetched successfully from ABíbliaDigital`);
+      return bibleApiResult;
+    }
+  } catch (error) {
+    console.warn("[BibleAPI] Failed to fetch recovery verses, falling back to Gemini:", error);
+  }
+
   if (!isAIConfigured()) {
-    console.log("[AI] Gemini not configured, cannot generate recovery verses");
+    console.log("[AI] Gemini not configured and Bible API failed");
     return null;
   }
 

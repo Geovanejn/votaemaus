@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Compass, 
   BookOpen, 
@@ -16,7 +18,8 @@ import {
   ChevronRight,
   Lock,
   Check,
-  Loader2
+  Loader2,
+  BookMarked
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -34,9 +37,12 @@ interface VerseCategory {
 }
 
 interface DailyVerse {
+  verse: string;
   reference: string;
-  text: string;
-  isCompleted: boolean;
+}
+
+interface DailyVerseStatus {
+  isRead: boolean;
 }
 
 const iconMap: Record<string, typeof Heart> = {
@@ -157,9 +163,12 @@ function CategoryCard({
   );
 }
 
-function DailyVerseCard({ verse }: { verse: DailyVerse | null }) {
-  const [, setLocation] = useLocation();
-
+function DailyVerseCard({ verse, isRead, onMarkAsRead, isMarking }: { 
+  verse: DailyVerse | null; 
+  isRead: boolean;
+  onMarkAsRead: () => void;
+  isMarking: boolean;
+}) {
   if (!verse) {
     return (
       <motion.div
@@ -204,33 +213,49 @@ function DailyVerseCard({ verse }: { verse: DailyVerse | null }) {
             background: 'linear-gradient(135deg, #FFC800 0%, #FFD633 100%)',
           }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="h-5 w-5 text-white" />
-            <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-white" />
+              <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
+            </div>
+            {isRead && (
+              <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-1">
+                <Check className="h-3 w-3 text-white" />
+                <span className="text-xs font-bold text-white">Lido</span>
+              </div>
+            )}
           </div>
           <p className="text-white font-bold text-lg">{verse.reference}</p>
         </div>
         
         <div className="p-4">
           <p className="text-foreground text-base italic leading-relaxed mb-4">
-            "{verse.text}"
+            "{verse.verse}"
           </p>
           
-          <Button
-            onClick={() => setLocation("/study/verses")}
-            className="w-full font-bold bg-[#FFC800] hover:bg-[#E6B400] text-[#7A5C00]"
-            style={{ boxShadow: '0 4px 0 0 #CC9F00' }}
-            data-testid="button-read-daily-verse"
-          >
-            {verse.isCompleted ? (
-              <span className="flex items-center gap-2">
-                <Check className="h-4 w-4" />
-                CONCLUIDO
-              </span>
-            ) : (
-              "LER AGORA"
-            )}
-          </Button>
+          {isRead ? (
+            <div className="w-full py-3 px-4 rounded-lg bg-[#58CC02]/10 border-2 border-[#58CC02]/30 flex items-center justify-center gap-2">
+              <Check className="h-5 w-5 text-[#58CC02]" />
+              <span className="font-bold text-[#58CC02]">Leitura concluida hoje</span>
+            </div>
+          ) : (
+            <Button
+              onClick={onMarkAsRead}
+              disabled={isMarking}
+              className="w-full font-bold bg-[#FFC800] hover:bg-[#E6B400] text-[#7A5C00]"
+              style={{ boxShadow: '0 4px 0 0 #CC9F00' }}
+              data-testid="button-mark-verse-read"
+            >
+              {isMarking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  <BookMarked className="h-4 w-4" />
+                  MARCAR COMO LIDO
+                </span>
+              )}
+            </Button>
+          )}
         </div>
       </Card>
     </motion.div>
@@ -304,19 +329,40 @@ function LoadingState() {
 export default function ExplorePage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+  const [dailyVerseRead, setDailyVerseRead] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
     enabled: isAuthenticated,
   });
 
-  const { data: versesData } = useQuery<{ verses: any[]; categories: any[] }>({
-    queryKey: ['/api/study/verses'],
+  const { data: dailyVerseData } = useQuery<DailyVerse>({
+    queryKey: ['/api/study/daily-verse'],
     enabled: isAuthenticated,
+  });
+
+  const { data: weeklyGoal } = useQuery<{ versesRead: number; versesGoal: number }>({
+    queryKey: ['/api/study/weekly-goal'],
+    enabled: isAuthenticated,
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/study/daily-verse/confirm");
+      return res.json();
+    },
+    onSuccess: () => {
+      setDailyVerseRead(true);
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+    }
   });
 
   const handleCategoryClick = (categoryId: string) => {
     setLocation(`/study/verses?category=${categoryId}`);
+  };
+
+  const handleMarkAsRead = () => {
+    markAsReadMutation.mutate();
   };
 
   if (profileLoading) {
@@ -332,15 +378,10 @@ export default function ExplorePage() {
     };
   });
 
-  const dailyVerse: DailyVerse | null = versesData?.verses?.[0] ? {
-    reference: versesData.verses[0].reference || "Filipenses 4:13",
-    text: versesData.verses[0].text || "Tudo posso naquele que me fortalece.",
-    isCompleted: false
-  } : {
-    reference: "Filipenses 4:13",
-    text: "Tudo posso naquele que me fortalece.",
-    isCompleted: false
-  };
+  const dailyVerse: DailyVerse | null = dailyVerseData ? {
+    verse: dailyVerseData.verse,
+    reference: dailyVerseData.reference
+  } : null;
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="explore-page">
@@ -352,7 +393,12 @@ export default function ExplorePage() {
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-6">
-        <DailyVerseCard verse={dailyVerse} />
+        <DailyVerseCard 
+          verse={dailyVerse} 
+          isRead={dailyVerseRead}
+          onMarkAsRead={handleMarkAsRead}
+          isMarking={markAsReadMutation.isPending}
+        />
         
         <HeartsRecoveryCard profile={profile} />
 

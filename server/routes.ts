@@ -1666,9 +1666,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekKey = getWeekKeyForLesson();
       await storage.incrementWeeklyLesson(req.user.id, weekKey);
       
+      // Increment streak and award crystals
+      const streakResult = await storage.incrementStreak(req.user.id);
+      
+      // Award crystals for completing a lesson (base: 2 crystals)
+      let crystalsAwarded = 2;
+      if (mistakesCount === 0) {
+        crystalsAwarded += 3; // Bonus for perfect score
+      }
+      await storage.addCrystals(req.user.id, crystalsAwarded, "lesson_complete", `Licao completada${mistakesCount === 0 ? ' (perfeita!)' : ''}`);
+      
+      // Check for streak milestones
+      let milestoneReward = null;
+      if (streakResult.newStreak > 0) {
+        milestoneReward = await storage.checkAndAwardStreakMilestone(req.user.id, streakResult.newStreak);
+      }
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
-      res.json({ progress, profile });
+      res.json({ 
+        progress, 
+        profile,
+        streakInfo: {
+          newStreak: streakResult.newStreak,
+          isNewRecord: streakResult.isNewRecord,
+          crystalsAwarded,
+          milestoneReward
+        }
+      });
     } catch (error) {
       console.error("Complete lesson error:", error);
       res.status(500).json({ message: "Erro ao completar licao" });
@@ -1774,6 +1799,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get leaderboard error:", error);
       res.status(500).json({ message: "Erro ao buscar ranking" });
+    }
+  });
+
+  // ==================== CRYSTAL AND STREAK FREEZE ENDPOINTS ====================
+
+  app.get("/api/study/crystals", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const balance = await storage.getCrystalBalance(req.user.id);
+      const profile = await storage.getStudyProfile(req.user.id);
+      
+      res.json({ 
+        balance,
+        freezesAvailable: profile?.streakFreezesAvailable ?? 0,
+        currentStreak: profile?.currentStreak ?? 0,
+        longestStreak: profile?.longestStreak ?? 0,
+        nextFreezeCost: 10 + ((profile?.streakFreezesAvailable ?? 0) * 10)
+      });
+    } catch (error) {
+      console.error("Get crystals error:", error);
+      res.status(500).json({ message: "Erro ao buscar cristais" });
+    }
+  });
+
+  app.get("/api/study/crystals/history", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 50;
+      const history = await storage.getCrystalHistory(req.user.id, limit);
+      
+      res.json({ history });
+    } catch (error) {
+      console.error("Get crystal history error:", error);
+      res.status(500).json({ message: "Erro ao buscar historico de cristais" });
+    }
+  });
+
+  app.post("/api/study/streak/freeze/purchase", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const result = await storage.purchaseStreakFreeze(req.user.id);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Cristais insuficientes para comprar congelamento",
+          cost: result.cost,
+          freezesAvailable: result.freezesAvailable
+        });
+      }
+      
+      res.json({ 
+        message: "Congelamento comprado com sucesso!",
+        cost: result.cost,
+        freezesAvailable: result.freezesAvailable
+      });
+    } catch (error) {
+      console.error("Purchase streak freeze error:", error);
+      res.status(500).json({ message: "Erro ao comprar congelamento" });
+    }
+  });
+
+  app.get("/api/study/streak/freeze/history", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const history = await storage.getStreakFreezeHistory(req.user.id);
+      
+      res.json({ history });
+    } catch (error) {
+      console.error("Get streak freeze history error:", error);
+      res.status(500).json({ message: "Erro ao buscar historico de congelamentos" });
+    }
+  });
+
+  app.get("/api/study/streak/milestones", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const profile = await storage.getStudyProfile(req.user.id);
+      const currentStreak = profile?.currentStreak ?? 0;
+      
+      const milestones = [
+        { days: 7, crystalReward: 20, xpReward: 50, title: "Primeira Semana", achieved: currentStreak >= 7 },
+        { days: 14, crystalReward: 35, xpReward: 75, title: "Duas Semanas", achieved: currentStreak >= 14 },
+        { days: 30, crystalReward: 100, xpReward: 150, title: "Um Mes", achieved: currentStreak >= 30 },
+        { days: 60, crystalReward: 200, xpReward: 300, title: "Dois Meses", achieved: currentStreak >= 60 },
+        { days: 100, crystalReward: 500, xpReward: 500, title: "Centenario", achieved: currentStreak >= 100 },
+        { days: 180, crystalReward: 800, xpReward: 750, title: "Meio Ano", achieved: currentStreak >= 180 },
+        { days: 365, crystalReward: 2000, xpReward: 1500, title: "Um Ano", achieved: currentStreak >= 365 },
+      ];
+      
+      res.json({ milestones, currentStreak });
+    } catch (error) {
+      console.error("Get streak milestones error:", error);
+      res.status(500).json({ message: "Erro ao buscar marcos de ofensiva" });
     }
   });
 

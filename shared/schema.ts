@@ -662,6 +662,11 @@ export const studyProfiles = pgTable("study_profiles", {
   weeklyMissionsGoal: integer("weekly_missions_goal").notNull().default(3),
   weeklyDevotionalsGoal: integer("weekly_devotionals_goal").notNull().default(1),
   versesReadForRecovery: integer("verses_read_for_recovery").notNull().default(0),
+  crystals: integer("crystals").notNull().default(0),
+  streakFreezesAvailable: integer("streak_freezes_available").notNull().default(0),
+  lastLessonCompletedAt: timestamp("last_lesson_completed_at"),
+  streakWarningDay: integer("streak_warning_day").notNull().default(0),
+  totalStreakFreezeUsed: integer("total_streak_freeze_used").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -676,6 +681,94 @@ export const insertStudyProfileSchema = createInsertSchema(studyProfiles).omit({
 
 export type InsertStudyProfile = z.infer<typeof insertStudyProfileSchema>;
 export type StudyProfile = typeof studyProfiles.$inferSelect;
+
+// ==================== TRANSACOES DE CRISTAIS ====================
+
+export type CrystalTransactionType = 
+  | "lesson_complete"
+  | "streak_milestone"
+  | "weekly_goal"
+  | "freeze_purchase"
+  | "freeze_use"
+  | "streak_repair"
+  | "achievement"
+  | "daily_bonus"
+  | "admin_grant";
+
+export const crystalTransactions = pgTable("crystal_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: integer("amount").notNull(),
+  type: text("type").notNull(),
+  description: text("description"),
+  balanceAfter: integer("balance_after").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCrystalTransactionSchema = createInsertSchema(crystalTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCrystalTransaction = z.infer<typeof insertCrystalTransactionSchema>;
+export type CrystalTransaction = typeof crystalTransactions.$inferSelect;
+
+// ==================== HISTORICO DE CONGELAMENTO DE OFENSIVA ====================
+
+export const streakFreezeHistory = pgTable("streak_freeze_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  usedAt: timestamp("used_at").notNull().defaultNow(),
+  streakSaved: integer("streak_saved").notNull(),
+  crystalsCost: integer("crystals_cost").notNull().default(0),
+  wasAutomatic: boolean("was_automatic").notNull().default(false),
+});
+
+export const insertStreakFreezeHistorySchema = createInsertSchema(streakFreezeHistory).omit({
+  id: true,
+});
+
+export type InsertStreakFreezeHistory = z.infer<typeof insertStreakFreezeHistorySchema>;
+export type StreakFreezeHistory = typeof streakFreezeHistory.$inferSelect;
+
+// ==================== MARCOS DE OFENSIVA (STREAK MILESTONES) ====================
+
+export const streakMilestones = pgTable("streak_milestones", {
+  id: serial("id").primaryKey(),
+  days: integer("days").notNull().unique(),
+  crystalReward: integer("crystal_reward").notNull(),
+  xpReward: integer("xp_reward").notNull().default(0),
+  title: text("title").notNull(),
+  description: text("description"),
+  badgeIcon: text("badge_icon"),
+});
+
+export const insertStreakMilestoneSchema = createInsertSchema(streakMilestones).omit({
+  id: true,
+});
+
+export type InsertStreakMilestone = z.infer<typeof insertStreakMilestoneSchema>;
+export type StreakMilestone = typeof streakMilestones.$inferSelect;
+
+// ==================== MARCOS ALCANCADOS PELO USUARIO ====================
+
+export const userStreakMilestones = pgTable("user_streak_milestones", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  milestoneId: integer("milestone_id").notNull().references(() => streakMilestones.id),
+  achievedAt: timestamp("achieved_at").notNull().defaultNow(),
+  crystalsAwarded: integer("crystals_awarded").notNull(),
+  xpAwarded: integer("xp_awarded").notNull().default(0),
+}, (table) => ({
+  uniqueUserMilestone: unique().on(table.userId, table.milestoneId),
+}));
+
+export const insertUserStreakMilestoneSchema = createInsertSchema(userStreakMilestones).omit({
+  id: true,
+});
+
+export type InsertUserStreakMilestone = z.infer<typeof insertUserStreakMilestoneSchema>;
+export type UserStreakMilestone = typeof userStreakMilestones.$inferSelect;
 
 // ==================== TEMPORADAS (SEASONS) ====================
 

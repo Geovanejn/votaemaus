@@ -467,18 +467,40 @@ export async function notifyLessonAvailable(
 
 export async function notifyStreakReminder(
   userId: number,
-  currentStreak: number
+  currentStreak: number,
+  customMessage?: string,
+  type?: "warning" | "freeze_used" | "lost"
 ): Promise<void> {
-  const messages = [
-    `Seu streak de ${currentStreak} dias esta em risco!`,
-    `Nao perca seu streak! ${currentStreak} dias de dedicacao.`,
-    `So uma licao rapida para manter seu streak de ${currentStreak} dias!`,
-  ];
-
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  let title: string;
+  let message: string;
+  
+  if (customMessage) {
+    message = customMessage;
+  } else {
+    const messages = [
+      `Sua ofensiva de ${currentStreak} dias esta em risco!`,
+      `Nao perca sua ofensiva! ${currentStreak} dias de dedicacao.`,
+      `So uma licao rapida para manter sua ofensiva de ${currentStreak} dias!`,
+    ];
+    message = messages[Math.floor(Math.random() * messages.length)];
+  }
+  
+  switch (type) {
+    case "warning":
+      title = "DeoGlory - Ofensiva em Risco!";
+      break;
+    case "freeze_used":
+      title = "DeoGlory - Congelamento Usado!";
+      break;
+    case "lost":
+      title = "DeoGlory - Ofensiva Perdida";
+      break;
+    default:
+      title = "DeoGlory - Mantenha sua Ofensiva!";
+  }
 
   const payload: NotificationPayload = {
-    title: "DeoGlory - Mantenha seu Streak!",
+    title,
     body: message,
     url: "/study",
     tag: "streak-reminder",
@@ -486,6 +508,14 @@ export async function notifyStreakReminder(
   };
 
   await sendPushToUser(userId, payload);
+  
+  await createInAppNotification(
+    userId,
+    "streak_reminder",
+    title,
+    message,
+    { currentStreak, type, url: payload.url }
+  );
 }
 
 export async function notifyInactivity(

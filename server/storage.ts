@@ -221,6 +221,20 @@ export interface IStorage {
   getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]>;
   getInactiveUsersByDays(days: number): Promise<{ userId: number; daysSinceLastActivity: number }[]>;
   
+  // Crystal and Streak Freeze Methods
+  addCrystals(userId: number, amount: number, type: string, description?: string): Promise<number>;
+  spendCrystals(userId: number, amount: number, type: string, description?: string): Promise<boolean>;
+  getCrystalBalance(userId: number): Promise<number>;
+  getCrystalHistory(userId: number, limit?: number): Promise<any[]>;
+  purchaseStreakFreeze(userId: number): Promise<{ success: boolean; cost: number; freezesAvailable: number }>;
+  useStreakFreeze(userId: number, streakToSave: number, automatic: boolean): Promise<boolean>;
+  getStreakFreezeHistory(userId: number): Promise<any[]>;
+  checkAndAwardStreakMilestone(userId: number, currentStreak: number): Promise<{ milestone: any; crystalsAwarded: number; xpAwarded: number } | null>;
+  getUsersNeedingStreakCheck(): Promise<{ userId: number; currentStreak: number; lastLessonCompletedAt: Date | null; streakWarningDay: number; streakFreezesAvailable: number }[]>;
+  resetStreak(userId: number): Promise<void>;
+  updateStreakWarningDay(userId: number, day: number): Promise<void>;
+  incrementStreak(userId: number): Promise<{ newStreak: number; isNewRecord: boolean }>;
+  
   // Anonymous Push Subscription Methods (for visitors)
   saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
   removeAnonymousPushSubscription(endpoint: string): Promise<void>;
@@ -3332,6 +3346,252 @@ export class DatabaseStorage implements IStorage {
   async deleteAnonymousPushSubscriptionByEndpoint(endpoint: string): Promise<void> {
     await db.delete(schema.anonymousPushSubscriptions)
       .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint));
+  }
+
+  // ==================== CRYSTAL AND STREAK FREEZE METHODS ====================
+
+  async addCrystals(userId: number, amount: number, type: string, description?: string): Promise<number> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile) {
+      throw new Error("Study profile not found");
+    }
+    
+    const newBalance = profile.crystals + amount;
+    
+    await db.update(schema.studyProfiles)
+      .set({ crystals: newBalance, updatedAt: new Date() })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    await db.insert(schema.crystalTransactions).values({
+      userId,
+      amount,
+      type,
+      description,
+      balanceAfter: newBalance,
+    });
+    
+    return newBalance;
+  }
+
+  async spendCrystals(userId: number, amount: number, type: string, description?: string): Promise<boolean> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile || profile.crystals < amount) {
+      return false;
+    }
+    
+    const newBalance = profile.crystals - amount;
+    
+    await db.update(schema.studyProfiles)
+      .set({ crystals: newBalance, updatedAt: new Date() })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    await db.insert(schema.crystalTransactions).values({
+      userId,
+      amount: -amount,
+      type,
+      description,
+      balanceAfter: newBalance,
+    });
+    
+    return true;
+  }
+
+  async getCrystalBalance(userId: number): Promise<number> {
+    const profile = await this.getStudyProfile(userId);
+    return profile?.crystals ?? 0;
+  }
+
+  async getCrystalHistory(userId: number, limit: number = 50): Promise<any[]> {
+    return db.select()
+      .from(schema.crystalTransactions)
+      .where(eq(schema.crystalTransactions.userId, userId))
+      .orderBy(desc(schema.crystalTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async purchaseStreakFreeze(userId: number): Promise<{ success: boolean; cost: number; freezesAvailable: number }> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile) {
+      return { success: false, cost: 0, freezesAvailable: 0 };
+    }
+    
+    const baseCost = 10;
+    const cost = baseCost + (profile.streakFreezesAvailable * 10);
+    
+    if (profile.crystals < cost) {
+      return { success: false, cost, freezesAvailable: profile.streakFreezesAvailable };
+    }
+    
+    const spent = await this.spendCrystals(userId, cost, "freeze_purchase", `Compra de congelamento de ofensiva (custo: ${cost} cristais)`);
+    if (!spent) {
+      return { success: false, cost, freezesAvailable: profile.streakFreezesAvailable };
+    }
+    
+    const newFreezes = profile.streakFreezesAvailable + 1;
+    await db.update(schema.studyProfiles)
+      .set({ streakFreezesAvailable: newFreezes, updatedAt: new Date() })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    return { success: true, cost, freezesAvailable: newFreezes };
+  }
+
+  async useStreakFreeze(userId: number, streakToSave: number, automatic: boolean): Promise<boolean> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile || profile.streakFreezesAvailable <= 0) {
+      return false;
+    }
+    
+    await db.update(schema.studyProfiles)
+      .set({ 
+        streakFreezesAvailable: profile.streakFreezesAvailable - 1,
+        totalStreakFreezeUsed: profile.totalStreakFreezeUsed + 1,
+        streakWarningDay: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    await db.insert(schema.streakFreezeHistory).values({
+      userId,
+      streakSaved: streakToSave,
+      crystalsCost: 0,
+      wasAutomatic: automatic,
+    });
+    
+    return true;
+  }
+
+  async getStreakFreezeHistory(userId: number): Promise<any[]> {
+    return db.select()
+      .from(schema.streakFreezeHistory)
+      .where(eq(schema.streakFreezeHistory.userId, userId))
+      .orderBy(desc(schema.streakFreezeHistory.usedAt));
+  }
+
+  async checkAndAwardStreakMilestone(userId: number, currentStreak: number): Promise<{ milestone: any; crystalsAwarded: number; xpAwarded: number } | null> {
+    const [milestone] = await db.select()
+      .from(schema.streakMilestones)
+      .where(eq(schema.streakMilestones.days, currentStreak))
+      .limit(1);
+    
+    if (!milestone) {
+      return null;
+    }
+    
+    const [existing] = await db.select()
+      .from(schema.userStreakMilestones)
+      .where(and(
+        eq(schema.userStreakMilestones.userId, userId),
+        eq(schema.userStreakMilestones.milestoneId, milestone.id)
+      ))
+      .limit(1);
+    
+    if (existing) {
+      return null;
+    }
+    
+    await db.insert(schema.userStreakMilestones).values({
+      userId,
+      milestoneId: milestone.id,
+      crystalsAwarded: milestone.crystalReward,
+      xpAwarded: milestone.xpReward,
+    });
+    
+    await this.addCrystals(userId, milestone.crystalReward, "streak_milestone", `Marco de ${milestone.days} dias de ofensiva: ${milestone.title}`);
+    
+    if (milestone.xpReward > 0) {
+      const profile = await this.getStudyProfile(userId);
+      if (profile) {
+        await db.update(schema.studyProfiles)
+          .set({ totalXp: profile.totalXp + milestone.xpReward, updatedAt: new Date() })
+          .where(eq(schema.studyProfiles.id, profile.id));
+      }
+    }
+    
+    return { milestone, crystalsAwarded: milestone.crystalReward, xpAwarded: milestone.xpReward };
+  }
+
+  async getUsersNeedingStreakCheck(): Promise<{ userId: number; currentStreak: number; lastLessonCompletedAt: Date | null; streakWarningDay: number; streakFreezesAvailable: number }[]> {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+
+    const profiles = await db.select({
+      userId: schema.studyProfiles.userId,
+      currentStreak: schema.studyProfiles.currentStreak,
+      lastActivityDate: schema.studyProfiles.lastActivityDate,
+      lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
+      streakWarningDay: schema.studyProfiles.streakWarningDay,
+      streakFreezesAvailable: schema.studyProfiles.streakFreezesAvailable,
+    })
+    .from(schema.studyProfiles)
+    .innerJoin(schema.users, eq(schema.studyProfiles.userId, schema.users.id))
+    .where(and(
+      eq(schema.users.isMember, true),
+      eq(schema.users.activeMember, true),
+      gt(schema.studyProfiles.currentStreak, 0),
+      ne(schema.studyProfiles.lastActivityDate, today)
+    ));
+
+    return profiles.map(p => ({
+      userId: p.userId,
+      currentStreak: p.currentStreak,
+      lastLessonCompletedAt: p.lastLessonCompletedAt,
+      streakWarningDay: p.streakWarningDay,
+      streakFreezesAvailable: p.streakFreezesAvailable,
+    }));
+  }
+
+  async resetStreak(userId: number): Promise<void> {
+    await db.update(schema.studyProfiles)
+      .set({ 
+        currentStreak: 0, 
+        streakWarningDay: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+  }
+
+  async updateStreakWarningDay(userId: number, day: number): Promise<void> {
+    await db.update(schema.studyProfiles)
+      .set({ streakWarningDay: day, updatedAt: new Date() })
+      .where(eq(schema.studyProfiles.userId, userId));
+  }
+
+  async incrementStreak(userId: number): Promise<{ newStreak: number; isNewRecord: boolean }> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile) {
+      throw new Error("Study profile not found");
+    }
+    
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+    
+    if (profile.lastActivityDate === today) {
+      return { newStreak: profile.currentStreak, isNewRecord: false };
+    }
+    
+    const newStreak = profile.currentStreak + 1;
+    const isNewRecord = newStreak > profile.longestStreak;
+    
+    await db.update(schema.studyProfiles)
+      .set({ 
+        currentStreak: newStreak,
+        longestStreak: isNewRecord ? newStreak : profile.longestStreak,
+        lastActivityDate: today,
+        lastLessonCompletedAt: new Date(),
+        streakWarningDay: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    return { newStreak, isNewRecord };
   }
 }
 

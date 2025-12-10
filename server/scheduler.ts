@@ -110,6 +110,80 @@ export function initBirthdayScheduler(): void {
   console.log('[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)');
 }
 
+async function processStreakCheck(): Promise<void> {
+  console.log('[DeoGlory Scheduler] Running streak check at 19:00...');
+  
+  try {
+    const usersNeedingCheck = await storage.getUsersNeedingStreakCheck();
+    
+    if (usersNeedingCheck.length === 0) {
+      console.log('[DeoGlory Scheduler] No users with active streak needing check');
+      return;
+    }
+    
+    console.log(`[DeoGlory Scheduler] Found ${usersNeedingCheck.length} user(s) needing streak check`);
+    
+    let remindersCount = 0;
+    let freezesUsed = 0;
+    let streaksLost = 0;
+    
+    for (const user of usersNeedingCheck) {
+      try {
+        const newWarningDay = user.streakWarningDay + 1;
+        
+        if (newWarningDay === 1) {
+          await storage.updateStreakWarningDay(user.userId, 1);
+          await notifyStreakWarningDay1(user.userId, user.currentStreak);
+          remindersCount++;
+          console.log(`[DeoGlory Scheduler] Day 1 warning sent to user ${user.userId} (streak: ${user.currentStreak})`);
+        } else if (newWarningDay >= 2) {
+          if (user.streakFreezesAvailable > 0) {
+            const froze = await storage.useStreakFreeze(user.userId, user.currentStreak, true);
+            if (froze) {
+              await notifyStreakFreezeUsed(user.userId, user.currentStreak);
+              freezesUsed++;
+              console.log(`[DeoGlory Scheduler] Streak freeze auto-used for user ${user.userId} (streak: ${user.currentStreak})`);
+            }
+          } else {
+            await storage.resetStreak(user.userId);
+            await notifyStreakLost(user.userId, user.currentStreak);
+            streaksLost++;
+            console.log(`[DeoGlory Scheduler] Streak lost for user ${user.userId} (was: ${user.currentStreak})`);
+          }
+        }
+      } catch (error) {
+        console.error(`[DeoGlory Scheduler] Error processing streak for user ${user.userId}:`, error);
+      }
+    }
+    
+    console.log(`[DeoGlory Scheduler] Streak check completed. Reminders: ${remindersCount}, Freezes used: ${freezesUsed}, Streaks lost: ${streaksLost}`);
+  } catch (error) {
+    console.error('[DeoGlory Scheduler] Error during streak check:', error);
+  }
+}
+
+async function notifyStreakWarningDay1(userId: number, currentStreak: number): Promise<void> {
+  const messages = [
+    `Sua ofensiva de ${currentStreak} dias está em risco! Faça uma lição hoje para manter.`,
+    `Ei! Não deixe sua sequência de ${currentStreak} dias escapar. Uma lição rápida resolve!`,
+    `Faltam poucas horas! Proteja sua ofensiva de ${currentStreak} dias agora.`,
+    `Sua dedicação de ${currentStreak} dias é inspiradora! Continue hoje.`,
+  ];
+  const message = messages[Math.floor(Math.random() * messages.length)];
+  
+  await notifyStreakReminder(userId, currentStreak, message, "warning");
+}
+
+async function notifyStreakFreezeUsed(userId: number, savedStreak: number): Promise<void> {
+  const message = `Seu congelamento salvou sua ofensiva de ${savedStreak} dias! Volte amanhã para continuar.`;
+  await notifyStreakReminder(userId, savedStreak, message, "freeze_used");
+}
+
+async function notifyStreakLost(userId: number, lostStreak: number): Promise<void> {
+  const message = `Que pena! Sua ofensiva de ${lostStreak} dias foi perdida. Mas não desista, comece uma nova hoje!`;
+  await notifyStreakReminder(userId, 0, message, "lost");
+}
+
 async function sendStreakReminders(): Promise<void> {
   console.log('[DeoGlory Scheduler] Running streak reminder check...');
   
@@ -166,10 +240,10 @@ async function sendInactivityReminders(): Promise<void> {
 }
 
 export function initDeoGlorySchedulers(): void {
-  cron.schedule('30 15 * * *', sendStreakReminders, {
+  cron.schedule('0 19 * * *', processStreakCheck, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[DeoGlory Scheduler] Streak reminder initialized - will run daily at 15:30 (America/Sao_Paulo)');
+  console.log('[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)');
   
   cron.schedule('30 15 * * *', sendInactivityReminders, {
     timezone: 'America/Sao_Paulo'

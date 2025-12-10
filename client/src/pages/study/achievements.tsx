@@ -188,53 +188,34 @@ function EmptyState() {
       <Medal className="h-16 w-16 text-muted-foreground/30 mb-4" />
       <h3 className="text-lg font-bold text-muted-foreground">Nenhuma conquista encontrada</h3>
       <p className="text-sm text-muted-foreground text-center mt-1">
-        Execute o seed do sistema para popular as conquistas
+        Complete licoes para desbloquear conquistas
       </p>
     </div>
   );
 }
 
-const mockAchievements: Achievement[] = [
-  { id: 1, code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao no sistema de estudos", icon: "book", xpReward: 5, category: "lessons", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 2, code: "streak_3", name: "Persistente", description: "Mantenha uma sequencia de 3 dias", icon: "flame", xpReward: 10, category: "streak", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 3, code: "streak_7", name: "Semana Perfeita", description: "Complete 7 dias consecutivos de estudo", icon: "flame", xpReward: 25, category: "streak", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 4, code: "lessons_5", name: "Estudante Aplicado", description: "Complete 5 licoes no total", icon: "book-open", xpReward: 20, category: "lessons", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 5, code: "lessons_10", name: "Dedicado", description: "Complete 10 licoes no total", icon: "graduation-cap", xpReward: 50, category: "lessons", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 6, code: "xp_100", name: "Centena", description: "Acumule 100 pontos de XP", icon: "zap", xpReward: 10, category: "xp", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 7, code: "xp_500", name: "Meio Mil", description: "Acumule 500 pontos de XP", icon: "star", xpReward: 25, category: "xp", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 8, code: "streak_30", name: "Mes de Fe", description: "Complete 30 dias consecutivos de estudo", icon: "crown", xpReward: 100, category: "streak", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 9, code: "early_bird", name: "Madrugador", description: "Complete uma licao antes das 7h da manha", icon: "sunrise", xpReward: 15, category: "special", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 10, code: "night_owl", name: "Coruja Noturna", description: "Complete uma licao apos as 23h", icon: "moon", xpReward: 15, category: "special", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-];
-
 export default function AchievementsPage() {
   const [location, setLocation] = useLocation();
   const [filter, setFilter] = useState<string>("all");
   const { isAuthenticated } = useAuth();
-  
-  const isPreview = location.startsWith("/study-preview");
 
   const { data: achievements, isLoading } = useQuery<Achievement[]>({
     queryKey: ['/api/study/achievements'],
-    enabled: isAuthenticated && !isPreview,
+    enabled: isAuthenticated,
   });
 
-  const isPageLoading = !isPreview && isLoading;
-  
-  if (isPageLoading) {
+  if (isLoading) {
     return <LoadingState />;
   }
-  
-  const effectiveAchievements = isPreview ? mockAchievements : achievements;
 
-  const categories = ["all", ...Array.from(new Set(effectiveAchievements?.map(a => a.category) || []))];
+  const categories = ["all", ...Array.from(new Set(achievements?.map(a => a.category) || []))];
   
-  const filteredAchievements = effectiveAchievements?.filter(a => 
+  const filteredAchievements = achievements?.filter(a => 
     filter === "all" || a.category === filter
   ) || [];
 
-  const unlockedCount = effectiveAchievements?.filter(a => a.unlocked).length || 0;
-  const totalCount = effectiveAchievements?.length || 0;
+  const unlockedCount = achievements?.filter(a => a.unlocked).length || 0;
+  const totalCount = achievements?.length || 0;
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="achievements-page">
@@ -244,7 +225,7 @@ export default function AchievementsPage() {
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => setLocation(isPreview ? "/study-preview/profile" : "/study/profile")}
+              onClick={() => setLocation("/study/profile")}
               data-testid="button-back"
             >
               <ArrowLeft className="h-5 w-5" />

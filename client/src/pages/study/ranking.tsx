@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
   XPDisplay 
@@ -6,41 +8,26 @@ import {
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Crown, TrendingUp, Flame, ChevronUp, ChevronDown, Minus } from "lucide-react";
+import { Trophy, Medal, Crown, TrendingUp, Flame, ChevronUp, ChevronDown, Minus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface RankingUser {
-  id: number;
-  name: string;
-  avatar: string;
-  xp: number;
+  rank: number;
+  userId: number;
+  username: string;
+  photoUrl: string | null;
+  totalXp: number;
   level: number;
+  currentStreak: number;
   isCurrentUser?: boolean;
-  streak?: number;
-  change?: "up" | "down" | "same";
 }
 
-const mockWeeklyRanking: RankingUser[] = [
-  { id: 1, name: "Maria Santos", avatar: "", xp: 520, level: 8, streak: 14, change: "same" },
-  { id: 2, name: "Pedro Lima", avatar: "", xp: 480, level: 7, streak: 10, change: "up" },
-  { id: 3, name: "Ana Costa", avatar: "", xp: 450, level: 6, streak: 7, change: "up" },
-  { id: 4, name: "Joao Silva", avatar: "", xp: 420, level: 5, isCurrentUser: true, streak: 7, change: "down" },
-  { id: 5, name: "Lucas Oliveira", avatar: "", xp: 380, level: 5, streak: 5, change: "up" },
-  { id: 6, name: "Julia Ferreira", avatar: "", xp: 350, level: 4, streak: 3, change: "same" },
-  { id: 7, name: "Gabriel Souza", avatar: "", xp: 320, level: 4, streak: 2, change: "down" },
-  { id: 8, name: "Beatriz Alves", avatar: "", xp: 280, level: 3, streak: 1, change: "up" },
-  { id: 9, name: "Rafael Mendes", avatar: "", xp: 250, level: 3, streak: 4, change: "same" },
-  { id: 10, name: "Camila Rocha", avatar: "", xp: 220, level: 2, streak: 2, change: "down" },
-];
-
-const mockMonthlyRanking: RankingUser[] = [
-  { id: 1, name: "Pedro Lima", avatar: "", xp: 2100, level: 7, streak: 10, change: "up" },
-  { id: 2, name: "Maria Santos", avatar: "", xp: 1950, level: 8, streak: 14, change: "down" },
-  { id: 3, name: "Joao Silva", avatar: "", xp: 1800, level: 5, isCurrentUser: true, streak: 7, change: "up" },
-  { id: 4, name: "Ana Costa", avatar: "", xp: 1650, level: 6, streak: 7, change: "down" },
-  { id: 5, name: "Lucas Oliveira", avatar: "", xp: 1500, level: 5, streak: 5, change: "same" },
-];
+interface LeaderboardResponse {
+  periodType: string;
+  periodKey: string;
+  entries: RankingUser[];
+}
 
 const podiumColors = {
   1: {
@@ -83,19 +70,13 @@ function getRankIcon(position: number) {
   }
 }
 
-function ChangeIndicator({ change }: { change?: "up" | "down" | "same" }) {
-  if (!change || change === "same") {
-    return <Minus className="h-3 w-3 text-muted-foreground" />;
-  }
-  if (change === "up") {
-    return <ChevronUp className="h-4 w-4 text-[#58CC02]" />;
-  }
-  return <ChevronDown className="h-4 w-4 text-[#FF4B4B]" />;
-}
-
 function TopThreePodium({ users }: { users: RankingUser[] }) {
   const top3 = users.slice(0, 3);
   const order = [1, 0, 2];
+
+  if (top3.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex items-end justify-center gap-2 mb-6 px-4">
@@ -109,7 +90,7 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
 
         return (
           <motion.div
-            key={user.id}
+            key={user.userId}
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: displayOrder * 0.15 }}
@@ -117,9 +98,9 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
           >
             <div className="relative mb-2">
               <Avatar className={cn(avatarSizes[idx], "border-4", colors.border, colors.glow)}>
-                <AvatarImage src={user.avatar} />
+                <AvatarImage src={user.photoUrl || ""} />
                 <AvatarFallback className={cn(colors.bg, colors.text, "font-bold text-lg")}>
-                  {user.name.charAt(0)}
+                  {user.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <motion.div
@@ -137,11 +118,11 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
             </div>
             
             <p className="text-xs font-bold text-foreground text-center max-w-[80px] truncate mt-2">
-              {user.name.split(" ")[0]}
+              {user.username.split(" ")[0]}
             </p>
             <div className="flex items-center gap-0.5 text-amber-500">
               <TrendingUp className="h-3 w-3" />
-              <span className="text-xs font-bold">{user.xp}</span>
+              <span className="text-xs font-bold">{user.totalXp}</span>
             </div>
             
             <div className={cn(
@@ -156,17 +137,22 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
   );
 }
 
-function RankingList({ users }: { users: RankingUser[] }) {
+function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUserId?: number }) {
   const listUsers = users.slice(3);
   
+  if (listUsers.length === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-2">
       {listUsers.map((user, index) => {
         const position = index + 4;
+        const isCurrentUser = user.userId === currentUserId;
         
         return (
           <motion.div
-            key={user.id}
+            key={user.userId}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
@@ -174,18 +160,18 @@ function RankingList({ users }: { users: RankingUser[] }) {
             <Card 
               className={cn(
                 "p-3 flex items-center gap-3",
-                user.isCurrentUser && "ring-2 ring-[#FFA500] bg-[#FFA500]/5"
+                isCurrentUser && "ring-2 ring-[#FFA500] bg-[#FFA500]/5"
               )}
-              data-testid={`ranking-user-${user.id}`}
+              data-testid={`ranking-user-${user.userId}`}
             >
               <div className="w-8 flex justify-center">
                 {getRankIcon(position)}
               </div>
               
               <Avatar className="h-10 w-10 border border-border">
-                <AvatarImage src={user.avatar} />
+                <AvatarImage src={user.photoUrl || ""} />
                 <AvatarFallback className="bg-muted font-semibold">
-                  {user.name.charAt(0)}
+                  {user.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               
@@ -193,28 +179,27 @@ function RankingList({ users }: { users: RankingUser[] }) {
                 <div className="flex items-center gap-1">
                   <p className={cn(
                     "font-bold truncate",
-                    user.isCurrentUser && "text-[#FFA500]"
+                    isCurrentUser && "text-[#FFA500]"
                   )}>
-                    {user.name}
+                    {user.username}
                   </p>
-                  {user.isCurrentUser && (
-                    <span className="text-xs text-muted-foreground">(você)</span>
+                  {isCurrentUser && (
+                    <span className="text-xs text-muted-foreground">(voce)</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Nível {user.level}</span>
-                  {user.streak && user.streak > 0 && (
+                  <span>Nivel {user.level}</span>
+                  {user.currentStreak > 0 && (
                     <span className="flex items-center gap-0.5 text-orange-500">
                       <Flame className="h-3 w-3 fill-orange-500/30" />
-                      {user.streak}
+                      {user.currentStreak}
                     </span>
                   )}
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <ChangeIndicator change={user.change} />
-                <XPDisplay amount={user.xp} size="sm" />
+                <XPDisplay amount={user.totalXp} size="sm" />
               </div>
             </Card>
           </motion.div>
@@ -233,10 +218,9 @@ function UserPositionCard({ user, position, period }: { user: RankingUser; posit
       <Card className="p-4 mb-6 bg-gradient-to-br from-[#FFA500]/10 via-[#FFD700]/5 to-transparent border-[#FFA500]/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Sua posição</p>
+            <p className="text-sm text-muted-foreground">Sua posicao</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-4xl font-black text-[#FFA500]">#{position}</span>
-              <ChangeIndicator change={user.change} />
             </div>
           </div>
           <div className="text-right">
@@ -245,7 +229,7 @@ function UserPositionCard({ user, position, period }: { user: RankingUser; posit
             </p>
             <div className="flex items-center justify-end gap-1 mt-1">
               <TrendingUp className="h-5 w-5 text-amber-500" />
-              <span className="text-2xl font-bold text-amber-500">{user.xp}</span>
+              <span className="text-2xl font-bold text-amber-500">{user.totalXp}</span>
               <span className="text-sm text-muted-foreground">XP</span>
             </div>
           </div>
@@ -255,12 +239,63 @@ function UserPositionCard({ user, position, period }: { user: RankingUser; posit
   );
 }
 
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando ranking...</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <Trophy className="h-16 w-16 text-muted-foreground/30 mb-4" />
+      <h3 className="text-lg font-bold text-muted-foreground">Nenhum participante ainda</h3>
+      <p className="text-sm text-muted-foreground text-center mt-1">
+        Complete licoes para aparecer no ranking
+      </p>
+    </div>
+  );
+}
+
 export default function RankingPage() {
   const [period, setPeriod] = useState("weekly");
+  const { user, isAuthenticated } = useAuth();
 
-  const currentRanking = period === "weekly" ? mockWeeklyRanking : mockMonthlyRanking;
-  const currentUser = currentRanking.find(u => u.isCurrentUser);
-  const currentPosition = currentRanking.findIndex(u => u.isCurrentUser) + 1;
+  const { data: weeklyData, isLoading: weeklyLoading } = useQuery<LeaderboardResponse>({
+    queryKey: ['/api/study/leaderboard', { period: 'weekly' }],
+    queryFn: async () => {
+      const res = await fetch('/api/study/leaderboard?period=weekly', { credentials: 'include' });
+      if (!res.ok) throw new Error('Erro ao carregar ranking');
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const { data: monthlyData, isLoading: monthlyLoading } = useQuery<LeaderboardResponse>({
+    queryKey: ['/api/study/leaderboard', { period: 'monthly' }],
+    queryFn: async () => {
+      const res = await fetch('/api/study/leaderboard?period=monthly', { credentials: 'include' });
+      if (!res.ok) throw new Error('Erro ao carregar ranking');
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const isLoading = period === "weekly" ? weeklyLoading : monthlyLoading;
+  const currentData = period === "weekly" ? weeklyData : monthlyData;
+  const entries = currentData?.entries || [];
+  
+  const currentUserEntry = entries.find(e => e.userId === user?.id);
+  const currentPosition = currentUserEntry ? entries.findIndex(e => e.userId === user?.id) + 1 : 0;
+
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
@@ -291,19 +326,31 @@ export default function RankingPage() {
           </TabsList>
 
           <TabsContent value="weekly" className="mt-0">
-            {currentUser && (
-              <UserPositionCard user={currentUser} position={currentPosition} period="weekly" />
+            {currentUserEntry && currentPosition > 0 && (
+              <UserPositionCard user={currentUserEntry} position={currentPosition} period="weekly" />
             )}
-            <TopThreePodium users={mockWeeklyRanking} />
-            <RankingList users={mockWeeklyRanking} />
+            {entries.length > 0 ? (
+              <>
+                <TopThreePodium users={entries} />
+                <RankingList users={entries} currentUserId={user?.id} />
+              </>
+            ) : (
+              <EmptyState />
+            )}
           </TabsContent>
 
           <TabsContent value="monthly" className="mt-0">
-            {currentUser && (
-              <UserPositionCard user={currentUser} position={currentPosition} period="monthly" />
+            {currentUserEntry && currentPosition > 0 && (
+              <UserPositionCard user={currentUserEntry} position={currentPosition} period="monthly" />
             )}
-            <TopThreePodium users={mockMonthlyRanking} />
-            <RankingList users={mockMonthlyRanking} />
+            {entries.length > 0 ? (
+              <>
+                <TopThreePodium users={entries} />
+                <RankingList users={entries} currentUserId={user?.id} />
+              </>
+            ) : (
+              <EmptyState />
+            )}
           </TabsContent>
         </Tabs>
       </main>

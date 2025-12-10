@@ -180,62 +180,26 @@ function LoadingState() {
   );
 }
 
-const mockProfile: StudyProfile = {
-  id: 1,
-  userId: 1,
-  totalXp: 1250,
-  currentLevel: 5,
-  currentStreak: 7,
-  longestStreak: 14,
-  hearts: 4,
-  heartsMax: 5,
-  heartsRefillAt: null,
-  lastActivityDate: new Date().toISOString(),
-  dailyGoalMinutes: 15,
-  timezone: "America/Sao_Paulo"
-};
-
-const mockAchievements: Achievement[] = [
-  { id: 1, code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "book", xpReward: 5, category: "lessons", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 2, code: "streak_7", name: "Semana Perfeita", description: "7 dias de sequencia", icon: "flame", xpReward: 25, category: "streak", requirement: {}, isSecret: false, unlocked: true, unlockedAt: new Date().toISOString() },
-  { id: 3, code: "lessons_5", name: "Estudante Aplicado", description: "Complete 5 licoes", icon: "book-open", xpReward: 20, category: "lessons", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-  { id: 4, code: "streak_30", name: "Mes de Fe", description: "30 dias de sequencia", icon: "crown", xpReward: 100, category: "streak", requirement: {}, isSecret: false, unlocked: false, unlockedAt: null },
-];
-
-const mockUser = {
-  fullName: "Usuario Demonstracao",
-  email: "demo@emaus.com.br",
-  photoUrl: ""
-};
-
 export default function ProfilePage() {
   const [location, setLocation] = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
-  
-  const isPreview = location.startsWith("/study-preview");
 
-  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<StudyProfile>({
+  const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
-    enabled: isAuthenticated && !isPreview,
+    enabled: isAuthenticated,
   });
 
-  const { data: achievements, isLoading: achievementsLoading, error: achievementsError } = useQuery<Achievement[]>({
+  const { data: achievements, isLoading: achievementsLoading } = useQuery<Achievement[]>({
     queryKey: ['/api/study/achievements'],
-    enabled: isAuthenticated && !isPreview,
+    enabled: isAuthenticated,
   });
 
-  const isLoading = !isPreview && (profileLoading || achievementsLoading);
-  
-  if (isLoading) {
+  if (profileLoading || achievementsLoading) {
     return <LoadingState />;
   }
-  
-  const effectiveProfile = isPreview ? mockProfile : profile;
-  const effectiveAchievements = isPreview ? mockAchievements : achievements;
-  const effectiveUser = isPreview ? mockUser : user;
 
-  const unlockedAchievements = effectiveAchievements?.filter(a => a.unlocked) || [];
-  const displayAchievements = effectiveAchievements?.slice(0, 4) || [];
+  const unlockedAchievements = achievements?.filter(a => a.unlocked) || [];
+  const displayAchievements = achievements?.slice(0, 4) || [];
 
   const handleLogout = async () => {
     await logout();
@@ -278,7 +242,7 @@ export default function ProfilePage() {
             className="relative inline-block mb-4"
           >
             <Avatar className="h-28 w-28 ring-4 ring-white shadow-xl">
-              <AvatarImage src={effectiveUser?.photoUrl || ""} />
+              <AvatarImage src={user?.photoUrl || ""} />
               <AvatarFallback 
                 className="text-4xl font-bold"
                 style={{
@@ -286,7 +250,7 @@ export default function ProfilePage() {
                   color: 'white'
                 }}
               >
-                {effectiveUser?.fullName?.charAt(0) || "U"}
+                {user?.fullName?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
           </motion.div>
@@ -297,10 +261,10 @@ export default function ProfilePage() {
             transition={{ delay: 0.1 }}
           >
             <h1 className="text-2xl font-black text-foreground mb-0.5" data-testid="text-user-name">
-              {effectiveUser?.fullName || "Usuario"}
+              {user?.fullName || "Usuario"}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {effectiveUser?.email}
+              {user?.email}
             </p>
           </motion.div>
 
@@ -316,7 +280,7 @@ export default function ProfilePage() {
             </div>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1">
-              <span className="font-bold">Nivel {effectiveProfile?.currentLevel || 1}</span>
+              <span className="font-bold">Nivel {profile?.currentLevel || 1}</span>
             </div>
           </motion.div>
 
@@ -356,25 +320,25 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3">
             <StatCard 
               icon={Flame} 
-              value={effectiveProfile?.currentStreak || 0} 
+              value={profile?.currentStreak || 0} 
               label="Dias seguidos" 
               color="#FF9600" 
             />
             <StatCard 
               icon={Zap} 
-              value={(effectiveProfile?.totalXp || 0).toLocaleString()} 
+              value={(profile?.totalXp || 0).toLocaleString()} 
               label="Total de XP" 
               color="#FFC800" 
             />
             <StatCard 
               icon={Trophy} 
-              value={getDivision(effectiveProfile?.currentLevel || 1)} 
+              value={getDivision(profile?.currentLevel || 1)} 
               label="Divisao" 
               color="#1CB0F6" 
             />
             <StatCard 
               icon={Star} 
-              value={effectiveProfile?.currentLevel || 1} 
+              value={profile?.currentLevel || 1} 
               label="Nivel atual" 
               color="#58CC02" 
             />
@@ -391,10 +355,10 @@ export default function ProfilePage() {
             <Button 
               variant="ghost" 
               className="text-[#1CB0F6] font-bold text-sm px-2"
-              onClick={() => setLocation(isPreview ? "/study-preview/achievements" : "/study/achievements")}
+              onClick={() => setLocation("/study/achievements")}
               data-testid="button-view-all-achievements"
             >
-              Ver todas ({effectiveAchievements?.length || 0})
+              Ver todas ({achievements?.length || 0})
             </Button>
           </div>
           
@@ -430,21 +394,21 @@ export default function ProfilePage() {
                 <Flame className="h-5 w-5 text-orange-500" />
                 <span className="text-muted-foreground">Maior sequencia</span>
               </div>
-              <span className="font-bold">{effectiveProfile?.longestStreak || 0} dias</span>
+              <span className="font-bold">{profile?.longestStreak || 0} dias</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Heart className="h-5 w-5 text-red-500" />
                 <span className="text-muted-foreground">Coracoes</span>
               </div>
-              <span className="font-bold">{effectiveProfile?.hearts || 0}/{effectiveProfile?.heartsMax || 5}</span>
+              <span className="font-bold">{profile?.hearts || 0}/{profile?.heartsMax || 5}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-amber-500" />
                 <span className="text-muted-foreground">Conquistas</span>
               </div>
-              <span className="font-bold">{unlockedAchievements.length}/{effectiveAchievements?.length || 0}</span>
+              <span className="font-bold">{unlockedAchievements.length}/{achievements?.length || 0}</span>
             </div>
           </Card>
         </motion.div>

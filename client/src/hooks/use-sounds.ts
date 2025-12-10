@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss';
+type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss' | 'crystal';
 
 const SOUND_ENABLED_KEY = 'emaus-vota-sounds-enabled';
 
@@ -12,7 +12,8 @@ const frequencies: Record<SoundType, number[]> = {
   levelUp: [392, 523.25, 659.25, 783.99, 1046.50],
   xp: [698.46, 880],
   streak: [440, 554.37, 659.25],
-  heartLoss: [349.23, 261.63]
+  heartLoss: [349.23, 261.63],
+  crystal: [659.25, 830.61, 987.77, 1318.51]
 };
 
 const durations: Record<SoundType, number> = {
@@ -23,7 +24,8 @@ const durations: Record<SoundType, number> = {
   levelUp: 0.15,
   xp: 0.1,
   streak: 0.12,
-  heartLoss: 0.25
+  heartLoss: 0.25,
+  crystal: 0.18
 };
 
 export function useSounds() {
@@ -108,7 +110,8 @@ export function useSounds() {
       levelUp: () => playSound('levelUp'),
       xp: () => playSound('xp'),
       streak: () => playSound('streak'),
-      heartLoss: () => playSound('heartLoss')
+      heartLoss: () => playSound('heartLoss'),
+      crystal: () => playSound('crystal')
     }
   };
 }

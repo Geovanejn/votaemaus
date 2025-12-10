@@ -12,7 +12,9 @@ import {
   FeedbackOverlay,
   LessonComplete,
   StudyContent,
-  StageCompleteModal
+  StageCompleteModal,
+  StreakIncrementAnimation,
+  CrystalGainAnimation
 } from "@/components/study";
 import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
@@ -105,9 +107,19 @@ interface AnswerResult {
   profile: StudyProfile;
 }
 
+interface StreakInfo {
+  newStreak: number;
+  isNewRecord: boolean;
+  crystalsAwarded: number;
+  crystalRewards: Array<{ type: string; amount: number; description: string }>;
+  milestoneReward: { milestone: any; crystalsAwarded: number; xpAwarded: number } | null;
+}
+
 interface CompletionResult {
   progress: LessonProgress;
   profile: StudyProfile;
+  streakInfo: StreakInfo;
+  unlockedAchievements?: any[];
 }
 
 function useQueryParam(param: string): string | null {
@@ -153,6 +165,11 @@ export default function LessonPage() {
     nextIndex: number;
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
+  
+  const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "complete">("none");
+  const [streakAnimationData, setStreakAnimationData] = useState<{ previousStreak: number; newStreak: number } | null>(null);
+  const [crystalAnimationData, setCrystalAnimationData] = useState<{ amount: number; reason: string } | null>(null);
+  const previousStreakRef = useRef<number>(0);
 
   const { 
     data: lessonData, 
@@ -202,6 +219,7 @@ export default function LessonPage() {
 
   const completeLessonMutation = useMutation({
     mutationFn: async (completionData: { xpEarned: number; mistakesCount: number; timeSpentSeconds: number }) => {
+      previousStreakRef.current = profileData?.currentStreak ?? 0;
       const res = await apiRequest("POST", `/api/study/lessons/${lessonId}/complete`, completionData);
       return res.json() as Promise<CompletionResult>;
     },
@@ -213,6 +231,41 @@ export default function LessonPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+      
+      const streakInfo = result.streakInfo;
+      const previousStreak = previousStreakRef.current;
+      const streakIncreased = streakInfo && streakInfo.newStreak > previousStreak;
+      const crystalsAwarded = streakInfo?.crystalsAwarded || 0;
+      
+      if (streakIncreased) {
+        setStreakAnimationData({
+          previousStreak,
+          newStreak: streakInfo.newStreak
+        });
+        if (crystalsAwarded > 0) {
+          const reasons = streakInfo.crystalRewards?.length > 0 
+            ? streakInfo.crystalRewards.map(r => r.description).join(', ')
+            : 'Recompensa por lição';
+          setCrystalAnimationData({
+            amount: crystalsAwarded,
+            reason: reasons
+          });
+        }
+        setAnimationPhase("streak");
+      } else if (crystalsAwarded > 0) {
+        const reasons = streakInfo?.crystalRewards?.length > 0 
+          ? streakInfo.crystalRewards.map(r => r.description).join(', ')
+          : 'Recompensa por lição';
+        setCrystalAnimationData({
+          amount: crystalsAwarded,
+          reason: reasons
+        });
+        setAnimationPhase("crystal");
+      } else {
+        setAnimationPhase("complete");
+      }
+      
+      setIsCompleted(true);
     }
   });
 
@@ -634,6 +687,38 @@ export default function LessonPage() {
     const bonusXp = isPerfect ? 10 : 0;
     const fallbackXp = displayXp + lessonData.xpReward + bonusXp;
     const finalXp = finalXpFromServer ?? fallbackXp;
+    
+    const handleStreakAnimationComplete = () => {
+      if (crystalAnimationData) {
+        setAnimationPhase("crystal");
+      } else {
+        setAnimationPhase("complete");
+      }
+    };
+    
+    const handleCrystalAnimationComplete = () => {
+      setAnimationPhase("complete");
+    };
+    
+    if (animationPhase === "streak" && streakAnimationData) {
+      return (
+        <StreakIncrementAnimation
+          previousStreak={streakAnimationData.previousStreak}
+          newStreak={streakAnimationData.newStreak}
+          onComplete={handleStreakAnimationComplete}
+        />
+      );
+    }
+    
+    if (animationPhase === "crystal" && crystalAnimationData) {
+      return (
+        <CrystalGainAnimation
+          crystalsGained={crystalAnimationData.amount}
+          reason={crystalAnimationData.reason}
+          onComplete={handleCrystalAnimationComplete}
+        />
+      );
+    }
     
     return (
       <LessonComplete

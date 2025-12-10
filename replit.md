@@ -115,6 +115,23 @@ npm run db:push  # Sincronizar esquema do banco
   - Categorias: streak, lessons, xp, special
   - 22 conquistas com criterios claros de desbloqueio
 
+### 10/12/2025 - Animacoes de Streak e Cristais
+- **StreakIncrementAnimation**: Componente de animacao para aumento de streak
+  - Transicao animada do numero anterior para o novo valor
+  - Frase motivacional "Mantenha a Chama do Evangelho Acesa"
+  - Icone de chama animado com pulsacao
+  - Som de streak no inicio e som de conquista no final
+- **CrystalGainAnimation**: Componente de animacao para ganho de cristais
+  - Particulas de cristal flutuantes com efeito de brilho
+  - Contador animado incrementando ate o valor total
+  - Som de cristal durante contagem e som de conquista no final
+- **Sound System**: Adicionado som 'crystal' no use-sounds.ts
+- **Lesson Flow**: Animacoes integradas no fluxo de conclusao de licao
+  - Fase 1: Animacao de streak (se aumentou)
+  - Fase 2: Animacao de cristais (se ganhou cristais)
+  - Fase 3: Tela de conclusao da licao
+- **Defensive Guards**: Protecao contra divisao por zero em animacoes
+
 ### 10/12/2025 - Sistema de Criterios para Cristais
 - **Novo sistema de recompensas**: Cristais nao sao mais dados em toda licao
 - **Criterios implementados**:

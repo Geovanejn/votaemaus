@@ -1657,43 +1657,54 @@ export class DatabaseStorage implements IStorage {
 
     // Get stage progress for each lesson
     const lessonsWithStageProgress = await Promise.all(lessonsWithProgress.map(async (row) => {
-      // Get all units for this lesson with type information
+      // Get all units for this lesson with type information, ordered by orderIndex
       const units = await db.select({
         id: schema.studyUnits.id,
         stage: schema.studyUnits.stage,
         type: schema.studyUnits.type,
+        orderIndex: schema.studyUnits.orderIndex,
       }).from(schema.studyUnits)
-        .where(eq(schema.studyUnits.lessonId, row.id));
+        .where(eq(schema.studyUnits.lessonId, row.id))
+        .orderBy(asc(schema.studyUnits.orderIndex));
       
-      // Get completed units for this user
+      // Get unit progress for this user (including correctness for responda)
       const unitIds = units.map(u => u.id);
-      let completedUnits: { unitId: number }[] = [];
+      let unitProgressList: { unitId: number; isCompleted: boolean; isCorrect: boolean | null }[] = [];
       if (unitIds.length > 0) {
-        completedUnits = await db.select({
+        unitProgressList = await db.select({
           unitId: schema.userUnitProgress.unitId,
+          isCompleted: schema.userUnitProgress.isCompleted,
+          isCorrect: schema.userUnitProgress.isCorrect,
         }).from(schema.userUnitProgress)
           .where(and(
             eq(schema.userUnitProgress.userId, userId),
-            eq(schema.userUnitProgress.isCompleted, true),
             inArray(schema.userUnitProgress.unitId, unitIds)
           ));
       }
       
-      const completedUnitIds = new Set(completedUnits.map(u => u.unitId));
+      const unitProgressMap = new Map(unitProgressList.map(u => [u.unitId, u]));
+      const completedUnitIds = new Set(unitProgressList.filter(u => u.isCompleted).map(u => u.unitId));
       
       // Calculate stage progress - only count types that are actually shown in each stage
       // Estude: only text and verse types
       // Medite: only meditation and reflection types
       // Responda: only exercise types (multiple_choice, true_false, fill_blank)
-      const stageProgress = {
+      const stageProgress: {
+        estude: { completed: number; total: number };
+        medite: { completed: number; total: number };
+        responda: { completed: number; total: number; questionResults: Array<'correct' | 'incorrect' | 'unanswered'> };
+      } = {
         estude: { completed: 0, total: 0 },
         medite: { completed: 0, total: 0 },
-        responda: { completed: 0, total: 0 },
+        responda: { completed: 0, total: 0, questionResults: [] },
       };
       
       const estudeTypes = ['text', 'verse'];
       const mediteTypes = ['meditation', 'reflection'];
       const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+      
+      // Collect responda units separately to maintain order
+      const respondaUnits: typeof units = [];
       
       for (const unit of units) {
         const stage = (unit.stage || 'estude') as 'estude' | 'medite' | 'responda';
@@ -1707,6 +1718,7 @@ export class DatabaseStorage implements IStorage {
           shouldCount = true;
         } else if (stage === 'responda' && respondaTypes.includes(unitType)) {
           shouldCount = true;
+          respondaUnits.push(unit);
         }
         
         if (shouldCount && stageProgress[stage]) {
@@ -1714,6 +1726,20 @@ export class DatabaseStorage implements IStorage {
           if (completedUnitIds.has(unit.id)) {
             stageProgress[stage].completed++;
           }
+        }
+      }
+      
+      // Build question results for responda stage
+      for (const unit of respondaUnits) {
+        const progress = unitProgressMap.get(unit.id);
+        if (!progress) {
+          stageProgress.responda.questionResults.push('unanswered');
+        } else if (progress.isCorrect === true) {
+          stageProgress.responda.questionResults.push('correct');
+        } else if (progress.isCorrect === false) {
+          stageProgress.responda.questionResults.push('incorrect');
+        } else {
+          stageProgress.responda.questionResults.push('unanswered');
         }
       }
       

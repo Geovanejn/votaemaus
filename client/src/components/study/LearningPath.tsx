@@ -6,11 +6,14 @@ export type LessonStatus = "completed" | "current" | "locked";
 export type StageStatus = "completed" | "current" | "locked";
 export type StageType = "estude" | "medite" | "responda";
 
+export type QuestionResult = 'correct' | 'incorrect' | 'unanswered';
+
 export interface StageItem {
   type: StageType;
   status: StageStatus;
   completedUnits: number;
   totalUnits: number;
+  questionResults?: QuestionResult[];
 }
 
 export interface LessonItem {
@@ -183,19 +186,33 @@ function StageCard({
       
       {stage.totalUnits > 0 && (
         <div className="flex items-center gap-1.5 mt-3">
-          {Array.from({ length: Math.min(stage.totalUnits, 6) }).map((_, index) => (
-            <div
-              key={index}
-              className={cn(
-                "w-2.5 h-2.5 rounded-full transition-colors",
-                isLocked
-                  ? "bg-muted-foreground/20"
-                  : index < stage.completedUnits
-                  ? "bg-[#58CC02]"
-                  : "bg-muted-foreground/30"
-              )}
-            />
-          ))}
+          {Array.from({ length: Math.min(stage.totalUnits, 6) }).map((_, index) => {
+            let dotColor = "bg-muted-foreground/30"; // default: unanswered
+            
+            if (isLocked) {
+              dotColor = "bg-muted-foreground/20";
+            } else if (stage.type === 'responda' && stage.questionResults && stage.questionResults[index]) {
+              const result = stage.questionResults[index];
+              if (result === 'correct') {
+                dotColor = "bg-[#58CC02]"; // green for correct
+              } else if (result === 'incorrect') {
+                dotColor = "bg-[#FF4B4B]"; // red for incorrect
+              }
+              // unanswered stays gray (default)
+            } else if (index < stage.completedUnits) {
+              dotColor = "bg-[#58CC02]"; // green for other stages completed
+            }
+            
+            return (
+              <div
+                key={index}
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full transition-colors",
+                  dotColor
+                )}
+              />
+            );
+          })}
           <span className={cn(
             "text-xs font-medium ml-1",
             isLocked ? "text-muted-foreground/40" : "text-muted-foreground"

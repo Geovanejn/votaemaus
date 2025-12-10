@@ -8,7 +8,7 @@ import {
   useCelebration,
   WeeklyGoalsWidget
 } from "@/components/study";
-import type { LessonItem, StageType, StageItem } from "@/components/study";
+import type { LessonItem, StageType, StageItem, QuestionResult } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
@@ -45,6 +45,7 @@ interface StudyWeek {
 interface StageProgress {
   completed: number;
   total: number;
+  questionResults?: QuestionResult[];
 }
 
 interface LessonWithProgress {
@@ -395,6 +396,8 @@ export default function StudyHomePage() {
       }
     }
     
+    const respondaQuestionResults = stageProgress?.responda?.questionResults;
+    
     const stages: StageItem[] = [
       {
         type: 'estude' as StageType,
@@ -412,7 +415,8 @@ export default function StudyHomePage() {
         type: 'responda' as StageType,
         status: respondaStatus,
         completedUnits: respondaCompleted,
-        totalUnits: respondaUnits
+        totalUnits: respondaUnits,
+        questionResults: respondaQuestionResults
       }
     ];
 

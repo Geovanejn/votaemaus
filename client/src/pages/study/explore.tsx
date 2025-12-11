@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -335,7 +335,7 @@ export default function ExplorePage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
   
-  // Local optimistic state to prevent multiple clicks
+  // Local optimistic state to prevent multiple clicks - persists until page reload
   const [locallyMarkedAsRead, setLocallyMarkedAsRead] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
@@ -348,9 +348,11 @@ export default function ExplorePage() {
     enabled: isAuthenticated,
   });
 
-  const { data: dailyVerseStatus, isLoading: statusLoading } = useQuery<DailyVerseStatusResponse>({
+  const { data: dailyVerseStatus } = useQuery<DailyVerseStatusResponse>({
     queryKey: ['/api/study/daily-verse/status'],
     enabled: isAuthenticated,
+    // Don't refetch automatically to prevent state flicker
+    staleTime: 30000,
   });
 
   const { data: weeklyGoal } = useQuery<{ versesRead: number; versesGoal: number }>({
@@ -358,47 +360,39 @@ export default function ExplorePage() {
     enabled: isAuthenticated,
   });
 
-  // Reset local state when server confirms the status
-  useEffect(() => {
-    if (dailyVerseStatus?.isRead) {
-      setLocallyMarkedAsRead(false);
-    }
-  }, [dailyVerseStatus?.isRead]);
-
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/study/daily-verse/confirm");
       return res.json();
     },
     onSuccess: (data) => {
-      // Only invalidate queries if actually successful
-      if (data.success) {
-        queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
-      } else {
-        // If already read, still update local state
-        setLocallyMarkedAsRead(true);
-        queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
-      }
+      // Keep local state as true regardless of response
+      // The server has either confirmed success or said it was already read
+      setLocallyMarkedAsRead(true);
+      // Invalidate to sync with server
+      queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     },
     onError: () => {
-      // Reset local state on error so user can try again
+      // Only reset on actual error so user can retry
       setLocallyMarkedAsRead(false);
     }
   });
 
-  // Consider read if server says so OR if we just clicked (optimistic)
-  const dailyVerseRead = dailyVerseStatus?.isRead || locallyMarkedAsRead;
+  // Consider read if server says so OR if we clicked (optimistic)
+  // Once locallyMarkedAsRead is true, it stays true for this session
+  const dailyVerseRead = dailyVerseStatus?.isRead === true || locallyMarkedAsRead;
 
   const handleCategoryClick = (categoryId: string) => {
     setLocation(`/study/verses?category=${categoryId}`);
   };
 
   const handleMarkAsRead = () => {
-    // Immediately set local state to prevent multiple clicks
-    if (locallyMarkedAsRead || dailyVerseStatus?.isRead) {
-      return; // Already marked, do nothing
+    // Prevent multiple clicks - check both states
+    if (dailyVerseRead || markAsReadMutation.isPending) {
+      return;
     }
+    // Immediately set local state
     setLocallyMarkedAsRead(true);
     markAsReadMutation.mutate();
   };

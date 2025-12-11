@@ -9,6 +9,8 @@ import path from "path";
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(cors());
 
 app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));

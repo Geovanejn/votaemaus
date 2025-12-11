@@ -269,7 +269,10 @@ export default function RankingPage() {
   const { data: weeklyData, isLoading: weeklyLoading } = useQuery<LeaderboardResponse>({
     queryKey: ['/api/study/leaderboard', { period: 'weekly' }],
     queryFn: async () => {
-      const res = await fetch('/api/study/leaderboard?period=weekly', { credentials: 'include' });
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/study/leaderboard?period=weekly', { 
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error('Erro ao carregar ranking');
       return res.json();
     },
@@ -279,7 +282,10 @@ export default function RankingPage() {
   const { data: monthlyData, isLoading: monthlyLoading } = useQuery<LeaderboardResponse>({
     queryKey: ['/api/study/leaderboard', { period: 'monthly' }],
     queryFn: async () => {
-      const res = await fetch('/api/study/leaderboard?period=monthly', { credentials: 'include' });
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/study/leaderboard?period=monthly', { 
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (!res.ok) throw new Error('Erro ao carregar ranking');
       return res.json();
     },

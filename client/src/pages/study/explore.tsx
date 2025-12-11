@@ -163,13 +163,14 @@ function CategoryCard({
   );
 }
 
-function DailyVerseCard({ verse, isRead, onMarkAsRead, isMarking }: { 
+function DailyVerseCard({ verse, isRead, onMarkAsRead, isMarking, isLoading }: { 
   verse: DailyVerse | null; 
   isRead: boolean;
   onMarkAsRead: () => void;
   isMarking: boolean;
+  isLoading?: boolean;
 }) {
-  if (!verse) {
+  if (isLoading || !verse) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -190,7 +191,10 @@ function DailyVerseCard({ verse, isRead, onMarkAsRead, isMarking }: {
               <BookOpen className="h-5 w-5 text-white" />
               <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
             </div>
-            <p className="text-white font-bold text-lg">Carregando...</p>
+            <div className="flex items-center gap-2">
+              {isLoading && <Loader2 className="h-5 w-5 text-white animate-spin" />}
+              <p className="text-white font-bold text-lg">{isLoading ? 'Carregando...' : 'Indisponivel no momento'}</p>
+            </div>
           </div>
         </Card>
       </motion.div>
@@ -336,7 +340,7 @@ export default function ExplorePage() {
     enabled: isAuthenticated,
   });
 
-  const { data: dailyVerseData } = useQuery<DailyVerse>({
+  const { data: dailyVerseData, isLoading: dailyVerseLoading } = useQuery<DailyVerse>({
     queryKey: ['/api/study/daily-verse'],
     enabled: isAuthenticated,
   });
@@ -398,6 +402,7 @@ export default function ExplorePage() {
           isRead={dailyVerseRead}
           onMarkAsRead={handleMarkAsRead}
           isMarking={markAsReadMutation.isPending}
+          isLoading={dailyVerseLoading}
         />
         
         <HeartsRecoveryCard profile={profile} />

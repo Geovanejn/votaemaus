@@ -1790,12 +1790,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const allAchievements = await storage.getAllAchievements();
       const userAchievements = await storage.getUserAchievements(req.user.id);
-      const unlockedCodes = new Set(userAchievements.map(a => a.code));
+      const unlockedIds = new Set(userAchievements.map(a => a.achievementId));
       
       const achievements = allAchievements.map(achievement => ({
         ...achievement,
-        unlocked: unlockedCodes.has(achievement.code),
-        unlockedAt: userAchievements.find(ua => ua.code === achievement.code)?.unlockedAt || null
+        unlocked: unlockedIds.has(achievement.id),
+        unlockedAt: userAchievements.find(ua => ua.achievementId === achievement.id)?.unlockedAt || null
       }));
       
       res.json(achievements);

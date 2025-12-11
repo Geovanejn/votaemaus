@@ -84,7 +84,7 @@ export default function PracticePage() {
   }
 
   const { data: practiceStatus, isLoading: statusLoading } = useQuery<PracticeStatusResponse>({
-    queryKey: [`/api/study/practice/${weekId}/status`],
+    queryKey: ['/api/study/practice', weekId.toString(), 'status'],
     enabled: !!user && weekId > 0,
   });
 
@@ -119,7 +119,7 @@ export default function PracticePage() {
       setResult(data);
       setIsFinished(true);
       // Invalidate practice status and study data to auto-refresh frontend
-      queryClient.invalidateQueries({ queryKey: [`/api/study/practice/${weekId}/status`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/practice', weekId.toString(), 'status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     }

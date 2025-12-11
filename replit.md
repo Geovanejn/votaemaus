@@ -106,6 +106,14 @@ npm run db:push  # Sincronizar esquema do banco
 - **Pratique Unlock**: Cache do practiceStatus agora e invalidado apos completar licao, garantindo desbloqueio imediato
 - **Fill-blank Cleanup**: Removidas reticencias e underscores extras das questoes de lacunas (cleanTrailingDots)
 - **Markdown Formatting**: FormattedText agora limpa caracteres de escape (\\n, \\*, \\_) antes de renderizar com ReactMarkdown
+- **Multiple Choice Randomization**: Respostas corretas de multipla escolha agora sao distribuidas aleatoriamente entre A, B, C e D (eliminado vies para letra B)
+  - Criada funcao `createMultipleChoice` que embaralha opcoes e recalcula correctIndex
+  - Perguntas de fallback agora tambem passam pela randomizacao
+- **Stars Display**: Estrelas na secao Pratique agora preenchidas em branco quando conquistadas
+  - Tamanho aumentado de h-4 para h-5 para melhor visibilidade
+  - Adicionado drop-shadow para contraste
+  - Estrelas nao conquistadas ficam transparentes com contorno
+- **Golden Styling**: Secoes Estude, Medite, Responda e Pratique ficam douradas ao conquistar 3 estrelas
 
 ### 10/12/2025 - DeoGlory Study System Fixes
 - **Crystal Display**: Adicionado componente CrystalDisplay.tsx para mostrar saldo de cristais no frontend

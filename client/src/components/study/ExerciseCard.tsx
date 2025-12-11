@@ -23,7 +23,7 @@ function FormattedText({ content }: { content: string }) {
     .replace(/\\_/g, '_')
     .replace(/\\`/g, '`');
   
-  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none inline">{cleanedContent}</ReactMarkdown>;
+  return <span className="prose prose-sm dark:prose-invert max-w-none inline"><ReactMarkdown>{cleanedContent}</ReactMarkdown></span>;
 }
 
 interface MultipleChoiceExerciseProps {

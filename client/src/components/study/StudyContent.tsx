@@ -34,14 +34,14 @@ function FormattedText({ content }: { content: string }) {
           return '';
         };
         const text = parsed.content.map(extractText).join('\n\n');
-        return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">{text}</ReactMarkdown>;
+        return <div className="prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown>{text}</ReactMarkdown></div>;
       }
     } catch (e) {
       // Not valid JSON, fall through to markdown
     }
   }
   
-  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">{content}</ReactMarkdown>;
+  return <div className="prose prose-sm dark:prose-invert max-w-none"><ReactMarkdown>{content}</ReactMarkdown></div>;
 }
 
 interface StudySection {

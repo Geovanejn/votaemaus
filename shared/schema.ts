@@ -1522,3 +1522,55 @@ export type AuditAction =
   | "password_reset"
   | "approve"
   | "reject";
+
+// ==================== WEEKLY PRACTICE (PRATIQUE) ====================
+
+export const weeklyPractice = pgTable("weekly_practice", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  weekId: integer("week_id").notNull().references(() => studyWeeks.id),
+  starsEarned: integer("stars_earned").notNull().default(0),
+  correctAnswers: integer("correct_answers").notNull().default(0),
+  totalQuestions: integer("total_questions").notNull().default(10),
+  timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
+  completedWithinTime: boolean("completed_within_time").notNull().default(false),
+  isMastered: boolean("is_mastered").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserWeek: unique().on(table.userId, table.weekId),
+}));
+
+export const insertWeeklyPracticeSchema = createInsertSchema(weeklyPractice).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWeeklyPractice = z.infer<typeof insertWeeklyPracticeSchema>;
+export type WeeklyPractice = typeof weeklyPractice.$inferSelect;
+
+export const practiceQuestions = pgTable("practice_questions", {
+  id: serial("id").primaryKey(),
+  weekId: integer("week_id").notNull().references(() => studyWeeks.id),
+  type: text("type").notNull(),
+  content: text("content").notNull(),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPracticeQuestionSchema = createInsertSchema(practiceQuestions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPracticeQuestion = z.infer<typeof insertPracticeQuestionSchema>;
+export type PracticeQuestion = typeof practiceQuestions.$inferSelect;
+
+export type WeeklyPracticeStatus = {
+  weekId: number;
+  isUnlocked: boolean;
+  starsEarned: number;
+  isMastered: boolean;
+  lessonsCompleted: number;
+  totalLessons: number;
+};

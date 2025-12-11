@@ -1,95 +1,184 @@
-import { useState, useMemo } from "react";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation, useParams } from "wouter";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowLeft, Dumbbell, CheckCircle2, Shuffle, BookOpen, Trophy, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MultipleChoiceExercise,
   TrueFalseExercise,
   FillBlankExercise,
 } from "@/components/study/ExerciseCard";
 
-interface ExerciseData {
+interface PracticeQuestion {
   id: number;
   type: string;
-  stage: string;
-  content: any;
-  lessonId: number;
-  lessonTitle: string;
+  content: {
+    question?: string;
+    statement?: string;
+    options?: string[];
+    correctIndex?: number;
+    isTrue?: boolean;
+    correctAnswer?: string;
+  };
+  orderIndex: number;
 }
 
-interface PracticeExercisesResponse {
-  exercises: ExerciseData[];
+interface PracticeStartResponse {
+  questions: PracticeQuestion[];
+  timeLimit: number;
+  totalQuestions: number;
+}
+
+interface PracticeCompleteResponse {
+  starsEarned: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  timeSpentSeconds: number;
+  completedWithinTime: boolean;
+  isMastered: boolean;
 }
 
 export default function PracticePage() {
+  const params = useParams<{ weekId: string }>();
+  const weekId = parseInt(params.weekId || "0");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  
+  const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackCorrect, setFeedbackCorrect] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [totalAnswered, setTotalAnswered] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(120);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [result, setResult] = useState<PracticeCompleteResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: practiceData, isLoading } = useQuery<PracticeExercisesResponse>({
-    queryKey: ['/api/study/practice-exercises'],
-    enabled: !!user,
+  const startPracticeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/study/practice/${weekId}/start`);
+      return response.json() as Promise<PracticeStartResponse>;
+    },
+    onSuccess: (data) => {
+      setQuestions(data.questions);
+      setTimeRemaining(data.timeLimit);
+      setIsStarted(true);
+      setStartTime(Date.now());
+      setError(null);
+    },
+    onError: (err: any) => {
+      if (err.message) {
+        setError(err.message);
+      } else {
+        setError("Erro ao iniciar o Pratique");
+      }
+    }
   });
 
-  const exerciseUnits = useMemo(() => {
-    if (!practiceData?.exercises) return [];
+  const completePracticeMutation = useMutation({
+    mutationFn: async (data: { correctAnswers: number; timeSpentSeconds: number }) => {
+      const response = await apiRequest("POST", `/api/study/practice/${weekId}/complete`, data);
+      return response.json() as Promise<PracticeCompleteResponse>;
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      setIsFinished(true);
+    }
+  });
+
+  useEffect(() => {
+    if (!isStarted || isFinished || showFeedback) return;
     
-    // Shuffle and take up to 10 exercises
-    return [...practiceData.exercises]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 10);
-  }, [practiceData]);
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 120;
+          completePracticeMutation.mutate({ correctAnswers: correctCount, timeSpentSeconds: timeSpent });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-  const currentUnit = exerciseUnits[currentIndex];
-  const progress = exerciseUnits.length > 0 
-    ? ((currentIndex) / exerciseUnits.length) * 100 
-    : 0;
+    return () => clearInterval(interval);
+  }, [isStarted, isFinished, showFeedback, correctCount, startTime]);
 
-  const handleAnswer = (isCorrect: boolean) => {
+  const handleAnswer = useCallback((isCorrect: boolean) => {
     setFeedbackCorrect(isCorrect);
     setShowFeedback(true);
-    setTotalAnswered(prev => prev + 1);
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
     }
-  };
+  }, []);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     setShowFeedback(false);
-    if (currentIndex < exerciseUnits.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      setIsFinished(true);
+      const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 120;
+      const finalCorrect = feedbackCorrect ? correctCount : correctCount;
+      completePracticeMutation.mutate({ 
+        correctAnswers: finalCorrect, 
+        timeSpentSeconds: timeSpent 
+      });
     }
+  }, [currentIndex, questions.length, startTime, correctCount, feedbackCorrect]);
+
+  const currentQuestion = questions[currentIndex];
+  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleRestart = () => {
-    setCurrentIndex(0);
-    setCorrectCount(0);
-    setTotalAnswered(0);
-    setIsFinished(false);
-    setShowFeedback(false);
-  };
-
-  if (isLoading) {
+  const renderStars = (count: number, size: "sm" | "lg" = "lg") => {
+    const starSize = size === "lg" ? "h-10 w-10" : "h-6 w-6";
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      <div className="flex gap-1">
+        {[1, 2, 3].map((star) => (
+          <motion.div
+            key={star}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: star * 0.2, type: "spring", stiffness: 200 }}
+          >
+            <Star
+              className={cn(
+                starSize,
+                star <= count
+                  ? "text-yellow-400 fill-yellow-400 drop-shadow-lg"
+                  : "text-muted-foreground/30"
+              )}
+            />
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">Faca login para acessar o Pratique</p>
+        <Button onClick={() => setLocation("/login")} className="mt-4" data-testid="button-login">
+          Fazer Login
+        </Button>
       </div>
     );
   }
 
-  if (exerciseUnits.length === 0) {
+  if (error) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-50 flex items-center gap-3 p-4 border-b bg-background">
@@ -101,38 +190,22 @@ export default function PracticePage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="font-bold text-lg">Prática</h1>
+          <h1 className="font-bold text-lg">Pratique</h1>
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-            <BookOpen className="h-10 w-10 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Nenhum exercício disponível</h2>
-          <p className="text-muted-foreground mb-6">
-            Complete algumas lições primeiro para poder praticar.
-          </p>
+          <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-bold mb-2">Pratique Bloqueado</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <Button onClick={() => setLocation('/study')} data-testid="button-go-study">
-            Ir para o estudo
+            Voltar ao Estudo
           </Button>
         </div>
       </div>
     );
   }
 
-  const excellentParticles = useMemo(() => 
-    Array.from({ length: 8 }).map((_, i) => ({
-      id: i,
-      y: -100 - Math.random() * 100,
-      x: (Math.random() - 0.5) * 150,
-      duration: 2 + Math.random()
-    })), []);
-
-  if (isFinished) {
-    const percentage = Math.round((correctCount / totalAnswered) * 100);
-    const isExcellent = percentage >= 80;
-    const isGood = percentage >= 60;
-    
+  if (!isStarted) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-50 flex items-center gap-3 p-4 border-b bg-background">
@@ -144,121 +217,161 @@ export default function PracticePage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="font-bold text-lg">Prática Concluída</h1>
+          <h1 className="font-bold text-lg">Pratique</h1>
         </header>
 
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-          {isExcellent && (
-            <>
-              {excellentParticles.map((particle) => (
-                <motion.div
-                  key={particle.id}
-                  initial={{ opacity: 0, scale: 0, y: 0 }}
-                  animate={{ 
-                    opacity: [0, 1, 0],
-                    scale: [0.5, 1, 0.5],
-                    y: particle.y,
-                    x: particle.x
-                  }}
-                  transition={{ 
-                    duration: particle.duration,
-                    delay: particle.id * 0.2,
-                    repeat: Infinity,
-                    repeatDelay: 1
-                  }}
-                  className="absolute top-1/2 left-1/2"
-                >
-                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                </motion.div>
-              ))}
-            </>
-          )}
-          
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mb-6 shadow-xl"
+          >
+            <Trophy className="h-12 w-12 text-white" />
+          </motion.div>
+          
+          <h2 className="text-2xl font-bold mb-2">Desafio Pratique</h2>
+          <p className="text-muted-foreground mb-6 max-w-xs">
+            Responda 10 perguntas em 2 minutos para ganhar estrelas e dominar a semana!
+          </p>
+
+          <div className="flex flex-col gap-4 mb-8 text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">2 minutos</p>
+                <p className="text-sm text-muted-foreground">Tempo limite</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Star className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">3 Estrelas</p>
+                <p className="text-sm text-muted-foreground">10 acertos no tempo</p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            size="lg"
+            className="w-full max-w-xs py-6 text-lg font-bold"
+            onClick={() => startPracticeMutation.mutate()}
+            disabled={startPracticeMutation.isPending}
+            data-testid="button-start-practice"
+          >
+            {startPracticeMutation.isPending ? "Carregando..." : "INICIAR DESAFIO"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isFinished && result) {
+    const getMessage = () => {
+      if (result.starsEarned === 3) return "Perfeito! Voce dominou!";
+      if (result.starsEarned === 2) return "Otimo trabalho!";
+      if (result.starsEarned === 1) return "Bom comeco!";
+      return "Continue praticando!";
+    };
+
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-50 flex items-center gap-3 p-4 border-b bg-background">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation('/study')}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="font-bold text-lg">Resultado</h1>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
             className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center mb-4",
-              isExcellent 
-                ? "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-500/30" 
-                : isGood 
-                  ? "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/30"
-                  : "bg-primary/10"
+              "w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl",
+              result.isMastered
+                ? "bg-gradient-to-br from-yellow-400 to-orange-500"
+                : "bg-gradient-to-br from-primary to-primary/70"
             )}
           >
-            {isExcellent ? (
-              <Trophy className="h-10 w-10 text-white" />
-            ) : isGood ? (
-              <CheckCircle2 className="h-10 w-10 text-white" />
-            ) : (
-              <Dumbbell className="h-10 w-10 text-primary" />
-            )}
+            <Trophy className="h-12 w-12 text-white" />
           </motion.div>
+
+          {renderStars(result.starsEarned)}
           
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl font-bold mb-2"
+            transition={{ delay: 0.8 }}
+            className="text-2xl font-bold mt-6 mb-2"
           >
-            {isExcellent ? "Excelente!" : isGood ? "Bom trabalho!" : "Continue praticando!"}
+            {getMessage()}
           </motion.h2>
-          <motion.p 
+          
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-muted-foreground mb-6 text-sm"
+            transition={{ delay: 1 }}
+            className="text-muted-foreground mb-6 space-y-1"
           >
-            Você acertou {correctCount} de {totalAnswered} questões
-          </motion.p>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-            className="w-full max-w-xs mb-6"
-          >
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-muted-foreground">Aproveitamento</span>
-              <span className="font-bold">{percentage}%</span>
-            </div>
-            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${percentage}%` }}
-                transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
-                className={cn(
-                  "h-full rounded-full",
-                  percentage >= 70 ? "bg-green-500" : percentage >= 50 ? "bg-yellow-500" : "bg-red-500"
-                )}
-              />
-            </div>
+            <p>{result.correctAnswers} de {result.totalQuestions} corretas</p>
+            <p className="text-sm">
+              Tempo: {formatTime(result.timeSpentSeconds)}
+              {result.completedWithinTime && (
+                <span className="text-green-500 ml-2">(dentro do tempo!)</span>
+              )}
+            </p>
           </motion.div>
 
-          <motion.div 
+          {result.isMastered && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.2 }}
+              className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6 max-w-xs"
+            >
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                Todas as licoes da semana ficaram douradas!
+              </p>
+            </motion.div>
+          )}
+
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-col gap-2 w-full max-w-xs"
+            transition={{ delay: 1.4 }}
+            className="flex flex-col gap-3 w-full max-w-xs"
           >
-            <Button 
-              onClick={handleRestart} 
-              size="sm"
-              className="w-full" 
-              data-testid="button-restart"
+            <Button
+              size="lg"
+              onClick={() => {
+                setIsFinished(false);
+                setIsStarted(false);
+                setQuestions([]);
+                setCurrentIndex(0);
+                setCorrectCount(0);
+                setResult(null);
+                setTimeRemaining(120);
+              }}
+              data-testid="button-try-again"
             >
-              <Shuffle className="h-3.5 w-3.5 mr-2" />
-              Praticar novamente
+              Tentar Novamente
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setLocation('/study')} 
-              className="w-full"
+            <Button
+              variant="outline"
+              onClick={() => setLocation('/study')}
               data-testid="button-back-study"
             >
-              Voltar ao estudo
+              Voltar ao Estudo
             </Button>
           </motion.div>
         </div>
@@ -279,106 +392,125 @@ export default function PracticePage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-bold text-lg">Prática</h1>
+            <h1 className="font-bold text-lg">Pratique</h1>
             <p className="text-xs text-muted-foreground">
-              Questão {currentIndex + 1} de {exerciseUnits.length}
+              Questao {currentIndex + 1} de {questions.length}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm",
+            timeRemaining <= 30 
+              ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" 
+              : "bg-primary/10 text-primary"
+          )}>
+            <Clock className="h-4 w-4" />
+            <span data-testid="timer">{formatTime(timeRemaining)}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-1 text-sm">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <span className="font-medium">{correctCount}</span>
           </div>
         </div>
-        
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
       </header>
 
       <div className="flex-1 flex flex-col">
-        {currentUnit && (
-          <>
-            {currentUnit.type === "multiple_choice" && (
-              <MultipleChoiceExercise
-                key={`mc-${currentIndex}-${currentUnit.id}`}
-                question={currentUnit.content.question || ""}
-                options={currentUnit.content.options || []}
-                correctIndex={currentUnit.content.correctIndex || 0}
-                onAnswer={(isCorrect) => handleAnswer(isCorrect)}
-              />
-            )}
+        <AnimatePresence mode="wait">
+          {currentQuestion && (
+            <motion.div
+              key={currentQuestion.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex-1"
+            >
+              {currentQuestion.type === "multiple_choice" && (
+                <MultipleChoiceExercise
+                  key={`mc-${currentIndex}-${currentQuestion.id}`}
+                  question={currentQuestion.content.question || ""}
+                  options={currentQuestion.content.options || []}
+                  correctIndex={currentQuestion.content.correctIndex || 0}
+                  onAnswer={handleAnswer}
+                />
+              )}
 
-            {currentUnit.type === "true_false" && (
-              <TrueFalseExercise
-                key={`tf-${currentIndex}-${currentUnit.id}`}
-                statement={currentUnit.content.statement || ""}
-                isTrue={currentUnit.content.isTrue || false}
-                onAnswer={(isCorrect) => handleAnswer(isCorrect)}
-              />
-            )}
+              {currentQuestion.type === "true_false" && (
+                <TrueFalseExercise
+                  key={`tf-${currentIndex}-${currentQuestion.id}`}
+                  statement={currentQuestion.content.statement || ""}
+                  isTrue={currentQuestion.content.isTrue || false}
+                  onAnswer={handleAnswer}
+                />
+              )}
 
-            {currentUnit.type === "fill_blank" && (
-              <FillBlankExercise
-                key={`fb-${currentIndex}-${currentUnit.id}`}
-                question={currentUnit.content.question || ""}
-                correctAnswer={currentUnit.content.correctAnswer || ""}
-                onAnswer={(isCorrect) => handleAnswer(isCorrect)}
-              />
-            )}
-          </>
-        )}
+              {currentQuestion.type === "fill_blank" && (
+                <FillBlankExercise
+                  key={`fb-${currentIndex}-${currentQuestion.id}`}
+                  question={currentQuestion.content.question || ""}
+                  correctAnswer={currentQuestion.content.correctAnswer || ""}
+                  onAnswer={handleAnswer}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {showFeedback && (
-        <div className={cn(
-          "fixed bottom-0 left-0 right-0 p-4 border-t",
-          feedbackCorrect 
-            ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800" 
-            : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
-        )}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center",
-              feedbackCorrect ? "bg-green-500" : "bg-red-500"
-            )}>
-              {feedbackCorrect ? (
-                <CheckCircle2 className="h-6 w-6 text-white" />
-              ) : (
-                <span className="text-white font-bold text-lg">X</span>
-              )}
-            </div>
-            <div>
+      <AnimatePresence>
+        {showFeedback && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className={cn(
+              "fixed bottom-0 left-0 right-0 p-4 border-t",
+              feedbackCorrect 
+                ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800" 
+                : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+            )}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center",
+                feedbackCorrect ? "bg-green-500" : "bg-red-500"
+              )}>
+                {feedbackCorrect ? (
+                  <CheckCircle2 className="h-6 w-6 text-white" />
+                ) : (
+                  <XCircle className="h-6 w-6 text-white" />
+                )}
+              </div>
               <p className={cn(
-                "font-bold",
+                "font-bold text-lg",
                 feedbackCorrect ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
               )}>
                 {feedbackCorrect ? "Correto!" : "Incorreto"}
               </p>
-              {!feedbackCorrect && currentUnit?.content?.explanationIncorrect && (
-                <p className="text-sm text-muted-foreground">
-                  {currentUnit.content.explanationIncorrect}
-                </p>
-              )}
             </div>
-          </div>
-          
-          <Button 
-            onClick={handleContinue} 
-            className={cn(
-              "w-full",
-              feedbackCorrect 
-                ? "bg-green-500 hover:bg-green-600" 
-                : "bg-red-500 hover:bg-red-600"
-            )}
-            data-testid="button-continue-practice"
-          >
-            CONTINUAR
-          </Button>
-        </div>
-      )}
+            
+            <Button 
+              onClick={handleContinue} 
+              className={cn(
+                "w-full py-6 font-bold text-lg",
+                feedbackCorrect 
+                  ? "bg-green-500 hover:bg-green-600" 
+                  : "bg-red-500 hover:bg-red-600"
+              )}
+              data-testid="button-continue"
+            >
+              CONTINUAR
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

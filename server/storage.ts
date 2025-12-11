@@ -3861,6 +3861,191 @@ export class DatabaseStorage implements IStorage {
     
     return { crystalsAwarded: totalCrystals, rewards };
   }
+
+  // ==================== WEEKLY PRACTICE (PRATIQUE) ====================
+
+  async getWeeklyPractice(userId: number, weekId: number): Promise<schema.WeeklyPractice | null> {
+    const [practice] = await db.select().from(schema.weeklyPractice)
+      .where(and(
+        eq(schema.weeklyPractice.userId, userId),
+        eq(schema.weeklyPractice.weekId, weekId)
+      ))
+      .limit(1);
+    return practice || null;
+  }
+
+  async createOrUpdateWeeklyPractice(userId: number, weekId: number, data: Partial<schema.InsertWeeklyPractice>): Promise<schema.WeeklyPractice> {
+    const existing = await this.getWeeklyPractice(userId, weekId);
+    
+    if (existing) {
+      const [updated] = await db.update(schema.weeklyPractice)
+        .set({ ...data })
+        .where(eq(schema.weeklyPractice.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(schema.weeklyPractice)
+      .values({ userId, weekId, ...data })
+      .returning();
+    return created;
+  }
+
+  async getPracticeQuestions(weekId: number): Promise<schema.PracticeQuestion[]> {
+    return db.select().from(schema.practiceQuestions)
+      .where(eq(schema.practiceQuestions.weekId, weekId))
+      .orderBy(asc(schema.practiceQuestions.orderIndex));
+  }
+
+  async createPracticeQuestion(data: schema.InsertPracticeQuestion): Promise<schema.PracticeQuestion> {
+    const [question] = await db.insert(schema.practiceQuestions)
+      .values(data)
+      .returning();
+    return question;
+  }
+
+  async deletePracticeQuestionsForWeek(weekId: number): Promise<void> {
+    await db.delete(schema.practiceQuestions)
+      .where(eq(schema.practiceQuestions.weekId, weekId));
+  }
+
+  async getWeeklyPracticeStatus(userId: number, weekId: number): Promise<schema.WeeklyPracticeStatus> {
+    const week = await this.getStudyWeekById(weekId);
+    if (!week) {
+      return { weekId, isUnlocked: false, starsEarned: 0, isMastered: false, lessonsCompleted: 0, totalLessons: 0 };
+    }
+
+    const lessons = await this.getLessonsForWeek(weekId);
+    const totalLessons = lessons.length;
+    
+    let lessonsCompleted = 0;
+    for (const lesson of lessons) {
+      const progress = await db.select().from(schema.userLessonProgress)
+        .where(and(
+          eq(schema.userLessonProgress.userId, userId),
+          eq(schema.userLessonProgress.lessonId, lesson.id),
+          eq(schema.userLessonProgress.status, 'completed')
+        ))
+        .limit(1);
+      if (progress.length > 0) {
+        lessonsCompleted++;
+      }
+    }
+
+    const isUnlocked = lessonsCompleted >= totalLessons && totalLessons > 0;
+    const practice = await this.getWeeklyPractice(userId, weekId);
+
+    return {
+      weekId,
+      isUnlocked,
+      starsEarned: practice?.starsEarned || 0,
+      isMastered: practice?.isMastered || false,
+      lessonsCompleted,
+      totalLessons,
+    };
+  }
+
+  async generatePracticeQuestionsFromAI(weekId: number): Promise<schema.PracticeQuestion[]> {
+    const week = await this.getStudyWeekById(weekId);
+    if (!week) return [];
+
+    const lessons = await this.getLessonsForWeek(weekId);
+    const existingQuestions: any[] = [];
+    
+    for (const lesson of lessons) {
+      const units = await this.getUnitsByLessonId(lesson.id);
+      for (const unit of units) {
+        if (['multiple_choice', 'true_false', 'fill_blank'].includes(unit.type)) {
+          try {
+            const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
+            existingQuestions.push({ type: unit.type, content });
+          } catch (e) {
+            console.error('Error parsing unit content:', e);
+          }
+        }
+      }
+    }
+
+    await this.deletePracticeQuestionsForWeek(weekId);
+
+    const practiceQuestions: schema.PracticeQuestion[] = [];
+    const usedQuestions = new Set<string>();
+    let orderIndex = 0;
+
+    while (practiceQuestions.length < 10 && orderIndex < 100) {
+      const randomLesson = lessons[Math.floor(Math.random() * lessons.length)];
+      if (!randomLesson) break;
+      
+      const units = await this.getUnitsByLessonId(randomLesson.id);
+      const questionUnits = units.filter(u => ['multiple_choice', 'true_false', 'fill_blank'].includes(u.type));
+      
+      if (questionUnits.length === 0) {
+        orderIndex++;
+        continue;
+      }
+      
+      const randomUnit = questionUnits[Math.floor(Math.random() * questionUnits.length)];
+      const key = `${randomUnit.type}-${randomUnit.id}`;
+      
+      if (usedQuestions.has(key)) {
+        orderIndex++;
+        continue;
+      }
+      
+      usedQuestions.add(key);
+      
+      try {
+        const content = typeof randomUnit.content === 'string' ? randomUnit.content : JSON.stringify(randomUnit.content);
+        const question = await this.createPracticeQuestion({
+          weekId,
+          type: randomUnit.type,
+          content,
+          orderIndex: practiceQuestions.length,
+        });
+        practiceQuestions.push(question);
+      } catch (e) {
+        console.error('Error creating practice question:', e);
+      }
+      
+      orderIndex++;
+    }
+
+    return practiceQuestions;
+  }
+
+  async completePractice(userId: number, weekId: number, correctAnswers: number, timeSpentSeconds: number): Promise<schema.WeeklyPractice> {
+    const totalQuestions = 10;
+    const timeLimit = 120;
+    const completedWithinTime = timeSpentSeconds <= timeLimit;
+    
+    let starsEarned = 0;
+    if (correctAnswers === totalQuestions && completedWithinTime) {
+      starsEarned = 3;
+    } else if (correctAnswers >= 8) {
+      starsEarned = 2;
+    } else if (correctAnswers >= 5) {
+      starsEarned = 1;
+    }
+    
+    const isMastered = starsEarned === 3;
+    
+    const practice = await this.createOrUpdateWeeklyPractice(userId, weekId, {
+      starsEarned,
+      correctAnswers,
+      totalQuestions,
+      timeSpentSeconds,
+      completedWithinTime,
+      isMastered,
+      completedAt: new Date(),
+    });
+
+    if (isMastered) {
+      const xpBonus = 50;
+      await this.addXp(userId, xpBonus, 'weekly_practice_mastery', weekId, 'Dominou o Pratique semanal!');
+    }
+    
+    return practice;
+  }
 }
 
 export const storage = new DatabaseStorage();

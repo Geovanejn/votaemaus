@@ -4597,6 +4597,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== WEEKLY PRACTICE (PRATIQUE) ====================
+
+  // Get practice status for a week
+  app.get("/api/study/practice/:weekId/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      if (isNaN(weekId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const status = await storage.getWeeklyPracticeStatus(req.user!.id, weekId);
+      res.json(status);
+    } catch (error) {
+      console.error("Get practice status error:", error);
+      res.status(500).json({ message: "Erro ao buscar status do pratique" });
+    }
+  });
+
+  // Start practice - get questions
+  app.post("/api/study/practice/:weekId/start", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      if (isNaN(weekId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+
+      const status = await storage.getWeeklyPracticeStatus(req.user!.id, weekId);
+      if (!status.isUnlocked) {
+        return res.status(403).json({ 
+          message: "Complete todas as licoes da semana para desbloquear o Pratique",
+          lessonsCompleted: status.lessonsCompleted,
+          totalLessons: status.totalLessons
+        });
+      }
+
+      let questions = await storage.getPracticeQuestions(weekId);
+      if (questions.length < 10) {
+        questions = await storage.generatePracticeQuestionsFromAI(weekId);
+      }
+
+      const parsedQuestions = questions.map(q => ({
+        id: q.id,
+        type: q.type,
+        content: typeof q.content === 'string' ? JSON.parse(q.content) : q.content,
+        orderIndex: q.orderIndex,
+      }));
+
+      res.json({ 
+        questions: parsedQuestions,
+        timeLimit: 120,
+        totalQuestions: 10
+      });
+    } catch (error) {
+      console.error("Start practice error:", error);
+      res.status(500).json({ message: "Erro ao iniciar pratique" });
+    }
+  });
+
+  // Complete practice
+  app.post("/api/study/practice/:weekId/complete", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const weekId = parseInt(req.params.weekId);
+      if (isNaN(weekId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+
+      const { correctAnswers, timeSpentSeconds } = req.body;
+      if (typeof correctAnswers !== 'number' || typeof timeSpentSeconds !== 'number') {
+        return res.status(400).json({ message: "Dados invalidos" });
+      }
+
+      const practice = await storage.completePractice(req.user!.id, weekId, correctAnswers, timeSpentSeconds);
+      res.json({
+        starsEarned: practice.starsEarned,
+        correctAnswers: practice.correctAnswers,
+        totalQuestions: practice.totalQuestions,
+        timeSpentSeconds: practice.timeSpentSeconds,
+        completedWithinTime: practice.completedWithinTime,
+        isMastered: practice.isMastered,
+      });
+    } catch (error) {
+      console.error("Complete practice error:", error);
+      res.status(500).json({ message: "Erro ao completar pratique" });
+    }
+  });
+
   // Verificar status de leitura do devocional
   app.get("/api/study/devotional-status/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {

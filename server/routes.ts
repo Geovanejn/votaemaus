@@ -4728,6 +4728,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const practice = await storage.completePractice(req.user!.id, weekId, correctAnswers, timeSpentSeconds);
+      
+      // Check and unlock achievements after completing practice
+      const unlockedAchievements = await storage.checkAndUnlockAchievements(req.user!.id, { 
+        event: 'practice_complete', 
+        value: practice.isMastered ? 1 : 0,
+        starsEarned: practice.starsEarned
+      });
+      
       res.json({
         starsEarned: practice.starsEarned,
         correctAnswers: practice.correctAnswers,
@@ -4735,6 +4743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeSpentSeconds: practice.timeSpentSeconds,
         completedWithinTime: practice.completedWithinTime,
         isMastered: practice.isMastered,
+        unlockedAchievements: unlockedAchievements.length > 0 ? unlockedAchievements : undefined,
       });
     } catch (error) {
       console.error("Complete practice error:", error);

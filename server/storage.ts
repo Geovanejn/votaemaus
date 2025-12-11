@@ -2347,7 +2347,10 @@ export class DatabaseStorage implements IStorage {
     
     try {
       const profile = await this.getStudyProfile(userId);
-      if (!profile) return unlockedAchievements;
+      if (!profile) {
+        console.log(`[Achievement] No profile found for user ${userId}`);
+        return unlockedAchievements;
+      }
 
       const allAchievements = await this.getAllAchievements();
       const userAchievements = await this.getUserAchievements(userId);
@@ -2360,6 +2363,8 @@ export class DatabaseStorage implements IStorage {
           eq(schema.userLessonProgress.status, 'completed')
         ));
       const lessonsCompleted = Number(completedLessonsCount[0]?.count || 0);
+      
+      console.log(`[Achievement] Checking for user ${userId}: event=${context.event}, lessonsCompleted=${lessonsCompleted}, streak=${profile.currentStreak}, totalXp=${profile.totalXp}, alreadyUnlocked=${unlockedIds.size}`);
 
       for (const achievement of allAchievements) {
         if (unlockedIds.has(achievement.id)) continue;
@@ -2402,6 +2407,16 @@ export class DatabaseStorage implements IStorage {
             const result = await this.unlockAchievement(userId, achievement.id);
             if (result) unlockedAchievements.push(result);
           }
+          // Practice master: complete practice with 3 stars
+          else if (achievement.code === 'practice_master' && context.event === 'practice_complete' && (context as any).starsEarned === 3) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          // Practice first: complete first practice
+          else if (achievement.code === 'first_practice' && context.event === 'practice_complete') {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
           continue;
         }
 
@@ -2432,6 +2447,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         if (allCriteriaMet) {
+          console.log(`[Achievement] Unlocking ${achievement.code} for user ${userId}`);
           const result = await this.unlockAchievement(userId, achievement.id);
           if (result) {
             unlockedAchievements.push(result);

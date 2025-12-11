@@ -4014,54 +4014,58 @@ export class DatabaseStorage implements IStorage {
   }
   
   private async generatePracticeQuestionsFromLessons(weekId: number, lessons: schema.StudyLesson[]): Promise<schema.PracticeQuestion[]> {
+    // Fallback: Generate questions from lessons with heavy randomization
+    // This is used when AI is unavailable. Questions are shuffled and randomized.
     const practiceQuestions: schema.PracticeQuestion[] = [];
     const usedQuestions = new Set<string>();
-    let orderIndex = 0;
-
-    while (practiceQuestions.length < 10 && orderIndex < 100) {
-      const randomLesson = lessons[Math.floor(Math.random() * lessons.length)];
-      if (!randomLesson) break;
-      
-      const units = await this.getUnitsByLessonId(randomLesson.id);
-      const questionUnits = units.filter(u => ['multiple_choice', 'true_false', 'fill_blank'].includes(u.type));
-      
-      if (questionUnits.length === 0) {
-        orderIndex++;
-        continue;
+    
+    // Collect all question units from all lessons
+    const allQuestionUnits: { unit: any; lesson: any }[] = [];
+    for (const lesson of lessons) {
+      const units = await this.getUnitsByLessonId(lesson.id);
+      for (const unit of units) {
+        if (['multiple_choice', 'true_false', 'fill_blank'].includes(unit.type)) {
+          allQuestionUnits.push({ unit, lesson });
+        }
       }
+    }
+    
+    // Shuffle all question units for randomization
+    const shuffledUnits = [...allQuestionUnits];
+    for (let i = shuffledUnits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledUnits[i], shuffledUnits[j]] = [shuffledUnits[j], shuffledUnits[i]];
+    }
+    
+    const { randomizeMultipleChoiceAnswer } = await import('./ai');
+    
+    for (const { unit } of shuffledUnits) {
+      if (practiceQuestions.length >= 10) break;
       
-      const randomUnit = questionUnits[Math.floor(Math.random() * questionUnits.length)];
-      const key = `${randomUnit.type}-${randomUnit.id}`;
-      
-      if (usedQuestions.has(key)) {
-        orderIndex++;
-        continue;
-      }
-      
+      const key = `${unit.type}-${unit.id}`;
+      if (usedQuestions.has(key)) continue;
       usedQuestions.add(key);
       
       try {
-        // Randomize the answer position for multiple choice
-        let content = typeof randomUnit.content === 'string' ? JSON.parse(randomUnit.content) : randomUnit.content;
-        if (randomUnit.type === 'multiple_choice') {
-          const { randomizeMultipleChoiceAnswer } = await import('./ai');
+        let content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
+        
+        // Heavily randomize multiple choice answers
+        if (unit.type === 'multiple_choice') {
           content = randomizeMultipleChoiceAnswer(content);
         }
         
         const question = await this.createPracticeQuestion({
           weekId,
-          type: randomUnit.type,
+          type: unit.type,
           content: JSON.stringify(content),
           orderIndex: practiceQuestions.length,
         });
         practiceQuestions.push(question);
       } catch (e) {
-        console.error('Error creating practice question:', e);
+        console.error('Error creating fallback practice question:', e);
       }
-      
-      orderIndex++;
     }
-
+    
     return practiceQuestions;
   }
 

@@ -17,7 +17,13 @@ function FormattedText({ content }: { content: string }) {
     );
   }
   
-  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none inline">{content}</ReactMarkdown>;
+  const cleanedContent = content
+    .replace(/\\n/g, '\n')
+    .replace(/\\\*/g, '*')
+    .replace(/\\_/g, '_')
+    .replace(/\\`/g, '`');
+  
+  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none inline">{cleanedContent}</ReactMarkdown>;
 }
 
 interface MultipleChoiceExerciseProps {
@@ -326,6 +332,14 @@ export function FillBlankExercise({
     onAnswer(isCorrect, selectedAnswer);
   };
 
+  const cleanTrailingDots = (text: string): string => {
+    return text
+      .replace(/[\.…_]{2,}/g, '')
+      .replace(/\s+\./g, '.')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+
   const renderQuestionWithBlank = () => {
     const isCorrectAnswer = selectedAnswer?.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
     
@@ -353,7 +367,7 @@ export function FillBlankExercise({
       );
     }
 
-    const blankPatterns = ["___", "...", "…"];
+    const blankPatterns = ["_____", "____", "___", "...", "…", "__"];
     let blankIndex = -1;
     let blankLength = 0;
     
@@ -368,14 +382,14 @@ export function FillBlankExercise({
     if (blankIndex === -1) {
       return (
         <>
-          <span>{question} </span>
+          <span>{cleanTrailingDots(question)} </span>
           {blankElement}
         </>
       );
     }
     
-    const beforeBlank = question.substring(0, blankIndex);
-    const afterBlank = question.substring(blankIndex + blankLength);
+    const beforeBlank = cleanTrailingDots(question.substring(0, blankIndex));
+    const afterBlank = cleanTrailingDots(question.substring(blankIndex + blankLength));
     
     return (
       <>

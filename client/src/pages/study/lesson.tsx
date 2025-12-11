@@ -231,6 +231,7 @@ export default function LessonPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/practice'] });
       
       const streakInfo = result.streakInfo;
       const previousStreak = previousStreakRef.current;

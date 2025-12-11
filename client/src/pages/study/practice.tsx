@@ -375,23 +375,25 @@ export default function PracticePage() {
             transition={{ delay: 1.4 }}
             className="flex flex-col gap-3 w-full max-w-xs"
           >
+            {result.starsEarned < 3 && (
+              <Button
+                size="lg"
+                onClick={() => {
+                  setIsFinished(false);
+                  setIsStarted(false);
+                  setQuestions([]);
+                  setCurrentIndex(0);
+                  setCorrectCount(0);
+                  setResult(null);
+                  setTimeRemaining(120);
+                }}
+                data-testid="button-try-again"
+              >
+                Tentar Novamente
+              </Button>
+            )}
             <Button
-              size="lg"
-              onClick={() => {
-                setIsFinished(false);
-                setIsStarted(false);
-                setQuestions([]);
-                setCurrentIndex(0);
-                setCorrectCount(0);
-                setResult(null);
-                setTimeRemaining(120);
-              }}
-              data-testid="button-try-again"
-            >
-              Tentar Novamente
-            </Button>
-            <Button
-              variant="outline"
+              variant={result.starsEarned >= 3 ? "default" : "outline"}
               onClick={() => setLocation('/study')}
               data-testid="button-back-study"
             >

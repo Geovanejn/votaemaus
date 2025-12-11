@@ -84,14 +84,21 @@ const lockedColors = {
   inner: "#F0F0F0"
 };
 
-function StageIcon({ type, status, onClick }: { type: StageType; status: StageStatus; onClick?: () => void }) {
+function StageIcon({ type, status, onClick, isMastered = false }: { type: StageType; status: StageStatus; onClick?: () => void; isMastered?: boolean }) {
   const config = stageConfig[type];
   const Icon = config.icon;
   const isLocked = status === "locked";
   const isCompleted = status === "completed";
   const isCurrent = status === "current";
   
-  const colors = isLocked ? lockedColors : config.colors;
+  // Use golden colors if mastered (3 stars in practice)
+  const goldenColors = {
+    bg: "#FFD700",
+    shadow: "#DAA520",
+    inner: "#FFE55C"
+  };
+  
+  const colors = isLocked ? lockedColors : (isCompleted && isMastered ? goldenColors : config.colors);
 
   return (
     <motion.button
@@ -144,15 +151,18 @@ function StageIcon({ type, status, onClick }: { type: StageType; status: StageSt
 
 function StageCard({ 
   stage,
-  onClick
+  onClick,
+  isMastered = false
 }: { 
   stage: StageItem;
   onClick?: () => void;
+  isMastered?: boolean;
 }) {
   const config = stageConfig[stage.type];
   const isLocked = stage.status === "locked";
   const isCurrent = stage.status === "current";
   const isCompleted = stage.status === "completed";
+  const showGolden = isCompleted && isMastered;
 
   return (
     <motion.button
@@ -164,10 +174,11 @@ function StageCard({
         "flex-1 text-left p-4 rounded-xl transition-all min-w-0",
         "border-2",
         isCurrent && "bg-card border-[#58CC02] shadow-md",
-        isCompleted && "bg-card/80 border-border/50 shadow-sm",
+        isCompleted && !showGolden && "bg-card/80 border-border/50 shadow-sm",
+        showGolden && "bg-gradient-to-r from-[#FFF8DC] to-[#FFE4B5] border-[#FFD700] shadow-md",
         isLocked && "bg-transparent border-transparent cursor-not-allowed"
       )}
-      style={!isLocked ? { boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" } : undefined}
+      style={!isLocked ? { boxShadow: showGolden ? "0 2px 8px rgba(255, 215, 0, 0.3)" : "0 2px 8px rgba(0, 0, 0, 0.08)" } : undefined}
       data-testid={`stage-card-${stage.type}`}
     >
       <div className="flex items-center gap-2 flex-wrap">
@@ -183,7 +194,7 @@ function StageCard({
           </span>
         )}
         {isCompleted && (
-          <Check className="h-4 w-4 text-[#58CC02]" />
+          <Check className={cn("h-4 w-4", showGolden ? "text-[#DAA520]" : "text-[#58CC02]")} />
         )}
       </div>
       <p className={cn(
@@ -349,12 +360,14 @@ function LessonGroup({
                     type={stage.type} 
                     status={stage.status} 
                     onClick={() => onStageClick?.(lesson.id, stage.type)}
+                    isMastered={isMastered}
                   />
                 </div>
                 
                 <StageCard
                   stage={stage}
                   onClick={() => onStageClick?.(lesson.id, stage.type)}
+                  isMastered={isMastered}
                 />
               </div>
             );
@@ -438,7 +451,7 @@ function PracticeRow({
                 className={cn(
                   "h-4 w-4",
                   star <= starsEarned
-                    ? "text-yellow-400 fill-yellow-400"
+                    ? "text-white fill-white"
                     : isLocked
                       ? "text-muted-foreground/30"
                       : "text-white/30"

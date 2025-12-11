@@ -666,6 +666,10 @@ function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
       }
       delete content.correctAnswer;
       delete content.explanation;
+      
+      // Randomize the correct answer position for better variety
+      const randomizedContent = randomizeMultipleChoiceAnswer(content);
+      Object.assign(content, randomizedContent);
       break;
       
     case "true_false":

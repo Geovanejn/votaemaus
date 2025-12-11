@@ -4631,16 +4631,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Block retry if already mastered (3 stars)
+      if (status.isMastered) {
+        return res.status(403).json({ 
+          message: "Voce ja dominou esta semana! Parabens!"
+        });
+      }
+
       let questions = await storage.getPracticeQuestions(weekId);
       if (questions.length < 10) {
         questions = await storage.generatePracticeQuestionsFromAI(weekId);
       }
 
-      const parsedQuestions = questions.map(q => ({
+      // Shuffle questions array for retry attempts (randomize order)
+      const shuffleArray = <T,>(array: T[]): T[] => {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
+
+      const shuffledQuestions = shuffleArray(questions);
+
+      const parsedQuestions = shuffledQuestions.map((q, index) => ({
         id: q.id,
         type: q.type,
         content: typeof q.content === 'string' ? JSON.parse(q.content) : q.content,
-        orderIndex: q.orderIndex,
+        orderIndex: index,
       }));
 
       res.json({ 

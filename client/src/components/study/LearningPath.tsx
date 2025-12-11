@@ -431,25 +431,27 @@ function PracticeRow({
       >
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className={cn("font-bold text-base", textColor)}>Pratique</h3>
-          {starsEarned > 0 && (
-            <div className="flex gap-0.5">
-              {[1, 2, 3].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "h-4 w-4",
-                    star <= starsEarned
-                      ? "text-yellow-400 fill-yellow-400"
+          <div className="flex gap-0.5">
+            {[1, 2, 3].map((star) => (
+              <Star
+                key={star}
+                className={cn(
+                  "h-4 w-4",
+                  star <= starsEarned
+                    ? "text-yellow-400 fill-yellow-400"
+                    : isLocked
+                      ? "text-muted-foreground/30"
                       : "text-white/30"
-                  )}
-                />
-              ))}
-            </div>
-          )}
+                )}
+              />
+            ))}
+          </div>
         </div>
         <p className={cn("text-sm mt-0.5", isLocked ? "text-muted-foreground/40" : "text-white/80")}>
           {isLocked 
-            ? `Complete ${totalLessons - lessonsCompleted} licoes para desbloquear`
+            ? practiceStatus 
+              ? `Complete ${totalLessons - lessonsCompleted} licoes para desbloquear`
+              : "Complete todas as licoes para desbloquear"
             : isMastered 
               ? "Voce dominou esta semana!"
               : "Teste seus conhecimentos"

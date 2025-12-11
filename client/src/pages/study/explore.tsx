@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -333,6 +334,9 @@ function LoadingState() {
 export default function ExplorePage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+  
+  // Local optimistic state to prevent multiple clicks
+  const [locallyMarkedAsRead, setLocallyMarkedAsRead] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -354,24 +358,48 @@ export default function ExplorePage() {
     enabled: isAuthenticated,
   });
 
+  // Reset local state when server confirms the status
+  useEffect(() => {
+    if (dailyVerseStatus?.isRead) {
+      setLocallyMarkedAsRead(false);
+    }
+  }, [dailyVerseStatus?.isRead]);
+
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/study/daily-verse/confirm");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+    onSuccess: (data) => {
+      // Only invalidate queries if actually successful
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+      } else {
+        // If already read, still update local state
+        setLocallyMarkedAsRead(true);
+        queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
+      }
+    },
+    onError: () => {
+      // Reset local state on error so user can try again
+      setLocallyMarkedAsRead(false);
     }
   });
 
-  const dailyVerseRead = dailyVerseStatus?.isRead ?? false;
+  // Consider read if server says so OR if we just clicked (optimistic)
+  const dailyVerseRead = dailyVerseStatus?.isRead || locallyMarkedAsRead;
 
   const handleCategoryClick = (categoryId: string) => {
     setLocation(`/study/verses?category=${categoryId}`);
   };
 
   const handleMarkAsRead = () => {
+    // Immediately set local state to prevent multiple clicks
+    if (locallyMarkedAsRead || dailyVerseStatus?.isRead) {
+      return; // Already marked, do nothing
+    }
+    setLocallyMarkedAsRead(true);
     markAsReadMutation.mutate();
   };
 

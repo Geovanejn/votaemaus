@@ -4840,8 +4840,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Confirmar leitura do versículo do dia
   app.post("/api/study/daily-verse/confirm", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const profile = await storage.getStudyProfile(req.user!.id);
+      const userId = req.user!.id;
       const todayKey = getDailyVerseDateKey();
+      
+      // First, check current status
+      const profile = await storage.getStudyProfile(userId);
       
       // Check if already read today
       if (profile?.dailyVerseReadDate === todayKey) {
@@ -4852,12 +4855,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Mark as read and increment weekly goal
-      const weekKey = getCurrentWeekKey();
-      await storage.incrementWeeklyVerse(req.user!.id, weekKey);
+      // IMPORTANT: Update dailyVerseReadDate FIRST to prevent race conditions
+      // This marks as read immediately so subsequent requests will be rejected
+      await storage.updateStudyProfile(userId, { dailyVerseReadDate: todayKey });
       
-      // Update the dailyVerseReadDate in profile
-      await storage.updateStudyProfile(req.user!.id, { dailyVerseReadDate: todayKey });
+      // Double-check after update to handle race conditions
+      // Re-fetch the profile to ensure we have the latest state
+      const updatedProfile = await storage.getStudyProfile(userId);
+      if (updatedProfile?.dailyVerseReadDate !== todayKey) {
+        // This shouldn't happen but handle gracefully
+        return res.json({ 
+          success: false, 
+          alreadyRead: true, 
+          message: "Erro de sincronização, tente novamente" 
+        });
+      }
+      
+      // Now safely increment the weekly goal (only happens once per day)
+      const weekKey = getCurrentWeekKey();
+      await storage.incrementWeeklyVerse(userId, weekKey);
       
       res.json({ success: true, message: "Leitura do versículo confirmada" });
     } catch (error) {

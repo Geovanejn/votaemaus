@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -41,8 +40,9 @@ interface DailyVerse {
   reference: string;
 }
 
-interface DailyVerseStatus {
+interface DailyVerseStatusResponse {
   isRead: boolean;
+  dateKey: string;
 }
 
 const iconMap: Record<string, typeof Heart> = {
@@ -333,7 +333,6 @@ function LoadingState() {
 export default function ExplorePage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
-  const [dailyVerseRead, setDailyVerseRead] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -342,6 +341,11 @@ export default function ExplorePage() {
 
   const { data: dailyVerseData, isLoading: dailyVerseLoading } = useQuery<DailyVerse>({
     queryKey: ['/api/study/daily-verse'],
+    enabled: isAuthenticated,
+  });
+
+  const { data: dailyVerseStatus, isLoading: statusLoading } = useQuery<DailyVerseStatusResponse>({
+    queryKey: ['/api/study/daily-verse/status'],
     enabled: isAuthenticated,
   });
 
@@ -356,10 +360,12 @@ export default function ExplorePage() {
       return res.json();
     },
     onSuccess: () => {
-      setDailyVerseRead(true);
+      queryClient.invalidateQueries({ queryKey: ['/api/study/daily-verse/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     }
   });
+
+  const dailyVerseRead = dailyVerseStatus?.isRead ?? false;
 
   const handleCategoryClick = (categoryId: string) => {
     setLocation(`/study/verses?category=${categoryId}`);

@@ -4813,11 +4813,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper to get current daily verse date key (resets at 6 AM São Paulo time)
+  function getDailyVerseDateKey(): string {
+    const now = new Date();
+    const spTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    // If before 6 AM, consider it as the previous day
+    if (spTime.getHours() < 6) {
+      spTime.setDate(spTime.getDate() - 1);
+    }
+    return spTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+  }
+
+  // Check if daily verse was read today
+  app.get("/api/study/daily-verse/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const profile = await storage.getStudyProfile(req.user!.id);
+      const todayKey = getDailyVerseDateKey();
+      const isRead = profile?.dailyVerseReadDate === todayKey;
+      res.json({ isRead, dateKey: todayKey });
+    } catch (error) {
+      console.error("Get daily verse status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
   // Confirmar leitura do versículo do dia
   app.post("/api/study/daily-verse/confirm", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const profile = await storage.getStudyProfile(req.user!.id);
+      const todayKey = getDailyVerseDateKey();
+      
+      // Check if already read today
+      if (profile?.dailyVerseReadDate === todayKey) {
+        return res.json({ 
+          success: false, 
+          alreadyRead: true, 
+          message: "Versículo do dia já foi lido hoje" 
+        });
+      }
+      
+      // Mark as read and increment weekly goal
       const weekKey = getCurrentWeekKey();
       await storage.incrementWeeklyVerse(req.user!.id, weekKey);
+      
+      // Update the dailyVerseReadDate in profile
+      await storage.updateStudyProfile(req.user!.id, { dailyVerseReadDate: todayKey });
+      
       res.json({ success: true, message: "Leitura do versículo confirmada" });
     } catch (error) {
       console.error("Confirm daily verse error:", error);

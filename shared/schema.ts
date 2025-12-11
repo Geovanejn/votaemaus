@@ -672,6 +672,7 @@ export const studyProfiles = pgTable("study_profiles", {
   totalLessonsCompletedToday: integer("total_lessons_completed_today").notNull().default(0),
   lastLessonDate: text("last_lesson_date"),
   weeklyLessonsStreak: integer("weekly_lessons_streak").notNull().default(0),
+  dailyVerseReadDate: text("daily_verse_read_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({

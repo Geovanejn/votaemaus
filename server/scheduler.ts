@@ -295,6 +295,15 @@ export function initDailyVerseScheduler(): void {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Daily Verse Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)');
+  
+  setTimeout(async () => {
+    try {
+      console.log('[Daily Verse Scheduler] Running initial check at startup...');
+      await sendDailyVerse();
+    } catch (error) {
+      console.error('[Daily Verse Scheduler] Startup error:', error);
+    }
+  }, 5000);
 }
 
 function getTodayRecoveryCategory(): string {
@@ -367,6 +376,15 @@ export function initRecoveryVersesScheduler(): void {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)');
+  
+  setTimeout(async () => {
+    try {
+      console.log('[Recovery Verses Scheduler] Running initial check at startup...');
+      await generateDailyRecoveryVerses();
+    } catch (error) {
+      console.error('[Recovery Verses Scheduler] Startup error:', error);
+    }
+  }, 7000);
 }
 
 async function runInstagramSync(): Promise<void> {

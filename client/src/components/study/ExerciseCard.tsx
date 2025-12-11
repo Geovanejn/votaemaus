@@ -4,6 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+function FormattedText({ content }: { content: string }) {
+  if (!content) return null;
+  
+  const isHtml = content.includes('<') && content.includes('>');
+  
+  if (isHtml) {
+    return (
+      <span dangerouslySetInnerHTML={{ __html: content }} />
+    );
+  }
+  
+  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none inline">{content}</ReactMarkdown>;
+}
 
 interface MultipleChoiceExerciseProps {
   question: string;
@@ -214,9 +229,9 @@ export function TextContent({
         </h2>
         
         <Card className="p-6">
-          <p className="text-foreground text-lg leading-relaxed">
-            {body}
-          </p>
+          <div className="text-foreground text-lg leading-relaxed">
+            <FormattedText content={body} />
+          </div>
           
           {highlight && (
             <div className="mt-4 pt-4 border-t">
@@ -248,12 +263,38 @@ interface FillBlankExerciseProps {
   onAnswer: (isCorrect: boolean, userAnswer: string) => void;
 }
 
+function detectAnswerType(answer: string): string {
+  const versePattern = /^\d+:\d+$/;
+  if (versePattern.test(answer)) return "verse_reference";
+  
+  const numberPattern = /^\d+$/;
+  if (numberPattern.test(answer)) return "number";
+  
+  const adjectives = ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "mau", "grande", "pequeno", "forte", "fraco", "novo", "velho", "primeiro", "ultimo"];
+  if (adjectives.includes(answer.toLowerCase())) return "adjective";
+  
+  const people = ["Cristo", "Jesus", "Deus", "Espirito", "Pai", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "José", "Salomão", "Elias", "Isaías", "Jeremias", "Daniel", "Jonas"];
+  if (people.some(p => answer.toLowerCase() === p.toLowerCase())) return "person";
+  
+  const places = ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Roma", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai"];
+  if (places.some(p => answer.toLowerCase() === p.toLowerCase())) return "place";
+  
+  return "noun";
+}
+
 function generateOptions(correctAnswer: string): string[] {
-  const distractors = [
-    "amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida",
-    "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória",
-    "Cristo", "Deus", "Espírito", "céu", "terra", "santo", "justo", "eterno"
-  ];
+  const answerType = detectAnswerType(correctAnswer);
+  
+  const optionsByType: Record<string, string[]> = {
+    verse_reference: ["1:1", "3:16", "23:1", "12:25", "5:8", "8:28", "6:33", "4:13", "11:25", "15:13", "7:7", "10:9", "14:6", "16:31", "19:14"],
+    number: ["1", "2", "3", "4", "5", "6", "7", "10", "12", "40", "70", "100", "7000"],
+    adjective: ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "forte", "grande", "misericordioso", "gracioso", "amoroso"],
+    person: ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel", "Samuel"],
+    place: ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai", "Roma", "Damasco"],
+    noun: ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "perdão"]
+  };
+  
+  const distractors = optionsByType[answerType] || optionsByType.noun;
   
   const shuffled = distractors
     .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase())
@@ -286,69 +327,60 @@ export function FillBlankExercise({
   };
 
   const renderQuestionWithBlank = () => {
-    const displayAnswer = selectedAnswer || "___";
     const isCorrectAnswer = selectedAnswer?.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    
+    const blankElement = (
+      <span className={cn(
+        "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
+        isAnswered 
+          ? isCorrectAnswer
+            ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+            : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+          : selectedAnswer 
+            ? "bg-primary/10 text-primary border-2 border-primary"
+            : "bg-muted border-2 border-dashed border-muted-foreground min-h-[28px]"
+      )}>
+        {selectedAnswer || "\u00A0"}
+      </span>
+    );
     
     if (!question || question.trim() === "") {
       return (
         <>
           <span className="block mb-2 text-muted-foreground">Complete a lacuna:</span>
-          <span className={cn(
-            "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
-            isAnswered 
-              ? isCorrectAnswer
-                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
-                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
-              : selectedAnswer 
-                ? "bg-primary/10 text-primary border-2 border-primary"
-                : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
-          )}>
-            {displayAnswer}
-          </span>
+          {blankElement}
         </>
       );
     }
 
-    const blankIndex = question.indexOf("___");
+    const blankPatterns = ["___", "...", "…"];
+    let blankIndex = -1;
+    let blankLength = 0;
+    
+    for (const pattern of blankPatterns) {
+      const idx = question.indexOf(pattern);
+      if (idx !== -1 && (blankIndex === -1 || idx < blankIndex)) {
+        blankIndex = idx;
+        blankLength = pattern.length;
+      }
+    }
     
     if (blankIndex === -1) {
       return (
         <>
           <span>{question} </span>
-          <span className={cn(
-            "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
-            isAnswered 
-              ? isCorrectAnswer
-                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
-                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
-              : selectedAnswer 
-                ? "bg-primary/10 text-primary border-2 border-primary"
-                : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
-          )}>
-            {displayAnswer}
-          </span>
+          {blankElement}
         </>
       );
     }
     
     const beforeBlank = question.substring(0, blankIndex);
-    const afterBlank = question.substring(blankIndex + 3);
+    const afterBlank = question.substring(blankIndex + blankLength);
     
     return (
       <>
         <span>{beforeBlank}</span>
-        <span className={cn(
-          "inline-block min-w-[80px] mx-1 px-3 py-1 rounded-lg text-center font-bold transition-all",
-          isAnswered 
-            ? isCorrectAnswer
-              ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
-              : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
-            : selectedAnswer 
-              ? "bg-primary/10 text-primary border-2 border-primary"
-              : "bg-muted text-muted-foreground border-2 border-dashed border-muted-foreground"
-        )}>
-          {displayAnswer}
-        </span>
+        {blankElement}
         <span>{afterBlank}</span>
       </>
     );

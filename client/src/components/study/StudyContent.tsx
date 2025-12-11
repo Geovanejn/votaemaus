@@ -4,6 +4,45 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, BookOpen, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+
+function FormattedText({ content }: { content: string }) {
+  if (!content) return null;
+  
+  const isHtml = content.includes('<') && content.includes('>');
+  const isJson = content.startsWith('{') || content.startsWith('[');
+  
+  if (isHtml) {
+    return (
+      <div 
+        className="prose prose-sm dark:prose-invert max-w-none"
+        dangerouslySetInnerHTML={{ __html: content }} 
+      />
+    );
+  }
+  
+  if (isJson) {
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.content) {
+        const extractText = (node: any): string => {
+          if (typeof node === 'string') return node;
+          if (node.text) return node.text;
+          if (node.content && Array.isArray(node.content)) {
+            return node.content.map(extractText).join('');
+          }
+          return '';
+        };
+        const text = parsed.content.map(extractText).join('\n\n');
+        return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">{text}</ReactMarkdown>;
+      }
+    } catch (e) {
+      // Not valid JSON, fall through to markdown
+    }
+  }
+  
+  return <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">{content}</ReactMarkdown>;
+}
 
 interface StudySection {
   type: "verse" | "topic" | "conclusion";
@@ -27,16 +66,16 @@ function VerseSection({ title, reference, content }: { title?: string; reference
         <div className="text-center mb-4">
           <BookOpen className="h-10 w-10 mx-auto text-primary mb-3" />
           <p className="text-sm font-bold text-primary uppercase tracking-wide">
-            {title || "Versículo Base"}
+            {title || "Versiculo Base"}
           </p>
         </div>
         <Card className="p-6 bg-primary/5 border-primary/20">
-          <p className="text-xl text-foreground italic text-center leading-relaxed">
-            "{content}"
-          </p>
+          <div className="text-xl text-foreground italic text-center leading-relaxed">
+            <FormattedText content={`"${content}"`} />
+          </div>
           {reference && (
             <p className="text-sm font-bold text-primary mt-4 text-center">
-              — {reference}
+              - {reference}
             </p>
           )}
         </Card>
@@ -52,15 +91,15 @@ function TopicSection({ title, content, topicNumber }: { title: string; content:
         <div className="mb-4">
           {topicNumber !== undefined && topicNumber > 0 && (
             <p className="text-sm font-bold text-primary uppercase tracking-wide mb-2">
-              Tópico {topicNumber}
+              Topico {topicNumber}
             </p>
           )}
           <h2 className="text-xl font-bold text-foreground">{title}</h2>
         </div>
         <Card className="p-5">
-          <p className="text-foreground leading-relaxed whitespace-pre-line">
-            {content}
-          </p>
+          <div className="text-foreground leading-relaxed">
+            <FormattedText content={content} />
+          </div>
         </Card>
       </div>
     </div>
@@ -72,12 +111,12 @@ function ConclusionSection({ title, content }: { title?: string; content: string
     <div className="flex flex-col h-full px-6 py-4 overflow-y-auto">
       <div className="max-w-md mx-auto w-full">
         <p className="text-sm font-bold text-green-600 dark:text-green-400 uppercase tracking-wide mb-4 text-center">
-          {title || "Conclusão"}
+          {title || "Conclusao"}
         </p>
         <Card className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <p className="text-foreground leading-relaxed">
-            {content}
-          </p>
+          <div className="text-foreground leading-relaxed">
+            <FormattedText content={content} />
+          </div>
         </Card>
       </div>
     </div>

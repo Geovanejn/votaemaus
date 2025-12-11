@@ -107,6 +107,14 @@ async function seedAchievementsAndVerses() {
       }
       console.log(`[Seed] ${achievements.length} conquistas criadas com sucesso!`);
     }
+
+    // Inicializar missoes diarias
+    const existingMissions = await storage.getDailyMissions();
+    if (existingMissions.length === 0) {
+      console.log("[Seed] Criando missoes diarias iniciais...");
+      await storage.initializeDailyMissions();
+      console.log("[Seed] Missoes diarias criadas com sucesso!");
+    }
   } catch (error: any) {
     console.error("[Seed] Erro ao inicializar conquistas e versiculos:", error.message);
   }

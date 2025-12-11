@@ -147,6 +147,7 @@ export interface IStorage {
   initializeDailyMissions(): Promise<void>;
   
   getUnreadVersesForUser(userId: number): Promise<any[]>;
+  getTotalVersesReadByUser(userId: number): Promise<number>;
   resetUserVerseReadings(userId: number): Promise<void>;
   
   clearAllBibleVerses(): Promise<void>;
@@ -1285,6 +1286,13 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${schema.bibleVerses.id} NOT IN (${sql.join(readIds, sql`, `)})`);
   }
 
+  async getTotalVersesReadByUser(userId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.verseReadings)
+      .where(eq(schema.verseReadings.userId, userId));
+    return Number(result[0]?.count || 0);
+  }
+
   async resetUserVerseReadings(userId: number): Promise<void> {
     await db.delete(schema.verseReadings)
       .where(eq(schema.verseReadings.userId, userId));
@@ -2368,7 +2376,29 @@ export class DatabaseStorage implements IStorage {
         const requirementKeys = Object.keys(requirement);
         if (requirementKeys.length === 0) {
           // Handle event-based achievements (no static requirements)
+          const currentHour = new Date().getHours();
+          
           if (achievement.code === 'perfect_lesson' && context.event === 'lesson_complete' && context.value === 1) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          // Early bird: studying before 7am
+          else if (achievement.code === 'early_bird' && context.event === 'lesson_complete' && currentHour < 7) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          // Night owl: studying after 22h
+          else if (achievement.code === 'night_owl' && context.event === 'lesson_complete' && currentHour >= 22) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          // Bookworm: read 10 verses
+          else if (achievement.code === 'bookworm' && context.event === 'verse_read' && context.value && context.value >= 10) {
+            const result = await this.unlockAchievement(userId, achievement.id);
+            if (result) unlockedAchievements.push(result);
+          }
+          // Comeback kid: recovered all hearts using verses
+          else if (achievement.code === 'comeback_kid' && context.event === 'hearts_recovered') {
             const result = await this.unlockAchievement(userId, achievement.id);
             if (result) unlockedAchievements.push(result);
           }

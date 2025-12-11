@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock, Loader2, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -74,6 +74,20 @@ export default function PracticePage() {
 
   const weekId = paramWeekId > 0 ? paramWeekId : (weeks?.[0]?.id || 0);
 
+  // Query practice status to check if already mastered
+  interface PracticeStatusResponse {
+    isUnlocked: boolean;
+    isMastered: boolean;
+    starsEarned: number;
+    lessonsCompleted: number;
+    totalLessons: number;
+  }
+
+  const { data: practiceStatus, isLoading: statusLoading } = useQuery<PracticeStatusResponse>({
+    queryKey: [`/api/study/practice/${weekId}/status`],
+    enabled: !!user && weekId > 0,
+  });
+
   const startPracticeMutation = useMutation({
     mutationFn: async () => {
       if (weekId === 0) throw new Error("Semana nao encontrada");
@@ -104,6 +118,10 @@ export default function PracticePage() {
     onSuccess: (data) => {
       setResult(data);
       setIsFinished(true);
+      // Invalidate practice status and study data to auto-refresh frontend
+      queryClient.invalidateQueries({ queryKey: [`/api/study/practice/${weekId}/status`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     }
   });
 
@@ -193,11 +211,84 @@ export default function PracticePage() {
     );
   }
 
-  if (weeksLoading || (paramWeekId === 0 && weekId === 0)) {
+  if (weeksLoading || statusLoading || (paramWeekId === 0 && weekId === 0)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  // Show "already completed" screen if practice is already mastered (3 stars)
+  if (practiceStatus?.isMastered && !isStarted && !isFinished) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-50 flex items-center gap-3 p-4 border-b bg-background">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation('/study')}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="font-bold text-lg">Pratique</h1>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mb-6 shadow-xl"
+          >
+            <Crown className="h-12 w-12 text-white" />
+          </motion.div>
+
+          <div className="flex gap-1 mb-4">
+            {[1, 2, 3].map((star) => (
+              <motion.div
+                key={star}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: star * 0.2, type: "spring", stiffness: 200 }}
+              >
+                <Star className="h-10 w-10 text-yellow-400 fill-yellow-400 drop-shadow-lg" />
+              </motion.div>
+            ))}
+          </div>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="text-2xl font-bold mb-2"
+          >
+            Voce ja dominou esta semana!
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="text-muted-foreground mb-6 max-w-xs"
+          >
+            Parabens! Voce completou o Pratique com 3 estrelas. Continue estudando as proximas semanas!
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2 }}
+          >
+            <Button
+              size="lg"
+              onClick={() => setLocation('/study')}
+              data-testid="button-back-study"
+            >
+              Voltar ao Estudo
+            </Button>
+          </motion.div>
+        </div>
       </div>
     );
   }

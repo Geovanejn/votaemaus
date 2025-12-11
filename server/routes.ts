@@ -1734,12 +1734,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await storage.readVerseAndRecoverHeart(req.user.id, verseId);
+      
+      // Check for achievements after reading verse
+      const totalVersesRead = await storage.getTotalVersesReadByUser(req.user.id);
+      let unlockedAchievements = await storage.checkAndUnlockAchievements(req.user.id, { 
+        event: 'verse_read', 
+        value: totalVersesRead 
+      });
+      
+      // If heart was recovered and user now has full hearts, check for comeback_kid achievement
+      // Note: result.profile is the updated profile after heart recovery
+      const updatedProfile = await storage.getStudyProfile(req.user.id);
+      if (result.heartRecovered && updatedProfile && updatedProfile.hearts === updatedProfile.heartsMax) {
+        const comebackAchievements = await storage.checkAndUnlockAchievements(req.user.id, { 
+          event: 'hearts_recovered' 
+        });
+        unlockedAchievements = [...unlockedAchievements, ...comebackAchievements];
+      }
+      
+      // Return the updated profile for consistent UI state
+      const finalProfile = updatedProfile || result.profile;
       res.json({ 
         verse, 
-        profile: result.profile, 
+        profile: finalProfile, 
         heartRecovered: result.heartRecovered,
         versesRead: result.versesRead,
-        versesNeeded: result.versesNeeded
+        versesNeeded: result.versesNeeded,
+        unlockedAchievements: unlockedAchievements.map(ua => ua.achievement)
       });
     } catch (error) {
       console.error("Read verse error:", error);
@@ -2663,6 +2684,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Generate practice questions for the week immediately after creation
+      try {
+        console.log(`[Week Creation] Generating practice questions for week ${week.id}...`);
+        await storage.generatePracticeQuestionsFromAI(week.id);
+        console.log(`[Week Creation] Practice questions generated successfully for week ${week.id}`);
+      } catch (practiceError) {
+        console.error(`[Week Creation] Failed to generate practice questions for week ${week.id}:`, practiceError);
+        // Don't fail the entire week creation if practice questions fail
+      }
+
       res.json({
         message: "Semana criada com sucesso usando IA a partir do PDF",
         week,
@@ -2859,6 +2890,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           totalUnits++;
         }
+      }
+
+      // Generate practice questions for the week immediately after creation
+      try {
+        console.log(`[Week Creation] Generating practice questions for week ${week.id}...`);
+        await storage.generatePracticeQuestionsFromAI(week.id);
+        console.log(`[Week Creation] Practice questions generated successfully for week ${week.id}`);
+      } catch (practiceError) {
+        console.error(`[Week Creation] Failed to generate practice questions for week ${week.id}:`, practiceError);
+        // Don't fail the entire week creation if practice questions fail
       }
 
       res.json({

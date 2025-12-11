@@ -102,6 +102,11 @@ npm run db:push  # Sincronizar esquema do banco
 - Localizacoes agora sao exibidas como links clicaveis que abrem no Google Maps
 - Atualizado footer, pagina Quem Somos e Agenda para usar os novos componentes
 
+### 11/12/2025 - Correcoes DeoGlory Study
+- **Pratique Unlock**: Cache do practiceStatus agora e invalidado apos completar licao, garantindo desbloqueio imediato
+- **Fill-blank Cleanup**: Removidas reticencias e underscores extras das questoes de lacunas (cleanTrailingDots)
+- **Markdown Formatting**: FormattedText agora limpa caracteres de escape (\\n, \\*, \\_) antes de renderizar com ReactMarkdown
+
 ### 10/12/2025 - DeoGlory Study System Fixes
 - **Crystal Display**: Adicionado componente CrystalDisplay.tsx para mostrar saldo de cristais no frontend
 - **StudyHeader**: Atualizado para incluir exibicao de cristais junto com coracoes

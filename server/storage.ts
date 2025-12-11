@@ -3950,15 +3950,19 @@ export class DatabaseStorage implements IStorage {
     if (!week) return [];
 
     const lessons = await this.getLessonsForWeek(weekId);
-    const existingQuestions: any[] = [];
     
+    // Collect existing questions from lessons to avoid duplicates
+    const existingQuestionTexts: string[] = [];
     for (const lesson of lessons) {
       const units = await this.getUnitsByLessonId(lesson.id);
       for (const unit of units) {
         if (['multiple_choice', 'true_false', 'fill_blank'].includes(unit.type)) {
           try {
             const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
-            existingQuestions.push({ type: unit.type, content });
+            const questionText = content.question || content.statement || '';
+            if (questionText) {
+              existingQuestionTexts.push(questionText);
+            }
           } catch (e) {
             console.error('Error parsing unit content:', e);
           }
@@ -3968,6 +3972,48 @@ export class DatabaseStorage implements IStorage {
 
     await this.deletePracticeQuestionsForWeek(weekId);
 
+    // Import and use the new AI function to generate unique questions
+    const { generateUniquePracticeQuestions, randomizeMultipleChoiceAnswer } = await import('./ai');
+    
+    try {
+      const aiQuestions = await generateUniquePracticeQuestions(
+        week.title,
+        week.description || '',
+        existingQuestionTexts
+      );
+      
+      const practiceQuestions: schema.PracticeQuestion[] = [];
+      
+      for (let i = 0; i < aiQuestions.length && i < 10; i++) {
+        const q = aiQuestions[i];
+        try {
+          // Randomize multiple choice answers for extra variety
+          let content = q.content;
+          if (q.type === 'multiple_choice') {
+            content = randomizeMultipleChoiceAnswer(content);
+          }
+          
+          const question = await this.createPracticeQuestion({
+            weekId,
+            type: q.type,
+            content: JSON.stringify(content),
+            orderIndex: i,
+          });
+          practiceQuestions.push(question);
+        } catch (e) {
+          console.error('Error creating practice question:', e);
+        }
+      }
+      
+      return practiceQuestions;
+    } catch (error) {
+      console.error('Error generating AI practice questions:', error);
+      // Fallback: use existing questions from lessons if AI fails
+      return this.generatePracticeQuestionsFromLessons(weekId, lessons);
+    }
+  }
+  
+  private async generatePracticeQuestionsFromLessons(weekId: number, lessons: schema.StudyLesson[]): Promise<schema.PracticeQuestion[]> {
     const practiceQuestions: schema.PracticeQuestion[] = [];
     const usedQuestions = new Set<string>();
     let orderIndex = 0;
@@ -3995,11 +4041,17 @@ export class DatabaseStorage implements IStorage {
       usedQuestions.add(key);
       
       try {
-        const content = typeof randomUnit.content === 'string' ? randomUnit.content : JSON.stringify(randomUnit.content);
+        // Randomize the answer position for multiple choice
+        let content = typeof randomUnit.content === 'string' ? JSON.parse(randomUnit.content) : randomUnit.content;
+        if (randomUnit.type === 'multiple_choice') {
+          const { randomizeMultipleChoiceAnswer } = await import('./ai');
+          content = randomizeMultipleChoiceAnswer(content);
+        }
+        
         const question = await this.createPracticeQuestion({
           weekId,
           type: randomUnit.type,
-          content,
+          content: JSON.stringify(content),
           orderIndex: practiceQuestions.length,
         });
         practiceQuestions.push(question);

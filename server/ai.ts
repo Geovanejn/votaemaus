@@ -380,6 +380,129 @@ Retorne APENAS o JSON, sem explicacoes adicionais.`;
   }
 }
 
+export interface PracticeQuestion {
+  type: "multiple_choice" | "true_false" | "fill_blank";
+  content: {
+    question?: string;
+    statement?: string;
+    options?: string[];
+    correctIndex?: number;
+    correctAnswer?: string;
+    isTrue?: boolean;
+    explanationCorrect?: string;
+    explanationIncorrect?: string;
+  };
+}
+
+// Helper function to shuffle array
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Helper function to randomize correct answer position in multiple choice
+export function randomizeMultipleChoiceAnswer(content: any): any {
+  if (!content.options || !Array.isArray(content.options) || content.options.length < 2) {
+    return content;
+  }
+  
+  const correctIndex = content.correctIndex || 0;
+  const correctAnswer = content.options[correctIndex];
+  
+  // Create shuffled options
+  const shuffledOptions = shuffleArray(content.options);
+  const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+  
+  return {
+    ...content,
+    options: shuffledOptions,
+    correctIndex: newCorrectIndex
+  };
+}
+
+export async function generateUniquePracticeQuestions(weekTitle: string, weekDescription: string, existingQuestions: string[]): Promise<PracticeQuestion[]> {
+  const systemPrompt = `Voce e um especialista em educacao crista. Crie perguntas de pratica UNICAS e DIFERENTES sobre o tema fornecido.
+Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
+IMPORTANTE: As perguntas devem ser COMPLETAMENTE DIFERENTES das perguntas existentes listadas.
+IMPORTANTE: Para perguntas de multipla escolha, VARIE a posicao da resposta correta entre A, B, C e D (nao coloque sempre na mesma posicao).`;
+
+  const existingQuestionsText = existingQuestions.length > 0 
+    ? `\n\nPERGUNTAS JA EXISTENTES (NAO repita estas, crie perguntas NOVAS e DIFERENTES):\n${existingQuestions.join('\n')}`
+    : '';
+
+  const userPrompt = `Crie 10 perguntas de pratica UNICAS sobre o tema: "${weekTitle}"
+Descricao do tema: ${weekDescription}
+${existingQuestionsText}
+
+Retorne um JSON com a estrutura:
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "content": {
+        "question": "Pergunta diferente das existentes",
+        "options": ["Opcao A", "Opcao B", "Opcao C", "Opcao D"],
+        "correctIndex": 0-3 (VARIE a posicao! Nao coloque sempre em 1),
+        "explanationCorrect": "Explicacao quando acertar",
+        "explanationIncorrect": "Explicacao quando errar"
+      }
+    },
+    {
+      "type": "true_false",
+      "content": {
+        "statement": "Afirmacao para julgar",
+        "isTrue": true ou false,
+        "explanationCorrect": "Explicacao",
+        "explanationIncorrect": "Explicacao"
+      }
+    },
+    {
+      "type": "fill_blank",
+      "content": {
+        "question": "Frase com ___ para completar",
+        "correctAnswer": "palavra",
+        "explanationCorrect": "Explicacao",
+        "explanationIncorrect": "Explicacao"
+      }
+    }
+  ]
+}
+
+REGRAS:
+1. Crie exatamente 10 perguntas
+2. Varie os tipos: 5 multiple_choice, 3 true_false, 2 fill_blank
+3. Para multiple_choice: DISTRIBUA as respostas corretas entre A, B, C e D (nao coloque todas como B!)
+4. As perguntas devem ser DIFERENTES das ja existentes
+5. Foque no conteudo do tema: ${weekTitle}
+
+Retorne APENAS o JSON, sem explicacoes adicionais.`;
+
+  try {
+    const content = await generateWithGemini(systemPrompt, userPrompt);
+    if (!content) {
+      throw new Error("Resposta vazia da IA");
+    }
+
+    const parsed = safeJsonParse(content);
+    const questions = parsed.questions || [];
+    
+    // Validate and clean each question, randomizing answer positions
+    return questions.map((q: any) => {
+      if (q.type === 'multiple_choice') {
+        q.content = randomizeMultipleChoiceAnswer(q.content);
+      }
+      return validateAndCleanUnit({ ...q, xpValue: 5 }, q.type);
+    }).slice(0, 10);
+  } catch (error) {
+    console.error("Erro ao gerar perguntas de pratica:", error);
+    throw new Error(`Falha ao gerar perguntas: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+  }
+}
+
 export async function generateReflectionQuestions(text: string, count: number = 3): Promise<string[]> {
   const systemPrompt = `Voce e um lider de jovens cristao. Crie perguntas de reflexao profundas baseadas no texto.
 Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.`;

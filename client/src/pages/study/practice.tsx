@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock, Loader2, Crown } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock, Loader2, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,6 +12,8 @@ import {
   TrueFalseExercise,
   FillBlankExercise,
 } from "@/components/study/ExerciseCard";
+import { useSounds } from "@/hooks/use-sounds";
+import { GoldenMasteryAnimation } from "@/components/study/GoldenMasteryAnimation";
 
 interface PracticeQuestion {
   id: number;
@@ -54,6 +56,7 @@ export default function PracticePage() {
   const paramWeekId = parseInt(params.weekId || "0");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { sounds } = useSounds();
   
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -66,6 +69,8 @@ export default function PracticePage() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [result, setResult] = useState<PracticeCompleteResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showGoldenAnimation, setShowGoldenAnimation] = useState(false);
+  const hasPlayedResultSoundRef = useRef(false);
 
   const { data: weeks, isLoading: weeksLoading } = useQuery<StudyWeek[]>({
     queryKey: ['/api/study/weeks'],
@@ -100,6 +105,7 @@ export default function PracticePage() {
       setIsStarted(true);
       setStartTime(Date.now());
       setError(null);
+      sounds.click();
     },
     onError: (err: any) => {
       if (err.message) {
@@ -107,6 +113,7 @@ export default function PracticePage() {
       } else {
         setError("Erro ao iniciar o Pratique");
       }
+      sounds.error();
     }
   });
 
@@ -118,7 +125,17 @@ export default function PracticePage() {
     onSuccess: (data) => {
       setResult(data);
       setIsFinished(true);
-      // Invalidate practice status and study data to auto-refresh frontend
+      hasPlayedResultSoundRef.current = false;
+      
+      if (data.starsEarned === 3 && data.isMastered) {
+        setShowGoldenAnimation(true);
+      } else if (data.starsEarned > 0) {
+        sounds.success();
+        for (let i = 0; i < data.starsEarned; i++) {
+          setTimeout(() => sounds.star(), 300 + i * 200);
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['/api/study/practice', weekId.toString(), 'status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
@@ -148,8 +165,11 @@ export default function PracticePage() {
     setShowFeedback(true);
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
+      sounds.practiceCorrect();
+    } else {
+      sounds.practiceError();
     }
-  }, []);
+  }, [sounds]);
 
   const handleContinue = useCallback(() => {
     setShowFeedback(false);
@@ -628,6 +648,12 @@ export default function PracticePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <GoldenMasteryAnimation
+        show={showGoldenAnimation}
+        starsEarned={result?.starsEarned || 0}
+        onClose={() => setShowGoldenAnimation(false)}
+      />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
 import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { MedalAchievementAnimation } from "@/components/study/MedalAchievementAnimation";
 
 interface UnitContent {
   title?: string;
@@ -166,7 +167,9 @@ export default function LessonPage() {
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
   
-  const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "complete">("none");
+  const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "achievement" | "complete">("none");
+  const [unlockedAchievementsList, setUnlockedAchievementsList] = useState<any[]>([]);
+  const [currentAchievementIndex, setCurrentAchievementIndex] = useState(0);
   const [streakAnimationData, setStreakAnimationData] = useState<{ previousStreak: number; newStreak: number } | null>(null);
   const [crystalAnimationData, setCrystalAnimationData] = useState<{ amount: number; reason: string } | null>(null);
   const previousStreakRef = useRef<number>(0);
@@ -237,6 +240,12 @@ export default function LessonPage() {
       const previousStreak = previousStreakRef.current;
       const streakIncreased = streakInfo && streakInfo.newStreak > previousStreak;
       const crystalsAwarded = streakInfo?.crystalsAwarded || 0;
+      const achievements = result.unlockedAchievements || [];
+      
+      if (achievements.length > 0) {
+        setUnlockedAchievementsList(achievements);
+        setCurrentAchievementIndex(0);
+      }
       
       if (streakIncreased) {
         setStreakAnimationData({
@@ -262,6 +271,8 @@ export default function LessonPage() {
           reason: reasons
         });
         setAnimationPhase("crystal");
+      } else if (achievements.length > 0) {
+        setAnimationPhase("achievement");
       } else {
         setAnimationPhase("complete");
       }

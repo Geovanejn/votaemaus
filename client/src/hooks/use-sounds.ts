@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss' | 'crystal';
+type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss' | 'crystal' | 'star' | 'mastery' | 'practiceCorrect' | 'practiceError' | 'medal' | 'goldenTransform';
 
 const SOUND_ENABLED_KEY = 'emaus-vota-sounds-enabled';
 
@@ -13,7 +13,13 @@ const frequencies: Record<SoundType, number[]> = {
   xp: [698.46, 880],
   streak: [440, 554.37, 659.25],
   heartLoss: [349.23, 261.63],
-  crystal: [659.25, 830.61, 987.77, 1318.51]
+  crystal: [659.25, 830.61, 987.77, 1318.51],
+  star: [587.33, 783.99, 987.77],
+  mastery: [523.25, 659.25, 783.99, 987.77, 1174.66, 1318.51],
+  practiceCorrect: [523.25, 783.99, 1046.50],
+  practiceError: [392, 293.66],
+  medal: [659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98],
+  goldenTransform: [392, 523.25, 659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98]
 };
 
 const durations: Record<SoundType, number> = {
@@ -25,7 +31,13 @@ const durations: Record<SoundType, number> = {
   xp: 0.1,
   streak: 0.12,
   heartLoss: 0.25,
-  crystal: 0.18
+  crystal: 0.18,
+  star: 0.15,
+  mastery: 0.25,
+  practiceCorrect: 0.12,
+  practiceError: 0.18,
+  medal: 0.3,
+  goldenTransform: 0.35
 };
 
 export function useSounds() {
@@ -111,7 +123,13 @@ export function useSounds() {
       xp: () => playSound('xp'),
       streak: () => playSound('streak'),
       heartLoss: () => playSound('heartLoss'),
-      crystal: () => playSound('crystal')
+      crystal: () => playSound('crystal'),
+      star: () => playSound('star'),
+      mastery: () => playSound('mastery'),
+      practiceCorrect: () => playSound('practiceCorrect'),
+      practiceError: () => playSound('practiceError'),
+      medal: () => playSound('medal'),
+      goldenTransform: () => playSound('goldenTransform')
     }
   };
 }

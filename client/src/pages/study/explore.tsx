@@ -361,30 +361,47 @@ export default function ExplorePage() {
       return res.json();
     },
     onMutate: async () => {
-      // Cancel any outgoing refetches
+      // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['/api/study/daily-verse/status'] });
+      await queryClient.cancelQueries({ queryKey: ['/api/study/weekly-goal'] });
       
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousStatus = queryClient.getQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status']);
+      const previousWeeklyGoal = queryClient.getQueryData<{ versesRead: number; versesGoal: number }>(['/api/study/weekly-goal']);
       
-      // Optimistically update to the new value
+      // Optimistically update the status
       queryClient.setQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status'], (old) => ({
         isRead: true,
         dateKey: old?.dateKey || new Date().toISOString().split('T')[0]
       }));
       
-      // Return a context object with the snapshotted value
-      return { previousStatus };
+      // Optimistically update the weekly goal
+      if (previousWeeklyGoal) {
+        queryClient.setQueryData<{ versesRead: number; versesGoal: number }>(['/api/study/weekly-goal'], {
+          ...previousWeeklyGoal,
+          versesRead: previousWeeklyGoal.versesRead + 1
+        });
+      }
+      
+      return { previousStatus, previousWeeklyGoal };
+    },
+    onSuccess: (data) => {
+      // On success, ensure the cache reflects the successful state
+      if (data?.success) {
+        queryClient.setQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status'], (old) => ({
+          isRead: true,
+          dateKey: old?.dateKey || new Date().toISOString().split('T')[0]
+        }));
+      }
     },
     onError: (_err, _variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
+      // If the mutation fails, roll back to the previous values
       if (context?.previousStatus) {
         queryClient.setQueryData(['/api/study/daily-verse/status'], context.previousStatus);
       }
-    },
-    onSettled: () => {
-      // Always refetch after error or success to sync with server
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+      if (context?.previousWeeklyGoal) {
+        queryClient.setQueryData(['/api/study/weekly-goal'], context.previousWeeklyGoal);
+      }
     }
   });
 

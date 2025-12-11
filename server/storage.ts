@@ -186,6 +186,7 @@ export interface IStorage {
   // Study Profile Methods
   getStudyProfile(userId: number): Promise<any | null>;
   getOrCreateStudyProfile(userId: number): Promise<any>;
+  updateStudyProfile(userId: number, data: Partial<{ dailyVerseReadDate: string }>): Promise<void>;
   getPublishedStudyWeeks(): Promise<any[]>;
   getLessonsWithProgress(userId: number, weekId: number): Promise<any[]>;
   getUserLessonProgress(userId: number, lessonId: number): Promise<any | null>;
@@ -1622,6 +1623,12 @@ export class DatabaseStorage implements IStorage {
       return newProfile;
     }
     return profile;
+  }
+
+  async updateStudyProfile(userId: number, data: Partial<{ dailyVerseReadDate: string }>): Promise<void> {
+    await db.update(schema.studyProfiles)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.studyProfiles.userId, userId));
   }
 
   async getPublishedStudyWeeks(): Promise<any[]> {

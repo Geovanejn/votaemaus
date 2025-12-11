@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { BookOpen, Heart, HelpCircle, Lock, Check, Dumbbell } from "lucide-react";
+import { BookOpen, Heart, HelpCircle, Lock, Check, Dumbbell, Star } from "lucide-react";
 
 export type LessonStatus = "completed" | "current" | "locked";
 export type StageStatus = "completed" | "current" | "locked";
@@ -27,11 +27,20 @@ export interface LessonItem {
   stages: StageItem[];
 }
 
+export interface PracticeStatus {
+  isUnlocked: boolean;
+  starsEarned: number;
+  isMastered: boolean;
+  lessonsCompleted: number;
+  totalLessons: number;
+}
+
 interface LearningPathProps {
   lessons: LessonItem[];
   onLessonClick?: (lessonId: number, stage?: StageType) => void;
   onPracticeClick?: () => void;
   showPractice?: boolean;
+  practiceStatus?: PracticeStatus;
 }
 
 const RAIL_WIDTH = 72;
@@ -228,34 +237,44 @@ function StageCard({
 function LessonHeader({ 
   lessonNumber, 
   title, 
-  status 
+  status,
+  isMastered = false
 }: { 
   lessonNumber: number; 
   title: string;
   status: LessonStatus;
+  isMastered?: boolean;
 }) {
   const isLocked = status === "locked";
+  const isCompleted = status === "completed";
+  const showGolden = isCompleted && isMastered;
   
   return (
     <div 
       className={cn(
-        "px-4 py-3 rounded-xl",
+        "px-4 py-3 rounded-xl relative overflow-hidden",
         isLocked 
           ? "bg-muted/50" 
-          : "bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
+          : showGolden
+            ? "bg-gradient-to-r from-[#FFD700] to-[#FFA500]"
+            : "bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
       )}
     >
-      <div className="flex items-center gap-2 flex-wrap">
+      {showGolden && (
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-200/20 via-yellow-100/30 to-yellow-200/20 animate-pulse" />
+      )}
+      <div className="flex items-center gap-2 flex-wrap relative z-10">
         <span className={cn(
           "text-xs font-bold uppercase tracking-wide",
           isLocked ? "text-muted-foreground/50" : "text-white/80"
         )}>
-          Lição {lessonNumber}
+          Licao {lessonNumber}
         </span>
         {isLocked && <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />}
+        {showGolden && <Star className="h-3.5 w-3.5 text-white fill-white" />}
       </div>
       <h3 className={cn(
-        "font-bold text-lg mt-0.5",
+        "font-bold text-lg mt-0.5 relative z-10",
         isLocked ? "text-muted-foreground/50" : "text-white"
       )}>
         {title}
@@ -268,12 +287,14 @@ function LessonGroup({
   lesson, 
   onStageClick,
   isFirstLesson,
-  isLastLesson
+  isLastLesson,
+  isMastered = false
 }: { 
   lesson: LessonItem; 
   onStageClick?: (lessonId: number, stage: StageType) => void;
   isFirstLesson: boolean;
   isLastLesson: boolean;
+  isMastered?: boolean;
 }) {
   const ICON_SIZE = 56;
   const ROW_HEIGHT = 88;
@@ -295,6 +316,7 @@ function LessonGroup({
           lessonNumber={lesson.lessonNumber} 
           title={lesson.subtitle || lesson.title}
           status={lesson.status}
+          isMastered={isMastered}
         />
       </div>
       
@@ -344,7 +366,23 @@ function LessonGroup({
   );
 }
 
-function PracticeRow({ onClick }: { onClick?: () => void }) {
+function PracticeRow({ 
+  onClick, 
+  practiceStatus 
+}: { 
+  onClick?: () => void;
+  practiceStatus?: PracticeStatus;
+}) {
+  const isLocked = !practiceStatus?.isUnlocked;
+  const starsEarned = practiceStatus?.starsEarned || 0;
+  const isMastered = practiceStatus?.isMastered || false;
+  const lessonsCompleted = practiceStatus?.lessonsCompleted || 0;
+  const totalLessons = practiceStatus?.totalLessons || 0;
+
+  const bgColor = isLocked ? "#E5E5E5" : isMastered ? "#FFD700" : "#1CB0F6";
+  const shadowColor = isLocked ? "#CECECE" : isMastered ? "#DAA520" : "#1899D6";
+  const textColor = isLocked ? "text-muted-foreground/50" : "text-white";
+
   return (
     <div 
       className="flex items-center gap-4 mt-6"
@@ -354,27 +392,69 @@ function PracticeRow({ onClick }: { onClick?: () => void }) {
         style={{ width: RAIL_WIDTH }}
       >
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onClick}
-          className="relative z-10 w-14 h-14 rounded-2xl bg-[#1CB0F6] flex items-center justify-center cursor-pointer"
-          style={{ boxShadow: "0 5px 0 0 #1899D6" }}
+          whileHover={!isLocked ? { scale: 1.05 } : undefined}
+          whileTap={!isLocked ? { scale: 0.95 } : undefined}
+          onClick={!isLocked ? onClick : undefined}
+          disabled={isLocked}
+          className={cn(
+            "relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center",
+            !isLocked && "cursor-pointer"
+          )}
+          style={{ 
+            backgroundColor: bgColor,
+            boxShadow: `0 5px 0 0 ${shadowColor}` 
+          }}
           data-testid="practice-icon"
         >
-          <Dumbbell className="h-6 w-6 text-white" />
+          {isLocked ? (
+            <Lock className="h-6 w-6 text-muted-foreground/50" />
+          ) : (
+            <Dumbbell className="h-6 w-6 text-white" />
+          )}
         </motion.button>
       </div>
       
       <motion.button
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        onClick={onClick}
-        className="flex-1 p-4 rounded-xl bg-[#1CB0F6] text-white text-left"
-        style={{ boxShadow: "0 5px 0 0 #1899D6" }}
+        whileHover={!isLocked ? { scale: 1.01 } : undefined}
+        whileTap={!isLocked ? { scale: 0.99 } : undefined}
+        onClick={!isLocked ? onClick : undefined}
+        disabled={isLocked}
+        className={cn(
+          "flex-1 p-4 rounded-xl text-left",
+          isLocked ? "cursor-not-allowed" : "cursor-pointer"
+        )}
+        style={{ 
+          backgroundColor: bgColor,
+          boxShadow: `0 5px 0 0 ${shadowColor}` 
+        }}
         data-testid="practice-card"
       >
-        <h3 className="font-bold text-base">Prática</h3>
-        <p className="text-sm text-white/80 mt-0.5">Revise suas lições anteriores</p>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className={cn("font-bold text-base", textColor)}>Pratique</h3>
+          {starsEarned > 0 && (
+            <div className="flex gap-0.5">
+              {[1, 2, 3].map((star) => (
+                <Star
+                  key={star}
+                  className={cn(
+                    "h-4 w-4",
+                    star <= starsEarned
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-white/30"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <p className={cn("text-sm mt-0.5", isLocked ? "text-muted-foreground/40" : "text-white/80")}>
+          {isLocked 
+            ? `Complete ${totalLessons - lessonsCompleted} licoes para desbloquear`
+            : isMastered 
+              ? "Voce dominou esta semana!"
+              : "Teste seus conhecimentos"
+          }
+        </p>
       </motion.button>
     </div>
   );
@@ -384,10 +464,9 @@ export function LearningPath({
   lessons, 
   onLessonClick, 
   onPracticeClick,
-  showPractice = true 
+  showPractice = true,
+  practiceStatus
 }: LearningPathProps) {
-  const allLessonsCompleted = lessons.length > 0 && lessons.every(l => l.status === "completed");
-
   const handleStageClick = (lessonId: number, stage: StageType) => {
     onLessonClick?.(lessonId, stage);
   };
@@ -406,13 +485,14 @@ export function LearningPath({
                 onStageClick={handleStageClick}
                 isFirstLesson={index === 0}
                 isLastLesson={index === lessons.length - 1}
+                isMastered={practiceStatus?.isMastered || false}
               />
             ))}
           </div>
         </div>
         
-        {showPractice && allLessonsCompleted && (
-          <PracticeRow onClick={onPracticeClick} />
+        {showPractice && lessons.length > 0 && (
+          <PracticeRow onClick={onPracticeClick} practiceStatus={practiceStatus} />
         )}
       </div>
     </div>

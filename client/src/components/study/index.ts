@@ -31,5 +31,5 @@ export { WeeklyGoalsWidget } from "./weekly-goals-widget";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { UnitStatus } from "./UnitCard";
-export type { LessonItem, StageType, StageItem, QuestionResult } from "./LearningPath";
+export type { LessonItem, StageType, StageItem, QuestionResult, PracticeStatus } from "./LearningPath";
 export type { StudySection } from "./StudyContent";

@@ -159,6 +159,7 @@ function Router() {
           <Route path="/study/season/:id" component={SeasonDetailPage} />
           <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
           <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
+          <Route path="/study/practice/:weekId" component={PracticePage} />
           <Route path="/study/practice" component={PracticePage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
@@ -199,6 +200,7 @@ function Router() {
         <Route path="/study/season/:id" component={SeasonDetailPage} />
         <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
         <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
+        <Route path="/study/practice/:weekId" component={PracticePage} />
         <Route path="/study/practice" component={PracticePage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

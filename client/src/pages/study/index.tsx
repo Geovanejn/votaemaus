@@ -8,7 +8,7 @@ import {
   useCelebration,
   WeeklyGoalsWidget
 } from "@/components/study";
-import type { LessonItem, StageType, StageItem, QuestionResult } from "@/components/study";
+import type { LessonItem, StageType, StageItem, QuestionResult, PracticeStatus } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
@@ -302,6 +302,11 @@ export default function StudyHomePage() {
     enabled: isAuthenticated && !!currentWeek?.id,
   });
 
+  const { data: practiceStatusData } = useQuery<PracticeStatus>({
+    queryKey: ['/api/study/practice', currentWeek?.id?.toString(), 'status'],
+    enabled: isAuthenticated && !!currentWeek?.id,
+  });
+
   const isLoading = authLoading || profileLoading || weeksLoading || lessonsLoading;
   const hasError = profileError || weeksError || lessonsError;
 
@@ -462,8 +467,9 @@ export default function StudyHomePage() {
         <LearningPath 
           lessons={lessons}
           onLessonClick={handleLessonClick}
-          onPracticeClick={() => setLocation('/study/practice')}
-          showPractice={lessonsCompleted > 0}
+          onPracticeClick={() => currentWeek && setLocation(`/study/practice/${currentWeek.id}`)}
+          showPractice={true}
+          practiceStatus={practiceStatusData}
         />
       ) : (
         <EmptyState />

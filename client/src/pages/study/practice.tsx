@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Star, Trophy, Clock, Lock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -42,9 +42,16 @@ interface PracticeCompleteResponse {
   isMastered: boolean;
 }
 
+interface StudyWeek {
+  id: number;
+  weekNumber: number;
+  year: number;
+  title: string;
+}
+
 export default function PracticePage() {
   const params = useParams<{ weekId: string }>();
-  const weekId = parseInt(params.weekId || "0");
+  const paramWeekId = parseInt(params.weekId || "0");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   
@@ -60,8 +67,16 @@ export default function PracticePage() {
   const [result, setResult] = useState<PracticeCompleteResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const { data: weeks, isLoading: weeksLoading } = useQuery<StudyWeek[]>({
+    queryKey: ['/api/study/weeks'],
+    enabled: !!user && paramWeekId === 0,
+  });
+
+  const weekId = paramWeekId > 0 ? paramWeekId : (weeks?.[0]?.id || 0);
+
   const startPracticeMutation = useMutation({
     mutationFn: async () => {
+      if (weekId === 0) throw new Error("Semana nao encontrada");
       const response = await apiRequest("POST", `/api/study/practice/${weekId}/start`);
       return response.json() as Promise<PracticeStartResponse>;
     },
@@ -174,6 +189,15 @@ export default function PracticePage() {
         <Button onClick={() => setLocation("/login")} className="mt-4" data-testid="button-login">
           Fazer Login
         </Button>
+      </div>
+    );
+  }
+
+  if (weeksLoading || (paramWeekId === 0 && weekId === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }

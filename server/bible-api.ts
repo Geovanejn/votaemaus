@@ -211,6 +211,25 @@ const bookNames: Record<string, string> = {
   ap: "Apocalipse",
 };
 
+// Fallback verses for when the API is unavailable
+const fallbackVerses: Array<{ text: string; book: string; chapter: number; verse: number }> = [
+  { text: "O Senhor é o meu pastor; nada me faltará.", book: "sl", chapter: 23, verse: 1 },
+  { text: "Ainda que eu ande pelo vale da sombra da morte, não temerei mal algum, porque tu estás comigo.", book: "sl", chapter: 23, verse: 4 },
+  { text: "Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.", book: "sl", chapter: 46, verse: 1 },
+  { text: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.", book: "pv", chapter: 3, verse: 5 },
+  { text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", book: "jo", chapter: 3, verse: 16 },
+  { text: "E conhecereis a verdade, e a verdade vos libertará.", book: "jo", chapter: 8, verse: 32 },
+  { text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.", book: "is", chapter: 41, verse: 10 },
+  { text: "Eu é que sei os planos que tenho para vocês, diz o Senhor, planos de fazê-los prosperar e não de causar dano, planos de dar a vocês esperança e um futuro.", book: "jr", chapter: 29, verse: 11 },
+  { text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", book: "mt", chapter: 11, verse: 28 },
+  { text: "Sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus.", book: "rm", chapter: 8, verse: 28 },
+  { text: "Tudo posso naquele que me fortalece.", book: "fp", chapter: 4, verse: 13 },
+  { text: "Não andeis ansiosos de coisa alguma; em tudo, porém, sejam conhecidas, diante de Deus, as vossas petições, pela oração e pela súplica, com ações de graças.", book: "fp", chapter: 4, verse: 6 },
+  { text: "A paz de Deus, que excede todo entendimento, guardará os vossos corações e as vossas mentes em Cristo Jesus.", book: "fp", chapter: 4, verse: 7 },
+  { text: "Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.", book: "1pe", chapter: 5, verse: 7 },
+  { text: "Ora, a fé é a certeza de coisas que se esperam, a convicção de fatos que se não veem.", book: "hb", chapter: 11, verse: 1 },
+];
+
 const reflections: Record<string, string> = {
   sl_23_1: "Deus cuida de nós como um pastor cuida de suas ovelhas, suprindo todas as nossas necessidades.",
   sl_23_4: "Mesmo nos momentos mais difíceis, Deus está conosco e nos protege.",
@@ -288,6 +307,18 @@ async function fetchRandomVerse(): Promise<BibleVerse | null> {
   }
 }
 
+function getLocalFallbackVerse(): { verse: string; reference: string } {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+  const verseIndex = dayOfYear % fallbackVerses.length;
+  const fallback = fallbackVerses[verseIndex];
+  const bookName = bookNames[fallback.book] || fallback.book;
+  return {
+    verse: fallback.text,
+    reference: `${bookName} ${fallback.chapter}:${fallback.verse} (ARA)`
+  };
+}
+
 export async function getDailyVerse(): Promise<{ verse: string; reference: string } | null> {
   try {
     const today = new Date();
@@ -306,7 +337,9 @@ export async function getDailyVerse(): Promise<{ verse: string; reference: strin
           reference: `${bookName} ${chapterNum}:${randomVerse.number} (ARA)`
         };
       }
-      return null;
+      // Use local fallback when external API is unavailable
+      console.log("[BibleAPI] Using local fallback verse");
+      return getLocalFallbackVerse();
     }
     
     const bookName = bookNames[ref.book] || verseData.book?.name || ref.book;
@@ -316,7 +349,8 @@ export async function getDailyVerse(): Promise<{ verse: string; reference: strin
     };
   } catch (error) {
     console.error("[BibleAPI] Error getting daily verse:", error);
-    return null;
+    // Use local fallback on any error
+    return getLocalFallbackVerse();
   }
 }
 

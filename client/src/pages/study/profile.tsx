@@ -387,17 +387,90 @@ export default function ProfilePage() {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.55 }}
+        >
+          <h2 className="text-xl font-black text-foreground mb-3">Recorde de Ofensiva</h2>
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
+                  <Flame className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <p className="text-3xl font-black text-foreground">{profile?.longestStreak || 0}</p>
+                  <p className="text-sm text-muted-foreground">dias de recorde</p>
+                </div>
+              </div>
+              {(profile?.currentStreak || 0) > 0 && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Atual</p>
+                  <p className="text-xl font-bold text-orange-500">{profile?.currentStreak} dias</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="border-t border-border pt-4">
+              <p className="text-xs text-muted-foreground mb-3 font-medium">MEDALHAS DE OFENSIVA</p>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {[
+                  { days: 7, icon: "flame", label: "Semana", color: "from-amber-400 to-amber-500" },
+                  { days: 14, icon: "flame", label: "Quinzena", color: "from-orange-400 to-orange-500" },
+                  { days: 30, icon: "flame", label: "Mes", color: "from-orange-500 to-red-500" },
+                  { days: 60, icon: "crown", label: "Lenda", color: "from-red-500 to-red-600" },
+                  { days: 90, icon: "crown", label: "Trimestre", color: "from-purple-500 to-purple-600" },
+                  { days: 180, icon: "crown", label: "Semestre", color: "from-indigo-500 to-indigo-600" },
+                  { days: 365, icon: "sparkles", label: "Ano", color: "from-cyan-500 to-blue-500" },
+                ].map((milestone) => {
+                  const unlocked = (profile?.longestStreak || 0) >= milestone.days;
+                  return (
+                    <div
+                      key={milestone.days}
+                      className={cn(
+                        "flex-shrink-0 flex flex-col items-center p-2 rounded-lg w-16",
+                        unlocked 
+                          ? `bg-gradient-to-b ${milestone.color} shadow-md` 
+                          : "bg-muted/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center mb-1",
+                        unlocked ? "bg-white/20" : "bg-muted"
+                      )}>
+                        {milestone.icon === "crown" ? (
+                          <Crown className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
+                        ) : milestone.icon === "sparkles" ? (
+                          <Star className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
+                        ) : (
+                          <Flame className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold",
+                        unlocked ? "text-white" : "text-muted-foreground/50"
+                      )}>
+                        {milestone.days}
+                      </span>
+                      <span className={cn(
+                        "text-[8px]",
+                        unlocked ? "text-white/80" : "text-muted-foreground/40"
+                      )}>
+                        {milestone.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
           <h2 className="text-xl font-black text-foreground mb-3">Estatisticas</h2>
           <Card className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-orange-500" />
-                <span className="text-muted-foreground">Maior sequencia</span>
-              </div>
-              <span className="font-bold">{profile?.longestStreak || 0} dias</span>
-            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Heart className="h-5 w-5 text-red-500" />

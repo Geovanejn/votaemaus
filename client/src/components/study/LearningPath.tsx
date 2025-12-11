@@ -386,7 +386,7 @@ export function LearningPath({
   onPracticeClick,
   showPractice = true 
 }: LearningPathProps) {
-  const hasCompletedLessons = lessons.some(l => l.status === "completed");
+  const allLessonsCompleted = lessons.length > 0 && lessons.every(l => l.status === "completed");
 
   const handleStageClick = (lessonId: number, stage: StageType) => {
     onLessonClick?.(lessonId, stage);
@@ -411,7 +411,7 @@ export function LearningPath({
           </div>
         </div>
         
-        {showPractice && hasCompletedLessons && (
+        {showPractice && allLessonsCompleted && (
           <PracticeRow onClick={onPracticeClick} />
         )}
       </div>

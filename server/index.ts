@@ -41,28 +41,65 @@ async function seedAchievementsAndVerses() {
     if (existingAchievements.length === 0) {
       console.log("[Seed] Criando conquistas iniciais...");
       const achievements = [
+        // LICOES (12 conquistas)
         { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "trophy", xpReward: 50, category: "lessons", requirement: JSON.stringify({ lessons: 1 }) },
+        { code: "lessons_3", name: "Comecando Bem", description: "Complete 3 licoes", icon: "book", xpReward: 40, category: "lessons", requirement: JSON.stringify({ lessons: 3 }) },
         { code: "lessons_5", name: "Estudante Dedicado", description: "Complete 5 licoes", icon: "book-open", xpReward: 75, category: "lessons", requirement: JSON.stringify({ lessons: 5 }) },
         { code: "lessons_10", name: "Discipulo Fiel", description: "Complete 10 licoes", icon: "book-marked", xpReward: 150, category: "lessons", requirement: JSON.stringify({ lessons: 10 }) },
+        { code: "lessons_15", name: "Estudioso", description: "Complete 15 licoes", icon: "bookmark", xpReward: 200, category: "lessons", requirement: JSON.stringify({ lessons: 15 }) },
         { code: "lessons_25", name: "Mestre da Palavra", description: "Complete 25 licoes", icon: "graduation-cap", xpReward: 300, category: "lessons", requirement: JSON.stringify({ lessons: 25 }) },
+        { code: "lessons_50", name: "Erudito Biblico", description: "Complete 50 licoes", icon: "library", xpReward: 500, category: "lessons", requirement: JSON.stringify({ lessons: 50 }) },
+        { code: "lessons_75", name: "Teologo", description: "Complete 75 licoes", icon: "scroll", xpReward: 750, category: "lessons", requirement: JSON.stringify({ lessons: 75 }) },
+        { code: "lessons_100", name: "Centuriao da Palavra", description: "Complete 100 licoes", icon: "shield", xpReward: 1000, category: "lessons", requirement: JSON.stringify({ lessons: 100 }) },
+        { code: "lessons_150", name: "Apostolo do Estudo", description: "Complete 150 licoes", icon: "crown", xpReward: 1500, category: "lessons", requirement: JSON.stringify({ lessons: 150 }) },
+        { code: "lessons_200", name: "Doutor das Escrituras", description: "Complete 200 licoes", icon: "sparkles", xpReward: 2000, category: "lessons", requirement: JSON.stringify({ lessons: 200 }) },
+        { code: "lessons_365", name: "Um Ano de Estudos", description: "Complete 365 licoes", icon: "calendar", xpReward: 3650, category: "lessons", requirement: JSON.stringify({ lessons: 365 }) },
+        
+        // OFENSIVA/STREAK (15 conquistas)
         { code: "streak_3", name: "Constante", description: "Mantenha uma sequencia de 3 dias", icon: "flame", xpReward: 30, category: "streak", requirement: JSON.stringify({ streak: 3 }) },
+        { code: "streak_5", name: "Comprometido", description: "Mantenha uma sequencia de 5 dias", icon: "flame", xpReward: 50, category: "streak", requirement: JSON.stringify({ streak: 5 }) },
         { code: "streak_7", name: "Dedicado", description: "Mantenha uma sequencia de 7 dias", icon: "flame", xpReward: 100, category: "streak", requirement: JSON.stringify({ streak: 7 }) },
         { code: "streak_14", name: "Perseverante", description: "Mantenha uma sequencia de 14 dias", icon: "flame", xpReward: 200, category: "streak", requirement: JSON.stringify({ streak: 14 }) },
+        { code: "streak_21", name: "Formador de Habito", description: "Mantenha uma sequencia de 21 dias", icon: "flame", xpReward: 300, category: "streak", requirement: JSON.stringify({ streak: 21 }) },
         { code: "streak_30", name: "Imbativel", description: "Mantenha uma sequencia de 30 dias", icon: "flame", xpReward: 500, category: "streak", requirement: JSON.stringify({ streak: 30 }) },
+        { code: "streak_45", name: "Quarentena Espiritual", description: "Mantenha uma sequencia de 45 dias", icon: "flame", xpReward: 700, category: "streak", requirement: JSON.stringify({ streak: 45 }) },
         { code: "streak_60", name: "Lenda Viva", description: "Mantenha uma sequencia de 60 dias", icon: "crown", xpReward: 1000, category: "streak", requirement: JSON.stringify({ streak: 60 }) },
+        { code: "streak_90", name: "Trimestre de Fe", description: "Mantenha uma sequencia de 90 dias", icon: "crown", xpReward: 1500, category: "streak", requirement: JSON.stringify({ streak: 90 }) },
+        { code: "streak_120", name: "Fidelidade Inabalavel", description: "Mantenha uma sequencia de 120 dias", icon: "crown", xpReward: 2000, category: "streak", requirement: JSON.stringify({ streak: 120 }) },
+        { code: "streak_150", name: "Semestre de Dedicacao", description: "Mantenha uma sequencia de 150 dias", icon: "crown", xpReward: 2500, category: "streak", requirement: JSON.stringify({ streak: 150 }) },
+        { code: "streak_180", name: "Meio Ano Invicto", description: "Mantenha uma sequencia de 180 dias", icon: "crown", xpReward: 3000, category: "streak", requirement: JSON.stringify({ streak: 180 }) },
+        { code: "streak_270", name: "Tres Quartos do Ano", description: "Mantenha uma sequencia de 270 dias", icon: "crown", xpReward: 4000, category: "streak", requirement: JSON.stringify({ streak: 270 }) },
+        { code: "streak_365", name: "Um Ano Perfeito", description: "Mantenha uma sequencia de 365 dias", icon: "crown", xpReward: 5000, category: "streak", requirement: JSON.stringify({ streak: 365 }) },
+        { code: "streak_500", name: "Guerreiro da Fe", description: "Mantenha uma sequencia de 500 dias", icon: "sword", xpReward: 7500, category: "streak", requirement: JSON.stringify({ streak: 500 }) },
+        
+        // XP (10 conquistas)
         { code: "xp_100", name: "Iniciante", description: "Alcance 100 XP", icon: "zap", xpReward: 25, category: "xp", requirement: JSON.stringify({ xp: 100 }) },
+        { code: "xp_250", name: "Em Crescimento", description: "Alcance 250 XP", icon: "zap", xpReward: 35, category: "xp", requirement: JSON.stringify({ xp: 250 }) },
         { code: "xp_500", name: "Intermediario", description: "Alcance 500 XP", icon: "zap", xpReward: 50, category: "xp", requirement: JSON.stringify({ xp: 500 }) },
         { code: "xp_1000", name: "Avancado", description: "Alcance 1000 XP", icon: "trending-up", xpReward: 100, category: "xp", requirement: JSON.stringify({ xp: 1000 }) },
+        { code: "xp_2500", name: "Experiente", description: "Alcance 2500 XP", icon: "trending-up", xpReward: 150, category: "xp", requirement: JSON.stringify({ xp: 2500 }) },
         { code: "xp_5000", name: "Expert", description: "Alcance 5000 XP", icon: "star", xpReward: 250, category: "xp", requirement: JSON.stringify({ xp: 5000 }) },
-        { code: "level_5", name: "Aprendiz", description: "Alcance o nivel 5", icon: "award", xpReward: 100, category: "xp", requirement: JSON.stringify({ level: 5 }) },
-        { code: "level_10", name: "Estudante", description: "Alcance o nivel 10", icon: "award", xpReward: 200, category: "xp", requirement: JSON.stringify({ level: 10 }) },
-        { code: "level_25", name: "Mestre", description: "Alcance o nivel 25", icon: "crown", xpReward: 500, category: "xp", requirement: JSON.stringify({ level: 25 }) },
+        { code: "xp_10000", name: "Mestre XP", description: "Alcance 10000 XP", icon: "star", xpReward: 500, category: "xp", requirement: JSON.stringify({ xp: 10000 }) },
+        { code: "xp_25000", name: "Grande Mestre", description: "Alcance 25000 XP", icon: "crown", xpReward: 1000, category: "xp", requirement: JSON.stringify({ xp: 25000 }) },
+        { code: "xp_50000", name: "Lendario", description: "Alcance 50000 XP", icon: "crown", xpReward: 2000, category: "xp", requirement: JSON.stringify({ xp: 50000 }) },
+        { code: "xp_100000", name: "Mitico", description: "Alcance 100000 XP", icon: "sparkles", xpReward: 5000, category: "xp", requirement: JSON.stringify({ xp: 100000 }) },
+        
+        // NIVEIS (8 conquistas)
+        { code: "level_3", name: "Novico", description: "Alcance o nivel 3", icon: "award", xpReward: 50, category: "level", requirement: JSON.stringify({ level: 3 }) },
+        { code: "level_5", name: "Aprendiz", description: "Alcance o nivel 5", icon: "award", xpReward: 100, category: "level", requirement: JSON.stringify({ level: 5 }) },
+        { code: "level_10", name: "Estudante", description: "Alcance o nivel 10", icon: "award", xpReward: 200, category: "level", requirement: JSON.stringify({ level: 10 }) },
+        { code: "level_15", name: "Discipulo", description: "Alcance o nivel 15", icon: "award", xpReward: 300, category: "level", requirement: JSON.stringify({ level: 15 }) },
+        { code: "level_20", name: "Pregador", description: "Alcance o nivel 20", icon: "award", xpReward: 400, category: "level", requirement: JSON.stringify({ level: 20 }) },
+        { code: "level_25", name: "Mestre", description: "Alcance o nivel 25", icon: "crown", xpReward: 500, category: "level", requirement: JSON.stringify({ level: 25 }) },
+        { code: "level_50", name: "Sabio", description: "Alcance o nivel 50", icon: "crown", xpReward: 1000, category: "level", requirement: JSON.stringify({ level: 50 }) },
+        { code: "level_100", name: "Patriarca", description: "Alcance o nivel 100", icon: "sparkles", xpReward: 2500, category: "level", requirement: JSON.stringify({ level: 100 }) },
+        
+        // ESPECIAIS (5 conquistas)
         { code: "perfect_lesson", name: "Perfeito!", description: "Complete uma licao sem erros", icon: "star", xpReward: 25, category: "special", isSecret: false },
         { code: "early_bird", name: "Madrugador", description: "Estude antes das 7h da manha", icon: "sunrise", xpReward: 30, category: "special", isSecret: false },
         { code: "night_owl", name: "Coruja Noturna", description: "Estude apos as 22h", icon: "moon", xpReward: 30, category: "special", isSecret: false },
         { code: "bookworm", name: "Leitor Voraz", description: "Leia 10 versiculos biblicos", icon: "book-heart", xpReward: 50, category: "special", isSecret: false },
-        { code: "comeback_kid", name: "Nunca Desisto", description: "Recupere todas as vidas usando versiculos", icon: "heart", xpReward: 30, category: "special", isSecret: false },
-        { code: "top_10", name: "Elite", description: "Fique entre os 10 primeiros do ranking semanal", icon: "medal", xpReward: 150, category: "special", isSecret: false }
+        { code: "comeback_kid", name: "Nunca Desisto", description: "Recupere todas as vidas usando versiculos", icon: "heart", xpReward: 30, category: "special", isSecret: false }
       ];
 
       for (const achievement of achievements) {

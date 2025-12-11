@@ -1900,13 +1900,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentStreak = profile?.currentStreak ?? 0;
       
       const milestones = [
-        { days: 7, crystalReward: 20, xpReward: 50, title: "Primeira Semana", achieved: currentStreak >= 7 },
-        { days: 14, crystalReward: 35, xpReward: 75, title: "Duas Semanas", achieved: currentStreak >= 14 },
-        { days: 30, crystalReward: 100, xpReward: 150, title: "Um Mes", achieved: currentStreak >= 30 },
-        { days: 60, crystalReward: 200, xpReward: 300, title: "Dois Meses", achieved: currentStreak >= 60 },
-        { days: 100, crystalReward: 500, xpReward: 500, title: "Centenario", achieved: currentStreak >= 100 },
-        { days: 180, crystalReward: 800, xpReward: 750, title: "Meio Ano", achieved: currentStreak >= 180 },
-        { days: 365, crystalReward: 2000, xpReward: 1500, title: "Um Ano", achieved: currentStreak >= 365 },
+        { days: 7, crystalReward: 5, xpReward: 50, title: "Primeira Semana", achieved: currentStreak >= 7 },
+        { days: 14, crystalReward: 10, xpReward: 75, title: "Duas Semanas", achieved: currentStreak >= 14 },
+        { days: 30, crystalReward: 25, xpReward: 150, title: "Um Mes", achieved: currentStreak >= 30 },
+        { days: 60, crystalReward: 50, xpReward: 300, title: "Dois Meses", achieved: currentStreak >= 60 },
+        { days: 100, crystalReward: 100, xpReward: 500, title: "Centenario", achieved: currentStreak >= 100 },
+        { days: 180, crystalReward: 200, xpReward: 750, title: "Meio Ano", achieved: currentStreak >= 180 },
+        { days: 365, crystalReward: 500, xpReward: 1500, title: "Um Ano", achieved: currentStreak >= 365 },
       ];
       
       res.json({ milestones, currentStreak });

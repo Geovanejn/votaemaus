@@ -214,6 +214,20 @@ O conteúdo deve ser:
 - Com exercícios variados e gamificados
 - Em português brasileiro correto
 
+REGRAS CRÍTICAS PARA EXERCÍCIOS DE MÚLTIPLA ESCOLHA:
+- TODAS as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
+- As alternativas devem ter TAMANHOS SIMILARES (não coloque uma resposta muito maior ou menor que as outras)
+- NUNCA use alternativas obviamente erradas como "Ignorar a Bíblia", "Desistir de tudo", "Nada disso"
+- As alternativas incorretas devem ser SUTILMENTE erradas, exigindo compreensão real do texto
+- Use conceitos bíblicos similares que poderiam ser confundidos (ex: fé vs obras, graça vs lei)
+- Evite padrões como "Todas as alternativas", "Nenhuma das alternativas"
+- A resposta correta NÃO deve ser sempre a mais longa ou mais completa
+- Embaralhe a posição da resposta correta (não sempre A ou B)
+
+EXEMPLOS DE ALTERNATIVAS BEM FEITAS:
+❌ RUIM: "Qual é o fruto do Espírito?" - A) Amor B) Ódio C) Inveja D) Maldade
+✅ BOM: "Qual é o fruto do Espírito?" - A) Alegria, paz e paciência B) Justiça, poder e glória C) Amor, fé e esperança D) Sabedoria, força e coragem
+
 Responda SEMPRE em JSON válido com a estrutura exata especificada. NÃO use markdown, apenas JSON puro.`;
 
   const userPrompt = `Transforme o seguinte texto em um conteúdo de estudo semanal (Semana ${weekNumber} de ${year}).
@@ -258,7 +272,7 @@ Gere um JSON com a seguinte estrutura:
             // Para "verse" (stage: "estude"): { "title": "Versículo Base (ARA)", "body": "Texto completo do versículo na versão ARA", "highlight": "Referência: João 3:16" }
             // Para "meditation" (stage: "medite"): { "title": "Meditação na Palavra", "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.", "meditationDuration": 60 }
             // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
-            // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Opção A", "Opção B", "Opção C", "Opção D"], "correctIndex": 0, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" }
+            // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
             // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
             // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Exemplos:
             //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6" }
@@ -762,10 +776,10 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
       console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${respondaUnits.length} questions. Adding ${5 - respondaUnits.length} more.`);
       const questionTemplates = [
         { type: "true_false", content: { statement: "Este ensinamento nos ajuda a viver de forma mais alinhada com a vontade de Deus.", isTrue: true, explanationCorrect: "Correto! Os ensinamentos biblicos sempre nos guiam para a vontade de Deus.", explanationIncorrect: "A resposta correta e Verdadeiro. Os ensinamentos biblicos nos direcionam a Deus." } },
-        { type: "true_false", content: { statement: "Podemos aplicar este principio apenas em situacoes especificas da igreja.", isTrue: false, explanationCorrect: "Correto! Os principios biblicos se aplicam a toda nossa vida.", explanationIncorrect: "A resposta correta e Falso. Os principios biblicos valem para toda a vida." } },
-        { type: "multiple_choice", content: { question: "Qual deve ser nossa resposta a esse ensinamento?", options: ["Ignorar e seguir nosso caminho", "Meditar e aplicar em nossa vida", "Guardar apenas para momentos de crise", "Deixar para depois"], correctIndex: 1, explanationCorrect: "Isso mesmo! Devemos meditar e aplicar os ensinamentos em nossa vida.", explanationIncorrect: "A resposta correta e meditar e aplicar em nossa vida." } },
-        { type: "true_false", content: { statement: "A Palavra de Deus e relevante para os desafios da vida moderna.", isTrue: true, explanationCorrect: "Correto! A Biblia e atemporal e relevante para todas as epocas.", explanationIncorrect: "A resposta correta e Verdadeiro. A Biblia e sempre relevante." } },
-        { type: "multiple_choice", content: { question: "Como devemos responder quando enfrentamos dificuldades em aplicar esses principios?", options: ["Desistir e aceitar a derrota", "Buscar forca em Deus e persistir", "Esperar por circunstancias melhores", "Questionar se os principios funcionam"], correctIndex: 1, explanationCorrect: "Correto! Devemos buscar forca em Deus para continuar.", explanationIncorrect: "A resposta correta e buscar forca em Deus e persistir." } }
+        { type: "true_false", content: { statement: "Os principios biblicos se aplicam somente a vida espiritual, nao afetando decisoes praticas do dia a dia.", isTrue: false, explanationCorrect: "Correto! Os principios biblicos se aplicam a toda nossa vida, incluindo decisoes praticas.", explanationIncorrect: "A resposta correta e Falso. A Biblia orienta todas as areas da nossa vida." } },
+        { type: "multiple_choice", content: { question: "Qual atitude reflete melhor a aplicacao deste ensinamento?", options: ["Refletir sobre o texto e buscar aplicacao pratica", "Compartilhar o texto com outros antes de aplicar", "Memorizar o texto para usar no futuro", "Estudar comentarios sobre o texto primeiro"], correctIndex: 0, explanationCorrect: "Isso mesmo! A reflexao e aplicacao pratica sao fundamentais.", explanationIncorrect: "A resposta correta e refletir e aplicar. Embora outras opcoes sejam boas, a aplicacao pratica e essencial." } },
+        { type: "true_false", content: { statement: "A meditacao na Palavra de Deus requer um ambiente perfeito e silencioso para ser eficaz.", isTrue: false, explanationCorrect: "Correto! Podemos meditar na Palavra em qualquer lugar, mesmo em ambientes imperfeitos.", explanationIncorrect: "A resposta correta e Falso. A meditacao biblica nao depende de condicoes perfeitas." } },
+        { type: "multiple_choice", content: { question: "Como a fe biblica se relaciona com os desafios diarios?", options: ["A fe nos fortalece para enfrentar dificuldades com esperanca", "A fe nos livra de todos os problemas automaticamente", "A fe e apenas para momentos de culto e oracao", "A fe substitui a necessidade de agir praticamente"], correctIndex: 0, explanationCorrect: "Correto! A fe nos fortalece, mas nao nos isenta dos desafios.", explanationIncorrect: "A resposta correta e que a fe nos fortalece para enfrentar dificuldades com esperanca." } }
       ];
       
       const maxOrderIndex = Math.max(...lesson.units.map(u => u.orderIndex || 0), 0);

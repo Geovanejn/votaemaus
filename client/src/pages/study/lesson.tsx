@@ -871,6 +871,7 @@ export default function LessonPage() {
 
             {currentUnit.type === "multiple_choice" && (
               <MultipleChoiceExercise
+                key={`mc-${currentIndex}-${currentUnit.id}`}
                 question={currentUnit.content.question || ""}
                 options={currentUnit.content.options || []}
                 correctIndex={currentUnit.content.correctIndex || 0}
@@ -880,6 +881,7 @@ export default function LessonPage() {
 
             {currentUnit.type === "true_false" && (
               <TrueFalseExercise
+                key={`tf-${currentIndex}-${currentUnit.id}`}
                 statement={currentUnit.content.statement || ""}
                 isTrue={currentUnit.content.isTrue || false}
                 onAnswer={handleTrueFalseAnswer}
@@ -888,6 +890,7 @@ export default function LessonPage() {
 
             {currentUnit.type === "fill_blank" && (
               <FillBlankExercise
+                key={`fb-${currentIndex}-${currentUnit.id}`}
                 question={currentUnit.content.question || currentUnit.content.sentence || ""}
                 correctAnswer={currentUnit.content.correctAnswer || ""}
                 onAnswer={handleFillBlankAnswer}

@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Dumbbell, CheckCircle2, Shuffle, BookOpen } from "lucide-react";
+import { ArrowLeft, Dumbbell, CheckCircle2, Shuffle, BookOpen, Trophy, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import {
   MultipleChoiceExercise,
   TrueFalseExercise,
@@ -119,8 +120,18 @@ export default function PracticePage() {
     );
   }
 
+  const excellentParticles = useMemo(() => 
+    Array.from({ length: 8 }).map((_, i) => ({
+      id: i,
+      y: -100 - Math.random() * 100,
+      x: (Math.random() - 0.5) * 150,
+      duration: 2 + Math.random()
+    })), []);
+
   if (isFinished) {
     const percentage = Math.round((correctCount / totalAnswered) * 100);
+    const isExcellent = percentage >= 80;
+    const isGood = percentage >= 60;
     
     return (
       <div className="flex flex-col min-h-screen bg-background">
@@ -136,46 +147,120 @@ export default function PracticePage() {
           <h1 className="font-bold text-lg">Prática Concluída</h1>
         </header>
 
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Dumbbell className="h-12 w-12 text-primary" />
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+          {isExcellent && (
+            <>
+              {excellentParticles.map((particle) => (
+                <motion.div
+                  key={particle.id}
+                  initial={{ opacity: 0, scale: 0, y: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1, 0.5],
+                    y: particle.y,
+                    x: particle.x
+                  }}
+                  transition={{ 
+                    duration: particle.duration,
+                    delay: particle.id * 0.2,
+                    repeat: Infinity,
+                    repeatDelay: 1
+                  }}
+                  className="absolute top-1/2 left-1/2"
+                >
+                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                </motion.div>
+              ))}
+            </>
+          )}
           
-          <h2 className="text-2xl font-bold mb-2">Bom trabalho!</h2>
-          <p className="text-muted-foreground mb-6">
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            className={cn(
+              "w-20 h-20 rounded-full flex items-center justify-center mb-4",
+              isExcellent 
+                ? "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-500/30" 
+                : isGood 
+                  ? "bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-500/30"
+                  : "bg-primary/10"
+            )}
+          >
+            {isExcellent ? (
+              <Trophy className="h-10 w-10 text-white" />
+            ) : isGood ? (
+              <CheckCircle2 className="h-10 w-10 text-white" />
+            ) : (
+              <Dumbbell className="h-10 w-10 text-primary" />
+            )}
+          </motion.div>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl font-bold mb-2"
+          >
+            {isExcellent ? "Excelente!" : isGood ? "Bom trabalho!" : "Continue praticando!"}
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-muted-foreground mb-6 text-sm"
+          >
             Você acertou {correctCount} de {totalAnswered} questões
-          </p>
+          </motion.p>
 
-          <div className="w-full max-w-xs mb-8">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className="w-full max-w-xs mb-6"
+          >
             <div className="flex justify-between text-sm mb-2">
               <span className="text-muted-foreground">Aproveitamento</span>
               <span className="font-bold">{percentage}%</span>
             </div>
-            <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <div 
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
                 className={cn(
-                  "h-full rounded-full transition-all",
+                  "h-full rounded-full",
                   percentage >= 70 ? "bg-green-500" : percentage >= 50 ? "bg-yellow-500" : "bg-red-500"
                 )}
-                style={{ width: `${percentage}%` }}
               />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="flex flex-col gap-3 w-full max-w-xs">
-            <Button onClick={handleRestart} className="w-full" data-testid="button-restart">
-              <Shuffle className="h-4 w-4 mr-2" />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex flex-col gap-2 w-full max-w-xs"
+          >
+            <Button 
+              onClick={handleRestart} 
+              size="sm"
+              className="w-full" 
+              data-testid="button-restart"
+            >
+              <Shuffle className="h-3.5 w-3.5 mr-2" />
               Praticar novamente
             </Button>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => setLocation('/study')} 
               className="w-full"
               data-testid="button-back-study"
             >
               Voltar ao estudo
             </Button>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -218,6 +303,7 @@ export default function PracticePage() {
           <>
             {currentUnit.type === "multiple_choice" && (
               <MultipleChoiceExercise
+                key={`mc-${currentIndex}-${currentUnit.id}`}
                 question={currentUnit.content.question || ""}
                 options={currentUnit.content.options || []}
                 correctIndex={currentUnit.content.correctIndex || 0}
@@ -227,6 +313,7 @@ export default function PracticePage() {
 
             {currentUnit.type === "true_false" && (
               <TrueFalseExercise
+                key={`tf-${currentIndex}-${currentUnit.id}`}
                 statement={currentUnit.content.statement || ""}
                 isTrue={currentUnit.content.isTrue || false}
                 onAnswer={(isCorrect) => handleAnswer(isCorrect)}
@@ -235,6 +322,7 @@ export default function PracticePage() {
 
             {currentUnit.type === "fill_blank" && (
               <FillBlankExercise
+                key={`fb-${currentIndex}-${currentUnit.id}`}
                 question={currentUnit.content.question || ""}
                 correctAnswer={currentUnit.content.correctAnswer || ""}
                 onAnswer={(isCorrect) => handleAnswer(isCorrect)}

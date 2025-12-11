@@ -2318,7 +2318,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (achievement.xpReward > 0) {
-        await this.addCrystals(userId, Math.floor(achievement.xpReward / 10), "achievement", `Conquista: ${achievement.name}`);
+        await this.addCrystals(userId, Math.floor(achievement.xpReward / 25), "achievement", `Conquista: ${achievement.name}`);
         const profile = await this.getStudyProfile(userId);
         if (profile) {
           await db.update(schema.studyProfiles)
@@ -3808,49 +3808,43 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (isPerfect) {
-      await this.addCrystals(userId, 3, "perfect_lesson", "Licao perfeita! Sem erros.");
-      rewards.push({ type: "perfect_lesson", amount: 3, description: "Licao perfeita! Sem erros." });
-      totalCrystals += 3;
+      await this.addCrystals(userId, 1, "perfect_lesson", "Licao perfeita! Sem erros.");
+      rewards.push({ type: "perfect_lesson", amount: 1, description: "Licao perfeita! Sem erros." });
+      totalCrystals += 1;
     }
     
-    if (newConsecutivePerfect === 2) {
-      await this.addCrystals(userId, 5, "perfect_streak_2", "Sequencia de 2 licoes perfeitas!");
-      rewards.push({ type: "perfect_streak_2", amount: 5, description: "Sequencia de 2 licoes perfeitas!" });
-      totalCrystals += 5;
-    } else if (newConsecutivePerfect === 3) {
-      await this.addCrystals(userId, 8, "perfect_streak_3", "Incrivel! 3 licoes perfeitas seguidas!");
-      rewards.push({ type: "perfect_streak_3", amount: 8, description: "Incrivel! 3 licoes perfeitas seguidas!" });
-      totalCrystals += 8;
-    } else if (newConsecutivePerfect === 5) {
-      await this.addCrystals(userId, 15, "perfect_streak_5", "Extraordinario! 5 licoes perfeitas seguidas!");
-      rewards.push({ type: "perfect_streak_5", amount: 15, description: "Extraordinario! 5 licoes perfeitas seguidas!" });
-      totalCrystals += 15;
-    }
-    
-    if (newConsecutiveLessons === 3) {
-      await this.addCrystals(userId, 5, "lesson_streak_3", "3 licoes concluidas em sequencia!");
-      rewards.push({ type: "lesson_streak_3", amount: 5, description: "3 licoes concluidas em sequencia!" });
-      totalCrystals += 5;
-    } else if (newConsecutiveLessons === 5) {
-      await this.addCrystals(userId, 10, "lesson_streak_5", "5 licoes concluidas em sequencia!");
-      rewards.push({ type: "lesson_streak_5", amount: 10, description: "5 licoes concluidas em sequencia!" });
-      totalCrystals += 10;
-    } else if (newConsecutiveLessons === 7) {
-      await this.addCrystals(userId, 20, "lesson_streak_7", "Impressionante! 7 licoes concluidas em sequencia!");
-      rewards.push({ type: "lesson_streak_7", amount: 20, description: "Impressionante! 7 licoes concluidas em sequencia!" });
-      totalCrystals += 20;
-    }
-    
-    if (isNewDay && newLessonsToday === 1) {
-      await this.addCrystals(userId, 2, "first_lesson_of_day", "Primeira licao do dia!");
-      rewards.push({ type: "first_lesson_of_day", amount: 2, description: "Primeira licao do dia!" });
+    if (newConsecutivePerfect === 3) {
+      await this.addCrystals(userId, 2, "perfect_streak_3", "Incrivel! 3 licoes perfeitas seguidas!");
+      rewards.push({ type: "perfect_streak_3", amount: 2, description: "Incrivel! 3 licoes perfeitas seguidas!" });
       totalCrystals += 2;
+    } else if (newConsecutivePerfect === 5) {
+      await this.addCrystals(userId, 3, "perfect_streak_5", "Extraordinario! 5 licoes perfeitas seguidas!");
+      rewards.push({ type: "perfect_streak_5", amount: 3, description: "Extraordinario! 5 licoes perfeitas seguidas!" });
+      totalCrystals += 3;
+    } else if (newConsecutivePerfect === 10) {
+      await this.addCrystals(userId, 5, "perfect_streak_10", "Lendario! 10 licoes perfeitas seguidas!");
+      rewards.push({ type: "perfect_streak_10", amount: 5, description: "Lendario! 10 licoes perfeitas seguidas!" });
+      totalCrystals += 5;
+    }
+    
+    if (newConsecutiveLessons === 5) {
+      await this.addCrystals(userId, 2, "lesson_streak_5", "5 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_5", amount: 2, description: "5 licoes concluidas em sequencia!" });
+      totalCrystals += 2;
+    } else if (newConsecutiveLessons === 10) {
+      await this.addCrystals(userId, 4, "lesson_streak_10", "10 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_10", amount: 4, description: "10 licoes concluidas em sequencia!" });
+      totalCrystals += 4;
+    } else if (newConsecutiveLessons === 15) {
+      await this.addCrystals(userId, 8, "lesson_streak_15", "Impressionante! 15 licoes concluidas em sequencia!");
+      rewards.push({ type: "lesson_streak_15", amount: 8, description: "Impressionante! 15 licoes concluidas em sequencia!" });
+      totalCrystals += 8;
     }
     
     if (newWeeklyStreak === 7) {
-      await this.addCrystals(userId, 25, "weekly_lessons_streak", "1 semana estudando todos os dias!");
-      rewards.push({ type: "weekly_lessons_streak", amount: 25, description: "1 semana estudando todos os dias!" });
-      totalCrystals += 25;
+      await this.addCrystals(userId, 10, "weekly_lessons_streak", "1 semana estudando todos os dias!");
+      rewards.push({ type: "weekly_lessons_streak", amount: 10, description: "1 semana estudando todos os dias!" });
+      totalCrystals += 10;
       newWeeklyStreak = 0;
     }
     

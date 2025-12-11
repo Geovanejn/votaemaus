@@ -444,20 +444,25 @@ function PracticeRow({
       >
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className={cn("font-bold text-base", textColor)}>Pratique</h3>
-          <div className="flex gap-0.5">
-            {[1, 2, 3].map((star) => (
-              <Star
-                key={star}
-                className={cn(
-                  "h-4 w-4",
-                  star <= starsEarned
-                    ? "text-white fill-white"
-                    : isLocked
-                      ? "text-muted-foreground/30"
-                      : "text-white/30"
-                )}
-              />
-            ))}
+          <div className="flex gap-1">
+            {[1, 2, 3].map((star) => {
+              const isEarned = star <= starsEarned;
+              return (
+                <Star
+                  key={star}
+                  className={cn(
+                    "h-5 w-5 transition-all duration-300",
+                    isEarned
+                      ? isMastered
+                        ? "text-white fill-white drop-shadow-sm"
+                        : "text-white fill-white drop-shadow-sm"
+                      : isLocked
+                        ? "text-muted-foreground/30 fill-transparent"
+                        : "text-white/40 fill-transparent"
+                  )}
+                />
+              );
+            })}
           </div>
         </div>
         <p className={cn("text-sm mt-0.5", isLocked ? "text-muted-foreground/40" : "text-white/80")}>

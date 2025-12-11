@@ -901,22 +901,50 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
     // Enforce minimum 5 questions in responda section
     if (respondaUnits.length < 5) {
       console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${respondaUnits.length} questions. Adding ${5 - respondaUnits.length} more.`);
+      
+      // Function to create multiple choice with random correct index
+      const createMultipleChoice = (question: string, options: string[], correctOptionIndex: number, explanationCorrect: string, explanationIncorrect: string) => {
+        // Shuffle the options and track the new correct index
+        const shuffledOptions = [...options];
+        const correctAnswer = options[correctOptionIndex];
+        for (let i = shuffledOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+        }
+        const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+        
+        return {
+          question,
+          options: shuffledOptions,
+          correctIndex: newCorrectIndex,
+          explanationCorrect,
+          explanationIncorrect
+        };
+      };
+      
       const questionTemplates = [
         { type: "true_false", content: { statement: "Este ensinamento nos ajuda a viver de forma mais alinhada com a vontade de Deus.", isTrue: true, explanationCorrect: "Correto! Os ensinamentos biblicos sempre nos guiam para a vontade de Deus.", explanationIncorrect: "A resposta correta e Verdadeiro. Os ensinamentos biblicos nos direcionam a Deus." } },
         { type: "true_false", content: { statement: "Os principios biblicos se aplicam somente a vida espiritual, nao afetando decisoes praticas do dia a dia.", isTrue: false, explanationCorrect: "Correto! Os principios biblicos se aplicam a toda nossa vida, incluindo decisoes praticas.", explanationIncorrect: "A resposta correta e Falso. A Biblia orienta todas as areas da nossa vida." } },
-        { type: "multiple_choice", content: { question: "Qual atitude reflete melhor a aplicacao deste ensinamento?", options: ["Refletir sobre o texto e buscar aplicacao pratica", "Compartilhar o texto com outros antes de aplicar", "Memorizar o texto para usar no futuro", "Estudar comentarios sobre o texto primeiro"], correctIndex: 0, explanationCorrect: "Isso mesmo! A reflexao e aplicacao pratica sao fundamentais.", explanationIncorrect: "A resposta correta e refletir e aplicar. Embora outras opcoes sejam boas, a aplicacao pratica e essencial." } },
+        { type: "multiple_choice", content: createMultipleChoice("Qual atitude reflete melhor a aplicacao deste ensinamento?", ["Refletir sobre o texto e buscar aplicacao pratica", "Compartilhar o texto com outros antes de aplicar", "Memorizar o texto para usar no futuro", "Estudar comentarios sobre o texto primeiro"], 0, "Isso mesmo! A reflexao e aplicacao pratica sao fundamentais.", "A resposta correta e refletir e aplicar. Embora outras opcoes sejam boas, a aplicacao pratica e essencial.") },
         { type: "true_false", content: { statement: "A meditacao na Palavra de Deus requer um ambiente perfeito e silencioso para ser eficaz.", isTrue: false, explanationCorrect: "Correto! Podemos meditar na Palavra em qualquer lugar, mesmo em ambientes imperfeitos.", explanationIncorrect: "A resposta correta e Falso. A meditacao biblica nao depende de condicoes perfeitas." } },
-        { type: "multiple_choice", content: { question: "Como a fe biblica se relaciona com os desafios diarios?", options: ["A fe nos fortalece para enfrentar dificuldades com esperanca", "A fe nos livra de todos os problemas automaticamente", "A fe e apenas para momentos de culto e oracao", "A fe substitui a necessidade de agir praticamente"], correctIndex: 0, explanationCorrect: "Correto! A fe nos fortalece, mas nao nos isenta dos desafios.", explanationIncorrect: "A resposta correta e que a fe nos fortalece para enfrentar dificuldades com esperanca." } }
+        { type: "multiple_choice", content: createMultipleChoice("Como a fe biblica se relaciona com os desafios diarios?", ["A fe nos fortalece para enfrentar dificuldades com esperanca", "A fe nos livra de todos os problemas automaticamente", "A fe e apenas para momentos de culto e oracao", "A fe substitui a necessidade de agir praticamente"], 0, "Correto! A fe nos fortalece, mas nao nos isenta dos desafios.", "A resposta correta e que a fe nos fortalece para enfrentar dificuldades com esperanca.") }
       ];
       
       const maxOrderIndex = Math.max(...lesson.units.map(u => u.orderIndex || 0), 0);
       for (let i = respondaUnits.length; i < 5; i++) {
         const template = questionTemplates[i % questionTemplates.length];
+        // Create a fresh copy of the template to ensure each question has randomized options
+        let content = template.content;
+        if (template.type === "multiple_choice") {
+          // Re-randomize for each added question
+          const mc = template.content as any;
+          content = createMultipleChoice(mc.question, mc.options, mc.correctIndex, mc.explanationCorrect, mc.explanationIncorrect);
+        }
         lesson.units.push({
           type: template.type,
           stage: "responda",
           orderIndex: maxOrderIndex + 10 + i,
-          content: template.content,
+          content,
           xpValue: 5
         });
       }

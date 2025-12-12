@@ -31,6 +31,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect, useCallback } from "react";
+import { useSound } from "@/hooks/use-sound";
 
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
@@ -604,6 +605,46 @@ function StreakActivity({
 }: { 
   onComplete: () => void;
 }) {
+  const { data: profile, isLoading } = useQuery<{ currentStreak: number; studiedToday: boolean }>({
+    queryKey: ["/api/study/profile"],
+  });
+
+  const hasActiveStreak = profile?.studiedToday || (profile?.currentStreak && profile.currentStreak > 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-[#FFC800]" />
+      </div>
+    );
+  }
+
+  if (!hasActiveStreak) {
+    return (
+      <div className="space-y-6 text-center" data-testid="streak-activity-incomplete">
+        <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
+          <Flame className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Inativa</h3>
+          <p className="text-muted-foreground mb-4">
+            Para completar esta missao, voce precisa manter sua sequencia de estudos ativa. Complete uma licao hoje para ganhar sua ofensiva!
+          </p>
+          <Badge variant="outline" className="text-orange-600 border-orange-300">
+            Ofensiva atual: {profile?.currentStreak || 0} dias
+          </Badge>
+        </Card>
+
+        <Button 
+          onClick={() => window.location.href = '/study'} 
+          className="w-full bg-orange-500 text-white"
+          data-testid="button-go-study"
+        >
+          <ArrowRight className="w-4 h-4 mr-2" />
+          Ir Estudar
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 text-center" data-testid="streak-activity">
       <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
@@ -613,10 +654,13 @@ function StreakActivity({
         >
           <Flame className="w-16 h-16 mx-auto text-orange-500 mb-4" />
         </motion.div>
-        <h3 className="text-lg font-bold text-foreground mb-2">Mantenha sua Sequencia!</h3>
-        <p className="text-muted-foreground">
-          Parabens por estudar hoje! Continue assim para manter sua sequencia ativa.
+        <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Ativa!</h3>
+        <p className="text-muted-foreground mb-2">
+          Parabens! Voce esta mantendo sua sequencia de estudos ativa.
         </p>
+        <Badge className="bg-orange-500 text-white">
+          {profile?.currentStreak || 0} dias de ofensiva
+        </Badge>
       </Card>
 
       <Button 
@@ -636,10 +680,25 @@ function PerfectAnswersActivity({
 }: { 
   onComplete: () => void;
 }) {
-  const questions = [
+  const { play } = useSound();
+  const allQuestions = [
     { question: "Quem construiu a arca?", options: ["Abraao", "Noe", "Moises", "Davi"], correctIndex: 1 },
     { question: "Qual profeta enfrentou os profetas de Baal?", options: ["Elias", "Eliseu", "Isaias", "Jeremias"], correctIndex: 0 },
+    { question: "Quantos discipulos Jesus escolheu?", options: ["10", "11", "12", "13"], correctIndex: 2 },
+    { question: "Quem foi jogado na cova dos leoes?", options: ["Jonas", "Daniel", "Jose", "Elias"], correctIndex: 1 },
+    { question: "Em que cidade Jesus nasceu?", options: ["Nazare", "Jerusalem", "Belem", "Cafarnaum"], correctIndex: 2 },
+    { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomao", "Saul", "Samuel"], correctIndex: 2 },
+    { question: "Quem escreveu a maior parte dos Salmos?", options: ["Moises", "Salomao", "Davi", "Asafe"], correctIndex: 2 },
+    { question: "Qual era a profissao de Pedro antes de seguir Jesus?", options: ["Carpinteiro", "Pescador", "Cobrador de impostos", "Pastor"], correctIndex: 1 },
+    { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "Jose"], correctIndex: 0 },
+    { question: "Qual mulher foi escolhida rainha da Persia?", options: ["Rute", "Ester", "Raabe", "Debora"], correctIndex: 1 },
   ];
+
+  // Shuffle and select 5 random questions
+  const [questions] = useState(() => {
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  });
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [perfectStreak, setPerfectStreak] = useState(0);
@@ -647,13 +706,16 @@ function PerfectAnswersActivity({
 
   const handleAnswer = (index: number) => {
     if (index === questions[currentQuestion].correctIndex) {
+      play("correct");
       if (currentQuestion === questions.length - 1) {
-        setPerfectStreak(2);
+        setPerfectStreak(5);
+        play("complete");
       } else {
         setCurrentQuestion(prev => prev + 1);
         setPerfectStreak(prev => prev + 1);
       }
     } else {
+      play("wrong");
       setFailed(true);
     }
   };
@@ -665,7 +727,7 @@ function PerfectAnswersActivity({
           <Target className="w-16 h-16 mx-auto text-orange-500 mb-4" />
           <h3 className="text-lg font-bold text-foreground mb-2">Ops! Voce errou</h3>
           <p className="text-muted-foreground mb-4">
-            Para completar esta missao, voce precisa acertar 2 perguntas seguidas sem errar.
+            Para completar esta missao, voce precisa acertar 5 perguntas seguidas sem errar.
           </p>
           <Button 
             onClick={() => {
@@ -683,7 +745,7 @@ function PerfectAnswersActivity({
     );
   }
 
-  if (perfectStreak >= 2) {
+  if (perfectStreak >= 5) {
     return (
       <div className="space-y-6 text-center" data-testid="perfect-success">
         <Card className="p-6">
@@ -709,7 +771,7 @@ function PerfectAnswersActivity({
   return (
     <div className="space-y-6" data-testid="perfect-answers-activity">
       <div className="flex justify-center gap-2 mb-4">
-        {[0, 1].map(i => (
+        {[0, 1, 2, 3, 4].map(i => (
           <div
             key={i}
             className={`w-8 h-8 rounded-full flex items-center justify-center ${

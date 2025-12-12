@@ -3246,6 +3246,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== DAILY MISSIONS ROUTES ====================
 
+  // Helper to get current daily verse date key (resets at 6 AM São Paulo time)
+  function getDailyVerseDateKeyMission(): string {
+    const now = new Date();
+    const spTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    if (spTime.getHours() < 6) {
+      spTime.setDate(spTime.getDate() - 1);
+    }
+    return spTime.toISOString().split('T')[0];
+  }
+
   // Get user's daily missions for today
   app.get("/api/missions/daily", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -3253,8 +3263,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getTodayBrazilDate();
       
       // Assign missions for today if not already assigned
-      const missions = await storage.assignDailyMissions(userId, today);
+      let missions = await storage.assignDailyMissions(userId, today);
       const content = await storage.getDailyMissionContent(today);
+      
+      // Check if user already read daily verse - auto-complete that mission
+      const profile = await storage.getStudyProfile(userId);
+      const verseDateKey = getDailyVerseDateKeyMission();
+      const hasReadVerse = profile?.dailyVerseReadDate === verseDateKey;
+      
+      // Auto-complete "read_daily_verse" mission if user already read the verse
+      if (hasReadVerse) {
+        for (const mission of missions) {
+          if (mission.mission?.type === 'read_daily_verse' && !mission.completed) {
+            await storage.completeMission(userId, mission.missionId, today);
+          }
+        }
+        // Refresh missions list after auto-completion
+        missions = await storage.getUserDailyMissions(userId, today);
+      }
       
       const completedCount = missions.filter(m => m.completed).length;
       const allCompleted = missions.length > 0 && completedCount === missions.length;

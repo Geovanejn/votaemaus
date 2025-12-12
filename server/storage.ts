@@ -1197,7 +1197,16 @@ export class DatabaseStorage implements IStorage {
     if (existing.length > 0) return existing;
     
     const missions = await this.getDailyMissions();
-    const selected = missions.slice(0, 5);
+    
+    // Shuffle missions using Fisher-Yates algorithm for true randomness
+    const shuffled = [...missions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    // Select 5 random missions
+    const selected = shuffled.slice(0, 5);
     
     for (const mission of selected) {
       await db.insert(schema.userDailyMissions).values({

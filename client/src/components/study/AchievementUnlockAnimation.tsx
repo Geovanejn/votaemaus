@@ -8,7 +8,6 @@ import {
   BookMarked, BookHeart, Shield, GraduationCap, TrendingUp, Sparkles, Book, Share2, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useSounds } from "@/hooks/use-sounds";
 import { useToast } from "@/hooks/use-toast";
@@ -201,11 +200,13 @@ export function AchievementUnlockAnimation({
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const canvas = await html2canvas(shareCardRef.current, {
-        backgroundColor: null,
-        scale: 3,
+        backgroundColor: '#1a1a2e',
+        scale: 2,
         useCORS: true,
         logging: false,
         allowTaint: true,
+        width: shareCardRef.current.offsetWidth,
+        height: shareCardRef.current.offsetHeight,
       });
       
       return new Promise((resolve) => {
@@ -364,41 +365,33 @@ export function AchievementUnlockAnimation({
     >
       <div 
         ref={shareCardRef}
-        className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+        className="relative w-full max-w-sm rounded-2xl"
         style={{ 
           background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
           boxShadow: `0 0 60px ${categoryStyle.primary}40, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`
         }}
       >
         <div 
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-40 rounded-2xl"
           style={{ 
             background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}50, transparent 60%)` 
           }}
         />
         
         <div 
-          className="absolute top-0 left-0 right-0 h-1.5"
+          className="absolute top-0 left-0 right-0 h-1.5 rounded-t-2xl"
           style={{ 
             background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary}, ${categoryStyle.primary})` 
           }}
         />
         
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
-          className="absolute inset-0"
-          style={{
-            background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, ${categoryStyle.primary}10 90deg, transparent 180deg, ${categoryStyle.secondary}10 270deg, transparent 360deg)`
-          }}
-        />
-        
-        <div className="relative p-8 pt-10">
+        <div className="relative p-8 pt-10 pb-10">
           <motion.p
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-center text-gray-400 mb-6 font-semibold tracking-wide uppercase text-sm"
+            style={{ color: '#9ca3af' }}
           >
             Conquista Desbloqueada!
           </motion.p>
@@ -426,22 +419,20 @@ export function AchievementUnlockAnimation({
               className="relative inline-block"
             >
               <div 
-                className={cn(
-                  "w-32 h-32 rounded-full flex items-center justify-center relative",
-                  `bg-gradient-to-br ${categoryStyle.gradient}`
-                )}
+                className="w-32 h-32 rounded-full flex items-center justify-center relative"
                 style={{
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                   boxShadow: `0 0 80px ${categoryStyle.primary}90, 0 0 40px ${categoryStyle.secondary}60, inset 0 -4px 20px rgba(0,0,0,0.3)`
                 }}
               >
-                <div className="absolute inset-2 rounded-full bg-gradient-to-t from-black/30 to-white/10" />
-                <IconComponent className="h-16 w-16 text-white drop-shadow-2xl relative z-10" />
+                <div className="absolute inset-2 rounded-full" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.1))' }} />
+                <IconComponent className="h-16 w-16 text-white relative z-10" style={{ color: '#ffffff' }} />
                 
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-3 rounded-full border border-white/20"
-                  style={{ borderStyle: 'dashed' }}
+                  className="absolute -inset-3 rounded-full"
+                  style={{ border: '1px dashed rgba(255,255,255,0.2)' }}
                 />
               </div>
               
@@ -455,10 +446,11 @@ export function AchievementUnlockAnimation({
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className={cn(
-                  "absolute inset-0 rounded-full -z-10 blur-xl",
-                  `bg-gradient-to-br ${categoryStyle.gradient}`
-                )}
+                className="absolute inset-0 rounded-full -z-10"
+                style={{
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                  filter: 'blur(24px)'
+                }}
               />
               
               {[...Array(8)].map((_, i) => (
@@ -491,15 +483,15 @@ export function AchievementUnlockAnimation({
             transition={{ delay: 0.4 }}
             className="text-center"
           >
-            <Badge 
-              className="mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider border-0"
+            <span 
+              className="inline-block mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-md"
               style={{ 
-                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                background: `linear-gradient(135deg, ${categoryStyle.primary}40, ${categoryStyle.secondary}30)`,
                 color: categoryStyle.primary 
               }}
             >
               {categoryLabels[achievement.category] || achievement.category}
-            </Badge>
+            </span>
           </motion.div>
 
           <motion.h2
@@ -507,12 +499,7 @@ export function AchievementUnlockAnimation({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             className="text-3xl font-black mb-3 text-center tracking-tight"
-            style={{ 
-              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
+            style={{ color: categoryStyle.primary }}
           >
             {achievement.name}
           </motion.h2>
@@ -521,7 +508,8 @@ export function AchievementUnlockAnimation({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-gray-400 mb-6 text-center text-sm leading-relaxed max-w-xs mx-auto"
+            className="text-center text-sm leading-relaxed max-w-xs mx-auto mb-6"
+            style={{ color: '#9ca3af' }}
           >
             {achievement.description}
           </motion.p>
@@ -530,7 +518,7 @@ export function AchievementUnlockAnimation({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.7 }}
-            className="flex items-center justify-center gap-2 mb-6"
+            className="flex items-center justify-center gap-2"
           >
             <div 
               className="flex items-center gap-2 px-5 py-2.5 rounded-full"
@@ -540,19 +528,19 @@ export function AchievementUnlockAnimation({
                 boxShadow: '0 0 20px rgba(255,200,0,0.2)'
               }}
             >
-              <Zap className="h-6 w-6 text-amber-400" />
-              <span className="text-2xl font-bold text-amber-400">+{achievement.xpReward} XP</span>
+              <Zap className="h-6 w-6" style={{ color: '#fbbf24' }} />
+              <span className="text-2xl font-bold" style={{ color: '#fbbf24' }}>+{achievement.xpReward} XP</span>
             </div>
           </motion.div>
 
-          <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
+          <div className="flex items-center justify-end gap-1.5 mt-6">
             <div 
               className="w-5 h-5 rounded-full flex items-center justify-center"
               style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
             >
-              <Trophy className="h-3 w-3 text-white" />
+              <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
             </div>
-            <span className="text-xs font-semibold text-gray-500">DeoGlory</span>
+            <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>DeoGlory</span>
           </div>
         </div>
       </div>

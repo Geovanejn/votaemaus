@@ -413,18 +413,24 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Badge 
-                className="mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider border-0"
-                style={{ 
-                  background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                  color: categoryStyle.primary 
-                }}
-              >
-                {categoryLabels[achievement.category] || achievement.category}
-              </Badge>
+              <div className="flex justify-center">
+                <div
+                  className="px-4 py-1.5 rounded-md flex items-center justify-center"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                  }}
+                >
+                  <span 
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: categoryStyle.primary }}
+                  >
+                    {categoryLabels[achievement.category] || achievement.category}
+                  </span>
+                </div>
+              </div>
               
               <h2 
-                className="text-2xl font-black mt-3 tracking-tight"
+                className="text-2xl font-black mt-4 tracking-tight"
                 style={{ 
                   background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                   WebkitBackgroundClip: 'text',
@@ -439,15 +445,17 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                 {achievement.description}
               </p>
               
-              <div 
-                className="flex items-center justify-center gap-2 mt-5 px-5 py-2.5 rounded-full mx-auto w-fit"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
-                  border: '1px solid rgba(255,200,0,0.2)'
-                }}
-              >
-                <Zap className="h-5 w-5 text-amber-400" />
-                <span className="text-lg font-bold text-amber-400">+{achievement.xpReward} XP</span>
+              <div className="flex justify-center mt-5">
+                <div 
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                    border: '1px solid rgba(255,200,0,0.2)'
+                  }}
+                >
+                  <Zap className="h-5 w-5 text-amber-400" />
+                  <span className="text-lg font-bold text-amber-400">+{achievement.xpReward} XP</span>
+                </div>
               </div>
               
               {achievement.unlockedAt && (
@@ -458,14 +466,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             </motion.div>
           </div>
           
-          <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+          <div className="absolute bottom-3 right-4 flex items-center gap-1">
             <div 
               className="w-5 h-5 rounded-full flex items-center justify-center"
               style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
             >
               <Trophy className="h-3 w-3 text-white" />
             </div>
-            <span className="text-xs font-semibold text-gray-500">DeoGlory</span>
+            <span className="text-xs font-semibold text-gray-500 leading-none">DeoGlory</span>
           </div>
         </div>
       </div>

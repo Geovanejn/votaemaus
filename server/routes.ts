@@ -1690,6 +1690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = getTodayBrazilDate();
       try {
         const userMissions = await storage.getUserDailyMissions(req.user.id, today);
+        const missionWeekKey = getCurrentWeekKey();
         for (const mission of userMissions) {
           if (mission.completed) continue;
           
@@ -1697,10 +1698,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Complete "complete_lesson" type missions
           if (missionType === 'complete_lesson') {
             await storage.completeMission(req.user.id, mission.missionId, today);
+            await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }
           // Complete "maintain_streak" type missions
           if (missionType === 'maintain_streak') {
             await storage.completeMission(req.user.id, mission.missionId, today);
+            await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }
         }
       } catch (missionError) {
@@ -3313,11 +3316,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Auto-complete "maintain_streak" mission if user completed a lesson today
+      // Auto-complete "maintain_streak" and "complete_lesson" missions if user completed a lesson today
+      // Note: Weekly mission increment is handled in the lesson completion route
       if (hasCompletedLessonToday) {
+        const weekKey = getCurrentWeekKey();
         for (const mission of missions) {
-          if (mission.mission?.type === 'maintain_streak' && !mission.completed) {
+          const missionType = mission.mission?.type;
+          if ((missionType === 'maintain_streak' || missionType === 'complete_lesson') && !mission.completed) {
             await storage.completeMission(userId, mission.missionId, today);
+            // Increment weekly mission count for missions auto-completed here
+            await storage.incrementWeeklyMission(userId, weekKey);
             needsRefresh = true;
           }
         }
@@ -3383,6 +3391,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result) {
         return res.status(404).json({ message: "Missao nao encontrada ou ja concluida" });
       }
+      
+      // Increment weekly mission count for weekly goals
+      const weekKey = getCurrentWeekKey();
+      await storage.incrementWeeklyMission(userId, weekKey);
       
       res.json({
         message: "Missao concluida com sucesso!",

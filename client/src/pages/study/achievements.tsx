@@ -356,83 +356,128 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
     <div className="flex flex-col items-center p-6">
       <div 
         ref={cardRef}
-        className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
         style={{ 
+          position: 'relative',
+          width: '320px',
+          borderRadius: '16px',
+          overflow: 'hidden',
           background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         }}
       >
         <div 
-          className="absolute inset-0 opacity-30"
           style={{ 
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.3,
             background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}40, transparent 60%)` 
           }}
         />
         
-        <div className="absolute top-0 left-0 right-0 h-2"
+        <div 
           style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '8px',
             background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
           }}
         />
         
-        <div className="relative p-8 pt-10">
-          <div className="flex flex-col items-center">
+        <div style={{ position: 'relative', padding: '40px 32px 32px 32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <motion.div
-              className="relative"
+              style={{ position: 'relative' }}
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
             >
               <div 
-                className="w-28 h-28 rounded-full flex items-center justify-center relative"
                 style={{
+                  width: '112px',
+                  height: '112px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
                   background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                   boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
                 }}
               >
                 <div 
-                  className="absolute inset-2 rounded-full opacity-40"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
+                  style={{ 
+                    position: 'absolute',
+                    inset: '8px',
+                    borderRadius: '50%',
+                    opacity: 0.4,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' 
+                  }}
                 />
-                <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 to-transparent" />
-                <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" style={{ color: '#ffffff' }} />
+                <div 
+                  style={{ 
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' 
+                  }}
+                />
+                <IconComponent style={{ width: '56px', height: '56px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
               </div>
               
               <div 
-                className="absolute -inset-3 rounded-full opacity-20 blur-xl -z-10"
-                style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+                style={{ 
+                  position: 'absolute',
+                  inset: '-12px',
+                  borderRadius: '50%',
+                  opacity: 0.2,
+                  filter: 'blur(12px)',
+                  zIndex: -1,
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
+                }}
               />
               
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute -inset-4 rounded-full border border-white/10 -z-10"
-                style={{ borderStyle: 'dashed' }}
+                style={{ 
+                  position: 'absolute',
+                  inset: '-16px',
+                  borderRadius: '50%',
+                  border: '1px dashed rgba(255,255,255,0.1)',
+                  zIndex: -1,
+                }}
               />
             </motion.div>
             
             <motion.div 
-              className="mt-8 text-center"
+              style={{ marginTop: '32px', textAlign: 'center' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="flex justify-center">
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <div
-                  className="px-4 rounded-md"
                   style={{ 
-                    background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                    height: '32px',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    height: '28px',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    borderRadius: '6px',
+                    background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
                   }}
                 >
                   <span 
-                    className="text-xs font-bold uppercase tracking-wider"
                     style={{ 
-                      color: categoryStyle.primary, 
-                      lineHeight: '1',
-                      display: 'block',
+                      color: categoryStyle.primary,
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      lineHeight: '28px',
                     }}
                   >
                     {categoryLabels[achievement.category] || achievement.category}
@@ -441,33 +486,63 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
               </div>
               
               <h2 
-                className="text-2xl font-black mt-4 tracking-tight"
                 style={{ 
                   color: categoryStyle.primary,
+                  fontSize: '24px',
+                  fontWeight: 900,
+                  marginTop: '16px',
+                  letterSpacing: '-0.025em',
+                  margin: '16px 0 0 0',
                 }}
               >
                 {achievement.name}
               </h2>
               
-              <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-xs mx-auto">
+              <p 
+                style={{ 
+                  color: '#9ca3af',
+                  marginTop: '12px',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  maxWidth: '280px',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                }}
+              >
                 {achievement.description}
               </p>
               
-              <div className="flex justify-center mt-5">
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
                 <div 
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full"
                   style={{ 
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    paddingLeft: '20px',
+                    paddingRight: '20px',
+                    height: '40px',
+                    borderRadius: '20px',
                     background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
                     border: '1px solid rgba(255,200,0,0.2)'
                   }}
                 >
-                  <Zap className="h-5 w-5 text-amber-400" />
-                  <span className="text-lg font-bold text-amber-400">+{achievement.xpReward} XP</span>
+                  <Zap style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                  <span 
+                    style={{ 
+                      color: '#fbbf24',
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      lineHeight: '40px',
+                    }}
+                  >
+                    +{achievement.xpReward} XP
+                  </span>
                 </div>
               </div>
               
               {achievement.unlockedAt && (
-                <p className="text-xs text-gray-500 mt-4">
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '16px' }}>
                   Desbloqueada em {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
                 </p>
               )}
@@ -475,19 +550,21 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
           </div>
           
           <div 
-            className="absolute bottom-3 right-4"
             style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '16px',
               display: 'flex',
               flexDirection: 'row',
               alignItems: 'center',
               gap: '6px',
-              height: '20px',
+              height: '24px',
             }}
           >
             <div 
               style={{ 
-                width: '20px',
-                height: '20px',
+                width: '24px',
+                height: '24px',
                 borderRadius: '50%',
                 background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                 display: 'flex',
@@ -496,14 +573,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                 flexShrink: 0,
               }}
             >
-              <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
+              <Trophy style={{ width: '14px', height: '14px', color: '#ffffff' }} />
             </div>
             <span 
               style={{ 
                 color: '#6b7280', 
-                fontSize: '12px',
+                fontSize: '14px',
                 fontWeight: 600,
-                lineHeight: '20px',
+                lineHeight: '24px',
                 flexShrink: 0,
               }}
             >

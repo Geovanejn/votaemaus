@@ -97,59 +97,91 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
   
   return (
     <div 
-      className="relative w-80 rounded-2xl overflow-hidden"
       style={{ 
+        position: 'relative',
+        width: '320px',
+        borderRadius: '16px',
+        overflow: 'hidden',
         background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
       }}
     >
       <div 
-        className="absolute inset-0 opacity-30"
         style={{ 
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.3,
           background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}40, transparent 60%)` 
         }}
       />
       
       <div 
-        className="absolute top-0 left-0 right-0 h-2"
         style={{ 
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '8px',
           background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
         }}
       />
       
-      <div className="relative p-8 pt-10">
-        <div className="flex flex-col items-center">
+      <div style={{ position: 'relative', padding: '40px 32px 32px 32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div 
-            className="w-28 h-28 rounded-full flex items-center justify-center relative"
             style={{
+              width: '112px',
+              height: '112px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
               background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
               boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
             }}
           >
             <div 
-              className="absolute inset-2 rounded-full opacity-40"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
+              style={{ 
+                position: 'absolute',
+                inset: '8px',
+                borderRadius: '50%',
+                opacity: 0.4,
+                background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' 
+              }}
             />
-            <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 to-transparent" />
-            <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" style={{ color: '#ffffff' }} />
+            <div 
+              style={{ 
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' 
+              }}
+            />
+            <IconComponent style={{ width: '56px', height: '56px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
           </div>
           
-          <div className="mt-6 text-center">
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <div 
-              className="px-4 rounded-md mx-auto w-fit mb-3"
               style={{ 
-                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                height: '32px',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                height: '28px',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                borderRadius: '6px',
+                marginBottom: '12px',
+                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
               }}
             >
               <span 
-                className="text-xs font-bold uppercase tracking-wider"
                 style={{ 
                   color: categoryStyle.primary,
-                  lineHeight: '1',
-                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  lineHeight: '28px',
                 }}
               >
                 {categoryLabels[achievement.category] || achievement.category}
@@ -157,46 +189,76 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
             </div>
             
             <h2 
-              className="text-2xl font-black tracking-tight"
               style={{ 
                 color: categoryStyle.primary,
+                fontSize: '24px',
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                margin: 0,
               }}
             >
               {achievement.name}
             </h2>
             
-            <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9ca3af' }}>
+            <p 
+              style={{ 
+                color: '#9ca3af',
+                marginTop: '12px',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                maxWidth: '280px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+              }}
+            >
               {achievement.description}
             </p>
             
             <div 
-              className="flex items-center justify-center gap-2 mt-5 px-5 py-2.5 rounded-full mx-auto w-fit"
               style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '20px',
+                paddingLeft: '20px',
+                paddingRight: '20px',
+                height: '40px',
+                borderRadius: '20px',
                 background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
                 border: '1px solid rgba(255,200,0,0.2)'
               }}
             >
-              <Zap className="h-5 w-5" style={{ color: '#fbbf24' }} />
-              <span className="text-lg font-bold" style={{ color: '#fbbf24' }}>+{achievement.xpReward} XP</span>
+              <Zap style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+              <span 
+                style={{ 
+                  color: '#fbbf24',
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  lineHeight: '40px',
+                }}
+              >
+                +{achievement.xpReward} XP
+              </span>
             </div>
           </div>
         </div>
         
         <div 
-          className="mt-6"
           style={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'flex-end',
             gap: '6px',
-            height: '20px',
+            marginTop: '24px',
+            height: '24px',
           }}
         >
           <div 
             style={{ 
-              width: '20px',
-              height: '20px',
+              width: '24px',
+              height: '24px',
               borderRadius: '50%',
               background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
               display: 'flex',
@@ -205,14 +267,14 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
               flexShrink: 0,
             }}
           >
-            <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
+            <Trophy style={{ width: '14px', height: '14px', color: '#ffffff' }} />
           </div>
           <span 
             style={{ 
               color: '#6b7280', 
-              fontSize: '12px',
+              fontSize: '14px',
               fontWeight: 600,
-              lineHeight: '20px',
+              lineHeight: '24px',
               flexShrink: 0,
             }}
           >

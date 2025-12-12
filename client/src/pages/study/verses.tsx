@@ -8,6 +8,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { HeartsDisplay } from "@/components/study/HeartsDisplay";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSounds } from "@/hooks/use-sounds";
 
 interface BibleVerse {
   id: number;
@@ -42,6 +43,7 @@ interface RecoveryProgress {
 export default function VersesPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { sounds } = useSounds();
 
   const { data: verses, isLoading: versesLoading } = useQuery<BibleVerse[]>({
     queryKey: ['/api/study/verses'],
@@ -67,21 +69,26 @@ export default function VersesPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
       
       if (data.alreadyRead) {
+        sounds.click();
         toast({
           title: "Versículo já lido!",
           description: "Você já leu este versículo antes.",
         });
       } else if (data.heartRecovered) {
+        sounds.success();
+        sounds.streak();
         toast({
           title: "Vida recuperada!",
           description: "Você leu 3 versículos e ganhou +1 vida!",
         });
       } else if (data.heartsFull) {
+        sounds.click();
         toast({
           title: "Vidas cheias!",
           description: "Suas vidas já estão no máximo. O progresso foi reiniciado.",
         });
       } else {
+        sounds.xp();
         toast({
           title: "Versículo lido!",
           description: `${data.versesRead}/${data.versesNeeded} versículos para recuperar uma vida.`,
@@ -89,6 +96,7 @@ export default function VersesPage() {
       }
     },
     onError: () => {
+      sounds.error();
       toast({
         variant: "destructive",
         title: "Erro",

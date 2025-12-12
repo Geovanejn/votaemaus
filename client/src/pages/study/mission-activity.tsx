@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect, useCallback } from "react";
 import { useSound } from "@/hooks/use-sound";
+import { useSounds } from "@/hooks/use-sounds";
 
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
@@ -82,6 +83,17 @@ function VerseReaderActivity({
   onComplete: () => void;
 }) {
   const [hasRead, setHasRead] = useState(false);
+  const { sounds } = useSounds();
+
+  const handleMarkRead = () => {
+    setHasRead(true);
+    sounds.click();
+  };
+
+  const handleComplete = () => {
+    sounds.success();
+    onComplete();
+  };
 
   return (
     <div className="space-y-6" data-testid="verse-reader-activity">
@@ -107,7 +119,7 @@ function VerseReaderActivity({
         
         {!hasRead ? (
           <Button 
-            onClick={() => setHasRead(true)} 
+            onClick={handleMarkRead} 
             className="w-full bg-amber-600 text-white"
             data-testid="button-mark-read"
           >
@@ -119,7 +131,7 @@ function VerseReaderActivity({
             animate={{ opacity: 1, scale: 1 }}
           >
             <Button 
-              onClick={onComplete} 
+              onClick={handleComplete} 
               className="w-full bg-[#58CC02] text-white"
               data-testid="button-complete-verse"
             >
@@ -142,6 +154,7 @@ function QuizActivity({
   missionType: string;
   onComplete: () => void;
 }) {
+  const { sounds } = useSounds();
   const defaultQuestions = [
     { question: "Quantos livros tem a Biblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
     { question: "Quem escreveu Proverbios?", options: ["Moises", "Salomao", "Davi", "Paulo"], correctIndex: 1 },
@@ -180,6 +193,9 @@ function QuizActivity({
     
     if (isCorrect) {
       setCorrectAnswers(prev => prev + 1);
+      sounds.practiceCorrect();
+    } else {
+      sounds.practiceError();
     }
     
     setShowResult(true);
@@ -191,6 +207,9 @@ function QuizActivity({
         setShowResult(false);
       } else {
         setQuizComplete(true);
+        if (correctAnswers + (isCorrect ? 1 : 0) >= (missionType === 'quick_quiz' ? 3 : 2)) {
+          sounds.success();
+        }
       }
     }, 1500);
   };

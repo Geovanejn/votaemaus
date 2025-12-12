@@ -207,6 +207,9 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
   const { data: weeklyGoal, isLoading, isError, refetch } = useQuery<WeeklyGoalStatus>({
     queryKey: ["/api/study/weekly-goal"],
     enabled: isAuthenticated,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   if (!isAuthenticated) {

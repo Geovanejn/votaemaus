@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import html2canvas from "html2canvas";
 import { 
   Trophy, Flame, BookOpen, Star, Medal, Award, Crown, Zap,
   Heart, Target, CheckCircle, Calendar, Sunrise, Moon,
-  BookMarked, BookHeart, Shield, GraduationCap, TrendingUp, Sparkles, Book
+  BookMarked, BookHeart, Shield, GraduationCap, TrendingUp, Sparkles, Book, Share2, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useSounds } from "@/hooks/use-sounds";
+import { useToast } from "@/hooks/use-toast";
 
 interface Achievement {
   id: number;
@@ -74,6 +77,13 @@ const categoryColors: Record<string, { primary: string; secondary: string; gradi
   },
 };
 
+const categoryLabels: Record<string, string> = {
+  streak: "Sequencia",
+  lessons: "Licoes",
+  xp: "Experiencia",
+  special: "Especiais",
+};
+
 function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Trophy;
 }
@@ -88,71 +98,255 @@ export function AchievementUnlockAnimation({
   className
 }: AchievementUnlockAnimationProps) {
   const [showButton, setShowButton] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { sounds } = useSounds();
+  const { toast } = useToast();
   const hasPlayedSound = useRef(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   
   const IconComponent = getIconComponent(achievement.icon);
   const categoryStyle = getCategoryStyle(achievement.category);
 
   const fireConfetti = useCallback(() => {
-    const colors = [categoryStyle.primary, categoryStyle.secondary, '#FFD700', '#FFA500'];
+    const colors = [categoryStyle.primary, categoryStyle.secondary, '#FFD700', '#FFA500', '#FF6347', '#00CED1'];
     
     const fire = (particleRatio: number, opts: confetti.Options) => {
       confetti({
         ...opts,
-        particleCount: Math.floor(200 * particleRatio),
+        particleCount: Math.floor(300 * particleRatio),
         origin: { x: 0.5, y: 0.5 },
         colors,
         disableForReducedMotion: true,
+        shapes: ['star', 'circle'],
+        ticks: 300,
       });
     };
 
-    fire(0.25, { spread: 26, startVelocity: 55 });
-    fire(0.2, { spread: 60 });
-    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-    fire(0.1, { spread: 120, startVelocity: 45 });
+    fire(0.35, { spread: 30, startVelocity: 65, scalar: 1.2 });
+    fire(0.25, { spread: 70, startVelocity: 50 });
+    fire(0.4, { spread: 120, decay: 0.91, scalar: 0.9 });
+    fire(0.15, { spread: 150, startVelocity: 30, decay: 0.92, scalar: 1.3 });
+    fire(0.15, { spread: 140, startVelocity: 55, scalar: 0.8 });
 
     setTimeout(() => {
       confetti({
-        particleCount: 50,
-        spread: 70,
-        origin: { x: 0, y: 0.6 },
+        particleCount: 80,
+        spread: 80,
+        origin: { x: 0, y: 0.5 },
         colors,
         angle: 60,
+        startVelocity: 55,
+        shapes: ['star'],
       });
       confetti({
-        particleCount: 50,
-        spread: 70,
-        origin: { x: 1, y: 0.6 },
+        particleCount: 80,
+        spread: 80,
+        origin: { x: 1, y: 0.5 },
         colors,
         angle: 120,
+        startVelocity: 55,
+        shapes: ['star'],
       });
-    }, 300);
+    }, 200);
 
     setTimeout(() => {
       confetti({
-        particleCount: 30,
-        spread: 50,
-        origin: { x: 0.2, y: 0.8 },
+        particleCount: 60,
+        spread: 60,
+        origin: { x: 0.2, y: 0.7 },
         colors,
         angle: 75,
+        startVelocity: 45,
       });
       confetti({
-        particleCount: 30,
-        spread: 50,
-        origin: { x: 0.8, y: 0.8 },
+        particleCount: 60,
+        spread: 60,
+        origin: { x: 0.8, y: 0.7 },
         colors,
         angle: 105,
+        startVelocity: 45,
+      });
+    }, 400);
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { x: 0.5, y: 0.3 },
+        colors,
+        gravity: 1.2,
+        scalar: 1.1,
+        shapes: ['circle', 'star'],
       });
     }, 600);
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 40,
+        spread: 360,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#FFD700', '#FFA500'],
+        startVelocity: 30,
+        scalar: 0.7,
+        ticks: 200,
+      });
+    }, 800);
   }, [categoryStyle]);
+
+  const generateShareImage = useCallback(async (): Promise<Blob | null> => {
+    if (!shareCardRef.current) return null;
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: null,
+        scale: 3,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+      });
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+      });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      return null;
+    }
+  }, []);
+
+  const handleShare = async () => {
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateShareImage();
+      const shareText = `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`;
+      
+      if (!imageBlob) {
+        try {
+          await navigator.clipboard.writeText(shareText);
+          toast({
+            title: "Link copiado!",
+            description: "O texto foi copiado para a area de transferencia."
+          });
+        } catch {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Nao foi possivel copiar o texto."
+          });
+        }
+        setIsGenerating(false);
+        return;
+      }
+      
+      if (navigator.share) {
+        const file = new File([imageBlob], `conquista-${achievement.code}.png`, { type: 'image/png' });
+        const shareData = {
+          title: `Conquista Desbloqueada: ${achievement.name}`,
+          text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
+          files: [file],
+        };
+        
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast({
+            title: "Compartilhado!",
+            description: "Sua conquista foi compartilhada com sucesso."
+          });
+        } else {
+          const shareTextData = {
+            title: `Conquista Desbloqueada: ${achievement.name}`,
+            text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
+            url: window.location.origin
+          };
+          await navigator.share(shareTextData);
+          toast({
+            title: "Compartilhado!",
+            description: "Sua conquista foi compartilhada com sucesso."
+          });
+        }
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Link copiado!",
+          description: "O texto foi copiado para a area de transferencia."
+        });
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        try {
+          const fallbackText = `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`;
+          await navigator.clipboard.writeText(fallbackText);
+          toast({
+            title: "Link copiado!",
+            description: "O texto foi copiado para a area de transferencia."
+          });
+        } catch (clipboardError) {
+          console.error("Share/clipboard error:", error, clipboardError);
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Nao foi possivel compartilhar. Tente novamente."
+          });
+        }
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateShareImage();
+      if (!imageBlob) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Nao foi possivel gerar a imagem."
+        });
+        setIsGenerating(false);
+        return;
+      }
+      const url = URL.createObjectURL(imageBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `conquista-${achievement.code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Imagem baixada!",
+        description: "A imagem da conquista foi salva."
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Nao foi possivel baixar a imagem."
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     if (!hasPlayedSound.current) {
       sounds.achievement();
       fireConfetti();
       hasPlayedSound.current = true;
+      
+      setTimeout(() => {
+        sounds.star();
+      }, 400);
+      
+      setTimeout(() => {
+        sounds.goldenTransform();
+      }, 800);
     }
     
     const timer = setTimeout(() => setShowButton(true), 1500);
@@ -168,130 +362,251 @@ export function AchievementUnlockAnimation({
       )}
       data-testid="achievement-unlock-animation"
     >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="text-center max-w-sm"
+      <div 
+        ref={shareCardRef}
+        className="relative w-full max-w-sm rounded-2xl overflow-hidden"
+        style={{ 
+          background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+          boxShadow: `0 0 60px ${categoryStyle.primary}40, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`
+        }}
       >
-        <motion.p
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-lg text-muted-foreground mb-4 font-medium"
-        >
-          Conquista Desbloqueada!
-        </motion.p>
-
-        <motion.div
-          className="relative mb-6"
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 200, 
-            damping: 15,
-            delay: 0.3
+        <div 
+          className="absolute inset-0 opacity-40"
+          style={{ 
+            background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}50, transparent 60%)` 
           }}
-        >
-          <motion.div
-            animate={{ 
-              scale: [1, 1.05, 1],
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity,
-              repeatDelay: 0.5
-            }}
-            className="relative inline-block"
+        />
+        
+        <div 
+          className="absolute top-0 left-0 right-0 h-1.5"
+          style={{ 
+            background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary}, ${categoryStyle.primary})` 
+          }}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6 }}
+          className="absolute inset-0"
+          style={{
+            background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, ${categoryStyle.primary}10 90deg, transparent 180deg, ${categoryStyle.secondary}10 270deg, transparent 360deg)`
+          }}
+        />
+        
+        <div className="relative p-8 pt-10">
+          <motion.p
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-center text-gray-400 mb-6 font-semibold tracking-wide uppercase text-sm"
           >
-            <div 
-              className={cn(
-                "w-28 h-28 rounded-full flex items-center justify-center",
-                `bg-gradient-to-br ${categoryStyle.gradient}`
-              )}
-              style={{
-                boxShadow: `0 0 60px ${categoryStyle.primary}80`
-              }}
-            >
-              <IconComponent className="h-14 w-14 text-white drop-shadow-lg" />
-            </div>
-            
+            Conquista Desbloqueada!
+          </motion.p>
+
+          <motion.div
+            className="relative mb-6 flex justify-center"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 200, 
+              damping: 15,
+              delay: 0.2
+            }}
+          >
             <motion.div
               animate={{ 
-                scale: [1, 1.3, 1],
-                opacity: [0.4, 0.7, 0.4]
+                scale: [1, 1.08, 1],
               }}
               transition={{ 
-                duration: 1.5, 
+                duration: 2, 
                 repeat: Infinity,
-                ease: "easeInOut"
+                repeatDelay: 0.3
               }}
-              className={cn(
-                "absolute inset-0 rounded-full -z-10",
-                `bg-gradient-to-br ${categoryStyle.gradient}`
-              )}
-            />
-          </motion.div>
-        </motion.div>
-
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-3xl font-black mb-2"
-          style={{ color: categoryStyle.primary }}
-        >
-          {achievement.name}
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="text-muted-foreground mb-6"
-        >
-          {achievement.description}
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex items-center justify-center gap-2 mb-8"
-        >
-          <Zap className="h-6 w-6 text-amber-500" />
-          <span className="text-2xl font-bold text-amber-500">+{achievement.xpReward} XP</span>
-        </motion.div>
-
-        <AnimatePresence>
-          {showButton && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="w-full"
+              className="relative inline-block"
             >
-              <Button
-                onClick={onComplete}
+              <div 
                 className={cn(
-                  "w-full py-6 text-lg font-black uppercase tracking-wide",
-                  "bg-gradient-to-r from-[#1CB0F6] to-[#1899D6]",
-                  "shadow-[0_6px_0_0_#1480B8]",
-                  "hover:shadow-[0_4px_0_0_#1480B8] hover:translate-y-[2px]",
-                  "active:shadow-[0_2px_0_0_#1480B8] active:translate-y-[4px]",
-                  "transition-all duration-100"
+                  "w-32 h-32 rounded-full flex items-center justify-center relative",
+                  `bg-gradient-to-br ${categoryStyle.gradient}`
                 )}
-                data-testid="button-continue-achievement"
+                style={{
+                  boxShadow: `0 0 80px ${categoryStyle.primary}90, 0 0 40px ${categoryStyle.secondary}60, inset 0 -4px 20px rgba(0,0,0,0.3)`
+                }}
               >
-                Continuar
-              </Button>
+                <div className="absolute inset-2 rounded-full bg-gradient-to-t from-black/30 to-white/10" />
+                <IconComponent className="h-16 w-16 text-white drop-shadow-2xl relative z-10" />
+                
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-3 rounded-full border border-white/20"
+                  style={{ borderStyle: 'dashed' }}
+                />
+              </div>
+              
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.4, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className={cn(
+                  "absolute inset-0 rounded-full -z-10 blur-xl",
+                  `bg-gradient-to-br ${categoryStyle.gradient}`
+                )}
+              />
+              
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    scale: [0.5, 1.5, 0.5],
+                    x: [0, (Math.cos(i * Math.PI / 4) * 60)],
+                    y: [0, (Math.sin(i * Math.PI / 4) * 60)]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    delay: 0.5 + i * 0.1,
+                    repeat: Infinity,
+                    repeatDelay: 1
+                  }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                >
+                  <Sparkles className="w-4 h-4" style={{ color: categoryStyle.primary }} />
+                </motion.div>
+              ))}
             </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          </motion.div>
 
-      {[...Array(16)].map((_, i) => (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-center"
+          >
+            <Badge 
+              className="mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider border-0"
+              style={{ 
+                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                color: categoryStyle.primary 
+              }}
+            >
+              {categoryLabels[achievement.category] || achievement.category}
+            </Badge>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-3xl font-black mb-3 text-center tracking-tight"
+            style={{ 
+              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            {achievement.name}
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-gray-400 mb-6 text-center text-sm leading-relaxed max-w-xs mx-auto"
+          >
+            {achievement.description}
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.7 }}
+            className="flex items-center justify-center gap-2 mb-6"
+          >
+            <div 
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(255,200,0,0.2), rgba(255,150,0,0.15))',
+                border: '1px solid rgba(255,200,0,0.3)',
+                boxShadow: '0 0 20px rgba(255,200,0,0.2)'
+              }}
+            >
+              <Zap className="h-6 w-6 text-amber-400" />
+              <span className="text-2xl font-bold text-amber-400">+{achievement.xpReward} XP</span>
+            </div>
+          </motion.div>
+
+          <div className="absolute bottom-4 right-4 flex items-center gap-1.5">
+            <div 
+              className="w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+            >
+              <Trophy className="h-3 w-3 text-white" />
+            </div>
+            <span className="text-xs font-semibold text-gray-500">DeoGlory</span>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showButton && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="w-full max-w-sm mt-6 space-y-3"
+          >
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownload}
+                disabled={isGenerating}
+                className="flex-1"
+                data-testid="button-download-achievement"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Baixar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                disabled={isGenerating}
+                className="flex-1"
+                data-testid="button-share-achievement"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                {isGenerating ? "..." : "Compartilhar"}
+              </Button>
+            </div>
+            
+            <Button
+              onClick={onComplete}
+              className={cn(
+                "w-full py-6 text-lg font-black uppercase tracking-wide",
+                "bg-gradient-to-r from-[#1CB0F6] to-[#1899D6]",
+                "shadow-[0_6px_0_0_#1480B8]",
+                "hover:shadow-[0_4px_0_0_#1480B8] hover:translate-y-[2px]",
+                "active:shadow-[0_2px_0_0_#1480B8] active:translate-y-[4px]",
+                "transition-all duration-100"
+              )}
+              data-testid="button-continue-achievement"
+            >
+              Continuar
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {[...Array(24)].map((_, i) => (
         <motion.div
           key={i}
           initial={{ 
@@ -303,20 +618,21 @@ export function AchievementUnlockAnimation({
           animate={{ 
             opacity: 0,
             scale: 1,
-            x: (Math.random() - 0.5) * 500,
-            y: (Math.random() - 0.5) * 500
+            x: (Math.random() - 0.5) * 600,
+            y: (Math.random() - 0.5) * 600
           }}
           transition={{ 
-            duration: 2,
-            delay: 0.3 + i * 0.05,
+            duration: 2.5,
+            delay: 0.2 + i * 0.04,
             ease: "easeOut"
           }}
-          className="absolute top-1/2 left-1/2"
+          className="absolute top-1/2 left-1/2 pointer-events-none"
           style={{
-            width: 8 + Math.random() * 12,
-            height: 8 + Math.random() * 12,
-            borderRadius: '50%',
-            background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`
+            width: 6 + Math.random() * 14,
+            height: 6 + Math.random() * 14,
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+            transform: `rotate(${Math.random() * 360}deg)`
           }}
         />
       ))}

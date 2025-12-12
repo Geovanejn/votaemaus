@@ -385,7 +385,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
           }}
         />
         
-        <div style={{ position: 'relative', padding: '40px 32px 32px 32px' }}>
+        <div style={{ position: 'relative', padding: '30px 32px 32px 32px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <motion.div
               style={{ position: 'relative' }}
@@ -395,8 +395,8 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             >
               <div 
                 style={{
-                  width: '112px',
-                  height: '112px',
+                  width: '90px',
+                  height: '90px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -409,7 +409,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                 <div 
                   style={{ 
                     position: 'absolute',
-                    inset: '8px',
+                    inset: '6px',
                     borderRadius: '50%',
                     opacity: 0.4,
                     background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' 
@@ -423,7 +423,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                     background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' 
                   }}
                 />
-                <IconComponent style={{ width: '56px', height: '56px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
+                <IconComponent style={{ width: '45px', height: '45px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
               </div>
               
               <div 
@@ -452,7 +452,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             </motion.div>
             
             <motion.div 
-              style={{ marginTop: '32px', textAlign: 'center' }}
+              style={{ marginTop: '22px', textAlign: 'center' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -477,7 +477,11 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
-                      lineHeight: '28px',
+                      lineHeight: '1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
                     }}
                   >
                     {categoryLabels[achievement.category] || achievement.category}
@@ -527,13 +531,15 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                     border: '1px solid rgba(255,200,0,0.2)'
                   }}
                 >
-                  <Zap style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                  <Zap style={{ width: '20px', height: '20px', color: '#fbbf24', flexShrink: 0 }} />
                   <span 
                     style={{ 
                       color: '#fbbf24',
                       fontSize: '18px',
                       fontWeight: 700,
-                      lineHeight: '40px',
+                      lineHeight: '1',
+                      display: 'flex',
+                      alignItems: 'center',
                     }}
                   >
                     +{achievement.xpReward} XP
@@ -563,8 +569,8 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
           >
             <div 
               style={{ 
-                width: '24px',
-                height: '24px',
+                width: '20px',
+                height: '20px',
                 borderRadius: '50%',
                 background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                 display: 'flex',
@@ -573,15 +579,17 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
                 flexShrink: 0,
               }}
             >
-              <Trophy style={{ width: '14px', height: '14px', color: '#ffffff' }} />
+              <Trophy style={{ width: '12px', height: '12px', color: '#ffffff' }} />
             </div>
             <span 
               style={{ 
                 color: '#6b7280', 
                 fontSize: '14px',
                 fontWeight: 600,
-                lineHeight: '24px',
+                lineHeight: '20px',
                 flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
               DeoGlory

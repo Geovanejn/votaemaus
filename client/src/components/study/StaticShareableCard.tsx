@@ -242,52 +242,47 @@ export function StaticShareableCard({ achievement, showUnlockedDate = false }: S
             </div>
             
             {showUnlockedDate && achievement.unlockedAt && (
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '16px' }}>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '16px', marginBottom: '0' }}>
                 Desbloqueada em {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
               </p>
             )}
+            
+            <div 
+              style={{
+                marginTop: '20px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <div 
+                style={{ 
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: '6px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                <Trophy style={{ width: '12px', height: '12px', color: '#ffffff' }} />
+              </div>
+              <span 
+                style={{ 
+                  color: '#6b7280', 
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  lineHeight: '20px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                DeoGlory
+              </span>
+            </div>
           </div>
-        </div>
-        
-        <div 
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            right: '16px',
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: '6px',
-            height: '24px',
-          }}
-        >
-          <div 
-            style={{ 
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Trophy style={{ width: '12px', height: '12px', color: '#ffffff' }} />
-          </div>
-          <span 
-            style={{ 
-              color: '#6b7280', 
-              fontSize: '14px',
-              fontWeight: 600,
-              lineHeight: '20px',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            DeoGlory
-          </span>
         </div>
       </div>
     </div>

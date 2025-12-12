@@ -135,10 +135,11 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
           
           <div className="mt-6 text-center">
             <span 
-              className="inline-block mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-md"
+              className="inline-flex items-center justify-center mb-3 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md"
               style={{ 
                 background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                color: categoryStyle.primary 
+                color: categoryStyle.primary,
+                minHeight: '28px'
               }}
             >
               {categoryLabels[achievement.category] || achievement.category}
@@ -147,10 +148,7 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
             <h2 
               className="text-2xl font-black tracking-tight"
               style={{ 
-                background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: categoryStyle.primary,
               }}
             >
               {achievement.name}
@@ -175,12 +173,12 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
         
         <div className="flex items-center justify-end gap-1.5 mt-6">
           <div 
-            className="w-5 h-5 rounded-full flex items-center justify-center"
+            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
           >
             <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
           </div>
-          <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>DeoGlory</span>
+          <span className="text-xs font-semibold leading-none" style={{ color: '#6b7280' }}>DeoGlory</span>
         </div>
       </div>
     </div>
@@ -585,10 +583,11 @@ export function AchievementUnlockAnimation({
             className="text-center"
           >
             <Badge 
-              className="mb-2 px-3 py-1 text-xs font-bold uppercase tracking-wider border-0"
+              className="mb-2 px-3 py-2 text-xs font-bold uppercase tracking-wider border-0 inline-flex items-center justify-center"
               style={{ 
                 background: `linear-gradient(135deg, ${categoryStyle.primary}40, ${categoryStyle.secondary}30)`,
-                color: categoryStyle.primary 
+                color: categoryStyle.primary,
+                minHeight: '28px'
               }}
             >
               {categoryLabels[achievement.category] || achievement.category}
@@ -636,12 +635,12 @@ export function AchievementUnlockAnimation({
 
           <div className="flex items-center justify-end gap-1.5">
             <div 
-              className="w-5 h-5 rounded-full flex items-center justify-center"
+              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
             >
               <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
             </div>
-            <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>DeoGlory</span>
+            <span className="text-xs font-semibold leading-none" style={{ color: '#6b7280' }}>DeoGlory</span>
           </div>
         </div>
       </div>

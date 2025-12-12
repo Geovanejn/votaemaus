@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import { 
   Trophy, Flame, BookOpen, Star, Medal, Award, Crown, Zap,
   Heart, Target, CheckCircle, Calendar, Sunrise, Moon,
@@ -93,15 +94,70 @@ export function AchievementUnlockAnimation({
   const IconComponent = getIconComponent(achievement.icon);
   const categoryStyle = getCategoryStyle(achievement.category);
 
+  const fireConfetti = useCallback(() => {
+    const colors = [categoryStyle.primary, categoryStyle.secondary, '#FFD700', '#FFA500'];
+    
+    const fire = (particleRatio: number, opts: confetti.Options) => {
+      confetti({
+        ...opts,
+        particleCount: Math.floor(200 * particleRatio),
+        origin: { x: 0.5, y: 0.5 },
+        colors,
+        disableForReducedMotion: true,
+      });
+    };
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { x: 0, y: 0.6 },
+        colors,
+        angle: 60,
+      });
+      confetti({
+        particleCount: 50,
+        spread: 70,
+        origin: { x: 1, y: 0.6 },
+        colors,
+        angle: 120,
+      });
+    }, 300);
+
+    setTimeout(() => {
+      confetti({
+        particleCount: 30,
+        spread: 50,
+        origin: { x: 0.2, y: 0.8 },
+        colors,
+        angle: 75,
+      });
+      confetti({
+        particleCount: 30,
+        spread: 50,
+        origin: { x: 0.8, y: 0.8 },
+        colors,
+        angle: 105,
+      });
+    }, 600);
+  }, [categoryStyle]);
+
   useEffect(() => {
     if (!hasPlayedSound.current) {
       sounds.achievement();
+      fireConfetti();
       hasPlayedSound.current = true;
     }
     
     const timer = setTimeout(() => setShowButton(true), 1500);
     return () => clearTimeout(timer);
-  }, [sounds]);
+  }, [sounds, fireConfetti]);
 
   return (
     <div 

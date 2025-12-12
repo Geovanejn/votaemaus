@@ -30,13 +30,15 @@ import {
   Lock,
   Share2,
   Sparkles,
-  Book
+  Book,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
 import {
   Dialog,
   DialogContent,
@@ -204,26 +206,81 @@ function AchievementIcon({ icon, unlocked, size = "normal" }: { icon: string; un
 function ShareableAchievementCard({ achievement, onClose }: { achievement: Achievement; onClose: () => void }) {
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
+  const iconStyles = getIconStyles(achievement.icon);
+  const IconComponent = getIconComponent(achievement.icon);
   
-  const handleShare = async () => {
+  const generateImage = useCallback(async (): Promise<Blob | null> => {
+    if (!cardRef.current) return null;
+    
     try {
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+      });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      return null;
+    }
+  }, []);
+
+  const handleShare = async () => {
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateImage();
       const shareText = `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`;
-      const shareData = {
-        title: `Conquista Desbloqueada: ${achievement.name}`,
-        text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
-        url: window.location.origin
-      };
       
-      const canUseNativeShare = navigator.share && 
-        (typeof navigator.canShare === 'function' ? navigator.canShare(shareData) : true);
+      if (!imageBlob) {
+        try {
+          await navigator.clipboard.writeText(shareText);
+          toast({
+            title: "Link copiado!",
+            description: "O texto foi copiado para a area de transferencia."
+          });
+        } catch {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Nao foi possivel copiar o texto."
+          });
+        }
+        setIsGenerating(false);
+        return;
+      }
       
-      if (canUseNativeShare) {
-        await navigator.share(shareData);
-        toast({
-          title: "Compartilhado!",
-          description: "Sua conquista foi compartilhada com sucesso."
-        });
+      if (navigator.share) {
+        const file = new File([imageBlob], `conquista-${achievement.code}.png`, { type: 'image/png' });
+        const shareData = {
+          title: `Conquista Desbloqueada: ${achievement.name}`,
+          text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
+          files: [file],
+        };
+        
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast({
+            title: "Compartilhado!",
+            description: "Sua conquista foi compartilhada com sucesso."
+          });
+        } else {
+          const shareTextData = {
+            title: `Conquista Desbloqueada: ${achievement.name}`,
+            text: `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description}`,
+            url: window.location.origin
+          };
+          await navigator.share(shareTextData);
+          toast({
+            title: "Compartilhado!",
+            description: "Sua conquista foi compartilhada com sucesso."
+          });
+        }
       } else {
         await navigator.clipboard.writeText(shareText);
         toast({
@@ -234,17 +291,60 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         try {
-          await navigator.clipboard.writeText(
-            `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`
-          );
+          const fallbackText = `Desbloqueei a conquista "${achievement.name}" no DeoGlory! ${achievement.description} - ${window.location.origin}`;
+          await navigator.clipboard.writeText(fallbackText);
           toast({
             title: "Link copiado!",
             description: "O texto foi copiado para a area de transferencia."
           });
-        } catch {
-          console.error("Share error:", error);
+        } catch (clipboardError) {
+          console.error("Share/clipboard error:", error, clipboardError);
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Nao foi possivel compartilhar. Tente novamente."
+          });
         }
       }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateImage();
+      if (!imageBlob) {
+        setIsGenerating(false);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Nao foi possivel gerar a imagem."
+        });
+        return;
+      }
+      const url = URL.createObjectURL(imageBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `conquista-${achievement.code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Imagem baixada!",
+        description: "A imagem da conquista foi salva."
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Nao foi possivel baixar a imagem."
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
   
@@ -252,64 +352,122 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
     <div className="flex flex-col items-center p-6">
       <div 
         ref={cardRef}
-        className="relative w-full max-w-sm p-8 rounded-xl bg-gradient-to-br from-background to-muted border-2 shadow-2xl"
-        style={{ borderColor: categoryStyle.primary }}
+        className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+        style={{ 
+          background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+        }}
       >
-        <div className="absolute top-0 left-0 right-0 h-24 rounded-t-xl bg-gradient-to-br opacity-20"
+        <div 
+          className="absolute inset-0 opacity-30"
           style={{ 
-            background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
+            background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}40, transparent 60%)` 
           }}
         />
         
-        <div className="relative flex flex-col items-center">
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
-          >
-            <AchievementIcon icon={achievement.icon} unlocked={true} size="large" />
-          </motion.div>
-          
-          <motion.div 
-            className="mt-6 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Badge 
-              variant="secondary"
-              className="mb-2"
-              style={{ 
-                backgroundColor: `${categoryStyle.primary}20`, 
-                color: categoryStyle.primary 
-              }}
-            >
-              {categoryLabels[achievement.category] || achievement.category}
-            </Badge>
-            
-            <h2 className={cn("text-2xl font-black mt-2", categoryStyle.text)}>
-              {achievement.name}
-            </h2>
-            
-            <p className="text-muted-foreground mt-2 text-sm">
-              {achievement.description}
-            </p>
-            
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Zap className="h-5 w-5 text-amber-500" />
-              <span className="text-lg font-bold">+{achievement.xpReward} XP</span>
-            </div>
-            
-            {achievement.unlockedAt && (
-              <p className="text-xs text-muted-foreground mt-3">
-                Desbloqueada em {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-          </motion.div>
-        </div>
+        <div className="absolute top-0 left-0 right-0 h-2"
+          style={{ 
+            background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
+          }}
+        />
         
-        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground/50 font-medium">
-          DeoGlory
+        <div className="relative p-8 pt-10">
+          <div className="flex flex-col items-center">
+            <motion.div
+              className="relative"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+            >
+              <div 
+                className={cn(
+                  "w-28 h-28 rounded-full flex items-center justify-center relative",
+                  `bg-gradient-to-br ${iconStyles.gradient}`,
+                )}
+                style={{
+                  boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
+                }}
+              >
+                <div className={cn(
+                  "absolute inset-2 rounded-full opacity-40",
+                  iconStyles.innerGlow
+                )} />
+                <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 to-transparent" />
+                <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" />
+              </div>
+              
+              <div 
+                className="absolute -inset-3 rounded-full opacity-20 blur-xl -z-10"
+                style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+              />
+              
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute -inset-4 rounded-full border border-white/10 -z-10"
+                style={{ borderStyle: 'dashed' }}
+              />
+            </motion.div>
+            
+            <motion.div 
+              className="mt-8 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Badge 
+                className="mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider border-0"
+                style={{ 
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                  color: categoryStyle.primary 
+                }}
+              >
+                {categoryLabels[achievement.category] || achievement.category}
+              </Badge>
+              
+              <h2 
+                className="text-2xl font-black mt-3 tracking-tight"
+                style={{ 
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                {achievement.name}
+              </h2>
+              
+              <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-xs mx-auto">
+                {achievement.description}
+              </p>
+              
+              <div 
+                className="flex items-center justify-center gap-2 mt-5 px-5 py-2.5 rounded-full mx-auto w-fit"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                  border: '1px solid rgba(255,200,0,0.2)'
+                }}
+              >
+                <Zap className="h-5 w-5 text-amber-400" />
+                <span className="text-lg font-bold text-amber-400">+{achievement.xpReward} XP</span>
+              </div>
+              
+              {achievement.unlockedAt && (
+                <p className="text-xs text-gray-500 mt-4">
+                  Desbloqueada em {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
+                </p>
+              )}
+            </motion.div>
+          </div>
+          
+          <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+            <div 
+              className="w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+            >
+              <Trophy className="h-3 w-3 text-white" />
+            </div>
+            <span className="text-xs font-semibold text-gray-500">DeoGlory</span>
+          </div>
         </div>
       </div>
       
@@ -322,9 +480,13 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
         <Button variant="outline" onClick={onClose} data-testid="button-close-share">
           Fechar
         </Button>
-        <Button onClick={handleShare} data-testid="button-share-achievement">
+        <Button variant="outline" onClick={handleDownload} disabled={isGenerating} data-testid="button-download-achievement">
+          <Download className="h-4 w-4 mr-2" />
+          Baixar
+        </Button>
+        <Button onClick={handleShare} disabled={isGenerating} data-testid="button-share-achievement">
           <Share2 className="h-4 w-4 mr-2" />
-          Compartilhar
+          {isGenerating ? "Gerando..." : "Compartilhar"}
         </Button>
       </motion.div>
     </div>

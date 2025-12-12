@@ -843,6 +843,7 @@ export default function MissionActivityPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/missions/daily"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/study/profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/study/weekly-goal"] });
       setLocation('/study/missions');
     },
   });

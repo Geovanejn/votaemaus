@@ -64,6 +64,7 @@ export default function VersesPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/verses/recovery-progress'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/verses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
       
       if (data.alreadyRead) {
         toast({

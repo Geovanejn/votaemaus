@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useSounds } from "@/hooks/use-sounds";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { StaticShareableCard } from "./StaticShareableCard";
 
 interface Achievement {
   id: number;
@@ -90,197 +91,6 @@ function getIconComponent(iconName: string) {
 
 function getCategoryStyle(category: string) {
   return categoryColors[category] || categoryColors.special;
-}
-
-function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achievement; categoryStyle: { primary: string; secondary: string; gradient: string } }) {
-  const IconComponent = getIconComponent(achievement.icon);
-  
-  return (
-    <div 
-      style={{ 
-        position: 'relative',
-        width: '320px',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
-      }}
-    >
-      <div 
-        style={{ 
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.3,
-          background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}40, transparent 60%)` 
-        }}
-      />
-      
-      <div 
-        style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '8px',
-          background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
-        }}
-      />
-      
-      <div style={{ position: 'relative', padding: '32px 32px 48px 32px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div 
-            style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-              boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
-            }}
-          >
-            <div 
-              style={{ 
-                position: 'absolute',
-                inset: '6px',
-                borderRadius: '50%',
-                opacity: 0.4,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' 
-              }}
-            />
-            <div 
-              style={{ 
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '50%',
-                background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' 
-              }}
-            />
-            <IconComponent style={{ width: '48px', height: '48px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
-          </div>
-          
-          <div style={{ marginTop: '20px', textAlign: 'center', width: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div 
-                style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '28px',
-                  paddingLeft: '16px',
-                  paddingRight: '16px',
-                  borderRadius: '6px',
-                  background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                }}
-              >
-                <span 
-                  style={{ 
-                    color: categoryStyle.primary,
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  {categoryLabels[achievement.category] || achievement.category}
-                </span>
-              </div>
-            </div>
-            
-            <h2 
-              style={{ 
-                color: categoryStyle.primary,
-                fontSize: '24px',
-                fontWeight: 900,
-                letterSpacing: '-0.025em',
-                margin: '16px 0 0 0',
-              }}
-            >
-              {achievement.name}
-            </h2>
-            
-            <p 
-              style={{ 
-                color: '#9ca3af',
-                marginTop: '12px',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                maxWidth: '280px',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-              }}
-            >
-              {achievement.description}
-            </p>
-            
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-              <div 
-                style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  height: '40px',
-                  borderRadius: '20px',
-                  background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
-                  border: '1px solid rgba(255,200,0,0.2)'
-                }}
-              >
-                <Zap style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
-                <span 
-                  style={{ 
-                    color: '#fbbf24',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                  }}
-                >
-                  +{achievement.xpReward} XP
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div 
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            right: '16px',
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          <div 
-            style={{ 
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Trophy style={{ width: '12px', height: '12px', color: '#ffffff' }} />
-          </div>
-          <span 
-            style={{ 
-              color: '#6b7280', 
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
-          >
-            DeoGlory
-          </span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function AchievementUnlockAnimation({
@@ -559,7 +369,7 @@ export function AchievementUnlockAnimation({
         aria-hidden="true"
       >
         <div ref={shareCardRef}>
-          <StaticShareableCard achievement={achievement} categoryStyle={categoryStyle} />
+          <StaticShareableCard achievement={achievement} />
         </div>
       </div>
 

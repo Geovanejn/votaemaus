@@ -836,6 +836,28 @@ export default function MissionActivityPage() {
     );
   }
 
+  if (!mission.mission) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4" data-testid="error-state">
+        <AlertCircle className="w-16 h-16 text-destructive mb-4" />
+        <h3 className="font-bold text-lg text-foreground mb-2">
+          Dados da missao incompletos
+        </h3>
+        <p className="text-sm text-muted-foreground text-center mb-4">
+          Os detalhes da missao nao foram carregados corretamente.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setLocation('/study/missions')} data-testid="button-back-error">
+            Voltar
+          </Button>
+          <Button onClick={() => refetch()} data-testid="button-retry">
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const IconComponent = iconMap[mission.mission.icon] || Star;
   const missionType = mission.mission.type;
 

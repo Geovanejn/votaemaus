@@ -1211,8 +1211,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserMissionById(userId: number, missionId: number, date: string): Promise<any | null> {
-    const [result] = await db.select()
+    const [result] = await db.select({
+      id: schema.userDailyMissions.id,
+      missionId: schema.userDailyMissions.missionId,
+      completed: schema.userDailyMissions.completed,
+      assignedDate: schema.userDailyMissions.assignedDate,
+      mission: schema.dailyMissions,
+    })
       .from(schema.userDailyMissions)
+      .leftJoin(schema.dailyMissions, eq(schema.userDailyMissions.missionId, schema.dailyMissions.id))
       .where(and(
         eq(schema.userDailyMissions.userId, userId),
         eq(schema.userDailyMissions.missionId, missionId),

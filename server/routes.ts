@@ -3266,19 +3266,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let missions = await storage.assignDailyMissions(userId, today);
       const content = await storage.getDailyMissionContent(today);
       
-      // Check if user already read daily verse - auto-complete that mission
+      // Check user's profile for auto-completable missions
       const profile = await storage.getStudyProfile(userId);
       const verseDateKey = getDailyVerseDateKeyMission();
       const hasReadVerse = profile?.dailyVerseReadDate === verseDateKey;
       
-      // Auto-complete "read_daily_verse" mission if user already read the verse
+      // Check if user completed a lesson today (using lastLessonCompletedAt)
+      let hasCompletedLessonToday = false;
+      if (profile?.lastLessonCompletedAt) {
+        const lastLessonDate = new Date(profile.lastLessonCompletedAt);
+        const spLastLesson = new Date(lastLessonDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+        const spNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+        hasCompletedLessonToday = spLastLesson.toISOString().split('T')[0] === spNow.toISOString().split('T')[0];
+      }
+      
+      let needsRefresh = false;
+      
+      // Auto-complete "read_daily_verse" mission if user already read the verse on Explore
       if (hasReadVerse) {
         for (const mission of missions) {
           if (mission.mission?.type === 'read_daily_verse' && !mission.completed) {
             await storage.completeMission(userId, mission.missionId, today);
+            needsRefresh = true;
           }
         }
-        // Refresh missions list after auto-completion
+      }
+      
+      // Auto-complete "maintain_streak" mission if user completed a lesson today
+      if (hasCompletedLessonToday) {
+        for (const mission of missions) {
+          if (mission.mission?.type === 'maintain_streak' && !mission.completed) {
+            await storage.completeMission(userId, mission.missionId, today);
+            needsRefresh = true;
+          }
+        }
+      }
+      
+      // Refresh missions list after auto-completions
+      if (needsRefresh) {
         missions = await storage.getUserDailyMissions(userId, today);
       }
       

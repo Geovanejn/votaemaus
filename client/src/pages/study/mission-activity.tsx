@@ -605,11 +605,18 @@ function StreakActivity({
 }: { 
   onComplete: () => void;
 }) {
-  const { data: profile, isLoading } = useQuery<{ currentStreak: number; studiedToday: boolean }>({
+  const [, setLocation] = useLocation();
+  const { data: profile, isLoading } = useQuery<{ currentStreak: number; lastLessonCompletedAt: string | null }>({
     queryKey: ["/api/study/profile"],
   });
 
-  const hasActiveStreak = profile?.studiedToday || (profile?.currentStreak && profile.currentStreak > 0);
+  // User must have completed a lesson today to complete this mission
+  const hasCompletedLessonToday = (() => {
+    if (!profile?.lastLessonCompletedAt) return false;
+    const lastLessonDate = new Date(profile.lastLessonCompletedAt);
+    const today = new Date();
+    return lastLessonDate.toDateString() === today.toDateString();
+  })();
 
   if (isLoading) {
     return (
@@ -619,14 +626,14 @@ function StreakActivity({
     );
   }
 
-  if (!hasActiveStreak) {
+  if (!hasCompletedLessonToday) {
     return (
       <div className="space-y-6 text-center" data-testid="streak-activity-incomplete">
         <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
           <Flame className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Inativa</h3>
+          <h3 className="text-lg font-bold text-foreground mb-2">Complete uma Licao Hoje</h3>
           <p className="text-muted-foreground mb-4">
-            Para completar esta missao, voce precisa manter sua sequencia de estudos ativa. Complete uma licao hoje para ganhar sua ofensiva!
+            Para completar esta missao, voce precisa concluir pelo menos uma licao hoje para garantir sua ofensiva do dia!
           </p>
           <Badge variant="outline" className="text-orange-600 border-orange-300">
             Ofensiva atual: {profile?.currentStreak || 0} dias
@@ -634,7 +641,7 @@ function StreakActivity({
         </Card>
 
         <Button 
-          onClick={() => window.location.href = '/study'} 
+          onClick={() => setLocation('/study')} 
           className="w-full bg-orange-500 text-white"
           data-testid="button-go-study"
         >
@@ -654,9 +661,9 @@ function StreakActivity({
         >
           <Flame className="w-16 h-16 mx-auto text-orange-500 mb-4" />
         </motion.div>
-        <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Ativa!</h3>
+        <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Conquistada Hoje!</h3>
         <p className="text-muted-foreground mb-2">
-          Parabens! Voce esta mantendo sua sequencia de estudos ativa.
+          Parabens! Voce completou uma licao hoje e garantiu sua ofensiva!
         </p>
         <Badge className="bg-orange-500 text-white">
           {profile?.currentStreak || 0} dias de ofensiva

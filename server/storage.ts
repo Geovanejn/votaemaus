@@ -1275,11 +1275,18 @@ export class DatabaseStorage implements IStorage {
     if (existingMissions.length > 0) return;
 
     const defaultMissions = [
+      // Core missions
       { type: 'complete_lesson', title: 'Estudante Dedicado', description: 'Complete uma lição hoje', icon: 'BookOpen', xpReward: 15 },
-      { type: 'read_daily_verse', title: 'Palavra do Dia', description: 'Leia o versículo do dia', icon: 'Book', xpReward: 10 },
-      { type: 'quick_quiz', title: 'Quiz Rápido', description: 'Responda 3 perguntas corretamente', icon: 'HelpCircle', xpReward: 20 },
-      { type: 'maintain_streak', title: 'Mantenha o Foco', description: 'Mantenha sua sequência de estudos', icon: 'Flame', xpReward: 10 },
+      { type: 'read_daily_verse', title: 'Palavra do Dia', description: 'Leia o versículo do dia na aba Explorar', icon: 'BookMarked', xpReward: 10 },
+      { type: 'quick_quiz', title: 'Quiz Rápido', description: 'Responda 3 perguntas corretamente', icon: 'Zap', xpReward: 20 },
+      { type: 'maintain_streak', title: 'Mantenha o Foco', description: 'Complete uma lição para manter sua ofensiva', icon: 'Flame', xpReward: 10 },
       { type: 'perfect_answers', title: 'Perfeição', description: 'Acerte 5 respostas seguidas', icon: 'Star', xpReward: 25 },
+      // Additional variety missions
+      { type: 'timed_challenge', title: 'Contra o Relógio', description: 'Responda perguntas antes do tempo acabar', icon: 'Timer', xpReward: 30 },
+      { type: 'bible_character', title: 'Personagem Bíblico', description: 'Conheça um personagem da Bíblia', icon: 'User', xpReward: 15 },
+      { type: 'simple_prayer', title: 'Momento de Oração', description: 'Escreva uma oração de gratidão', icon: 'Heart', xpReward: 15 },
+      { type: 'bible_fact', title: 'Curiosidade Bíblica', description: 'Aprenda um fato interessante da Bíblia', icon: 'Lightbulb', xpReward: 10 },
+      { type: 'memorize_theme', title: 'Memorize o Tema', description: 'Memorize e teste seu conhecimento', icon: 'Brain', xpReward: 20 },
     ];
 
     for (const mission of defaultMissions) {

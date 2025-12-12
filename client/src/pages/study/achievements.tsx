@@ -216,11 +216,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
     if (!cardRef.current) return null;
     
     try {
+      const scale = Math.max(3, window.devicePixelRatio || 2);
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null,
-        scale: 2,
+        backgroundColor: '#1a1a2e',
+        scale: scale,
         useCORS: true,
         logging: false,
+        allowTaint: true,
+        imageTimeout: 0,
       });
       
       return new Promise((resolve) => {
@@ -415,14 +418,22 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             >
               <div className="flex justify-center">
                 <div
-                  className="flex h-8 items-center justify-center px-4 rounded-md"
+                  className="px-4 rounded-md"
                   style={{ 
                     background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   <span 
                     className="text-xs font-bold uppercase tracking-wider"
-                    style={{ color: categoryStyle.primary, lineHeight: '1' }}
+                    style={{ 
+                      color: categoryStyle.primary, 
+                      lineHeight: '1',
+                      display: 'block',
+                    }}
                   >
                     {categoryLabels[achievement.category] || achievement.category}
                   </span>
@@ -463,14 +474,41 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             </motion.div>
           </div>
           
-          <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+          <div 
+            className="absolute bottom-3 right-4"
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: '6px',
+              height: '20px',
+            }}
+          >
             <div 
-              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+              style={{ 
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
             >
-              <Trophy className="h-3 w-3 text-white" />
+              <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
             </div>
-            <span className="text-xs font-semibold text-gray-500 leading-none">DeoGlory</span>
+            <span 
+              style={{ 
+                color: '#6b7280', 
+                fontSize: '12px',
+                fontWeight: 600,
+                lineHeight: '20px',
+                flexShrink: 0,
+              }}
+            >
+              DeoGlory
+            </span>
           </div>
         </div>
       </div>

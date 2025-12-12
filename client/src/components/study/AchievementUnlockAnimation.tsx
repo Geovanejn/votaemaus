@@ -135,16 +135,21 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
           
           <div className="mt-6 text-center">
             <div 
-              className="flex h-8 items-center justify-center px-4 rounded-md mx-auto w-fit mb-3"
+              className="px-4 rounded-md mx-auto w-fit mb-3"
               style={{ 
                 background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <span 
                 className="text-xs font-bold uppercase tracking-wider"
                 style={{ 
                   color: categoryStyle.primary,
-                  lineHeight: '1'
+                  lineHeight: '1',
+                  display: 'block',
                 }}
               >
                 {categoryLabels[achievement.category] || achievement.category}
@@ -177,16 +182,39 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
           </div>
         </div>
         
-        <div className="flex items-center justify-end gap-1.5 mt-6">
+        <div 
+          className="mt-6"
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '6px',
+            height: '20px',
+          }}
+        >
           <div 
-            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+            style={{ 
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
             <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
           </div>
           <span 
-            className="text-xs font-semibold flex-shrink-0"
-            style={{ color: '#6b7280', lineHeight: '1' }}
+            style={{ 
+              color: '#6b7280', 
+              fontSize: '12px',
+              fontWeight: 600,
+              lineHeight: '20px',
+              flexShrink: 0,
+            }}
           >
             DeoGlory
           </span>

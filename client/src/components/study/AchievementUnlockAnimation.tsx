@@ -134,16 +134,22 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
           </div>
           
           <div className="mt-6 text-center">
-            <span 
-              className="inline-flex items-center justify-center mb-3 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md"
+            <div 
+              className="flex h-8 items-center justify-center px-4 rounded-md mx-auto w-fit mb-3"
               style={{ 
                 background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                color: categoryStyle.primary,
-                minHeight: '28px'
               }}
             >
-              {categoryLabels[achievement.category] || achievement.category}
-            </span>
+              <span 
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ 
+                  color: categoryStyle.primary,
+                  lineHeight: '1'
+                }}
+              >
+                {categoryLabels[achievement.category] || achievement.category}
+              </span>
+            </div>
             
             <h2 
               className="text-2xl font-black tracking-tight"
@@ -178,7 +184,12 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
           >
             <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
           </div>
-          <span className="text-xs font-semibold leading-none" style={{ color: '#6b7280' }}>DeoGlory</span>
+          <span 
+            className="text-xs font-semibold flex-shrink-0"
+            style={{ color: '#6b7280', lineHeight: '1' }}
+          >
+            DeoGlory
+          </span>
         </div>
       </div>
     </div>
@@ -292,12 +303,14 @@ export function AchievementUnlockAnimation({
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      const scale = Math.max(3, window.devicePixelRatio || 2);
       const canvas = await html2canvas(shareCardRef.current, {
         backgroundColor: '#1a1a2e',
-        scale: 2,
+        scale: scale,
         useCORS: true,
         logging: false,
         allowTaint: true,
+        imageTimeout: 0,
       });
       
       return new Promise((resolve) => {

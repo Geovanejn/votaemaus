@@ -415,15 +415,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             >
               <div className="flex justify-center">
                 <div
-                  className="px-4 py-2 rounded-md flex items-center justify-center"
+                  className="flex h-8 items-center justify-center px-4 rounded-md"
                   style={{ 
                     background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-                    minHeight: '28px'
                   }}
                 >
                   <span 
-                    className="text-xs font-bold uppercase tracking-wider leading-none"
-                    style={{ color: categoryStyle.primary }}
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: categoryStyle.primary, lineHeight: '1' }}
                   >
                     {categoryLabels[achievement.category] || achievement.category}
                   </span>

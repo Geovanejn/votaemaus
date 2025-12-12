@@ -160,9 +160,9 @@ function getIconStyles(iconName: string) {
   };
 }
 
-function AchievementIcon({ icon, unlocked, size = "normal" }: { icon: string; unlocked: boolean; size?: "normal" | "large" }) {
+function AchievementIcon({ icon, unlocked, size = "normal", category = "special" }: { icon: string; unlocked: boolean; size?: "normal" | "large"; category?: string }) {
   const IconComponent = getIconComponent(icon);
-  const styles = getIconStyles(icon);
+  const categoryStyle = categoryColors[category] || categoryColors.special;
   const sizeClasses = size === "large" ? "w-24 h-24" : "w-16 h-16";
   const iconSizeClasses = size === "large" ? "h-12 w-12" : "h-8 w-8";
   
@@ -185,19 +185,21 @@ function AchievementIcon({ icon, unlocked, size = "normal" }: { icon: string; un
       className={cn(
         sizeClasses,
         "rounded-full flex items-center justify-center relative",
-        `bg-gradient-to-br ${styles.gradient}`,
-        `shadow-lg ${styles.shadow}`
       )}
+      style={{
+        background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+        boxShadow: `0 0 20px ${categoryStyle.primary}40, 0 4px 16px rgba(0,0,0,0.2)`
+      }}
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <div className={cn(
-        "absolute inset-1 rounded-full opacity-30",
-        styles.innerGlow
-      )} />
+      <div 
+        className="absolute inset-1 rounded-full opacity-30"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
+      />
       <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 to-transparent" />
-      <IconComponent className={cn(iconSizeClasses, "text-white relative z-10 drop-shadow-md")} />
+      <IconComponent className={cn(iconSizeClasses, "text-white relative z-10 drop-shadow-md")} style={{ color: '#ffffff' }} />
       <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/30 to-transparent opacity-50 blur-sm" />
     </motion.div>
   );
@@ -208,7 +210,6 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
-  const iconStyles = getIconStyles(achievement.icon);
   const IconComponent = getIconComponent(achievement.icon);
   
   const generateImage = useCallback(async (): Promise<Blob | null> => {
@@ -379,20 +380,18 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
               transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
             >
               <div 
-                className={cn(
-                  "w-28 h-28 rounded-full flex items-center justify-center relative",
-                  `bg-gradient-to-br ${iconStyles.gradient}`,
-                )}
+                className="w-28 h-28 rounded-full flex items-center justify-center relative"
                 style={{
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
                   boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
                 }}
               >
-                <div className={cn(
-                  "absolute inset-2 rounded-full opacity-40",
-                  iconStyles.innerGlow
-                )} />
+                <div 
+                  className="absolute inset-2 rounded-full opacity-40"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
+                />
                 <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 to-transparent" />
-                <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" />
+                <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" style={{ color: '#ffffff' }} />
               </div>
               
               <div 
@@ -515,7 +514,7 @@ function AchievementCard({ achievement, onShare }: { achievement: Achievement; o
         data-testid={`achievement-card-${achievement.code}`}
       >
         <div className="flex items-start gap-4">
-          <AchievementIcon icon={achievement.icon} unlocked={achievement.unlocked} />
+          <AchievementIcon icon={achievement.icon} unlocked={achievement.unlocked} category={achievement.category} />
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

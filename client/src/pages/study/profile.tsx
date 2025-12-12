@@ -100,6 +100,13 @@ function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Star;
 }
 
+const categoryColors: Record<string, { primary: string; secondary: string }> = {
+  streak: { primary: "#FF9600", secondary: "#FF6B00" },
+  lessons: { primary: "#58CC02", secondary: "#45A302" },
+  xp: { primary: "#FFC800", secondary: "#FFAB00" },
+  special: { primary: "#1CB0F6", secondary: "#0D9DE5" },
+};
+
 function StatCard({ 
   icon: Icon, 
   value, 
@@ -132,6 +139,7 @@ function StatCard({
 
 function AchievementBadge({ achievement }: { achievement: Achievement }) {
   const IconComponent = getIconComponent(achievement.icon);
+  const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
   
   return (
     <motion.div
@@ -140,19 +148,23 @@ function AchievementBadge({ achievement }: { achievement: Achievement }) {
       className={cn(
         "flex-shrink-0 w-20 flex flex-col items-center p-3 rounded-xl",
         achievement.unlocked 
-          ? "bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10" 
+          ? "bg-card/50" 
           : "bg-muted/50"
       )}
       data-testid={`achievement-${achievement.code}`}
     >
-      <div className={cn(
-        "w-12 h-12 rounded-full flex items-center justify-center mb-2 relative",
-        achievement.unlocked 
-          ? "bg-gradient-to-br from-amber-400 to-amber-500 shadow-lg"
-          : "bg-muted"
-      )}>
+      <div 
+        className={cn(
+          "w-12 h-12 rounded-full flex items-center justify-center mb-2 relative",
+          !achievement.unlocked && "bg-muted"
+        )}
+        style={achievement.unlocked ? {
+          background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+          boxShadow: `0 0 12px ${categoryStyle.primary}40`
+        } : {}}
+      >
         {achievement.unlocked ? (
-          <IconComponent className="h-6 w-6 text-white" />
+          <IconComponent className="h-6 w-6 text-white" style={{ color: '#ffffff' }} />
         ) : (
           <>
             <IconComponent className="h-6 w-6 text-muted-foreground/30" />
@@ -160,10 +172,13 @@ function AchievementBadge({ achievement }: { achievement: Achievement }) {
           </>
         )}
       </div>
-      <p className={cn(
-        "text-[10px] text-center font-bold line-clamp-2",
-        achievement.unlocked ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground/50"
-      )}>
+      <p 
+        className={cn(
+          "text-[10px] text-center font-bold line-clamp-2",
+          !achievement.unlocked && "text-muted-foreground/50"
+        )}
+        style={achievement.unlocked ? { color: categoryStyle.primary } : {}}
+      >
         {achievement.name}
       </p>
     </motion.div>

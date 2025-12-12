@@ -71,6 +71,13 @@ function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Star;
 }
 
+const categoryColors: Record<string, { primary: string; secondary: string }> = {
+  streak: { primary: "#FF9600", secondary: "#FF6B00" },
+  lessons: { primary: "#58CC02", secondary: "#45A302" },
+  xp: { primary: "#FFC800", secondary: "#FFAB00" },
+  special: { primary: "#1CB0F6", secondary: "#0D9DE5" },
+};
+
 export function AchievementNotification({ achievement, show, onClose }: AchievementNotificationProps) {
   const { sounds } = useSounds();
   
@@ -83,6 +90,7 @@ export function AchievementNotification({ achievement, show, onClose }: Achievem
   if (!achievement) return null;
 
   const IconComponent = getIconComponent(achievement.icon);
+  const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
 
   return (
     <AnimatePresence>
@@ -100,14 +108,18 @@ export function AchievementNotification({ achievement, show, onClose }: Achievem
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.5, opacity: 0, y: 50 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="relative bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-900/90 dark:to-amber-800/90 rounded-2xl p-8 max-w-sm mx-4 shadow-2xl border-2 border-amber-300 dark:border-amber-600"
+            className="relative rounded-2xl p-8 max-w-sm mx-4 shadow-2xl"
+            style={{
+              background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+              border: `2px solid ${categoryStyle.primary}40`
+            }}
             onClick={(e) => e.stopPropagation()}
             data-testid="achievement-notification-modal"
           >
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 text-amber-600 dark:text-amber-400"
+              className="absolute top-2 right-2 text-gray-400"
               onClick={onClose}
               data-testid="button-close-achievement"
             >
@@ -121,10 +133,17 @@ export function AchievementNotification({ achievement, show, onClose }: Achievem
                 transition={{ delay: 0.2, type: "spring", damping: 10, stiffness: 200 }}
                 className="inline-block mb-4"
               >
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shadow-lg relative">
-                  <IconComponent className="h-12 w-12 text-white" />
+                <div 
+                  className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg relative"
+                  style={{
+                    background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                    boxShadow: `0 0 30px ${categoryStyle.primary}60`
+                  }}
+                >
+                  <IconComponent className="h-12 w-12 text-white" style={{ color: '#ffffff' }} />
                   <motion.div
-                    className="absolute inset-0 rounded-full border-4 border-amber-300"
+                    className="absolute inset-0 rounded-full"
+                    style={{ border: `4px solid ${categoryStyle.primary}50` }}
                     initial={{ scale: 1.2, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -137,26 +156,35 @@ export function AchievementNotification({ achievement, show, onClose }: Achievem
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <p className="text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">
+                <p className="text-sm font-bold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>
                   Nova Conquista!
                 </p>
-                <h2 className="text-2xl font-black text-amber-800 dark:text-amber-200 mb-2">
+                <h2 className="text-2xl font-black mb-2" style={{ color: categoryStyle.primary }}>
                   {achievement.name}
                 </h2>
-                <p className="text-amber-700 dark:text-amber-300 mb-4">
+                <p className="mb-4" style={{ color: '#9ca3af' }}>
                   {achievement.description}
                 </p>
 
-                <div className="flex items-center justify-center gap-2 bg-amber-200/50 dark:bg-amber-700/50 rounded-lg py-2 px-4 mb-4">
-                  <Zap className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  <span className="font-bold text-amber-700 dark:text-amber-300">
+                <div 
+                  className="flex items-center justify-center gap-2 rounded-lg py-2 px-4 mb-4"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                    border: '1px solid rgba(255,200,0,0.2)'
+                  }}
+                >
+                  <Zap className="h-5 w-5" style={{ color: '#fbbf24' }} />
+                  <span className="font-bold" style={{ color: '#fbbf24' }}>
                     +{achievement.xpReward} XP
                   </span>
                 </div>
 
                 <Button 
                   onClick={onClose}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                  className="w-full font-bold text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                  }}
                   data-testid="button-continue-achievement"
                 >
                   Continuar
@@ -169,7 +197,7 @@ export function AchievementNotification({ achievement, show, onClose }: Achievem
                 key={i}
                 className="absolute w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: ['#FFA500', '#FFD700', '#FF9600', '#FFE55C'][i % 4],
+                  backgroundColor: [categoryStyle.primary, categoryStyle.secondary, `${categoryStyle.primary}cc`, '#ffffff'][i % 4],
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
                 }}

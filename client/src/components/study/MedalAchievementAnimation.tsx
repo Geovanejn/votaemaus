@@ -55,6 +55,13 @@ function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Medal;
 }
 
+const categoryColors: Record<string, { primary: string; secondary: string }> = {
+  streak: { primary: "#FF9600", secondary: "#FF6B00" },
+  lessons: { primary: "#58CC02", secondary: "#45A302" },
+  xp: { primary: "#FFC800", secondary: "#FFAB00" },
+  special: { primary: "#1CB0F6", secondary: "#0D9DE5" },
+};
+
 export function MedalAchievementAnimation({ achievement, show, onClose }: MedalAchievementAnimationProps) {
   const { sounds } = useSounds();
   const hasPlayedRef = useRef(false);
@@ -73,6 +80,7 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
   if (!achievement) return null;
 
   const IconComponent = getIconComponent(achievement.icon);
+  const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
 
   return (
     <AnimatePresence>
@@ -103,7 +111,7 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
               }}
               transition={{ duration: 1.5, ease: "easeOut" }}
               style={{
-                background: 'radial-gradient(circle, rgba(255,215,0,0.6) 0%, transparent 70%)'
+                background: `radial-gradient(circle, ${categoryStyle.primary}99 0%, transparent 70%)`
               }}
             />
 
@@ -114,12 +122,15 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
               className="relative"
             >
               <motion.div
-                className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-2xl relative overflow-visible"
+                className="w-32 h-32 rounded-full flex items-center justify-center shadow-2xl relative overflow-visible"
+                style={{
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`
+                }}
                 animate={{ 
                   boxShadow: [
-                    '0 0 30px rgba(255, 215, 0, 0.5)',
-                    '0 0 60px rgba(255, 215, 0, 0.8)',
-                    '0 0 30px rgba(255, 215, 0, 0.5)'
+                    `0 0 30px ${categoryStyle.primary}80`,
+                    `0 0 60px ${categoryStyle.primary}cc`,
+                    `0 0 30px ${categoryStyle.primary}80`
                   ]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -131,11 +142,12 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <IconComponent className="h-16 w-16 text-amber-900" />
+                  <IconComponent className="h-16 w-16 text-white" style={{ color: '#ffffff' }} />
                 </motion.div>
 
                 <motion.div
-                  className="absolute -inset-2 rounded-full border-4 border-yellow-300/50"
+                  className="absolute -inset-2 rounded-full"
+                  style={{ border: `4px solid ${categoryStyle.primary}80` }}
                   animate={{ 
                     scale: [1, 1.1, 1],
                     opacity: [0.5, 1, 0.5]
@@ -144,7 +156,8 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
                 />
 
                 <motion.div
-                  className="absolute -inset-4 rounded-full border-2 border-yellow-200/30"
+                  className="absolute -inset-4 rounded-full"
+                  style={{ border: `2px solid ${categoryStyle.primary}50` }}
                   animate={{ 
                     scale: [1, 1.15, 1],
                     opacity: [0.3, 0.6, 0.3]
@@ -175,7 +188,7 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
                     repeatDelay: 1
                   }}
                 >
-                  <Sparkles className="h-4 w-4 text-yellow-400" />
+                  <Sparkles className="h-4 w-4" style={{ color: categoryStyle.primary }} />
                 </motion.div>
               ))}
             </motion.div>
@@ -187,7 +200,8 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
               className="text-center mt-8"
             >
               <motion.p 
-                className="text-amber-400 font-bold text-sm uppercase tracking-widest mb-2"
+                className="font-bold text-sm uppercase tracking-widest mb-2"
+                style={{ color: categoryStyle.primary }}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
@@ -206,13 +220,17 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
               </p>
 
               <motion.div 
-                className="flex items-center justify-center gap-2 bg-amber-500/20 rounded-full py-2 px-6 mb-6"
+                className="flex items-center justify-center gap-2 rounded-full py-2 px-6 mb-6"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                  border: '1px solid rgba(255,200,0,0.2)'
+                }}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.9, type: "spring" }}
               >
-                <Zap className="h-5 w-5 text-amber-400" />
-                <span className="font-bold text-amber-400">
+                <Zap className="h-5 w-5" style={{ color: '#fbbf24' }} />
+                <span className="font-bold" style={{ color: '#fbbf24' }}>
                   +{achievement.xpReward} XP
                 </span>
               </motion.div>
@@ -225,7 +243,10 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
                 <Button 
                   onClick={onClose}
                   size="lg"
-                  className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-amber-900 font-bold px-8 shadow-lg"
+                  className="font-bold px-8 shadow-lg text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`
+                  }}
                   data-testid="button-close-medal"
                 >
                   Incrivel!
@@ -264,7 +285,7 @@ export function MedalAchievementAnimation({ achievement, show, onClose }: MedalA
                 <div 
                   className="w-3 h-3 rounded-full"
                   style={{
-                    backgroundColor: ['#FFD700', '#FFA500', '#FF9600', '#FFE55C', '#FFCC00'][i % 5]
+                    backgroundColor: [categoryStyle.primary, categoryStyle.secondary, `${categoryStyle.primary}cc`, `${categoryStyle.secondary}cc`, '#ffffff'][i % 5]
                   }}
                 />
               </motion.div>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSounds } from "@/hooks/use-sounds";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface Achievement {
   id: number;
@@ -91,13 +92,107 @@ function getCategoryStyle(category: string) {
   return categoryColors[category] || categoryColors.special;
 }
 
+function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achievement; categoryStyle: { primary: string; secondary: string; gradient: string } }) {
+  const IconComponent = getIconComponent(achievement.icon);
+  
+  return (
+    <div 
+      className="relative w-80 rounded-2xl overflow-hidden"
+      style={{ 
+        background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+      }}
+    >
+      <div 
+        className="absolute inset-0 opacity-30"
+        style={{ 
+          background: `radial-gradient(circle at 50% 0%, ${categoryStyle.primary}40, transparent 60%)` 
+        }}
+      />
+      
+      <div 
+        className="absolute top-0 left-0 right-0 h-2"
+        style={{ 
+          background: `linear-gradient(90deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` 
+        }}
+      />
+      
+      <div className="relative p-8 pt-10">
+        <div className="flex flex-col items-center">
+          <div 
+            className="w-28 h-28 rounded-full flex items-center justify-center relative"
+            style={{
+              background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+              boxShadow: `0 0 40px ${categoryStyle.primary}60, 0 8px 32px rgba(0,0,0,0.4)`
+            }}
+          >
+            <div 
+              className="absolute inset-2 rounded-full opacity-40"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
+            />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 to-transparent" />
+            <IconComponent className="h-14 w-14 text-white relative z-10 drop-shadow-lg" style={{ color: '#ffffff' }} />
+          </div>
+          
+          <div className="mt-6 text-center">
+            <span 
+              className="inline-block mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-md"
+              style={{ 
+                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                color: categoryStyle.primary 
+              }}
+            >
+              {categoryLabels[achievement.category] || achievement.category}
+            </span>
+            
+            <h2 
+              className="text-2xl font-black tracking-tight"
+              style={{ 
+                background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {achievement.name}
+            </h2>
+            
+            <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-xs mx-auto" style={{ color: '#9ca3af' }}>
+              {achievement.description}
+            </p>
+            
+            <div 
+              className="flex items-center justify-center gap-2 mt-5 px-5 py-2.5 rounded-full mx-auto w-fit"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                border: '1px solid rgba(255,200,0,0.2)'
+              }}
+            >
+              <Zap className="h-5 w-5" style={{ color: '#fbbf24' }} />
+              <span className="text-lg font-bold" style={{ color: '#fbbf24' }}>+{achievement.xpReward} XP</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-end gap-1.5 mt-6">
+          <div 
+            className="w-5 h-5 rounded-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
+          >
+            <Trophy className="h-3 w-3" style={{ color: '#ffffff' }} />
+          </div>
+          <span className="text-xs font-semibold" style={{ color: '#6b7280' }}>DeoGlory</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AchievementUnlockAnimation({
   achievement,
   onComplete,
   className
 }: AchievementUnlockAnimationProps) {
   const [showButton, setShowButton] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const { sounds } = useSounds();
   const { toast } = useToast();
@@ -205,8 +300,6 @@ export function AchievementUnlockAnimation({
         useCORS: true,
         logging: false,
         allowTaint: true,
-        width: shareCardRef.current.offsetWidth,
-        height: shareCardRef.current.offsetHeight,
       });
       
       return new Promise((resolve) => {
@@ -357,15 +450,23 @@ export function AchievementUnlockAnimation({
   return (
     <div 
       className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-center p-6",
-        "bg-background/95 backdrop-blur-sm",
+        "fixed inset-0 z-50 flex flex-col items-center justify-center p-4",
+        "bg-background/95 backdrop-blur-sm overflow-y-auto",
         className
       )}
       data-testid="achievement-unlock-animation"
     >
       <div 
-        ref={shareCardRef}
-        className="relative w-full max-w-sm rounded-2xl"
+        className="absolute -left-[9999px] top-0"
+        aria-hidden="true"
+      >
+        <div ref={shareCardRef}>
+          <StaticShareableCard achievement={achievement} categoryStyle={categoryStyle} />
+        </div>
+      </div>
+
+      <div 
+        className="relative w-full max-w-sm rounded-2xl flex-shrink-0"
         style={{ 
           background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
           boxShadow: `0 0 60px ${categoryStyle.primary}40, 0 25px 50px -12px rgba(0, 0, 0, 0.5)`
@@ -385,19 +486,19 @@ export function AchievementUnlockAnimation({
           }}
         />
         
-        <div className="relative p-8 pt-10 pb-10">
+        <div className="relative p-6 pt-8">
           <motion.p
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-center text-gray-400 mb-6 font-semibold tracking-wide uppercase text-sm"
+            className="text-center text-gray-400 mb-4 font-semibold tracking-wide uppercase text-sm"
             style={{ color: '#9ca3af' }}
           >
             Conquista Desbloqueada!
           </motion.p>
 
           <motion.div
-            className="relative mb-6 flex justify-center"
+            className="relative mb-4 flex justify-center"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ 
@@ -419,14 +520,14 @@ export function AchievementUnlockAnimation({
               className="relative inline-block"
             >
               <div 
-                className="w-32 h-32 rounded-full flex items-center justify-center relative"
+                className="w-28 h-28 rounded-full flex items-center justify-center relative"
                 style={{
                   background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-                  boxShadow: `0 0 80px ${categoryStyle.primary}90, 0 0 40px ${categoryStyle.secondary}60, inset 0 -4px 20px rgba(0,0,0,0.3)`
+                  boxShadow: `0 0 60px ${categoryStyle.primary}90, 0 0 30px ${categoryStyle.secondary}60, inset 0 -4px 20px rgba(0,0,0,0.3)`
                 }}
               >
                 <div className="absolute inset-2 rounded-full" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.1))' }} />
-                <IconComponent className="h-16 w-16 text-white relative z-10" style={{ color: '#ffffff' }} />
+                <IconComponent className="h-14 w-14 text-white relative z-10" style={{ color: '#ffffff' }} />
                 
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -460,8 +561,8 @@ export function AchievementUnlockAnimation({
                   animate={{ 
                     opacity: [0, 1, 0],
                     scale: [0.5, 1.5, 0.5],
-                    x: [0, (Math.cos(i * Math.PI / 4) * 60)],
-                    y: [0, (Math.sin(i * Math.PI / 4) * 60)]
+                    x: [0, (Math.cos(i * Math.PI / 4) * 50)],
+                    y: [0, (Math.sin(i * Math.PI / 4) * 50)]
                   }}
                   transition={{ 
                     duration: 2,
@@ -483,22 +584,22 @@ export function AchievementUnlockAnimation({
             transition={{ delay: 0.4 }}
             className="text-center"
           >
-            <span 
-              className="inline-block mb-3 px-4 py-1 text-xs font-bold uppercase tracking-wider rounded-md"
+            <Badge 
+              className="mb-2 px-3 py-1 text-xs font-bold uppercase tracking-wider border-0"
               style={{ 
                 background: `linear-gradient(135deg, ${categoryStyle.primary}40, ${categoryStyle.secondary}30)`,
                 color: categoryStyle.primary 
               }}
             >
               {categoryLabels[achievement.category] || achievement.category}
-            </span>
+            </Badge>
           </motion.div>
 
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="text-3xl font-black mb-3 text-center tracking-tight"
+            className="text-2xl font-black mb-2 text-center tracking-tight"
             style={{ color: categoryStyle.primary }}
           >
             {achievement.name}
@@ -508,7 +609,7 @@ export function AchievementUnlockAnimation({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-center text-sm leading-relaxed max-w-xs mx-auto mb-6"
+            className="text-center text-sm leading-relaxed max-w-xs mx-auto mb-4"
             style={{ color: '#9ca3af' }}
           >
             {achievement.description}
@@ -518,22 +619,22 @@ export function AchievementUnlockAnimation({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.7 }}
-            className="flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-2 mb-4"
           >
             <div 
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full"
+              className="flex items-center gap-2 px-4 py-2 rounded-full"
               style={{ 
                 background: 'linear-gradient(135deg, rgba(255,200,0,0.2), rgba(255,150,0,0.15))',
                 border: '1px solid rgba(255,200,0,0.3)',
                 boxShadow: '0 0 20px rgba(255,200,0,0.2)'
               }}
             >
-              <Zap className="h-6 w-6" style={{ color: '#fbbf24' }} />
-              <span className="text-2xl font-bold" style={{ color: '#fbbf24' }}>+{achievement.xpReward} XP</span>
+              <Zap className="h-5 w-5" style={{ color: '#fbbf24' }} />
+              <span className="text-xl font-bold" style={{ color: '#fbbf24' }}>+{achievement.xpReward} XP</span>
             </div>
           </motion.div>
 
-          <div className="flex items-center justify-end gap-1.5 mt-6">
+          <div className="flex items-center justify-end gap-1.5">
             <div 
               className="w-5 h-5 rounded-full flex items-center justify-center"
               style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
@@ -551,7 +652,7 @@ export function AchievementUnlockAnimation({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="w-full max-w-sm mt-6 space-y-3"
+            className="w-full max-w-sm mt-4 space-y-3 flex-shrink-0"
           >
             <div className="flex gap-2">
               <Button

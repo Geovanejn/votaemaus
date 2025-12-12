@@ -415,13 +415,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             >
               <div className="flex justify-center">
                 <div
-                  className="px-4 py-1.5 rounded-md flex items-center justify-center"
+                  className="px-4 py-2 rounded-md flex items-center justify-center"
                   style={{ 
                     background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
+                    minHeight: '28px'
                   }}
                 >
                   <span 
-                    className="text-xs font-bold uppercase tracking-wider"
+                    className="text-xs font-bold uppercase tracking-wider leading-none"
                     style={{ color: categoryStyle.primary }}
                   >
                     {categoryLabels[achievement.category] || achievement.category}
@@ -432,10 +433,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
               <h2 
                 className="text-2xl font-black mt-4 tracking-tight"
                 style={{ 
-                  background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
+                  color: categoryStyle.primary,
                 }}
               >
                 {achievement.name}
@@ -466,9 +464,9 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
             </motion.div>
           </div>
           
-          <div className="absolute bottom-3 right-4 flex items-center gap-1">
+          <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
             <div 
-              className="w-5 h-5 rounded-full flex items-center justify-center"
+              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})` }}
             >
               <Trophy className="h-3 w-3 text-white" />

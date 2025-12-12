@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -203,6 +203,7 @@ function AchievementIcon({ icon, unlocked, size = "normal" }: { icon: string; un
 
 function ShareableAchievementCard({ achievement, onClose }: { achievement: Achievement; onClose: () => void }) {
   const { toast } = useToast();
+  const cardRef = useRef<HTMLDivElement>(null);
   const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
   
   const handleShare = async () => {

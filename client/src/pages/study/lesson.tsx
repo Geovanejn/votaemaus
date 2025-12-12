@@ -14,7 +14,8 @@ import {
   StudyContent,
   StageCompleteModal,
   StreakIncrementAnimation,
-  CrystalGainAnimation
+  CrystalGainAnimation,
+  AchievementUnlockAnimation
 } from "@/components/study";
 import type { StudySection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
@@ -703,13 +704,27 @@ export default function LessonPage() {
     const handleStreakAnimationComplete = () => {
       if (crystalAnimationData) {
         setAnimationPhase("crystal");
+      } else if (unlockedAchievementsList.length > 0) {
+        setAnimationPhase("achievement");
       } else {
         setAnimationPhase("complete");
       }
     };
     
     const handleCrystalAnimationComplete = () => {
-      setAnimationPhase("complete");
+      if (unlockedAchievementsList.length > 0) {
+        setAnimationPhase("achievement");
+      } else {
+        setAnimationPhase("complete");
+      }
+    };
+    
+    const handleAchievementAnimationComplete = () => {
+      if (currentAchievementIndex < unlockedAchievementsList.length - 1) {
+        setCurrentAchievementIndex(currentAchievementIndex + 1);
+      } else {
+        setAnimationPhase("complete");
+      }
     };
     
     if (animationPhase === "streak" && streakAnimationData) {
@@ -728,6 +743,16 @@ export default function LessonPage() {
           crystalsGained={crystalAnimationData.amount}
           reason={crystalAnimationData.reason}
           onComplete={handleCrystalAnimationComplete}
+        />
+      );
+    }
+    
+    if (animationPhase === "achievement" && unlockedAchievementsList.length > 0) {
+      const currentAchievement = unlockedAchievementsList[currentAchievementIndex];
+      return (
+        <AchievementUnlockAnimation
+          achievement={currentAchievement}
+          onComplete={handleAchievementAnimationComplete}
         />
       );
     }

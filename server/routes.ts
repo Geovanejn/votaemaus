@@ -1686,6 +1686,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: mistakesCount === 0 ? 1 : 0 
       });
       
+      // Auto-complete daily missions related to lesson completion
+      const today = getTodayBrazilDate();
+      try {
+        const userMissions = await storage.getUserDailyMissions(req.user.id, today);
+        for (const mission of userMissions) {
+          if (mission.completed) continue;
+          
+          const missionType = mission.mission?.type;
+          // Complete "complete_lesson" type missions
+          if (missionType === 'complete_lesson') {
+            await storage.completeMission(req.user.id, mission.missionId, today);
+          }
+          // Complete "maintain_streak" type missions
+          if (missionType === 'maintain_streak') {
+            await storage.completeMission(req.user.id, mission.missionId, today);
+          }
+        }
+      } catch (missionError) {
+        console.error("Error updating daily missions:", missionError);
+      }
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 

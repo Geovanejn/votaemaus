@@ -21,6 +21,7 @@ export { DailyMissions } from "./DailyMissions";
 export { StreakCelebration } from "./StreakCelebration";
 export { StreakIncrementAnimation } from "./StreakIncrementAnimation";
 export { CrystalGainAnimation } from "./CrystalGainAnimation";
+export { AchievementUnlockAnimation } from "./AchievementUnlockAnimation";
 export { UnitCard, PracticeCard } from "./UnitCard";
 export { LearningPath } from "./LearningPath";
 export { StudyContent } from "./StudyContent";

@@ -125,12 +125,12 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
         }}
       />
       
-      <div style={{ position: 'relative', padding: '30px 32px 32px 32px' }}>
+      <div style={{ position: 'relative', padding: '32px 32px 48px 32px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div 
             style={{
-              width: '90px',
-              height: '90px',
+              width: '96px',
+              height: '96px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -157,39 +157,35 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
                 background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' 
               }}
             />
-            <IconComponent style={{ width: '45px', height: '45px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
+            <IconComponent style={{ width: '48px', height: '48px', color: '#ffffff', position: 'relative', zIndex: 10 }} />
           </div>
           
-          <div style={{ marginTop: '14px', textAlign: 'center' }}>
-            <div 
-              style={{ 
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                borderRadius: '6px',
-                marginBottom: '12px',
-                background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
-              }}
-            >
-              <span 
+          <div style={{ marginTop: '20px', textAlign: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div 
                 style={{ 
-                  color: categoryStyle.primary,
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  lineHeight: '1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  height: '100%',
+                  height: '28px',
+                  paddingLeft: '16px',
+                  paddingRight: '16px',
+                  borderRadius: '6px',
+                  background: `linear-gradient(135deg, ${categoryStyle.primary}30, ${categoryStyle.secondary}20)`,
                 }}
               >
-                {categoryLabels[achievement.category] || achievement.category}
-              </span>
+                <span 
+                  style={{ 
+                    color: categoryStyle.primary,
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  {categoryLabels[achievement.category] || achievement.category}
+                </span>
+              </div>
             </div>
             
             <h2 
@@ -198,7 +194,7 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
                 fontSize: '24px',
                 fontWeight: 900,
                 letterSpacing: '-0.025em',
-                margin: 0,
+                margin: '16px 0 0 0',
               }}
             >
               {achievement.name}
@@ -218,47 +214,45 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
               {achievement.description}
             </p>
             
-            <div 
-              style={{ 
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginTop: '20px',
-                paddingLeft: '20px',
-                paddingRight: '20px',
-                height: '40px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
-                border: '1px solid rgba(255,200,0,0.2)'
-              }}
-            >
-              <Zap style={{ width: '20px', height: '20px', color: '#fbbf24', flexShrink: 0 }} />
-              <span 
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+              <div 
                 style={{ 
-                  color: '#fbbf24',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  lineHeight: '1',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  paddingLeft: '20px',
+                  paddingRight: '20px',
+                  height: '40px',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, rgba(255,200,0,0.15), rgba(255,150,0,0.1))',
+                  border: '1px solid rgba(255,200,0,0.2)'
                 }}
               >
-                +{achievement.xpReward} XP
-              </span>
+                <Zap style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
+                <span 
+                  style={{ 
+                    color: '#fbbf24',
+                    fontSize: '18px',
+                    fontWeight: 700,
+                  }}
+                >
+                  +{achievement.xpReward} XP
+                </span>
+              </div>
             </div>
           </div>
         </div>
         
         <div 
           style={{
+            position: 'absolute',
+            bottom: '12px',
+            right: '16px',
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'flex-end',
             gap: '6px',
-            marginTop: '34px',
-            height: '24px',
           }}
         >
           <div 
@@ -270,7 +264,6 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0,
             }}
           >
             <Trophy style={{ width: '12px', height: '12px', color: '#ffffff' }} />
@@ -280,10 +273,6 @@ function StaticShareableCard({ achievement, categoryStyle }: { achievement: Achi
               color: '#6b7280', 
               fontSize: '14px',
               fontWeight: 600,
-              lineHeight: '20px',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
             }}
           >
             DeoGlory

@@ -235,7 +235,7 @@ export default function StudyAdminPage() {
 
   const [generateInput, setGenerateInput] = useState({
     text: "",
-    geminiKey: "1" as "1" | "2" | "3" | "4",
+    geminiKey: "1" as "1" | "2" | "3" | "4" | "5",
   });
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -1881,7 +1881,7 @@ export default function StudyAdminPage() {
                 <Label>Chave Gemini</Label>
                 <Select 
                   value={generateInput.geminiKey} 
-                  onValueChange={(v) => setGenerateInput({ ...generateInput, geminiKey: v as "1" | "2" | "3" | "4" })}
+                  onValueChange={(v) => setGenerateInput({ ...generateInput, geminiKey: v as "1" | "2" | "3" | "4" | "5" })}
                 >
                   <SelectTrigger data-testid="select-gemini-key">
                     <SelectValue placeholder="Selecione a chave" />
@@ -1891,6 +1891,7 @@ export default function StudyAdminPage() {
                     <SelectItem value="2">Chave 2</SelectItem>
                     <SelectItem value="3">Chave 3</SelectItem>
                     <SelectItem value="4">Chave 4</SelectItem>
+                    <SelectItem value="5">Chave 5</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">Selecione qual chave API do Gemini usar para gerar o conteúdo.</p>

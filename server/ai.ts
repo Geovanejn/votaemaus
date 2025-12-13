@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
-// Get Gemini API key by number (1-4)
+// Get Gemini API key by number (1-5)
 function getGeminiApiKey(keyNumber: string = "1"): string {
   switch (keyNumber) {
     case "2":
@@ -9,6 +9,8 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
       return process.env.GEMINI_API_KEY_3 || process.env.GEMINI_API_KEY || "";
     case "4":
       return process.env.GEMINI_API_KEY_4 || process.env.GEMINI_API_KEY || "";
+    case "5":
+      return process.env.GEMINI_API_KEY_5 || process.env.GEMINI_API_KEY || "";
     case "1":
     default:
       return process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY || "";

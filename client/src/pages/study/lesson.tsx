@@ -14,12 +14,13 @@ import {
   StudyContent,
   EstudeScreen,
   MediteScreen,
+  RespondaScreen,
   StageCompleteModal,
   StreakIncrementAnimation,
   CrystalGainAnimation,
   AchievementUnlockAnimation
 } from "@/components/study";
-import type { StudySection, MeditationSection } from "@/components/study";
+import type { StudySection, MeditationSection, QuizQuestion } from "@/components/study";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { MedalAchievementAnimation } from "@/components/study/MedalAchievementAnimation";
@@ -520,6 +521,20 @@ export default function LessonPage() {
     };
   });
   
+  const isRespondaStage = currentUnit?.stage === 'responda';
+  const isQuestionType = currentUnit?.type === 'multiple_choice' || currentUnit?.type === 'true_false' || currentUnit?.type === 'fill_blank';
+  const respondaUnits = allUnits.filter(u => u.stage === 'responda' && (u.type === 'multiple_choice' || u.type === 'true_false'));
+  
+  const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => ({
+    type: unit.type as 'multiple_choice' | 'true_false',
+    question: unit.content.question || unit.content.statement || '',
+    options: unit.content.options,
+    correctIndex: unit.content.correctIndex,
+    correctAnswer: unit.content.isTrue,
+    hint: unit.content.hint,
+    explanation: unit.content.explanation
+  }));
+  
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-stage">
@@ -852,6 +867,23 @@ export default function LessonPage() {
 
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
   const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
+  const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
+  
+  const handleRespondaAnswer = async (questionIndex: number, answer: any, isCorrect: boolean) => {
+    const unit = respondaUnits[questionIndex];
+    if (unit) {
+      try {
+        await submitAnswerMutation.mutateAsync({ unitId: unit.id, answer });
+      } catch (error) {
+        console.error("Error submitting responda answer:", error);
+      }
+      if (isCorrect) {
+        setDisplayXp(prev => prev + (unit.xpValue || 5));
+      } else {
+        setMistakes(prev => prev + 1);
+      }
+    }
+  };
   
   // Handle progress updates from StudyContent
   const handleStudyProgress = (current: number, total: number) => {
@@ -859,10 +891,10 @@ export default function LessonPage() {
   };
   
   // Calculate header progress - use study progress when in study mode, otherwise use unit progress
-  const headerCurrentStep = (showStudyContent || showMediteContent) && studyProgress 
+  const headerCurrentStep = (showStudyContent || showMediteContent || showRespondaContent) && studyProgress 
     ? studyProgress.current 
     : currentUnitIndex + 1;
-  const headerTotalSteps = (showStudyContent || showMediteContent) && studyProgress 
+  const headerTotalSteps = (showStudyContent || showMediteContent || showRespondaContent) && studyProgress 
     ? studyProgress.total 
     : totalUnits;
 
@@ -893,6 +925,16 @@ export default function LessonPage() {
             lessonTitle={lessonData.title}
             sections={mediteSections}
             onComplete={handleMeditateComplete}
+            onClose={handleClose}
+            onProgress={handleStudyProgress}
+          />
+        ) : showRespondaContent ? (
+          <RespondaScreen
+            lessonTitle={lessonData.title}
+            questions={respondaQuestions}
+            streak={profileData?.currentStreak || 0}
+            onAnswer={handleRespondaAnswer}
+            onComplete={handleRespondaComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
           />

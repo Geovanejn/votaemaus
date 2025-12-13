@@ -27,6 +27,7 @@ export { LearningPath } from "./LearningPath";
 export { StudyContent } from "./StudyContent";
 export { EstudeScreen } from "./EstudeScreen";
 export { MediteScreen } from "./MediteScreen";
+export { RespondaScreen } from "./RespondaScreen";
 export { NewUnitCard } from "./NewUnitCard";
 export { ContinueLearning } from "./ContinueLearning";
 export { AchievementNotification, useAchievementNotification } from "./AchievementNotification";
@@ -40,5 +41,6 @@ export type { LessonItem, StageType, StageItem, QuestionResult, PracticeStatus }
 export type { StudySection } from "./StudyContent";
 export type { StudySection as EstudeSection } from "./EstudeScreen";
 export type { MeditationSection } from "./MediteScreen";
+export type { QuizQuestion } from "./RespondaScreen";
 export type { UnitData, LessonData, LessonStage } from "./NewUnitCard";
 export type { ContinueLearningData } from "./ContinueLearning";

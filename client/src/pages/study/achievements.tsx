@@ -1,9 +1,7 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/study";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Trophy, 
   Flame, 
@@ -27,11 +25,17 @@ import {
   Shield,
   GraduationCap,
   Loader2,
-  Lock,
   Share2,
-  Sparkles,
   Book,
-  Download
+  Download,
+  MoreVertical,
+  Rocket,
+  Users,
+  Bookmark,
+  Edit3,
+  Gift,
+  Infinity,
+  Layers
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -71,7 +75,6 @@ const iconMap: Record<string, typeof Flame> = {
   trophy: Trophy,
   crown: Crown,
   star: Star,
-  stars: Sparkles,
   award: Award,
   zap: Zap,
   shield: Shield,
@@ -84,125 +87,226 @@ const iconMap: Record<string, typeof Flame> = {
   "check-circle": CheckCircle,
   "calendar-check": CalendarCheck,
   "trending-up": TrendingUp,
+  rocket: Rocket,
+  users: Users,
+  bookmark: Bookmark,
+  edit: Edit3,
+  gift: Gift,
+  infinity: Infinity,
+  layers: Layers,
 };
 
 const categoryLabels: Record<string, string> = {
-  streak: "Sequencia",
-  lessons: "Licoes",
-  xp: "Experiencia",
+  streak: "Sequência",
+  lessons: "Lições",
+  xp: "Experiência",
   special: "Especiais",
+  level: "Nível",
 };
 
-const categoryColors: Record<string, { primary: string; secondary: string; gradient: string; shadow: string; text: string }> = {
-  streak: { 
-    primary: "#FF9600", 
-    secondary: "#FF6B00",
-    gradient: "from-orange-400 via-orange-500 to-red-500",
-    shadow: "shadow-orange-500/50",
-    text: "text-orange-600 dark:text-orange-400"
-  },
+const categoryConfig: Record<string, { 
+  icon: typeof Flame; 
+  bgColor: string; 
+  iconBg: string;
+  unlockedBg: string;
+  headerBg: string;
+}> = {
   lessons: { 
-    primary: "#58CC02", 
-    secondary: "#45A302",
-    gradient: "from-green-400 via-green-500 to-emerald-600",
-    shadow: "shadow-green-500/50",
-    text: "text-green-600 dark:text-green-400"
+    icon: Book,
+    bgColor: "bg-blue-50 dark:bg-blue-950/30",
+    iconBg: "bg-blue-500",
+    unlockedBg: "bg-blue-500",
+    headerBg: "bg-blue-100 dark:bg-blue-900/40"
+  },
+  streak: { 
+    icon: Flame,
+    bgColor: "bg-pink-50 dark:bg-pink-950/30",
+    iconBg: "bg-pink-500",
+    unlockedBg: "bg-pink-500",
+    headerBg: "bg-pink-100 dark:bg-pink-900/40"
   },
   xp: { 
-    primary: "#FFC800", 
-    secondary: "#FFAB00",
-    gradient: "from-yellow-400 via-amber-500 to-orange-500",
-    shadow: "shadow-yellow-500/50",
-    text: "text-yellow-600 dark:text-yellow-400"
+    icon: Star,
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+    iconBg: "bg-emerald-500",
+    unlockedBg: "bg-emerald-500",
+    headerBg: "bg-emerald-100 dark:bg-emerald-900/40"
+  },
+  level: { 
+    icon: Layers,
+    bgColor: "bg-violet-50 dark:bg-violet-950/30",
+    iconBg: "bg-violet-500",
+    unlockedBg: "bg-violet-500",
+    headerBg: "bg-violet-100 dark:bg-violet-900/40"
   },
   special: { 
-    primary: "#1CB0F6", 
-    secondary: "#0D9DE5",
-    gradient: "from-blue-400 via-cyan-500 to-teal-500",
-    shadow: "shadow-blue-500/50",
-    text: "text-blue-600 dark:text-blue-400"
+    icon: Heart,
+    bgColor: "bg-fuchsia-50 dark:bg-fuchsia-950/30",
+    iconBg: "bg-fuchsia-500",
+    unlockedBg: "bg-fuchsia-500",
+    headerBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40"
   },
-};
-
-const achievementIconStyles: Record<string, { gradient: string; shadow: string; innerGlow: string }> = {
-  flame: { gradient: "from-orange-400 to-red-600", shadow: "shadow-orange-500/60", innerGlow: "bg-orange-300" },
-  book: { gradient: "from-emerald-400 to-green-600", shadow: "shadow-green-500/60", innerGlow: "bg-green-300" },
-  "book-open": { gradient: "from-green-400 to-emerald-600", shadow: "shadow-emerald-500/60", innerGlow: "bg-emerald-300" },
-  "book-heart": { gradient: "from-pink-400 to-rose-600", shadow: "shadow-pink-500/60", innerGlow: "bg-pink-300" },
-  "book-marked": { gradient: "from-teal-400 to-cyan-600", shadow: "shadow-teal-500/60", innerGlow: "bg-teal-300" },
-  "graduation-cap": { gradient: "from-indigo-400 to-purple-600", shadow: "shadow-indigo-500/60", innerGlow: "bg-indigo-300" },
-  trophy: { gradient: "from-amber-400 to-yellow-600", shadow: "shadow-amber-500/60", innerGlow: "bg-amber-300" },
-  crown: { gradient: "from-yellow-400 via-amber-500 to-orange-500", shadow: "shadow-amber-500/60", innerGlow: "bg-yellow-200" },
-  star: { gradient: "from-yellow-300 to-amber-500", shadow: "shadow-yellow-500/60", innerGlow: "bg-yellow-200" },
-  stars: { gradient: "from-purple-400 to-pink-600", shadow: "shadow-purple-500/60", innerGlow: "bg-purple-300" },
-  award: { gradient: "from-rose-400 to-red-600", shadow: "shadow-rose-500/60", innerGlow: "bg-rose-300" },
-  zap: { gradient: "from-yellow-400 to-orange-500", shadow: "shadow-yellow-500/60", innerGlow: "bg-yellow-200" },
-  shield: { gradient: "from-slate-400 to-zinc-600", shadow: "shadow-slate-500/60", innerGlow: "bg-slate-300" },
-  medal: { gradient: "from-amber-300 via-yellow-400 to-amber-600", shadow: "shadow-amber-500/60", innerGlow: "bg-amber-200" },
-  sunrise: { gradient: "from-orange-300 via-yellow-400 to-orange-500", shadow: "shadow-orange-500/60", innerGlow: "bg-orange-200" },
-  moon: { gradient: "from-indigo-400 to-purple-700", shadow: "shadow-indigo-500/60", innerGlow: "bg-indigo-300" },
-  calendar: { gradient: "from-blue-400 to-indigo-600", shadow: "shadow-blue-500/60", innerGlow: "bg-blue-300" },
-  heart: { gradient: "from-red-400 to-pink-600", shadow: "shadow-red-500/60", innerGlow: "bg-red-300" },
-  target: { gradient: "from-red-500 to-rose-600", shadow: "shadow-red-500/60", innerGlow: "bg-red-300" },
-  "check-circle": { gradient: "from-green-400 to-emerald-600", shadow: "shadow-green-500/60", innerGlow: "bg-green-300" },
-  "calendar-check": { gradient: "from-teal-400 to-cyan-600", shadow: "shadow-teal-500/60", innerGlow: "bg-teal-300" },
-  "trending-up": { gradient: "from-cyan-400 to-blue-600", shadow: "shadow-cyan-500/60", innerGlow: "bg-cyan-300" },
 };
 
 function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Star;
 }
 
-function getIconStyles(iconName: string) {
-  return achievementIconStyles[iconName.toLowerCase()] || { 
-    gradient: "from-amber-400 to-amber-600", 
-    shadow: "shadow-amber-500/60",
-    innerGlow: "bg-amber-300"
-  };
+function CircularProgress({ percentage }: { percentage: number }) {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative w-20 h-20 flex items-center justify-center">
+      <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          stroke="rgba(255,255,255,0.3)"
+          strokeWidth="6"
+          fill="none"
+        />
+        <motion.circle
+          cx="40"
+          cy="40"
+          r={radius}
+          stroke="white"
+          strokeWidth="6"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-white font-bold text-lg">{percentage}%</span>
+      </div>
+    </div>
+  );
 }
 
-function AchievementIcon({ icon, unlocked, size = "normal", category = "special" }: { icon: string; unlocked: boolean; size?: "normal" | "large"; category?: string }) {
-  const IconComponent = getIconComponent(icon);
-  const categoryStyle = categoryColors[category] || categoryColors.special;
-  const sizeClasses = size === "large" ? "w-24 h-24" : "w-16 h-16";
-  const iconSizeClasses = size === "large" ? "h-12 w-12" : "h-8 w-8";
-  
-  if (!unlocked) {
-    return (
-      <div className={cn(
-        sizeClasses,
-        "rounded-full flex items-center justify-center relative bg-muted border-2 border-muted-foreground/20"
-      )}>
-        <IconComponent className={cn(iconSizeClasses, "text-muted-foreground/30")} />
-        <div className="absolute bottom-0 right-0 w-6 h-6 bg-muted-foreground/50 rounded-full flex items-center justify-center">
-          <Lock className="h-3 w-3 text-white" />
-        </div>
-      </div>
-    );
-  }
+function AchievementGridCard({ 
+  achievement, 
+  category,
+  onShare 
+}: { 
+  achievement: Achievement; 
+  category: string;
+  onShare: (a: Achievement) => void;
+}) {
+  const IconComponent = getIconComponent(achievement.icon);
+  const config = categoryConfig[category] || categoryConfig.special;
   
   return (
-    <motion.div 
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileTap={{ scale: 0.95 }}
       className={cn(
-        sizeClasses,
-        "rounded-full flex items-center justify-center relative",
+        "rounded-2xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[110px]",
+        achievement.unlocked 
+          ? "bg-white dark:bg-gray-800 shadow-md" 
+          : "bg-white/50 dark:bg-gray-900/30"
       )}
-      style={{
-        background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-        boxShadow: `0 0 20px ${categoryStyle.primary}40, 0 4px 16px rgba(0,0,0,0.2)`
-      }}
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      style={achievement.unlocked ? { 
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' 
+      } : undefined}
+      onClick={() => achievement.unlocked && onShare(achievement)}
+      data-testid={`achievement-card-${achievement.code}`}
     >
-      <div 
-        className="absolute inset-1 rounded-full opacity-30"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2))' }}
-      />
-      <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 to-transparent" />
-      <IconComponent className={cn(iconSizeClasses, "text-white relative z-10 drop-shadow-md")} style={{ color: '#ffffff' }} />
-      <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-white/30 to-transparent opacity-50 blur-sm" />
+      <div className={cn(
+        "w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all",
+        achievement.unlocked 
+          ? config.unlockedBg 
+          : "bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700"
+      )}
+      style={achievement.unlocked ? {
+        boxShadow: `0 4px 12px ${config.iconBg === 'bg-blue-500' ? 'rgba(59, 130, 246, 0.3)' : 
+                     config.iconBg === 'bg-pink-500' ? 'rgba(236, 72, 153, 0.3)' :
+                     config.iconBg === 'bg-emerald-500' ? 'rgba(16, 185, 129, 0.3)' :
+                     config.iconBg === 'bg-violet-500' ? 'rgba(139, 92, 246, 0.3)' :
+                     'rgba(217, 70, 239, 0.3)'}`
+      } : undefined}
+      >
+        <IconComponent className={cn(
+          "h-6 w-6",
+          achievement.unlocked 
+            ? "text-white" 
+            : "text-gray-300 dark:text-gray-600"
+        )} />
+      </div>
+      <span className={cn(
+        "text-xs font-semibold leading-tight line-clamp-2",
+        achievement.unlocked 
+          ? "text-gray-900 dark:text-gray-100" 
+          : "text-gray-400 dark:text-gray-500"
+      )}>
+        {achievement.name}
+      </span>
+      <span className={cn(
+        "text-[10px] mt-0.5 line-clamp-1",
+        achievement.unlocked 
+          ? "text-gray-500 dark:text-gray-400" 
+          : "text-gray-300 dark:text-gray-600"
+      )}>
+        {achievement.description.length > 15 
+          ? achievement.description.substring(0, 15) + "..." 
+          : achievement.description}
+      </span>
     </motion.div>
+  );
+}
+
+function CategorySection({ 
+  category, 
+  achievements, 
+  onShare 
+}: { 
+  category: string; 
+  achievements: Achievement[];
+  onShare: (a: Achievement) => void;
+}) {
+  const config = categoryConfig[category] || categoryConfig.special;
+  const CategoryIcon = config.icon;
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const totalCount = achievements.length;
+
+  const sortedAchievements = [...achievements].sort((a, b) => {
+    if (a.unlocked && !b.unlocked) return -1;
+    if (!a.unlocked && b.unlocked) return 1;
+    return 0;
+  });
+
+  return (
+    <div className={cn("rounded-2xl overflow-hidden", config.bgColor)}>
+      <div className={cn("px-4 py-3 flex items-center gap-3", config.headerBg)}>
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", config.iconBg)}>
+          <CategoryIcon className="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            {categoryLabels[category] || category}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {unlockedCount}/{totalCount} completas
+          </p>
+        </div>
+      </div>
+      <div className="p-3 grid grid-cols-3 gap-2">
+        {sortedAchievements.map((achievement) => (
+          <AchievementGridCard
+            key={achievement.id}
+            achievement={achievement}
+            category={category}
+            onShare={onShare}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -379,89 +483,6 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
   );
 }
 
-function AchievementCard({ achievement, onShare }: { achievement: Achievement; onShare: (a: Achievement) => void }) {
-  const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-    >
-      <Card 
-        className={cn(
-          "p-4 transition-all cursor-pointer",
-          achievement.unlocked 
-            ? "border-2" 
-            : "opacity-60 border"
-        )}
-        style={achievement.unlocked ? { borderColor: `${categoryStyle.primary}40` } : {}}
-        onClick={() => achievement.unlocked && onShare(achievement)}
-        data-testid={`achievement-card-${achievement.code}`}
-      >
-        <div className="flex items-start gap-4">
-          <AchievementIcon icon={achievement.icon} unlocked={achievement.unlocked} category={achievement.category} />
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={cn(
-                "font-bold",
-                achievement.unlocked ? categoryStyle.text : "text-muted-foreground"
-              )}>
-                {achievement.name}
-              </h3>
-              <Badge 
-                variant="secondary" 
-                className="text-[10px]"
-                style={{ 
-                  backgroundColor: `${categoryStyle.primary}20`, 
-                  color: categoryStyle.primary 
-                }}
-              >
-                {categoryLabels[achievement.category] || achievement.category}
-              </Badge>
-            </div>
-            
-            <p className="text-sm text-muted-foreground mt-1">
-              {achievement.description}
-            </p>
-            
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <div className="flex items-center gap-1 text-sm">
-                <Zap className="h-4 w-4 text-amber-500" />
-                <span className="font-medium">+{achievement.xpReward} XP</span>
-              </div>
-              
-              {achievement.unlocked && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShare(achievement);
-                  }}
-                  data-testid={`button-share-${achievement.code}`}
-                >
-                  <Share2 className="h-3 w-3 mr-1" />
-                  Compartilhar
-                </Button>
-              )}
-              
-              {achievement.unlocked && achievement.unlockedAt && (
-                <span className="text-xs text-muted-foreground">
-                  {new Date(achievement.unlockedAt).toLocaleDateString('pt-BR')}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
-  );
-}
-
 function LoadingState() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -487,7 +508,6 @@ function EmptyState() {
 
 export default function AchievementsPage() {
   const [, setLocation] = useLocation();
-  const [filter, setFilter] = useState<string>("all");
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
   const { isAuthenticated } = useAuth();
 
@@ -500,106 +520,80 @@ export default function AchievementsPage() {
     return <LoadingState />;
   }
 
-  const categories = ["all", ...Array.from(new Set(achievements?.map(a => a.category) || []))];
-  
-  const filteredAchievements = achievements?.filter(a => 
-    filter === "all" || a.category === filter
-  ) || [];
-
   const unlockedCount = achievements?.filter(a => a.unlocked).length || 0;
   const totalCount = achievements?.length || 0;
+  const percentage = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
+
+  const categorizedAchievements = achievements?.reduce((acc, achievement) => {
+    const cat = achievement.category;
+    if (!acc[cat]) {
+      acc[cat] = [];
+    }
+    acc[cat].push(achievement);
+    return acc;
+  }, {} as Record<string, Achievement[]>) || {};
+
+  const categoryOrder = ['lessons', 'streak', 'xp', 'level', 'special'];
+  const orderedCategories = categoryOrder.filter(cat => categorizedAchievements[cat]);
+  Object.keys(categorizedAchievements).forEach(cat => {
+    if (!orderedCategories.includes(cat)) {
+      orderedCategories.push(cat);
+    }
+  });
 
   return (
-    <div className="min-h-screen bg-background pb-24" data-testid="achievements-page">
-      <header className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="achievements-page">
+      <header className="bg-gradient-to-r from-violet-600 via-purple-600 to-violet-700 text-white">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
               size="icon"
+              className="text-white hover:bg-white/20"
               onClick={() => setLocation("/study/profile")}
               data-testid="button-back"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
+            <h1 className="text-lg font-bold">Conquistas</h1>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-white hover:bg-white/20"
+              data-testid="button-menu"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <div className="flex items-center justify-between mt-6 pb-4">
             <div>
-              <h1 className="text-lg font-bold">Conquistas</h1>
-              <p className="text-xs text-muted-foreground">
-                {unlockedCount} de {totalCount} desbloqueadas
-              </p>
+              <p className="text-white/80 text-sm">Total de Conquistas</p>
+              <p className="text-5xl font-bold mt-1">{unlockedCount}/{totalCount}</p>
             </div>
+            <CircularProgress percentage={percentage} />
           </div>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        <div className="flex items-center gap-2 pb-2 overflow-x-auto">
-          {categories.map(category => (
-            <Button
-              key={category}
-              variant={filter === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(category)}
-              className={cn(
-                "flex-shrink-0",
-                filter === category && "bg-primary"
-              )}
-              data-testid={`filter-${category}`}
-            >
-              {category === "all" ? "Todas" : categoryLabels[category] || category}
-            </Button>
-          ))}
-        </div>
-
-        <Card className="p-4 bg-gradient-to-r from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10 border-amber-200 dark:border-amber-800">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/40">
-              <Trophy className="h-8 w-8 text-white drop-shadow-md" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-black text-amber-700 dark:text-amber-400">
-                {unlockedCount}/{totalCount}
-              </h2>
-              <p className="text-sm text-amber-600 dark:text-amber-500">
-                Conquistas desbloqueadas
-              </p>
-              <div className="w-full bg-amber-200 dark:bg-amber-800 rounded-full h-2 mt-2">
-                <motion.div 
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {filteredAchievements.length === 0 ? (
+        {orderedCategories.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="space-y-3">
-            {filteredAchievements
-              .sort((a, b) => {
-                if (a.unlocked && !b.unlocked) return -1;
-                if (!a.unlocked && b.unlocked) return 1;
-                return 0;
-              })
-              .map((achievement, index) => (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                >
-                  <AchievementCard 
-                    achievement={achievement} 
-                    onShare={setSelectedAchievement}
-                  />
-                </motion.div>
-              ))
-            }
-          </div>
+          orderedCategories.map((category, index) => (
+            <motion.div
+              key={category}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <CategorySection
+                category={category}
+                achievements={categorizedAchievements[category]}
+                onShare={setSelectedAchievement}
+              />
+            </motion.div>
+          ))
         )}
       </main>
 

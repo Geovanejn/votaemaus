@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { BookOpen, Heart, HelpCircle, Lock, Check, Dumbbell, Star } from "lucide-react";
+import { BookOpen, Heart, HelpCircle, Lock, Check, Dumbbell, Star, FolderOpen } from "lucide-react";
 
 export type LessonStatus = "completed" | "current" | "locked";
 export type StageStatus = "completed" | "current" | "locked";
@@ -493,6 +493,9 @@ export function LearningPath({
     onLessonClick?.(lessonId, stage);
   };
 
+  const ICON_SIZE = 56;
+  const UNIT_HEADER_HEIGHT = 64;
+  
   return (
     <div className="relative px-4 py-6">
       <div className="max-w-lg mx-auto">
@@ -500,12 +503,56 @@ export function LearningPath({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
+            className="mb-6 relative"
             data-testid="unit-title-header"
           >
-            <h2 className="text-lg font-bold text-white text-center">
-              {unitTitle}
-            </h2>
+            <div className="flex items-center gap-5">
+              <div 
+                className="flex-shrink-0 flex justify-center items-center"
+                style={{ width: RAIL_WIDTH, height: ICON_SIZE }}
+              >
+                <div
+                  className="relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
+                  style={{
+                    backgroundColor: "#8B5CF6",
+                    boxShadow: "0 5px 0 0 #7C3AED"
+                  }}
+                >
+                  <div 
+                    className="absolute inset-[4px] rounded-xl flex items-center justify-center"
+                    style={{
+                      background: "linear-gradient(180deg, #A78BFA 0%, #8B5CF6 100%)"
+                    }}
+                  >
+                    <FolderOpen className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+              
+              <div 
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA]"
+                style={{ minHeight: UNIT_HEADER_HEIGHT }}
+              >
+                <span className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                  Unidade
+                </span>
+                <h2 className="text-lg font-bold text-white mt-0.5">
+                  {unitTitle}
+                </h2>
+              </div>
+            </div>
+            
+            {lessons.length > 0 && (
+              <div 
+                className="absolute w-1 rounded-full bg-gray-300"
+                style={{ 
+                  left: RAIL_WIDTH / 2 - 2,
+                  top: UNIT_HEADER_HEIGHT - 8,
+                  height: 120,
+                  zIndex: 0
+                }}
+              />
+            )}
           </motion.div>
         )}
         <div className="relative">

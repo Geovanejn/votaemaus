@@ -250,6 +250,7 @@ function MapPreview() {
       
       <LearningPath 
         lessons={mockLessons}
+        unitTitle="Não Desperdice a sua Vida"
         onLessonClick={handleLessonClick}
         onPracticeClick={() => alert("Prática!\n\nEsta é uma demonstração. Para praticar, faça login no sistema.")}
         showPractice={true}

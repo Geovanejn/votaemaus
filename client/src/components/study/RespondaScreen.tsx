@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft,
   MoreVertical,
@@ -18,7 +19,9 @@ import {
   ChevronRight,
   TrendingUp,
   Award,
-  Zap
+  Zap,
+  Check,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -120,6 +123,8 @@ export function RespondaScreen({
 }: RespondaScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [trueFalseAnswer, setTrueFalseAnswer] = useState<boolean | null>(null);
+  const [fillBlankAnswer, setFillBlankAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [points, setPoints] = useState(340);
@@ -169,6 +174,8 @@ export function RespondaScreen({
   useEffect(() => {
     clearAutoAdvanceTimeout();
     setSelectedAnswer(null);
+    setTrueFalseAnswer(null);
+    setFillBlankAnswer("");
     setShowResult(false);
     setShowHint(false);
     setHintUsed(false);
@@ -180,12 +187,27 @@ export function RespondaScreen({
   }, [currentIndex]);
   
   const checkAnswer = () => {
-    if (selectedAnswer === null) return;
+    let isCorrect = false;
+    let userAnswer: any = null;
+    
+    if (currentQuestion.type === "multiple_choice") {
+      if (selectedAnswer === null) return;
+      userAnswer = selectedAnswer;
+      isCorrect = selectedAnswer === currentQuestion.correctIndex;
+    } else if (currentQuestion.type === "true_false") {
+      if (trueFalseAnswer === null) return;
+      userAnswer = trueFalseAnswer;
+      isCorrect = trueFalseAnswer === currentQuestion.correctAnswer;
+    } else if (currentQuestion.type === "fill_blank") {
+      if (!fillBlankAnswer.trim()) return;
+      userAnswer = fillBlankAnswer;
+      const correctAns = String(currentQuestion.correctAnswer || "").toLowerCase().trim();
+      const userAns = fillBlankAnswer.toLowerCase().trim();
+      isCorrect = userAns === correctAns;
+    }
     
     setTimerActive(false);
     setShowResult(true);
-    
-    const isCorrect = selectedAnswer === currentQuestion.correctIndex;
     
     if (isCorrect) {
       const earnedPoints = (currentQuestion.points || 10) - (hintUsed ? 5 : 0);
@@ -195,7 +217,14 @@ export function RespondaScreen({
       setWrongCount(prev => prev + 1);
     }
     
-    onAnswer(currentIndex, selectedAnswer, isCorrect);
+    onAnswer(currentIndex, userAnswer, isCorrect);
+  };
+  
+  const hasAnswer = () => {
+    if (currentQuestion.type === "multiple_choice") return selectedAnswer !== null;
+    if (currentQuestion.type === "true_false") return trueFalseAnswer !== null;
+    if (currentQuestion.type === "fill_blank") return fillBlankAnswer.trim().length > 0;
+    return false;
   };
   
   const goNext = () => {
@@ -323,49 +352,177 @@ export function RespondaScreen({
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  {currentQuestion.options?.map((option, idx) => {
-                    const isSelected = selectedAnswer === idx;
-                    const isCorrect = idx === currentQuestion.correctIndex;
-                    const showCorrect = showResult && isCorrect;
-                    const showIncorrect = showResult && isSelected && !isCorrect;
+                {/* Multiple Choice Options */}
+                {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
+                  <div className="space-y-2">
+                    {currentQuestion.options.map((option, idx) => {
+                      const isSelected = selectedAnswer === idx;
+                      const isCorrect = idx === currentQuestion.correctIndex;
+                      const showCorrect = showResult && isCorrect;
+                      const showIncorrect = showResult && isSelected && !isCorrect;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => !showResult && setSelectedAnswer(idx)}
+                          disabled={showResult}
+                          className={cn(
+                            "w-full flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left",
+                            showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
+                            showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
+                            isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
+                            !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                            !showResult && "cursor-pointer"
+                          )}
+                          data-testid={`option-${optionLabels[idx]}`}
+                        >
+                          <span className={cn(
+                            "h-7 w-7 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5",
+                            showCorrect && "bg-green-500 text-white",
+                            showIncorrect && "bg-red-500 text-white",
+                            isSelected && !showResult && "bg-orange-500 text-white",
+                            !isSelected && !showResult && "bg-gray-200 dark:bg-gray-700 text-muted-foreground"
+                          )}>
+                            {showCorrect ? <CheckCircle className="h-4 w-4" /> : 
+                             showIncorrect ? <XCircle className="h-4 w-4" /> : 
+                             optionLabels[idx]}
+                          </span>
+                          <span className={cn(
+                            "flex-1 text-sm",
+                            (showCorrect || (isSelected && !showResult)) && "font-medium"
+                          )}>
+                            {option}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* True/False Options */}
+                {currentQuestion.type === "true_false" && (
+                  <div className="flex gap-4">
+                    {[
+                      { value: true, label: "Verdadeiro", icon: Check },
+                      { value: false, label: "Falso", icon: X }
+                    ].map(({ value, label, icon: Icon }) => {
+                      const isSelected = trueFalseAnswer === value;
+                      const isCorrectAnswer = currentQuestion.correctAnswer === value;
+                      const showCorrect = showResult && isCorrectAnswer;
+                      const showIncorrect = showResult && isSelected && !isCorrectAnswer;
+                      
+                      return (
+                        <button
+                          key={label}
+                          onClick={() => !showResult && setTrueFalseAnswer(value)}
+                          disabled={showResult}
+                          className={cn(
+                            "flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
+                            showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
+                            showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
+                            isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
+                            !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                            !showResult && "cursor-pointer"
+                          )}
+                          data-testid={`option-${label.toLowerCase()}`}
+                        >
+                          <div className={cn(
+                            "h-14 w-14 rounded-full flex items-center justify-center",
+                            showCorrect && "bg-green-500",
+                            showIncorrect && "bg-red-500",
+                            isSelected && !showResult && "bg-orange-500",
+                            !isSelected && !showResult && (value ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30")
+                          )}>
+                            {showCorrect ? (
+                              <CheckCircle className="h-7 w-7 text-white" />
+                            ) : showIncorrect ? (
+                              <XCircle className="h-7 w-7 text-white" />
+                            ) : (
+                              <Icon className={cn(
+                                "h-7 w-7",
+                                isSelected && !showResult ? "text-white" : (value ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")
+                              )} />
+                            )}
+                          </div>
+                          <span className={cn(
+                            "font-bold text-lg",
+                            showCorrect && "text-green-600 dark:text-green-400",
+                            showIncorrect && "text-red-600 dark:text-red-400",
+                            isSelected && !showResult && "text-orange-600 dark:text-orange-400",
+                            !isSelected && !showResult && "text-foreground"
+                          )}>
+                            {label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* Fill in the Blank */}
+                {currentQuestion.type === "fill_blank" && (
+                  <div className="space-y-4">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4">
+                      <p className="text-foreground text-center">
+                        {currentQuestion.question.split("___").map((part, idx, arr) => (
+                          <span key={idx}>
+                            {part}
+                            {idx < arr.length - 1 && (
+                              <span className="inline-block mx-1 px-4 py-1 border-b-2 border-orange-400 min-w-[100px] text-center font-bold text-orange-600 dark:text-orange-400">
+                                {showResult ? String(currentQuestion.correctAnswer) : (fillBlankAnswer || "______")}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
                     
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => !showResult && setSelectedAnswer(idx)}
-                        disabled={showResult}
-                        className={cn(
-                          "w-full flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left",
-                          showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
-                          showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
-                          isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
-                          !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
-                          !showResult && "cursor-pointer"
-                        )}
-                        data-testid={`option-${optionLabels[idx]}`}
-                      >
-                        <span className={cn(
-                          "h-7 w-7 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5",
-                          showCorrect && "bg-green-500 text-white",
-                          showIncorrect && "bg-red-500 text-white",
-                          isSelected && !showResult && "bg-orange-500 text-white",
-                          !isSelected && !showResult && "bg-gray-200 dark:bg-gray-700 text-muted-foreground"
-                        )}>
-                          {showCorrect ? <CheckCircle className="h-4 w-4" /> : 
-                           showIncorrect ? <XCircle className="h-4 w-4" /> : 
-                           optionLabels[idx]}
-                        </span>
-                        <span className={cn(
-                          "flex-1 text-sm",
-                          (showCorrect || (isSelected && !showResult)) && "font-medium"
-                        )}>
-                          {option}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                    {!showResult ? (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Digite sua resposta:
+                        </label>
+                        <Input
+                          value={fillBlankAnswer}
+                          onChange={(e) => setFillBlankAnswer(e.target.value)}
+                          placeholder="Digite a palavra que completa a frase..."
+                          className="text-center text-lg font-medium border-2 border-orange-200 dark:border-orange-800 focus:border-orange-500 rounded-xl py-6"
+                          data-testid="input-fill-blank"
+                        />
+                      </div>
+                    ) : (
+                      <div className={cn(
+                        "p-4 rounded-xl border-2",
+                        fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim()
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/30"
+                          : "border-red-500 bg-red-50 dark:bg-red-900/30"
+                      )}>
+                        <div className="flex items-center justify-center gap-3">
+                          {fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim() ? (
+                            <>
+                              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                              <span className="font-bold text-green-600 dark:text-green-400">
+                                Correto! A resposta e: {String(currentQuestion.correctAnswer)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                              <div className="text-center">
+                                <p className="font-bold text-red-600 dark:text-red-400">
+                                  Sua resposta: {fillBlankAnswer}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Resposta correta: <span className="font-bold text-green-600 dark:text-green-400">{String(currentQuestion.correctAnswer)}</span>
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             </motion.div>
           </AnimatePresence>
@@ -406,10 +563,10 @@ export function RespondaScreen({
             {!showResult ? (
               <Button
                 onClick={checkAnswer}
-                disabled={selectedAnswer === null}
+                disabled={!hasAnswer()}
                 className={cn(
                   "flex-1 bg-orange-600 hover:bg-orange-700 text-white rounded-xl",
-                  selectedAnswer === null && "opacity-50"
+                  !hasAnswer() && "opacity-50"
                 )}
                 data-testid="button-confirm"
               >

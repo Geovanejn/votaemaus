@@ -2841,7 +2841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
-      const { text, weekNumber, year } = req.body;
+      const { text, weekNumber, year, geminiKey } = req.body;
       
       if (!text || text.trim().length < 100) {
         return res.status(400).json({ message: "Texto muito curto. Forneca pelo menos 100 caracteres." });
@@ -2849,6 +2849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const currentYear = year || new Date().getFullYear();
       const currentWeekNumber = weekNumber || 1;
+      const selectedGeminiKey = geminiKey || "1";
 
       // Check if week already exists
       const existingWeek = await storage.getStudyWeekByNumber(currentWeekNumber, currentYear);
@@ -2859,8 +2860,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Generate content with AI
-      const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear);
+      // Generate content with AI using selected key
+      const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear, selectedGeminiKey);
 
       // Create the week in database
       const week = await storage.createStudyWeek({

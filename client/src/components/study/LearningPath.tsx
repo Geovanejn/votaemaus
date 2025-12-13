@@ -246,12 +246,14 @@ function StageCard({
   );
 }
 
-function LessonNumberIcon({ 
+function LessonRow({ 
   lessonNumber, 
+  title,
   status,
   isMastered = false
 }: { 
-  lessonNumber: number; 
+  lessonNumber: number;
+  title: string;
   status: LessonStatus;
   isMastered?: boolean;
 }) {
@@ -267,84 +269,80 @@ function LessonNumberIcon({
       : { bg: "#FFC800", shadow: "#E5A800", inner: "#FFD84D" };
 
   return (
-    <motion.div
-      className={cn(
-        "relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
-      )}
-      style={{
-        backgroundColor: colors.bg,
-        boxShadow: `0 5px 0 0 ${colors.shadow}`
-      }}
-      data-testid={`lesson-number-icon-${lessonNumber}`}
-    >
+    <div className="flex items-center gap-5" style={{ height: 88 }}>
       <div 
-        className="absolute inset-[4px] rounded-xl flex items-center justify-center"
-        style={{
-          background: `linear-gradient(180deg, ${colors.inner} 0%, ${colors.bg} 100%)`
-        }}
+        className="flex-shrink-0 flex justify-center items-center relative"
+        style={{ width: RAIL_WIDTH, height: 56 }}
       >
-        {isLocked ? (
-          <Lock className="h-6 w-6 text-muted-foreground/50" />
-        ) : showGolden ? (
-          <Star className="h-6 w-6 text-white fill-white" />
-        ) : (
-          <span className="text-white font-bold text-lg">{lessonNumber}</span>
-        )}
+        <motion.div
+          className="relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
+          style={{
+            backgroundColor: colors.bg,
+            boxShadow: `0 5px 0 0 ${colors.shadow}`
+          }}
+          data-testid={`lesson-number-icon-${lessonNumber}`}
+        >
+          <div 
+            className="absolute inset-[4px] rounded-xl flex items-center justify-center"
+            style={{
+              background: `linear-gradient(180deg, ${colors.inner} 0%, ${colors.bg} 100%)`
+            }}
+          >
+            {isLocked ? (
+              <Lock className="h-6 w-6 text-muted-foreground/50" />
+            ) : showGolden ? (
+              <Star className="h-6 w-6 text-white fill-white" />
+            ) : (
+              <span className="text-white font-bold text-lg">{lessonNumber}</span>
+            )}
+          </div>
+          
+          {isCurrent && (
+            <motion.div
+              animate={{ 
+                scale: [1, 1.12, 1],
+                opacity: [0.5, 1, 0.5]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute inset-0 rounded-2xl border-[3px] border-white/70"
+            />
+          )}
+        </motion.div>
       </div>
       
-      {isCurrent && (
-        <motion.div
-          animate={{ 
-            scale: [1, 1.12, 1],
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{ 
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute inset-0 rounded-2xl border-[3px] border-white/70"
-        />
-      )}
-    </motion.div>
-  );
-}
-
-function LessonCard({ 
-  title, 
-  status,
-  isMastered = false
-}: { 
-  title: string;
-  status: LessonStatus;
-  isMastered?: boolean;
-}) {
-  const isLocked = status === "locked";
-  const isCompleted = status === "completed";
-  const showGolden = isCompleted && isMastered;
-  
-  const bgGradient = isLocked 
-    ? "linear-gradient(90deg, #E5E5E5 0%, #D4D4D4 100%)"
-    : showGolden
-      ? "linear-gradient(90deg, #FFD700 0%, #FFA500 100%)"
-      : "linear-gradient(90deg, #FFC800 0%, #FF9500 100%)";
-  
-  const shadowColor = isLocked ? "#CECECE" : showGolden ? "#CC8400" : "#CC7A00";
-  
-  return (
-    <div 
-      className="flex-1 py-3 px-4 rounded-xl"
-      style={{
-        background: bgGradient,
-        boxShadow: `0 3px 0 0 ${shadowColor}`
-      }}
-    >
-      <h3 className={cn(
-        "font-bold text-sm leading-tight",
-        isLocked ? "text-muted-foreground/50" : "text-white"
-      )}>
-        {title}
-      </h3>
+      <motion.div
+        whileHover={!isLocked ? { scale: 1.01 } : undefined}
+        whileTap={!isLocked ? { scale: 0.99 } : undefined}
+        className={cn(
+          "flex-1 text-left px-4 py-3 transition-all min-w-0",
+          isLocked && "bg-muted/50 rounded-lg"
+        )}
+        style={!isLocked ? {
+          background: showGolden 
+            ? "linear-gradient(90deg, #FFD700 0%, #FFA500 100%)"
+            : "linear-gradient(90deg, #FFC800 0%, #FF9500 100%)",
+          boxShadow: "0 4px 12px rgba(255, 149, 0, 0.3)",
+          borderRadius: "8px"
+        } : undefined}
+        data-testid={`lesson-card-${lessonNumber}`}
+      >
+        <span className={cn(
+          "text-[10px] font-bold uppercase tracking-wider",
+          isLocked ? "text-muted-foreground/50" : "text-white/70"
+        )}>
+          Licao {lessonNumber}
+        </span>
+        <h4 className={cn(
+          "font-bold text-base leading-tight mt-1",
+          isLocked ? "text-muted-foreground/50" : "text-white"
+        )}>
+          {title}
+        </h4>
+      </motion.div>
     </div>
   );
 }
@@ -374,18 +372,9 @@ function LessonGroup({
   
   return (
     <div id={`lesson-${lesson.id}`} className="relative" data-testid={`lesson-group-${lesson.id}`}>
-      <div className="flex items-center gap-5 mb-5">
-        <div 
-          className="flex-shrink-0 flex justify-center items-center"
-          style={{ width: RAIL_WIDTH, height: ICON_SIZE }}
-        >
-          <LessonNumberIcon 
-            lessonNumber={lesson.lessonNumber} 
-            status={lesson.status}
-            isMastered={isMastered}
-          />
-        </div>
-        <LessonCard 
+      <div className="mb-5">
+        <LessonRow 
+          lessonNumber={lesson.lessonNumber}
           title={lesson.subtitle || lesson.title}
           status={lesson.status}
           isMastered={isMastered}
@@ -597,29 +586,20 @@ export function LearningPath({
                   className="absolute inset-0"
                   style={{
                     background: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
-                    clipPath: "polygon(0 8px, 8px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 8px))",
+                    clipPath: "polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%)",
                     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)"
                   }}
                 />
                 <div 
-                  className="absolute top-0 right-0 w-4 h-4"
+                  className="absolute top-0 right-0 w-5 h-5"
                   style={{
                     background: "linear-gradient(135deg, transparent 50%, #374151 50%)"
                   }}
                 />
-                <div 
-                  className="absolute bottom-0 left-0 w-4 h-2"
-                  style={{
-                    background: "linear-gradient(-45deg, transparent 50%, #374151 50%)"
-                  }}
-                />
                 <div className="relative z-10 px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-white/70">
-                      Unidade
-                    </span>
-                    <div className="flex-1 h-px bg-white/20" />
-                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/70">
+                    Unidade
+                  </span>
                   <h2 className="text-lg font-bold text-white mt-1">
                     {unitTitle}
                   </h2>

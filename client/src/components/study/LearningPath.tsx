@@ -530,27 +530,37 @@ export function LearningPath({
               </div>
               
               <div 
-                className="flex-1 px-5 py-4 relative overflow-hidden"
-                style={{ 
-                  minHeight: UNIT_HEADER_HEIGHT,
-                  background: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
-                  boxShadow: "0 4px 0 0 #374151, 0 6px 12px rgba(0, 0, 0, 0.15)",
-                  borderRadius: "12px 12px 12px 0",
-                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px))"
-                }}
+                className="flex-1 relative overflow-visible"
+                style={{ minHeight: UNIT_HEADER_HEIGHT }}
               >
                 <div 
-                  className="absolute bottom-0 left-0 w-3 h-3"
+                  className="absolute inset-0"
                   style={{
-                    background: "#374151",
-                    clipPath: "polygon(100% 0, 100% 100%, 0 100%)"
+                    background: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
+                    clipPath: "polygon(0 8px, 8px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 8px))",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)"
                   }}
                 />
-                <div className="relative z-10">
-                  <span className="text-xs font-bold uppercase tracking-wider text-white/70">
-                    Unidade
-                  </span>
-                  <h2 className="text-lg font-bold text-white mt-0.5">
+                <div 
+                  className="absolute top-0 right-0 w-4 h-4"
+                  style={{
+                    background: "linear-gradient(135deg, transparent 50%, #374151 50%)"
+                  }}
+                />
+                <div 
+                  className="absolute bottom-0 left-0 w-4 h-2"
+                  style={{
+                    background: "linear-gradient(-45deg, transparent 50%, #374151 50%)"
+                  }}
+                />
+                <div className="relative z-10 px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-white/70">
+                      Unidade
+                    </span>
+                    <div className="flex-1 h-px bg-white/20" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white mt-1">
                     {unitTitle}
                   </h2>
                 </div>

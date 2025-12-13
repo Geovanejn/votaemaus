@@ -12,6 +12,7 @@ import {
   FeedbackOverlay,
   LessonComplete,
   StudyContent,
+  EstudeScreen,
   StageCompleteModal,
   StreakIncrementAnimation,
   CrystalGainAnimation,
@@ -862,10 +863,12 @@ export default function LessonPage() {
 
       <main className="flex-1 flex flex-col">
         {showStudyContent ? (
-          <StudyContent
+          <EstudeScreen
             lessonTitle={lessonData.title}
             sections={studySections}
+            verseReference={studySections.find(s => s.type === 'verse')?.reference}
             onComplete={handleStudyComplete}
+            onClose={handleClose}
             onProgress={handleStudyProgress}
           />
         ) : (

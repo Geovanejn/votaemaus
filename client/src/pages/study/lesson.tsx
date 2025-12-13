@@ -13,12 +13,13 @@ import {
   LessonComplete,
   StudyContent,
   EstudeScreen,
+  MediteScreen,
   StageCompleteModal,
   StreakIncrementAnimation,
   CrystalGainAnimation,
   AchievementUnlockAnimation
 } from "@/components/study";
-import type { StudySection } from "@/components/study";
+import type { StudySection, MeditationSection } from "@/components/study";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { MedalAchievementAnimation } from "@/components/study/MedalAchievementAnimation";
@@ -504,6 +505,21 @@ export default function LessonPage() {
     };
   });
   
+  const isMediteStage = currentUnit?.stage === 'medite';
+  const isMediteType = currentUnit?.type === 'meditation' || currentUnit?.type === 'reflection';
+  const mediteUnits = allUnits
+    .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'));
+  
+  const mediteSections: MeditationSection[] = mediteUnits.map((unit) => {
+    return {
+      type: unit.type as 'reflection' | 'meditation',
+      title: unit.content.title || (unit.type === 'meditation' ? 'Meditacao' : 'Reflexao'),
+      content: unit.content.body || unit.content.meditationGuide || unit.content.reflectionPrompt || '',
+      prompt: unit.content.reflectionPrompt,
+      duration: unit.content.meditationDuration
+    };
+  });
+  
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-stage">
@@ -835,6 +851,7 @@ export default function LessonPage() {
   };
 
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
+  const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
   
   // Handle progress updates from StudyContent
   const handleStudyProgress = (current: number, total: number) => {
@@ -842,10 +859,10 @@ export default function LessonPage() {
   };
   
   // Calculate header progress - use study progress when in study mode, otherwise use unit progress
-  const headerCurrentStep = showStudyContent && studyProgress 
+  const headerCurrentStep = (showStudyContent || showMediteContent) && studyProgress 
     ? studyProgress.current 
     : currentUnitIndex + 1;
-  const headerTotalSteps = showStudyContent && studyProgress 
+  const headerTotalSteps = (showStudyContent || showMediteContent) && studyProgress 
     ? studyProgress.total 
     : totalUnits;
 
@@ -868,6 +885,14 @@ export default function LessonPage() {
             sections={studySections}
             verseReference={studySections.find(s => s.type === 'verse')?.reference}
             onComplete={handleStudyComplete}
+            onClose={handleClose}
+            onProgress={handleStudyProgress}
+          />
+        ) : showMediteContent ? (
+          <MediteScreen
+            lessonTitle={lessonData.title}
+            sections={mediteSections}
+            onComplete={handleMeditateComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
           />

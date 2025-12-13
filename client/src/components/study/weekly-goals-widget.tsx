@@ -9,7 +9,8 @@ import {
   Leaf,
   Trophy,
   Flame,
-  Sparkles
+  Sparkles,
+  Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -82,11 +83,12 @@ function GoalCard({
         </div>
         {completed && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="w-5 h-5 rounded-full bg-white flex items-center justify-center"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            className="w-6 h-6 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border border-white/50"
           >
-            <Sparkles className="w-3 h-3 text-yellow-500" />
+            <Check className="w-4 h-4 text-white" strokeWidth={3} />
           </motion.div>
         )}
       </div>

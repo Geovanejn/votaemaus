@@ -530,13 +530,22 @@ export function LearningPath({
               </div>
               
               <div 
-                className="flex-1 px-5 py-4 rounded-xl relative overflow-hidden"
+                className="flex-1 px-5 py-4 relative overflow-hidden"
                 style={{ 
                   minHeight: UNIT_HEADER_HEIGHT,
                   background: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
-                  boxShadow: "0 4px 0 0 #374151, 0 6px 12px rgba(0, 0, 0, 0.15)"
+                  boxShadow: "0 4px 0 0 #374151, 0 6px 12px rgba(0, 0, 0, 0.15)",
+                  borderRadius: "12px 12px 12px 0",
+                  clipPath: "polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px))"
                 }}
               >
+                <div 
+                  className="absolute bottom-0 left-0 w-3 h-3"
+                  style={{
+                    background: "#374151",
+                    clipPath: "polygon(100% 0, 100% 100%, 0 100%)"
+                  }}
+                />
                 <div className="relative z-10">
                   <span className="text-xs font-bold uppercase tracking-wider text-white/70">
                     Unidade

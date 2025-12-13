@@ -514,17 +514,17 @@ export function LearningPath({
                 <div
                   className="relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
                   style={{
-                    background: "linear-gradient(145deg, #3D3D3D 0%, #1F1F1F 100%)",
-                    boxShadow: "0 5px 0 0 #0F0F0F"
+                    background: "linear-gradient(145deg, #6B7280 0%, #4B5563 100%)",
+                    boxShadow: "0 5px 0 0 #374151"
                   }}
                 >
                   <div 
                     className="absolute inset-[3px] rounded-xl flex items-center justify-center"
                     style={{
-                      background: "linear-gradient(180deg, #4D4D4D 0%, #2D2D2D 100%)"
+                      background: "linear-gradient(180deg, #9CA3AF 0%, #6B7280 100%)"
                     }}
                   >
-                    <FolderOpen className="h-6 w-6 text-primary" />
+                    <FolderOpen className="h-6 w-6 text-white" />
                   </div>
                 </div>
               </div>
@@ -533,12 +533,12 @@ export function LearningPath({
                 className="flex-1 px-5 py-4 rounded-xl relative overflow-hidden"
                 style={{ 
                   minHeight: UNIT_HEADER_HEIGHT,
-                  background: "linear-gradient(135deg, #3D3D3D 0%, #1F1F1F 100%)",
-                  boxShadow: "0 4px 0 0 #0F0F0F, 0 6px 12px rgba(0, 0, 0, 0.3)"
+                  background: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
+                  boxShadow: "0 4px 0 0 #374151, 0 6px 12px rgba(0, 0, 0, 0.15)"
                 }}
               >
                 <div className="relative z-10">
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/70">
                     Unidade
                   </span>
                   <h2 className="text-lg font-bold text-white mt-0.5">

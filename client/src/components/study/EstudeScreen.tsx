@@ -12,7 +12,9 @@ import {
   Accessibility,
   BookOpen,
   Heart,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -182,10 +184,14 @@ export function EstudeScreen({
   }, [currentIndex, totalSections, onProgress]);
   
   const goNext = () => {
-    if (isLast) {
-      onComplete();
-    } else {
+    if (!isLast) {
       setCurrentIndex(prev => prev + 1);
+    }
+  };
+  
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
     }
   };
   
@@ -288,6 +294,49 @@ export function EstudeScreen({
             </AnimatePresence>
           </Card>
           
+          {/* Navigation Arrows and Indicators */}
+          <div className="flex items-center justify-between py-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              className={cn(
+                "h-12 w-12 rounded-full",
+                currentIndex === 0 ? "opacity-30 cursor-not-allowed" : "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              )}
+              data-testid="button-prev-estude"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {sections.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    idx === currentIndex ? "w-6 bg-purple-600" : "w-2 bg-purple-200 dark:bg-purple-800"
+                  )}
+                />
+              ))}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goNext}
+              disabled={isLast}
+              className={cn(
+                "h-12 w-12 rounded-full",
+                isLast ? "opacity-30 cursor-not-allowed" : "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              )}
+              data-testid="button-next-estude"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
+          
           <div className="flex justify-center gap-4 py-2">
             <button 
               className="flex flex-col items-center gap-2"
@@ -336,7 +385,7 @@ export function EstudeScreen({
           {isLast && (
             <div className="pt-4">
               <Button
-                onClick={goNext}
+                onClick={onComplete}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
                 data-testid="button-complete-estude"
               >

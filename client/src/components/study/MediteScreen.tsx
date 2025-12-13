@@ -15,6 +15,7 @@ import {
   Bookmark,
   Share2,
   ChevronRight,
+  ChevronLeft,
   BookOpen,
   Heart,
   HelpCircle,
@@ -112,6 +113,18 @@ export function MediteScreen({
       onProgress(currentIndex + 1, totalSections);
     }
   }, [currentIndex, totalSections, onProgress]);
+  
+  const goNext = () => {
+    if (!isLast) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+  
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
   
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -224,6 +237,49 @@ export function MediteScreen({
               </Card>
             </motion.div>
           </AnimatePresence>
+          
+          {/* Navigation Arrows and Indicators */}
+          <div className="flex items-center justify-between py-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              className={cn(
+                "h-12 w-12 rounded-full",
+                currentIndex === 0 ? "opacity-30 cursor-not-allowed" : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+              )}
+              data-testid="button-prev-medite"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {sections.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    idx === currentIndex ? "w-6 bg-emerald-600" : "w-2 bg-emerald-200 dark:bg-emerald-800"
+                  )}
+                />
+              ))}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={goNext}
+              disabled={isLast}
+              className={cn(
+                "h-12 w-12 rounded-full",
+                isLast ? "opacity-30 cursor-not-allowed" : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+              )}
+              data-testid="button-next-medite"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
           
           <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
             <div className="flex items-center justify-between mb-3">

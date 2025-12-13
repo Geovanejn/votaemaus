@@ -11,7 +11,7 @@ import {
 } from "@/components/study";
 import type { StageType, QuestionResult, UnitData, LessonData, LessonStage, ContinueLearningData, PracticeStatus } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
+import { Bell, Flame, Star, Heart, Loader2, ListChecks } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -78,33 +78,53 @@ interface WeekWithLessons {
   lessons: LessonWithProgress[];
 }
 
+interface MissionData {
+  id: number;
+  completed: boolean;
+}
+
+interface MissionsResponse {
+  missions: MissionData[];
+}
+
 function UserProfileHeader({ 
   userName, 
   userPhoto,
-  profile 
+  profile,
+  missionsCompleted,
+  missionsTotal
 }: { 
   userName: string;
   userPhoto?: string | null;
   profile: StudyProfile;
+  missionsCompleted: number;
+  missionsTotal: number;
 }) {
   const [, setLocation] = useLocation();
   
+  const formatXp = (xp: number) => {
+    if (xp >= 1000) {
+      return xp.toLocaleString('pt-BR');
+    }
+    return xp.toString();
+  };
+  
   return (
     <div 
-      className="px-4 pt-4 pb-4"
+      className="px-4 pt-6 pb-5"
       style={{
-        background: 'linear-gradient(180deg, #FFC800 0%, #FFD633 100%)',
+        background: 'linear-gradient(180deg, #8B5CF6 0%, #7C3AED 50%, #6D28D9 100%)',
       }}
     >
       <div className="max-w-lg mx-auto">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <Avatar className="h-14 w-14 border-3 border-white shadow-lg">
+            <Avatar className="h-14 w-14 border-[3px] border-white/30 shadow-lg">
               <AvatarImage src={userPhoto || undefined} />
               <AvatarFallback 
                 className="text-xl font-bold"
                 style={{
-                  background: 'linear-gradient(135deg, #87CEEB 0%, #4A90D9 100%)',
+                  background: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)',
                   color: 'white'
                 }}
               >
@@ -112,69 +132,86 @@ function UserProfileHeader({
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-white/80 font-medium">Olá,</p>
               <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
-                {userName}
+                Ola, {userName.split(' ')[0]}!
               </h1>
+              <p className="text-sm text-white/80">Nivel {profile.currentLevel}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <div className="p-1 rounded-full bg-white/20">
-              <NotificationCenter />
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 15 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-2 rounded-full bg-white/20"
-              onClick={() => setLocation('/study/profile')}
-              data-testid="button-settings"
-            >
-              <Settings className="h-5 w-5 text-white" />
-            </motion.button>
-          </div>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+            onClick={() => setLocation('/study/profile')}
+            data-testid="button-notifications"
+          >
+            <Bell className="h-5 w-5 text-white" />
+          </motion.button>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-3">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex flex-col items-center justify-center px-2 py-2.5 rounded-lg bg-[#FF9600] shadow-md"
-            style={{ boxShadow: '0 3px 0 0 #CC7700' }}
-          >
-            <Flame className="h-4 w-4 text-white" />
-            <span className="font-bold text-white text-sm">{profile.currentStreak}</span>
-          </motion.div>
-          
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#58CC02] shadow-md"
-            style={{ boxShadow: '0 3px 0 0 #46A302' }}
-          >
-            <Zap className="h-4 w-4 text-white" />
-            <span className="font-bold text-white text-sm">{profile.totalXp}</span>
-          </motion.div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg">
+          <div className="grid grid-cols-4 gap-3">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="flex flex-col items-center"
+            >
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
+                style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)' }}
+              >
+                <Flame className="h-6 w-6 text-white" />
+              </div>
+              <span className="font-bold text-foreground text-sm">{profile.currentStreak}</span>
+              <span className="text-[10px] text-muted-foreground">Ofensiva</span>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="flex flex-col items-center"
+            >
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
+                style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
+              >
+                <Star className="h-6 w-6 text-white fill-white" />
+              </div>
+              <span className="font-bold text-foreground text-sm">{formatXp(profile.totalXp)}</span>
+              <span className="text-[10px] text-muted-foreground">XP</span>
+            </motion.div>
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#FF4B4B] shadow-md cursor-pointer"
-            style={{ boxShadow: '0 3px 0 0 #CC3333' }}
-            onClick={() => setLocation('/study/verses')}
-            data-testid="button-hearts"
-          >
-            <Heart className="h-4 w-4 text-white fill-white" />
-            <span className="font-bold text-white text-sm">{profile.hearts}/{profile.heartsMax}</span>
-          </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="flex flex-col items-center cursor-pointer"
+              onClick={() => setLocation('/study/verses')}
+              data-testid="button-hearts"
+            >
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
+                style={{ background: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)' }}
+              >
+                <Heart className="h-6 w-6 text-white fill-white" />
+              </div>
+              <span className="font-bold text-foreground text-sm">{profile.hearts}</span>
+              <span className="text-[10px] text-muted-foreground">Vidas</span>
+            </motion.div>
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-[#1CB0F6] shadow-md cursor-pointer"
-            style={{ boxShadow: '0 3px 0 0 #0D94D7' }}
-            onClick={() => setLocation('/study/missions')}
-            data-testid="button-missions"
-          >
-            <Target className="h-4 w-4 text-white" />
-            <span className="font-bold text-white text-xs">Missões</span>
-          </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              className="flex flex-col items-center cursor-pointer"
+              onClick={() => setLocation('/study/missions')}
+              data-testid="button-missions"
+            >
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
+                style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}
+              >
+                <ListChecks className="h-6 w-6 text-white" />
+              </div>
+              <span className="font-bold text-foreground text-sm">{missionsCompleted}/{missionsTotal}</span>
+              <span className="text-[10px] text-muted-foreground">Missoes</span>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>
@@ -307,6 +344,14 @@ export default function StudyHomePage() {
     queryKey: ['/api/study/practice', currentWeek?.id?.toString(), 'status'],
     enabled: isAuthenticated && !!currentWeek?.id,
   });
+
+  const { data: missionsData } = useQuery<MissionsResponse>({
+    queryKey: ['/api/missions/daily'],
+    enabled: isAuthenticated,
+  });
+
+  const missionsCompleted = missionsData?.missions?.filter(m => m.completed).length || 0;
+  const missionsTotal = missionsData?.missions?.length || 5;
 
   const isLoading = authLoading || profileLoading || weeksLoading || lessonsLoading;
   const hasError = profileError || weeksError || lessonsError;
@@ -487,7 +532,9 @@ export default function StudyHomePage() {
       <UserProfileHeader 
         userName={user.fullName} 
         userPhoto={user.photoUrl}
-        profile={profile} 
+        profile={profile}
+        missionsCompleted={missionsCompleted}
+        missionsTotal={missionsTotal}
       />
       
       <div className="px-4 py-4">

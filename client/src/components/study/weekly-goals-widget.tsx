@@ -1,16 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BookOpen, 
   BookMarked, 
-  Target, 
-  Calendar,
+  ListChecks, 
+  Leaf,
   Trophy,
   Flame,
-  Check,
   Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +30,8 @@ interface WeeklyGoalStatus {
   overallProgress: number;
   isGoalMet: boolean;
   xpBonus: number;
+  daysCompleted?: number;
+  totalDays?: number;
 }
 
 interface GoalCardProps {
@@ -40,8 +40,8 @@ interface GoalCardProps {
   current: number;
   target: number;
   completed: boolean;
-  color: string;
-  bgColor: string;
+  gradientFrom: string;
+  gradientTo: string;
   delay?: number;
 }
 
@@ -51,12 +51,10 @@ function GoalCard({
   current, 
   target, 
   completed,
-  color,
-  bgColor,
+  gradientFrom,
+  gradientTo,
   delay = 0
 }: GoalCardProps) {
-  const progress = Math.min((current / target) * 100, 100);
-  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -65,65 +63,32 @@ function GoalCard({
       className="relative"
     >
       <div 
-        className={cn(
-          "flex flex-col items-center p-3 rounded-lg border transition-all",
-          completed ? "border-green-500/50" : "border-border",
-          bgColor
-        )}
+        className="flex items-center gap-3 p-3 rounded-xl"
+        style={{
+          background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
+        }}
       >
-        <div 
-          className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center mb-2 relative",
-            completed ? "bg-green-500" : color
-          )}
-        >
-          {completed ? (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            >
-              <Check className="w-5 h-5 text-white" />
-            </motion.div>
-          ) : (
-            <Icon className="w-5 h-5 text-white" />
-          )}
-          
-          {completed && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="absolute -top-1 -right-1"
-            >
-              <Sparkles className="w-4 h-4 text-yellow-500" />
-            </motion.div>
-          )}
+        <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-5 h-5 text-white" />
         </div>
-        
-        <span className="text-xs text-muted-foreground text-center mb-1">{label}</span>
-        
-        <div className="flex items-baseline gap-0.5">
-          <span className={cn(
-            "text-lg font-bold",
-            completed ? "text-green-500" : "text-foreground"
-          )}>
-            {current}
-          </span>
-          <span className="text-xs text-muted-foreground">/{target}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-lg font-bold text-white">
+              {current}
+            </span>
+            <span className="text-sm text-white/80">/{target}</span>
+          </div>
+          <span className="text-xs text-white/80">{label}</span>
         </div>
-        
-        <div className="w-full h-1.5 bg-muted rounded-full mt-2 overflow-hidden">
+        {completed && (
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ delay: delay + 0.2, duration: 0.5 }}
-            className={cn(
-              "h-full rounded-full",
-              completed ? "bg-green-500" : color.replace("bg-", "bg-")
-            )}
-            style={{ backgroundColor: completed ? undefined : undefined }}
-          />
-        </div>
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-5 h-5 rounded-full bg-white flex items-center justify-center"
+          >
+            <Sparkles className="w-3 h-3 text-yellow-500" />
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );
@@ -131,18 +96,14 @@ function GoalCard({
 
 function WeeklyGoalsWidgetSkeleton() {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Skeleton className="w-5 h-5" />
+    <Card className="p-4 bg-white dark:bg-card">
+      <div className="flex items-center justify-between mb-4">
         <Skeleton className="w-32 h-5" />
+        <Skeleton className="w-16 h-5" />
       </div>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center p-3">
-            <Skeleton className="w-10 h-10 rounded-full mb-2" />
-            <Skeleton className="w-12 h-3 mb-1" />
-            <Skeleton className="w-8 h-5" />
-          </div>
+          <Skeleton key={i} className="h-16 rounded-xl" />
         ))}
       </div>
     </Card>
@@ -156,29 +117,16 @@ interface WeeklyGoalsWidgetProps {
 
 function NotAuthenticatedPlaceholder() {
   return (
-    <Card className="p-4" data-testid="widget-weekly-goals-placeholder">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-          <Flame className="w-4 h-4 text-white" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm">Meta Semanal</h3>
-          <p className="text-xs text-muted-foreground">Faca login para acompanhar</p>
-        </div>
+    <Card className="p-4 bg-white dark:bg-card" data-testid="widget-weekly-goals-placeholder">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold text-foreground">Meta Semanal</h3>
+        <span className="text-sm text-muted-foreground">Faca login</span>
       </div>
-      <div className="grid grid-cols-4 gap-2 opacity-50">
-        {[BookOpen, BookMarked, Target, Calendar].map((Icon, i) => (
-          <div key={i} className="flex flex-col items-center p-3 rounded-lg border bg-muted/30">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
-              <Icon className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <span className="text-xs text-muted-foreground text-center">--</span>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-lg font-bold text-muted-foreground">0</span>
-              <span className="text-xs text-muted-foreground">/0</span>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-3 opacity-50">
+        <div className="h-16 rounded-xl bg-muted" />
+        <div className="h-16 rounded-xl bg-muted" />
+        <div className="h-16 rounded-xl bg-muted" />
+        <div className="h-16 rounded-xl bg-muted" />
       </div>
     </Card>
   );
@@ -186,10 +134,10 @@ function NotAuthenticatedPlaceholder() {
 
 function ErrorPlaceholder({ onRetry }: { onRetry: () => void }) {
   return (
-    <Card className="p-4" data-testid="widget-weekly-goals-error">
+    <Card className="p-4 bg-white dark:bg-card" data-testid="widget-weekly-goals-error">
       <div className="text-center py-4">
         <Flame className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mb-3">Erro ao carregar metas semanais</p>
+        <p className="text-sm text-muted-foreground mb-3">Erro ao carregar metas</p>
         <button 
           onClick={onRetry}
           className="text-sm text-primary hover:underline"
@@ -224,7 +172,7 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
     return <ErrorPlaceholder onRetry={() => refetch()} />;
   }
 
-  const { goals, overallProgress, isGoalMet, xpBonus } = weeklyGoal;
+  const { goals, overallProgress, isGoalMet, xpBonus, daysCompleted = 0, totalDays = 7 } = weeklyGoal;
 
   const goalItems = [
     {
@@ -232,32 +180,32 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
       icon: BookOpen,
       label: "Licoes",
       ...goals.lessons,
-      color: "bg-blue-500",
-      bgColor: goals.lessons.completed ? "bg-green-500/5" : "bg-blue-500/5",
+      gradientFrom: "#4A90E2",
+      gradientTo: "#357ABD",
     },
     {
       key: "verses",
       icon: BookMarked,
       label: "Versiculos",
       ...goals.verses,
-      color: "bg-purple-500",
-      bgColor: goals.verses.completed ? "bg-green-500/5" : "bg-purple-500/5",
+      gradientFrom: "#9B59B6",
+      gradientTo: "#8E44AD",
     },
     {
       key: "missions",
-      icon: Target,
+      icon: ListChecks,
       label: "Missoes",
       ...goals.missions,
-      color: "bg-orange-500",
-      bgColor: goals.missions.completed ? "bg-green-500/5" : "bg-orange-500/5",
+      gradientFrom: "#5DADE2",
+      gradientTo: "#3498DB",
     },
     {
       key: "devotionals",
-      icon: Calendar,
+      icon: Leaf,
       label: "Devocionais",
       ...goals.devotionals,
-      color: "bg-teal-500",
-      bgColor: goals.devotionals.completed ? "bg-green-500/5" : "bg-teal-500/5",
+      gradientFrom: "#2ECC71",
+      gradientTo: "#27AE60",
     },
   ];
 
@@ -284,76 +232,30 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
   }
 
   return (
-    <Card className="p-4" data-testid="widget-weekly-goals">
-      {showTitle && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-              <Flame className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm">Meta Semanal</h3>
-              <p className="text-xs text-muted-foreground">Seu progresso esta semana</p>
-            </div>
+    <div className="space-y-3" data-testid="widget-weekly-goals">
+      <Card className="p-4 bg-white dark:bg-card shadow-sm">
+        {showTitle && (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-foreground text-base">Meta Semanal</h3>
+            <span className="text-sm font-medium text-blue-500">{daysCompleted}/{totalDays} dias</span>
           </div>
-          
-          {isGoalMet && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            >
-              <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0">
-                <Trophy className="w-3 h-3 mr-1" />
-                +{xpBonus} XP
-              </Badge>
-            </motion.div>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {goalItems.map((item, index) => (
-          <GoalCard
-            key={item.key}
-            icon={item.icon}
-            label={item.label}
-            current={item.current}
-            target={item.target}
-            completed={item.completed}
-            color={item.color}
-            bgColor={item.bgColor}
-            delay={index * 0.1}
-          />
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Progresso geral</span>
-          <span className="font-semibold">{Math.round(overallProgress)}%</span>
-        </div>
-        
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${overallProgress}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className={cn(
-              "h-full rounded-full",
-              isGoalMet 
-                ? "bg-gradient-to-r from-yellow-400 to-orange-500"
-                : "bg-gradient-to-r from-blue-500 to-purple-500"
-            )}
-          />
-        </div>
-
-        {!isGoalMet && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Complete todas as metas para ganhar{" "}
-            <span className="font-semibold text-yellow-500">+{xpBonus || 50} XP</span> de bonus!
-          </p>
         )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {goalItems.map((item, index) => (
+            <GoalCard
+              key={item.key}
+              icon={item.icon}
+              label={item.label}
+              current={item.current}
+              target={item.target}
+              completed={item.completed}
+              gradientFrom={item.gradientFrom}
+              gradientTo={item.gradientTo}
+              delay={index * 0.1}
+            />
+          ))}
+        </div>
 
         <AnimatePresence>
           {isGoalMet && (
@@ -361,16 +263,26 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="text-center py-2"
+              className="text-center pt-4"
             >
               <p className="text-sm font-medium text-green-500 flex items-center justify-center gap-1">
                 <Sparkles className="w-4 h-4" />
-                Parabens! Voce completou sua meta semanal!
+                Meta semanal completa! +{xpBonus} XP
               </p>
             </motion.div>
           )}
         </AnimatePresence>
+      </Card>
+
+      <div 
+        className="p-4 rounded-xl flex items-center justify-between"
+        style={{
+          background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
+        }}
+      >
+        <span className="font-bold text-white">Progresso Semanal</span>
+        <span className="font-bold text-white text-lg">{Math.round(overallProgress)}%</span>
       </div>
-    </Card>
+    </div>
   );
 }

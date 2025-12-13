@@ -3,14 +3,16 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { 
-  ChevronLeft, 
-  ChevronRight, 
+  ArrowLeft, 
   Bookmark, 
   Highlighter, 
   StickyNote, 
   Share2,
-  X,
-  BookOpen
+  Type,
+  Accessibility,
+  BookOpen,
+  Heart,
+  HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -67,93 +69,56 @@ interface EstudeScreenProps {
   onComplete: () => void;
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
+  onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
 }
 
-function VerseWithNumber({ 
-  verseNumber, 
-  content, 
-  isHighlighted,
-  onHighlight,
-  onNote,
-  onShare
+function VerseContent({ 
+  content,
+  highlightedVerses,
+  onToggleHighlight
 }: { 
-  verseNumber: number; 
   content: string;
-  isHighlighted?: boolean;
-  onHighlight?: () => void;
-  onNote?: () => void;
-  onShare?: () => void;
+  highlightedVerses: Set<number>;
+  onToggleHighlight: (num: number) => void;
 }) {
-  const [showActions, setShowActions] = useState(false);
-  
+  const verses = content.split(/(?=\d+\s)/).filter(v => v.trim());
+  const parsedVerses = verses.map((verse, idx) => {
+    const match = verse.match(/^(\d+)\s*([\s\S]*)/);
+    if (match) {
+      return { number: parseInt(match[1]), text: match[2].trim() };
+    }
+    return { number: idx + 1, text: verse.trim() };
+  });
+
+  if (parsedVerses.length === 0 || (parsedVerses.length === 1 && !parsedVerses[0].text)) {
+    return (
+      <p className={cn(
+        "text-foreground leading-relaxed text-base",
+        highlightedVerses.has(1) && "bg-yellow-100 dark:bg-yellow-900/30"
+      )}>
+        {content}
+      </p>
+    );
+  }
+
   return (
-    <div 
-      className={cn(
-        "flex gap-3 py-3 px-2 rounded-md transition-all cursor-pointer",
-        isHighlighted && "bg-yellow-100 dark:bg-yellow-900/30",
-        showActions && "bg-muted/50"
-      )}
-      onClick={() => setShowActions(!showActions)}
-      data-testid={`verse-${verseNumber}`}
-    >
-      <span className="text-purple-600 dark:text-purple-400 font-bold text-sm min-w-[24px]">
-        {verseNumber}
-      </span>
-      <div className="flex-1">
-        <p className="text-foreground leading-relaxed text-base">
-          {content}
-        </p>
-        <AnimatePresence>
-          {showActions && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex gap-2 mt-3"
-            >
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-yellow-100 dark:bg-yellow-900/50 border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onHighlight?.();
-                }}
-                data-testid={`button-highlight-${verseNumber}`}
-              >
-                <Highlighter className="h-4 w-4 mr-1" />
-                Destacar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNote?.();
-                }}
-                data-testid={`button-note-${verseNumber}`}
-              >
-                <StickyNote className="h-4 w-4 mr-1" />
-                Nota
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShare?.();
-                }}
-                data-testid={`button-share-${verseNumber}`}
-              >
-                <Share2 className="h-4 w-4 mr-1" />
-                Compartilhar
-              </Button>
-            </motion.div>
+    <div className="space-y-4">
+      {parsedVerses.map((verse) => (
+        <p 
+          key={verse.number}
+          className={cn(
+            "text-foreground leading-relaxed text-base cursor-pointer transition-colors",
+            highlightedVerses.has(verse.number) && "bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 -mx-2 rounded"
           )}
-        </AnimatePresence>
-      </div>
+          onClick={() => onToggleHighlight(verse.number)}
+          data-testid={`verse-${verse.number}`}
+        >
+          <span className="text-purple-600 dark:text-purple-400 font-bold mr-1">
+            {verse.number}
+          </span>
+          {verse.text}
+        </p>
+      ))}
     </div>
   );
 }
@@ -195,10 +160,12 @@ export function EstudeScreen({
   verseReference,
   onComplete, 
   onClose,
-  onProgress 
+  onProgress,
+  onSwitchTab
 }: EstudeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [highlightedVerses, setHighlightedVerses] = useState<Set<number>>(new Set());
+  const [isBookmarked, setIsBookmarked] = useState(false);
   
   const sections = rawSections.length > 0 ? rawSections : [
     { type: "topic" as const, title: lessonTitle, content: "Conteudo nao disponivel." }
@@ -206,7 +173,6 @@ export function EstudeScreen({
   
   const totalSections = sections.length;
   const currentSection = sections[currentIndex];
-  const isFirst = currentIndex === 0;
   const isLast = currentIndex === totalSections - 1;
   
   useEffect(() => {
@@ -220,12 +186,6 @@ export function EstudeScreen({
       onComplete();
     } else {
       setCurrentIndex(prev => prev + 1);
-    }
-  };
-  
-  const goPrev = () => {
-    if (!isFirst) {
-      setCurrentIndex(prev => prev - 1);
     }
   };
   
@@ -250,38 +210,12 @@ export function EstudeScreen({
   const renderContent = (section: StudySection) => {
     switch (section.type) {
       case "verse":
-        const verses = section.content.split(/(?=\d+\s)/).filter(v => v.trim());
-        const parsedVerses = verses.map((verse, idx) => {
-          const match = verse.match(/^(\d+)\s*(.*)/s);
-          if (match) {
-            return { number: parseInt(match[1]), text: match[2].trim() };
-          }
-          return { number: idx + 1, text: verse.trim() };
-        });
-        
-        if (parsedVerses.length === 0 || (parsedVerses.length === 1 && !parsedVerses[0].text)) {
-          return (
-            <VerseWithNumber
-              verseNumber={1}
-              content={section.content}
-              isHighlighted={highlightedVerses.has(1)}
-              onHighlight={() => toggleHighlight(1)}
-            />
-          );
-        }
-        
         return (
-          <div className="space-y-1">
-            {parsedVerses.map((verse) => (
-              <VerseWithNumber
-                key={verse.number}
-                verseNumber={verse.number}
-                content={verse.text}
-                isHighlighted={highlightedVerses.has(verse.number)}
-                onHighlight={() => toggleHighlight(verse.number)}
-              />
-            ))}
-          </div>
+          <VerseContent
+            content={section.content}
+            highlightedVerses={highlightedVerses}
+            onToggleHighlight={toggleHighlight}
+          />
         );
       case "topic":
         return <TopicContent title={section.title || ""} content={section.content} topicNumber={section.topicNumber} />;
@@ -293,9 +227,12 @@ export function EstudeScreen({
   };
   
   return (
-    <div className="flex flex-col h-full bg-background" data-testid="estude-screen">
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4">
-        <div className="flex items-center justify-between mb-2">
+    <div className="flex flex-col h-full bg-gray-100 dark:bg-gray-900" data-testid="estude-screen">
+      <div 
+        className="text-white p-4 rounded-b-3xl"
+        style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 50%, #A855F7 100%)' }}
+      >
+        <div className="flex items-center justify-between">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -303,147 +240,137 @@ export function EstudeScreen({
             className="text-white hover:bg-white/20"
             data-testid="button-close-estude"
           >
-            <X className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            <span className="font-bold uppercase tracking-wide">Estude</span>
+          <div className="text-center">
+            <h1 className="font-bold text-lg">Estude</h1>
+            <p className="text-white/80 text-sm">{extractReference()}</p>
           </div>
           <Button 
             variant="ghost" 
             size="icon"
+            onClick={() => setIsBookmarked(!isBookmarked)}
             className="text-white hover:bg-white/20"
             data-testid="button-bookmark"
           >
-            <Bookmark className="h-5 w-5" />
+            <Bookmark className={cn("h-5 w-5", isBookmarked && "fill-current")} />
           </Button>
         </div>
-        <p className="text-center text-white/90 text-sm">
-          {extractReference()}
-        </p>
-      </div>
-      
-      <div className="flex items-center justify-center gap-1 py-2 border-b bg-muted/30">
-        {sections.map((_, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              "h-1.5 rounded-full transition-all",
-              idx === currentIndex 
-                ? "bg-purple-600 w-8" 
-                : idx < currentIndex 
-                  ? "bg-purple-400 w-4" 
-                  : "bg-muted w-4"
-            )}
-          />
-        ))}
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-lg mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {currentSection.type === 'verse' && currentSection.title && (
-                <div className="text-center mb-4">
-                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">
-                    {currentSection.title}
-                  </p>
-                  {currentSection.reference && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {currentSection.reference}
-                    </p>
-                  )}
-                </div>
-              )}
-              <Card className="p-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-purple-600 dark:text-purple-400 font-medium text-sm">
+                {currentSection.title || "Versiculo do Dia"}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-font-size">
+                  <Type className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-accessibility">
+                  <Accessibility className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
                 {renderContent(currentSection)}
-              </Card>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-      
-      <div className="border-t bg-background p-4">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={goPrev}
-            disabled={isFirst}
-            className={cn(
-              "h-12 w-12 rounded-full border-purple-200 dark:border-purple-800",
-              isFirst && "opacity-30"
-            )}
-            data-testid="button-prev-estude"
-          >
-            <ChevronLeft className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-          </Button>
+              </motion.div>
+            </AnimatePresence>
+          </Card>
           
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-muted-foreground">
-              {currentIndex + 1} de {totalSections}
-            </p>
-            {isLast && (
+          <div className="flex justify-center gap-4 py-2">
+            <button 
+              className="flex flex-col items-center gap-2"
+              data-testid="button-destacar"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                <Highlighter className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <span className="text-xs text-muted-foreground">Destacar</span>
+            </button>
+            <button 
+              className="flex flex-col items-center gap-2"
+              data-testid="button-nota"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <StickyNote className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="text-xs text-muted-foreground">Nota</span>
+            </button>
+            <button 
+              className="flex flex-col items-center gap-2"
+              data-testid="button-compartilhar"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Share2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-xs text-muted-foreground">Compartilhar</span>
+            </button>
+          </div>
+          
+          {currentSection.type === 'verse' && (
+            <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-5 bg-purple-600 rounded-full" />
+                  <div className="w-1.5 h-5 bg-purple-400 rounded-full" />
+                </div>
+                <span className="font-bold text-foreground">Comentario</span>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Este e um dos versiculos mais conhecidos da Biblia, que resume o evangelho de forma clara e direta. O amor de Deus e demonstrado atraves do sacrificio de seu Filho unico para a salvacao de todos que nele creem.
+              </p>
+            </Card>
+          )}
+          
+          {isLast && (
+            <div className="pt-4">
               <Button
                 onClick={goNext}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
                 data-testid="button-complete-estude"
               >
                 Concluir Estudo
               </Button>
-            )}
-          </div>
-          
-          <Button
-            variant={isLast ? "outline" : "default"}
-            size="icon"
-            onClick={goNext}
-            disabled={isLast}
-            className={cn(
-              "h-12 w-12 rounded-full",
-              isLast 
-                ? "opacity-30 border-purple-200 dark:border-purple-800" 
-                : "bg-purple-600 hover:bg-purple-700"
-            )}
-            data-testid="button-next-estude"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
+            </div>
+          )}
         </div>
       </div>
       
-      <div className="border-t bg-muted/50 px-4 py-3">
-        <div className="flex justify-center gap-8 max-w-lg mx-auto">
+      <div className="bg-white dark:bg-gray-800 border-t px-4 py-3 safe-area-inset-bottom">
+        <div className="flex justify-around max-w-lg mx-auto">
           <button 
             className="flex flex-col items-center gap-1 text-purple-600 dark:text-purple-400"
+            onClick={() => onSwitchTab?.("estude")}
             data-testid="tab-estude"
           >
-            <div className="h-1.5 w-12 bg-purple-600 rounded-full mb-1" />
-            <BookOpen className="h-5 w-5" />
+            <BookOpen className="h-6 w-6" />
             <span className="text-xs font-medium">Estude</span>
           </button>
           <button 
-            className="flex flex-col items-center gap-1 text-muted-foreground opacity-50"
+            className="flex flex-col items-center gap-1 text-muted-foreground"
+            onClick={() => onSwitchTab?.("medite")}
             data-testid="tab-medite"
           >
-            <div className="h-1.5 w-12 bg-transparent rounded-full mb-1" />
-            <div className="h-5 w-5 rounded-full border-2 border-current flex items-center justify-center">
-              <div className="h-2 w-2 rounded-full bg-current" />
-            </div>
+            <Heart className="h-6 w-6" />
             <span className="text-xs font-medium">Medite</span>
           </button>
           <button 
-            className="flex flex-col items-center gap-1 text-muted-foreground opacity-50"
+            className="flex flex-col items-center gap-1 text-muted-foreground"
+            onClick={() => onSwitchTab?.("responda")}
             data-testid="tab-responda"
           >
-            <div className="h-1.5 w-12 bg-transparent rounded-full mb-1" />
-            <div className="h-5 w-5 flex items-center justify-center text-current font-bold">?</div>
+            <HelpCircle className="h-6 w-6" />
             <span className="text-xs font-medium">Responda</span>
           </button>
         </div>

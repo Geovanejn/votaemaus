@@ -869,19 +869,24 @@ export default function LessonPage() {
   const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
   
-  const handleRespondaAnswer = async (questionIndex: number, answer: any, isCorrect: boolean) => {
+  const handleRespondaAnswer = async (questionIndex: number, answer: any, _isCorrect: boolean) => {
     const unit = respondaUnits[questionIndex];
-    if (unit) {
-      try {
-        await submitAnswerMutation.mutateAsync({ unitId: unit.id, answer });
-      } catch (error) {
-        console.error("Error submitting responda answer:", error);
-      }
-      if (isCorrect) {
+    if (!unit) return;
+    
+    try {
+      const result = await submitAnswerMutation.mutateAsync({ 
+        unitId: unit.id, 
+        answer: answer 
+      });
+      
+      if (result.correct) {
         setDisplayXp(prev => prev + (unit.xpValue || 5));
       } else {
         setMistakes(prev => prev + 1);
       }
+    } catch (error) {
+      console.error("Error submitting responda answer:", error);
+      setMistakes(prev => prev + 1);
     }
   };
   

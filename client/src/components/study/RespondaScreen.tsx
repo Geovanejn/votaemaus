@@ -38,24 +38,34 @@ interface RespondaScreenProps {
   onProgress?: (current: number, total: number) => void;
 }
 
-function Timer({ isActive, questionIndex, onTimeUp }: { isActive: boolean; questionIndex: number; onTimeUp?: () => void }) {
+function Timer({ isActive, onTimeUp }: { isActive: boolean; onTimeUp?: () => void }) {
   const [seconds, setSeconds] = useState(30);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasTimedOut = useRef(false);
   
   useEffect(() => {
     setSeconds(30);
+    hasTimedOut.current = false;
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, [questionIndex]);
-  
-  useEffect(() => {
-    if (isActive && seconds > 0) {
+    
+    if (isActive && seconds > 0 && !hasTimedOut.current) {
       intervalRef.current = setInterval(() => {
         setSeconds(prev => {
           if (prev <= 1) {
             if (intervalRef.current) clearInterval(intervalRef.current);
+            hasTimedOut.current = true;
             onTimeUp?.();
             return 0;
           }
@@ -66,7 +76,7 @@ function Timer({ isActive, questionIndex, onTimeUp }: { isActive: boolean; quest
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, seconds, onTimeUp]);
+  }, [isActive, onTimeUp]);
   
   const progress = (seconds / 30) * 100;
   const isLow = seconds <= 10;
@@ -242,6 +252,7 @@ export function RespondaScreen({
   const [points, setPoints] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const questions = rawQuestions.length > 0 ? rawQuestions : [
     { type: "multiple_choice" as const, question: "Pergunta nao disponivel.", options: ["Opcao A"], correctIndex: 0 }
@@ -252,6 +263,13 @@ export function RespondaScreen({
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === totalQuestions - 1;
   
+  const clearAutoAdvanceTimeout = () => {
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
+  };
+  
   useEffect(() => {
     if (onProgress) {
       onProgress(currentIndex + 1, totalQuestions);
@@ -259,10 +277,15 @@ export function RespondaScreen({
   }, [currentIndex, totalQuestions, onProgress]);
   
   useEffect(() => {
+    clearAutoAdvanceTimeout();
     setSelectedAnswer(null);
     setShowResult(false);
     setShowHint(false);
     setTimerActive(true);
+    
+    return () => {
+      clearAutoAdvanceTimeout();
+    };
   }, [currentIndex]);
   
   const checkAnswer = () => {
@@ -287,6 +310,7 @@ export function RespondaScreen({
   };
   
   const goNext = () => {
+    clearAutoAdvanceTimeout();
     if (isLast) {
       onComplete();
     } else {
@@ -295,6 +319,7 @@ export function RespondaScreen({
   };
   
   const goPrev = () => {
+    clearAutoAdvanceTimeout();
     if (!isFirst) {
       setCurrentIndex(prev => prev - 1);
     }
@@ -305,11 +330,10 @@ export function RespondaScreen({
       setTimerActive(false);
       setShowResult(true);
       onAnswer(currentIndex, null, false);
+      autoAdvanceTimeoutRef.current = setTimeout(() => {
+        goNext();
+      }, 2000);
     }
-  };
-  
-  const handleTimeoutContinue = () => {
-    goNext();
   };
   
   return (
@@ -357,7 +381,7 @@ export function RespondaScreen({
       </div>
       
       <div className="flex items-center justify-center py-2 border-b bg-muted/10">
-        <Timer isActive={timerActive && !showResult} questionIndex={currentIndex} onTimeUp={handleTimeUp} />
+        <Timer key={currentIndex} isActive={timerActive && !showResult} onTimeUp={handleTimeUp} />
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">

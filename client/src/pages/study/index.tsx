@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
-  LearningPath,
   useCelebration,
-  WeeklyGoalsWidget
+  WeeklyGoalsWidget,
+  NewUnitCard,
+  ContinueLearning
 } from "@/components/study";
-import type { LessonItem, StageType, StageItem, QuestionResult, PracticeStatus } from "@/components/study";
+import type { StageType, QuestionResult, UnitData, LessonData, LessonStage, ContinueLearningData, PracticeStatus } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Flame, Zap, Heart, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
@@ -352,17 +353,17 @@ export default function StudyHomePage() {
 
   const rawLessons = weekData?.lessons || [];
   
-  const lessons: LessonItem[] = rawLessons.map((lesson, index) => {
+  const transformedLessons: LessonData[] = rawLessons.map((lesson, index) => {
     const previousLesson = index > 0 ? rawLessons[index - 1] : null;
     const isPreviousLessonComplete = !previousLesson || previousLesson.status === 'completed';
     
-    let status: 'completed' | 'current' | 'locked' = 'locked';
+    let lessonStatus: 'completed' | 'in_progress' | 'locked' = 'locked';
     if (lesson.status === 'completed') {
-      status = 'completed';
+      lessonStatus = 'completed';
     } else if ((lesson.status === 'in_progress' || lesson.status === 'available') && isPreviousLessonComplete) {
-      status = 'current';
+      lessonStatus = 'in_progress';
     } else if (isPreviousLessonComplete && lesson.status !== 'completed') {
-      status = 'current';
+      lessonStatus = 'in_progress';
     }
 
     const stageProgress = lesson.progress?.stageProgress;
@@ -380,11 +381,11 @@ export default function StudyHomePage() {
     let mediteStatus: 'completed' | 'current' | 'locked' = 'locked';
     let respondaStatus: 'completed' | 'current' | 'locked' = 'locked';
     
-    if (status === 'completed') {
+    if (lessonStatus === 'completed') {
       estudeStatus = 'completed';
       mediteStatus = 'completed';
       respondaStatus = 'completed';
-    } else if (status === 'current') {
+    } else if (lessonStatus === 'in_progress') {
       const estudeComplete = estudeCompleted >= estudeUnits && estudeUnits > 0;
       const mediteComplete = mediteCompleted >= mediteUnits && mediteUnits > 0;
       
@@ -401,50 +402,82 @@ export default function StudyHomePage() {
       }
     }
     
-    const respondaQuestionResults = stageProgress?.responda?.questionResults;
-    
-    const stages: StageItem[] = [
+    const stages: LessonStage[] = [
       {
-        type: 'estude' as StageType,
+        type: 'estude' as const,
         status: estudeStatus,
         completedUnits: estudeCompleted,
         totalUnits: estudeUnits
       },
       {
-        type: 'medite' as StageType,
+        type: 'medite' as const,
         status: mediteStatus,
         completedUnits: mediteCompleted,
         totalUnits: mediteUnits
       },
       {
-        type: 'responda' as StageType,
+        type: 'responda' as const,
         status: respondaStatus,
         completedUnits: respondaCompleted,
-        totalUnits: respondaUnits,
-        questionResults: respondaQuestionResults
+        totalUnits: respondaUnits
       }
     ];
 
     return {
       id: lesson.id,
-      lessonNumber: lesson.orderIndex + 1,
-      title: `Lição ${lesson.orderIndex + 1}`,
-      subtitle: lesson.title,
-      status,
-      progress: completedUnits,
+      number: lesson.orderIndex + 1,
+      title: lesson.title,
+      status: lessonStatus,
+      sectionsCompleted: completedUnits,
       totalSections: totalUnits,
+      xpReward: lesson.xpReward || 50,
       stages
     };
   });
 
-  const lessonsCompleted = lessons.filter(l => l.status === 'completed').length;
+  const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
+  
+  const unitData: UnitData | null = currentWeek ? {
+    id: currentWeek.id,
+    number: currentWeek.weekNumber,
+    title: currentWeek.title,
+    subtitle: currentWeek.description || '',
+    status: lessonsCompleted === transformedLessons.length && transformedLessons.length > 0 
+      ? 'completed' 
+      : transformedLessons.some(l => l.status === 'in_progress') 
+        ? 'current' 
+        : 'locked',
+    lessonsCompleted,
+    totalLessons: transformedLessons.length,
+    progress: transformedLessons.length > 0 
+      ? Math.round((lessonsCompleted / transformedLessons.length) * 100)
+      : 0,
+    lessons: transformedLessons
+  } : null;
 
-  const handleLessonClick = (lessonId: number, stage?: StageType) => {
-    const lesson = lessons.find(l => l.id === lessonId);
+  const inProgressLesson = transformedLessons.find(l => l.status === 'in_progress');
+  const continueLearningData: ContinueLearningData | null = inProgressLesson && currentWeek ? {
+    unitNumber: currentWeek.weekNumber,
+    unitTitle: currentWeek.title,
+    lessonNumber: inProgressLesson.number,
+    lessonTitle: inProgressLesson.title,
+    sectionsRemaining: inProgressLesson.totalSections - inProgressLesson.sectionsCompleted,
+    totalSections: inProgressLesson.totalSections,
+    progress: inProgressLesson.totalSections > 0 
+      ? Math.round((inProgressLesson.sectionsCompleted / inProgressLesson.totalSections) * 100) 
+      : 0,
+    lessonId: inProgressLesson.id
+  } : null;
+
+  const handleLessonStageClick = (lessonId: number, stage: 'estude' | 'medite' | 'responda') => {
+    const lesson = transformedLessons.find(l => l.id === lessonId);
     if (lesson && lesson.status !== 'locked') {
-      const stageParam = stage ? `?stage=${stage}` : '';
-      setLocation(`/study/lesson/${lessonId}${stageParam}`);
+      setLocation(`/study/lesson/${lessonId}?stage=${stage}`);
     }
+  };
+  
+  const handleContinueLearning = (lessonId: number) => {
+    setLocation(`/study/lesson/${lessonId}`);
   };
 
   return (
@@ -463,18 +496,29 @@ export default function StudyHomePage() {
         </div>
       </div>
 
-      {lessons.length > 0 ? (
-        <LearningPath 
-          lessons={lessons}
-          unitTitle={currentWeek?.title}
-          onLessonClick={handleLessonClick}
-          onPracticeClick={() => currentWeek && setLocation(`/study/practice/${currentWeek.id}`)}
-          showPractice={true}
-          practiceStatus={practiceStatusData}
-        />
-      ) : (
-        <EmptyState />
-      )}
+      <div className="px-4 pb-4">
+        <div className="max-w-lg mx-auto space-y-6">
+          {continueLearningData && (
+            <ContinueLearning 
+              data={continueLearningData}
+              onContinue={handleContinueLearning}
+            />
+          )}
+          
+          {unitData ? (
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-foreground">Unidades de Estudo</h2>
+              <NewUnitCard 
+                unit={unitData}
+                onLessonStageClick={handleLessonStageClick}
+                defaultExpanded={!continueLearningData}
+              />
+            </div>
+          ) : (
+            <EmptyState />
+          )}
+        </div>
+      </div>
 
       <BottomNav />
     </div>

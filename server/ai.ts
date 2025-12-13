@@ -1,7 +1,29 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Get Gemini API key by number (1-4)
+function getGeminiApiKey(keyNumber: string = "1"): string {
+  switch (keyNumber) {
+    case "2":
+      return process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY || "";
+    case "3":
+      return process.env.GEMINI_API_KEY_3 || process.env.GEMINI_API_KEY || "";
+    case "4":
+      return process.env.GEMINI_API_KEY_4 || process.env.GEMINI_API_KEY || "";
+    case "1":
+    default:
+      return process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY || "";
+  }
+}
+
+// Get Gemini model with specific key
+export function getGeminiModel(keyNumber: string = "1"): GenerativeModel {
+  const apiKey = getGeminiApiKey(keyNumber);
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+}
+
+// Initialize default Gemini AI (backward compatibility)
+const genAI = new GoogleGenerativeAI(getGeminiApiKey("1"));
 // Using gemini-2.5-flash as specified by user
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -152,10 +174,11 @@ function safeJsonParse(jsonString: string): any {
   }
 }
 
-async function generateWithGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+async function generateWithGemini(systemPrompt: string, userPrompt: string, geminiKey: string = "1"): Promise<string> {
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+  const selectedModel = getGeminiModel(geminiKey);
   
-  const result = await model.generateContent({
+  const result = await selectedModel.generateContent({
     contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
     generationConfig: {
       temperature: 0.7,
@@ -175,7 +198,8 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string): Pro
 export async function generateStudyContentFromText(
   text: string,
   weekNumber: number,
-  year: number
+  year: number,
+  geminiKey: string = "1"
 ): Promise<GeneratedWeekContent> {
   const systemPrompt = `Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa é transformar o texto fornecido em um conteúdo de estudo semanal completo para jovens da UMP (União da Mocidade Presbiteriana).
@@ -328,7 +352,7 @@ REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
-    const content = await generateWithGemini(systemPrompt, userPrompt);
+    const content = await generateWithGemini(systemPrompt, userPrompt, geminiKey);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -572,13 +596,14 @@ export async function extractTextFromPDFContent(pdfText: string): Promise<string
 export async function generateStudyContentFromPDF(
   pdfText: string,
   weekNumber: number,
-  year: number
+  year: number,
+  geminiKey: string = "1"
 ): Promise<GeneratedWeekContent> {
   // Clean the PDF text first
   const cleanedText = await extractTextFromPDFContent(pdfText);
   
-  // Use the same generation function
-  return generateStudyContentFromText(cleanedText, weekNumber, year);
+  // Use the same generation function with selected Gemini key
+  return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey);
 }
 
 function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {

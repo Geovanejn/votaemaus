@@ -235,6 +235,7 @@ export default function StudyAdminPage() {
 
   const [generateInput, setGenerateInput] = useState({
     text: "",
+    geminiKey: "1" as "1" | "2" | "3" | "4",
   });
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -392,7 +393,7 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/stats"] });
       setIsGenerateDialogOpen(false);
-      setGenerateInput({ text: "" });
+      setGenerateInput({ text: "", geminiKey: "1" });
       toast({ title: "Conteúdo gerado com IA", description: "A unidade foi criada com lições e exercícios automaticamente." });
     },
     onError: (error: Error) => {
@@ -401,9 +402,10 @@ export default function StudyAdminPage() {
   });
 
   const generateFromPDFMutation = useMutation({
-    mutationFn: async ({ file }: { file: File }) => {
+    mutationFn: async ({ file, geminiKey }: { file: File; geminiKey: string }) => {
       const formData = new FormData();
       formData.append("pdf", file);
+      formData.append("geminiKey", geminiKey);
       
       const token = localStorage.getItem("token");
       const response = await fetch("/api/ai/generate-week-from-pdf", {
@@ -427,7 +429,7 @@ export default function StudyAdminPage() {
       setIsGenerateDialogOpen(false);
       setPdfFile(null);
       setGenerateMode("text");
-      setGenerateInput({ text: "" });
+      setGenerateInput({ text: "", geminiKey: "1" });
       toast({ title: "Conteúdo gerado com IA", description: "A unidade foi criada a partir do PDF com lições e exercícios." });
     },
     onError: (error: Error) => {
@@ -1875,6 +1877,25 @@ export default function StudyAdminPage() {
               </div>
 
 
+              <div className="space-y-2">
+                <Label>Chave Gemini</Label>
+                <Select 
+                  value={generateInput.geminiKey} 
+                  onValueChange={(v) => setGenerateInput({ ...generateInput, geminiKey: v as "1" | "2" | "3" | "4" })}
+                >
+                  <SelectTrigger data-testid="select-gemini-key">
+                    <SelectValue placeholder="Selecione a chave" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Chave 1</SelectItem>
+                    <SelectItem value="2">Chave 2</SelectItem>
+                    <SelectItem value="3">Chave 3</SelectItem>
+                    <SelectItem value="4">Chave 4</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Selecione qual chave API do Gemini usar para gerar o conteúdo.</p>
+              </div>
+
               {generateMode === "text" ? (
                 <div className="space-y-2">
                   <Label>Texto Base</Label>
@@ -1943,6 +1964,7 @@ export default function StudyAdminPage() {
                 if (generateMode === "pdf" && pdfFile) {
                   generateFromPDFMutation.mutate({
                     file: pdfFile,
+                    geminiKey: generateInput.geminiKey,
                   });
                 } else {
                   generateWithAIMutation.mutate(generateInput);

@@ -2647,8 +2647,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
       }
 
-      // Generate content with AI
-      const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year);
+      // Get selected Gemini API key (1-4)
+      const geminiKey = req.body.geminiKey || "1";
+
+      // Generate content with AI using selected key
+      const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year, geminiKey);
 
       // Create the week in database
       const week = await storage.createStudyWeek({

@@ -26,23 +26,47 @@ interface LeaderboardResponse {
   entries: RankingUser[];
 }
 
-function HeaderSection({ userPosition, userXp }: { userPosition: number; userXp: number }) {
+function HeaderSection({ userPosition, userXp, userPhoto, userName }: { userPosition: number; userXp: number; userPhoto?: string | null; userName?: string }) {
   return (
-    <div className="bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 px-4 pt-4 pb-8">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-white" />
-          <h1 className="font-bold text-lg text-white">Ranking</h1>
+    <div 
+      className="px-4 pt-4 pb-8"
+      style={{
+        background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%)'
+      }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-12 w-12 border-2 border-emerald-400">
+            <AvatarImage src={userPhoto || ""} />
+            <AvatarFallback className="bg-amber-100 text-amber-700 font-bold">
+              {userName?.charAt(0) || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="font-bold text-xl text-white">Ranking</h1>
+            <div className="flex items-center gap-1">
+              <Trophy className="h-4 w-4 text-amber-300" />
+              <span className="text-white/90 text-sm">Posição #{userPosition || "-"}</span>
+            </div>
+          </div>
         </div>
-        <button className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center">
-          <Filter className="h-4 w-4 text-white" />
+        <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+          <Filter className="h-5 w-5 text-white" />
         </button>
       </div>
-      <p className="text-white/80 text-sm mb-4">Posicao #{userPosition || "-"}</p>
       
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-4 text-center shadow-lg">
-        <p className="text-3xl font-black text-white">{userXp.toLocaleString()} XP</p>
-        <p className="text-white/80 text-sm">Seu Total de Pontos</p>
+      <div 
+        className="rounded-2xl p-5 text-center"
+        style={{
+          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.6) 0%, rgba(245, 158, 11, 0.4) 100%)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}
+      >
+        <p className="text-4xl font-black text-white drop-shadow-md">
+          {userXp.toLocaleString('pt-BR')} XP
+        </p>
+        <p className="text-white/80 text-sm mt-1">Seu Total de Pontos</p>
       </div>
     </div>
   );
@@ -303,7 +327,7 @@ export default function RankingPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-        <HeaderSection userPosition={0} userXp={0} />
+        <HeaderSection userPosition={0} userXp={0} userPhoto={null} userName="Usuário" />
         <div className="bg-background -mt-4 rounded-t-3xl">
           <EmptyState />
         </div>
@@ -314,7 +338,7 @@ export default function RankingPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-      <HeaderSection userPosition={currentPosition} userXp={currentUserXp} />
+      <HeaderSection userPosition={currentPosition} userXp={currentUserXp} userPhoto={user?.photoUrl} userName={user?.username} />
       
       <TopThreePodium users={entries} />
 

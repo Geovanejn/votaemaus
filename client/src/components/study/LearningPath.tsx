@@ -261,36 +261,55 @@ function LessonHeader({
   const isCompleted = status === "completed";
   const showGolden = isCompleted && isMastered;
   
+  const bgGradient = isLocked 
+    ? "linear-gradient(90deg, #E5E5E5 0%, #D4D4D4 100%)"
+    : showGolden
+      ? "linear-gradient(90deg, #FFD700 0%, #FFA500 100%)"
+      : "linear-gradient(90deg, #FFC800 0%, #FF9500 100%)";
+  
+  const shadowColor = isLocked ? "#CECECE" : showGolden ? "#CC8400" : "#CC7A00";
+  
   return (
-    <div 
-      className={cn(
-        "px-4 py-3 rounded-xl relative overflow-hidden",
-        isLocked 
-          ? "bg-muted/50" 
-          : showGolden
-            ? "bg-gradient-to-r from-[#FFD700] to-[#FFA500]"
-            : "bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
-      )}
-    >
-      {showGolden && (
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-200/20 via-yellow-100/30 to-yellow-200/20 animate-pulse" />
-      )}
-      <div className="flex items-center gap-2 flex-wrap relative z-10">
-        <span className={cn(
-          "text-xs font-bold uppercase tracking-wide",
-          isLocked ? "text-muted-foreground/50" : "text-white/80"
-        )}>
-          Licao {lessonNumber}
-        </span>
-        {isLocked && <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />}
-        {showGolden && <Star className="h-3.5 w-3.5 text-white fill-white" />}
+    <div className="relative" style={{ height: 56 }}>
+      <div 
+        className="absolute inset-0 flex items-center"
+        style={{
+          background: bgGradient,
+          borderRadius: "28px 12px 12px 28px",
+          boxShadow: `0 3px 0 0 ${shadowColor}`
+        }}
+      >
+        <div 
+          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center ml-1.5"
+          style={{
+            background: isLocked 
+              ? "rgba(255,255,255,0.5)" 
+              : "rgba(255,255,255,0.25)"
+          }}
+        >
+          {isLocked ? (
+            <Lock className="h-5 w-5 text-muted-foreground/50" />
+          ) : showGolden ? (
+            <Star className="h-5 w-5 text-white fill-white" />
+          ) : (
+            <span className="text-white font-bold text-sm">{lessonNumber}</span>
+          )}
+        </div>
+        <div className="flex-1 px-3 min-w-0">
+          <span className={cn(
+            "text-[10px] font-bold uppercase tracking-wide",
+            isLocked ? "text-muted-foreground/50" : "text-white/70"
+          )}>
+            Licao {lessonNumber}
+          </span>
+          <h3 className={cn(
+            "font-bold text-sm truncate",
+            isLocked ? "text-muted-foreground/50" : "text-white"
+          )}>
+            {title}
+          </h3>
+        </div>
       </div>
-      <h3 className={cn(
-        "font-bold text-lg mt-0.5 relative z-10",
-        isLocked ? "text-muted-foreground/50" : "text-white"
-      )}>
-        {title}
-      </h3>
     </div>
   );
 }

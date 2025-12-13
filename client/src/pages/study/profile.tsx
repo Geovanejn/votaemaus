@@ -1,41 +1,24 @@
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { 
-  BottomNav,
-  SoundSettings,
-  NotificationSettings,
-  CrystalBalanceCard
-} from "@/components/study";
+import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { 
   Trophy, 
   Flame, 
-  Target, 
   BookOpen, 
   Settings,
-  LogOut,
-  ChevronRight,
+  ChevronLeft,
   Star,
   Medal,
-  Zap,
-  UserPlus,
-  Share2,
   Crown,
-  Award,
-  TrendingUp,
   Heart,
-  Sunrise,
-  Moon,
   Calendar,
   CheckCircle,
-  CalendarCheck,
-  BookMarked,
-  BookHeart,
-  Shield,
-  GraduationCap,
   Loader2,
   Lock
 } from "lucide-react";
@@ -71,118 +54,30 @@ interface Achievement {
   unlockedAt: string | null;
 }
 
+interface RecentActivity {
+  id: number;
+  type: "lesson" | "streak" | "ranking" | "achievement";
+  title: string;
+  subtitle: string;
+  icon: "check" | "flame" | "trophy";
+  color: string;
+}
+
 const iconMap: Record<string, typeof Flame> = {
   flame: Flame,
   book: BookOpen,
   "book-open": BookOpen,
-  "book-heart": BookHeart,
-  "book-marked": BookMarked,
-  "graduation-cap": GraduationCap,
   trophy: Trophy,
   crown: Crown,
   star: Star,
-  stars: Star,
-  award: Award,
-  zap: Zap,
-  shield: Shield,
   medal: Medal,
-  sunrise: Sunrise,
-  moon: Moon,
   calendar: Calendar,
   heart: Heart,
-  target: Target,
   "check-circle": CheckCircle,
-  "calendar-check": CalendarCheck,
-  "trending-up": TrendingUp,
 };
 
 function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Star;
-}
-
-const categoryColors: Record<string, { primary: string; secondary: string }> = {
-  streak: { primary: "#FF9600", secondary: "#FF6B00" },
-  lessons: { primary: "#58CC02", secondary: "#45A302" },
-  xp: { primary: "#FFC800", secondary: "#FFAB00" },
-  special: { primary: "#1CB0F6", secondary: "#0D9DE5" },
-};
-
-function StatCard({ 
-  icon: Icon, 
-  value, 
-  label, 
-  color 
-}: { 
-  icon: typeof Flame; 
-  value: string | number; 
-  label: string; 
-  color: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
-    >
-      <div 
-        className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ backgroundColor: `${color}20` }}
-      >
-        <Icon className="h-5 w-5" style={{ color }} />
-      </div>
-      <div>
-        <p className="text-xl font-black text-foreground">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-function AchievementBadge({ achievement }: { achievement: Achievement }) {
-  const IconComponent = getIconComponent(achievement.icon);
-  const categoryStyle = categoryColors[achievement.category] || categoryColors.special;
-  
-  return (
-    <motion.div
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className={cn(
-        "flex-shrink-0 w-20 flex flex-col items-center p-3 rounded-xl",
-        achievement.unlocked 
-          ? "bg-card/50" 
-          : "bg-muted/50"
-      )}
-      data-testid={`achievement-${achievement.code}`}
-    >
-      <div 
-        className={cn(
-          "w-12 h-12 rounded-full flex items-center justify-center mb-2 relative",
-          !achievement.unlocked && "bg-muted"
-        )}
-        style={achievement.unlocked ? {
-          background: `linear-gradient(135deg, ${categoryStyle.primary}, ${categoryStyle.secondary})`,
-          boxShadow: `0 0 12px ${categoryStyle.primary}40`
-        } : {}}
-      >
-        {achievement.unlocked ? (
-          <IconComponent className="h-6 w-6 text-white" style={{ color: '#ffffff' }} />
-        ) : (
-          <>
-            <IconComponent className="h-6 w-6 text-muted-foreground/30" />
-            <Lock className="h-3 w-3 text-muted-foreground absolute bottom-0 right-0" />
-          </>
-        )}
-      </div>
-      <p 
-        className={cn(
-          "text-[10px] text-center font-bold line-clamp-2",
-          !achievement.unlocked && "text-muted-foreground/50"
-        )}
-        style={achievement.unlocked ? { color: categoryStyle.primary } : {}}
-      >
-        {achievement.name}
-      </p>
-    </motion.div>
-  );
 }
 
 function LoadingState() {
@@ -197,8 +92,8 @@ function LoadingState() {
 }
 
 export default function ProfilePage() {
-  const [location, setLocation] = useLocation();
-  const { user, logout, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -214,36 +109,79 @@ export default function ProfilePage() {
     return <LoadingState />;
   }
 
-  const unlockedAchievements = achievements?.filter(a => a.unlocked) || [];
-  const displayAchievements = achievements?.slice(0, 4) || [];
+  const currentXp = profile?.totalXp || 0;
+  const currentLevel = profile?.currentLevel || 1;
+  const xpForCurrentLevel = (currentLevel - 1) * 500;
+  const xpForNextLevel = currentLevel * 500;
+  const xpInLevel = currentXp - xpForCurrentLevel;
+  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+  const xpRemaining = xpForNextLevel - currentXp;
+  const progressPercent = Math.min((xpInLevel / xpNeeded) * 100, 100);
 
-  const handleLogout = async () => {
-    await logout();
-    setLocation("/");
+  const categoryColorMap: Record<string, { bgColor: string }> = {
+    streak: { bgColor: "#F97316" },
+    lessons: { bgColor: "#22C55E" },
+    xp: { bgColor: "#FFC800" },
+    special: { bgColor: "#1CB0F6" },
   };
 
-  const getDivision = (level: number) => {
-    if (level >= 50) return "Diamante";
-    if (level >= 30) return "Esmeralda";
-    if (level >= 20) return "Rubi";
-    if (level >= 10) return "Safira";
-    if (level >= 5) return "Ouro";
-    return "Bronze";
-  };
+  const displayAchievements = (achievements || []).slice(0, 6);
+  const unlockedCount = (achievements || []).filter(a => a.unlocked).length;
+
+  const recentActivities: RecentActivity[] = [
+    {
+      id: 1,
+      type: "lesson",
+      title: 'Licao "O Filho Prodigo" concluida',
+      subtitle: "+150 XP - Hoje as 14:30",
+      icon: "check",
+      color: "#22C55E",
+    },
+    {
+      id: 2,
+      type: "streak",
+      title: `${profile?.currentStreak || 12} dias de ofensiva alcancados`,
+      subtitle: "Conquista desbloqueada - Hoje as 09:15",
+      icon: "flame",
+      color: "#F97316",
+    },
+    {
+      id: 3,
+      type: "ranking",
+      title: "Subiu para 8o lugar no ranking",
+      subtitle: "Ranking semanal - Ontem as 20:45",
+      icon: "trophy",
+      color: "#8B5CF6",
+    },
+  ];
+
+  const lessonsCompleted = 18;
+  const unitsCompleted = 3;
+  const studyDays = 89;
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="profile-page">
       <div 
-        className="relative pt-8 pb-16"
+        className="relative pt-4 pb-6"
         style={{
-          background: 'linear-gradient(180deg, #FFE4D6 0%, #FFF5F0 50%, hsl(var(--background)) 100%)'
+          background: 'linear-gradient(180deg, #8B5CF6 0%, #7C3AED 50%, #6D28D9 100%)'
         }}
       >
-        <div className="absolute top-4 right-4">
+        <div className="flex items-center justify-between px-4 mb-4">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-muted-foreground"
+            className="text-white/90"
+            onClick={() => setLocation("/study")}
+            data-testid="button-back"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <h1 className="text-xl font-bold text-white">Perfil</h1>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white/90"
             onClick={() => setLocation("/study/settings")}
             data-testid="button-settings-top"
           >
@@ -251,115 +189,255 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        <div className="max-w-lg mx-auto px-4 text-center">
+        <div className="flex flex-col items-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="relative inline-block mb-4"
+            className="relative mb-3"
           >
-            <Avatar className="h-28 w-28 ring-4 ring-white shadow-xl">
+            <Avatar className="h-24 w-24 ring-4 ring-white/30">
               <AvatarImage src={user?.photoUrl || ""} />
               <AvatarFallback 
-                className="text-4xl font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #87CEEB 0%, #4A90D9 100%)',
-                  color: 'white'
-                }}
+                className="text-3xl font-bold bg-gradient-to-br from-purple-400 to-purple-600 text-white"
               >
                 {user?.fullName?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
+            <div 
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: "#FFC800" }}
+            >
+              <Crown className="h-4 w-4 text-white" />
+            </div>
           </motion.div>
           
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
+            className="text-center mb-4"
           >
-            <h1 className="text-2xl font-black text-foreground mb-0.5" data-testid="text-user-name">
+            <h2 className="text-xl font-bold text-white" data-testid="text-user-name">
               {user?.fullName || "Usuario"}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {user?.email}
+            </h2>
+            <p className="text-white/70 text-sm">
+              Estudante Dedicada
             </p>
           </motion.div>
 
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center justify-center gap-6 mt-4 text-sm"
+            className="flex items-center justify-center gap-8"
           >
-            <div className="flex items-center gap-1">
-              <span className="font-bold">{unlockedAchievements.length}</span>
-              <span className="text-muted-foreground">Conquistas</span>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1">
+                <Flame className="h-5 w-5 text-orange-400" />
+                <span className="text-lg font-bold text-white">{profile?.currentStreak || 12}</span>
+              </div>
+              <span className="text-xs text-white/70">Ofensiva</span>
             </div>
-            <div className="w-px h-4 bg-border" />
-            <div className="flex items-center gap-1">
-              <span className="font-bold">Nivel {profile?.currentLevel || 1}</span>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1">
+                <Star className="h-5 w-5 text-yellow-400" />
+                <span className="text-lg font-bold text-white">{currentLevel}</span>
+              </div>
+              <span className="text-xs text-white/70">Nivel</span>
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center justify-center gap-3 mt-5"
-          >
-            <Button 
-              variant="outline" 
-              className="flex-1 max-w-[200px] border-2 border-[#1CB0F6] text-[#1CB0F6] font-bold"
-              data-testid="button-add-friends"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Adicionar Amigos
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="border-2 border-border"
-              data-testid="button-share"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1">
+                <Trophy className="h-5 w-5 text-blue-400" />
+                <span className="text-lg font-bold text-white">8</span>
+              </div>
+              <span className="text-xs text-white/70">Posicao</span>
+            </div>
           </motion.div>
         </div>
       </div>
 
-      <main className="max-w-lg mx-auto px-4 -mt-6 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-foreground">Progresso do Nivel</h3>
+              <div className="text-right">
+                <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>Nivel {currentLevel}</p>
+                <p className="text-xs text-muted-foreground">{currentXp.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP</p>
+              </div>
+            </div>
+            <Progress 
+              value={progressPercent} 
+              className="h-3 mb-3"
+              style={{ 
+                background: "#E5E7EB"
+              }}
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{xpRemaining} XP para o proximo nivel</p>
+              <Badge 
+                className="text-xs font-medium px-2 py-1"
+                style={{ 
+                  backgroundColor: "#FEF3C7",
+                  color: "#D97706",
+                  border: "none"
+                }}
+              >
+                <Heart className="h-3 w-3 mr-1" style={{ color: "#EF4444" }} />
+                Premio: +1 Vida
+              </Badge>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="grid grid-cols-2 gap-3"
+        >
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#FEF3C7" }}
+              >
+                <Flame className="h-5 w-5" style={{ color: "#F97316" }} />
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Ofensiva Atual</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{profile?.currentStreak || 12} dias</p>
+            <p className="text-xs text-muted-foreground">Maior: {profile?.longestStreak || 25} dias</p>
+          </Card>
+          
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#FEF3C7" }}
+              >
+                <Calendar className="h-5 w-5" style={{ color: "#F59E0B" }} />
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Dias Totais</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{studyDays}</p>
+            <p className="text-xs text-muted-foreground">Desde marco</p>
+          </Card>
+        </motion.div>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <h2 className="text-xl font-black text-foreground mb-3">Visao geral</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard 
-              icon={Flame} 
-              value={profile?.currentStreak || 0} 
-              label="Dias seguidos" 
-              color="#FF9600" 
-            />
-            <StatCard 
-              icon={Zap} 
-              value={(profile?.totalXp || 0).toLocaleString()} 
-              label="Total de XP" 
-              color="#FFC800" 
-            />
-            <StatCard 
-              icon={Trophy} 
-              value={getDivision(profile?.currentLevel || 1)} 
-              label="Divisao" 
-              color="#1CB0F6" 
-            />
-            <StatCard 
-              icon={Star} 
-              value={profile?.currentLevel || 1} 
-              label="Nivel atual" 
-              color="#58CC02" 
-            />
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-foreground">Conquistas</h3>
+            <Button 
+              variant="ghost" 
+              className="text-sm px-2"
+              style={{ color: "#8B5CF6" }}
+              onClick={() => setLocation("/study/achievements")}
+              data-testid="button-view-all-achievements"
+            >
+              Ver todas
+            </Button>
           </div>
-          <CrystalBalanceCard className="mt-3" />
+          
+          <div className="grid grid-cols-3 gap-3">
+            {displayAchievements.map((achievement) => {
+              const IconComponent = getIconComponent(achievement.icon);
+              const categoryStyle = categoryColorMap[achievement.category] || { bgColor: "#1CB0F6" };
+              
+              return (
+                <div 
+                  key={achievement.id}
+                  className={cn(
+                    "flex flex-col items-center p-3 rounded-xl",
+                    achievement.unlocked ? "bg-card" : "bg-muted/30"
+                  )}
+                  data-testid={`achievement-${achievement.code}`}
+                >
+                  <div 
+                    className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center mb-2 relative"
+                    )}
+                    style={{ 
+                      backgroundColor: achievement.unlocked ? categoryStyle.bgColor : "#E5E7EB"
+                    }}
+                  >
+                    {achievement.unlocked ? (
+                      <IconComponent className="h-6 w-6 text-white" />
+                    ) : (
+                      <>
+                        <IconComponent className="h-6 w-6 text-gray-400" />
+                        <div 
+                          className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: "#9CA3AF" }}
+                        >
+                          <Lock className="h-3 w-3 text-white" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className={cn(
+                    "text-[10px] text-center font-medium",
+                    achievement.unlocked ? "text-foreground" : "text-muted-foreground"
+                  )}>
+                    {achievement.name}
+                  </p>
+                  {achievement.unlocked ? (
+                    <p className="text-[9px] text-muted-foreground">Completa!</p>
+                  ) : (
+                    <p className="text-[9px] text-muted-foreground">Bloqueado</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.45 }}
+        >
+          <Card className="p-4">
+            <h3 className="text-lg font-bold text-foreground mb-4">Estatisticas</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div 
+                className="p-4 rounded-xl text-center"
+                style={{ backgroundColor: "#F3E8FF" }}
+              >
+                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{currentXp.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">XP Total</p>
+              </div>
+              <div 
+                className="p-4 rounded-xl text-center"
+                style={{ backgroundColor: "#F3E8FF" }}
+              >
+                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{lessonsCompleted}</p>
+                <p className="text-xs text-muted-foreground">Licoes Completas</p>
+              </div>
+              <div 
+                className="p-4 rounded-xl text-center"
+                style={{ backgroundColor: "#F3E8FF" }}
+              >
+                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{unitsCompleted}</p>
+                <p className="text-xs text-muted-foreground">Unidades Completas</p>
+              </div>
+              <div 
+                className="p-4 rounded-xl text-center"
+                style={{ backgroundColor: "#F3E8FF" }}
+              >
+                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{studyDays}</p>
+                <p className="text-xs text-muted-foreground">Dias de Estudo</p>
+              </div>
+            </div>
+          </Card>
         </motion.div>
 
         <motion.div
@@ -367,184 +445,27 @@ export default function ProfilePage() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-black text-foreground">Medalhas</h2>
-            <Button 
-              variant="ghost" 
-              className="text-[#1CB0F6] font-bold text-sm px-2"
-              onClick={() => setLocation("/study/achievements")}
-              data-testid="button-view-all-achievements"
-            >
-              Ver todas ({achievements?.length || 0})
-            </Button>
-          </div>
-          
-          {displayAchievements.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-              {displayAchievements.map((achievement, index) => (
-                <motion.div
-                  key={achievement.id}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                >
-                  <AchievementBadge achievement={achievement} />
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Medal className="h-12 w-12 mx-auto mb-2 opacity-30" />
-              <p>Nenhuma conquista disponivel</p>
-              <p className="text-sm">Execute o seed para popular as conquistas</p>
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.55 }}
-        >
-          <h2 className="text-xl font-black text-foreground mb-3">Recorde de Ofensiva</h2>
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
-                  <Flame className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <p className="text-3xl font-black text-foreground">{profile?.longestStreak || 0}</p>
-                  <p className="text-sm text-muted-foreground">dias de recorde</p>
-                </div>
-              </div>
-              {(profile?.currentStreak || 0) > 0 && (
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Atual</p>
-                  <p className="text-xl font-bold text-orange-500">{profile?.currentStreak} dias</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="border-t border-border pt-4">
-              <p className="text-xs text-muted-foreground mb-3 font-medium">MEDALHAS DE OFENSIVA</p>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {[
-                  { days: 7, icon: "flame", label: "Semana", color: "from-amber-400 to-amber-500" },
-                  { days: 14, icon: "flame", label: "Quinzena", color: "from-orange-400 to-orange-500" },
-                  { days: 30, icon: "flame", label: "Mes", color: "from-orange-500 to-red-500" },
-                  { days: 60, icon: "crown", label: "Lenda", color: "from-red-500 to-red-600" },
-                  { days: 90, icon: "crown", label: "Trimestre", color: "from-purple-500 to-purple-600" },
-                  { days: 180, icon: "crown", label: "Semestre", color: "from-indigo-500 to-indigo-600" },
-                  { days: 365, icon: "sparkles", label: "Ano", color: "from-cyan-500 to-blue-500" },
-                ].map((milestone) => {
-                  const unlocked = (profile?.longestStreak || 0) >= milestone.days;
-                  return (
-                    <div
-                      key={milestone.days}
-                      className={cn(
-                        "flex-shrink-0 flex flex-col items-center p-2 rounded-lg w-16",
-                        unlocked 
-                          ? `bg-gradient-to-b ${milestone.color} shadow-md` 
-                          : "bg-muted/50"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center mb-1",
-                        unlocked ? "bg-white/20" : "bg-muted"
-                      )}>
-                        {milestone.icon === "crown" ? (
-                          <Crown className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
-                        ) : milestone.icon === "sparkles" ? (
-                          <Star className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
-                        ) : (
-                          <Flame className={cn("h-4 w-4", unlocked ? "text-white" : "text-muted-foreground/40")} />
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-[10px] font-bold",
-                        unlocked ? "text-white" : "text-muted-foreground/50"
-                      )}>
-                        {milestone.days}
-                      </span>
-                      <span className={cn(
-                        "text-[8px]",
-                        unlocked ? "text-white/80" : "text-muted-foreground/40"
-                      )}>
-                        {milestone.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <h2 className="text-xl font-black text-foreground mb-3">Estatisticas</h2>
-          <Card className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-red-500" />
-                <span className="text-muted-foreground">Coracoes</span>
-              </div>
-              <span className="font-bold">{profile?.hearts || 0}/{profile?.heartsMax || 5}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                <span className="text-muted-foreground">Conquistas</span>
-              </div>
-              <span className="font-bold">{unlockedAchievements.length}/{achievements?.length || 0}</span>
-            </div>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.7 }}
-        >
-          <h2 className="text-xl font-black text-foreground mb-3">Preferencias</h2>
+          <h3 className="text-lg font-bold text-foreground mb-3">Atividade Recente</h3>
           <div className="space-y-3">
-            <SoundSettings />
-            <NotificationSettings />
+            {recentActivities.map((activity) => (
+              <Card key={activity.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: activity.color }}
+                  >
+                    {activity.icon === "check" && <CheckCircle className="h-5 w-5 text-white" />}
+                    {activity.icon === "flame" && <Flame className="h-5 w-5 text-white" />}
+                    {activity.icon === "trophy" && <Trophy className="h-5 w-5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm">{activity.title}</p>
+                    <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <Card className="overflow-hidden divide-y divide-border">
-            <button 
-              className="w-full flex items-center justify-between p-4 hover-elevate"
-              onClick={() => setLocation("/study/settings")}
-              data-testid="button-settings"
-            >
-              <div className="flex items-center gap-3">
-                <Settings className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Configuracoes</span>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-            
-            <button 
-              className="w-full flex items-center justify-between p-4 text-red-500 hover-elevate"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <div className="flex items-center gap-3">
-                <LogOut className="h-5 w-5" />
-                <span className="font-medium">Sair</span>
-              </div>
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </Card>
         </motion.div>
       </main>
 

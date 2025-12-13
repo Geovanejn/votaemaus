@@ -231,14 +231,10 @@ export default function StudyAdminPage() {
   const [newWeek, setNewWeek] = useState({
     title: "",
     description: "",
-    weekNumber: 1,
-    year: new Date().getFullYear(),
   });
 
   const [generateInput, setGenerateInput] = useState({
     text: "",
-    weekNumber: 1,
-    year: new Date().getFullYear(),
   });
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -353,11 +349,11 @@ export default function StudyAdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
       setIsCreateWeekOpen(false);
-      setNewWeek({ title: "", description: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
-      toast({ title: "Semana criada", description: "A nova semana de estudo foi criada com sucesso." });
+      setNewWeek({ title: "", description: "" });
+      toast({ title: "Unidade criada", description: "A nova unidade de estudo foi criada com sucesso." });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao criar semana", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao criar unidade", description: error.message, variant: "destructive" });
     },
   });
 
@@ -367,7 +363,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
-      toast({ title: "Semana publicada", description: "O conteúdo está disponível para os usuários." });
+      toast({ title: "Unidade publicada", description: "O conteúdo está disponível para os usuários." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao publicar", description: error.message, variant: "destructive" });
@@ -381,7 +377,7 @@ export default function StudyAdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
       setSelectedWeek(null);
-      toast({ title: "Semana excluída", description: "A semana foi excluída com sucesso." });
+      toast({ title: "Unidade excluída", description: "A unidade foi excluída com sucesso." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
@@ -396,8 +392,8 @@ export default function StudyAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/weeks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/stats"] });
       setIsGenerateDialogOpen(false);
-      setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
-      toast({ title: "Conteúdo gerado com IA", description: "A semana foi criada com lições e exercícios automaticamente." });
+      setGenerateInput({ text: "" });
+      toast({ title: "Conteúdo gerado com IA", description: "A unidade foi criada com lições e exercícios automaticamente." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao gerar conteúdo", description: error.message, variant: "destructive" });
@@ -405,11 +401,9 @@ export default function StudyAdminPage() {
   });
 
   const generateFromPDFMutation = useMutation({
-    mutationFn: async ({ file, weekNumber, year }: { file: File; weekNumber: number; year: number }) => {
+    mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData();
       formData.append("pdf", file);
-      formData.append("weekNumber", weekNumber.toString());
-      formData.append("year", year.toString());
       
       const token = localStorage.getItem("token");
       const response = await fetch("/api/ai/generate-week-from-pdf", {
@@ -433,8 +427,8 @@ export default function StudyAdminPage() {
       setIsGenerateDialogOpen(false);
       setPdfFile(null);
       setGenerateMode("text");
-      setGenerateInput({ text: "", weekNumber: weeks.length + 1, year: new Date().getFullYear() });
-      toast({ title: "Conteúdo gerado com IA", description: "A semana foi criada a partir do PDF com lições e exercícios." });
+      setGenerateInput({ text: "" });
+      toast({ title: "Conteúdo gerado com IA", description: "A unidade foi criada a partir do PDF com lições e exercícios." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao gerar conteúdo", description: error.message, variant: "destructive" });
@@ -576,7 +570,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Todas as lições liberadas", description: "Todas as lições da semana foram liberadas." });
+      toast({ title: "Todas as lições liberadas", description: "Todas as lições da unidade foram liberadas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao liberar", description: error.message, variant: "destructive" });
@@ -589,7 +583,7 @@ export default function StudyAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/lessons", selectedWeek?.id] });
-      toast({ title: "Todas as lições bloqueadas", description: "Todas as lições da semana foram bloqueadas." });
+      toast({ title: "Todas as lições bloqueadas", description: "Todas as lições da unidade foram bloqueadas." });
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao bloquear", description: error.message, variant: "destructive" });
@@ -896,7 +890,7 @@ export default function StudyAdminPage() {
             </Button>
             <Button className="w-full justify-start" variant="outline" onClick={() => setIsCreateWeekOpen(true)} data-testid="button-create-week">
               <Plus className="w-4 h-4 mr-2" />
-              Criar Nova Semana Manualmente
+              Criar Nova Unidade Manualmente
             </Button>
             <Button className="w-full justify-start" variant="outline" onClick={() => seedDataMutation.mutate()} disabled={seedDataMutation.isPending} data-testid="button-seed-data">
               {seedDataMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
@@ -913,9 +907,9 @@ export default function StudyAdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Semanas Recentes
+              Unidades Recentes
             </CardTitle>
-            <CardDescription>Últimas semanas de estudo criadas</CardDescription>
+            <CardDescription>Últimas unidades de estudo criadas</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingWeeks ? (
@@ -925,10 +919,10 @@ export default function StudyAdminPage() {
             ) : weeks.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <p className="mt-2 text-sm text-muted-foreground">Nenhuma semana criada ainda</p>
+                <p className="mt-2 text-sm text-muted-foreground">Nenhuma unidade criada ainda</p>
                 <Button className="mt-4" size="sm" onClick={() => setIsCreateWeekOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Criar Primeira Semana
+                  Criar Primeira Unidade
                 </Button>
               </div>
             ) : (
@@ -946,7 +940,7 @@ export default function StudyAdminPage() {
                       </div>
                       <div>
                         <p className="font-medium text-sm">{week.title}</p>
-                        <p className="text-xs text-muted-foreground">Semana {week.weekNumber} - {week.year}</p>
+                        <p className="text-xs text-muted-foreground">{statusLabels[week.status]}</p>
                       </div>
                     </div>
                     <Badge className={statusColors[week.status]}>{statusLabels[week.status]}</Badge>
@@ -964,8 +958,8 @@ export default function StudyAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Semanas de Estudo</h2>
-          <p className="text-sm text-muted-foreground">Gerencie o conteúdo semanal</p>
+          <h2 className="text-xl font-semibold">Unidades de Estudo</h2>
+          <p className="text-sm text-muted-foreground">Gerencie o conteúdo das unidades</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setIsGenerateDialogOpen(true)} data-testid="button-generate-week">
@@ -974,7 +968,7 @@ export default function StudyAdminPage() {
           </Button>
           <Button onClick={() => setIsCreateWeekOpen(true)} data-testid="button-new-week">
             <Plus className="w-4 h-4 mr-2" />
-            Nova Semana
+            Nova Unidade
           </Button>
         </div>
       </div>
@@ -987,9 +981,9 @@ export default function StudyAdminPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-semibold">Nenhuma semana criada</h3>
+            <h3 className="mt-4 text-lg font-semibold">Nenhuma unidade criada</h3>
             <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
-              Comece gerando conteúdo com IA ou crie uma semana manualmente.
+              Comece gerando conteúdo com IA ou crie uma unidade manualmente.
             </p>
             <div className="flex gap-3 mt-6 flex-wrap">
               <Button onClick={() => setIsGenerateDialogOpen(true)}>
@@ -1014,7 +1008,7 @@ export default function StudyAdminPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg truncate">{week.title}</CardTitle>
-                        <CardDescription>Semana {week.weekNumber} - {week.year}</CardDescription>
+                        <CardDescription>{week.description ? week.description.substring(0, 50) + (week.description.length > 50 ? '...' : '') : 'Unidade de estudo'}</CardDescription>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1076,7 +1070,7 @@ export default function StudyAdminPage() {
         </Button>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-semibold truncate">{selectedWeek?.title}</h2>
-          <p className="text-sm text-muted-foreground">Semana {selectedWeek?.weekNumber} - {selectedWeek?.year}</p>
+          <p className="text-sm text-muted-foreground">{selectedWeek?.description ? selectedWeek.description.substring(0, 60) + (selectedWeek.description.length > 60 ? '...' : '') : 'Gerenciar lições desta unidade'}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <DropdownMenu>
@@ -1803,7 +1797,7 @@ export default function StudyAdminPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
               <TabsTrigger value="overview" data-testid="tab-overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="weeks" data-testid="tab-weeks">Semanas</TabsTrigger>
+              <TabsTrigger value="weeks" data-testid="tab-weeks">Unidades</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">{renderOverview()}</TabsContent>
             <TabsContent value="weeks">{renderWeeks()}</TabsContent>
@@ -1814,8 +1808,8 @@ export default function StudyAdminPage() {
       <Dialog open={isCreateWeekOpen} onOpenChange={setIsCreateWeekOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Semana de Estudo</DialogTitle>
-            <DialogDescription>Crie uma nova semana para adicionar lições e exercícios.</DialogDescription>
+            <DialogTitle>Nova Unidade</DialogTitle>
+            <DialogDescription>Crie uma nova unidade para adicionar lições e exercícios.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1824,24 +1818,14 @@ export default function StudyAdminPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="week-description">Descrição</Label>
-              <Textarea id="week-description" placeholder="Descreva o tema desta semana..." value={newWeek.description} onChange={(e) => setNewWeek({ ...newWeek, description: e.target.value })} data-testid="input-week-description" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="week-number">Número da Semana</Label>
-                <Input id="week-number" type="number" min={1} value={newWeek.weekNumber} onChange={(e) => setNewWeek({ ...newWeek, weekNumber: parseInt(e.target.value) })} data-testid="input-week-number" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="week-year">Ano</Label>
-                <Input id="week-year" type="number" value={newWeek.year} onChange={(e) => setNewWeek({ ...newWeek, year: parseInt(e.target.value) })} data-testid="input-week-year" />
-              </div>
+              <Textarea id="week-description" placeholder="Descreva o tema desta unidade..." value={newWeek.description} onChange={(e) => setNewWeek({ ...newWeek, description: e.target.value })} data-testid="input-week-description" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateWeekOpen(false)}>Cancelar</Button>
             <Button onClick={() => createWeekMutation.mutate(newWeek)} disabled={!newWeek.title || createWeekMutation.isPending} data-testid="button-confirm-create-week">
               {createWeekMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Criar Semana
+              Criar Unidade
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1890,16 +1874,6 @@ export default function StudyAdminPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Número da Semana</Label>
-                  <Input type="number" min={1} value={generateInput.weekNumber} onChange={(e) => setGenerateInput({ ...generateInput, weekNumber: parseInt(e.target.value) })} data-testid="input-generate-week" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Ano</Label>
-                  <Input type="number" value={generateInput.year} onChange={(e) => setGenerateInput({ ...generateInput, year: parseInt(e.target.value) })} data-testid="input-generate-year" />
-                </div>
-              </div>
 
               {generateMode === "text" ? (
                 <div className="space-y-2">
@@ -1969,8 +1943,6 @@ export default function StudyAdminPage() {
                 if (generateMode === "pdf" && pdfFile) {
                   generateFromPDFMutation.mutate({
                     file: pdfFile,
-                    weekNumber: generateInput.weekNumber,
-                    year: generateInput.year,
                   });
                 } else {
                   generateWithAIMutation.mutate(generateInput);
@@ -1999,7 +1971,7 @@ export default function StudyAdminPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingLesson ? "Editar Lição" : "Nova Lição"}</DialogTitle>
-            <DialogDescription>{editingLesson ? "Atualize os dados da lição." : "Adicione uma nova lição a esta semana."}</DialogDescription>
+            <DialogDescription>{editingLesson ? "Atualize os dados da lição." : "Adicione uma nova lição a esta unidade."}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -2096,7 +2068,7 @@ export default function StudyAdminPage() {
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir "{deleteTarget?.name}"? Esta ação não pode ser desfeita.
-              {deleteTarget?.type === "week" && " Todas as lições e exercícios desta semana serão excluídos."}
+              {deleteTarget?.type === "week" && " Todas as lições e exercícios desta unidade serão excluídos."}
               {deleteTarget?.type === "lesson" && " Todos os exercícios desta lição serão excluídos."}
             </AlertDialogDescription>
           </AlertDialogHeader>

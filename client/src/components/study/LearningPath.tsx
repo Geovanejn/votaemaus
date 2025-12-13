@@ -494,8 +494,6 @@ export function LearningPath({
   return (
     <div className="relative px-4 py-6">
       <div className="max-w-lg mx-auto">
-        <h2 className="font-bold text-xl text-foreground mb-6">Seu Caminho</h2>
-        
         <div className="relative">
           <div className="space-y-10">
             {lessons.map((lesson, index) => (

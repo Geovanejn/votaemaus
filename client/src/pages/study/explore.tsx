@@ -3,38 +3,26 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Compass, 
   BookOpen, 
   Heart, 
-  Sparkles, 
-  Star, 
-  Sun, 
-  Shield, 
   Flame,
-  ChevronRight,
-  Lock,
   Check,
   Loader2,
-  BookMarked
+  Calendar,
+  BookMarked,
+  MessageSquare,
+  Send,
+  Volume2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { StudyProfile } from "@shared/schema";
-
-interface VerseCategory {
-  id: string;
-  name: string;
-  icon: typeof Heart;
-  color: string;
-  shadowColor: string;
-  versesCount: number;
-  completedCount: number;
-  isLocked: boolean;
-}
 
 interface DailyVerse {
   verse: string;
@@ -44,280 +32,6 @@ interface DailyVerse {
 interface DailyVerseStatusResponse {
   isRead: boolean;
   dateKey: string;
-}
-
-const iconMap: Record<string, typeof Heart> = {
-  faith: Star,
-  love: Heart,
-  hope: Sun,
-  strength: Shield,
-  wisdom: Sparkles,
-  peace: Flame
-};
-
-const categoryConfig: Record<string, { color: string; shadowColor: string }> = {
-  faith: { color: "#FFC800", shadowColor: "#CC9F00" },
-  love: { color: "#FF4B4B", shadowColor: "#CC3B3B" },
-  hope: { color: "#58CC02", shadowColor: "#46A302" },
-  strength: { color: "#1CB0F6", shadowColor: "#1899D6" },
-  wisdom: { color: "#A560E8", shadowColor: "#8A4DC7" },
-  peace: { color: "#FF9600", shadowColor: "#CC7700" }
-};
-
-const defaultCategories: VerseCategory[] = [
-  { id: "faith", name: "Fe", icon: Star, color: "#FFC800", shadowColor: "#CC9F00", versesCount: 0, completedCount: 0, isLocked: false },
-  { id: "love", name: "Amor", icon: Heart, color: "#FF4B4B", shadowColor: "#CC3B3B", versesCount: 0, completedCount: 0, isLocked: false },
-  { id: "hope", name: "Esperanca", icon: Sun, color: "#58CC02", shadowColor: "#46A302", versesCount: 0, completedCount: 0, isLocked: false },
-  { id: "strength", name: "Forca", icon: Shield, color: "#1CB0F6", shadowColor: "#1899D6", versesCount: 0, completedCount: 0, isLocked: false },
-  { id: "wisdom", name: "Sabedoria", icon: Sparkles, color: "#A560E8", shadowColor: "#8A4DC7", versesCount: 0, completedCount: 0, isLocked: true },
-  { id: "peace", name: "Paz", icon: Flame, color: "#FF9600", shadowColor: "#CC7700", versesCount: 0, completedCount: 0, isLocked: true }
-];
-
-function CategoryCard({ 
-  category, 
-  onClick,
-  index 
-}: { 
-  category: VerseCategory; 
-  onClick: () => void;
-  index: number;
-}) {
-  const Icon = category.icon;
-  const progress = category.versesCount > 0 
-    ? (category.completedCount / category.versesCount) * 100 
-    : 0;
-
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      whileHover={!category.isLocked ? { scale: 1.02 } : undefined}
-      whileTap={!category.isLocked ? { scale: 0.98 } : undefined}
-      onClick={!category.isLocked ? onClick : undefined}
-      disabled={category.isLocked}
-      className={cn(
-        "w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all",
-        "bg-card border-2 border-border",
-        category.isLocked && "opacity-60 cursor-not-allowed"
-      )}
-      data-testid={`category-${category.id}`}
-    >
-      <div 
-        className={cn(
-          "flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center",
-          category.isLocked && "bg-muted"
-        )}
-        style={!category.isLocked ? { 
-          backgroundColor: category.color,
-          boxShadow: `0 4px 0 0 ${category.shadowColor}`
-        } : {
-          boxShadow: "0 4px 0 0 #CECECE"
-        }}
-      >
-        {category.isLocked ? (
-          <Lock className="h-6 w-6 text-muted-foreground/50" />
-        ) : (
-          <Icon className="h-6 w-6 text-white" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className={cn(
-            "font-bold text-base",
-            category.isLocked ? "text-muted-foreground/50" : "text-foreground"
-          )}>
-            {category.name}
-          </h3>
-          {category.completedCount === category.versesCount && category.versesCount > 0 && (
-            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#58CC02]">
-              <Check className="h-3 w-3 text-white stroke-[3]" />
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, delay: index * 0.05 + 0.2 }}
-              className="h-full rounded-full"
-              style={{ backgroundColor: category.isLocked ? "#CECECE" : category.color }}
-            />
-          </div>
-          <span className={cn(
-            "text-xs font-bold",
-            category.isLocked ? "text-muted-foreground/40" : "text-muted-foreground"
-          )}>
-            {category.completedCount}/{category.versesCount}
-          </span>
-        </div>
-      </div>
-
-      <ChevronRight className={cn(
-        "h-5 w-5",
-        category.isLocked ? "text-muted-foreground/30" : "text-muted-foreground"
-      )} />
-    </motion.button>
-  );
-}
-
-function DailyVerseCard({ verse, isRead, onMarkAsRead, isMarking, isLoading }: { 
-  verse: DailyVerse | null; 
-  isRead: boolean;
-  onMarkAsRead: () => void;
-  isMarking: boolean;
-  isLoading?: boolean;
-}) {
-  if (isLoading || !verse) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card 
-          className="overflow-hidden border-2 border-[#FFC800]/30"
-          data-testid="daily-verse-card"
-        >
-          <div 
-            className="p-4"
-            style={{
-              background: 'linear-gradient(135deg, #FFC800 0%, #FFD633 100%)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen className="h-5 w-5 text-white" />
-              <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {isLoading && <Loader2 className="h-5 w-5 text-white animate-spin" />}
-              <p className="text-white font-bold text-lg">{isLoading ? 'Carregando...' : 'Indisponivel no momento'}</p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 0.1 }}
-    >
-      <Card 
-        className="overflow-hidden border-2 border-[#FFC800]/30"
-        data-testid="daily-verse-card"
-      >
-        <div 
-          className="p-4"
-          style={{
-            background: 'linear-gradient(135deg, #FFC800 0%, #FFD633 100%)',
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-white" />
-              <span className="text-sm font-bold text-white/90">Versiculo do Dia</span>
-            </div>
-            {isRead && (
-              <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-1">
-                <Check className="h-3 w-3 text-white" />
-                <span className="text-xs font-bold text-white">Lido</span>
-              </div>
-            )}
-          </div>
-          <p className="text-white font-bold text-lg">{verse.reference}</p>
-        </div>
-        
-        <div className="p-4">
-          <p className="text-foreground text-base italic leading-relaxed mb-4">
-            "{verse.verse}"
-          </p>
-          
-          {isRead ? (
-            <div className="w-full py-3 px-4 rounded-lg bg-[#58CC02]/10 border-2 border-[#58CC02]/30 flex items-center justify-center gap-2">
-              <Check className="h-5 w-5 text-[#58CC02]" />
-              <span className="font-bold text-[#58CC02]">Leitura concluida hoje</span>
-            </div>
-          ) : (
-            <Button
-              onClick={onMarkAsRead}
-              disabled={isMarking}
-              className="w-full font-bold bg-[#FFC800] hover:bg-[#E6B400] text-[#7A5C00]"
-              style={{ boxShadow: '0 4px 0 0 #CC9F00' }}
-              data-testid="button-mark-verse-read"
-            >
-              {isMarking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <span className="flex items-center gap-2">
-                  <BookMarked className="h-4 w-4" />
-                  MARCAR COMO LIDO
-                </span>
-              )}
-            </Button>
-          )}
-        </div>
-      </Card>
-    </motion.div>
-  );
-}
-
-function HeartsRecoveryCard({ profile }: { profile: StudyProfile | undefined }) {
-  const [, setLocation] = useLocation();
-  const currentHearts = profile?.hearts ?? 5;
-  const maxHearts = profile?.heartsMax ?? 5;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-    >
-      <Card 
-        className="p-4 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 border-red-200 dark:border-red-900"
-        data-testid="hearts-recovery-card"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-foreground mb-1">Recuperar Vidas</p>
-            <p className="text-sm text-muted-foreground">
-              Leia versiculos para ganhar vidas
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: maxHearts }).map((_, i) => (
-              <Heart
-                key={i}
-                className={cn(
-                  "h-5 w-5 transition-colors",
-                  i < currentHearts 
-                    ? "fill-[#FF4B4B] text-[#FF4B4B]" 
-                    : "fill-gray-200 text-gray-300 dark:fill-gray-700"
-                )}
-              />
-            ))}
-          </div>
-        </div>
-        
-        {currentHearts < maxHearts && (
-          <Button
-            onClick={() => setLocation("/study/verses")}
-            variant="outline"
-            className="w-full mt-3 font-bold border-[#FF4B4B] text-[#FF4B4B]"
-            data-testid="button-recover-hearts"
-          >
-            <Heart className="h-4 w-4 mr-2 fill-[#FF4B4B]" />
-            RECUPERAR {maxHearts - currentHearts} VIDA{maxHearts - currentHearts > 1 ? 'S' : ''}
-          </Button>
-        )}
-      </Card>
-    </motion.div>
-  );
 }
 
 function LoadingState() {
@@ -334,6 +48,7 @@ function LoadingState() {
 export default function ExplorePage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+  const [reflectionText, setReflectionText] = useState("");
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -361,21 +76,17 @@ export default function ExplorePage() {
       return res.json();
     },
     onMutate: async () => {
-      // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['/api/study/daily-verse/status'] });
       await queryClient.cancelQueries({ queryKey: ['/api/study/weekly-goal'] });
       
-      // Snapshot the previous values
       const previousStatus = queryClient.getQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status']);
       const previousWeeklyGoal = queryClient.getQueryData<{ versesRead: number; versesGoal: number }>(['/api/study/weekly-goal']);
       
-      // Optimistically update the status
       queryClient.setQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status'], (old) => ({
         isRead: true,
         dateKey: old?.dateKey || new Date().toISOString().split('T')[0]
       }));
       
-      // Optimistically update the weekly goal
       if (previousWeeklyGoal) {
         queryClient.setQueryData<{ versesRead: number; versesGoal: number }>(['/api/study/weekly-goal'], {
           ...previousWeeklyGoal,
@@ -386,7 +97,6 @@ export default function ExplorePage() {
       return { previousStatus, previousWeeklyGoal };
     },
     onSuccess: (data) => {
-      // On success, ensure the cache reflects the successful state
       if (data?.success) {
         queryClient.setQueryData<DailyVerseStatusResponse>(['/api/study/daily-verse/status'], (old) => ({
           isRead: true,
@@ -395,7 +105,6 @@ export default function ExplorePage() {
       }
     },
     onError: (_err, _variables, context) => {
-      // If the mutation fails, roll back to the previous values
       if (context?.previousStatus) {
         queryClient.setQueryData(['/api/study/daily-verse/status'], context.previousStatus);
       }
@@ -406,71 +115,284 @@ export default function ExplorePage() {
   });
 
   const dailyVerseRead = dailyVerseStatus?.isRead === true;
-
-  const handleCategoryClick = (categoryId: string) => {
-    setLocation(`/study/verses?category=${categoryId}`);
-  };
+  const currentHearts = profile?.hearts ?? 5;
+  const maxHearts = profile?.heartsMax ?? 5;
+  const streak = profile?.streak ?? 0;
+  const totalVersesRead = profile?.totalVersesRead ?? 0;
+  const weeklyProgress = weeklyGoal?.versesRead ?? 0;
+  const weeklyTarget = weeklyGoal?.versesGoal ?? 7;
 
   const handleMarkAsRead = () => {
-    // Prevent multiple clicks
     if (dailyVerseRead || markAsReadMutation.isPending) {
       return;
     }
     markAsReadMutation.mutate();
   };
 
+  const handleSubmitReflection = () => {
+    if (reflectionText.trim()) {
+      setReflectionText("");
+    }
+  };
+
   if (profileLoading) {
     return <LoadingState />;
   }
-
-  const categories: VerseCategory[] = defaultCategories.map(cat => {
-    const config = categoryConfig[cat.id] || { color: "#888888", shadowColor: "#666666" };
-    return {
-      ...cat,
-      icon: iconMap[cat.id] || Star,
-      ...config
-    };
-  });
 
   const dailyVerse: DailyVerse | null = dailyVerseData ? {
     verse: dailyVerseData.verse,
     reference: dailyVerseData.reference
   } : null;
 
+  const reflection = "Como voce pode demonstrar o amor incondicional de Deus em suas acoes hoje?";
+
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="explore-page">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center justify-center gap-2 p-4">
-          <Compass className="h-6 w-6 text-[#1CB0F6]" />
+          <Compass className="h-6 w-6 text-primary" />
           <h1 className="font-black text-xl">Explorar</h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-4 space-y-6">
-        <DailyVerseCard 
-          verse={dailyVerse} 
-          isRead={dailyVerseRead}
-          onMarkAsRead={handleMarkAsRead}
-          isMarking={markAsReadMutation.isPending}
-          isLoading={dailyVerseLoading}
-        />
-        
-        <HeartsRecoveryCard profile={profile} />
+      <main className="max-w-2xl mx-auto p-4 space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card data-testid="daily-verse-card">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Versiculo do Dia</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">Descubra a palavra de Deus para hoje</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {dailyVerseLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Carregando versiculo...</p>
+                </div>
+              ) : dailyVerse ? (
+                <>
+                  <blockquote className="border-l-4 border-primary pl-4 py-2 bg-muted/30 rounded-r-md">
+                    <p className="text-foreground italic leading-relaxed">
+                      "{dailyVerse.verse}"
+                    </p>
+                  </blockquote>
+                  <p className="font-semibold text-primary">{dailyVerse.reference}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    "O amor de Deus e incondicional e eterno. Hoje, lembre-se de que voce e profundamente amado e que este amor transformador esta disponivel para todos."
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted-foreground">Versiculo indisponivel no momento</p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <div>
-          <h2 className="font-bold text-lg text-foreground mb-4">Categorias de Versiculos</h2>
-          
-          <div className="space-y-3">
-            {categories.map((category, index) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                onClick={() => handleCategoryClick(category.id)}
-                index={index}
-              />
-            ))}
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card data-testid="mark-as-read-card">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BookMarked className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Marcar como Lido</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">Confirme sua leitura diaria</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {dailyVerseRead ? (
+                <div className="w-full py-3 px-4 rounded-md bg-green-500/10 border border-green-500/30 flex items-center justify-center gap-2">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span className="font-semibold text-green-500">Leitura concluida hoje</span>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleMarkAsRead}
+                  disabled={markAsReadMutation.isPending}
+                  className="w-full"
+                  data-testid="button-mark-verse-read"
+                >
+                  {markAsReadMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Check className="h-4 w-4" />
+                      Marcar
+                    </span>
+                  )}
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                Marque como lido para manter sua sequencia diaria!
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card data-testid="hearts-recovery-card">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-red-500 fill-red-500" />
+                <CardTitle className="text-lg">Recuperar Vidas</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">Leia o versiculo em voz alta para ganhar uma vida extra</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Vidas Atuais</span>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: maxHearts }).map((_, i) => (
+                    <Heart
+                      key={i}
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        i < currentHearts 
+                          ? "fill-red-500 text-red-500" 
+                          : "fill-muted text-muted-foreground"
+                      )}
+                    />
+                  ))}
+                  <span className="ml-2 text-sm font-bold">{currentHearts}/{maxHearts}</span>
+                </div>
+              </div>
+              
+              {currentHearts >= maxHearts ? (
+                <p className="text-sm text-green-500 font-medium text-center">
+                  Voce ja possui o maximo de vidas!
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center">
+                  Voce pode recuperar {maxHearts - currentHearts} vida{maxHearts - currentHearts > 1 ? 's' : ''}
+                </p>
+              )}
+
+              <Button
+                onClick={() => setLocation("/study/verses")}
+                variant={currentHearts >= maxHearts ? "secondary" : "default"}
+                disabled={currentHearts >= maxHearts}
+                className="w-full"
+                data-testid="button-read-aloud"
+              >
+                <Volume2 className="h-4 w-4 mr-2" />
+                Ler em Voz Alta
+              </Button>
+              
+              {currentHearts >= maxHearts && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Disponivel quando tiver menos de 5 vidas
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card data-testid="reading-stats-card">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Estatisticas de Leitura</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-muted/50 rounded-md">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Flame className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-foreground">{streak}</p>
+                  <p className="text-xs text-muted-foreground">Dias Consecutivos</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-md">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="text-3xl font-bold text-foreground">{totalVersesRead}</p>
+                  <p className="text-xs text-muted-foreground">Versiculos Lidos</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Meta Semanal</span>
+                  <span className="text-muted-foreground">{weeklyProgress}/{weeklyTarget} dias</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((weeklyProgress / weeklyTarget) * 100, 100)}%` }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                    className="h-full bg-primary rounded-full"
+                  />
+                </div>
+                {weeklyProgress < weeklyTarget ? (
+                  <p className="text-xs text-muted-foreground">
+                    Continue assim! Faltam apenas {weeklyTarget - weeklyProgress} dias para completar a semana.
+                  </p>
+                ) : (
+                  <p className="text-xs text-green-500 font-medium">
+                    Parabens! Voce completou a meta semanal!
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card data-testid="reflection-card">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Reflexao do Dia</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-foreground font-medium">
+                {reflection}
+              </p>
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="Escreva sua reflexao aqui..."
+                  value={reflectionText}
+                  onChange={(e) => setReflectionText(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                  data-testid="input-reflection"
+                />
+                <Button
+                  onClick={handleSubmitReflection}
+                  disabled={!reflectionText.trim()}
+                  className="w-full"
+                  data-testid="button-submit-reflection"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Responder Reflexao
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </main>
 
       <BottomNav />

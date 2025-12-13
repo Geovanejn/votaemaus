@@ -514,31 +514,48 @@ export function LearningPath({
                 <div
                   className="relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
                   style={{
-                    backgroundColor: "#8B5CF6",
-                    boxShadow: "0 5px 0 0 #7C3AED"
+                    background: "linear-gradient(145deg, #2D2D2D 0%, #1A1A1A 100%)",
+                    boxShadow: "0 5px 0 0 #0D0D0D, 0 0 12px rgba(255, 165, 0, 0.5), 0 0 24px rgba(255, 165, 0, 0.2)",
+                    border: "2px solid #FFA500"
                   }}
                 >
                   <div 
-                    className="absolute inset-[4px] rounded-xl flex items-center justify-center"
+                    className="absolute inset-[3px] rounded-xl flex items-center justify-center"
                     style={{
-                      background: "linear-gradient(180deg, #A78BFA 0%, #8B5CF6 100%)"
+                      background: "linear-gradient(180deg, #3D3D3D 0%, #1A1A1A 100%)"
                     }}
                   >
-                    <FolderOpen className="h-6 w-6 text-white" />
+                    <FolderOpen className="h-6 w-6" style={{ color: "#FFA500" }} />
                   </div>
                 </div>
               </div>
               
               <div 
-                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA]"
-                style={{ minHeight: UNIT_HEADER_HEIGHT }}
+                className="flex-1 px-4 py-3 rounded-xl relative overflow-hidden"
+                style={{ 
+                  minHeight: UNIT_HEADER_HEIGHT,
+                  background: "linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 50%, #0D0D0D 100%)",
+                  boxShadow: "0 4px 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 165, 0, 0.4), 0 0 30px rgba(255, 165, 0, 0.2)",
+                  border: "2px solid #FFA500"
+                }}
               >
-                <span className="text-xs font-bold text-white/80 uppercase tracking-wide">
-                  Unidade
-                </span>
-                <h2 className="text-lg font-bold text-white mt-0.5">
-                  {unitTitle}
-                </h2>
+                <div 
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    background: "radial-gradient(ellipse at top right, rgba(255, 200, 0, 0.4) 0%, transparent 60%)"
+                  }}
+                />
+                <div className="relative z-10">
+                  <span 
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: "#FFD700" }}
+                  >
+                    Unidade
+                  </span>
+                  <h2 className="text-lg font-bold text-white mt-0.5">
+                    {unitTitle}
+                  </h2>
+                </div>
               </div>
             </div>
             

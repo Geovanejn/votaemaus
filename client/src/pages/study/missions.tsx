@@ -19,12 +19,10 @@ import {
   Star,
   AlertCircle,
   Loader2,
-  ChevronRight
+  ArrowRight,
+  Gem
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
@@ -39,12 +37,28 @@ const iconMap: Record<string, LucideIcon> = {
   Flame,
 };
 
+const missionColors: Record<string, { bg: string; shadow: string }> = {
+  "palavra_do_dia": { bg: "#5B6EE1", shadow: "#4A5BC0" },
+  "mantenha_foco": { bg: "#2ECC71", shadow: "#27AE60" },
+  "perfeicao": { bg: "#9B59B6", shadow: "#8E44AD" },
+  "curiosidade": { bg: "#1ABC9C", shadow: "#16A085" },
+  "memorize": { bg: "#E91E63", shadow: "#C2185B" },
+  "default": { bg: "#5B6EE1", shadow: "#4A5BC0" },
+};
+
+function getMissionColor(missionType: string, index: number) {
+  const colorKeys = Object.keys(missionColors).filter(k => k !== "default");
+  const colorKey = colorKeys[index % colorKeys.length];
+  return missionColors[colorKey] || missionColors.default;
+}
+
 interface Mission {
   id: number;
   missionId: number;
   completed: boolean;
   completedAt: string | null;
   xpAwarded: number;
+  progress?: number;
   mission: {
     id: number;
     type: string;
@@ -52,6 +66,7 @@ interface Mission {
     description: string;
     icon: string;
     xpReward: number;
+    targetValue?: number;
   };
 }
 
@@ -65,85 +80,118 @@ interface DailyMissionsData {
 }
 
 function MissionCard({ 
-  mission, 
+  mission,
+  index,
   onClick
 }: { 
-  mission: Mission; 
+  mission: Mission;
+  index: number;
   onClick: () => void;
 }) {
   const IconComponent = iconMap[mission.mission.icon] || Star;
   const isCompleted = mission.completed;
+  const colors = getMissionColor(mission.mission.type, index);
+  const progress = mission.progress || 0;
+  const targetValue = mission.mission.targetValue || 1;
+  const progressPercent = isCompleted ? 100 : Math.min((progress / targetValue) * 100, 100);
+  const progressText = targetValue > 1 ? `${progress}/${targetValue}` : `${Math.round(progressPercent)}%`;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
       data-testid={`mission-item-${mission.id}`}
     >
-      <Card 
-        className={`p-4 transition-all cursor-pointer ${
-          isCompleted 
-            ? "bg-[#58CC02]/10 border-[#58CC02]/30" 
-            : "hover-elevate"
-        }`}
-        onClick={onClick}
+      <div 
+        className="bg-white dark:bg-card rounded-2xl overflow-hidden"
+        style={{ 
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        }}
         data-testid={`mission-card-${mission.id}`}
       >
-        <div className="flex items-center gap-4">
-          <div 
-            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              isCompleted 
-                ? "bg-[#58CC02]" 
-                : "bg-gradient-to-br from-[#FFC800] to-[#FF9600]"
-            }`}
-            style={{ boxShadow: isCompleted ? "0 3px 0 0 #46A302" : "0 3px 0 0 #E68A00" }}
-            data-testid={`mission-icon-${mission.id}`}
-          >
-            {isCompleted ? (
-              <Check className="w-6 h-6 text-white" />
-            ) : (
-              <IconComponent className="w-6 h-6 text-white" />
-            )}
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ 
+                backgroundColor: isCompleted ? "#2ECC71" : colors.bg,
+                boxShadow: `0 3px 0 0 ${isCompleted ? "#27AE60" : colors.shadow}`
+              }}
+              data-testid={`mission-icon-${mission.id}`}
+            >
+              {isCompleted ? (
+                <Check className="w-6 h-6 text-white" />
+              ) : (
+                <IconComponent className="w-6 h-6 text-white" />
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0">
               <h3 
-                className={`font-bold text-sm ${isCompleted ? "text-[#58CC02]" : "text-foreground"}`}
+                className="font-bold text-foreground text-base"
                 data-testid={`mission-title-${mission.id}`}
               >
                 {mission.mission.title}
               </h3>
-              {isCompleted && (
-                <Badge variant="secondary" className="bg-[#58CC02]/20 text-[#58CC02] text-xs">
-                  Concluido
-                </Badge>
-              )}
+              <p 
+                className="text-sm text-muted-foreground mt-0.5"
+                data-testid={`mission-description-${mission.id}`}
+              >
+                {mission.mission.description}
+              </p>
             </div>
-            <p 
-              className="text-xs text-muted-foreground mt-0.5"
-              data-testid={`mission-description-${mission.id}`}
-            >
-              {mission.mission.description}
-            </p>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant="outline" 
-              className={`${isCompleted ? "border-[#58CC02] text-[#58CC02]" : "border-[#FFC800] text-[#FFC800]"}`}
+            <div 
+              className="px-2.5 py-1 rounded-md text-sm font-bold flex-shrink-0"
+              style={{ 
+                backgroundColor: isCompleted ? "#E8F5E9" : "#E8F5E9",
+                color: "#2ECC71"
+              }}
               data-testid={`mission-xp-${mission.id}`}
             >
               +{mission.mission.xpReward} XP
-            </Badge>
-            
-            {!isCompleted && (
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            )}
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-end">
+            <span className="text-sm text-muted-foreground">{progressText}</span>
+          </div>
+
+          <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="h-full rounded-full"
+              style={{ backgroundColor: isCompleted ? "#2ECC71" : colors.bg }}
+            />
           </div>
         </div>
-      </Card>
+
+        <button
+          onClick={onClick}
+          className="w-full px-4 py-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700 group"
+          disabled={isCompleted}
+          data-testid={`button-start-mission-${mission.id}`}
+        >
+          <span 
+            className="font-semibold text-sm"
+            style={{ color: isCompleted ? "#2ECC71" : "#5B6EE1" }}
+          >
+            {isCompleted ? "Missao concluida" : "Iniciar missao"}
+          </span>
+          {!isCompleted && (
+            <ArrowRight 
+              className="w-5 h-5 transition-transform group-hover:translate-x-1"
+              style={{ color: "#5B6EE1" }}
+            />
+          )}
+          {isCompleted && (
+            <Check className="w-5 h-5 text-[#2ECC71]" />
+          )}
+        </button>
+      </div>
     </motion.div>
   );
 }
@@ -232,9 +280,9 @@ export default function MissionsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" data-testid="loading-state">
+      <div className="flex items-center justify-center min-h-screen bg-background" data-testid="loading-state">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#FFC800]" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#5B6EE1]" />
           <span className="text-muted-foreground">Carregando missoes...</span>
         </div>
       </div>
@@ -243,7 +291,7 @@ export default function MissionsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4" data-testid="error-state">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background" data-testid="error-state">
         <AlertCircle className="w-16 h-16 text-destructive mb-4" />
         <h3 className="font-bold text-lg text-foreground mb-2">
           Erro ao carregar missoes
@@ -261,110 +309,126 @@ export default function MissionsPage() {
   const missions = data?.missions || [];
   const completedCount = data?.completedCount || 0;
   const totalCount = data?.totalCount || 0;
-  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background" data-testid="missions-page">
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="flex items-center gap-3 p-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setLocation("/study")}
-            data-testid="button-back"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="font-bold text-lg" data-testid="page-title">Missoes Diarias</h1>
-            <p className="text-xs text-muted-foreground">
-              Clique em uma missao para comecar!
-            </p>
+      <div 
+        className="pt-4 pb-6 px-4"
+        style={{
+          background: "linear-gradient(180deg, #5B6EE1 0%, #4A5BC0 100%)",
+        }}
+      >
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/study")}
+              className="text-white hover:bg-white/20"
+              data-testid="button-back"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
           </div>
-          <div className="flex items-center gap-2" data-testid="missions-counter">
-            <Flame className="w-5 h-5 text-[#FF9600]" />
-            <span className="font-bold text-sm">{completedCount}/{totalCount}</span>
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white" data-testid="page-title">
+                Missoes Diarias
+              </h1>
+              <p className="text-white/80 text-sm mt-1">
+                Continue sua jornada espiritual
+              </p>
+            </div>
+            
+            <div 
+              className="bg-white rounded-xl px-4 py-2 text-center flex-shrink-0"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
+              data-testid="missions-counter"
+            >
+              <div className="text-xl font-bold text-[#5B6EE1]">
+                {completedCount}/{totalCount}
+              </div>
+              <div className="text-xs text-muted-foreground">Completas</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto">
-        <Card 
-          className="p-4 mb-6 bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
-          data-testid="progress-card"
-        >
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <div>
-              <h2 className="font-bold text-white" data-testid="progress-title">Progresso de Hoje</h2>
-              <p className="text-white/80 text-sm" data-testid="progress-count">
-                {completedCount} de {totalCount} missoes concluidas
-              </p>
+      <div className="px-4 -mt-3 pb-8">
+        <div className="max-w-lg mx-auto space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-card rounded-xl p-4 flex items-center gap-3"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+            data-testid="bonus-card"
+          >
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "#FFF3CD" }}
+            >
+              <Gem className="w-5 h-5 text-[#F4C430]" />
             </div>
-            {data?.allCompleted ? (
-              <div 
-                className="w-12 h-12 rounded-full bg-[#58CC02] flex items-center justify-center"
-                data-testid="progress-completed-icon"
-              >
-                <Check className="w-6 h-6 text-white" />
-              </div>
-            ) : (
-              <div 
-                className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center"
-                data-testid="progress-pending-icon"
-              >
-                <Gift className="w-6 h-6 text-white" />
-              </div>
-            )}
-          </div>
-          <Progress 
-            value={progressPercent} 
-            className="h-3 bg-white/30" 
-            data-testid="progress-bar"
-          />
-          
-          {!data?.allCompleted && (
-            <div className="mt-3 flex items-center gap-2 text-white/90 text-sm" data-testid="bonus-hint">
-              <Star className="w-4 h-4" />
-              <span>Complete todas para ganhar +50 XP bonus!</span>
-            </div>
-          )}
-        </Card>
-
-        <div className="space-y-3" data-testid="missions-list">
-          {missions.map((mission) => (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              onClick={() => handleMissionClick(mission)}
-            />
-          ))}
-        </div>
-
-        {missions.length === 0 && (
-          <div className="text-center py-12" data-testid="empty-state">
-            <Flame className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-            <h3 className="font-bold text-lg text-muted-foreground mb-2">
-              Sem missoes disponiveis
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              As missoes serao atualizadas em breve!
+            <p className="text-sm text-foreground">
+              <span className="font-bold text-[#F4C430]">+50 XP bonus</span>
+              {" "}ao completar todas!
             </p>
-          </div>
-        )}
+          </motion.div>
 
-        {data?.allCompleted && (
-          <div className="mt-6 text-center" data-testid="all-completed-message">
-            <Card className="p-6 bg-[#58CC02]/10 border-[#58CC02]/30">
-              <Check className="w-12 h-12 mx-auto text-[#58CC02] mb-3" />
-              <h3 className="font-bold text-lg text-[#58CC02] mb-2">
-                Todas as missoes concluidas!
+          <div className="space-y-4" data-testid="missions-list">
+            {missions.map((mission, index) => (
+              <MissionCard
+                key={mission.id}
+                mission={mission}
+                index={index}
+                onClick={() => handleMissionClick(mission)}
+              />
+            ))}
+          </div>
+
+          {missions.length === 0 && (
+            <div className="text-center py-12" data-testid="empty-state">
+              <Flame className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="font-bold text-lg text-muted-foreground mb-2">
+                Sem missoes disponiveis
               </h3>
               <p className="text-sm text-muted-foreground">
-                Parabens! Voce completou todas as missoes de hoje e ganhou +50 XP bonus!
+                As missoes serao atualizadas em breve!
               </p>
-            </Card>
-          </div>
-        )}
+            </div>
+          )}
+
+          {data?.allCompleted && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-6 text-center"
+              data-testid="all-completed-message"
+            >
+              <div 
+                className="bg-white dark:bg-card rounded-2xl p-6"
+                style={{ 
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  border: "2px solid #2ECC71"
+                }}
+              >
+                <div 
+                  className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4"
+                  style={{ backgroundColor: "#E8F5E9" }}
+                >
+                  <Check className="w-8 h-8 text-[#2ECC71]" />
+                </div>
+                <h3 className="font-bold text-lg text-[#2ECC71] mb-2">
+                  Todas as missoes concluidas!
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Parabens! Voce completou todas as missoes de hoje e ganhou +50 XP bonus!
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </div>
       </div>
     </div>
   );

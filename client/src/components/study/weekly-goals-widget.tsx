@@ -275,13 +275,26 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
       </Card>
 
       <div 
-        className="p-4 rounded-xl flex items-center justify-between"
+        className="p-4 rounded-xl"
         style={{
           background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
         }}
       >
-        <span className="font-bold text-white">Progresso Semanal</span>
-        <span className="font-bold text-white text-lg">{Math.round(overallProgress)}%</span>
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-bold text-white">Progresso Semanal</span>
+          <span className="font-bold text-white text-lg">{Math.round(overallProgress)}%</span>
+        </div>
+        <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              background: 'linear-gradient(90deg, #A78BFA 0%, #F472B6 100%)',
+            }}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(overallProgress, 100)}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
+        </div>
       </div>
     </div>
   );

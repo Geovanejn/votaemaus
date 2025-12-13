@@ -466,6 +466,7 @@ export default function StudyHomePage() {
       {lessons.length > 0 ? (
         <LearningPath 
           lessons={lessons}
+          unitTitle={currentWeek?.title}
           onLessonClick={handleLessonClick}
           onPracticeClick={() => currentWeek && setLocation(`/study/practice/${currentWeek.id}`)}
           showPractice={true}

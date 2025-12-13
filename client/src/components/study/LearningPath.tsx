@@ -37,6 +37,7 @@ export interface PracticeStatus {
 
 interface LearningPathProps {
   lessons: LessonItem[];
+  unitTitle?: string;
   onLessonClick?: (lessonId: number, stage?: StageType) => void;
   onPracticeClick?: () => void;
   showPractice?: boolean;
@@ -482,6 +483,7 @@ function PracticeRow({
 
 export function LearningPath({ 
   lessons, 
+  unitTitle,
   onLessonClick, 
   onPracticeClick,
   showPractice = true,
@@ -494,6 +496,18 @@ export function LearningPath({
   return (
     <div className="relative px-4 py-6">
       <div className="max-w-lg mx-auto">
+        {unitTitle && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 px-4 py-3 rounded-xl bg-gradient-to-r from-[#FFC800] to-[#FFD633]"
+            data-testid="unit-title-header"
+          >
+            <h2 className="text-lg font-bold text-white text-center">
+              {unitTitle}
+            </h2>
+          </motion.div>
+        )}
         <div className="relative">
           <div className="space-y-10">
             {lessons.map((lesson, index) => (

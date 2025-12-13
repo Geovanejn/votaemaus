@@ -1,20 +1,29 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { 
   BottomNav,
   useCelebration,
-  WeeklyGoalsWidget,
-  NewUnitCard,
-  ContinueLearning
+  WeeklyGoalsWidget
 } from "@/components/study";
-import type { StageType, QuestionResult, UnitData, LessonData, LessonStage, ContinueLearningData, PracticeStatus } from "@/components/study";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Flame, Star, Heart, Loader2, ListChecks } from "lucide-react";
+import type { StageType, QuestionResult } from "@/components/study";
+import { 
+  ArrowLeft, 
+  MoreVertical, 
+  BookOpen, 
+  Clock, 
+  Filter,
+  Check,
+  Lock,
+  BookText,
+  Heart,
+  PenLine,
+  Loader2
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { NotificationCenter } from "@/components/NotificationCenter";
+import { Card } from "@/components/ui/card";
 
 interface StudyProfile {
   id: number;
@@ -78,208 +87,333 @@ interface WeekWithLessons {
   lessons: LessonWithProgress[];
 }
 
-interface MissionData {
+interface TransformedLesson {
   id: number;
-  completed: boolean;
-}
-
-interface MissionsResponse {
-  missions: MissionData[];
-}
-
-function UserProfileHeader({ 
-  userName, 
-  userPhoto,
-  profile,
-  missionsCompleted,
-  missionsTotal
-}: { 
-  userName: string;
-  userPhoto?: string | null;
-  profile: StudyProfile;
-  missionsCompleted: number;
-  missionsTotal: number;
-}) {
-  const [, setLocation] = useLocation();
-  
-  const formatXp = (xp: number) => {
-    if (xp >= 1000) {
-      return xp.toLocaleString('pt-BR');
-    }
-    return xp.toString();
+  number: number;
+  title: string;
+  description: string;
+  status: 'completed' | 'in_progress' | 'locked';
+  sectionsCompleted: number;
+  totalSections: number;
+  xpReward: number;
+  stages: {
+    estude: { status: 'completed' | 'current' | 'locked'; completed: number; total: number };
+    medite: { status: 'completed' | 'current' | 'locked'; completed: number; total: number };
+    responda: { status: 'completed' | 'current' | 'locked'; completed: number; total: number };
   };
-  
+}
+
+function StudyHeader({ onBack }: { onBack: () => void }) {
   return (
     <div 
-      className="px-4 pt-6 pb-5"
+      className="px-4 py-4 flex items-center justify-between"
       style={{
-        background: 'linear-gradient(180deg, #8B5CF6 0%, #7C3AED 50%, #6D28D9 100%)',
+        background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
       }}
     >
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-14 w-14 border-[3px] border-white/30 shadow-lg">
-              <AvatarImage src={userPhoto || undefined} />
-              <AvatarFallback 
-                className="text-xl font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)',
-                  color: 'white'
-                }}
-              >
-                {userName?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
-                Ola, {userName.split(' ')[0]}!
-              </h1>
-              <p className="text-sm text-white/80">Nivel {profile.currentLevel}</p>
-            </div>
-          </div>
-          
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
-            onClick={() => setLocation('/study/profile')}
-            data-testid="button-notifications"
-          >
-            <Bell className="h-5 w-5 text-white" />
-          </motion.button>
+      <button 
+        onClick={onBack}
+        className="w-10 h-10 flex items-center justify-center"
+        data-testid="button-back"
+      >
+        <ArrowLeft className="h-6 w-6 text-white" />
+      </button>
+      <h1 className="text-lg font-bold text-white">Estudos</h1>
+      <button className="w-10 h-10 flex items-center justify-center" data-testid="button-menu">
+        <MoreVertical className="h-6 w-6 text-white" />
+      </button>
+    </div>
+  );
+}
+
+function TrimestreCard({ 
+  title, 
+  subtitle, 
+  totalLessons, 
+  estimatedMinutes 
+}: { 
+  title: string; 
+  subtitle: string; 
+  totalLessons: number;
+  estimatedMinutes: number;
+}) {
+  return (
+    <div 
+      className="mx-4 p-5 rounded-2xl"
+      style={{
+        background: 'linear-gradient(135deg, #EC4899 0%, #A855F7 50%, #8B5CF6 100%)',
+      }}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+          <BookText className="h-5 w-5 text-white" />
         </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg">
-          <div className="grid grid-cols-4 gap-3">
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="flex flex-col items-center"
-            >
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
-                style={{ background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)' }}
-              >
-                <Flame className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-bold text-foreground text-sm">{profile.currentStreak}</span>
-              <span className="text-[10px] text-muted-foreground">Ofensiva</span>
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="flex flex-col items-center"
-            >
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
-                style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}
-              >
-                <Star className="h-6 w-6 text-white fill-white" />
-              </div>
-              <span className="font-bold text-foreground text-sm">{formatXp(profile.totalXp)}</span>
-              <span className="text-[10px] text-muted-foreground">XP</span>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="flex flex-col items-center cursor-pointer"
-              onClick={() => setLocation('/study/verses')}
-              data-testid="button-hearts"
-            >
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
-                style={{ background: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)' }}
-              >
-                <Heart className="h-6 w-6 text-white fill-white" />
-              </div>
-              <span className="font-bold text-foreground text-sm">{profile.hearts}</span>
-              <span className="text-[10px] text-muted-foreground">Vidas</span>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="flex flex-col items-center cursor-pointer"
-              onClick={() => setLocation('/study/missions')}
-              data-testid="button-missions"
-            >
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-1"
-                style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}
-              >
-                <ListChecks className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-bold text-foreground text-sm">{missionsCompleted}/{missionsTotal}</span>
-              <span className="text-[10px] text-muted-foreground">Missoes</span>
-            </motion.div>
-          </div>
+        <span 
+          className="px-3 py-1 rounded-full text-xs font-bold"
+          style={{ background: '#A3E635', color: '#365314' }}
+        >
+          Trimestre 2024
+        </span>
+      </div>
+      <h2 className="text-2xl font-bold text-white mb-1" data-testid="text-trimestre-title">
+        {title}
+      </h2>
+      <p className="text-white/80 text-sm mb-4">{subtitle}</p>
+      <div className="flex items-center gap-4 text-white/90 text-sm">
+        <div className="flex items-center gap-1.5">
+          <BookOpen className="h-4 w-4" />
+          <span>{totalLessons} Licoes</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className="h-4 w-4" />
+          <span>~{estimatedMinutes} min cada</span>
         </div>
       </div>
     </div>
   );
 }
 
-function DailyGoalSection({ 
-  lessonsCompleted, 
-  totalLessons 
+function ProgressSection({ 
+  progress, 
+  completed, 
+  inProgress, 
+  locked 
 }: { 
-  lessonsCompleted: number; 
-  totalLessons: number;
+  progress: number; 
+  completed: number; 
+  inProgress: number; 
+  locked: number;
 }) {
-  const target = Math.min(totalLessons, 5);
-  const current = Math.min(lessonsCompleted, target);
-  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-  const remaining = target - current;
-  
   return (
-    <div className="px-4 py-4 bg-background border-b border-border">
-      <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-2 gap-2">
-          <h2 className="font-bold text-foreground">Meta Diária</h2>
-          <span className="text-sm font-bold text-[#58CC02]">{current}/{target}</span>
-        </div>
-        
-        <div className="relative h-4 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="absolute inset-y-0 left-0 bg-[#58CC02] rounded-full"
-          />
-        </div>
-        
-        <p className="text-sm text-muted-foreground mt-2">
-          {remaining > 0 
-            ? `Mais ${remaining} lições para completar sua meta!`
-            : "Parabéns! Você completou sua meta diária!"
-          }
-        </p>
+    <Card className="mx-4 mt-4 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-bold text-foreground">Seu Progresso</span>
+        <span className="font-bold text-green-500">{progress}%</span>
       </div>
-    </div>
+      <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-4">
+        <motion.div
+          className="h-full rounded-full"
+          style={{
+            background: 'linear-gradient(90deg, #22C55E 0%, #16A34A 100%)',
+          }}
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.min(progress, 100)}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <span className="text-xl font-bold text-foreground">{completed}</span>
+          <p className="text-xs text-muted-foreground">Completas</p>
+        </div>
+        <div className="border-l border-r border-border">
+          <span className="text-xl font-bold text-foreground">{inProgress}</span>
+          <p className="text-xs text-muted-foreground">Em Progresso</p>
+        </div>
+        <div>
+          <span className="text-xl font-bold text-foreground">{locked}</span>
+          <p className="text-xs text-muted-foreground">Bloqueadas</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function LessonCard({ 
+  lesson, 
+  previousLessonNumber,
+  onStageClick,
+  onContinue
+}: { 
+  lesson: TransformedLesson;
+  previousLessonNumber?: number;
+  onStageClick: (lessonId: number, stage: 'estude' | 'medite' | 'responda') => void;
+  onContinue: (lessonId: number) => void;
+}) {
+  const isCompleted = lesson.status === 'completed';
+  const isInProgress = lesson.status === 'in_progress';
+  const isLocked = lesson.status === 'locked';
+
+  const getStatusBadge = () => {
+    if (isCompleted) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+            <Check className="h-5 w-5 text-white" strokeWidth={3} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">LICAO {lesson.number}</p>
+            <p className="text-sm font-bold text-green-600">Completa</p>
+          </div>
+        </div>
+      );
+    }
+    if (isInProgress) {
+      return (
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+            style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }}
+          >
+            {lesson.number}
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">LICAO {lesson.number}</p>
+            <p className="text-sm font-bold text-purple-600">Em Progresso</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+          style={{ background: 'linear-gradient(135deg, #D1D5DB 0%, #9CA3AF 100%)' }}
+        >
+          {lesson.number}
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">LICAO {lesson.number}</p>
+          <p className="text-sm font-bold text-gray-400">Bloqueada</p>
+        </div>
+      </div>
+    );
+  };
+
+  const getXpDisplay = () => {
+    if (isCompleted) {
+      return <span className="text-green-500 font-bold">+{lesson.xpReward} XP</span>;
+    }
+    if (isInProgress) {
+      return <span className="text-purple-500 font-bold">+{Math.round(lesson.xpReward * (lesson.sectionsCompleted / lesson.totalSections) || 0)} XP</span>;
+    }
+    return <span className="text-gray-400 font-medium">{lesson.xpReward} XP</span>;
+  };
+
+  const StageButton = ({ 
+    stage, 
+    label, 
+    icon: Icon,
+    stageData
+  }: { 
+    stage: 'estude' | 'medite' | 'responda';
+    label: string;
+    icon: typeof BookText;
+    stageData: { status: 'completed' | 'current' | 'locked'; completed: number; total: number };
+  }) => {
+    const stageCompleted = stageData.status === 'completed';
+    const stageLocked = stageData.status === 'locked' || isLocked;
+
+    return (
+      <button
+        onClick={() => !stageLocked && onStageClick(lesson.id, stage)}
+        disabled={stageLocked}
+        className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
+          stageCompleted 
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+            : stageLocked
+              ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-60'
+              : 'bg-white dark:bg-card border-gray-200 dark:border-gray-700 hover:border-purple-300'
+        }`}
+        data-testid={`button-stage-${stage}-${lesson.id}`}
+      >
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          stageCompleted 
+            ? 'bg-green-100 dark:bg-green-800' 
+            : stageLocked 
+              ? 'bg-gray-100 dark:bg-gray-700' 
+              : 'bg-purple-100 dark:bg-purple-900/30'
+        }`}>
+          {stageLocked && !stageCompleted ? (
+            <Lock className={`h-4 w-4 ${stageLocked ? 'text-gray-400' : 'text-purple-600'}`} />
+          ) : (
+            <Icon className={`h-4 w-4 ${stageCompleted ? 'text-green-600' : 'text-purple-600'}`} />
+          )}
+        </div>
+        <span className={`text-xs font-medium ${
+          stageCompleted 
+            ? 'text-green-600' 
+            : stageLocked 
+              ? 'text-gray-400' 
+              : 'text-foreground'
+        }`}>
+          {label}
+        </span>
+        {stageCompleted && (
+          <Check className="h-3 w-3 text-green-500" />
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <Card className={`p-4 ${isLocked ? 'opacity-70' : ''}`} data-testid={`lesson-card-${lesson.id}`}>
+      <div className="flex items-start justify-between mb-3">
+        {getStatusBadge()}
+        <div className="text-right">
+          {getXpDisplay()}
+          <p className="text-xs text-muted-foreground">
+            {lesson.sectionsCompleted}/{lesson.totalSections} secoes
+          </p>
+        </div>
+      </div>
+
+      <h3 className={`text-lg font-bold mb-1 ${isLocked ? 'text-muted-foreground' : 'text-foreground'}`}>
+        {lesson.title}
+      </h3>
+      <p className={`text-sm mb-4 ${isLocked ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
+        {lesson.description}
+      </p>
+
+      <div className="flex gap-2 mb-3">
+        <StageButton 
+          stage="estude" 
+          label="Estude" 
+          icon={BookText}
+          stageData={lesson.stages.estude}
+        />
+        <StageButton 
+          stage="medite" 
+          label="Medite" 
+          icon={Heart}
+          stageData={lesson.stages.medite}
+        />
+        <StageButton 
+          stage="responda" 
+          label="Responda" 
+          icon={PenLine}
+          stageData={lesson.stages.responda}
+        />
+      </div>
+
+      {isInProgress && (
+        <Button 
+          onClick={() => onContinue(lesson.id)}
+          className="w-full"
+          style={{
+            background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+          }}
+          data-testid={`button-continue-${lesson.id}`}
+        >
+          Continuar Licao
+        </Button>
+      )}
+
+      {isLocked && previousLessonNumber && (
+        <p className="text-center text-sm text-muted-foreground">
+          Complete a Licao {previousLessonNumber} para desbloquear
+        </p>
+      )}
+    </Card>
   );
 }
 
 function LoadingState() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center" data-testid="study-loading">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-[#FFA500]" />
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
         <p className="text-muted-foreground">Carregando estudos...</p>
-      </div>
-    </div>
-  );
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="study-error">
-      <div className="text-center max-w-sm">
-        <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
-        <p className="text-muted-foreground mb-4">
-          Não foi possível carregar os dados do estudo. Por favor, tente novamente.
-        </p>
-        <Button onClick={onRetry} data-testid="button-retry">
-          Tentar novamente
-        </Button>
       </div>
     </div>
   );
@@ -287,41 +421,58 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function NotAuthenticatedState() {
   const [, setLocation] = useLocation();
-  
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="study-not-auth">
-      <div className="text-center max-w-sm">
-        <h1 className="text-xl font-bold text-foreground mb-2">Faça login para continuar</h1>
-        <p className="text-muted-foreground mb-4">
-          Você precisa estar logado para acessar os estudos.
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="p-8 text-center max-w-sm">
+        <BookOpen className="h-16 w-16 text-primary mx-auto mb-4" />
+        <h2 className="text-xl font-bold mb-2">Area de Estudos</h2>
+        <p className="text-muted-foreground mb-6">
+          Faca login para acessar suas licoes e acompanhar seu progresso.
         </p>
-        <Button onClick={() => setLocation('/')} data-testid="button-login">
+        <Button onClick={() => setLocation('/membro')} className="w-full">
           Fazer Login
         </Button>
-      </div>
+      </Card>
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="p-8 text-center max-w-sm">
+        <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h2 className="text-xl font-bold mb-2">Erro ao Carregar</h2>
+        <p className="text-muted-foreground mb-6">
+          Nao foi possivel carregar os estudos. Tente novamente.
+        </p>
+        <Button onClick={onRetry} className="w-full">
+          Tentar Novamente
+        </Button>
+      </Card>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex-1 flex items-center justify-center p-4" data-testid="study-empty">
-      <div className="text-center max-w-sm">
-        <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponível</h2>
-        <p className="text-muted-foreground">
-          Os estudos semanais serão liberados em breve. Volte mais tarde!
-        </p>
-      </div>
-    </div>
+    <Card className="mx-4 p-8 text-center">
+      <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+      <h2 className="text-xl font-bold mb-2">Nenhuma Licao Disponivel</h2>
+      <p className="text-muted-foreground">
+        As licoes serao publicadas em breve.
+      </p>
+    </Card>
   );
 }
 
 export default function StudyHomePage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { CelebrationComponent } = useCelebration();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const scrollAttemptedRef = useRef(false);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { CelebrationComponent } = useCelebration();
+  const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'in_progress' | 'locked'>('all');
 
   const { data: profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
@@ -330,7 +481,7 @@ export default function StudyHomePage() {
 
   const { data: weeks, isLoading: weeksLoading, error: weeksError, refetch: refetchWeeks } = useQuery<StudyWeek[]>({
     queryKey: ['/api/study/weeks'],
-    enabled: isAuthenticated && !!profile,
+    enabled: isAuthenticated,
   });
 
   const currentWeek = weeks?.[0];
@@ -339,19 +490,6 @@ export default function StudyHomePage() {
     queryKey: ['/api/study/weeks', currentWeek?.id?.toString()],
     enabled: isAuthenticated && !!currentWeek?.id,
   });
-
-  const { data: practiceStatusData } = useQuery<PracticeStatus>({
-    queryKey: ['/api/study/practice', currentWeek?.id?.toString(), 'status'],
-    enabled: isAuthenticated && !!currentWeek?.id,
-  });
-
-  const { data: missionsData } = useQuery<MissionsResponse>({
-    queryKey: ['/api/missions/daily'],
-    enabled: isAuthenticated,
-  });
-
-  const missionsCompleted = missionsData?.missions?.filter(m => m.completed).length || 0;
-  const missionsTotal = missionsData?.missions?.length || 5;
 
   const isLoading = authLoading || profileLoading || weeksLoading || lessonsLoading;
   const hasError = profileError || weeksError || lessonsError;
@@ -398,7 +536,7 @@ export default function StudyHomePage() {
 
   const rawLessons = weekData?.lessons || [];
   
-  const transformedLessons: LessonData[] = rawLessons.map((lesson, index) => {
+  const transformedLessons: TransformedLesson[] = rawLessons.map((lesson, index) => {
     const previousLesson = index > 0 ? rawLessons[index - 1] : null;
     const isPreviousLessonComplete = !previousLesson || previousLesson.status === 'completed';
     
@@ -446,73 +584,33 @@ export default function StudyHomePage() {
         estudeStatus = 'current';
       }
     }
-    
-    const stages: LessonStage[] = [
-      {
-        type: 'estude' as const,
-        status: estudeStatus,
-        completedUnits: estudeCompleted,
-        totalUnits: estudeUnits
-      },
-      {
-        type: 'medite' as const,
-        status: mediteStatus,
-        completedUnits: mediteCompleted,
-        totalUnits: mediteUnits
-      },
-      {
-        type: 'responda' as const,
-        status: respondaStatus,
-        completedUnits: respondaCompleted,
-        totalUnits: respondaUnits
-      }
-    ];
 
     return {
       id: lesson.id,
       number: lesson.orderIndex + 1,
       title: lesson.title,
+      description: lesson.description || '',
       status: lessonStatus,
       sectionsCompleted: completedUnits,
       totalSections: totalUnits,
       xpReward: lesson.xpReward || 50,
-      stages
+      stages: {
+        estude: { status: estudeStatus, completed: estudeCompleted, total: estudeUnits },
+        medite: { status: mediteStatus, completed: mediteCompleted, total: mediteUnits },
+        responda: { status: respondaStatus, completed: respondaCompleted, total: respondaUnits }
+      }
     };
   });
 
   const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
-  
-  const unitData: UnitData | null = currentWeek ? {
-    id: currentWeek.id,
-    number: currentWeek.weekNumber,
-    title: currentWeek.title,
-    subtitle: currentWeek.description || '',
-    status: lessonsCompleted === transformedLessons.length && transformedLessons.length > 0 
-      ? 'completed' 
-      : transformedLessons.some(l => l.status === 'in_progress') 
-        ? 'current' 
-        : 'locked',
-    lessonsCompleted,
-    totalLessons: transformedLessons.length,
-    progress: transformedLessons.length > 0 
-      ? Math.round((lessonsCompleted / transformedLessons.length) * 100)
-      : 0,
-    lessons: transformedLessons
-  } : null;
+  const lessonsInProgress = transformedLessons.filter(l => l.status === 'in_progress').length;
+  const lessonsLocked = transformedLessons.filter(l => l.status === 'locked').length;
+  const totalLessons = transformedLessons.length;
+  const progress = totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
 
-  const inProgressLesson = transformedLessons.find(l => l.status === 'in_progress');
-  const continueLearningData: ContinueLearningData | null = inProgressLesson && currentWeek ? {
-    unitNumber: currentWeek.weekNumber,
-    unitTitle: currentWeek.title,
-    lessonNumber: inProgressLesson.number,
-    lessonTitle: inProgressLesson.title,
-    sectionsRemaining: inProgressLesson.totalSections - inProgressLesson.sectionsCompleted,
-    totalSections: inProgressLesson.totalSections,
-    progress: inProgressLesson.totalSections > 0 
-      ? Math.round((inProgressLesson.sectionsCompleted / inProgressLesson.totalSections) * 100) 
-      : 0,
-    lessonId: inProgressLesson.id
-  } : null;
+  const filteredLessons = filterStatus === 'all' 
+    ? transformedLessons 
+    : transformedLessons.filter(l => l.status === filterStatus);
 
   const handleLessonStageClick = (lessonId: number, stage: 'estude' | 'medite' | 'responda') => {
     const lesson = transformedLessons.find(l => l.id === lessonId);
@@ -525,46 +623,63 @@ export default function StudyHomePage() {
     setLocation(`/study/lesson/${lessonId}`);
   };
 
+  const weekTitle = currentWeek?.title || 'Parabolas de Jesus';
+  const weekDescription = currentWeek?.description || 'Ensinamentos praticos para vida crista';
+
   return (
     <div className="min-h-screen bg-background pb-20" data-testid="study-home">
       <CelebrationComponent />
       
-      <UserProfileHeader 
-        userName={user.fullName} 
-        userPhoto={user.photoUrl}
-        profile={profile}
-        missionsCompleted={missionsCompleted}
-        missionsTotal={missionsTotal}
-      />
+      <StudyHeader onBack={() => setLocation('/membro')} />
       
-      <div className="px-4 py-4">
-        <div className="max-w-lg mx-auto">
-          <WeeklyGoalsWidget />
-        </div>
-      </div>
+      <TrimestreCard 
+        title={weekTitle}
+        subtitle={weekDescription}
+        totalLessons={totalLessons}
+        estimatedMinutes={45}
+      />
 
-      <div className="px-4 pb-4">
-        <div className="max-w-lg mx-auto space-y-6">
-          {continueLearningData && (
-            <ContinueLearning 
-              data={continueLearningData}
-              onContinue={handleContinueLearning}
-            />
-          )}
-          
-          {unitData ? (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Unidades de Estudo</h2>
-              <NewUnitCard 
-                unit={unitData}
-                onLessonStageClick={handleLessonStageClick}
-                defaultExpanded={!continueLearningData}
-              />
-            </div>
-          ) : (
-            <EmptyState />
-          )}
+      <ProgressSection 
+        progress={progress}
+        completed={lessonsCompleted}
+        inProgress={lessonsInProgress}
+        locked={lessonsLocked}
+      />
+
+      <div className="px-4 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-foreground">Todas as Licoes</h2>
+          <button 
+            className="flex items-center gap-1 text-purple-600 font-medium text-sm"
+            data-testid="button-filter"
+          >
+            <Filter className="h-4 w-4" />
+            Filtrar
+          </button>
         </div>
+
+        {transformedLessons.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-4">
+            {filteredLessons.map((lesson, index) => (
+              <motion.div
+                key={lesson.id}
+                id={`lesson-${lesson.id}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <LessonCard 
+                  lesson={lesson}
+                  previousLessonNumber={index > 0 ? filteredLessons[index - 1].number : undefined}
+                  onStageClick={handleLessonStageClick}
+                  onContinue={handleContinueLearning}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav />

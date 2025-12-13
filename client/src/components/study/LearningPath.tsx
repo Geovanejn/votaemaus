@@ -514,14 +514,14 @@ export function LearningPath({
                 <div
                   className="relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
                   style={{
-                    background: "linear-gradient(145deg, #FFC800 0%, #FF9500 100%)",
-                    boxShadow: "0 5px 0 0 #CC7A00"
+                    background: "linear-gradient(145deg, #8B5CF6 0%, #7C3AED 100%)",
+                    boxShadow: "0 5px 0 0 #6D28D9"
                   }}
                 >
                   <div 
                     className="absolute inset-[3px] rounded-xl flex items-center justify-center"
                     style={{
-                      background: "linear-gradient(180deg, #FFD633 0%, #FFC800 100%)"
+                      background: "linear-gradient(180deg, #A78BFA 0%, #8B5CF6 100%)"
                     }}
                   >
                     <FolderOpen className="h-6 w-6 text-white" />
@@ -530,16 +530,18 @@ export function LearningPath({
               </div>
               
               <div 
-                className="flex-1 px-4 py-3 rounded-xl relative overflow-hidden bg-card border-2 border-border shadow-sm"
+                className="flex-1 px-5 py-4 rounded-xl relative overflow-hidden"
                 style={{ 
-                  minHeight: UNIT_HEADER_HEIGHT
+                  minHeight: UNIT_HEADER_HEIGHT,
+                  background: "linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)",
+                  boxShadow: "0 4px 0 0 #6D28D9, 0 6px 12px rgba(139, 92, 246, 0.25)"
                 }}
               >
                 <div className="relative z-10">
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/80">
                     Unidade
                   </span>
-                  <h2 className="text-lg font-bold text-foreground mt-0.5">
+                  <h2 className="text-lg font-bold text-white mt-0.5">
                     {unitTitle}
                   </h2>
                 </div>

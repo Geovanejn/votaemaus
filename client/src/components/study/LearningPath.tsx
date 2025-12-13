@@ -246,13 +246,75 @@ function StageCard({
   );
 }
 
-function LessonHeader({ 
+function LessonNumberIcon({ 
   lessonNumber, 
-  title, 
   status,
   isMastered = false
 }: { 
   lessonNumber: number; 
+  status: LessonStatus;
+  isMastered?: boolean;
+}) {
+  const isLocked = status === "locked";
+  const isCompleted = status === "completed";
+  const isCurrent = status === "current";
+  const showGolden = isCompleted && isMastered;
+  
+  const colors = isLocked 
+    ? { bg: "#E5E5E5", shadow: "#CECECE", inner: "#F0F0F0" }
+    : showGolden
+      ? { bg: "#FFD700", shadow: "#DAA520", inner: "#FFE55C" }
+      : { bg: "#FFC800", shadow: "#E5A800", inner: "#FFD84D" };
+
+  return (
+    <motion.div
+      className={cn(
+        "relative z-10 flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
+      )}
+      style={{
+        backgroundColor: colors.bg,
+        boxShadow: `0 5px 0 0 ${colors.shadow}`
+      }}
+      data-testid={`lesson-number-icon-${lessonNumber}`}
+    >
+      <div 
+        className="absolute inset-[4px] rounded-xl flex items-center justify-center"
+        style={{
+          background: `linear-gradient(180deg, ${colors.inner} 0%, ${colors.bg} 100%)`
+        }}
+      >
+        {isLocked ? (
+          <Lock className="h-6 w-6 text-muted-foreground/50" />
+        ) : showGolden ? (
+          <Star className="h-6 w-6 text-white fill-white" />
+        ) : (
+          <span className="text-white font-bold text-lg">{lessonNumber}</span>
+        )}
+      </div>
+      
+      {isCurrent && (
+        <motion.div
+          animate={{ 
+            scale: [1, 1.12, 1],
+            opacity: [0.5, 1, 0.5]
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute inset-0 rounded-2xl border-[3px] border-white/70"
+        />
+      )}
+    </motion.div>
+  );
+}
+
+function LessonCard({ 
+  title, 
+  status,
+  isMastered = false
+}: { 
   title: string;
   status: LessonStatus;
   isMastered?: boolean;
@@ -270,40 +332,19 @@ function LessonHeader({
   const shadowColor = isLocked ? "#CECECE" : showGolden ? "#CC8400" : "#CC7A00";
   
   return (
-    <div className="relative" style={{ minHeight: 56 }}>
-      <div 
-        className="flex items-center py-2"
-        style={{
-          background: bgGradient,
-          borderRadius: "28px 12px 12px 28px",
-          boxShadow: `0 3px 0 0 ${shadowColor}`
-        }}
-      >
-        <div 
-          className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center ml-1.5"
-          style={{
-            background: isLocked 
-              ? "rgba(255,255,255,0.5)" 
-              : "rgba(255,255,255,0.25)"
-          }}
-        >
-          {isLocked ? (
-            <Lock className="h-5 w-5 text-muted-foreground/50" />
-          ) : showGolden ? (
-            <Star className="h-5 w-5 text-white fill-white" />
-          ) : (
-            <span className="text-white font-bold text-sm">{lessonNumber}</span>
-          )}
-        </div>
-        <div className="flex-1 px-3 min-w-0">
-          <h3 className={cn(
-            "font-bold text-sm leading-tight",
-            isLocked ? "text-muted-foreground/50" : "text-white"
-          )}>
-            {title}
-          </h3>
-        </div>
-      </div>
+    <div 
+      className="flex-1 py-3 px-4 rounded-xl"
+      style={{
+        background: bgGradient,
+        boxShadow: `0 3px 0 0 ${shadowColor}`
+      }}
+    >
+      <h3 className={cn(
+        "font-bold text-sm leading-tight",
+        isLocked ? "text-muted-foreground/50" : "text-white"
+      )}>
+        {title}
+      </h3>
     </div>
   );
 }
@@ -333,12 +374,18 @@ function LessonGroup({
   
   return (
     <div id={`lesson-${lesson.id}`} className="relative" data-testid={`lesson-group-${lesson.id}`}>
-      <div 
-        className="mb-5"
-        style={{ marginLeft: RAIL_WIDTH + 16 }}
-      >
-        <LessonHeader 
-          lessonNumber={lesson.lessonNumber} 
+      <div className="flex items-center gap-5 mb-5">
+        <div 
+          className="flex-shrink-0 flex justify-center items-center"
+          style={{ width: RAIL_WIDTH, height: ICON_SIZE }}
+        >
+          <LessonNumberIcon 
+            lessonNumber={lesson.lessonNumber} 
+            status={lesson.status}
+            isMastered={isMastered}
+          />
+        </div>
+        <LessonCard 
           title={lesson.subtitle || lesson.title}
           status={lesson.status}
           isMastered={isMastered}

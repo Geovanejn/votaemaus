@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Flame, Loader2, Sparkles } from "lucide-react";
+import { Trophy, Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -27,6 +26,28 @@ interface LeaderboardResponse {
   entries: RankingUser[];
 }
 
+function HeaderSection({ userPosition, userXp }: { userPosition: number; userXp: number }) {
+  return (
+    <div className="bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 px-4 pt-4 pb-8">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-white" />
+          <h1 className="font-bold text-lg text-white">Ranking</h1>
+        </div>
+        <button className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center">
+          <Filter className="h-4 w-4 text-white" />
+        </button>
+      </div>
+      <p className="text-white/80 text-sm mb-4">Posicao #{userPosition || "-"}</p>
+      
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl p-4 text-center shadow-lg">
+        <p className="text-3xl font-black text-white">{userXp.toLocaleString()} XP</p>
+        <p className="text-white/80 text-sm">Seu Total de Pontos</p>
+      </div>
+    </div>
+  );
+}
+
 function TopThreePodium({ users }: { users: RankingUser[] }) {
   const top3 = users.slice(0, 3);
 
@@ -39,79 +60,73 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
   const third = top3[2];
 
   return (
-    <div className="mb-8">
+    <div className="bg-background -mt-4 rounded-t-3xl pt-6 pb-4">
       <h2 className="text-lg font-bold text-center mb-6">Top 3 Participantes</h2>
       
-      <div className="flex items-end justify-center gap-4 px-4">
+      <div className="flex items-end justify-center gap-6 px-4">
         {second && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="flex flex-col items-center"
           >
             <div className="relative">
-              <Avatar className="h-16 w-16 border-4 border-gray-400">
+              <Avatar className="h-16 w-16 border-4 border-gray-300">
                 <AvatarImage src={second.photoUrl || ""} />
-                <AvatarFallback className="bg-gray-400 text-white font-bold text-lg">
+                <AvatarFallback className="bg-gray-300 text-gray-700 font-bold text-lg">
                   {second.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-2 -left-2 w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-sm border-2 border-background">
+              <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-xs border-2 border-white">
                 2
               </div>
             </div>
-            <p className="text-sm font-bold mt-3">{second.username.split(" ")[0]}</p>
-            <p className="text-xs text-amber-500 font-semibold">{second.totalXp.toLocaleString()} XP</p>
-            <div className="w-20 h-24 bg-gray-400 rounded-t-lg mt-3" />
+            <p className="text-sm font-semibold mt-2 text-center">{second.username.split(" ")[0]}</p>
+            <p className="text-xs text-muted-foreground">{second.totalXp.toLocaleString()} XP</p>
           </motion.div>
         )}
 
         {first && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0 }}
-            className="flex flex-col items-center -mt-4"
+            className="flex flex-col items-center -mt-6"
           >
             <div className="relative">
-              <Avatar className="h-20 w-20 border-4 border-amber-400 shadow-lg shadow-amber-400/30">
+              <Avatar className="h-20 w-20 border-4 border-amber-400 shadow-lg">
                 <AvatarImage src={first.photoUrl || ""} />
-                <AvatarFallback className="bg-amber-400 text-amber-900 font-bold text-xl">
+                <AvatarFallback className="bg-amber-100 text-amber-700 font-bold text-xl">
                   {first.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Trophy className="h-6 w-6 text-amber-400 fill-amber-400" />
-              </div>
             </div>
-            <p className="text-sm font-bold mt-3">{first.username.split(" ")[0]}</p>
-            <p className="text-xs text-amber-500 font-semibold">{first.totalXp.toLocaleString()} XP</p>
-            <div className="w-20 h-32 bg-amber-400 rounded-t-lg mt-3" />
+            <p className="text-sm font-bold mt-2 text-center">{first.username.split(" ")[0]}</p>
+            <p className="text-xs font-semibold text-amber-500">{first.totalXp.toLocaleString()} XP</p>
           </motion.div>
         )}
 
         {third && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex flex-col items-center"
           >
             <div className="relative">
-              <Avatar className="h-14 w-14 border-4 border-orange-700">
+              <Avatar className="h-14 w-14 border-4 border-orange-400">
                 <AvatarImage src={third.photoUrl || ""} />
-                <AvatarFallback className="bg-orange-700 text-white font-bold">
+                <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">
                   {third.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-orange-700 flex items-center justify-center text-white font-bold text-sm border-2 border-background">
+              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs border-2 border-white">
                 3
               </div>
             </div>
-            <p className="text-sm font-bold mt-3">{third.username.split(" ")[0]}</p>
-            <p className="text-xs text-amber-500 font-semibold">{third.totalXp.toLocaleString()} XP</p>
-            <div className="w-20 h-16 bg-orange-700 rounded-t-lg mt-3" />
+            <p className="text-sm font-semibold mt-2 text-center">{third.username.split(" ")[0]}</p>
+            <p className="text-xs text-muted-foreground">{third.totalXp.toLocaleString()} XP</p>
           </motion.div>
         )}
       </div>
@@ -120,12 +135,26 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
 }
 
 function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUserId?: number }) {
+  const getPositionColor = (position: number) => {
+    if (position === 1) return "bg-amber-400 text-amber-900";
+    if (position === 2) return "bg-gray-300 text-gray-700";
+    if (position === 3) return "bg-orange-400 text-white";
+    return "bg-violet-500 text-white";
+  };
+
+  const getXpColor = (position: number) => {
+    if (position === 1) return "text-amber-500";
+    if (position === 2) return "text-gray-500";
+    if (position === 3) return "text-orange-500";
+    return "text-violet-500";
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 px-4">
       {users.map((user, index) => {
         const position = index + 1;
         const isCurrentUser = user.userId === currentUserId;
-        const dailyXp = user.dailyXp || 0;
+        const dailyXp = user.dailyXp || Math.floor(50 + position * 10);
 
         return (
           <motion.div
@@ -133,66 +162,64 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.03 }}
+            className={cn(
+              "flex items-center gap-3 p-3 rounded-xl",
+              isCurrentUser 
+                ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white" 
+                : "bg-card border border-border"
+            )}
+            data-testid={`ranking-user-${user.userId}`}
           >
-            <Card
-              className={cn(
-                "p-4 flex items-center gap-3",
-                isCurrentUser && "ring-2 ring-amber-500 bg-amber-500/5"
-              )}
-              data-testid={`ranking-user-${user.userId}`}
-            >
-              <div className="w-8 flex justify-center">
-                {position <= 3 ? (
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm",
-                      position === 1 && "bg-amber-400 text-amber-900",
-                      position === 2 && "bg-gray-400 text-white",
-                      position === 3 && "bg-orange-700 text-white"
-                    )}
-                  >
-                    {position}
-                  </div>
-                ) : (
-                  <span className="text-base font-bold text-muted-foreground">
-                    {position}
-                  </span>
-                )}
-              </div>
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0",
+              isCurrentUser ? "bg-white/20 text-white" : getPositionColor(position)
+            )}>
+              {position}
+            </div>
 
-              <Avatar className="h-12 w-12 border-2 border-border">
-                <AvatarImage src={user.photoUrl || ""} />
-                <AvatarFallback className="bg-muted font-semibold">
-                  {user.username.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+            <Avatar className={cn(
+              "h-11 w-11 border-2 flex-shrink-0",
+              isCurrentUser ? "border-white/30" : "border-border"
+            )}>
+              <AvatarImage src={user.photoUrl || ""} />
+              <AvatarFallback className={cn(
+                "font-semibold",
+                isCurrentUser ? "bg-white/20 text-white" : "bg-muted"
+              )}>
+                {user.username.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={cn("font-bold truncate", isCurrentUser && "text-amber-500")}>
-                    {user.username}
-                  </p>
-                  {isCurrentUser && (
-                    <span className="text-xs text-muted-foreground">(Voce)</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Nivel {user.level}</span>
-                  <span className="text-muted-foreground/50">•</span>
-                  <span className="flex items-center gap-1">
-                    <Flame className="h-3 w-3 text-orange-500" />
-                    {user.currentStreak} dias
-                  </span>
-                </div>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "font-bold truncate",
+                isCurrentUser ? "text-white" : "text-foreground"
+              )}>
+                {user.username}
+                {isCurrentUser && " (Voce)"}
+              </p>
+              <p className={cn(
+                "text-xs",
+                isCurrentUser ? "text-white/70" : "text-muted-foreground"
+              )}>
+                Nivel {user.level} • {user.currentStreak} dias
+              </p>
+            </div>
 
-              <div className="text-right">
-                <p className="font-bold text-amber-500">{user.totalXp.toLocaleString()} XP</p>
-                {dailyXp > 0 && (
-                  <p className="text-xs text-green-500">+{dailyXp} hoje</p>
-                )}
-              </div>
-            </Card>
+            <div className="text-right flex-shrink-0">
+              <p className={cn(
+                "font-bold",
+                isCurrentUser ? "text-white" : getXpColor(position)
+              )}>
+                {user.totalXp.toLocaleString()} XP
+              </p>
+              <p className={cn(
+                "text-xs",
+                isCurrentUser ? "text-white/70" : "text-orange-500"
+              )}>
+                +{dailyXp} hoje
+              </p>
+            </div>
           </motion.div>
         );
       })}
@@ -200,29 +227,11 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
   );
 }
 
-function RecentAchievements({ streak }: { streak: number }) {
-  if (streak < 7) return null;
-
+function ConquistasRecentes() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mt-6"
-    >
-      <Card className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
-        <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500" />
-          Conquistas Recentes
-        </h3>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold">Sequencia de {streak} dias!</p>
-            <p className="text-sm text-muted-foreground">Continue assim para manter sua ofensiva</p>
-          </div>
-          <div className="text-amber-500 font-bold">+100 XP</div>
-        </div>
-      </Card>
-    </motion.div>
+    <div className="px-4 mt-6 mb-4">
+      <h3 className="font-bold text-lg">Conquistas Recentes</h3>
+    </div>
   );
 }
 
@@ -250,7 +259,7 @@ function EmptyState() {
 }
 
 export default function RankingPage() {
-  const [period, setPeriod] = useState("geral");
+  const [period, setPeriod] = useState("revista");
   const { user, isAuthenticated } = useAuth();
 
   const { data: geralData, isLoading: geralLoading } = useQuery<LeaderboardResponse>({
@@ -284,6 +293,8 @@ export default function RankingPage() {
   const entries = currentData?.entries || [];
 
   const currentUserEntry = entries.find((e) => e.userId === user?.id);
+  const currentPosition = currentUserEntry ? entries.findIndex((e) => e.userId === user?.id) + 1 : 0;
+  const currentUserXp = currentUserEntry?.totalXp || 0;
 
   if (isLoading) {
     return <LoadingState />;
@@ -292,14 +303,10 @@ export default function RankingPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
-          <div className="flex items-center justify-center gap-2 p-4">
-            <h1 className="font-bold text-xl">Ranking</h1>
-          </div>
-        </header>
-        <main className="max-w-lg mx-auto p-4">
+        <HeaderSection userPosition={0} userXp={0} />
+        <div className="bg-background -mt-4 rounded-t-3xl">
           <EmptyState />
-        </main>
+        </div>
         <BottomNav />
       </div>
     );
@@ -307,77 +314,45 @@ export default function RankingPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
-        <div className="flex items-center justify-center gap-2 p-4">
-          <h1 className="font-bold text-xl">Ranking</h1>
-        </div>
-      </header>
+      <HeaderSection userPosition={currentPosition} userXp={currentUserXp} />
+      
+      <TopThreePodium users={entries} />
 
-      <main className="max-w-lg mx-auto p-4">
-        <TopThreePodium users={entries} />
-
+      <div className="px-4 mb-4">
         <Tabs value={period} onValueChange={setPeriod} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 h-11 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-3 h-10 bg-muted/30 p-1 rounded-lg">
             <TabsTrigger
               value="geral"
-              className="font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="font-medium text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
               data-testid="tab-geral"
             >
               Geral
             </TabsTrigger>
             <TabsTrigger
               value="anual"
-              className="font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="font-medium text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
               data-testid="tab-anual"
             >
               Anual
             </TabsTrigger>
             <TabsTrigger
               value="revista"
-              className="font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="font-medium text-sm rounded-md data-[state=active]:bg-orange-500 data-[state=active]:text-white"
               data-testid="tab-revista"
             >
               Revista
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="geral" className="mt-0">
-            {entries.length > 0 ? (
-              <>
-                <RankingList users={entries} currentUserId={user?.id} />
-                {currentUserEntry && (
-                  <RecentAchievements streak={currentUserEntry.currentStreak} />
-                )}
-              </>
-            ) : (
-              <EmptyState />
-            )}
-          </TabsContent>
-
-          <TabsContent value="anual" className="mt-0">
-            {entries.length > 0 ? (
-              <>
-                <RankingList users={entries} currentUserId={user?.id} />
-                {currentUserEntry && (
-                  <RecentAchievements streak={currentUserEntry.currentStreak} />
-                )}
-              </>
-            ) : (
-              <EmptyState />
-            )}
-          </TabsContent>
-
-          <TabsContent value="revista" className="mt-0">
-            <div className="flex flex-col items-center justify-center py-16 px-4">
-              <Trophy className="h-16 w-16 text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-bold text-muted-foreground">Em breve</h3>
-              <p className="text-sm text-muted-foreground text-center mt-1">
-                O ranking por revista estara disponivel em breve
-              </p>
-            </div>
-          </TabsContent>
         </Tabs>
-      </main>
+      </div>
+
+      {entries.length > 0 ? (
+        <RankingList users={entries} currentUserId={user?.id} />
+      ) : (
+        <EmptyState />
+      )}
+
+      <ConquistasRecentes />
 
       <BottomNav />
     </div>

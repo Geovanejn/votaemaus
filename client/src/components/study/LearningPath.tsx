@@ -270,9 +270,9 @@ function LessonHeader({
   const shadowColor = isLocked ? "#CECECE" : showGolden ? "#CC8400" : "#CC7A00";
   
   return (
-    <div className="relative" style={{ height: 56 }}>
+    <div className="relative" style={{ minHeight: 56 }}>
       <div 
-        className="absolute inset-0 flex items-center"
+        className="flex items-center py-2"
         style={{
           background: bgGradient,
           borderRadius: "28px 12px 12px 28px",
@@ -296,14 +296,8 @@ function LessonHeader({
           )}
         </div>
         <div className="flex-1 px-3 min-w-0">
-          <span className={cn(
-            "text-[10px] font-bold uppercase tracking-wide",
-            isLocked ? "text-muted-foreground/50" : "text-white/70"
-          )}>
-            Licao {lessonNumber}
-          </span>
           <h3 className={cn(
-            "font-bold text-sm truncate",
+            "font-bold text-sm leading-tight",
             isLocked ? "text-muted-foreground/50" : "text-white"
           )}>
             {title}

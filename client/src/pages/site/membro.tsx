@@ -87,9 +87,17 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Effect to handle redirect after authentication state is confirmed
+  useEffect(() => {
+    if (shouldRedirect && isAuthenticated) {
+      setLocation("/admin");
+    }
+  }, [shouldRedirect, isAuthenticated, setLocation]);
 
   const emailForm = useForm<RequestCodeData>({
     resolver: zodResolver(requestCodeSchema),
@@ -194,7 +202,7 @@ function LoginForm() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
       
-      setLocation("/admin");
+      setShouldRedirect(true);
     } catch (error) {
       toast({
         title: "Erro ao verificar código",
@@ -227,7 +235,7 @@ function LoginForm() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
       
-      setLocation("/admin");
+      setShouldRedirect(true);
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
@@ -272,7 +280,7 @@ function LoginForm() {
       setShowSetPasswordDialog(false);
       setPendingUser(null);
       
-      setLocation("/admin");
+      setShouldRedirect(true);
     } catch (error) {
       toast({
         title: "Erro ao definir senha",

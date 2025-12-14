@@ -187,6 +187,7 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/verificar/:hash" component={VerifyPage} />
+        <Route path="/admin" component={AdminDashboard} />
         <Route path="/vote" component={VotePage} />
         <Route path="/results" component={ResultsPage} />
         <Route path="/study" component={StudyHomePage} />

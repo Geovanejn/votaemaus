@@ -119,45 +119,59 @@ async function logAuditAction(
 }
 import { PDFParse } from "pdf-parse";
 import Tesseract from "tesseract.js";
-import { createCanvas } from "canvas";
-import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 async function extractTextWithOCR(pdfBuffer: Buffer): Promise<string> {
-  console.log("[OCR] Starting OCR extraction from PDF using pdfjs-dist...");
+  console.log("[OCR] Starting OCR extraction from PDF using ImageMagick...");
+  
+  // Create temp directory for PDF and images
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-ocr-'));
+  const pdfPath = path.join(tempDir, 'input.pdf');
   
   try {
-    // Load PDF with pdfjs-dist
-    const data = new Uint8Array(pdfBuffer);
-    const loadingTask = pdfjs.getDocument({ data });
-    const pdfDoc = await loadingTask.promise;
-    const numPages = pdfDoc.numPages;
+    // Write PDF buffer to temp file
+    fs.writeFileSync(pdfPath, pdfBuffer);
+    console.log("[OCR] PDF saved to temp file:", pdfPath);
     
-    console.log("[OCR] PDF loaded successfully. Total pages:", numPages);
+    // Convert PDF to images using ImageMagick
+    const outputPattern = path.join(tempDir, 'page-%03d.png');
+    console.log("[OCR] Converting PDF pages to images with ImageMagick...");
+    
+    try {
+      await execAsync(`convert -density 200 "${pdfPath}" -quality 100 "${outputPattern}"`, {
+        timeout: 120000 // 2 minute timeout for large PDFs
+      });
+    } catch (convertError: any) {
+      console.error("[OCR] ImageMagick convert error:", convertError.message);
+      throw convertError;
+    }
+    
+    // Get list of generated images
+    const files = fs.readdirSync(tempDir)
+      .filter(f => f.startsWith('page-') && f.endsWith('.png'))
+      .sort();
+    
+    console.log("[OCR] Generated", files.length, "page images");
+    
+    if (files.length === 0) {
+      throw new Error("No images generated from PDF");
+    }
     
     let fullText = "";
-    const scale = 2.0; // Higher scale = better OCR quality
     
-    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-      console.log(`[OCR] Rendering page ${pageNum}/${numPages}...`);
+    for (let i = 0; i < files.length; i++) {
+      const imagePath = path.join(tempDir, files[i]);
+      console.log(`[OCR] Running OCR on page ${i + 1}/${files.length}...`);
       
       try {
-        const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale });
-        
-        // Create canvas for rendering
-        const canvas = createCanvas(viewport.width, viewport.height);
-        const context = canvas.getContext('2d');
-        
-        // Render the page to canvas
-        await page.render({
-          canvasContext: context as any,
-          viewport
-        }).promise;
-        
-        // Convert canvas to PNG buffer for Tesseract
-        const imageBuffer = canvas.toBuffer('image/png');
-        
-        console.log(`[OCR] Running OCR on page ${pageNum}...`);
+        // Read image file
+        const imageBuffer = fs.readFileSync(imagePath);
         
         // Process with Tesseract OCR
         const result = await Tesseract.recognize(imageBuffer, 'por', {
@@ -165,17 +179,17 @@ async function extractTextWithOCR(pdfBuffer: Buffer): Promise<string> {
             if (m.status === 'recognizing text') {
               const progress = Math.round(m.progress * 100);
               if (progress === 50 || progress === 100) {
-                console.log(`[OCR] Page ${pageNum} OCR progress: ${progress}%`);
+                console.log(`[OCR] Page ${i + 1} OCR progress: ${progress}%`);
               }
             }
           }
         });
         
         fullText += result.data.text + "\n\n";
-        console.log(`[OCR] Page ${pageNum} text extracted, length: ${result.data.text.length}`);
+        console.log(`[OCR] Page ${i + 1} text extracted, length: ${result.data.text.length}`);
         
       } catch (pageError) {
-        console.error(`[OCR] Error processing page ${pageNum}:`, pageError);
+        console.error(`[OCR] Error processing page ${i + 1}:`, pageError);
       }
     }
     
@@ -185,6 +199,18 @@ async function extractTextWithOCR(pdfBuffer: Buffer): Promise<string> {
   } catch (error) {
     console.error("[OCR] Error during OCR extraction:", error);
     throw error;
+  } finally {
+    // Cleanup temp files
+    try {
+      const files = fs.readdirSync(tempDir);
+      for (const file of files) {
+        fs.unlinkSync(path.join(tempDir, file));
+      }
+      fs.rmdirSync(tempDir);
+      console.log("[OCR] Cleaned up temp directory");
+    } catch (cleanupError) {
+      console.error("[OCR] Error cleaning up temp files:", cleanupError);
+    }
   }
 }
 

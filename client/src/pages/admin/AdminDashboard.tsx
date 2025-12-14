@@ -47,6 +47,22 @@ const adminPanels = [
     id: "emaus-vota",
     title: "Emaus Vota",
     subtitle: "Sistema de Eleicoes",
+    description: "Participe das eleicoes e acompanhe os resultados em tempo real.",
+    icon: Vote,
+    color: "from-green-500 to-emerald-600",
+    buttonColor: "bg-green-600 hover:bg-green-700",
+    href: "/vote",
+    features: [
+      "Votar em eleicoes ativas",
+      "Ver resultados",
+      "Acompanhar votacoes",
+    ],
+    forMember: true,
+  },
+  {
+    id: "emaus-vota-admin",
+    title: "Emaus Vota Admin",
+    subtitle: "Gerenciamento de Eleicoes",
     description: "Gerencie eleicoes, candidatos, membros e acompanhe votacoes em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",
@@ -58,6 +74,23 @@ const adminPanels = [
       "Controlar lista de presenca",
       "Historico de eleicoes",
     ],
+    forAdmin: true,
+  },
+  {
+    id: "deoglory-study",
+    title: "DeoGlory",
+    subtitle: "Plataforma de Estudos",
+    description: "Estude a Biblia de forma gamificada, ganhe conquistas e suba no ranking.",
+    icon: GraduationCap,
+    color: "from-blue-500 to-indigo-600",
+    buttonColor: "bg-blue-600 hover:bg-blue-700",
+    href: "/study",
+    features: [
+      "Estudos biblicos interativos",
+      "Conquistas e recompensas",
+      "Ranking entre membros",
+    ],
+    forMember: true,
   },
   {
     id: "espiritualidade",
@@ -73,6 +106,7 @@ const adminPanels = [
       "Moderar pedidos de oracao",
       "Gerenciar comentarios",
     ],
+    forSecretaria: "espiritualidade",
   },
   {
     id: "marketing",
@@ -88,11 +122,12 @@ const adminPanels = [
       "Editar membros da diretoria",
       "Gerenciar pagina Quem Somos",
     ],
+    forSecretaria: "marketing",
   },
   {
-    id: "deoglory",
+    id: "deoglory-admin",
     title: "DeoGlory Admin",
-    subtitle: "Estudos Biblicos",
+    subtitle: "Gerenciamento de Estudos",
     description: "Gerencie temporadas, licoes e conteudo do sistema de estudos gamificado.",
     icon: GraduationCap,
     color: "from-blue-500 to-indigo-600",
@@ -103,17 +138,29 @@ const adminPanels = [
       "Gerenciar conquistas",
       "Acompanhar progresso",
     ],
+    forAdmin: true,
   },
 ];
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
     logout();
     setLocation("/");
   };
+
+  const filteredPanels = adminPanels.filter((panel) => {
+    if (panel.forMember) return true;
+    if (panel.forAdmin && isAdmin) return true;
+    if (panel.forSecretaria === "espiritualidade" && hasEspiritualidadePanel) return true;
+    if (panel.forSecretaria === "marketing" && hasMarketingPanel) return true;
+    return false;
+  });
+
+  const pageTitle = isAdmin ? "Painel Administrativo" : "Meus Paineis";
+  const pageSubtitle = isAdmin ? "Escolha o sistema que deseja gerenciar" : "Acesse suas funcionalidades";
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,10 +175,10 @@ export default function AdminDashboard() {
               <Settings className="h-8 w-8" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="text-admin-title">
-              Painel Administrativo
+              {pageTitle}
             </h1>
             <p className="text-lg opacity-90 max-w-2xl mx-auto">
-              Escolha o sistema que deseja gerenciar
+              {pageSubtitle}
             </p>
           </motion.div>
         </div>
@@ -140,7 +187,7 @@ export default function AdminDashboard() {
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {adminPanels.map((panel) => (
+            {filteredPanels.map((panel) => (
               <StaggerItem key={panel.id}>
                 <motion.div
                   whileHover={{ y: -8 }}

@@ -10,6 +10,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isMember: boolean;
   isLoading: boolean;
+  hasEspiritualidadePanel: boolean;
+  hasMarketingPanel: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -100,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin: user?.isAdmin ?? false,
     isMember: user?.isMember ?? false,
     isLoading,
+    hasEspiritualidadePanel: user?.isAdmin || user?.secretaria === "espiritualidade",
+    hasMarketingPanel: user?.isAdmin || user?.secretaria === "marketing",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -93,6 +93,19 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 14/12/2025 - Nova Tela de Seleção de Painéis para Admin
+- **AdminDashboard**: Criada nova página de seleção de painéis para admins
+  - Admins agora veem uma tela com cards para todos os painéis disponíveis
+  - Painéis: Emaus Vota, Espiritualidade, Marketing, DeoGlory, Site Institucional
+  - Interface similar à experiência de membros com secretaria
+- **Rotas atualizadas**:
+  - `/admin` - Nova tela de seleção de painéis
+  - `/admin/emaus-vota` - Painel de gerenciamento de eleições (antigo /admin)
+  - `/admin/espiritualidade` - Painel de espiritualidade
+  - `/admin/marketing` - Painel de marketing
+  - `/admin/study` - Painel DeoGlory Admin
+  - `/admin/site` - Painel do Site Institucional
+
 ### 08/12/2025
 - Adicionada rota `/agenda/:id` para deep-linking de eventos
 - Botao "Ver Detalhes" do banner agora abre diretamente o dialog do evento

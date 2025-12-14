@@ -23,7 +23,8 @@ import OracaoPage from "@/pages/site/oracao";
 import MembroPage from "@/pages/site/membro";
 import PoliticaPrivacidadePage from "@/pages/site/politica-privacidade";
 
-const AdminPage = lazy(() => import("@/pages/admin"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminEmausVota = lazy(() => import("@/pages/admin"));
 const AdminSitePage = lazy(() => import("@/pages/admin/admin-site"));
 const EspiritualidadeDashboard = lazy(() => import("@/pages/admin/EspiritualidadeDashboard"));
 const EspiritualidadeDevocionais = lazy(() => import("@/pages/admin/EspiritualidadeDevocionais"));
@@ -130,7 +131,8 @@ function Router() {
       <Suspense fallback={<PageLoader />}>
         <Switch>
           <Route path="/verificar/:hash" component={VerifyPage} />
-          <Route path="/admin" component={AdminPage} />
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/emaus-vota" component={AdminEmausVota} />
           <Route path="/admin/study" component={StudyAdminPage} />
           <Route path="/admin/site" component={AdminSitePage} />
           <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

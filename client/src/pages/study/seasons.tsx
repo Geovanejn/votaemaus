@@ -4,18 +4,19 @@ import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   BookOpen, 
-  Trophy, 
   Lock, 
   Check, 
-  Star, 
-  ChevronRight,
   Loader2,
-  Calendar,
-  Flame,
-  Crown
+  Clock,
+  ArrowLeft,
+  MoreVertical,
+  Filter,
+  FileText,
+  Lightbulb,
+  Pen,
+  BookMarked
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -33,183 +34,279 @@ interface Season {
   endsAt: string | null;
 }
 
-interface UserSeasonProgress {
-  lessonsCompleted: number;
-  totalLessons: number;
-  xpEarned: number;
-  isMastered: boolean;
-  completedAt: string | null;
-}
-
-interface SeasonWithProgress extends Season {
-  userProgress?: UserSeasonProgress;
+interface Lesson {
+  id: number;
+  seasonId: number;
+  orderIndex: number;
+  lessonNumber: number;
+  title: string;
+  type: string;
+  description: string | null;
+  xpReward: number;
+  estimatedMinutes: number;
+  icon: string | null;
+  isBonus: boolean;
   isLocked: boolean;
-  rankPosition?: number;
+  status: string;
+  studyCompleted?: boolean;
+  meditationCompleted?: boolean;
+  quizCompleted?: boolean;
+  sectionsCompleted?: number;
+  totalSections?: number;
 }
 
-const seasonColors = [
-  { bg: "#FF9600", shadow: "#CC7700", accent: "#FFB347" },
-  { bg: "#58CC02", shadow: "#46A302", accent: "#7EE03D" },
-  { bg: "#1CB0F6", shadow: "#1899D6", accent: "#5CC8F8" },
-  { bg: "#A560E8", shadow: "#8A4DC7", accent: "#C090F0" },
-  { bg: "#FF4B4B", shadow: "#CC3B3B", accent: "#FF7070" },
-  { bg: "#FFC800", shadow: "#CC9F00", accent: "#FFD633" },
-];
-
-function getSeasonColor(index: number) {
-  return seasonColors[index % seasonColors.length];
+interface SeasonDetail {
+  season: Season;
+  lessons: Lesson[];
+  userProgress?: {
+    lessonsCompleted: number;
+    totalLessons: number;
+    xpEarned: number;
+    isMastered: boolean;
+    completedAt: string | null;
+  };
 }
 
-function SeasonCard({ 
-  season, 
-  index,
-  onClick 
+function ActionButton({ 
+  icon: Icon, 
+  label, 
+  completed, 
+  disabled,
+  onClick
 }: { 
-  season: SeasonWithProgress; 
+  icon: typeof FileText; 
+  label: string; 
+  completed: boolean;
+  disabled: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all flex-1 min-w-0",
+        completed 
+          ? "border-2 border-emerald-500 bg-white dark:bg-gray-900" 
+          : disabled 
+            ? "border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-60" 
+            : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+      )}
+      data-testid={`button-action-${label.toLowerCase()}`}
+    >
+      <div className={cn(
+        "w-8 h-8 rounded-lg flex items-center justify-center",
+        completed 
+          ? "bg-emerald-50 dark:bg-emerald-900/30" 
+          : disabled 
+            ? "bg-gray-100 dark:bg-gray-800" 
+            : "bg-indigo-50 dark:bg-indigo-900/30"
+      )}>
+        {disabled ? (
+          <Lock className="h-4 w-4 text-gray-400" />
+        ) : (
+          <Icon className={cn(
+            "h-4 w-4",
+            completed 
+              ? "text-emerald-600 dark:text-emerald-400" 
+              : "text-indigo-600 dark:text-indigo-400"
+          )} />
+        )}
+      </div>
+      <span className={cn(
+        "text-xs font-medium",
+        completed 
+          ? "text-emerald-600 dark:text-emerald-400" 
+          : disabled 
+            ? "text-gray-400" 
+            : "text-gray-700 dark:text-gray-300"
+      )}>
+        {label}
+      </span>
+      {completed && (
+        <Check className="h-3 w-3 text-emerald-500" />
+      )}
+    </button>
+  );
+}
+
+function LessonCard({ 
+  lesson, 
+  index,
+  onClick,
+  previousCompleted
+}: { 
+  lesson: Lesson; 
   index: number;
   onClick: () => void;
+  previousCompleted: boolean;
 }) {
-  const color = getSeasonColor(index);
-  const progress = season.userProgress 
-    ? (season.userProgress.lessonsCompleted / season.userProgress.totalLessons) * 100 
-    : 0;
-  const isCompleted = season.userProgress?.lessonsCompleted === season.totalLessons && season.totalLessons > 0;
-  const isMastered = season.userProgress?.isMastered;
+  const isCompleted = lesson.status === 'completed';
+  const isInProgress = lesson.status === 'in_progress' || (previousCompleted && !isCompleted && !lesson.isLocked);
+  const isLocked = lesson.isLocked || (!previousCompleted && !isCompleted);
+  
+  const sectionsCompleted = lesson.sectionsCompleted || 0;
+  const totalSections = lesson.totalSections || 3;
+  
+  const studyDone = lesson.studyCompleted || isCompleted;
+  const meditationDone = lesson.meditationCompleted || isCompleted;
+  const quizDone = lesson.quizCompleted || isCompleted;
+
+  const getXpDisplay = () => {
+    if (isCompleted) return `+${lesson.xpReward} XP`;
+    if (isInProgress) return `+${Math.floor(lesson.xpReward * 0.66)} XP`;
+    return `${lesson.xpReward} XP`;
+  };
+
+  const getXpColor = () => {
+    if (isCompleted) return "text-emerald-500";
+    if (isInProgress) return "text-purple-500";
+    return "text-gray-400";
+  };
 
   return (
-    <motion.button
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      whileHover={!season.isLocked ? { scale: 1.02, y: -2 } : undefined}
-      whileTap={!season.isLocked ? { scale: 0.98 } : undefined}
-      onClick={!season.isLocked ? onClick : undefined}
-      disabled={season.isLocked}
-      className={cn(
-        "w-full text-left rounded-2xl overflow-hidden transition-all",
-        season.isLocked && "opacity-60 cursor-not-allowed"
-      )}
-      data-testid={`season-card-${season.id}`}
+      transition={{ delay: index * 0.05 }}
+      className="relative"
     >
-      <Card className="overflow-hidden border-2">
-        <div 
-          className="p-4 relative"
-          style={{
-            background: season.isLocked 
-              ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)'
-              : isMastered
-                ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
-                : `linear-gradient(135deg, ${color.bg} 0%, ${color.accent} 100%)`,
-          }}
-        >
-          {isMastered && (
-            <motion.div 
-              className="absolute top-2 right-2"
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Crown className="h-8 w-8 text-white drop-shadow-lg" />
-            </motion.div>
-          )}
-          
-          {season.isLocked && (
-            <div className="absolute top-2 right-2">
-              <Lock className="h-6 w-6 text-white/70" />
-            </div>
-          )}
-
+      {index > 0 && (
+        <div className={cn(
+          "absolute left-6 -top-3 w-0.5 h-3",
+          isLocked ? "bg-gray-200 dark:bg-gray-700" : "bg-emerald-400"
+        )} />
+      )}
+      
+      <Card className={cn(
+        "overflow-hidden transition-all bg-white dark:bg-gray-900 shadow-sm",
+        isLocked 
+          ? "border-gray-200 dark:border-gray-700" 
+          : isCompleted 
+            ? "border-emerald-100 dark:border-emerald-900/50" 
+            : isInProgress
+              ? "border-purple-100 dark:border-purple-900/50"
+              : "border-border"
+      )} data-testid={`lesson-card-${lesson.id}`}>
+        <div className="p-4">
           <div className="flex items-start gap-3">
-            <div 
-              className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center bg-white/20"
-              style={{ boxShadow: `0 4px 0 0 ${season.isLocked ? '#4B5563' : color.shadow}` }}
-            >
-              {season.isLocked ? (
-                <Lock className="h-7 w-7 text-white/70" />
-              ) : isCompleted ? (
-                <Trophy className="h-7 w-7 text-white" />
+            <div className={cn(
+              "flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center",
+              isCompleted 
+                ? "bg-emerald-500" 
+                : isInProgress 
+                  ? "bg-purple-500"
+                  : "bg-gray-200 dark:bg-gray-700"
+            )}>
+              {isCompleted ? (
+                <Check className="h-5 w-5 text-white stroke-[3]" />
               ) : (
-                <BookOpen className="h-7 w-7 text-white" />
+                <span className={cn(
+                  "text-base font-bold",
+                  isLocked ? "text-gray-400" : "text-white"
+                )}>
+                  {lesson.lessonNumber}
+                </span>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-lg text-white truncate">
-                {season.title}
-              </h3>
-              {season.subtitle && (
-                <p className="text-sm text-white/80 truncate">
-                  {season.subtitle}
-                </p>
-              )}
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge 
-                  variant="secondary" 
-                  className="bg-white/20 text-white border-0 text-xs"
-                >
-                  {season.totalLessons} lições
-                </Badge>
-                {season.userProgress && season.userProgress.xpEarned > 0 && (
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-white/20 text-white border-0 text-xs"
-                  >
-                    <Flame className="h-3 w-3 mr-1" />
-                    {season.userProgress.xpEarned} XP
-                  </Badge>
-                )}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className={cn(
+                    "text-xs font-semibold uppercase tracking-wide block",
+                    isCompleted 
+                      ? "text-emerald-600 dark:text-emerald-400" 
+                      : isInProgress 
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-gray-400"
+                  )}>
+                    LICAO {lesson.lessonNumber}
+                  </span>
+                  <span className={cn(
+                    "text-xs font-medium",
+                    isCompleted 
+                      ? "text-emerald-600 dark:text-emerald-400" 
+                      : isInProgress 
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-gray-400"
+                  )}>
+                    {isCompleted ? "Completa" : isInProgress ? "Em Progresso" : "Bloqueada"}
+                  </span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className={cn("text-sm font-bold", getXpColor())}>
+                    {getXpDisplay()}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {sectionsCompleted}/{totalSections} secoes
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-4 bg-card">
-          {season.userProgress ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Progresso
-                </span>
-                <span className="text-sm font-bold" style={{ color: season.isLocked ? '#6B7280' : color.bg }}>
-                  {season.userProgress.lessonsCompleted}/{season.userProgress.totalLessons}
-                </span>
-              </div>
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.6, delay: index * 0.08 + 0.2 }}
-                  className="h-full rounded-full"
-                  style={{ 
-                    backgroundColor: season.isLocked ? '#9CA3AF' : isMastered ? '#FFD700' : color.bg 
-                  }}
-                />
-              </div>
-              {isCompleted && !isMastered && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-500" />
-                  Complete o desafio final para dominar!
-                </p>
-              )}
-              {isMastered && (
-                <p className="text-xs font-bold flex items-center gap-1" style={{ color: '#FFD700' }}>
-                  <Crown className="h-3 w-3" />
-                  Temporada dominada!
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {season.isLocked ? 'Complete a temporada anterior' : 'Comece agora!'}
-              </span>
-              {!season.isLocked && (
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              )}
-            </div>
+          <div className="mt-3">
+            <h3 className={cn(
+              "font-bold text-base",
+              isLocked ? "text-gray-400" : "text-foreground"
+            )}>
+              {lesson.title}
+            </h3>
+            {lesson.description && (
+              <p className={cn(
+                "text-sm mt-1 line-clamp-2",
+                isLocked ? "text-gray-300 dark:text-gray-600" : "text-muted-foreground"
+              )}>
+                {lesson.description}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <ActionButton
+              icon={FileText}
+              label="Estude"
+              completed={studyDone}
+              disabled={isLocked}
+              onClick={!isLocked ? onClick : undefined}
+            />
+            <ActionButton
+              icon={Lightbulb}
+              label="Medite"
+              completed={meditationDone}
+              disabled={isLocked || !studyDone}
+            />
+            <ActionButton
+              icon={Pen}
+              label="Responda"
+              completed={quizDone}
+              disabled={isLocked || !meditationDone}
+            />
+          </div>
+
+          {isInProgress && !isLocked && (
+            <Button
+              onClick={onClick}
+              className="w-full mt-4 font-bold text-white rounded-xl h-12"
+              style={{ 
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                boxShadow: '0 4px 0 0 #6d28d9' 
+              }}
+              data-testid="button-continue-lesson"
+            >
+              Continuar Licao
+            </Button>
           )}
         </div>
       </Card>
-    </motion.button>
+
+      {isLocked && (
+        <p className="text-xs text-center text-muted-foreground mt-2">
+          Complete a Licao {lesson.lessonNumber - 1} para desbloquear
+        </p>
+      )}
+    </motion.div>
   );
 }
 
@@ -217,8 +314,8 @@ function LoadingState() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center" data-testid="seasons-loading">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-[#FFA500]" />
-        <p className="text-muted-foreground">Carregando temporadas...</p>
+        <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
+        <p className="text-muted-foreground">Carregando estudos...</p>
       </div>
     </div>
   );
@@ -230,7 +327,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <div className="text-center max-w-sm">
         <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
         <p className="text-muted-foreground mb-4">
-          Não foi possível carregar as temporadas. Por favor, tente novamente.
+          Nao foi possivel carregar os estudos. Por favor, tente novamente.
         </p>
         <Button onClick={onRetry} data-testid="button-retry">
           Tentar novamente
@@ -252,75 +349,184 @@ function EmptyState() {
       >
         <BookOpen className="h-12 w-12 text-muted-foreground" />
       </motion.div>
-      <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma temporada disponível</h2>
+      <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma temporada disponivel</h2>
       <p className="text-muted-foreground mb-4">
-        As temporadas de estudo serão liberadas em breve. Enquanto isso, continue estudando as lições da semana!
+        As temporadas de estudo serao liberadas em breve. Enquanto isso, continue estudando as licoes da semana!
       </p>
-      <Button onClick={() => setLocation('/study')} data-testid="button-go-to-study">
+      <Button 
+        onClick={() => setLocation('/study')} 
+        className="font-bold"
+        style={{ 
+          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+          boxShadow: '0 4px 0 0 #c2410c' 
+        }}
+        data-testid="button-go-to-study"
+      >
         Ir para Estudos
       </Button>
     </div>
   );
 }
 
-function CurrentSeasonBanner({ season }: { season: SeasonWithProgress }) {
-  const [, setLocation] = useLocation();
-  const progress = season.userProgress 
-    ? (season.userProgress.lessonsCompleted / season.userProgress.totalLessons) * 100 
+function SeasonContent({ 
+  season, 
+  lessons, 
+  userProgress,
+  onBack,
+  onLessonClick
+}: { 
+  season: Season;
+  lessons: Lesson[];
+  userProgress?: SeasonDetail['userProgress'];
+  onBack: () => void;
+  onLessonClick: (lessonId: number) => void;
+}) {
+  const progress = userProgress 
+    ? Math.round((userProgress.lessonsCompleted / userProgress.totalLessons) * 100)
     : 0;
 
+  const completedCount = lessons.filter(l => l.status === 'completed').length;
+  const inProgressCount = lessons.filter(l => l.status === 'in_progress').length;
+  const lockedCount = lessons.filter(l => l.isLocked || l.status === 'locked').length;
+
+  const estimatedTotalMinutes = lessons.reduce((acc, l) => acc + (l.estimatedMinutes || 45), 0);
+  const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mx-4 mb-4"
-    >
-      <Card 
-        className="overflow-hidden border-2 border-[#FFA500]/30 cursor-pointer"
-        onClick={() => setLocation(`/study/season/${season.id}`)}
-        data-testid="card-current-season"
+    <>
+      <header 
+        className="sticky top-0 z-50"
+        style={{
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+        }}
       >
-        <div 
-          className="p-5"
-          style={{
-            background: 'linear-gradient(135deg, #FFA500 0%, #FFD700 100%)',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="h-5 w-5 text-white" />
-            <span className="text-sm font-bold text-white/90" data-testid="text-season-label">Temporada Atual</span>
-          </div>
-          <h2 className="text-xl font-black text-white mb-1" data-testid="text-season-title">{season.title}</h2>
-          {season.subtitle && (
-            <p className="text-sm text-white/80" data-testid="text-season-subtitle">{season.subtitle}</p>
-          )}
-        </div>
-        
-        <div className="p-4 bg-card">
-          <div className="flex items-center justify-between mb-2 gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Seu progresso</span>
-            <span className="text-sm font-bold text-[#FFA500]" data-testid="text-season-progress">
-              {season.userProgress?.lessonsCompleted || 0}/{season.totalLessons} lições
-            </span>
-          </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden mb-3">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.8 }}
-              className="h-full rounded-full bg-[#FFA500]"
-            />
-          </div>
-          <Button
-            className="w-full font-bold bg-[#FFA500] hover:bg-[#E69500] text-white"
-            style={{ boxShadow: '0 4px 0 0 #CC7700' }}
-            data-testid="button-continue-season"
+        <div className="flex items-center justify-between px-4 py-3">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onBack}
+            className="text-white hover:bg-white/20"
+            data-testid="button-back"
           >
-            CONTINUAR
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="font-bold text-lg text-white">Estudos</h1>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20"
+            data-testid="button-menu"
+          >
+            <MoreVertical className="h-5 w-5" />
           </Button>
         </div>
-      </Card>
-    </motion.div>
+      </header>
+
+      <main className="max-w-lg mx-auto">
+        <div 
+          className="px-5 pt-5 pb-8"
+          style={{
+            background: 'linear-gradient(180deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
+          }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+              <BookMarked className="h-5 w-5 text-white" />
+            </div>
+            <span 
+              className="text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: '#a3e635', color: '#365314' }}
+            >
+              Trimestre 2024
+            </span>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>
+          <p className="text-white/80 text-sm mb-5">
+            {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
+          </p>
+          
+          <div className="flex items-center gap-5 text-white/90 text-sm">
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="h-4 w-4" />
+              <span>{season.totalLessons} Licoes</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
+              <span>~{avgMinutesPerLesson} min cada</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 -mt-5">
+          <Card className="p-5 shadow-lg bg-white dark:bg-gray-900 border-0">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-foreground">Seu Progresso</span>
+              <span className="text-xl font-bold text-emerald-500" data-testid="text-progress-percent">{progress}%</span>
+            </div>
+            
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.8 }}
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }}
+              />
+            </div>
+
+            <div className="flex items-center justify-around text-center">
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{completedCount}</p>
+                <p className="text-xs text-muted-foreground">Completas</p>
+              </div>
+              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{inProgressCount}</p>
+                <p className="text-xs text-muted-foreground">Em Progresso</p>
+              </div>
+              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-locked-count">{lockedCount}</p>
+                <p className="text-xs text-muted-foreground">Bloqueadas</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="px-4 mt-6">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <h3 className="font-bold text-lg text-foreground">Todas as Licoes</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-purple-600 dark:text-purple-400 gap-1.5 font-medium" 
+              data-testid="button-filter"
+            >
+              <Filter className="h-4 w-4" />
+              Filtrar
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {lessons.map((lesson, index) => {
+              const previousLesson = lessons[index - 1];
+              const previousCompleted = index === 0 || previousLesson?.status === 'completed';
+              
+              return (
+                <LessonCard
+                  key={lesson.id}
+                  lesson={lesson}
+                  index={index}
+                  onClick={() => onLessonClick(lesson.id)}
+                  previousCompleted={previousCompleted}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </main>
+    </>
   );
 }
 
@@ -328,80 +534,80 @@ export default function SeasonsPage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  const { data: seasons, isLoading, error, refetch } = useQuery<Season[]>({
+  const { data: seasons, isLoading: seasonsLoading, error: seasonsError, refetch: refetchSeasons } = useQuery<Season[]>({
     queryKey: ['/api/study/seasons'],
     enabled: isAuthenticated,
   });
 
-  if (authLoading || isLoading) {
+  const currentSeason = seasons?.[0];
+
+  const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetail>({
+    queryKey: ['/api/study/seasons', currentSeason?.id?.toString()],
+    enabled: isAuthenticated && !!currentSeason?.id,
+  });
+
+  const isLoading = authLoading || seasonsLoading || (currentSeason && detailLoading);
+
+  const handleBack = () => {
+    setLocation('/study');
+  };
+
+  const handleLessonClick = (lessonId: number) => {
+    setLocation(`/study/lesson/${lessonId}`);
+  };
+
+  if (isLoading) {
     return <LoadingState />;
   }
 
-  if (error) {
-    return <ErrorState onRetry={refetch} />;
+  if (seasonsError) {
+    return <ErrorState onRetry={refetchSeasons} />;
   }
 
-  const seasonsWithProgress: SeasonWithProgress[] = (seasons || []).map((season, index) => ({
-    ...season,
-    isLocked: false,
-    userProgress: undefined,
-    rankPosition: undefined,
-  }));
-
-  const currentSeason = seasonsWithProgress.find(s => !s.isLocked && (!s.userProgress || s.userProgress.lessonsCompleted < s.totalLessons));
-  const otherSeasons = seasonsWithProgress.filter(s => s.id !== currentSeason?.id);
+  const hasSeasons = seasons && seasons.length > 0;
 
   return (
-    <div className="min-h-screen bg-background pb-24" data-testid="seasons-page">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
-        <div className="flex items-center justify-center gap-2 p-4">
-          <BookOpen className="h-6 w-6 text-[#FFA500]" />
-          <h1 className="font-black text-xl">Estudos</h1>
-        </div>
-      </header>
-
-      <main className="max-w-lg mx-auto py-4">
-        {seasonsWithProgress.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            {currentSeason && <CurrentSeasonBanner season={currentSeason} />}
-            
-            <div className="px-4 space-y-4">
-              {otherSeasons.length > 0 && (
-                <div>
-                  <h2 className="font-bold text-lg text-foreground mb-4">
-                    {currentSeason ? 'Outras Temporadas' : 'Todas as Temporadas'}
-                  </h2>
-                  <div className="space-y-4">
-                    {otherSeasons.map((season, index) => (
-                      <SeasonCard
-                        key={season.id}
-                        season={season}
-                        index={index}
-                        onClick={() => setLocation(`/study/season/${season.id}`)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!currentSeason && seasonsWithProgress.length > 0 && (
-                <div className="space-y-4">
-                  {seasonsWithProgress.map((season, index) => (
-                    <SeasonCard
-                      key={season.id}
-                      season={season}
-                      index={index}
-                      onClick={() => setLocation(`/study/season/${season.id}`)}
-                    />
-                  ))}
-                </div>
-              )}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="seasons-page">
+      {hasSeasons && seasonDetail ? (
+        <SeasonContent 
+          season={seasonDetail.season}
+          lessons={seasonDetail.lessons}
+          userProgress={seasonDetail.userProgress}
+          onBack={handleBack}
+          onLessonClick={handleLessonClick}
+        />
+      ) : (
+        <>
+          <header 
+            className="sticky top-0 z-50"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+            }}
+          >
+            <div className="flex items-center justify-between px-4 py-3">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleBack}
+                className="text-white hover:bg-white/20"
+                data-testid="button-back"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="font-bold text-lg text-white">Estudos</h1>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20"
+                data-testid="button-menu"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
             </div>
-          </>
-        )}
-      </main>
+          </header>
+          <EmptyState />
+        </>
+      )}
 
       <BottomNav />
     </div>

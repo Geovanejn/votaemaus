@@ -194,9 +194,7 @@ function LoginForm() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
       
-      if (result.user.isAdmin) {
-        setLocation("/admin");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao verificar código",
@@ -229,9 +227,7 @@ function LoginForm() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
       
-      if (result.user.isAdmin) {
-        setLocation("/admin");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
@@ -276,9 +272,7 @@ function LoginForm() {
       setShowSetPasswordDialog(false);
       setPendingUser(null);
       
-      if (updatedUser.isAdmin) {
-        setLocation("/admin");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao definir senha",
@@ -775,11 +769,11 @@ function SystemsSelection() {
 }
 
 export default function MembroPage() {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect admin users to admin panel
-  if (isAuthenticated && isAdmin && !isLoading) {
+  // Redirect all authenticated users to admin panel
+  if (isAuthenticated && !isLoading) {
     setLocation("/admin");
     return null;
   }

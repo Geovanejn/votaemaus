@@ -27,6 +27,7 @@ import {
   Eye,
   Trash2,
   MoreVertical,
+  Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -343,12 +344,12 @@ export default function DeoGloryEstudos() {
                     <Button
                       variant="default"
                       className="flex-1 bg-violet-600 hover:bg-violet-700"
-                      onClick={() => openUploadModal(season)}
+                      onClick={() => navigate(`/admin/study/revista/${season.id}`)}
                       disabled={season.status === "processing"}
-                      data-testid={`button-upload-pdf-${season.id}`}
+                      data-testid={`button-gerenciar-${season.id}`}
                     >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload PDF
+                      <Settings className="h-4 w-4 mr-2" />
+                      Gerenciar
                     </Button>
                     <Button
                       variant="ghost"

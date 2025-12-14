@@ -1199,3 +1199,198 @@ Responda APENAS em formato JSON:
     return null;
   }
 }
+
+export interface ExtractedLessonFromPDF {
+  title: string;
+  baseVerse: string;
+  baseVerseReference: string;
+  topics: Array<{
+    title: string;
+    summary: string;
+    originalContent: string;
+  }>;
+  studyContent: GeneratedUnit[];
+  meditationContent: GeneratedUnit[];
+  questions: GeneratedUnit[];
+}
+
+export async function generateLessonFromPDFExact(
+  pdfText: string,
+  geminiKey: string = "1"
+): Promise<ExtractedLessonFromPDF> {
+  const systemPrompt = `Você é um especialista em educação cristã reformada. Sua tarefa é extrair e processar o conteúdo de uma lição bíblica de um PDF.
+
+REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
+1. O NOME DA LIÇÃO deve ser EXATAMENTE igual ao do PDF. NÃO altere, NÃO parafraseie, NÃO traduza.
+2. Os TÍTULOS DOS TÓPICOS devem ser EXATAMENTE iguais ao do PDF. NÃO altere, NÃO parafraseie.
+3. O VERSÍCULO BASE deve ser extraído exatamente como está no PDF.
+4. Use EXCLUSIVAMENTE a versão ARA (Almeida Revista e Atualizada) para citações bíblicas.
+
+ESTRUTURA DE EXTRAÇÃO:
+1. Identifique e extraia o nome/título principal da lição EXATAMENTE como aparece
+2. Identifique o versículo base com sua referência
+3. Identifique TODOS os tópicos/seções da lição com seus títulos EXATOS
+4. Para cada tópico, faça um resumo do conteúdo para a seção "Estude"
+5. Extraia aplicações práticas e meditações para a seção "Medite"
+6. Gere EXATAMENTE 5 perguntas para a seção "Responda"
+
+IMPORTANTE - ORTOGRAFIA E ACENTUAÇÃO:
+- Use SEMPRE português brasileiro correto com acentuação apropriada.
+- Use "é", "á", "ã", "ç", "ê", "í", "ó", "ú" corretamente.
+
+IMPORTANTE - MEDITAÇÃO CRISTÃ:
+A meditação cristã é DIFERENTE da meditação oriental. NÃO inclua:
+- "Respire fundo", técnicas de respiração, mindfulness
+A meditação cristã DEVE incluir:
+- Reflexão sobre a Palavra de Deus
+- Oração direcionada ao Senhor
+- Aplicação prática do texto bíblico
+
+REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
+- TODAS as 4 alternativas devem ser PLAUSÍVEIS
+- As alternativas devem ter TAMANHOS SIMILARES
+- NUNCA use alternativas obviamente erradas
+- VARIE a posição da resposta correta (não sempre A ou B)
+
+Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
+
+  const userPrompt = `Analise o seguinte texto de uma lição bíblica extraído de um PDF e gere o conteúdo estruturado:
+
+TEXTO DO PDF:
+${pdfText}
+
+Retorne um JSON com a seguinte estrutura:
+{
+  "title": "TÍTULO EXATO DA LIÇÃO (como está no PDF, não altere)",
+  "baseVerse": "Texto completo do versículo base na versão ARA",
+  "baseVerseReference": "Referência do versículo (ex: João 3:16)",
+  "topics": [
+    {
+      "title": "TÍTULO EXATO DO TÓPICO (como está no PDF, não altere)",
+      "summary": "Resumo do conteúdo do tópico para estudo (mínimo 100 palavras)",
+      "originalContent": "Conteúdo original extraído do PDF para referência"
+    }
+  ],
+  "studyContent": [
+    {
+      "type": "verse",
+      "stage": "estude",
+      "content": {
+        "title": "Versículo Base",
+        "body": "Texto do versículo na ARA",
+        "highlight": "Referência bíblica"
+      },
+      "xpValue": 5
+    },
+    {
+      "type": "text",
+      "stage": "estude",
+      "content": {
+        "title": "TÍTULO EXATO DO TÓPICO",
+        "body": "Resumo explicativo do tópico (mínimo 100 palavras)",
+        "highlight": "Frase-chave para destacar (opcional)"
+      },
+      "xpValue": 5
+    }
+  ],
+  "meditationContent": [
+    {
+      "type": "reflection",
+      "stage": "medite",
+      "content": {
+        "title": "Aplicação Prática",
+        "body": "Como aplicar este ensino na vida diária",
+        "reflectionPrompt": "Pergunta para reflexão pessoal"
+      },
+      "xpValue": 5
+    },
+    {
+      "type": "meditation",
+      "stage": "medite",
+      "content": {
+        "title": "Meditação na Palavra",
+        "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.",
+        "meditationDuration": 60
+      },
+      "xpValue": 5
+    }
+  ],
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "stage": "responda",
+      "content": {
+        "question": "Pergunta sobre o conteúdo",
+        "options": ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
+        "correctIndex": 0,
+        "explanationCorrect": "Explicação quando acertar",
+        "explanationIncorrect": "Explicação quando errar"
+      },
+      "xpValue": 10
+    },
+    {
+      "type": "true_false",
+      "stage": "responda",
+      "content": {
+        "statement": "Afirmação para julgar",
+        "isTrue": true,
+        "explanationCorrect": "Explicação",
+        "explanationIncorrect": "Explicação"
+      },
+      "xpValue": 10
+    },
+    {
+      "type": "fill_blank",
+      "stage": "responda",
+      "content": {
+        "question": "Frase completa com ___ para completar",
+        "correctAnswer": "palavra",
+        "explanationCorrect": "Explicação",
+        "explanationIncorrect": "Explicação"
+      },
+      "xpValue": 10
+    }
+  ]
+}
+
+ESTRUTURA OBRIGATÓRIA:
+1. ESTUDE: 1 versículo base + 1 unidade "text" para CADA tópico do PDF
+2. MEDITE: NO MÍNIMO 3 unidades (reflexões e aplicações práticas)
+3. RESPONDA: EXATAMENTE 5 perguntas (misture múltipla escolha, verdadeiro/falso, complete a frase)
+
+LEMBRE-SE:
+- O título da lição e os títulos dos tópicos devem ser IDÊNTICOS ao PDF
+- Não altere, não parafraseie, não corrija erros do título original
+- Se o PDF tiver "A Forca da Oracao", mantenha exatamente assim
+
+Retorne APENAS o JSON, sem explicações adicionais.`;
+
+  try {
+    const content = await generateWithGemini(systemPrompt, userPrompt, geminiKey);
+    if (!content) {
+      throw new Error("Resposta vazia da IA");
+    }
+
+    const parsed = safeJsonParse(content) as ExtractedLessonFromPDF;
+    
+    if (parsed.studyContent) {
+      parsed.studyContent = parsed.studyContent.map(unit => validateAndCleanUnit(unit, unit.type));
+    }
+    if (parsed.meditationContent) {
+      parsed.meditationContent = parsed.meditationContent.map(unit => validateAndCleanUnit(unit, unit.type));
+    }
+    if (parsed.questions) {
+      parsed.questions = parsed.questions.map(unit => {
+        if (unit.type === 'multiple_choice') {
+          unit.content = randomizeMultipleChoiceAnswer(unit.content);
+        }
+        return validateAndCleanUnit(unit, unit.type);
+      });
+    }
+    
+    return parsed;
+  } catch (error) {
+    console.error("Erro ao gerar lição do PDF:", error);
+    throw new Error(`Falha ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+  }
+}

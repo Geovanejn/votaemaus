@@ -118,25 +118,114 @@ async function logAuditAction(
   }
 }
 import { PDFParse } from "pdf-parse";
+import Tesseract from "tesseract.js";
+import { createCanvas } from "canvas";
+import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+
+async function extractTextWithOCR(pdfBuffer: Buffer): Promise<string> {
+  console.log("[OCR] Starting OCR extraction from PDF using pdfjs-dist...");
+  
+  try {
+    // Load PDF with pdfjs-dist
+    const data = new Uint8Array(pdfBuffer);
+    const loadingTask = pdfjs.getDocument({ data });
+    const pdfDoc = await loadingTask.promise;
+    const numPages = pdfDoc.numPages;
+    
+    console.log("[OCR] PDF loaded successfully. Total pages:", numPages);
+    
+    let fullText = "";
+    const scale = 2.0; // Higher scale = better OCR quality
+    
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      console.log(`[OCR] Rendering page ${pageNum}/${numPages}...`);
+      
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+        
+        // Create canvas for rendering
+        const canvas = createCanvas(viewport.width, viewport.height);
+        const context = canvas.getContext('2d');
+        
+        // Render the page to canvas
+        await page.render({
+          canvasContext: context as any,
+          viewport
+        }).promise;
+        
+        // Convert canvas to PNG buffer for Tesseract
+        const imageBuffer = canvas.toBuffer('image/png');
+        
+        console.log(`[OCR] Running OCR on page ${pageNum}...`);
+        
+        // Process with Tesseract OCR
+        const result = await Tesseract.recognize(imageBuffer, 'por', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              const progress = Math.round(m.progress * 100);
+              if (progress === 50 || progress === 100) {
+                console.log(`[OCR] Page ${pageNum} OCR progress: ${progress}%`);
+              }
+            }
+          }
+        });
+        
+        fullText += result.data.text + "\n\n";
+        console.log(`[OCR] Page ${pageNum} text extracted, length: ${result.data.text.length}`);
+        
+      } catch (pageError) {
+        console.error(`[OCR] Error processing page ${pageNum}:`, pageError);
+      }
+    }
+    
+    console.log("[OCR] OCR extraction complete, total text length:", fullText.length);
+    return fullText;
+    
+  } catch (error) {
+    console.error("[OCR] Error during OCR extraction:", error);
+    throw error;
+  }
+}
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   console.log("[PDF Parser] Starting PDF extraction, buffer size:", buffer.length);
   const parser = new PDFParse({ data: buffer });
+  let textResult = "";
+  
   try {
     const result = await parser.getText();
-    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", result.text?.length || 0);
-    if (!result.text || result.text.trim().length === 0) {
-      console.log("[PDF Parser] Warning: No text extracted from PDF. The PDF may contain only images/scanned content.");
+    textResult = result.text || "";
+    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", textResult.length);
+    
+    if (textResult.trim().length < 100) {
+      console.log("[PDF Parser] Insufficient text extracted. PDF may contain scanned images. Attempting OCR...");
     } else {
-      console.log("[PDF Parser] First 500 chars:", result.text.substring(0, 500));
+      console.log("[PDF Parser] Text extraction successful. First 500 chars:", textResult.substring(0, 500));
+      return { text: textResult };
     }
-    return { text: result.text || "" };
   } catch (error) {
-    console.error("[PDF Parser] Error extracting text:", error);
-    throw error;
+    console.error("[PDF Parser] Error extracting text with pdf-parse:", error);
   } finally {
     await parser.destroy();
   }
+  
+  // If text extraction failed or returned insufficient content, try OCR
+  if (textResult.trim().length < 100) {
+    try {
+      console.log("[PDF Parser] Falling back to OCR extraction...");
+      const ocrText = await extractTextWithOCR(buffer);
+      if (ocrText && ocrText.trim().length > 100) {
+        console.log("[PDF Parser] OCR extraction successful. Text length:", ocrText.length);
+        console.log("[PDF Parser] First 500 chars from OCR:", ocrText.substring(0, 500));
+        return { text: ocrText };
+      }
+    } catch (ocrError) {
+      console.error("[PDF Parser] OCR extraction failed:", ocrError);
+    }
+  }
+  
+  return { text: textResult };
 }
 
 // Configure multer for PDF uploads

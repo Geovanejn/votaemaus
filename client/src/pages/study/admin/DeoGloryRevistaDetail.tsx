@@ -330,6 +330,14 @@ export default function DeoGloryRevistaDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => navigate(`/admin/study/licao/${lesson.id}`)}
+                              data-testid={`button-edit-lesson-${lesson.id}`}
+                            >
+                              <Eye className="h-4 w-4 text-violet-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => toggleLessonLockMutation.mutate({ 
                                 lessonId: lesson.id, 
                                 isLocked: !lesson.isLocked 

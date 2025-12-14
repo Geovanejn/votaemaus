@@ -3033,6 +3033,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Get a single lesson by ID - admin or espiritualidade
+  app.get("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const lesson = await storage.getLessonById(lessonId);
+      if (!lesson) {
+        return res.status(404).json({ message: "Lição não encontrada" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Get lesson by id error:", error);
+      res.status(500).json({ message: "Erro ao buscar lição" });
+    }
+  });
+
   // Admin: PATCH a lesson (partial update including isLocked) - admin or espiritualidade
   app.patch("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {

@@ -608,6 +608,10 @@ export async function generateStudyContentFromPDF(
   return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey);
 }
 
+function validateAndCleanUnit(unit: GeneratedUnit, type: string): GeneratedUnit {
+  return normalizeUnitContent({ ...unit, type });
+}
+
 function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
   const content = unit.content || {};
   

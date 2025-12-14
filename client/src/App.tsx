@@ -58,6 +58,10 @@ const PracticePage = lazy(() => import("@/pages/study/practice"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
 const DeoGloryEstudos = lazy(() => import("@/pages/study/admin/DeoGloryEstudos"));
+const DeoGloryUsuarios = lazy(() => import("@/pages/study/admin/DeoGloryUsuarios"));
+const DeoGloryRevistas = lazy(() => import("@/pages/study/admin/DeoGloryRevistas"));
+const DeoGloryRelatorios = lazy(() => import("@/pages/study/admin/DeoGloryRelatorios"));
+const DeoGloryConfiguracoes = lazy(() => import("@/pages/study/admin/DeoGloryConfiguracoes"));
 
 function PageLoader() {
   return (
@@ -139,6 +143,10 @@ function Router() {
           <Route path="/admin/study" component={DeoGloryDashboard} />
           <Route path="/admin/study/licoes" component={DeoGloryLicoes} />
           <Route path="/admin/study/estudos" component={DeoGloryEstudos} />
+          <Route path="/admin/study/usuarios" component={DeoGloryUsuarios} />
+          <Route path="/admin/study/revistas" component={DeoGloryRevistas} />
+          <Route path="/admin/study/relatorios" component={DeoGloryRelatorios} />
+          <Route path="/admin/study/configuracoes" component={DeoGloryConfiguracoes} />
           <Route path="/admin/study/old" component={StudyAdminPage} />
           <Route path="/admin/site" component={AdminSitePage} />
           <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

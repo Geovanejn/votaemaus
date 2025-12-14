@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft,
   MoreVertical,
@@ -21,9 +20,11 @@ import {
   Award,
   Zap,
   Check,
-  X
+  X,
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSounds } from "@/hooks/use-sounds";
 
 interface QuizQuestion {
   type: "multiple_choice" | "true_false" | "fill_blank";
@@ -47,6 +48,47 @@ interface RespondaScreenProps {
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
+}
+
+function detectAnswerType(answer: string): string {
+  const versePattern = /^\d+:\d+$/;
+  if (versePattern.test(answer)) return "verse_reference";
+  
+  const numberPattern = /^\d+$/;
+  if (numberPattern.test(answer)) return "number";
+  
+  const adjectives = ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "mau", "grande", "pequeno", "forte", "fraco", "novo", "velho", "primeiro", "ultimo"];
+  if (adjectives.includes(answer.toLowerCase())) return "adjective";
+  
+  const people = ["Cristo", "Jesus", "Deus", "Espirito", "Pai", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "José", "Salomão", "Elias", "Isaías", "Jeremias", "Daniel", "Jonas"];
+  if (people.some(p => answer.toLowerCase() === p.toLowerCase())) return "person";
+  
+  const places = ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Roma", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai"];
+  if (places.some(p => answer.toLowerCase() === p.toLowerCase())) return "place";
+  
+  return "noun";
+}
+
+function generateFillBlankOptions(correctAnswer: string): string[] {
+  const answerType = detectAnswerType(correctAnswer);
+  
+  const optionsByType: Record<string, string[]> = {
+    verse_reference: ["1:1", "3:16", "23:1", "12:25", "5:8", "8:28", "6:33", "4:13", "11:25", "15:13", "7:7", "10:9", "14:6", "16:31", "19:14"],
+    number: ["1", "2", "3", "4", "5", "6", "7", "10", "12", "40", "70", "100", "7000"],
+    adjective: ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "forte", "grande", "misericordioso", "gracioso", "amoroso"],
+    person: ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel", "Samuel"],
+    place: ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai", "Roma", "Damasco"],
+    noun: ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "perdão"]
+  };
+  
+  const distractors = optionsByType[answerType] || optionsByType.noun;
+  
+  const shuffled = distractors
+    .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase())
+    .sort(() => Math.random() - 0.5);
+  
+  const options = [correctAnswer, ...shuffled.slice(0, 3)];
+  return options.sort(() => Math.random() - 0.5);
 }
 
 function Timer({ isActive, onTimeUp }: { isActive: boolean; onTimeUp?: () => void }) {
@@ -125,6 +167,7 @@ export function RespondaScreen({
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [trueFalseAnswer, setTrueFalseAnswer] = useState<boolean | null>(null);
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
+  const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [points, setPoints] = useState(340);
@@ -133,6 +176,7 @@ export function RespondaScreen({
   const [timerActive, setTimerActive] = useState(true);
   const [hintUsed, setHintUsed] = useState(false);
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { playSound } = useSounds();
   
   const questions = rawQuestions.length > 0 ? rawQuestions : [
     { 
@@ -181,10 +225,15 @@ export function RespondaScreen({
     setHintUsed(false);
     setTimerActive(true);
     
+    if (currentQuestion.type === "fill_blank" && currentQuestion.correctAnswer) {
+      const options = generateFillBlankOptions(String(currentQuestion.correctAnswer));
+      setFillBlankOptions(options);
+    }
+    
     return () => {
       clearAutoAdvanceTimeout();
     };
-  }, [currentIndex]);
+  }, [currentIndex, currentQuestion]);
   
   const checkAnswer = () => {
     let isCorrect = false;
@@ -210,10 +259,12 @@ export function RespondaScreen({
     setShowResult(true);
     
     if (isCorrect) {
+      playSound('practiceCorrect');
       const earnedPoints = (currentQuestion.points || 10) - (hintUsed ? 5 : 0);
       setPoints(prev => prev + earnedPoints);
       setCorrectCount(prev => prev + 1);
     } else {
+      playSound('practiceError');
       setWrongCount(prev => prev + 1);
     }
     
@@ -468,7 +519,16 @@ export function RespondaScreen({
                           <span key={idx}>
                             {part}
                             {idx < arr.length - 1 && (
-                              <span className="inline-block mx-1 px-4 py-1 border-b-2 border-orange-400 min-w-[100px] text-center font-bold text-orange-600 dark:text-orange-400">
+                              <span className={cn(
+                                "inline-block mx-1 px-4 py-1 min-w-[100px] text-center font-bold rounded-lg transition-all",
+                                showResult 
+                                  ? fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim()
+                                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+                                    : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+                                  : fillBlankAnswer 
+                                    ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-2 border-orange-400"
+                                    : "border-b-2 border-orange-400 text-orange-600 dark:text-orange-400"
+                              )}>
                                 {showResult ? String(currentQuestion.correctAnswer) : (fillBlankAnswer || "______")}
                               </span>
                             )}
@@ -477,48 +537,41 @@ export function RespondaScreen({
                       </p>
                     </div>
                     
-                    {!showResult ? (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Digite sua resposta:
-                        </label>
-                        <Input
-                          value={fillBlankAnswer}
-                          onChange={(e) => setFillBlankAnswer(e.target.value)}
-                          placeholder="Digite a palavra que completa a frase..."
-                          className="text-center text-lg font-medium border-2 border-orange-200 dark:border-orange-800 focus:border-orange-500 rounded-xl py-6"
-                          data-testid="input-fill-blank"
-                        />
-                      </div>
-                    ) : (
-                      <div className={cn(
-                        "p-4 rounded-xl border-2",
-                        fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim()
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/30"
-                          : "border-red-500 bg-red-50 dark:bg-red-900/30"
-                      )}>
-                        <div className="flex items-center justify-center gap-3">
-                          {fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim() ? (
-                            <>
-                              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                              <span className="font-bold text-green-600 dark:text-green-400">
-                                Correto! A resposta e: {String(currentQuestion.correctAnswer)}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
-                              <div className="text-center">
-                                <p className="font-bold text-red-600 dark:text-red-400">
-                                  Sua resposta: {fillBlankAnswer}
-                                </p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  Resposta correta: <span className="font-bold text-green-600 dark:text-green-400">{String(currentQuestion.correctAnswer)}</span>
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {fillBlankOptions.map((option, index) => {
+                        const isSelected = fillBlankAnswer === option;
+                        const isCorrect = option.trim().toLowerCase() === String(currentQuestion.correctAnswer).toLowerCase().trim();
+                        
+                        return (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            className={cn(
+                              "min-h-[56px] h-auto py-3 px-4 text-base font-semibold transition-all",
+                              "border-2 whitespace-normal break-words",
+                              !showResult && isSelected && "border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+                              !showResult && !isSelected && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                              showResult && isCorrect && "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300",
+                              showResult && isSelected && !isCorrect && "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+                            )}
+                            onClick={() => !showResult && setFillBlankAnswer(option)}
+                            disabled={showResult}
+                            data-testid={`button-fill-option-${index}`}
+                          >
+                            {option}
+                            {showResult && isCorrect && (
+                              <CheckCircle2 className="h-5 w-5 ml-2 flex-shrink-0" />
+                            )}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    {showResult && fillBlankAnswer.toLowerCase().trim() !== String(currentQuestion.correctAnswer).toLowerCase().trim() && (
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                        <p className="text-sm text-center text-muted-foreground">
+                          Resposta correta: <span className="font-bold text-green-600 dark:text-green-400">{String(currentQuestion.correctAnswer)}</span>
+                        </p>
                       </div>
                     )}
                   </div>

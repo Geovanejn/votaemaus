@@ -38,6 +38,7 @@ interface StudyProfile {
   lastActivityDate: string | null;
   dailyGoalMinutes: number;
   timezone: string;
+  crystals: number;
 }
 
 interface Achievement {
@@ -229,7 +230,7 @@ export default function ProfilePage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center justify-center gap-8"
+            className="flex items-center justify-center gap-6"
           >
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1">
@@ -244,6 +245,31 @@ export default function ProfilePage() {
                 <span className="text-lg font-bold text-white">{currentLevel}</span>
               </div>
               <span className="text-xs text-white/70">Nivel</span>
+            </div>
+            <div className="flex flex-col items-center" data-testid="profile-crystals">
+              <div className="flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="h-5 w-5">
+                  <defs>
+                    <linearGradient id="crystalGradProfile" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#A855F7" />
+                      <stop offset="50%" stopColor="#7C3AED" />
+                      <stop offset="100%" stopColor="#6D28D9" />
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    points="12,2 22,8 22,16 12,22 2,16 2,8"
+                    fill="url(#crystalGradProfile)"
+                    stroke="#8B5CF6"
+                    strokeWidth="0.5"
+                  />
+                  <polygon
+                    points="12,2 17,5 17,11 12,14 7,11 7,5"
+                    fill="rgba(255,255,255,0.3)"
+                  />
+                </svg>
+                <span className="text-lg font-bold text-white">{profile?.crystals || 0}</span>
+              </div>
+              <span className="text-xs text-white/70">Cristais</span>
             </div>
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1">

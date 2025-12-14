@@ -155,7 +155,7 @@ function Router() {
           <Route path="/study/missions" component={MissionsPage} />
           <Route path="/study/missions/:missionId" component={MissionActivityPage} />
           <Route path="/study/achievements" component={AchievementsPage} />
-          <Route path="/study/seasons" component={SeasonsPage} />
+          <Route path="/study/estudos" component={SeasonsPage} />
           <Route path="/study/season/:id" component={SeasonDetailPage} />
           <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
           <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
@@ -196,7 +196,7 @@ function Router() {
         <Route path="/study/missions" component={MissionsPage} />
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
         <Route path="/study/achievements" component={AchievementsPage} />
-        <Route path="/study/seasons" component={SeasonsPage} />
+        <Route path="/study/estudos" component={SeasonsPage} />
         <Route path="/study/season/:id" component={SeasonDetailPage} />
         <Route path="/study/season/:id/challenge" component={FinalChallengePage} />
         <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />

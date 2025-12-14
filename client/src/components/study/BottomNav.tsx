@@ -12,7 +12,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: "", icon: Home, label: "Início", activeColor: "#1CB0F6" },
-  { path: "/seasons", icon: BookOpen, label: "Estudos", activeColor: "#FFA500" },
+  { path: "/estudos", icon: BookOpen, label: "Estudos", activeColor: "#FFA500" },
   { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
   { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
   { path: "/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
@@ -41,9 +41,9 @@ export function BottomNav() {
           if (item.path === "") {
             isActive = location === baseRoute || 
               location.startsWith(baseRoute + "/lesson");
-          } else if (item.path === "/seasons") {
+          } else if (item.path === "/estudos") {
             isActive = location === fullPath || 
-              location.startsWith(baseRoute + "/seasons") ||
+              location.startsWith(baseRoute + "/estudos") ||
               location.startsWith(baseRoute + "/season/");
           } else {
             isActive = isActive || location.startsWith(fullPath);

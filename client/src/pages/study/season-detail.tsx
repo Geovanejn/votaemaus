@@ -364,7 +364,7 @@ export default function SeasonDetailPage() {
   });
 
   const handleBack = () => {
-    setLocation('/study/seasons');
+    setLocation('/study/estudos');
   };
 
   const handleLessonClick = (lessonId: number) => {

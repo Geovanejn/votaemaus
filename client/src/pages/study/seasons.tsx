@@ -356,7 +356,7 @@ export default function SeasonsPage() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center justify-center gap-2 p-4">
           <BookOpen className="h-6 w-6 text-[#FFA500]" />
-          <h1 className="font-black text-xl">Temporadas</h1>
+          <h1 className="font-black text-xl">Estudos</h1>
         </div>
       </header>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { HeartCrack, Loader2, AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
@@ -525,7 +525,7 @@ export default function LessonPage() {
   const isQuestionType = currentUnit?.type === 'multiple_choice' || currentUnit?.type === 'true_false' || currentUnit?.type === 'fill_blank';
   const respondaUnits = allUnits.filter(u => u.stage === 'responda' && (u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'));
   
-  const respondaQuestions: QuizQuestion[] = useMemo(() => respondaUnits.map((unit) => ({
+  const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => ({
     type: unit.type as 'multiple_choice' | 'true_false' | 'fill_blank',
     question: unit.content.question || unit.content.statement || unit.content.sentence || '',
     options: unit.content.options,
@@ -533,7 +533,7 @@ export default function LessonPage() {
     correctAnswer: unit.type === 'fill_blank' ? unit.content.correctAnswer : unit.content.isTrue,
     hint: unit.content.hint,
     explanation: unit.content.explanation
-  })), [respondaUnits]);
+  }));
   
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (

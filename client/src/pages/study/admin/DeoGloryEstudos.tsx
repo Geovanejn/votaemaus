@@ -87,10 +87,7 @@ export default function DeoGloryEstudos() {
 
   const createSeasonMutation = useMutation({
     mutationFn: async (data: { title: string; coverImageUrl?: string }) => {
-      return apiRequest("/api/study/admin/seasons", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/study/admin/seasons", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
@@ -104,9 +101,7 @@ export default function DeoGloryEstudos() {
 
   const deleteSeasonMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/study/admin/seasons/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/study/admin/seasons/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });

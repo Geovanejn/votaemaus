@@ -349,9 +349,9 @@ function EmptyState() {
       >
         <BookOpen className="h-12 w-12 text-muted-foreground" />
       </motion.div>
-      <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma temporada disponivel</h2>
+      <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponivel</h2>
       <p className="text-muted-foreground mb-4">
-        As temporadas de estudo serao liberadas em breve. Enquanto isso, continue estudando as licoes da semana!
+        Os estudos serao liberados em breve. Enquanto isso, continue estudando as licoes da semana!
       </p>
       <Button 
         onClick={() => setLocation('/study')} 
@@ -433,12 +433,6 @@ function SeasonContent({
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <BookMarked className="h-5 w-5 text-white" />
             </div>
-            <span 
-              className="text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: '#a3e635', color: '#365314' }}
-            >
-              Trimestre 2024
-            </span>
           </div>
           
           <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>

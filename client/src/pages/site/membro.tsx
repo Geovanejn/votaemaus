@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -773,8 +773,13 @@ export default function MembroPage() {
   const [, setLocation] = useLocation();
 
   // Redirect all authenticated users to admin panel
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      setLocation("/admin");
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
   if (isAuthenticated && !isLoading) {
-    setLocation("/admin");
     return null;
   }
 

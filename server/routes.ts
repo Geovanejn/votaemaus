@@ -3033,6 +3033,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: PATCH a lesson (partial update including isLocked) - admin or espiritualidade
+  app.patch("/api/study/admin/lessons/:lessonId", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      const { isLocked, title, description } = req.body;
+
+      if (typeof isLocked === 'boolean') {
+        const lesson = isLocked 
+          ? await storage.lockLesson(lessonId)
+          : await storage.unlockLesson(lessonId);
+        
+        if (!lesson) {
+          return res.status(404).json({ message: "Licao nao encontrada" });
+        }
+        return res.json(lesson);
+      }
+
+      const lesson = await storage.updateStudyLesson(lessonId, { title, description });
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Patch lesson error:", error);
+      res.status(500).json({ message: "Erro ao atualizar licao" });
+    }
+  });
+
   // Admin: Lock a lesson - admin or espiritualidade
   app.post("/api/study/admin/lessons/:lessonId/lock", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
@@ -4991,6 +5022,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get all seasons error:", error);
       res.status(500).json({ message: "Erro ao buscar temporadas" });
+    }
+  });
+
+  // Obter uma temporada específica por ID (admin)
+  app.get("/api/study/admin/seasons/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+      res.json(season);
+    } catch (error) {
+      console.error("Get season by id error:", error);
+      res.status(500).json({ message: "Erro ao buscar temporada" });
+    }
+  });
+
+  // Obter lições de uma temporada específica (admin)
+  app.get("/api/study/admin/seasons/:id/lessons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      const lessons = await storage.getLessonsForSeason(seasonId);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Get lessons for season error:", error);
+      res.status(500).json({ message: "Erro ao buscar lições" });
     }
   });
 

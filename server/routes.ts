@@ -37,7 +37,8 @@ import {
   generateExercisesFromTopic, 
   generateReflectionQuestions,
   summarizeText,
-  isAIConfigured 
+  isAIConfigured,
+  generateLessonFromPDFExact
 } from "./ai";
 import multer from "multer";
 import sharp from "sharp";
@@ -5177,6 +5178,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Import PDF error:", error);
+      await storage.updateSeason(parseInt(req.params.id), { status: "draft" });
+      res.status(500).json({ message: "Erro ao importar PDF" });
+    }
+  });
+
+  // Importar PDF usando extração EXATA (nova função para DeoGlory)
+  app.post("/api/study/admin/seasons/:id/import-pdf-exact", authenticateToken, requireAdminOrEspiritualidade, upload.single('pdf'), async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Arquivo PDF não enviado" });
+      }
+
+      const season = await storage.getSeasonById(seasonId);
+      if (!season) {
+        return res.status(404).json({ message: "Revista não encontrada" });
+      }
+
+      if (!isAIConfigured()) {
+        return res.status(500).json({ message: "IA não configurada" });
+      }
+
+      await storage.updateSeason(seasonId, { status: "processing" });
+
+      const pdfData = await parsePdfBuffer(req.file.buffer);
+      const pdfText = pdfData.text;
+
+      if (!pdfText || pdfText.trim().length < 100) {
+        await storage.updateSeason(seasonId, { status: "draft" });
+        return res.status(400).json({ message: "PDF não contém texto suficiente para processamento" });
+      }
+
+      const extractedLesson = await generateLessonFromPDFExact(pdfText);
+
+      if (!extractedLesson || !extractedLesson.title) {
+        await storage.updateSeason(seasonId, { status: "draft" });
+        return res.status(500).json({ message: "Erro ao processar PDF com IA" });
+      }
+
+      await storage.updateSeason(seasonId, {
+        aiExtractedTitle: extractedLesson.title,
+        totalLessons: 1
+      });
+
+      const lesson = await storage.createSeasonLesson({
+        seasonId,
+        title: extractedLesson.title,
+        description: extractedLesson.baseVerseReference ? `Versículo base: ${extractedLesson.baseVerseReference}` : "",
+        type: "study",
+        orderIndex: 1,
+        xpReward: 50,
+        icon: "book-open"
+      });
+
+      let unitIndex = 0;
+
+      if (extractedLesson.baseVerse && extractedLesson.baseVerseReference) {
+        await storage.createStudyUnit({
+          lessonId: lesson.id,
+          type: "verse",
+          content: JSON.stringify({
+            text: extractedLesson.baseVerse,
+            reference: extractedLesson.baseVerseReference
+          }),
+          orderIndex: unitIndex++,
+          xpValue: 10,
+          stage: "estude"
+        });
+      }
+
+      if (extractedLesson.studyContent) {
+        for (const content of extractedLesson.studyContent) {
+          await storage.createStudyUnit({
+            lessonId: lesson.id,
+            type: content.type,
+            content: JSON.stringify(content.content),
+            orderIndex: unitIndex++,
+            xpValue: 10,
+            stage: "estude"
+          });
+        }
+      }
+
+      if (extractedLesson.meditationContent) {
+        for (const content of extractedLesson.meditationContent) {
+          await storage.createStudyUnit({
+            lessonId: lesson.id,
+            type: content.type,
+            content: JSON.stringify(content.content),
+            orderIndex: unitIndex++,
+            xpValue: 10,
+            stage: "medite"
+          });
+        }
+      }
+
+      if (extractedLesson.questions && extractedLesson.questions.length > 0) {
+        for (const question of extractedLesson.questions) {
+          await storage.createStudyUnit({
+            lessonId: lesson.id,
+            type: "multiple_choice",
+            content: JSON.stringify(question),
+            orderIndex: unitIndex++,
+            xpValue: 15,
+            stage: "responda"
+          });
+        }
+      }
+
+      await storage.updateSeason(seasonId, { status: "draft" });
+
+      res.json({
+        message: "PDF processado com sucesso",
+        lessonTitle: extractedLesson.title,
+        lessonId: lesson.id,
+        topicsCount: extractedLesson.topics?.length || 0,
+        questionsCount: extractedLesson.questions?.length || 0
+      });
+    } catch (error) {
+      console.error("Import PDF exact error:", error);
       await storage.updateSeason(parseInt(req.params.id), { status: "draft" });
       res.status(500).json({ message: "Erro ao importar PDF" });
     }

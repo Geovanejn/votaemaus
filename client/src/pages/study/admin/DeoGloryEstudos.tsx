@@ -1,430 +1,546 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
 import { DeoGloryAdminLayout } from "@/components/deoglory/DeoGloryAdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
-  Sparkles,
+  Plus,
   Upload,
-  Edit3,
-  ArrowRight,
-  Save,
-  RotateCcw,
-  Eye,
-  Edit,
-  Trash2,
-  Filter,
   BookOpen,
+  Loader2,
+  FileText,
+  Image as ImageIcon,
+  CheckCircle,
+  X,
+  Eye,
+  Trash2,
+  MoreVertical,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Season } from "@shared/schema";
 
-interface CreateOptionCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  buttonText: string;
-  variant: "primary" | "secondary" | "tertiary";
-  onClick: () => void;
-}
-
-function CreateOptionCard({ title, description, icon: Icon, buttonText, variant, onClick }: CreateOptionCardProps) {
-  const bgClasses = {
-    primary: "bg-gradient-to-br from-violet-500 to-violet-700 text-white",
-    secondary: "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-    tertiary: "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-  };
-
-  const iconBgClasses = {
-    primary: "bg-white/20",
-    secondary: "bg-teal-500",
-    tertiary: "bg-violet-500",
-  };
-
-  const buttonClasses = {
-    primary: "bg-white text-violet-700 hover:bg-white/90",
-    secondary: "border-teal-500 text-teal-600 hover:bg-teal-50",
-    tertiary: "bg-violet-500 hover:bg-violet-600 text-white",
-  };
-
-  return (
-    <Card className={`${bgClasses[variant]} border-0 shadow-sm overflow-hidden`}>
-      <CardContent className="p-6">
-        <div className={`w-12 h-12 rounded-xl ${iconBgClasses[variant]} flex items-center justify-center mb-4`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-        <h3 className={`text-lg font-bold mb-2 ${variant === "primary" ? "text-white" : "text-gray-900 dark:text-white"}`}>
-          {title}
-        </h3>
-        <p className={`text-sm mb-6 ${variant === "primary" ? "text-white/80" : "text-gray-500 dark:text-gray-400"}`}>
-          {description}
-        </p>
-        <Button
-          variant={variant === "secondary" ? "outline" : "default"}
-          className={`w-full ${buttonClasses[variant]}`}
-          onClick={onClick}
-          data-testid={`button-${title.toLowerCase().replace(/\s/g, "-")}`}
-        >
-          {buttonText}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface Study {
-  id: number;
-  title: string;
-  revista: string;
-  type: string;
-  status: string;
-  createdAt: string;
-}
-
-const statusColors: Record<string, { bg: string; text: string }> = {
-  published: { bg: "bg-green-100", text: "text-green-700" },
-  draft: { bg: "bg-yellow-100", text: "text-yellow-700" },
-  archived: { bg: "bg-gray-100", text: "text-gray-700" },
-};
-
-const statusLabels: Record<string, string> = {
-  published: "Publicado",
-  draft: "Rascunho",
-  archived: "Arquivado",
+const statusColors: Record<string, { bg: string; text: string; label: string }> = {
+  draft: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-400", label: "Rascunho" },
+  processing: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400", label: "Processando" },
+  published: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-400", label: "Publicado" },
+  archived: { bg: "bg-gray-100 dark:bg-gray-900/30", text: "text-gray-700 dark:text-gray-400", label: "Arquivado" },
 };
 
 export default function DeoGloryEstudos() {
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<"ia" | "pdf" | "manual">("ia");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const { toast } = useToast();
+  const searchString = useSearch();
+  const [, navigate] = useLocation();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
+  const [highlightedSeasonId, setHighlightedSeasonId] = useState<number | null>(null);
+  const [newSeasonTitle, setNewSeasonTitle] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
-    tema: "",
-    revista: "",
-    categoria: "",
-    nivelDificuldade: "",
-    duracaoEstimada: "",
-    versiculosBase: "",
-    descricaoObjetivos: "",
-    incluirPerguntasReflexao: false,
-    incluirAtividadesPraticas: false,
-    adicionarIlustracoes: false,
-    gerarMaterialComplementar: false,
+  const { data: seasons = [], isLoading } = useQuery<Season[]>({
+    queryKey: ["/api/study/admin/seasons"],
   });
 
-  const sampleStudies: Study[] = [
-    { id: 1, title: "O Amor de Deus", revista: "Revista Trimestral - 1o Trim 2024", type: "ia", status: "published", createdAt: "2024-01-15T10:00:00" },
-    { id: 2, title: "Fe e Obras", revista: "Revista Especial", type: "pdf", status: "draft", createdAt: "2024-01-16T14:30:00" },
-    { id: 3, title: "A Graca Divina", revista: "Revista Trimestral - 4o Trim 2023", type: "manual", status: "published", createdAt: "2024-01-17T09:15:00" },
-    { id: 4, title: "Oracao e Jejum", revista: "Revista Especial", type: "ia", status: "archived", createdAt: "2024-01-18T16:45:00" },
-    { id: 5, title: "Salvacao em Cristo", revista: "Revista Trimestral - 3o Trim 2023", type: "manual", status: "published", createdAt: "2024-01-19T11:20:00" },
-  ];
+  const [hasHandledQueryParam, setHasHandledQueryParam] = useState(false);
 
-  const handleCreateOption = (mode: "ia" | "pdf" | "manual") => {
-    setFormMode(mode);
-    setShowForm(true);
+  useEffect(() => {
+    if (hasHandledQueryParam) return;
+    const params = new URLSearchParams(searchString);
+    const revistaId = params.get("revista");
+    if (revistaId && seasons.length > 0) {
+      const id = parseInt(revistaId, 10);
+      const season = seasons.find(s => s.id === id);
+      if (season) {
+        setHighlightedSeasonId(id);
+        setSelectedSeason(season);
+        setShowUploadModal(true);
+        setHasHandledQueryParam(true);
+        navigate("/study/admin/estudos", { replace: true });
+        setTimeout(() => setHighlightedSeasonId(null), 5000);
+      }
+    }
+  }, [searchString, seasons, navigate, hasHandledQueryParam]);
+
+  const createSeasonMutation = useMutation({
+    mutationFn: async (data: { title: string; coverImageUrl?: string }) => {
+      return apiRequest("/api/study/admin/seasons", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Revista criada com sucesso!" });
+      resetCreateModal();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao criar revista", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteSeasonMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/study/admin/seasons/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Revista removida com sucesso!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao remover revista", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetCreateModal = () => {
+    setShowCreateModal(false);
+    setNewSeasonTitle("");
+    setCoverPreview(null);
+    setCoverFile(null);
   };
 
-  const getTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    if (diffHours < 24) return `Ha ${diffHours} horas`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `Ha ${diffDays} dia${diffDays > 1 ? "s" : ""}`;
+  const resetUploadModal = () => {
+    setShowUploadModal(false);
+    setSelectedSeason(null);
+    setPdfFile(null);
+    setIsProcessingPdf(false);
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      setPdfFile(file);
+    } else {
+      toast({ title: "Selecione um arquivo PDF válido", variant: "destructive" });
+    }
+  };
+
+  const handleCreateSeason = async () => {
+    if (!newSeasonTitle.trim()) {
+      toast({ title: "Digite o nome da revista", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let coverImageUrl: string | undefined;
+
+      if (coverFile) {
+        const formData = new FormData();
+        formData.append("file", coverFile);
+        const token = localStorage.getItem("token");
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+          credentials: "include",
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          coverImageUrl = uploadData.url;
+        } else if (uploadRes.status === 401) {
+          toast({ title: "Sessao expirada", description: "Por favor, faca login novamente", variant: "destructive" });
+          setIsUploading(false);
+          return;
+        } else {
+          toast({ title: "Aviso", description: "Nao foi possivel enviar a imagem de capa. A revista sera criada sem imagem." });
+        }
+      }
+
+      await createSeasonMutation.mutateAsync({
+        title: newSeasonTitle.trim(),
+        coverImageUrl,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadPdf = async () => {
+    if (!selectedSeason || !pdfFile) {
+      toast({ title: "Selecione um arquivo PDF", variant: "destructive" });
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast({ title: "Sessao expirada", description: "Por favor, faca login novamente", variant: "destructive" });
+      return;
+    }
+
+    setIsProcessingPdf(true);
+    try {
+      const formData = new FormData();
+      formData.append("pdf", pdfFile);
+
+      const response = await fetch(`/api/study/admin/seasons/${selectedSeason.id}/import-pdf-exact`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        credentials: "include",
+      });
+
+      if (response.status === 401) {
+        toast({ title: "Sessao expirada", description: "Por favor, faca login novamente", variant: "destructive" });
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "PDF processado com sucesso!",
+          description: `Licao "${data.lessonTitle}" criada com ${data.questionsCount} perguntas.`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+        resetUploadModal();
+      } else {
+        toast({ title: "Erro ao processar PDF", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro ao processar PDF", variant: "destructive" });
+    } finally {
+      setIsProcessingPdf(false);
+    }
+  };
+
+  const openUploadModal = (season: Season) => {
+    setSelectedSeason(season);
+    setShowUploadModal(true);
   };
 
   return (
-    <DeoGloryAdminLayout title="Gerar Estudos" subtitle="Crie estudos biblicos usando inteligencia artificial">
+    <DeoGloryAdminLayout title="Gerar Estudos" subtitle="Crie revistas e gere lições a partir de PDFs usando inteligência artificial">
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div />
-          <Badge variant="outline" className="text-violet-600 border-violet-200">
-            Creditos disponiveis: <span className="font-bold ml-1">247</span>
-          </Badge>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Crie uma revista, faça upload do PDF da lição e a IA irá gerar o conteúdo automaticamente.
+            </p>
+          </div>
+          <Button onClick={() => setShowCreateModal(true)} className="bg-violet-600 hover:bg-violet-700" data-testid="button-criar-revista">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Revista
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <CreateOptionCard
-            title="Gerar com IA"
-            description="Crie estudos automaticamente usando inteligencia artificial"
-            icon={Sparkles}
-            buttonText="Comecar Agora"
-            variant="primary"
-            onClick={() => handleCreateOption("ia")}
-          />
-          <CreateOptionCard
-            title="Enviar PDF"
-            description="Faca upload de um PDF e gere estudos automaticamente"
-            icon={Upload}
-            buttonText="Enviar Arquivo"
-            variant="secondary"
-            onClick={() => handleCreateOption("pdf")}
-          />
-          <CreateOptionCard
-            title="Escrever Manual"
-            description="Crie seu estudo manualmente com editor completo"
-            icon={Edit3}
-            buttonText="Criar Estudo"
-            variant="tertiary"
-            onClick={() => handleCreateOption("manual")}
-          />
-        </div>
-
-        {showForm && formMode === "ia" && (
-          <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                Gerador de Estudos com IA
-              </CardTitle>
-              <p className="text-sm text-gray-500">
-                Preencha os campos para gerar seu estudo personalizado
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+          </div>
+        ) : seasons.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mb-4">
+                <BookOpen className="h-8 w-8 text-violet-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Nenhuma revista criada
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
+                Crie sua primeira revista e faça upload de um PDF para gerar lições automaticamente com IA.
               </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Tema do Estudo</Label>
-                  <Input
-                    placeholder="Ex: O Amor de Deus"
-                    value={formData.tema}
-                    onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
-                    data-testid="input-tema"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nome da Revista</Label>
-                  <Input
-                    placeholder="Ex: Revista Trimestral - 1o Trim 2024"
-                    value={formData.revista}
-                    onChange={(e) => setFormData({ ...formData, revista: e.target.value })}
-                    data-testid="input-revista"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Categoria</Label>
-                  <Select
-                    value={formData.categoria}
-                    onValueChange={(value) => setFormData({ ...formData, categoria: value })}
-                  >
-                    <SelectTrigger data-testid="select-categoria">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="antigo-testamento">Antigo Testamento</SelectItem>
-                      <SelectItem value="novo-testamento">Novo Testamento</SelectItem>
-                      <SelectItem value="doutrina">Doutrina</SelectItem>
-                      <SelectItem value="vida-crista">Vida Crista</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Nivel de Dificuldade</Label>
-                  <Select
-                    value={formData.nivelDificuldade}
-                    onValueChange={(value) => setFormData({ ...formData, nivelDificuldade: value })}
-                  >
-                    <SelectTrigger data-testid="select-dificuldade">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="basico">Basico</SelectItem>
-                      <SelectItem value="intermediario">Intermediario</SelectItem>
-                      <SelectItem value="avancado">Avancado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Duracao Estimada</Label>
-                  <Select
-                    value={formData.duracaoEstimada}
-                    onValueChange={(value) => setFormData({ ...formData, duracaoEstimada: value })}
-                  >
-                    <SelectTrigger data-testid="select-duracao">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">60 minutos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Versiculos Base (opcional)</Label>
-                <Input
-                  placeholder="Ex: Joao 3:16, Romanos 8:28"
-                  value={formData.versiculosBase}
-                  onChange={(e) => setFormData({ ...formData, versiculosBase: e.target.value })}
-                  data-testid="input-versiculos"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Descricao e Objetivos</Label>
-                <Textarea
-                  placeholder="Descreva os objetivos do estudo e pontos principais que deseja abordar..."
-                  className="min-h-32"
-                  value={formData.descricaoObjetivos}
-                  onChange={(e) => setFormData({ ...formData, descricaoObjetivos: e.target.value })}
-                  data-testid="textarea-descricao"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label>Opcoes Adicionais</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="perguntas"
-                      checked={formData.incluirPerguntasReflexao}
-                      onCheckedChange={(checked) => setFormData({ ...formData, incluirPerguntasReflexao: !!checked })}
-                    />
-                    <Label htmlFor="perguntas" className="cursor-pointer">
-                      Incluir perguntas de reflexao
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="atividades"
-                      checked={formData.incluirAtividadesPraticas}
-                      onCheckedChange={(checked) => setFormData({ ...formData, incluirAtividadesPraticas: !!checked })}
-                    />
-                    <Label htmlFor="atividades" className="cursor-pointer">
-                      Incluir atividades praticas
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="ilustracoes"
-                      checked={formData.adicionarIlustracoes}
-                      onCheckedChange={(checked) => setFormData({ ...formData, adicionarIlustracoes: !!checked })}
-                    />
-                    <Label htmlFor="ilustracoes" className="cursor-pointer">
-                      Adicionar ilustracoes
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="material"
-                      checked={formData.gerarMaterialComplementar}
-                      onCheckedChange={(checked) => setFormData({ ...formData, gerarMaterialComplementar: !!checked })}
-                    />
-                    <Label htmlFor="material" className="cursor-pointer">
-                      Gerar material complementar
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex gap-2">
-                  <Button variant="outline" data-testid="button-salvar-rascunho">
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Rascunho
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowForm(false)} data-testid="button-limpar">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Limpar Campos
-                  </Button>
-                </div>
-                <Button className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="button-gerar">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Gerar Estudo
-                </Button>
-              </div>
+              <Button onClick={() => setShowCreateModal(true)} className="bg-violet-600 hover:bg-violet-700" data-testid="button-criar-primeira-revista">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Revista
+              </Button>
             </CardContent>
           </Card>
-        )}
-
-        <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4">
-            <div>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                Estudos Gerados Recentemente
-              </CardTitle>
-              <p className="text-sm text-gray-500">Seus ultimos estudos criados</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-32" data-testid="select-filter">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="published">Publicados</SelectItem>
-                  <SelectItem value="draft">Rascunhos</SelectItem>
-                  <SelectItem value="archived">Arquivados</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" data-testid="button-filtrar">
-                <Filter className="h-4 w-4 mr-1" />
-                Filtrar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {sampleStudies.map((study) => (
-                <div
-                  key={study.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <div className={`p-3 rounded-xl ${
-                    study.type === "ia" ? "bg-violet-100" : study.type === "pdf" ? "bg-teal-100" : "bg-blue-100"
-                  }`}>
-                    {study.type === "ia" ? (
-                      <Sparkles className={`h-5 w-5 ${study.type === "ia" ? "text-violet-600" : "text-teal-600"}`} />
-                    ) : study.type === "pdf" ? (
-                      <Upload className="h-5 w-5 text-teal-600" />
-                    ) : (
-                      <BookOpen className="h-5 w-5 text-blue-600" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 dark:text-white">
-                      {study.title}
-                    </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {study.revista} | {study.type === "ia" ? "Gerado com IA" : study.type === "pdf" ? "Gerado de PDF" : "Manual"} | {getTimeAgo(study.createdAt)}
-                    </p>
-                  </div>
-                  <Badge className={`${statusColors[study.status]?.bg || "bg-gray-100"} ${statusColors[study.status]?.text || "text-gray-700"} border-0`}>
-                    {statusLabels[study.status] || study.status}
-                  </Badge>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-view-${study.id}`}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-edit-${study.id}`}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" data-testid={`button-delete-${study.id}`}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {seasons.map((season) => (
+              <Card key={season.id} className={`overflow-visible ${highlightedSeasonId === season.id ? "ring-2 ring-violet-500" : ""}`} data-testid={`card-revista-${season.id}`}>
+                <div className="relative h-40 bg-gray-100 dark:bg-gray-800">
+                  {season.coverImageUrl ? (
+                    <img
+                      src={season.coverImageUrl}
+                      alt={season.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="h-12 w-12 text-gray-400" />
+                    </div>
+                  )}
+                  {season.status === "processing" && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                        <span className="text-sm">Processando...</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <Badge className={`${statusColors[season.status]?.bg} ${statusColors[season.status]?.text} border-0`}>
+                      {statusColors[season.status]?.label || season.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {season.totalLessons} {season.totalLessons === 1 ? "lição" : "lições"}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
+                    {season.aiExtractedTitle || season.title}
+                  </h3>
+                  {season.aiExtractedTitle && season.aiExtractedTitle !== season.title && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Revista: {season.title}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mt-3">
+                    <Button
+                      variant="default"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700"
+                      onClick={() => openUploadModal(season)}
+                      disabled={season.status === "processing"}
+                      data-testid={`button-upload-pdf-${season.id}`}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload PDF
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja remover esta revista?")) {
+                          deleteSeasonMutation.mutate(season.id);
+                        }
+                      }}
+                      data-testid={`button-delete-${season.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Card className="border-dashed flex flex-col items-center justify-center min-h-[280px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => setShowCreateModal(true)}>
+              <CardContent className="text-center p-6">
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                  <Plus className="h-6 w-6 text-gray-400" />
+                </div>
+                <h3 className="font-medium text-gray-900 dark:text-white mb-1">Nova Revista</h3>
+                <p className="text-sm text-muted-foreground">
+                  Criar nova revista
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
+
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Nova Revista</DialogTitle>
+            <DialogDescription>
+              Dê um nome para a revista e opcionalmente adicione uma imagem de capa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Nome da Revista</Label>
+              <Input
+                id="title"
+                placeholder="Ex: Revista Trimestral - 1o Trim 2025"
+                value={newSeasonTitle}
+                onChange={(e) => setNewSeasonTitle(e.target.value)}
+                data-testid="input-nome-revista"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Imagem de Capa (opcional)</Label>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverChange}
+              />
+              {coverPreview ? (
+                <div className="relative">
+                  <img
+                    src={coverPreview}
+                    alt="Preview da capa"
+                    className="w-full h-40 object-cover rounded-md"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+                    onClick={() => {
+                      setCoverPreview(null);
+                      setCoverFile(null);
+                    }}
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full h-24 border-dashed"
+                  onClick={() => coverInputRef.current?.click()}
+                  data-testid="button-upload-capa"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Clique para adicionar imagem</span>
+                  </div>
+                </Button>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetCreateModal} disabled={isUploading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateSeason}
+              disabled={isUploading || !newSeasonTitle.trim()}
+              className="bg-violet-600 hover:bg-violet-700"
+              data-testid="button-confirmar-criar"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Revista"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUploadModal} onOpenChange={(open) => !isProcessingPdf && setShowUploadModal(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload de PDF</DialogTitle>
+            <DialogDescription>
+              Faça upload do PDF da lição para a revista "{selectedSeason?.title}". A IA irá extrair o conteúdo e criar a lição automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={handlePdfChange}
+            />
+            {pdfFile ? (
+              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+                  <FileText className="h-6 w-6 text-violet-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
+                    {pdfFile.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                {!isProcessingPdf && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setPdfFile(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full h-32 border-dashed"
+                onClick={() => pdfInputRef.current?.click()}
+                data-testid="button-selecionar-pdf"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm font-medium">Clique para selecionar PDF</span>
+                  <span className="text-xs text-muted-foreground">Máximo 10MB</span>
+                </div>
+              </Button>
+            )}
+
+            {isProcessingPdf && (
+              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    Processando com IA...
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Isso pode levar alguns segundos.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetUploadModal} disabled={isProcessingPdf}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUploadPdf}
+              disabled={isProcessingPdf || !pdfFile}
+              className="bg-violet-600 hover:bg-violet-700"
+              data-testid="button-processar-pdf"
+            >
+              {isProcessingPdf ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Gerar Lição
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DeoGloryAdminLayout>
   );
 }

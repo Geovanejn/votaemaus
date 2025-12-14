@@ -301,7 +301,7 @@ export default function DeoGloryEstudos() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {seasons.map((season) => (
               <Card key={season.id} className={`overflow-visible ${highlightedSeasonId === season.id ? "ring-2 ring-violet-500" : ""}`} data-testid={`card-revista-${season.id}`}>
-                <div className="relative h-40 bg-gray-100 dark:bg-gray-800">
+                <div className="relative bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden" style={{ aspectRatio: '2/3' }}>
                   {season.coverImageUrl ? (
                     <img
                       src={season.coverImageUrl}

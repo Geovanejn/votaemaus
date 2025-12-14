@@ -80,7 +80,7 @@ function MagazineCard({ season }: { season: Season }) {
 
   return (
     <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm overflow-visible">
-      <div className="relative h-40 bg-gray-100 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+      <div className="relative bg-gray-100 dark:bg-gray-700 rounded-t-lg overflow-hidden" style={{ aspectRatio: '2/3' }}>
         <img
           src={season.coverImageUrl || defaultCover}
           alt={season.title}
@@ -148,7 +148,7 @@ function CreateMagazineCard() {
   const [, navigate] = useLocation();
   
   return (
-    <Card className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 shadow-sm overflow-visible flex flex-col items-center justify-center min-h-[380px]">
+    <Card className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 shadow-sm overflow-visible flex flex-col items-center justify-center" style={{ minHeight: 'calc(100% - 1px)' }}>
       <CardContent className="p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
           <Plus className="h-6 w-6 text-gray-400" />

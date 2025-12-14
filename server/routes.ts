@@ -120,10 +120,20 @@ async function logAuditAction(
 import { PDFParse } from "pdf-parse";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
+  console.log("[PDF Parser] Starting PDF extraction, buffer size:", buffer.length);
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
-    return { text: result.text };
+    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", result.text?.length || 0);
+    if (!result.text || result.text.trim().length === 0) {
+      console.log("[PDF Parser] Warning: No text extracted from PDF. The PDF may contain only images/scanned content.");
+    } else {
+      console.log("[PDF Parser] First 500 chars:", result.text.substring(0, 500));
+    }
+    return { text: result.text || "" };
+  } catch (error) {
+    console.error("[PDF Parser] Error extracting text:", error);
+    throw error;
   } finally {
     await parser.destroy();
   }

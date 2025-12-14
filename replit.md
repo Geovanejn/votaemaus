@@ -93,6 +93,15 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 14/12/2025 - DeoGloryLicoes Admin Reescrito
+- **DeoGloryLicoes.tsx**: Reescrito completamente com funcionalidade completa
+  - Removida opcao "Escrever Manualmente" - mantido apenas "Criar com IA" e "Upload de PDF"
+  - Seletor de chave Gemini (1-5) para distribuir carga entre chaves de API
+  - Dialogs de geracao com input de texto ou upload de PDF
+  - Cards de semanas com badges de status (Rascunho/Publicado)
+  - Acoes de gerenciamento: Editar, Publicar, Liberar/Bloquear licoes, Excluir
+  - Estados de carregamento com Skeleton e empty state
+
 ### 14/12/2025 - Nova Tela de Seleção de Painéis para Admin
 - **AdminDashboard**: Criada nova página de seleção de painéis para admins
   - Admins agora veem uma tela com cards para todos os painéis disponíveis

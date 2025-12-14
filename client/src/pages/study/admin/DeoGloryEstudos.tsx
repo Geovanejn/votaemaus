@@ -30,7 +30,10 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import ImageCropDialog from "@/components/ImageCropDialog";
 import type { Season } from "@shared/schema";
+
+const MAGAZINE_COVER_ASPECT_RATIO = 2 / 3;
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-400", label: "Rascunho" },
@@ -53,6 +56,8 @@ export default function DeoGloryEstudos() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,12 +134,31 @@ export default function DeoGloryEstudos() {
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverFile(file);
+      if (!file.type.startsWith("image/")) {
+        toast({ title: "Selecione uma imagem valida", variant: "destructive" });
+        return;
+      }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
+      reader.onload = () => {
+        setTempImageSrc(reader.result as string);
+        setCropDialogOpen(true);
       };
       reader.readAsDataURL(file);
+    }
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
+    }
+  };
+
+  const handleCropComplete = async (croppedImage: string) => {
+    try {
+      const blob = await fetch(croppedImage).then((r) => r.blob());
+      const file = new File([blob], "cover.jpg", { type: "image/jpeg" });
+      setCoverFile(file);
+      setCoverPreview(croppedImage);
+    } catch (error) {
+      console.error("Error processing cropped image:", error);
+      toast({ title: "Erro ao processar imagem", variant: "destructive" });
     }
   };
 
@@ -392,34 +416,38 @@ export default function DeoGloryEstudos() {
                 onChange={handleCoverChange}
               />
               {coverPreview ? (
-                <div className="relative">
-                  <img
-                    src={coverPreview}
-                    alt="Preview da capa"
-                    className="w-full h-40 object-cover rounded-md"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
-                    onClick={() => {
-                      setCoverPreview(null);
-                      setCoverFile(null);
-                    }}
-                  >
-                    <X className="h-4 w-4 text-white" />
-                  </Button>
+                <div className="relative flex justify-center">
+                  <div className="relative" style={{ aspectRatio: '2/3', maxHeight: '280px' }}>
+                    <img
+                      src={coverPreview}
+                      alt="Preview da capa"
+                      className="h-full w-full object-cover rounded-md"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+                      onClick={() => {
+                        setCoverPreview(null);
+                        setCoverFile(null);
+                      }}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full h-24 border-dashed"
+                  className="w-full border-dashed"
+                  style={{ aspectRatio: '2/3', maxHeight: '180px' }}
                   onClick={() => coverInputRef.current?.click()}
                   data-testid="button-upload-capa"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Clique para adicionar imagem</span>
+                    <span className="text-sm text-muted-foreground">Clique para adicionar capa</span>
+                    <span className="text-xs text-muted-foreground">Formato revista (2:3)</span>
                   </div>
                 </Button>
               )}
@@ -541,6 +569,14 @@ export default function DeoGloryEstudos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={tempImageSrc || ""}
+        onCropComplete={handleCropComplete}
+        aspectRatio={MAGAZINE_COVER_ASPECT_RATIO}
+      />
     </DeoGloryAdminLayout>
   );
 }

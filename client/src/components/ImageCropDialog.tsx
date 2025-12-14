@@ -41,8 +41,21 @@ async function getCroppedImg(
   }
 
   const isSquare = aspectRatio === 1;
-  const maxWidth = isSquare ? 400 : 800;
-  const maxHeight = Math.round(maxWidth / aspectRatio);
+  const isPortrait = aspectRatio < 1;
+  let maxWidth: number;
+  let maxHeight: number;
+  
+  if (isSquare) {
+    maxWidth = 400;
+    maxHeight = 400;
+  } else if (isPortrait) {
+    maxHeight = 1500;
+    maxWidth = Math.round(maxHeight * aspectRatio);
+  } else {
+    maxWidth = 800;
+    maxHeight = Math.round(maxWidth / aspectRatio);
+  }
+  
   canvas.width = maxWidth;
   canvas.height = maxHeight;
 
@@ -117,9 +130,12 @@ export default function ImageCropDialog({
   }, [croppedAreaPixels, imageSrc, onCropComplete, onOpenChange, aspectRatio]);
 
   const isSquare = aspectRatio === 1;
-  const dialogTitle = isSquare ? "Ajustar Foto" : "Ajustar Imagem";
+  const isPortrait = aspectRatio < 1;
+  const dialogTitle = isSquare ? "Ajustar Foto" : isPortrait ? "Ajustar Capa" : "Ajustar Imagem";
   const dialogDescription = isSquare 
     ? "Posicione e ajuste o zoom da imagem para centralizar o rosto"
+    : isPortrait
+    ? "Posicione e ajuste o zoom para enquadrar a capa da revista"
     : "Posicione e ajuste o zoom para enquadrar a imagem";
 
   return (

@@ -523,14 +523,14 @@ export default function LessonPage() {
   
   const isRespondaStage = currentUnit?.stage === 'responda';
   const isQuestionType = currentUnit?.type === 'multiple_choice' || currentUnit?.type === 'true_false' || currentUnit?.type === 'fill_blank';
-  const respondaUnits = allUnits.filter(u => u.stage === 'responda' && (u.type === 'multiple_choice' || u.type === 'true_false'));
+  const respondaUnits = allUnits.filter(u => u.stage === 'responda' && (u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'));
   
   const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => ({
-    type: unit.type as 'multiple_choice' | 'true_false',
-    question: unit.content.question || unit.content.statement || '',
+    type: unit.type as 'multiple_choice' | 'true_false' | 'fill_blank',
+    question: unit.content.question || unit.content.statement || unit.content.sentence || '',
     options: unit.content.options,
     correctIndex: unit.content.correctIndex,
-    correctAnswer: unit.content.isTrue,
+    correctAnswer: unit.type === 'fill_blank' ? unit.content.correctAnswer : unit.content.isTrue,
     hint: unit.content.hint,
     explanation: unit.content.explanation
   }));

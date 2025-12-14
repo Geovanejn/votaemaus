@@ -55,6 +55,9 @@ const SeasonRankingPage = lazy(() => import("@/pages/study/season-ranking"));
 const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 const PracticePage = lazy(() => import("@/pages/study/practice"));
+const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
+const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
+const DeoGloryEstudos = lazy(() => import("@/pages/study/admin/DeoGloryEstudos"));
 
 function PageLoader() {
   return (
@@ -133,7 +136,10 @@ function Router() {
           <Route path="/verificar/:hash" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/emaus-vota" component={AdminEmausVota} />
-          <Route path="/admin/study" component={StudyAdminPage} />
+          <Route path="/admin/study" component={DeoGloryDashboard} />
+          <Route path="/admin/study/licoes" component={DeoGloryLicoes} />
+          <Route path="/admin/study/estudos" component={DeoGloryEstudos} />
+          <Route path="/admin/study/old" component={StudyAdminPage} />
           <Route path="/admin/site" component={AdminSitePage} />
           <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
           <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />

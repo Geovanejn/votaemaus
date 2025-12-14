@@ -83,7 +83,9 @@ export function DeoGloryAdminLayout({ children, title, subtitle }: DeoGloryAdmin
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = location === item.href || location.startsWith(item.href + "/");
+            const isActive = item.id === "dashboard" 
+              ? location === item.href 
+              : location === item.href || location.startsWith(item.href + "/");
             return (
               <Link key={item.id} href={item.href}>
                 <button
@@ -187,7 +189,9 @@ export function DeoGloryAdminLayout({ children, title, subtitle }: DeoGloryAdmin
               </div>
               <nav className="space-y-1">
                 {navItems.map((item) => {
-                  const isActive = location === item.href || location.startsWith(item.href + "/");
+                  const isActive = item.id === "dashboard" 
+                    ? location === item.href 
+                    : location === item.href || location.startsWith(item.href + "/");
                   return (
                     <Link key={item.id} href={item.href}>
                       <button

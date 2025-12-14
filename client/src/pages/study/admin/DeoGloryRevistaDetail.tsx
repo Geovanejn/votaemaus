@@ -109,6 +109,20 @@ export default function DeoGloryRevistaDetail() {
     },
   });
 
+  const publishSeasonMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/publish`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Revista publicada com sucesso!", description: "Agora os usuários podem acessar os estudos." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao publicar revista", description: error.message, variant: "destructive" });
+    },
+  });
+
   const resetUploadModal = () => {
     setShowUploadModal(false);
     setPdfFile(null);
@@ -224,14 +238,31 @@ export default function DeoGloryRevistaDetail() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <Button 
-            onClick={() => setShowUploadModal(true)} 
-            className="bg-violet-600 hover:bg-violet-700"
-            data-testid="button-upload-pdf"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload PDF
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {season && season.status !== "published" && lessons.length > 0 && (
+              <Button 
+                onClick={() => publishSeasonMutation.mutate()}
+                disabled={publishSeasonMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-publish-season"
+              >
+                {publishSeasonMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Publicar Revista
+              </Button>
+            )}
+            <Button 
+              onClick={() => setShowUploadModal(true)} 
+              className="bg-violet-600 hover:bg-violet-700"
+              data-testid="button-upload-pdf"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload PDF
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

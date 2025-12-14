@@ -485,15 +485,37 @@ export default function DeoGloryLicoes() {
                     </div>
 
                     <div className="flex gap-2">
+                      {week.status !== "published" ? (
+                        <Button 
+                          className="flex-1 bg-green-600 text-white" 
+                          size="sm"
+                          onClick={() => publishWeekMutation.mutate(week.id)}
+                          disabled={publishWeekMutation.isPending}
+                          data-testid={`button-publish-week-${week.id}`}
+                        >
+                          {publishWeekMutation.isPending ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          )}
+                          Publicar
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="flex-1 bg-violet-600 text-white" 
+                          size="sm"
+                          onClick={() => openEditDialog(week)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </Button>
+                      )}
                       <Button 
-                        className="flex-1 bg-violet-600 text-white" 
-                        size="sm"
+                        variant="outline" 
+                        size="icon" 
+                        className="shrink-0"
                         onClick={() => openEditDialog(week)}
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Editar
-                      </Button>
-                      <Button variant="outline" size="icon" className="shrink-0">
                         <Eye className="h-4 w-4" />
                       </Button>
                     </div>

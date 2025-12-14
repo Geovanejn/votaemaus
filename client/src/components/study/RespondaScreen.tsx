@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -178,22 +178,24 @@ export function RespondaScreen({
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { playSound } = useSounds();
   
-  const questions = rawQuestions.length > 0 ? rawQuestions : [
-    { 
-      type: "multiple_choice" as const, 
-      question: "Qual e o significado central de 'Deus amou o mundo' em Joao 3:16?",
-      options: [
-        "O amor de Deus e apenas para aqueles que seguem as leis religiosas",
-        "O amor de Deus e universal e alcanca toda a humanidade sem distincao",
-        "O amor de Deus e condicional baseado em nossos meritos",
-        "O amor de Deus e limitado a uma regiao geografica especifica"
-      ],
-      correctIndex: 1,
-      category: "Interpretacao",
-      points: 15,
-      verseReference: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito..."
-    }
-  ];
+  const questions = useMemo(() => {
+    return rawQuestions.length > 0 ? rawQuestions : [
+      { 
+        type: "multiple_choice" as const, 
+        question: "Qual e o significado central de 'Deus amou o mundo' em Joao 3:16?",
+        options: [
+          "O amor de Deus e apenas para aqueles que seguem as leis religiosas",
+          "O amor de Deus e universal e alcanca toda a humanidade sem distincao",
+          "O amor de Deus e condicional baseado em nossos meritos",
+          "O amor de Deus e limitado a uma regiao geografica especifica"
+        ],
+        correctIndex: 1,
+        category: "Interpretacao",
+        points: 15,
+        verseReference: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito..."
+      }
+    ];
+  }, [rawQuestions]);
   
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentIndex];
@@ -225,15 +227,17 @@ export function RespondaScreen({
     setHintUsed(false);
     setTimerActive(true);
     
-    if (currentQuestion.type === "fill_blank" && currentQuestion.correctAnswer) {
-      const options = generateFillBlankOptions(String(currentQuestion.correctAnswer));
+    // Get the question at current index
+    const question = questions[currentIndex];
+    if (question && question.type === "fill_blank" && question.correctAnswer) {
+      const options = generateFillBlankOptions(String(question.correctAnswer));
       setFillBlankOptions(options);
     }
     
     return () => {
       clearAutoAdvanceTimeout();
     };
-  }, [currentIndex, currentQuestion]);
+  }, [currentIndex, questions]);
   
   const checkAnswer = () => {
     let isCorrect = false;

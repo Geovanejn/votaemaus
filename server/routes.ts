@@ -1689,19 +1689,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-complete daily missions related to lesson completion
       const today = getTodayBrazilDate();
       try {
+        // First ensure missions are assigned for today
+        await storage.assignDailyMissions(req.user.id, today);
+        
+        // Then get the missions and complete relevant ones
         const userMissions = await storage.getUserDailyMissions(req.user.id, today);
         const missionWeekKey = getCurrentWeekKey();
+        console.log(`[Missions] Checking ${userMissions.length} missions for user ${req.user.id} on ${today}`);
+        
         for (const mission of userMissions) {
           if (mission.completed) continue;
           
           const missionType = mission.mission?.type;
+          console.log(`[Missions] Checking mission ${mission.missionId} type: ${missionType}`);
+          
           // Complete "complete_lesson" type missions
           if (missionType === 'complete_lesson') {
+            console.log(`[Missions] Completing complete_lesson mission ${mission.missionId}`);
             await storage.completeMission(req.user.id, mission.missionId, today);
             await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }
           // Complete "maintain_streak" type missions
           if (missionType === 'maintain_streak') {
+            console.log(`[Missions] Completing maintain_streak mission ${mission.missionId}`);
             await storage.completeMission(req.user.id, mission.missionId, today);
             await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }

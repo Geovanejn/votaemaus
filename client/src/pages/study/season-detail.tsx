@@ -1,10 +1,9 @@
-import { useParams, useLocation, Link } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft,
   BookOpen, 
@@ -92,26 +91,28 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all flex-1",
-        disabled 
-          ? "opacity-50 cursor-not-allowed" 
-          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+        "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all flex-1 min-w-0",
+        completed 
+          ? "border-2 border-emerald-500 bg-white dark:bg-gray-900" 
+          : disabled 
+            ? "border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-60" 
+            : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
       )}
       data-testid={`button-action-${label.toLowerCase()}`}
     >
       <div className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center",
+        "w-8 h-8 rounded-lg flex items-center justify-center",
         completed 
-          ? "bg-emerald-100 dark:bg-emerald-900/30" 
+          ? "bg-emerald-50 dark:bg-emerald-900/30" 
           : disabled 
             ? "bg-gray-100 dark:bg-gray-800" 
-            : "bg-indigo-100 dark:bg-indigo-900/30"
+            : "bg-indigo-50 dark:bg-indigo-900/30"
       )}>
         {disabled ? (
           <Lock className="h-4 w-4 text-gray-400" />
         ) : (
           <Icon className={cn(
-            "h-5 w-5",
+            "h-4 w-4",
             completed 
               ? "text-emerald-600 dark:text-emerald-400" 
               : "text-indigo-600 dark:text-indigo-400"
@@ -184,27 +185,19 @@ function LessonCard({
       )}
       
       <Card className={cn(
-        "overflow-hidden transition-all relative",
+        "overflow-hidden transition-all bg-white dark:bg-gray-900 shadow-sm",
         isLocked 
-          ? "opacity-60 border-gray-200 dark:border-gray-700" 
+          ? "border-gray-200 dark:border-gray-700" 
           : isCompleted 
-            ? "border-emerald-200 dark:border-emerald-800" 
+            ? "border-emerald-100 dark:border-emerald-900/50" 
             : isInProgress
-              ? "border-purple-200 dark:border-purple-800"
+              ? "border-purple-100 dark:border-purple-900/50"
               : "border-border"
       )} data-testid={`lesson-card-${lesson.id}`}>
-        {!isLocked && (isCompleted || isInProgress) && (
-          <div 
-            className={cn(
-              "absolute left-0 top-0 bottom-0 w-1",
-              isCompleted ? "bg-emerald-500" : "bg-purple-500"
-            )} 
-          />
-        )}
         <div className="p-4">
           <div className="flex items-start gap-3">
             <div className={cn(
-              "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center",
+              "flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center",
               isCompleted 
                 ? "bg-emerald-500" 
                 : isInProgress 
@@ -212,10 +205,10 @@ function LessonCard({
                   : "bg-gray-200 dark:bg-gray-700"
             )}>
               {isCompleted ? (
-                <Check className="h-6 w-6 text-white stroke-[3]" />
+                <Check className="h-5 w-5 text-white stroke-[3]" />
               ) : (
                 <span className={cn(
-                  "text-lg font-bold",
+                  "text-base font-bold",
                   isLocked ? "text-gray-400" : "text-white"
                 )}>
                   {lesson.lessonNumber}
@@ -224,30 +217,30 @@ function LessonCard({
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className={cn(
-                    "text-xs font-semibold uppercase tracking-wide",
+                    "text-xs font-semibold uppercase tracking-wide block",
                     isCompleted 
                       ? "text-emerald-600 dark:text-emerald-400" 
                       : isInProgress 
                         ? "text-purple-600 dark:text-purple-400"
                         : "text-gray-400"
                   )}>
-                    {isLocked ? `LICAO ${lesson.lessonNumber}` : `LICAO ${lesson.lessonNumber}`}
+                    LICAO {lesson.lessonNumber}
                   </span>
-                  <p className={cn(
-                    "text-xs",
+                  <span className={cn(
+                    "text-xs font-medium",
                     isCompleted 
-                      ? "text-emerald-600 dark:text-emerald-400 font-medium" 
+                      ? "text-emerald-600 dark:text-emerald-400" 
                       : isInProgress 
-                        ? "text-purple-600 dark:text-purple-400 font-medium"
+                        ? "text-purple-600 dark:text-purple-400"
                         : "text-gray-400"
                   )}>
                     {isCompleted ? "Completa" : isInProgress ? "Em Progresso" : "Bloqueada"}
-                  </p>
+                  </span>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <span className={cn("text-sm font-bold", getXpColor())}>
                     {getXpDisplay()}
                   </span>
@@ -259,7 +252,7 @@ function LessonCard({
             </div>
           </div>
 
-          <div className="mt-3 pl-[60px]">
+          <div className="mt-3">
             <h3 className={cn(
               "font-bold text-base",
               isLocked ? "text-gray-400" : "text-foreground"
@@ -268,7 +261,7 @@ function LessonCard({
             </h3>
             {lesson.description && (
               <p className={cn(
-                "text-sm mt-1",
+                "text-sm mt-1 line-clamp-2",
                 isLocked ? "text-gray-300 dark:text-gray-600" : "text-muted-foreground"
               )}>
                 {lesson.description}
@@ -276,7 +269,7 @@ function LessonCard({
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-4 border-t border-border pt-3">
+          <div className="flex items-center gap-2 mt-4">
             <ActionButton
               icon={FileText}
               label="Estude"
@@ -301,8 +294,11 @@ function LessonCard({
           {isInProgress && !isLocked && (
             <Button
               onClick={onClick}
-              className="w-full mt-3 font-bold bg-purple-500 hover:bg-purple-600 text-white"
-              style={{ boxShadow: '0 4px 0 0 #7c3aed' }}
+              className="w-full mt-4 font-bold text-white rounded-xl h-12"
+              style={{ 
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                boxShadow: '0 4px 0 0 #6d28d9' 
+              }}
               data-testid="button-continue-lesson"
             >
               Continuar Licao
@@ -392,14 +388,14 @@ export default function SeasonDetailPage() {
   const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
 
   return (
-    <div className="min-h-screen bg-background pb-24" data-testid="season-detail-page">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="season-detail-page">
       <header 
         className="sticky top-0 z-50"
         style={{
           background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
         }}
       >
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between px-4 py-3">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -423,66 +419,70 @@ export default function SeasonDetailPage() {
 
       <main className="max-w-lg mx-auto">
         <div 
-          className="p-6"
+          className="px-5 pt-5 pb-8"
           style={{
-            background: 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
+            background: 'linear-gradient(180deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
           }}
         >
-          <div className="flex items-start gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
               <BookMarked className="h-5 w-5 text-white" />
             </div>
-            <Badge className="bg-lime-400 text-lime-900 hover:bg-lime-400 border-0 text-xs font-bold px-3">
+            <span 
+              className="text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: '#a3e635', color: '#365314' }}
+            >
               Trimestre 2024
-            </Badge>
+            </span>
           </div>
           
-          <h2 className="text-2xl font-bold text-white mb-1">{season.title}</h2>
-          <p className="text-white/80 text-sm mb-4">
+          <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>
+          <p className="text-white/80 text-sm mb-5">
             {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
           </p>
           
-          <div className="flex items-center gap-4 text-white/90 text-sm">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-5 text-white/90 text-sm">
+            <div className="flex items-center gap-1.5">
               <BookOpen className="h-4 w-4" />
               <span>{season.totalLessons} Licoes</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
               <span>~{avgMinutesPerLesson} min cada</span>
             </div>
           </div>
         </div>
 
-        <div className="px-4 -mt-4">
-          <Card className="p-4 shadow-lg">
+        <div className="px-4 -mt-5">
+          <Card className="p-5 shadow-lg bg-white dark:bg-gray-900 border-0">
             <div className="flex items-center justify-between mb-3">
               <span className="font-semibold text-foreground">Seu Progresso</span>
-              <span className="text-lg font-bold text-emerald-500" data-testid="text-progress-percent">{progress}%</span>
+              <span className="text-xl font-bold text-emerald-500" data-testid="text-progress-percent">{progress}%</span>
             </div>
             
-            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-4">
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-5">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.8 }}
-                className="h-full rounded-full bg-emerald-500"
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }}
               />
             </div>
 
-            <div className="flex items-center justify-between text-center">
-              <div className="flex-1">
-                <p className="text-xl font-bold text-foreground" data-testid="text-completed-count">{completedCount}</p>
+            <div className="flex items-center justify-around text-center">
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{completedCount}</p>
                 <p className="text-xs text-muted-foreground">Completas</p>
               </div>
-              <div className="w-px h-8 bg-border" />
-              <div className="flex-1">
-                <p className="text-xl font-bold text-foreground" data-testid="text-inprogress-count">{inProgressCount}</p>
+              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{inProgressCount}</p>
                 <p className="text-xs text-muted-foreground">Em Progresso</p>
               </div>
-              <div className="w-px h-8 bg-border" />
-              <div className="flex-1">
-                <p className="text-xl font-bold text-foreground" data-testid="text-locked-count">{lockedCount}</p>
+              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-locked-count">{lockedCount}</p>
                 <p className="text-xs text-muted-foreground">Bloqueadas</p>
               </div>
             </div>
@@ -490,9 +490,14 @@ export default function SeasonDetailPage() {
         </div>
 
         <div className="px-4 mt-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-2">
             <h3 className="font-bold text-lg text-foreground">Todas as Licoes</h3>
-            <Button variant="ghost" size="sm" className="text-purple-600 dark:text-purple-400 gap-1" data-testid="button-filter">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-purple-600 dark:text-purple-400 gap-1.5 font-medium" 
+              data-testid="button-filter"
+            >
               <Filter className="h-4 w-4" />
               Filtrar
             </Button>

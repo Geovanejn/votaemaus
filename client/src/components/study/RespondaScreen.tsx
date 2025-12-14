@@ -237,7 +237,7 @@ export function RespondaScreen({
     return () => {
       clearAutoAdvanceTimeout();
     };
-  }, [currentIndex, questions]);
+  }, [currentIndex]);
   
   const checkAnswer = () => {
     let isCorrect = false;

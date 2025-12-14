@@ -36,7 +36,7 @@ export default function LoginPage() {
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
@@ -57,13 +57,9 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      if (isAdmin) {
-        setLocation("/admin");
-      } else {
-        setLocation("/vote");
-      }
+      setLocation("/admin");
     }
-  }, [isAuthenticated, isAdmin, authLoading, setLocation]);
+  }, [isAuthenticated, authLoading, setLocation]);
 
   const emailForm = useForm<RequestCodeData>({
     resolver: zodResolver(requestCodeSchema),
@@ -183,11 +179,7 @@ export default function LoginPage() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
 
-      if (result.user.isAdmin) {
-        setLocation("/admin");
-      } else {
-        setLocation("/vote");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao verificar código",
@@ -221,11 +213,7 @@ export default function LoginPage() {
         description: `Bem-vindo, ${result.user.fullName}`,
       });
 
-      if (result.user.isAdmin) {
-        setLocation("/admin");
-      } else {
-        setLocation("/vote");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
@@ -271,11 +259,7 @@ export default function LoginPage() {
       setShowSetPasswordDialog(false);
       setPendingUser(null);
 
-      if (updatedUser.isAdmin) {
-        setLocation("/admin");
-      } else {
-        setLocation("/vote");
-      }
+      setLocation("/admin");
     } catch (error) {
       toast({
         title: "Erro ao definir senha",

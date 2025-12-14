@@ -11,8 +11,7 @@ import {
   ArrowRight, 
   LogOut,
   Sparkles,
-  Settings,
-  Globe
+  Settings
 } from "lucide-react";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -103,21 +102,6 @@ const adminPanels = [
       "Criar temporadas e licoes",
       "Gerenciar conquistas",
       "Acompanhar progresso",
-    ],
-  },
-  {
-    id: "site",
-    title: "Site Institucional",
-    subtitle: "Gestao do Site",
-    description: "Gerencie banners, conteudo e configuracoes do site institucional.",
-    icon: Globe,
-    color: "from-amber-500 to-orange-600",
-    buttonColor: "bg-amber-600 hover:bg-amber-700",
-    href: "/admin/site",
-    features: [
-      "Gerenciar banners",
-      "Moderar pedidos de oracao",
-      "Integracao Instagram",
     ],
   },
 ];

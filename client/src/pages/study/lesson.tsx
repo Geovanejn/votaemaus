@@ -1003,6 +1003,9 @@ export default function LessonPage() {
             lessonTitle={lessonData.title}
             questions={respondaQuestions}
             streak={profileData?.currentStreak || 0}
+            hearts={currentHearts}
+            maxHearts={profileData?.heartsMax || 5}
+            crystals={profileData?.crystals || 0}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
             onClose={handleClose}
@@ -1012,6 +1015,7 @@ export default function LessonPage() {
               setCurrentUnitIndex(0);
               setStudyProgress(null);
             }}
+            onXpChange={(xp) => setDisplayXp(xp)}
           />
         ) : (
           <>

@@ -21,7 +21,8 @@ import {
   Zap,
   Check,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Gem
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSounds } from "@/hooks/use-sounds";
@@ -43,11 +44,15 @@ interface RespondaScreenProps {
   lessonTitle: string;
   questions: QuizQuestion[];
   streak: number;
+  hearts?: number;
+  maxHearts?: number;
+  crystals?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
   onComplete: () => void;
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
+  onXpChange?: (xp: number) => void;
 }
 
 function detectAnswerType(answer: string): string {
@@ -140,12 +145,11 @@ function Timer({ isActive, onTimeUp }: { isActive: boolean; onTimeUp?: () => voi
   const isLow = seconds <= 30;
   
   return (
-    <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-      <Clock className={cn("h-4 w-4", isLow && "animate-pulse text-red-500")} />
-      <span className="text-sm text-muted-foreground">Tempo restante</span>
+    <div className="flex items-center gap-2">
+      <Clock className={cn("h-4 w-4 text-white/80", isLow && "animate-pulse text-red-300")} />
       <span className={cn(
         "text-lg font-bold",
-        isLow ? "text-red-500" : "text-orange-500"
+        isLow ? "text-red-300" : "text-white"
       )}>
         {formatTime()}
       </span>
@@ -157,11 +161,15 @@ export function RespondaScreen({
   lessonTitle, 
   questions: rawQuestions, 
   streak,
+  hearts = 5,
+  maxHearts = 5,
+  crystals = 0,
   onAnswer,
   onComplete, 
   onClose,
   onProgress,
-  onSwitchTab
+  onSwitchTab,
+  onXpChange
 }: RespondaScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -170,7 +178,7 @@ export function RespondaScreen({
   const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [points, setPoints] = useState(0);
+  const [totalXp, setTotalXp] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
@@ -227,7 +235,6 @@ export function RespondaScreen({
     setHintUsed(false);
     setTimerActive(true);
     
-    // Get the question at current index
     const question = questions[currentIndex];
     if (question && question.type === "fill_blank" && question.correctAnswer) {
       const options = generateFillBlankOptions(String(question.correctAnswer));
@@ -264,8 +271,13 @@ export function RespondaScreen({
     
     if (isCorrect) {
       playSound('practiceCorrect');
-      const earnedPoints = (currentQuestion.points || 10) - (hintUsed ? 5 : 0);
-      setPoints(prev => prev + earnedPoints);
+      const basePoints = currentQuestion.points || 10;
+      const earnedPoints = Math.max(basePoints - (hintUsed ? 5 : 0), 0);
+      setTotalXp(prev => {
+        const newXp = prev + earnedPoints;
+        onXpChange?.(newXp);
+        return newXp;
+      });
       setCorrectCount(prev => prev + 1);
     } else {
       playSound('practiceError');
@@ -304,9 +316,10 @@ export function RespondaScreen({
   };
   
   const useHint = () => {
-    if (!hintUsed) {
+    if (!hintUsed && currentQuestion.hint) {
       setShowHint(true);
       setHintUsed(true);
+      playSound('hint');
     }
   };
   
@@ -330,7 +343,6 @@ export function RespondaScreen({
           </Button>
           <div className="text-center">
             <h1 className="font-bold text-lg">Responda</h1>
-            <p className="text-white/80 text-sm">Joao 3:16-21</p>
           </div>
           <Button 
             variant="ghost" 
@@ -342,18 +354,39 @@ export function RespondaScreen({
           </Button>
         </div>
         
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Gem className="h-4 w-4 text-purple-300" />
+              <span className="font-medium">{crystals}</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: maxHearts }).map((_, i) => (
+                <Heart 
+                  key={i}
+                  className={cn(
+                    "h-4 w-4",
+                    i < hearts ? "text-red-400 fill-red-400" : "text-white/30"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+          <Timer key={currentIndex} isActive={timerActive && !showResult} onTimeUp={handleTimeUp} />
+        </div>
+        
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-1">
             <Flame className="h-4 w-4" />
             <span className="font-medium">Sequencia</span>
           </div>
           <div>
-            <span className="font-medium">Pontos totais</span>
+            <span className="font-medium">XP Total</span>
           </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-2xl font-bold text-yellow-300">{streak} dias</span>
-          <span className="text-2xl font-bold">{points}</span>
+          <span className="text-2xl font-bold">{totalXp}</span>
         </div>
         
         <div className="mt-3 flex items-center justify-between text-sm">
@@ -370,10 +403,6 @@ export function RespondaScreen({
       
       <div className="flex-1 overflow-y-auto p-4 -mt-4">
         <div className="max-w-lg mx-auto space-y-4">
-          <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
-            <Timer key={currentIndex} isActive={timerActive && !showResult} onTimeUp={handleTimeUp} />
-          </Card>
-          
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
@@ -395,9 +424,11 @@ export function RespondaScreen({
                   </div>
                 </div>
                 
-                <h3 className="text-lg font-bold text-foreground mb-3">
-                  {currentQuestion.question}
-                </h3>
+                {currentQuestion.type !== "fill_blank" && (
+                  <h3 className="text-lg font-bold text-foreground mb-3">
+                    {currentQuestion.question}
+                  </h3>
+                )}
                 
                 {currentQuestion.verseReference && (
                   <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-3 mb-4">
@@ -407,7 +438,6 @@ export function RespondaScreen({
                   </div>
                 )}
                 
-                {/* Multiple Choice Options */}
                 {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
                   <div className="space-y-2">
                     {currentQuestion.options.map((option, idx) => {
@@ -454,71 +484,74 @@ export function RespondaScreen({
                   </div>
                 )}
                 
-                {/* True/False Options */}
                 {currentQuestion.type === "true_false" && (
-                  <div className="flex gap-4">
-                    {[
-                      { value: true, label: "Verdadeiro", icon: Check },
-                      { value: false, label: "Falso", icon: X }
-                    ].map(({ value, label, icon: Icon }) => {
-                      const isSelected = trueFalseAnswer === value;
-                      const isCorrectAnswer = currentQuestion.correctAnswer === value;
-                      const showCorrect = showResult && isCorrectAnswer;
-                      const showIncorrect = showResult && isSelected && !isCorrectAnswer;
-                      
-                      return (
-                        <button
-                          key={label}
-                          onClick={() => !showResult && setTrueFalseAnswer(value)}
-                          disabled={showResult}
-                          className={cn(
-                            "flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
-                            showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
-                            showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
-                            isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
-                            !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
-                            !showResult && "cursor-pointer"
-                          )}
-                          data-testid={`option-${label.toLowerCase()}`}
-                        >
-                          <div className={cn(
-                            "h-14 w-14 rounded-full flex items-center justify-center",
-                            showCorrect && "bg-green-500",
-                            showIncorrect && "bg-red-500",
-                            isSelected && !showResult && "bg-orange-500",
-                            !isSelected && !showResult && (value ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30")
-                          )}>
-                            {showCorrect ? (
-                              <CheckCircle className="h-7 w-7 text-white" />
-                            ) : showIncorrect ? (
-                              <XCircle className="h-7 w-7 text-white" />
-                            ) : (
-                              <Icon className={cn(
-                                "h-7 w-7",
-                                isSelected && !showResult ? "text-white" : (value ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")
-                              )} />
+                  <>
+                    <h3 className="text-lg font-bold text-foreground mb-4">
+                      {currentQuestion.question}
+                    </h3>
+                    <div className="flex gap-4">
+                      {[
+                        { value: true, label: "Verdadeiro", icon: Check },
+                        { value: false, label: "Falso", icon: X }
+                      ].map(({ value, label, icon: Icon }) => {
+                        const isSelected = trueFalseAnswer === value;
+                        const isCorrectAnswer = currentQuestion.correctAnswer === value;
+                        const showCorrect = showResult && isCorrectAnswer;
+                        const showIncorrect = showResult && isSelected && !isCorrectAnswer;
+                        
+                        return (
+                          <button
+                            key={label}
+                            onClick={() => !showResult && setTrueFalseAnswer(value)}
+                            disabled={showResult}
+                            className={cn(
+                              "flex-1 flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
+                              showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
+                              showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
+                              isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
+                              !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                              !showResult && "cursor-pointer"
                             )}
-                          </div>
-                          <span className={cn(
-                            "font-bold text-lg",
-                            showCorrect && "text-green-600 dark:text-green-400",
-                            showIncorrect && "text-red-600 dark:text-red-400",
-                            isSelected && !showResult && "text-orange-600 dark:text-orange-400",
-                            !isSelected && !showResult && "text-foreground"
-                          )}>
-                            {label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                            data-testid={`option-${label.toLowerCase()}`}
+                          >
+                            <div className={cn(
+                              "h-14 w-14 rounded-full flex items-center justify-center",
+                              showCorrect && "bg-green-500",
+                              showIncorrect && "bg-red-500",
+                              isSelected && !showResult && "bg-orange-500",
+                              !isSelected && !showResult && (value ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30")
+                            )}>
+                              {showCorrect ? (
+                                <CheckCircle className="h-7 w-7 text-white" />
+                              ) : showIncorrect ? (
+                                <XCircle className="h-7 w-7 text-white" />
+                              ) : (
+                                <Icon className={cn(
+                                  "h-7 w-7",
+                                  isSelected && !showResult ? "text-white" : (value ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")
+                                )} />
+                              )}
+                            </div>
+                            <span className={cn(
+                              "font-bold text-lg",
+                              showCorrect && "text-green-600 dark:text-green-400",
+                              showIncorrect && "text-red-600 dark:text-red-400",
+                              isSelected && !showResult && "text-orange-600 dark:text-orange-400",
+                              !isSelected && !showResult && "text-foreground"
+                            )}>
+                              {label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
                 
-                {/* Fill in the Blank */}
                 {currentQuestion.type === "fill_blank" && (
                   <div className="space-y-4">
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4">
-                      <p className="text-foreground text-center">
+                      <p className="text-foreground text-center font-bold">
                         {currentQuestion.question.split("___").map((part, idx, arr) => (
                           <span key={idx}>
                             {part}
@@ -601,7 +634,7 @@ export function RespondaScreen({
           )}
           
           <div className="flex gap-3">
-            {!showResult && (
+            {!showResult && currentQuestion.hint && (
               <Button
                 variant="outline"
                 onClick={useHint}
@@ -613,7 +646,7 @@ export function RespondaScreen({
                 data-testid="button-hint"
               >
                 <Lightbulb className="h-4 w-4 mr-2" />
-                Dica (-5 pts)
+                Dica (-5 XP)
               </Button>
             )}
             
@@ -667,39 +700,6 @@ export function RespondaScreen({
                 </div>
                 <span className="text-xl font-bold text-foreground">{accuracy}%</span>
                 <span className="text-xs text-muted-foreground">Precisao</span>
-              </div>
-            </div>
-          </Card>
-          
-          <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Atividade Recente
-              </h4>
-              <button className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
-                Ver todas
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <Award className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground text-sm">Quiz completo: Evangelho de Joao</p>
-                  <p className="text-xs text-muted-foreground">Ha 2 dias - 95 pontos</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground text-sm">Conquista desbloqueada</p>
-                  <p className="text-xs text-muted-foreground">Ha 3 dias - Estudante dedicado</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
           </Card>

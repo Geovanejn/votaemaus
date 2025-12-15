@@ -1909,26 +1909,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   private checkAnswer(unitType: string, content: any, answer: any): boolean {
-    if (unitType === 'multiple_choice') {
-      const correctIndex = content.correctIndex;
+    // Handle nested content structure: some questions have content.content
+    const data = content?.content ?? content;
+    // Get question type from the normalized data first, then fall back to outer content, then unitType
+    const questionType = data.type ?? content.type ?? unitType;
+    
+    if (questionType === 'multiple_choice') {
+      const correctIndex = data.correctIndex;
       if (correctIndex !== undefined) {
         return correctIndex === answer;
       }
-      return content.correctAnswer === answer;
+      return data.correctAnswer === answer;
     }
-    if (unitType === 'true_false') {
-      const isTrue = content.isTrue;
+    if (questionType === 'true_false') {
+      const isTrue = data.isTrue;
       if (isTrue !== undefined) {
         return isTrue === answer;
       }
-      return content.correctAnswer === answer;
+      return data.correctAnswer === answer;
     }
-    if (unitType === 'fill_blank') {
-      const correctAnswer = content.correctAnswer;
+    if (questionType === 'fill_blank') {
+      const correctAnswer = data.correctAnswer;
       if (correctAnswer) {
         return correctAnswer.toLowerCase().trim() === String(answer).toLowerCase().trim();
       }
-      const correctAnswers = content.correctAnswers || [];
+      const correctAnswers = data.correctAnswers || [];
       return correctAnswers.some((a: string) => 
         a.toLowerCase().trim() === String(answer).toLowerCase().trim()
       );

@@ -53,6 +53,8 @@ export default function DeoGloryRevistaDetail() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");
+  const [showEditLessonModal, setShowEditLessonModal] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<{ id: number; title: string } | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
@@ -142,6 +144,21 @@ export default function DeoGloryRevistaDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao atualizar nome", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateLessonTitleMutation = useMutation({
+    mutationFn: async ({ lessonId, title }: { lessonId: number; title: string }) => {
+      return apiRequest("PATCH", `/api/study/admin/lessons/${lessonId}`, { title: title.trim() });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId, "lessons"] });
+      toast({ title: "Nome da lição atualizado!" });
+      setShowEditLessonModal(false);
+      setEditingLesson(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar nome da lição", description: error.message, variant: "destructive" });
     },
   });
 
@@ -412,8 +429,19 @@ export default function DeoGloryRevistaDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => {
+                                setEditingLesson({ id: lesson.id, title: lesson.title });
+                                setShowEditLessonModal(true);
+                              }}
+                              data-testid={`button-edit-lesson-title-${lesson.id}`}
+                            >
+                              <Pencil className="h-4 w-4 text-violet-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => navigate(`/admin/study/licao/${lesson.id}`)}
-                              data-testid={`button-edit-lesson-${lesson.id}`}
+                              data-testid={`button-view-lesson-${lesson.id}`}
                             >
                               <Eye className="h-4 w-4 text-violet-600" />
                             </Button>
@@ -458,7 +486,7 @@ export default function DeoGloryRevistaDetail() {
       </div>
 
       <Dialog open={showUploadModal} onOpenChange={(open) => !isProcessingPdf && setShowUploadModal(open)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload de PDF</DialogTitle>
             <DialogDescription>
@@ -602,7 +630,7 @@ export default function DeoGloryRevistaDetail() {
       </Dialog>
 
       <Dialog open={showEditNameModal} onOpenChange={setShowEditNameModal}>
-        <DialogContent className="sm:max-w-md fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Nome da Revista</DialogTitle>
             <DialogDescription>
@@ -631,6 +659,58 @@ export default function DeoGloryRevistaDetail() {
               data-testid="button-save-magazine-name"
             >
               {updateSeasonTitleMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditLessonModal} onOpenChange={(open) => {
+        setShowEditLessonModal(open);
+        if (!open) setEditingLesson(null);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Nome da Lição</DialogTitle>
+            <DialogDescription>
+              Altere o nome da lição abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="lesson-title">Nome da Lição</Label>
+            <Input
+              id="lesson-title"
+              value={editingLesson?.title || ""}
+              onChange={(e) => setEditingLesson(prev => prev ? { ...prev, title: e.target.value } : null)}
+              placeholder="Digite o nome da lição"
+              className="mt-2"
+              data-testid="input-edit-lesson-name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowEditLessonModal(false);
+              setEditingLesson(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingLesson) {
+                  updateLessonTitleMutation.mutate({ lessonId: editingLesson.id, title: editingLesson.title });
+                }
+              }}
+              disabled={updateLessonTitleMutation.isPending || !editingLesson?.title.trim()}
+              className="bg-violet-600 hover:bg-violet-700"
+              data-testid="button-save-lesson-name"
+            >
+              {updateLessonTitleMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Salvando...

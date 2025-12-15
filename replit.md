@@ -93,6 +93,13 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 15/12/2025 - UI Improvements in Quiz Section (Responda)
+- **Orange card layout**: All question types (multiple choice, true/false, fill-blank) now use consistent bg-orange-50 dark:bg-orange-900/20
+- **Ellipsis fix**: Removed trailing ellipsis from fill-blank questions display
+- **Accumulated XP**: RespondaScreen now receives initialXp prop with XP from Estude/Medite sessions
+- **Instant XP feedback**: Hint button now deducts 5 XP immediately with visual update
+- **Verse numbering**: VerseContent now preserves original verse numbers based on reference (e.g., João 3:6-10 starts at verse 6)
+
 ### 15/12/2025 - DeoGlory Study System Improvements
 - **getStageFromUnitType helper**: Nova função centralizada em routes.ts que mapeia tipos de unidade para stages (text/verse→estude, meditation/reflection→medite, multiple_choice/true_false/fill_blank→responda)
 - **Seed data fix**: Corrigido bug onde questões não apareciam na seção Responda (faltava stage correto)

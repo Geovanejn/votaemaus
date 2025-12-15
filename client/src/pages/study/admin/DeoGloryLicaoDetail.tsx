@@ -199,21 +199,35 @@ export default function DeoGloryLicaoDetail() {
   };
 
   const parseContent = (content: string | object): string => {
+    const extractFromObj = (obj: Record<string, unknown>): string => {
+      // Handle title/body format
+      if (obj.title && obj.body) {
+        return `${obj.title}: ${String(obj.body).substring(0, 200)}${String(obj.body).length > 200 ? '...' : ''}`;
+      }
+      if (obj.body) return String(obj.body);
+      if (obj.text) return String(obj.text);
+      if (obj.question) return String(obj.question);
+      if (obj.statement) return String(obj.statement);
+      if (obj.verse) return `${obj.verse} - ${obj.reference || ""}`;
+      // Handle nested content structure (for questions)
+      if (obj.content && typeof obj.content === 'object') {
+        const nested = obj.content as Record<string, unknown>;
+        if (nested.question) return String(nested.question);
+        if (nested.statement) return String(nested.statement);
+        if (nested.text) return String(nested.text);
+      }
+      return JSON.stringify(obj);
+    };
+
     if (typeof content === "string") {
       try {
         const parsed = JSON.parse(content);
-        if (parsed.text) return parsed.text;
-        if (parsed.question) return parsed.question;
-        if (parsed.verse) return `${parsed.verse} - ${parsed.reference || ""}`;
-        return content;
+        return extractFromObj(parsed as Record<string, unknown>);
       } catch {
         return content;
       }
     }
-    const obj = content as Record<string, unknown>;
-    if (obj.text) return String(obj.text);
-    if (obj.question) return String(obj.question);
-    return JSON.stringify(content);
+    return extractFromObj(content as Record<string, unknown>);
   };
 
   if (loadingLesson) {

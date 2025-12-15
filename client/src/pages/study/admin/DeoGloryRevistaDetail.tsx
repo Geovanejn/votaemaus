@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   Upload,
@@ -35,6 +36,7 @@ import {
   Eye,
   Key,
   AlertCircle,
+  Pencil,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -49,6 +51,8 @@ export default function DeoGloryRevistaDetail() {
   const seasonId = parseInt(params.id || "0", 10);
   
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [editingTitle, setEditingTitle] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
@@ -123,6 +127,21 @@ export default function DeoGloryRevistaDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao publicar revista", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateSeasonTitleMutation = useMutation({
+    mutationFn: async (newTitle: string) => {
+      return apiRequest("PUT", `/api/study/admin/seasons/${seasonId}`, { title: newTitle.trim() });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Nome da revista atualizado!" });
+      setShowEditNameModal(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar nome", description: error.message, variant: "destructive" });
     },
   });
 

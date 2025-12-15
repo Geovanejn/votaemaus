@@ -551,7 +551,14 @@ export default function LessonPage() {
   
   const isRespondaStage = currentUnit?.stage === 'responda';
   const isQuestionType = currentUnit?.type === 'multiple_choice' || currentUnit?.type === 'true_false' || currentUnit?.type === 'fill_blank';
-  const respondaUnits = allUnits.filter(u => u.stage === 'responda' && (u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'));
+  // Include units that are either marked as 'responda' stage OR have interactive question types (fallback for missing stage)
+  const respondaUnits = allUnits.filter(u => {
+    const isInteractiveType = u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank';
+    // If stage is explicitly set, respect it; otherwise, include interactive types
+    if (u.stage === 'responda' && isInteractiveType) return true;
+    if (!u.stage && isInteractiveType) return true; // Fallback: include interactive types without stage
+    return false;
+  });
   
   const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => ({
     type: unit.type as 'multiple_choice' | 'true_false' | 'fill_blank',

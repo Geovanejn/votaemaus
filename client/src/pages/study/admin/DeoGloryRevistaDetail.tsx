@@ -426,7 +426,7 @@ export default function DeoGloryRevistaDetail() {
       </div>
 
       <Dialog open={showUploadModal} onOpenChange={(open) => !isProcessingPdf && setShowUploadModal(open)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Upload de PDF</DialogTitle>
             <DialogDescription>

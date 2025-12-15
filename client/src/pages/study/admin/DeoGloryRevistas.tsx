@@ -128,15 +128,16 @@ function MagazineCard({ season }: { season: Season }) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
-            className="flex-1 gap-2 border-blue-200 text-blue-600 dark:border-blue-800 dark:text-blue-400"
+            className="flex-1 gap-1 text-xs md:text-sm border-blue-200 text-blue-600 dark:border-blue-800 dark:text-blue-400"
             data-testid={`button-view-magazine-${season.id}`}
             onClick={() => navigate(`/study/admin/estudos?revista=${season.id}`)}
           >
-            <Eye className="h-4 w-4" />
-            {isPublished ? "Ver" : "Gerenciar"}
+            <Eye className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">{isPublished ? "Ver" : "Gerenciar"}</span>
+            <span className="sm:hidden">Ver</span>
           </Button>
         </div>
       </CardContent>
@@ -281,7 +282,7 @@ export default function DeoGloryRevistas() {
         {isLoading ? (
           <LoadingSkeleton />
         ) : filteredSeasons.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
             {filteredSeasons.map((season) => (
               <MagazineCard key={season.id} season={season} />
             ))}

@@ -299,10 +299,10 @@ export default function DeoGloryEstudos() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {seasons.map((season) => (
               <Card key={season.id} className={`overflow-visible ${highlightedSeasonId === season.id ? "ring-2 ring-violet-500" : ""}`} data-testid={`card-revista-${season.id}`}>
-                <div className="relative bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden" style={{ aspectRatio: '2/3' }}>
+                <div className="relative bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
                   {season.coverImageUrl ? (
                     <img
                       src={season.coverImageUrl}
@@ -323,37 +323,39 @@ export default function DeoGloryEstudos() {
                     </div>
                   )}
                 </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <Badge className={`${statusColors[season.status]?.bg} ${statusColors[season.status]?.text} border-0`}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <Badge size="sm" className={`${statusColors[season.status]?.bg} ${statusColors[season.status]?.text} border-0 text-xs`}>
                       {statusColors[season.status]?.label || season.status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground">
                       {season.totalLessons} {season.totalLessons === 1 ? "lição" : "lições"}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1 text-sm">
                     {season.aiExtractedTitle || season.title}
                   </h3>
                   {season.aiExtractedTitle && season.aiExtractedTitle !== season.title && (
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="text-[10px] text-muted-foreground mb-1">
                       Revista: {season.title}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-1 mt-2">
                     <Button
                       variant="default"
-                      className="flex-1 bg-violet-600 hover:bg-violet-700"
+                      size="sm"
+                      className="flex-1 bg-violet-600 hover:bg-violet-700 text-xs"
                       onClick={() => navigate(`/admin/study/revista/${season.id}`)}
                       disabled={season.status === "processing"}
                       data-testid={`button-gerenciar-${season.id}`}
                     >
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Settings className="h-3 w-3 mr-1" />
                       Gerenciar
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-7 w-7"
                       onClick={() => {
                         if (confirm("Tem certeza que deseja remover esta revista?")) {
                           deleteSeasonMutation.mutate(season.id);
@@ -361,20 +363,20 @@ export default function DeoGloryEstudos() {
                       }}
                       data-testid={`button-delete-${season.id}`}
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-3 w-3 text-red-500" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
 
-            <Card className="border-dashed flex flex-col items-center justify-center min-h-[280px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => setShowCreateModal(true)}>
-              <CardContent className="text-center p-6">
-                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
-                  <Plus className="h-6 w-6 text-gray-400" />
+            <Card className="border-dashed flex flex-col items-center justify-center min-h-[180px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => setShowCreateModal(true)}>
+              <CardContent className="text-center p-3">
+                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-2">
+                  <Plus className="h-5 w-5 text-gray-400" />
                 </div>
-                <h3 className="font-medium text-gray-900 dark:text-white mb-1">Nova Revista</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm">Nova Revista</h3>
+                <p className="text-xs text-muted-foreground">
                   Criar nova revista
                 </p>
               </CardContent>

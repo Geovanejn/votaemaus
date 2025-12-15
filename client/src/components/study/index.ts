@@ -28,7 +28,7 @@ export { StudyContent } from "./StudyContent";
 export { EstudeScreen } from "./EstudeScreen";
 export { MediteScreen } from "./MediteScreen";
 export { RespondaScreen } from "./RespondaScreen";
-export { NewUnitCard } from "./NewUnitCard";
+export { NewUnitCard, LessonCard } from "./NewUnitCard";
 export { ContinueLearning } from "./ContinueLearning";
 export { AchievementNotification, useAchievementNotification } from "./AchievementNotification";
 export { SoundSettings } from "./SoundSettings";

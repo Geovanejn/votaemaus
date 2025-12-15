@@ -58,14 +58,14 @@ const lockedColors = {
   progress: "#D1D5DB"
 };
 
-function LessonCard({ 
+export function LessonCard({ 
   lesson, 
   onStageClick,
-  colorIndex
+  colorIndex = 0
 }: { 
   lesson: LessonData;
   onStageClick?: (lessonId: number, stage: "estude" | "medite" | "responda") => void;
-  colorIndex: number;
+  colorIndex?: number;
 }) {
   const isCompleted = lesson.status === "completed";
   const isInProgress = lesson.status === "in_progress";

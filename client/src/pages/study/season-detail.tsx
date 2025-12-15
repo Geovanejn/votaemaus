@@ -1,25 +1,20 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { BottomNav } from "@/components/study";
+import { BottomNav, LessonCard } from "@/components/study";
+import type { LessonData, LessonStage } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft,
   BookOpen, 
-  Lock, 
-  Check, 
   Loader2,
   Clock,
   MoreVertical,
   Filter,
-  FileText,
-  Lightbulb,
-  Pen,
   BookMarked
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
 interface Season {
   id: number;
@@ -73,196 +68,56 @@ interface SeasonDetail {
   };
 }
 
-function ActionButton({ 
-  icon: Icon, 
-  label, 
-  completed, 
-  disabled,
-  active,
-  onClick
-}: { 
-  icon: typeof FileText; 
-  label: string; 
-  completed: boolean;
-  disabled: boolean;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const isActive = active && !completed && !disabled;
-  
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg transition-all flex-1 min-w-0",
-        isActive 
-          ? "bg-violet-100 dark:bg-violet-900/30 border-2 border-violet-500" 
-          : completed 
-            ? "bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500" 
-            : "bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
-      )}
-      data-testid={`button-action-${label.toLowerCase()}`}
-    >
-      {disabled && !completed ? (
-        <Lock className="h-5 w-5 text-gray-400" />
-      ) : (
-        <Icon className={cn(
-          "h-5 w-5",
-          isActive 
-            ? "text-violet-600 dark:text-violet-400" 
-            : completed 
-              ? "text-emerald-600 dark:text-emerald-400" 
-              : "text-gray-500"
-        )} />
-      )}
-      <span className={cn(
-        "text-xs font-semibold",
-        isActive 
-          ? "text-violet-700 dark:text-violet-300" 
-          : completed 
-            ? "text-emerald-600 dark:text-emerald-400" 
-            : "text-gray-500"
-      )}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function LessonCard({ 
-  lesson, 
-  index,
-  onClick,
-  previousCompleted
-}: { 
-  lesson: Lesson; 
-  index: number;
-  onClick: () => void;
-  previousCompleted: boolean;
-}) {
+function transformLessonToLessonData(lesson: Lesson, previousCompleted: boolean): LessonData {
   const isCompleted = lesson.status === 'completed';
   const isInProgress = lesson.status === 'in_progress' || (previousCompleted && !isCompleted && !lesson.isLocked);
   const isLocked = lesson.isLocked || (!previousCompleted && !isCompleted);
   
-  const sectionsCompleted = lesson.sectionsCompleted || 0;
-  const totalSections = lesson.totalSections || 16;
-  
   const studyDone = lesson.studyCompleted || isCompleted;
   const meditationDone = lesson.meditationCompleted || isCompleted;
   const quizDone = lesson.quizCompleted || isCompleted;
+  
+  const sectionsCompleted = lesson.sectionsCompleted || 0;
+  const totalSections = lesson.totalSections || 16;
 
-  const getStatusText = () => {
-    if (isCompleted) return "Completa";
-    if (isInProgress) return "Em progresso";
-    return "Bloqueada";
+  let lessonStatus: "completed" | "in_progress" | "locked" = "locked";
+  if (isCompleted) {
+    lessonStatus = "completed";
+  } else if (isInProgress) {
+    lessonStatus = "in_progress";
+  }
+
+  const stages: LessonStage[] = [
+    {
+      type: "estude",
+      status: studyDone ? "completed" : isLocked ? "locked" : "current",
+      completedUnits: studyDone ? 1 : 0,
+      totalUnits: 1
+    },
+    {
+      type: "medite",
+      status: meditationDone ? "completed" : (!studyDone || isLocked) ? "locked" : "current",
+      completedUnits: meditationDone ? 1 : 0,
+      totalUnits: 1
+    },
+    {
+      type: "responda",
+      status: quizDone ? "completed" : (!meditationDone || isLocked) ? "locked" : "current",
+      completedUnits: quizDone ? 1 : 0,
+      totalUnits: 1
+    }
+  ];
+
+  return {
+    id: lesson.id,
+    number: lesson.lessonNumber,
+    title: lesson.title,
+    status: lessonStatus,
+    sectionsCompleted,
+    totalSections,
+    xpReward: lesson.xpReward,
+    stages
   };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="relative"
-      data-testid={`lesson-card-${lesson.id}`}
-    >
-      <Card className={cn(
-        "overflow-hidden transition-all bg-white dark:bg-gray-900 border-0 shadow-md",
-        "relative"
-      )}>
-        <div 
-          className={cn(
-            "absolute left-0 top-0 bottom-0 w-1.5 rounded-l-md",
-            isCompleted 
-              ? "bg-emerald-500" 
-              : isInProgress 
-                ? "bg-violet-500"
-                : "bg-gray-300 dark:bg-gray-600"
-          )}
-        />
-        
-        <div className="p-4 pl-5">
-          <div className="flex items-start gap-3">
-            <div className={cn(
-              "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
-              isCompleted 
-                ? "bg-emerald-500" 
-                : isInProgress 
-                  ? "bg-violet-500"
-                  : "bg-gray-300 dark:bg-gray-600"
-            )}>
-              {isCompleted ? (
-                <Check className="h-5 w-5 text-white stroke-[3]" />
-              ) : (
-                <span className={cn(
-                  "text-base font-bold",
-                  isLocked ? "text-gray-500" : "text-white"
-                )}>
-                  {lesson.lessonNumber}
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-gray-400 block">
-                    LICAO {lesson.lessonNumber}
-                  </span>
-                  <h3 className={cn(
-                    "font-bold text-base mt-0.5 leading-tight",
-                    isLocked ? "text-gray-400" : "text-foreground"
-                  )}>
-                    Licao {lesson.lessonNumber}: {lesson.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {getStatusText()} <span className="mx-1">•</span> {sectionsCompleted}/{totalSections} secoes
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className={cn(
-                    "text-sm font-bold",
-                    isCompleted 
-                      ? "text-emerald-500" 
-                      : isInProgress 
-                        ? "text-violet-500"
-                        : "text-gray-400"
-                  )}>
-                    {lesson.xpReward} XP
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mt-4">
-            <ActionButton
-              icon={BookOpen}
-              label="Estude"
-              completed={studyDone}
-              disabled={isLocked}
-              active={!studyDone && !isLocked}
-              onClick={!isLocked ? onClick : undefined}
-            />
-            <ActionButton
-              icon={Lightbulb}
-              label="Medite"
-              completed={meditationDone}
-              disabled={isLocked || !studyDone}
-              active={studyDone && !meditationDone && !isLocked}
-            />
-            <ActionButton
-              icon={Pen}
-              label="Responda"
-              completed={quizDone}
-              disabled={isLocked || !meditationDone}
-              active={meditationDone && !quizDone && !isLocked}
-            />
-          </div>
-        </div>
-      </Card>
-    </motion.div>
-  );
 }
 
 function LoadingState() {
@@ -456,14 +311,13 @@ export default function SeasonDetailPage() {
             {lessons.map((lesson, index) => {
               const previousLesson = lessons[index - 1];
               const previousCompleted = index === 0 || previousLesson?.status === 'completed';
+              const transformedLesson = transformLessonToLessonData(lesson, previousCompleted);
               
               return (
                 <LessonCard
                   key={lesson.id}
-                  lesson={lesson}
-                  index={index}
-                  onClick={() => handleLessonClick(lesson.id)}
-                  previousCompleted={previousCompleted}
+                  lesson={transformedLesson}
+                  onStageClick={(lessonId, stage) => handleLessonClick(lessonId)}
                 />
               );
             })}

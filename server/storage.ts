@@ -307,6 +307,7 @@ export interface IStorage {
   deleteSeason(id: number): Promise<boolean>;
   publishSeason(id: number): Promise<schema.Season | null>;
   getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]>;
+  getLessonsWithProgressForSeason(userId: number, seasonId: number): Promise<any[]>;
   createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson>;
   releaseLessonInSeason(lessonId: number): Promise<schema.StudyLesson | null>;
   
@@ -2926,6 +2927,123 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(schema.studyLessons)
       .where(eq(schema.studyLessons.seasonId, seasonId))
       .orderBy(asc(schema.studyLessons.orderIndex));
+  }
+
+  async getLessonsWithProgressForSeason(userId: number, seasonId: number): Promise<any[]> {
+    const lessonsWithProgress = await db.select({
+      id: schema.studyLessons.id,
+      studyWeekId: schema.studyLessons.studyWeekId,
+      orderIndex: schema.studyLessons.orderIndex,
+      title: schema.studyLessons.title,
+      type: schema.studyLessons.type,
+      description: schema.studyLessons.description,
+      xpReward: schema.studyLessons.xpReward,
+      estimatedMinutes: schema.studyLessons.estimatedMinutes,
+      icon: schema.studyLessons.icon,
+      isBonus: schema.studyLessons.isBonus,
+      isLocked: schema.studyLessons.isLocked,
+      unlockDate: schema.studyLessons.unlockDate,
+      seasonId: schema.studyLessons.seasonId,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      isReleased: schema.studyLessons.isReleased,
+      progressStatus: schema.userLessonProgress.status,
+      progressXpEarned: schema.userLessonProgress.xpEarned,
+      progressPerfectScore: schema.userLessonProgress.perfectScore,
+    })
+      .from(schema.studyLessons)
+      .leftJoin(
+        schema.userLessonProgress,
+        and(
+          eq(schema.userLessonProgress.lessonId, schema.studyLessons.id),
+          eq(schema.userLessonProgress.userId, userId)
+        )
+      )
+      .where(eq(schema.studyLessons.seasonId, seasonId))
+      .orderBy(asc(schema.studyLessons.orderIndex));
+
+    const lessonsWithStageProgress = await Promise.all(lessonsWithProgress.map(async (row) => {
+      const units = await db.select({
+        id: schema.studyUnits.id,
+        stage: schema.studyUnits.stage,
+        type: schema.studyUnits.type,
+        orderIndex: schema.studyUnits.orderIndex,
+      }).from(schema.studyUnits)
+        .where(eq(schema.studyUnits.lessonId, row.id))
+        .orderBy(asc(schema.studyUnits.orderIndex));
+      
+      const unitIds = units.map(u => u.id);
+      let unitProgressList: { unitId: number; isCompleted: boolean; isCorrect: boolean | null }[] = [];
+      if (unitIds.length > 0) {
+        unitProgressList = await db.select({
+          unitId: schema.userUnitProgress.unitId,
+          isCompleted: schema.userUnitProgress.isCompleted,
+          isCorrect: schema.userUnitProgress.isCorrect,
+        }).from(schema.userUnitProgress)
+          .where(and(
+            eq(schema.userUnitProgress.userId, userId),
+            inArray(schema.userUnitProgress.unitId, unitIds)
+          ));
+      }
+      
+      const completedUnitIds = new Set(unitProgressList.filter(u => u.isCompleted).map(u => u.unitId));
+      
+      const estudeTypes = ['text', 'verse'];
+      const mediteTypes = ['meditation', 'reflection'];
+      const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+      
+      let estudeTotal = 0, estudeCompleted = 0;
+      let mediteTotal = 0, mediteCompleted = 0;
+      let respondaTotal = 0, respondaCompleted = 0;
+      
+      for (const unit of units) {
+        const stage = (unit.stage || 'estude') as 'estude' | 'medite' | 'responda';
+        const unitType = unit.type || 'text';
+        
+        if (stage === 'estude' && estudeTypes.includes(unitType)) {
+          estudeTotal++;
+          if (completedUnitIds.has(unit.id)) estudeCompleted++;
+        } else if (stage === 'medite' && mediteTypes.includes(unitType)) {
+          mediteTotal++;
+          if (completedUnitIds.has(unit.id)) mediteCompleted++;
+        } else if (stage === 'responda' && respondaTypes.includes(unitType)) {
+          respondaTotal++;
+          if (completedUnitIds.has(unit.id)) respondaCompleted++;
+        }
+      }
+      
+      const studyCompleted = estudeTotal > 0 && estudeCompleted >= estudeTotal;
+      const meditationCompleted = mediteTotal > 0 && mediteCompleted >= mediteTotal;
+      const quizCompleted = respondaTotal > 0 && respondaCompleted >= respondaTotal;
+      
+      const totalSections = estudeTotal + mediteTotal + respondaTotal;
+      const sectionsCompleted = estudeCompleted + mediteCompleted + respondaCompleted;
+      
+      return {
+        id: row.id,
+        studyWeekId: row.studyWeekId,
+        orderIndex: row.orderIndex,
+        title: row.title,
+        type: row.type,
+        description: row.description,
+        xpReward: row.xpReward,
+        estimatedMinutes: row.estimatedMinutes,
+        icon: row.icon,
+        isBonus: row.isBonus,
+        isLocked: row.isLocked,
+        unlockDate: row.unlockDate,
+        seasonId: row.seasonId,
+        lessonNumber: row.lessonNumber,
+        isReleased: row.isReleased,
+        status: row.progressStatus || 'locked',
+        studyCompleted,
+        meditationCompleted,
+        quizCompleted,
+        sectionsCompleted,
+        totalSections,
+      };
+    }));
+    
+    return lessonsWithStageProgress;
   }
 
   async createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson> {

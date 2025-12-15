@@ -4739,14 +4739,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
-      const lessons = await storage.getLessonsForSeason(seasonId);
+      const lessons = await storage.getLessonsWithProgressForSeason(req.user!.id, seasonId);
       const progress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
       const finalChallenge = await storage.getSeasonFinalChallenge(seasonId);
 
       res.json({
         ...season,
         lessons,
-        progress,
+        userProgress: progress,
         finalChallenge: finalChallenge ? { 
           id: finalChallenge.id,
           title: finalChallenge.title,

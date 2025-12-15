@@ -93,6 +93,14 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 15/12/2025 - DeoGlory Study System Improvements
+- **getStageFromUnitType helper**: Nova função centralizada em routes.ts que mapeia tipos de unidade para stages (text/verse→estude, meditation/reflection→medite, multiple_choice/true_false/fill_blank→responda)
+- **Seed data fix**: Corrigido bug onde questões não apareciam na seção Responda (faltava stage correto)
+- **AI prompts melhorados**: generateExercisesFromTopic e generateUniquePracticeQuestions agora geram alternativas mais desafiadoras e plausíveis
+  - Instruções para criar distratores inteligentes
+  - Evita alternativas obviamente erradas
+  - Varia posição da resposta correta
+
 ### 14/12/2025 - DeoGloryLicoes Admin Reescrito
 - **DeoGloryLicoes.tsx**: Reescrito completamente com funcionalidade completa
   - Removida opcao "Escrever Manualmente" - mantido apenas "Criar com IA" e "Upload de PDF"

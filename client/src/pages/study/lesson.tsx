@@ -966,6 +966,11 @@ export default function LessonPage() {
             onComplete={handleStudyComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
+            onSwitchTab={(tab) => {
+              setStageOverride(tab);
+              setCurrentUnitIndex(0);
+              setStudyProgress(null);
+            }}
           />
         ) : showMediteContent ? (
           <MediteScreen
@@ -974,6 +979,11 @@ export default function LessonPage() {
             onComplete={handleMeditateComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
+            onSwitchTab={(tab) => {
+              setStageOverride(tab);
+              setCurrentUnitIndex(0);
+              setStudyProgress(null);
+            }}
           />
         ) : showRespondaContent ? (
           <RespondaScreen
@@ -984,6 +994,11 @@ export default function LessonPage() {
             onComplete={handleRespondaComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
+            onSwitchTab={(tab) => {
+              setStageOverride(tab);
+              setCurrentUnitIndex(0);
+              setStudyProgress(null);
+            }}
           />
         ) : (
           <>

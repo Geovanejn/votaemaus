@@ -33,6 +33,8 @@ import {
   Unlock,
   Trash2,
   Eye,
+  Key,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -50,6 +52,7 @@ export default function DeoGloryRevistaDetail() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const [geminiKey, setGeminiKey] = useState<string>("1");
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const { data: season, isLoading: loadingSeason } = useQuery<Season>({
@@ -128,6 +131,7 @@ export default function DeoGloryRevistaDetail() {
     setPdfFile(null);
     setSelectedLessonNumber("");
     setIsProcessingPdf(false);
+    setGeminiKey("1");
   };
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,6 +165,7 @@ export default function DeoGloryRevistaDetail() {
       const formData = new FormData();
       formData.append("pdf", pdfFile);
       formData.append("lessonNumber", selectedLessonNumber);
+      formData.append("geminiKey", geminiKey);
 
       const response = await fetch(`/api/study/admin/seasons/${seasonId}/import-pdf-exact`, {
         method: "POST",
@@ -185,10 +190,24 @@ export default function DeoGloryRevistaDetail() {
         queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
         resetUploadModal();
       } else {
-        toast({ title: "Erro ao processar PDF", description: data.message, variant: "destructive" });
+        let errorTitle = "Erro ao processar PDF";
+        let errorDescription = data.message || "Erro desconhecido";
+        
+        if (data.errorType === "rate_limit") {
+          errorTitle = "Limite de requisições atingido";
+          errorDescription = `${data.message} Tente usar a Chave ${parseInt(geminiKey) < 5 ? parseInt(geminiKey) + 1 : 1}.`;
+        } else if (data.errorType === "auth") {
+          errorTitle = "Erro de autenticação";
+        } else if (data.errorType === "service_unavailable") {
+          errorTitle = "Serviço indisponível";
+        } else if (data.errorType === "timeout") {
+          errorTitle = "Tempo limite excedido";
+        }
+        
+        toast({ title: errorTitle, description: errorDescription, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Erro ao processar PDF", variant: "destructive" });
+      toast({ title: "Erro de conexão", description: "Verifique sua internet e tente novamente.", variant: "destructive" });
     } finally {
       setIsProcessingPdf(false);
     }
@@ -415,29 +434,53 @@ export default function DeoGloryRevistaDetail() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Número da Lição</Label>
-              <Select 
-                value={selectedLessonNumber} 
-                onValueChange={setSelectedLessonNumber}
-                disabled={isProcessingPdf}
-              >
-                <SelectTrigger data-testid="select-lesson-number">
-                  <SelectValue placeholder="Selecione o número da lição" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableLessonNumbers.map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      Lição {num}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {availableLessonNumbers.length === 0 && (
-                <p className="text-sm text-amber-600">
-                  Todas as 20 lições já foram criadas.
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Número da Lição</Label>
+                <Select 
+                  value={selectedLessonNumber} 
+                  onValueChange={setSelectedLessonNumber}
+                  disabled={isProcessingPdf}
+                >
+                  <SelectTrigger data-testid="select-lesson-number">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableLessonNumbers.map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        Lição {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availableLessonNumbers.length === 0 && (
+                  <p className="text-sm text-amber-600">
+                    Todas as 20 lições já foram criadas.
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Chave Gemini
+                </Label>
+                <Select 
+                  value={geminiKey} 
+                  onValueChange={setGeminiKey}
+                  disabled={isProcessingPdf}
+                >
+                  <SelectTrigger data-testid="select-gemini-key">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Chave 1</SelectItem>
+                    <SelectItem value="2">Chave 2</SelectItem>
+                    <SelectItem value="3">Chave 3</SelectItem>
+                    <SelectItem value="4">Chave 4</SelectItem>
+                    <SelectItem value="5">Chave 5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <input

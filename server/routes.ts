@@ -5403,20 +5403,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const seasonId = parseInt(req.params.id);
       if (isNaN(seasonId)) {
-        return res.status(400).json({ message: "ID inválido" });
+        return res.status(400).json({ message: "ID inválido", errorType: "validation" });
       }
 
       if (!req.file) {
-        return res.status(400).json({ message: "Arquivo PDF não enviado" });
+        return res.status(400).json({ message: "Arquivo PDF não enviado", errorType: "validation" });
       }
+
+      const geminiKey = req.body.geminiKey || "1";
 
       const season = await storage.getSeasonById(seasonId);
       if (!season) {
-        return res.status(404).json({ message: "Revista não encontrada" });
+        return res.status(404).json({ message: "Revista não encontrada", errorType: "not_found" });
       }
 
       if (!isAIConfigured()) {
-        return res.status(500).json({ message: "IA não configurada" });
+        return res.status(500).json({ message: "IA não configurada. Configure a chave GEMINI_API_KEY nas variáveis de ambiente.", errorType: "config" });
       }
 
       await storage.updateSeason(seasonId, { status: "processing" });
@@ -5426,10 +5428,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!pdfText || pdfText.trim().length < 100) {
         await storage.updateSeason(seasonId, { status: "draft" });
-        return res.status(400).json({ message: "PDF não contém texto suficiente para processamento" });
+        return res.status(400).json({ message: "PDF não contém texto suficiente para processamento. Verifique se o PDF contém texto selecionável.", errorType: "pdf_content" });
       }
 
-      const extractedLesson = await generateLessonFromPDFExact(pdfText);
+      const extractedLesson = await generateLessonFromPDFExact(pdfText, geminiKey);
 
       if (!extractedLesson || !extractedLesson.title) {
         await storage.updateSeason(seasonId, { status: "draft" });
@@ -5518,7 +5520,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Import PDF exact error:", error);
       await storage.updateSeason(parseInt(req.params.id), { status: "draft" });
-      res.status(500).json({ message: "Erro ao importar PDF" });
+      
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      let userMessage = "Erro ao importar PDF";
+      let errorType = "unknown";
+      
+      if (errorMessage.includes("429") || errorMessage.includes("Too Many Requests") || errorMessage.includes("quota")) {
+        userMessage = "Limite de requisições atingido. Aguarde alguns segundos e tente novamente, ou use outra chave Gemini.";
+        errorType = "rate_limit";
+      } else if (errorMessage.includes("401") || errorMessage.includes("Unauthorized") || errorMessage.includes("API key")) {
+        userMessage = "Chave da API inválida ou expirada. Verifique a configuração da chave Gemini.";
+        errorType = "auth";
+      } else if (errorMessage.includes("503") || errorMessage.includes("Service Unavailable")) {
+        userMessage = "Serviço de IA temporariamente indisponível. Tente novamente em alguns minutos.";
+        errorType = "service_unavailable";
+      } else if (errorMessage.includes("500") || errorMessage.includes("Internal Server Error")) {
+        userMessage = "Erro interno no serviço de IA. Tente novamente mais tarde.";
+        errorType = "server_error";
+      } else if (errorMessage.includes("timeout") || errorMessage.includes("ETIMEDOUT")) {
+        userMessage = "Tempo limite excedido. O PDF pode ser muito grande. Tente novamente.";
+        errorType = "timeout";
+      } else if (errorMessage.includes("JSON") || errorMessage.includes("parse")) {
+        userMessage = "Erro ao processar resposta da IA. Tente novamente.";
+        errorType = "parse_error";
+      }
+      
+      res.status(500).json({ message: userMessage, errorType, details: errorMessage });
     }
   });
 

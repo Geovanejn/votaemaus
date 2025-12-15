@@ -323,6 +323,19 @@ function getWeekKeyForLesson(): string {
   return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
+function getStageFromUnitType(unitType: string): string {
+  const unitTypeToStage: Record<string, string> = {
+    'text': 'estude',
+    'verse': 'estude',
+    'meditation': 'medite',
+    'reflection': 'medite',
+    'multiple_choice': 'responda',
+    'true_false': 'responda',
+    'fill_blank': 'responda'
+  };
+  return unitTypeToStage[unitType] || 'estude';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Aplicar rate limiter geral para APIs publicas do site
   app.use("/api/site", generalLimiter);
@@ -2331,12 +2344,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
+              const unitType = units[i].type;
               await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
-                type: units[i].type,
+                type: unitType,
                 content: units[i].content,
-                xpValue: units[i].xpValue
+                xpValue: units[i].xpValue,
+                stage: getStageFromUnitType(unitType)
               });
               results.units++;
             }
@@ -2396,12 +2411,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
+              const unitType = units[i].type;
               await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
-                type: units[i].type,
+                type: unitType,
                 content: units[i].content,
-                xpValue: units[i].xpValue
+                xpValue: units[i].xpValue,
+                stage: getStageFromUnitType(unitType)
               });
               results.units++;
             }
@@ -2460,12 +2477,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
+              const unitType = units[i].type;
               await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
-                type: units[i].type,
+                type: unitType,
                 content: units[i].content,
-                xpValue: units[i].xpValue
+                xpValue: units[i].xpValue,
+                stage: getStageFromUnitType(unitType)
               });
               results.units++;
             }
@@ -2540,12 +2559,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
+              const unitType = units[i].type;
               await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
-                type: units[i].type,
+                type: unitType,
                 content: units[i].content,
-                xpValue: units[i].xpValue
+                xpValue: units[i].xpValue,
+                stage: getStageFromUnitType(unitType)
               });
               results.units++;
             }
@@ -2628,12 +2649,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             for (let i = 0; i < units.length; i++) {
+              const unitType = units[i].type;
               await storage.createStudyUnit({
                 lessonId: lesson.id,
                 orderIndex: i,
-                type: units[i].type,
+                type: unitType,
                 content: units[i].content,
-                xpValue: units[i].xpValue
+                xpValue: units[i].xpValue,
+                stage: getStageFromUnitType(unitType)
               });
               results.units++;
             }

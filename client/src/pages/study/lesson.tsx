@@ -560,15 +560,21 @@ export default function LessonPage() {
     return false;
   });
   
-  const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => ({
-    type: unit.type as 'multiple_choice' | 'true_false' | 'fill_blank',
-    question: unit.content.question || unit.content.statement || unit.content.sentence || '',
-    options: unit.content.options,
-    correctIndex: unit.content.correctIndex,
-    correctAnswer: unit.type === 'fill_blank' ? unit.content.correctAnswer : unit.content.isTrue,
-    hint: unit.content.hint,
-    explanation: unit.content.explanation
-  }));
+  const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => {
+    // Handle nested content structure: some questions have content.content.question
+    const innerContent = unit.content.content || unit.content;
+    const questionType = unit.content.type || unit.type;
+    
+    return {
+      type: questionType as 'multiple_choice' | 'true_false' | 'fill_blank',
+      question: innerContent.question || innerContent.statement || innerContent.sentence || '',
+      options: innerContent.options,
+      correctIndex: innerContent.correctIndex,
+      correctAnswer: questionType === 'fill_blank' ? innerContent.correctAnswer : innerContent.isTrue,
+      hint: innerContent.hint,
+      explanation: innerContent.explanation || innerContent.explanationCorrect || innerContent.explanationIncorrect
+    };
+  });
   
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (

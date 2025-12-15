@@ -13,8 +13,7 @@ import {
   MapPin,
   Clock,
   Sparkles,
-  Loader2,
-  Target
+  Loader2
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { HeroBanner } from "@/components/site/HeroBanner";
@@ -23,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { parseTipTapContent } from "@/lib/utils";
-import { WeeklyGoalsWidget } from "@/components/study/weekly-goals-widget";
 
 import devocionalArt from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 import eventImg1 from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
@@ -247,32 +245,6 @@ export default function HomePage() {
               </Card>
             </motion.div>
           )}
-        </div>
-      </section>
-
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between gap-2 mb-8 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Target className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Metas Semanais</h2>
-            </div>
-            <Link href="/membro">
-              <Button variant="ghost" className="gap-2" data-testid="link-weekly-goals">
-                Ver mais <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-md mx-auto"
-          >
-            <WeeklyGoalsWidget />
-          </motion.div>
         </div>
       </section>
 

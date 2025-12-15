@@ -5461,9 +5461,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Erro ao processar PDF com IA" });
       }
 
+      // Get existing lessons to calculate the next order index and total count
+      const existingLessons = await storage.getLessonsForSeason(seasonId);
+      const nextOrderIndex = existingLessons.length > 0 
+        ? Math.max(...existingLessons.map(l => l.orderIndex)) + 1 
+        : 1;
+      const newTotalLessons = existingLessons.length + 1;
+
       await storage.updateSeason(seasonId, {
         aiExtractedTitle: extractedLesson.title,
-        totalLessons: 1
+        totalLessons: newTotalLessons
       });
 
       const lesson = await storage.createSeasonLesson({
@@ -5471,7 +5478,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: extractedLesson.title,
         description: extractedLesson.baseVerseReference ? `Versículo base: ${extractedLesson.baseVerseReference}` : "",
         type: "study",
-        orderIndex: 1,
+        orderIndex: nextOrderIndex,
+        lessonNumber: newTotalLessons,
         xpReward: 50,
         icon: "book-open"
       });

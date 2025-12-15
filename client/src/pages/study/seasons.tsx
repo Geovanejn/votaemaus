@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useRef } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { BottomNav } from "@/components/study";
+import { BottomNav, ContinueLearning } from "@/components/study";
+import type { ContinueLearningData } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -505,6 +506,7 @@ function SeasonContent({
   onLessonClick: (lessonId: number) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const lessonRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   const progress = userProgress 
     ? Math.round((userProgress.lessonsCompleted / userProgress.totalLessons) * 100)
@@ -516,6 +518,38 @@ function SeasonContent({
 
   const estimatedTotalMinutes = lessons.reduce((acc, l) => acc + (l.estimatedMinutes || 45), 0);
   const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
+
+  const inProgressLesson = lessons.find((lesson, index) => {
+    const previousLesson = lessons[index - 1];
+    const previousCompleted = index === 0 || previousLesson?.status === 'completed';
+    const isCompleted = lesson.status === 'completed';
+    const isInProgress = lesson.status === 'in_progress' || (previousCompleted && !isCompleted && !lesson.isLocked);
+    return isInProgress && !lesson.isLocked;
+  });
+
+  const continueLearningData: ContinueLearningData | null = inProgressLesson ? {
+    unitNumber: 1,
+    unitTitle: season.title,
+    lessonNumber: inProgressLesson.lessonNumber,
+    lessonTitle: inProgressLesson.title,
+    sectionsRemaining: Math.max(0, (inProgressLesson.totalSections || 3) - (inProgressLesson.sectionsCompleted || 0)),
+    totalSections: inProgressLesson.totalSections || 3,
+    progress: inProgressLesson.totalSections 
+      ? Math.min(100, Math.round(((inProgressLesson.sectionsCompleted || 0) / inProgressLesson.totalSections) * 100))
+      : 0,
+    lessonId: inProgressLesson.id
+  } : null;
+
+  const handleContinueClick = (lessonId: number) => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setTimeout(() => {
+        lessonRefs.current[lessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 350);
+    } else {
+      lessonRefs.current[lessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   return (
     <>
@@ -555,6 +589,13 @@ function SeasonContent({
           lockedCount={lockedCount}
         />
 
+        {continueLearningData && (
+          <ContinueLearning 
+            data={continueLearningData}
+            onContinue={handleContinueClick}
+          />
+        )}
+
         <SeasonCard 
           season={season}
           lessonsCount={season.totalLessons}
@@ -592,13 +633,18 @@ function SeasonContent({
                     const previousCompleted = index === 0 || previousLesson?.status === 'completed';
                     
                     return (
-                      <LessonCard
-                        key={lesson.id}
-                        lesson={lesson}
-                        index={index}
-                        onClick={() => onLessonClick(lesson.id)}
-                        previousCompleted={previousCompleted}
-                      />
+                      <div 
+                        key={lesson.id} 
+                        ref={el => { lessonRefs.current[lesson.id] = el; }}
+                      >
+                        <LessonCard
+                          key={lesson.id}
+                          lesson={lesson}
+                          index={index}
+                          onClick={() => onLessonClick(lesson.id)}
+                          previousCompleted={previousCompleted}
+                        />
+                      </div>
                     );
                   })}
                 </div>

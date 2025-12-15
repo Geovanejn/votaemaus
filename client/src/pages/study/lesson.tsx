@@ -170,6 +170,12 @@ export default function LessonPage() {
     nextIndex: number;
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
+  const [stageOverride, setStageOverride] = useState<string | null>(null);
+  
+  // Reset stageOverride when URL stage param changes or lesson changes
+  useEffect(() => {
+    setStageOverride(null);
+  }, [stageParam, lessonId]);
   
   const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "achievement" | "complete">("none");
   const [unlockedAchievementsList, setUnlockedAchievementsList] = useState<any[]>([]);
@@ -460,7 +466,8 @@ export default function LessonPage() {
     return orderDiff !== 0 ? orderDiff : (a.id || 0) - (b.id || 0);
   });
   
-  const targetStage = stageParam as "estude" | "medite" | "responda" | null;
+  // Use stageOverride if set (from stage transition), otherwise use URL param
+  const targetStage = (stageOverride ?? stageParam) as "estude" | "medite" | "responda" | null;
   const filteredUnits = targetStage 
     ? allUnits.filter(u => u.stage === targetStage)
     : null;
@@ -845,7 +852,7 @@ export default function LessonPage() {
   const handleStageModalClose = async () => {
     if (!stageCompleteData) return;
     
-    const { xp, stageType, nextStage } = stageCompleteData;
+    const { xp, stageType, nextStage, nextIndex } = stageCompleteData;
     
     if (stageType !== 'responda') {
       setDisplayXp(prev => prev + xp);
@@ -857,11 +864,18 @@ export default function LessonPage() {
     queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
     
     if (stageType === 'responda') {
       await handleLessonCompletion();
-    } else {
-      setLocation(`/study?lesson=${lessonId}&stage=${nextStage || 'medite'}`);
+    } else if (nextStage) {
+      // Stay on the lesson page and move to the next stage
+      // Set the stage override to filter to the next stage
+      setStageOverride(nextStage);
+      setCurrentUnitIndex(0);
+      setStudyProgress(null);
+      // Update URL to reflect the new stage
+      window.history.replaceState({}, '', `/study/lesson/${lessonId}?stage=${nextStage}`);
     }
   };
 

@@ -491,15 +491,15 @@ export default function DeoGloryEstudos() {
               onChange={handlePdfChange}
             />
             {pdfFile ? (
-              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex-shrink-0">
                   <FileText className="h-6 w-6 text-violet-600" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-white truncate">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className="font-medium text-gray-900 dark:text-white truncate text-sm">
                     {pdfFile.name}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
@@ -507,6 +507,7 @@ export default function DeoGloryEstudos() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="flex-shrink-0"
                     onClick={() => setPdfFile(null)}
                   >
                     <X className="h-4 w-4" />

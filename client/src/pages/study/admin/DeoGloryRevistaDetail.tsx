@@ -322,9 +322,22 @@ export default function DeoGloryRevistaDetail() {
                   </div>
                 )}
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                {season.title}
-              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex-1">
+                  {season.title}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setEditingTitle(season.title);
+                    setShowEditNameModal(true);
+                  }}
+                  data-testid="button-edit-name"
+                >
+                  <Pencil className="h-4 w-4 text-violet-600" />
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground">
                 {season.totalLessons} {season.totalLessons === 1 ? "lição" : "lições"}
               </p>
@@ -445,7 +458,7 @@ export default function DeoGloryRevistaDetail() {
       </div>
 
       <Dialog open={showUploadModal} onOpenChange={(open) => !isProcessingPdf && setShowUploadModal(open)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
           <DialogHeader>
             <DialogTitle>Upload de PDF</DialogTitle>
             <DialogDescription>
@@ -582,6 +595,48 @@ export default function DeoGloryRevistaDetail() {
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Gerar Lição
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditNameModal} onOpenChange={setShowEditNameModal}>
+        <DialogContent className="sm:max-w-md fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
+          <DialogHeader>
+            <DialogTitle>Editar Nome da Revista</DialogTitle>
+            <DialogDescription>
+              Altere o nome da revista abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="magazine-title">Nome da Revista</Label>
+            <Input
+              id="magazine-title"
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              placeholder="Digite o nome da revista"
+              className="mt-2"
+              data-testid="input-edit-magazine-name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditNameModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => updateSeasonTitleMutation.mutate(editingTitle)}
+              disabled={updateSeasonTitleMutation.isPending || !editingTitle.trim()}
+              className="bg-violet-600 hover:bg-violet-700"
+              data-testid="button-save-magazine-name"
+            >
+              {updateSeasonTitleMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
               )}
             </Button>
           </DialogFooter>

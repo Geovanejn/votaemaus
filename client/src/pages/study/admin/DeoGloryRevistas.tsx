@@ -80,66 +80,59 @@ function MagazineCard({ season }: { season: Season }) {
 
   return (
     <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm overflow-visible">
-      <div className="relative bg-gray-100 dark:bg-gray-700 rounded-t-lg overflow-hidden" style={{ aspectRatio: '2/3' }}>
+      <div className="relative bg-gray-100 dark:bg-gray-700 rounded-t-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
         <img
           src={season.coverImageUrl || defaultCover}
           alt={season.title}
           className="w-full h-full object-cover"
         />
       </div>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-          <Badge className={`border-0 font-medium ${statusBadgeClass}`}>
+      <CardContent className="p-2 md:p-4">
+        <div className="flex items-center justify-between gap-1 mb-1 flex-wrap">
+          <Badge className={`border-0 font-medium text-xs ${statusBadgeClass}`} size="sm">
             {statusLabel}
           </Badge>
-          <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</span>
         </div>
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1 text-xs md:text-sm">
           {season.aiExtractedTitle || season.title}
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-1 md:line-clamp-2 hidden md:block">
           {season.description || "Estudo biblico"}
         </p>
         {isPublished ? (
-          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3 flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2 flex-wrap">
             <div className="flex items-center gap-1">
-              <BookOpen className="h-4 w-4" />
-              {season.totalLessons} licoes
+              <BookOpen className="h-3 w-3" />
+              <span className="hidden sm:inline">{season.totalLessons} licoes</span>
+              <span className="sm:hidden">{season.totalLessons}</span>
             </div>
-            {season.publishedAt && (
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
-                Publicado
-              </div>
-            )}
           </div>
         ) : isProcessing ? (
-          <div className="mb-3">
-            <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400 mb-1">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processando IA...
+          <div className="mb-2">
+            <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="hidden sm:inline">Processando...</span>
             </div>
           </div>
         ) : (
-          <div className="mb-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-              <Clock className="h-4 w-4" />
-              Aguardando conteudo
+          <div className="mb-2">
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <Clock className="h-3 w-3" />
+              <span className="hidden sm:inline">Aguardando</span>
             </div>
           </div>
         )}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            className="flex-1 gap-1 text-xs md:text-sm border-blue-200 text-blue-600 dark:border-blue-800 dark:text-blue-400"
-            data-testid={`button-view-magazine-${season.id}`}
-            onClick={() => navigate(`/study/admin/estudos?revista=${season.id}`)}
-          >
-            <Eye className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">{isPublished ? "Ver" : "Gerenciar"}</span>
-            <span className="sm:hidden">Ver</span>
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-1 text-xs border-blue-200 text-blue-600 dark:border-blue-800 dark:text-blue-400"
+          data-testid={`button-view-magazine-${season.id}`}
+          onClick={() => navigate(`/study/admin/estudos?revista=${season.id}`)}
+        >
+          <Eye className="h-3 w-3" />
+          <span>{isPublished ? "Ver" : "Gerenciar"}</span>
+        </Button>
       </CardContent>
     </Card>
   );

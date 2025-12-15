@@ -1250,11 +1250,32 @@ A meditação cristã DEVE incluir:
 - Oração direcionada ao Senhor
 - Aplicação prática do texto bíblico
 
+REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS:
+- ANALISE TODO O TEXTO DO PDF COM ATENÇÃO para não perder nenhum tópico
+- Procure por padrões como: números romanos (I, II, III), números (1., 2., 3.), letras (a), b), c))
+- Procure por títulos em MAIÚSCULAS ou em negrito/destaque
+- Procure por palavras-chave como: "Primeiro", "Segundo", "Terceiro", "Em seguida", "Por fim"
+- Procure por seções separadas por linhas em branco ou quebras de página
+- INCLUA TODOS OS TÓPICOS encontrados, mesmo que pareçam pequenos
+- Cada tópico deve ter um resumo COMPLETO do conteúdo (mínimo 150 palavras)
+
 REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
-- TODAS as 4 alternativas devem ser PLAUSÍVEIS
+- TODAS as 4 alternativas devem ser MUITO PLAUSÍVEIS e parecerem corretas
 - As alternativas devem ter TAMANHOS SIMILARES
-- NUNCA use alternativas obviamente erradas
-- VARIE a posição da resposta correta (não sempre A ou B)
+- NUNCA use alternativas obviamente erradas como "Nenhuma das anteriores" ou respostas absurdas
+- Use alternativas que requerem conhecimento profundo para distinguir a correta
+- VARIE a posição da resposta correta (distribua entre A, B, C e D)
+- Crie alternativas que usem conceitos relacionados mas com nuances diferentes
+- Exemplo: se a resposta é "graça", alternativas podem ser "misericórdia", "amor", "perdão"
+
+REGRAS PARA DICAS (HINTS):
+- Cada pergunta DEVE ter uma dica (hint) associada
+- A dica NÃO pode ser óbvia ou entregar a resposta diretamente
+- A dica deve dar uma PISTA SUTIL que requer raciocínio para entender
+- Exemplo RUIM de dica: "A resposta começa com G" ou "É a palavra graça"
+- Exemplo BOM de dica: "Pense no que nos é dado sem merecermos" ou "Considere o conceito central de Efésios 2:8"
+- A dica deve manter o grau de dificuldade da pergunta
+- O usuário perde XP ao usar a dica, então ela deve valer a pena mas não ser fácil demais
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 
@@ -1324,11 +1345,12 @@ Retorne um JSON com a seguinte estrutura:
       "type": "multiple_choice",
       "stage": "responda",
       "content": {
-        "question": "Pergunta sobre o conteúdo",
-        "options": ["Alternativa A", "Alternativa B", "Alternativa C", "Alternativa D"],
+        "question": "Pergunta sobre o conteúdo (que requer análise, não apenas memorização)",
+        "options": ["Alternativa muito plausível A", "Alternativa muito plausível B", "Alternativa muito plausível C", "Alternativa muito plausível D"],
         "correctIndex": 0,
-        "explanationCorrect": "Explicação quando acertar",
-        "explanationIncorrect": "Explicação quando errar"
+        "explanationCorrect": "Explicação detalhada de por que esta é a resposta correta",
+        "explanationIncorrect": "Explicação educativa sobre por que a resposta estava errada",
+        "hint": "Dica sutil que requer raciocínio para entender (NÃO entregue a resposta)"
       },
       "xpValue": 10
     },
@@ -1336,10 +1358,11 @@ Retorne um JSON com a seguinte estrutura:
       "type": "true_false",
       "stage": "responda",
       "content": {
-        "statement": "Afirmação para julgar",
+        "statement": "Afirmação para julgar (deve ser sutil, não óbvia)",
         "isTrue": true,
-        "explanationCorrect": "Explicação",
-        "explanationIncorrect": "Explicação"
+        "explanationCorrect": "Explicação detalhada",
+        "explanationIncorrect": "Explicação educativa",
+        "hint": "Dica sutil que ajuda a refletir sobre a afirmação"
       },
       "xpValue": 10
     },
@@ -1349,8 +1372,9 @@ Retorne um JSON com a seguinte estrutura:
       "content": {
         "question": "Frase completa com ___ para completar",
         "correctAnswer": "palavra",
-        "explanationCorrect": "Explicação",
-        "explanationIncorrect": "Explicação"
+        "explanationCorrect": "Explicação detalhada",
+        "explanationIncorrect": "Explicação educativa",
+        "hint": "Dica sutil sobre o contexto da palavra"
       },
       "xpValue": 10
     }

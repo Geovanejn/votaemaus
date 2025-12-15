@@ -77,19 +77,28 @@ interface EstudeScreenProps {
 function VerseContent({ 
   content,
   highlightedVerses,
-  onToggleHighlight
+  onToggleHighlight,
+  reference
 }: { 
   content: string;
   highlightedVerses: Set<number>;
   onToggleHighlight: (num: number) => void;
+  reference?: string;
 }) {
+  const extractStartVerse = (ref?: string): number => {
+    if (!ref) return 1;
+    const match = ref.match(/:\s*(\d+)/);
+    return match ? parseInt(match[1]) : 1;
+  };
+  
+  const startVerse = extractStartVerse(reference);
   const verses = content.split(/(?=\d+\s)/).filter(v => v.trim());
   const parsedVerses = verses.map((verse, idx) => {
     const match = verse.match(/^(\d+)\s*([\s\S]*)/);
     if (match) {
       return { number: parseInt(match[1]), text: match[2].trim() };
     }
-    return { number: idx + 1, text: verse.trim() };
+    return { number: startVerse + idx, text: verse.trim() };
   });
 
   if (parsedVerses.length === 0 || (parsedVerses.length === 1 && !parsedVerses[0].text)) {
@@ -221,6 +230,7 @@ export function EstudeScreen({
             content={section.content}
             highlightedVerses={highlightedVerses}
             onToggleHighlight={toggleHighlight}
+            reference={section.reference || verseReference}
           />
         );
       case "topic":

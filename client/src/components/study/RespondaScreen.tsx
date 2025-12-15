@@ -47,6 +47,7 @@ interface RespondaScreenProps {
   hearts?: number;
   maxHearts?: number;
   crystals?: number;
+  initialXp?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
   onComplete: () => void;
   onClose: () => void;
@@ -164,6 +165,7 @@ export function RespondaScreen({
   hearts = 5,
   maxHearts = 5,
   crystals = 0,
+  initialXp = 0,
   onAnswer,
   onComplete, 
   onClose,
@@ -178,7 +180,7 @@ export function RespondaScreen({
   const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [totalXp, setTotalXp] = useState(0);
+  const [totalXp, setTotalXp] = useState(initialXp);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
@@ -218,6 +220,10 @@ export function RespondaScreen({
       autoAdvanceTimeoutRef.current = null;
     }
   };
+  
+  useEffect(() => {
+    setTotalXp(initialXp);
+  }, [initialXp]);
   
   useEffect(() => {
     if (onProgress) {
@@ -272,9 +278,8 @@ export function RespondaScreen({
     if (isCorrect) {
       playSound('practiceCorrect');
       const basePoints = currentQuestion.points || 10;
-      const earnedPoints = Math.max(basePoints - (hintUsed ? 5 : 0), 0);
       setTotalXp(prev => {
-        const newXp = prev + earnedPoints;
+        const newXp = prev + basePoints;
         onXpChange?.(newXp);
         return newXp;
       });
@@ -319,6 +324,11 @@ export function RespondaScreen({
     if (!hintUsed && currentQuestion.hint) {
       setShowHint(true);
       setHintUsed(true);
+      setTotalXp(prev => {
+        const newXp = Math.max(prev - 5, 0);
+        onXpChange?.(newXp);
+        return newXp;
+      });
       playSound('hint');
     }
   };
@@ -424,12 +434,6 @@ export function RespondaScreen({
                   </div>
                 </div>
                 
-                {currentQuestion.type !== "fill_blank" && (
-                  <h3 className="text-lg font-bold text-foreground mb-3">
-                    {currentQuestion.question}
-                  </h3>
-                )}
-                
                 {currentQuestion.verseReference && (
                   <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-3 mb-4">
                     <p className="text-orange-800 dark:text-orange-200 text-sm italic">
@@ -439,7 +443,13 @@ export function RespondaScreen({
                 )}
                 
                 {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
-                  <div className="space-y-2">
+                  <>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 mb-4">
+                      <p className="text-foreground text-center font-bold">
+                        {currentQuestion.question}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
                     {currentQuestion.options.map((option, idx) => {
                       const isSelected = selectedAnswer === idx;
                       const isCorrect = idx === currentQuestion.correctIndex;
@@ -481,14 +491,17 @@ export function RespondaScreen({
                         </button>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
                 
                 {currentQuestion.type === "true_false" && (
                   <>
-                    <h3 className="text-lg font-bold text-foreground mb-4">
-                      {currentQuestion.question}
-                    </h3>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 mb-4">
+                      <p className="text-foreground text-center font-bold">
+                        {currentQuestion.question}
+                      </p>
+                    </div>
                     <div className="flex gap-4">
                       {[
                         { value: true, label: "Verdadeiro", icon: Check },
@@ -552,10 +565,53 @@ export function RespondaScreen({
                   <div className="space-y-4">
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4">
                       <p className="text-foreground text-center font-bold">
-                        {currentQuestion.question.split("___").map((part, idx, arr) => (
-                          <span key={idx}>
-                            {part}
-                            {idx < arr.length - 1 && (
+                        {(() => {
+                          const questionText = currentQuestion.question;
+                          const blankPatterns = ["_____", "____", "___", "...", "…", "__"];
+                          let blankIndex = -1;
+                          let blankLength = 0;
+                          
+                          for (const pattern of blankPatterns) {
+                            const idx = questionText.indexOf(pattern);
+                            if (idx !== -1 && (blankIndex === -1 || idx < blankIndex)) {
+                              blankIndex = idx;
+                              blankLength = pattern.length;
+                            }
+                          }
+                          
+                          const cleanText = (text: string): string => {
+                            return text
+                              .replace(/[\.…]{2,}/g, '')
+                              .replace(/\s{2,}/g, ' ')
+                              .trim();
+                          };
+                          
+                          if (blankIndex === -1) {
+                            return (
+                              <>
+                                <span>{cleanText(questionText)} </span>
+                                <span className={cn(
+                                  "inline-block mx-1 px-4 py-1 min-w-[100px] text-center font-bold rounded-lg transition-all",
+                                  showResult 
+                                    ? fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim()
+                                      ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-2 border-green-500"
+                                      : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-2 border-red-500"
+                                    : fillBlankAnswer 
+                                      ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-2 border-orange-400"
+                                      : "border-b-2 border-orange-400 text-orange-600 dark:text-orange-400"
+                                )}>
+                                  {showResult ? String(currentQuestion.correctAnswer) : (fillBlankAnswer || "______")}
+                                </span>
+                              </>
+                            );
+                          }
+                          
+                          const beforeBlank = cleanText(questionText.substring(0, blankIndex));
+                          const afterBlank = cleanText(questionText.substring(blankIndex + blankLength));
+                          
+                          return (
+                            <>
+                              <span>{beforeBlank} </span>
                               <span className={cn(
                                 "inline-block mx-1 px-4 py-1 min-w-[100px] text-center font-bold rounded-lg transition-all",
                                 showResult 
@@ -568,9 +624,10 @@ export function RespondaScreen({
                               )}>
                                 {showResult ? String(currentQuestion.correctAnswer) : (fillBlankAnswer || "______")}
                               </span>
-                            )}
-                          </span>
-                        ))}
+                              {afterBlank && <span> {afterBlank}</span>}
+                            </>
+                          );
+                        })()}
                       </p>
                     </div>
                     

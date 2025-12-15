@@ -1006,6 +1006,7 @@ export default function LessonPage() {
             hearts={currentHearts}
             maxHearts={profileData?.heartsMax || 5}
             crystals={profileData?.crystals || 0}
+            initialXp={displayXp}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
             onClose={handleClose}

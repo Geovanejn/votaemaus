@@ -55,16 +55,23 @@ interface Lesson {
   totalSections?: number;
 }
 
-interface SeasonDetail {
-  season: Season;
+interface SeasonDetailResponse extends Season {
   lessons: Lesson[];
-  userProgress?: {
+  progress?: {
     lessonsCompleted: number;
     totalLessons: number;
     xpEarned: number;
     isMastered: boolean;
     completedAt: string | null;
   };
+  finalChallenge?: {
+    id: number;
+    title: string;
+    description: string | null;
+    timeLimitSeconds: number;
+    questionCount: number;
+    isActive: boolean;
+  } | null;
 }
 
 function ActionButton({ 
@@ -535,7 +542,7 @@ export default function SeasonsPage() {
 
   const currentSeason = seasons?.[0];
 
-  const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetail>({
+  const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetailResponse>({
     queryKey: ['/api/study/seasons', currentSeason?.id?.toString()],
     enabled: isAuthenticated && !!currentSeason?.id,
   });
@@ -562,11 +569,22 @@ export default function SeasonsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="seasons-page">
-      {hasSeasons && seasonDetail ? (
+      {hasSeasons && seasonDetail?.id ? (
         <SeasonContent 
-          season={seasonDetail.season}
-          lessons={seasonDetail.lessons}
-          userProgress={seasonDetail.userProgress}
+          season={{
+            id: seasonDetail.id,
+            title: seasonDetail.title,
+            subtitle: seasonDetail.subtitle,
+            description: seasonDetail.description,
+            coverImageUrl: seasonDetail.coverImageUrl,
+            status: seasonDetail.status,
+            totalLessons: seasonDetail.totalLessons,
+            publishedAt: seasonDetail.publishedAt,
+            startsAt: seasonDetail.startsAt,
+            endsAt: seasonDetail.endsAt,
+          }}
+          lessons={seasonDetail.lessons || []}
+          userProgress={seasonDetail.progress}
           onBack={handleBack}
           onLessonClick={handleLessonClick}
         />

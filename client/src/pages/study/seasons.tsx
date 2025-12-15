@@ -308,7 +308,7 @@ function SeasonContent({
   lessons: Lesson[];
   userProgress?: SeasonDetailResponse['progress'];
   onBack: () => void;
-  onLessonClick: (lessonId: number) => void;
+  onLessonClick: (lessonId: number, stage?: "estude" | "medite" | "responda") => void;
   focusLessonId?: number | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -458,7 +458,7 @@ function SeasonContent({
                       >
                         <LessonCard
                           lesson={transformedLesson}
-                          onStageClick={(lessonId) => onLessonClick(lessonId)}
+                          onStageClick={(lessonId, stage) => onLessonClick(lessonId, stage)}
                         />
                       </div>
                     );
@@ -500,8 +500,9 @@ export default function SeasonsPage() {
     setLocation('/study');
   };
 
-  const handleLessonClick = (lessonId: number) => {
-    setLocation(`/study/lesson/${lessonId}`);
+  const handleLessonClick = (lessonId: number, stage?: "estude" | "medite" | "responda") => {
+    const stageParam = stage ? `?stage=${stage}` : '';
+    setLocation(`/study/lesson/${lessonId}${stageParam}`);
   };
 
   if (isLoading) {

@@ -71,7 +71,8 @@ interface LessonProgress {
 
 interface LessonData {
   id: number;
-  studyWeekId: number;
+  studyWeekId: number | null;
+  seasonId: number | null;
   orderIndex: number;
   title: string;
   type: string;
@@ -749,7 +750,12 @@ export default function LessonPage() {
   };
 
   const handleLessonComplete = () => {
-    setLocation(`/study?lesson=${lessonId}`);
+    // Check if this is a season lesson (revista) or a regular study week lesson
+    if (lessonData?.seasonId) {
+      setLocation(`/study/estudos?lesson=${lessonId}`);
+    } else {
+      setLocation(`/study?lesson=${lessonId}`);
+    }
   };
 
   if (isCompleted) {
@@ -885,13 +891,19 @@ export default function LessonPage() {
     queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/seasons'] });
     
     if (stageType === 'responda') {
       await handleLessonCompletion();
     } else {
-      // Return to the study page lesson card instead of auto-advancing
+      // Return to the appropriate study page lesson card instead of auto-advancing
       // This lets user select the next section manually
-      setLocation(`/study?lesson=${lessonId}`);
+      // Check if this is a season lesson (revista) or a regular study week lesson
+      if (lessonData?.seasonId) {
+        setLocation(`/study/estudos?lesson=${lessonId}`);
+      } else {
+        setLocation(`/study?lesson=${lessonId}`);
+      }
     }
   };
 

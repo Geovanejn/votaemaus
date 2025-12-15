@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -301,16 +301,30 @@ function SeasonContent({
   lessons, 
   userProgress,
   onBack,
-  onLessonClick
+  onLessonClick,
+  focusLessonId
 }: { 
   season: Season;
   lessons: Lesson[];
   userProgress?: SeasonDetailResponse['progress'];
   onBack: () => void;
   onLessonClick: (lessonId: number) => void;
+  focusLessonId?: number | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const lessonRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const hasScrolledToLesson = useRef(false);
+  
+  // Auto-expand and scroll to lesson if focusLessonId is provided
+  useEffect(() => {
+    if (focusLessonId && !hasScrolledToLesson.current) {
+      setIsExpanded(true);
+      hasScrolledToLesson.current = true;
+      setTimeout(() => {
+        lessonRefs.current[focusLessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
+    }
+  }, [focusLessonId]);
 
   const progress = userProgress 
     ? Math.round((userProgress.lessonsCompleted / userProgress.totalLessons) * 100)
@@ -461,7 +475,12 @@ function SeasonContent({
 
 export default function SeasonsPage() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Parse lesson query param for focusing on a specific lesson after stage completion
+  const searchParams = new URLSearchParams(searchString);
+  const focusLessonId = searchParams.get('lesson') ? parseInt(searchParams.get('lesson')!) : null;
 
   const { data: seasons, isLoading: seasonsLoading, error: seasonsError, refetch: refetchSeasons } = useQuery<Season[]>({
     queryKey: ['/api/study/seasons'],
@@ -515,6 +534,7 @@ export default function SeasonsPage() {
           userProgress={seasonDetail.progress}
           onBack={handleBack}
           onLessonClick={handleLessonClick}
+          focusLessonId={focusLessonId}
         />
       ) : (
         <>

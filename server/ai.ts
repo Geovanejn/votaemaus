@@ -369,7 +369,13 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
 
 export async function generateExercisesFromTopic(topic: string, count: number = 5): Promise<GeneratedUnit[]> {
   const systemPrompt = `Voce e um especialista em educacao crista. Crie exercicios interativos no estilo Duolingo sobre o topico fornecido.
-Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.`;
+Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
+
+REGRAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
+- Crie 4 alternativas PLAUSÍVEIS que parecem corretas à primeira vista
+- Use distratores inteligentes relacionados ao tema
+- Evite alternativas obviamente erradas ou absurdas
+- VARIE a posição da resposta correta (0, 1, 2, ou 3)`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -380,8 +386,8 @@ Retorne um JSON com a estrutura:
       "type": "multiple_choice|true_false|fill_blank|reflection",
       "content": {
         "question": "...",
-        "options": ["A", "B", "C", "D"],
-        "correctAnswer": 0,
+        "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"],
+        "correctAnswer": 0-3 (VARIE a posição!),
         "explanation": "..."
       },
       "xpValue": 5
@@ -389,6 +395,7 @@ Retorne um JSON com a estrutura:
   ]
 }
 
+IMPORTANTE: Para múltipla escolha, todas as alternativas devem parecer razoáveis e relacionadas ao tema.
 Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.
 Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
@@ -454,7 +461,15 @@ export async function generateUniquePracticeQuestions(weekTitle: string, weekDes
   const systemPrompt = `Voce e um especialista em educacao crista. Crie perguntas de pratica UNICAS e DIFERENTES sobre o tema fornecido.
 Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
 IMPORTANTE: As perguntas devem ser COMPLETAMENTE DIFERENTES das perguntas existentes listadas.
-IMPORTANTE: Para perguntas de multipla escolha, VARIE a posicao da resposta correta entre A, B, C e D (nao coloque sempre na mesma posicao).`;
+IMPORTANTE: Para perguntas de multipla escolha, VARIE a posicao da resposta correta entre A, B, C e D (nao coloque sempre na mesma posicao).
+
+REGRAS CRITICAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
+- Todas as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
+- Use distratores inteligentes: respostas que poderiam parecer certas mas têm uma diferença sutil
+- Evite alternativas obviamente erradas ou absurdas
+- As alternativas incorretas devem estar relacionadas ao tema e parecer razoáveis
+- Exemplo BOM: Pergunta sobre amor de Deus - alternativas falam de amor condicional, incondicional, merecido, seletivo
+- Exemplo RUIM: Alternativas como "Não sei", "Nenhuma das anteriores", ou respostas absurdas`;
 
   const existingQuestionsText = existingQuestions.length > 0 
     ? `\n\nPERGUNTAS JA EXISTENTES (NAO repita estas, crie perguntas NOVAS e DIFERENTES):\n${existingQuestions.join('\n')}`

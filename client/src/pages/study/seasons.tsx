@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   BookOpen, 
   Lock, 
@@ -16,9 +18,9 @@ import {
   FileText,
   Lightbulb,
   Pen,
-  BookMarked
+  ChevronDown
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface Season {
@@ -92,17 +94,17 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all flex-1 min-w-0",
+        "flex flex-col items-center gap-1.5 py-3 px-4 rounded-xl transition-all flex-1 min-w-0",
         completed 
           ? "border-2 border-emerald-500 bg-white dark:bg-gray-900" 
           : disabled 
-            ? "border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-60" 
+            ? "border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50" 
             : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
       )}
       data-testid={`button-action-${label.toLowerCase()}`}
     >
       <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center",
+        "w-9 h-9 rounded-lg flex items-center justify-center",
         completed 
           ? "bg-emerald-50 dark:bg-emerald-900/30" 
           : disabled 
@@ -180,25 +182,25 @@ function LessonCard({
     >
       {index > 0 && (
         <div className={cn(
-          "absolute left-6 -top-3 w-0.5 h-3",
+          "absolute left-6 -top-4 w-0.5 h-4",
           isLocked ? "bg-gray-200 dark:bg-gray-700" : "bg-emerald-400"
         )} />
       )}
       
       <Card className={cn(
-        "overflow-hidden transition-all bg-white dark:bg-gray-900 shadow-sm",
+        "overflow-visible transition-all bg-white dark:bg-gray-900",
         isLocked 
-          ? "border-gray-200 dark:border-gray-700" 
+          ? "border-gray-200 dark:border-gray-700 shadow-sm" 
           : isCompleted 
-            ? "border-emerald-100 dark:border-emerald-900/50" 
+            ? "border-l-4 border-l-emerald-500 border-t border-r border-b border-gray-100 dark:border-gray-800 shadow-md" 
             : isInProgress
-              ? "border-purple-100 dark:border-purple-900/50"
-              : "border-border"
+              ? "border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100 dark:border-gray-800 shadow-md"
+              : "border-gray-200 dark:border-gray-700 shadow-sm"
       )} data-testid={`lesson-card-${lesson.id}`}>
         <div className="p-4">
           <div className="flex items-start gap-3">
             <div className={cn(
-              "flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center",
+              "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center",
               isCompleted 
                 ? "bg-emerald-500" 
                 : isInProgress 
@@ -206,10 +208,10 @@ function LessonCard({
                   : "bg-gray-200 dark:bg-gray-700"
             )}>
               {isCompleted ? (
-                <Check className="h-5 w-5 text-white stroke-[3]" />
+                <Check className="h-6 w-6 text-white stroke-[3]" />
               ) : (
                 <span className={cn(
-                  "text-base font-bold",
+                  "text-lg font-bold",
                   isLocked ? "text-gray-400" : "text-white"
                 )}>
                   {lesson.lessonNumber}
@@ -221,7 +223,7 @@ function LessonCard({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className={cn(
-                    "text-xs font-semibold uppercase tracking-wide block",
+                    "text-xs font-bold uppercase tracking-wide block",
                     isCompleted 
                       ? "text-emerald-600 dark:text-emerald-400" 
                       : isInProgress 
@@ -231,7 +233,7 @@ function LessonCard({
                     LICAO {lesson.lessonNumber}
                   </span>
                   <span className={cn(
-                    "text-xs font-medium",
+                    "text-xs font-semibold",
                     isCompleted 
                       ? "text-emerald-600 dark:text-emerald-400" 
                       : isInProgress 
@@ -253,7 +255,7 @@ function LessonCard({
             </div>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-4">
             <h3 className={cn(
               "font-bold text-base",
               isLocked ? "text-gray-400" : "text-foreground"
@@ -309,7 +311,7 @@ function LessonCard({
       </Card>
 
       {isLocked && (
-        <p className="text-xs text-center text-muted-foreground mt-2">
+        <p className="text-xs text-center text-muted-foreground mt-3 mb-1">
           Complete a Licao {lesson.lessonNumber - 1} para desbloquear
         </p>
       )}
@@ -375,6 +377,120 @@ function EmptyState() {
   );
 }
 
+function ProgressCard({ 
+  progress, 
+  completedCount, 
+  inProgressCount, 
+  lockedCount 
+}: { 
+  progress: number;
+  completedCount: number;
+  inProgressCount: number;
+  lockedCount: number;
+}) {
+  return (
+    <Card className="p-5 shadow-lg bg-white dark:bg-gray-900 border-0 rounded-2xl">
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <span className="font-semibold text-foreground text-base">Seu Progresso</span>
+        <span className="text-2xl font-bold text-emerald-500" data-testid="text-progress-percent">{progress}%</span>
+      </div>
+      
+      <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-5">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.8 }}
+          className="h-full rounded-full"
+          style={{ background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }}
+        />
+      </div>
+
+      <div className="flex items-center justify-around text-center">
+        <div>
+          <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{completedCount}</p>
+          <p className="text-xs text-muted-foreground">Completas</p>
+        </div>
+        <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+        <div>
+          <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{inProgressCount}</p>
+          <p className="text-xs text-muted-foreground">Em Progresso</p>
+        </div>
+        <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
+        <div>
+          <p className="text-2xl font-bold text-foreground" data-testid="text-locked-count">{lockedCount}</p>
+          <p className="text-xs text-muted-foreground">Bloqueadas</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function SeasonCard({ 
+  season, 
+  lessonsCount,
+  avgMinutes,
+  isExpanded,
+  onToggle
+}: { 
+  season: Season;
+  lessonsCount: number;
+  avgMinutes: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <motion.div
+      whileTap={{ scale: 0.98 }}
+      onClick={onToggle}
+      className="cursor-pointer"
+    >
+      <Card 
+        className="overflow-hidden border-0 shadow-lg rounded-2xl"
+        style={{
+          background: 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
+        }}
+      >
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <Badge 
+              className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1 rounded-full border-0"
+            >
+              Trimestre 2024
+            </Badge>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>
+          <p className="text-white/80 text-sm mb-4">
+            {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-white/90 text-sm">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span>{lessonsCount} Licoes</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                <span>~{avgMinutes} min cada</span>
+              </div>
+            </div>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="h-5 w-5 text-white/80" />
+            </motion.div>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
 function SeasonContent({ 
   season, 
   lessons, 
@@ -384,10 +500,12 @@ function SeasonContent({
 }: { 
   season: Season;
   lessons: Lesson[];
-  userProgress?: SeasonDetail['userProgress'];
+  userProgress?: SeasonDetailResponse['progress'];
   onBack: () => void;
   onLessonClick: (lessonId: number) => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const progress = userProgress 
     ? Math.round((userProgress.lessonsCompleted / userProgress.totalLessons) * 100)
     : 0;
@@ -407,12 +525,12 @@ function SeasonContent({
           background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
         }}
       >
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={onBack}
-            className="text-white hover:bg-white/20"
+            className="text-white no-default-hover-elevate no-default-active-elevate"
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -421,7 +539,7 @@ function SeasonContent({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:bg-white/20"
+            className="text-white no-default-hover-elevate no-default-active-elevate"
             data-testid="button-menu"
           >
             <MoreVertical className="h-5 w-5" />
@@ -429,103 +547,65 @@ function SeasonContent({
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto">
-        <div 
-          className="px-5 pt-5 pb-8"
-          style={{
-            background: 'linear-gradient(180deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
-          }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-              <BookMarked className="h-5 w-5 text-white" />
-            </div>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>
-          <p className="text-white/80 text-sm mb-5">
-            {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
-          </p>
-          
-          <div className="flex items-center gap-5 text-white/90 text-sm">
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4" />
-              <span>{season.totalLessons} Licoes</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              <span>~{avgMinutesPerLesson} min cada</span>
-            </div>
-          </div>
-        </div>
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <ProgressCard 
+          progress={progress}
+          completedCount={completedCount}
+          inProgressCount={inProgressCount}
+          lockedCount={lockedCount}
+        />
 
-        <div className="px-4 -mt-5">
-          <Card className="p-5 shadow-lg bg-white dark:bg-gray-900 border-0">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-foreground">Seu Progresso</span>
-              <span className="text-xl font-bold text-emerald-500" data-testid="text-progress-percent">{progress}%</span>
-            </div>
-            
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-5">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.8 }}
-                className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }}
-              />
-            </div>
+        <SeasonCard 
+          season={season}
+          lessonsCount={season.totalLessons}
+          avgMinutes={avgMinutesPerLesson}
+          isExpanded={isExpanded}
+          onToggle={() => setIsExpanded(!isExpanded)}
+        />
 
-            <div className="flex items-center justify-around text-center">
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{completedCount}</p>
-                <p className="text-xs text-muted-foreground">Completas</p>
-              </div>
-              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{inProgressCount}</p>
-                <p className="text-xs text-muted-foreground">Em Progresso</p>
-              </div>
-              <div className="w-px h-10 bg-gray-200 dark:bg-gray-700" />
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-locked-count">{lockedCount}</p>
-                <p className="text-xs text-muted-foreground">Bloqueadas</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="px-4 mt-6">
-          <div className="flex items-center justify-between mb-4 gap-2">
-            <h3 className="font-bold text-lg text-foreground">Todas as Licoes</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-purple-600 dark:text-purple-400 gap-1.5 font-medium" 
-              data-testid="button-filter"
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
             >
-              <Filter className="h-4 w-4" />
-              Filtrar
-            </Button>
-          </div>
-          
-          <div className="space-y-4">
-            {lessons.map((lesson, index) => {
-              const previousLesson = lessons[index - 1];
-              const previousCompleted = index === 0 || previousLesson?.status === 'completed';
-              
-              return (
-                <LessonCard
-                  key={lesson.id}
-                  lesson={lesson}
-                  index={index}
-                  onClick={() => onLessonClick(lesson.id)}
-                  previousCompleted={previousCompleted}
-                />
-              );
-            })}
-          </div>
-        </div>
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-4 gap-2">
+                  <h3 className="font-bold text-lg text-foreground">Todas as Licoes</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-indigo-600 dark:text-indigo-400 gap-1.5 font-medium" 
+                    data-testid="button-filter"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filtrar
+                  </Button>
+                </div>
+                
+                <div className="space-y-5">
+                  {lessons.map((lesson, index) => {
+                    const previousLesson = lessons[index - 1];
+                    const previousCompleted = index === 0 || previousLesson?.status === 'completed';
+                    
+                    return (
+                      <LessonCard
+                        key={lesson.id}
+                        lesson={lesson}
+                        index={index}
+                        onClick={() => onLessonClick(lesson.id)}
+                        previousCompleted={previousCompleted}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </>
   );
@@ -596,12 +676,12 @@ export default function SeasonsPage() {
               background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
             }}
           >
-            <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center justify-between px-4 py-3 gap-2">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={handleBack}
-                className="text-white hover:bg-white/20"
+                className="text-white no-default-hover-elevate no-default-active-elevate"
                 data-testid="button-back"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -610,7 +690,7 @@ export default function SeasonsPage() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/20"
+                className="text-white no-default-hover-elevate no-default-active-elevate"
                 data-testid="button-menu"
               >
                 <MoreVertical className="h-5 w-5" />

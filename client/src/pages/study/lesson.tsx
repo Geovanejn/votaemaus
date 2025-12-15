@@ -484,14 +484,34 @@ export default function LessonPage() {
   const studyUnits = allUnits
     .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'));
   
+  // Extract base verse reference from the first verse unit
+  const baseVerseReference = studyUnits.find(u => u.type === 'verse')?.content?.highlight 
+    || studyUnits.find(u => u.type === 'verse')?.content?.verseReference 
+    || lessonData.title 
+    || '';
+  
   let topicCounter = 0;
-  const studySections: StudySection[] = studyUnits.map((unit) => {
+  const studySections: StudySection[] = studyUnits
+    .filter((unit) => {
+      // Filter out sections with empty content
+      // Keep verse units if they have body, verseText, or highlight (reference text)
+      if (unit.type === 'verse') {
+        const content = unit.content.body || unit.content.verseText || unit.content.highlight || '';
+        return content.trim().length > 0;
+      }
+      const content = unit.content.body || '';
+      return content.trim().length > 0;
+    })
+    .map((unit) => {
     if (unit.type === 'verse') {
+      // For verse units, content can come from body, verseText
+      // If only highlight exists (as verse reference), use it as fallback content
+      const verseContent = unit.content.body || unit.content.verseText || '';
       return {
         type: 'verse' as const,
         title: unit.content.title || 'Versículo Base',
-        content: unit.content.body || unit.content.verseText || '',
-        reference: unit.content.highlight || unit.content.verseReference || ''
+        content: verseContent || unit.content.highlight || '',
+        reference: unit.content.highlight || unit.content.verseReference || baseVerseReference
       };
     }
     
@@ -868,14 +888,10 @@ export default function LessonPage() {
     
     if (stageType === 'responda') {
       await handleLessonCompletion();
-    } else if (nextStage) {
-      // Stay on the lesson page and move to the next stage
-      // Set the stage override to filter to the next stage
-      setStageOverride(nextStage);
-      setCurrentUnitIndex(0);
-      setStudyProgress(null);
-      // Update URL to reflect the new stage
-      window.history.replaceState({}, '', `/study/lesson/${lessonId}?stage=${nextStage}`);
+    } else {
+      // Return to the study page lesson card instead of auto-advancing
+      // This lets user select the next section manually
+      setLocation(`/study?lesson=${lessonId}`);
     }
   };
 

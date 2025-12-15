@@ -78,60 +78,54 @@ function ActionButton({
   label, 
   completed, 
   disabled,
+  active,
   onClick
 }: { 
   icon: typeof FileText; 
   label: string; 
   completed: boolean;
   disabled: boolean;
+  active?: boolean;
   onClick?: () => void;
 }) {
+  const isActive = active && !completed && !disabled;
+  
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all flex-1 min-w-0",
-        completed 
-          ? "border-2 border-emerald-500 bg-white dark:bg-gray-900" 
-          : disabled 
-            ? "border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-60" 
-            : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+        "flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg transition-all flex-1 min-w-0",
+        isActive 
+          ? "bg-violet-100 dark:bg-violet-900/30 border-2 border-violet-500" 
+          : completed 
+            ? "bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-500" 
+            : "bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700"
       )}
       data-testid={`button-action-${label.toLowerCase()}`}
     >
-      <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center",
-        completed 
-          ? "bg-emerald-50 dark:bg-emerald-900/30" 
-          : disabled 
-            ? "bg-gray-100 dark:bg-gray-800" 
-            : "bg-indigo-50 dark:bg-indigo-900/30"
-      )}>
-        {disabled ? (
-          <Lock className="h-4 w-4 text-gray-400" />
-        ) : (
-          <Icon className={cn(
-            "h-4 w-4",
-            completed 
+      {disabled && !completed ? (
+        <Lock className="h-5 w-5 text-gray-400" />
+      ) : (
+        <Icon className={cn(
+          "h-5 w-5",
+          isActive 
+            ? "text-violet-600 dark:text-violet-400" 
+            : completed 
               ? "text-emerald-600 dark:text-emerald-400" 
-              : "text-indigo-600 dark:text-indigo-400"
-          )} />
-        )}
-      </div>
+              : "text-gray-500"
+        )} />
+      )}
       <span className={cn(
-        "text-xs font-medium",
-        completed 
-          ? "text-emerald-600 dark:text-emerald-400" 
-          : disabled 
-            ? "text-gray-400" 
-            : "text-gray-700 dark:text-gray-300"
+        "text-xs font-semibold",
+        isActive 
+          ? "text-violet-700 dark:text-violet-300" 
+          : completed 
+            ? "text-emerald-600 dark:text-emerald-400" 
+            : "text-gray-500"
       )}>
         {label}
       </span>
-      {completed && (
-        <Check className="h-3 w-3 text-emerald-500" />
-      )}
     </button>
   );
 }
@@ -152,22 +146,16 @@ function LessonCard({
   const isLocked = lesson.isLocked || (!previousCompleted && !isCompleted);
   
   const sectionsCompleted = lesson.sectionsCompleted || 0;
-  const totalSections = lesson.totalSections || 3;
+  const totalSections = lesson.totalSections || 16;
   
   const studyDone = lesson.studyCompleted || isCompleted;
   const meditationDone = lesson.meditationCompleted || isCompleted;
   const quizDone = lesson.quizCompleted || isCompleted;
 
-  const getXpDisplay = () => {
-    if (isCompleted) return `+${lesson.xpReward} XP`;
-    if (isInProgress) return `+${Math.floor(lesson.xpReward * 0.66)} XP`;
-    return `${lesson.xpReward} XP`;
-  };
-
-  const getXpColor = () => {
-    if (isCompleted) return "text-emerald-500";
-    if (isInProgress) return "text-purple-500";
-    return "text-gray-400";
+  const getStatusText = () => {
+    if (isCompleted) return "Completa";
+    if (isInProgress) return "Em progresso";
+    return "Bloqueada";
   };
 
   return (
@@ -176,40 +164,39 @@ function LessonCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className="relative"
+      data-testid={`lesson-card-${lesson.id}`}
     >
-      {index > 0 && (
-        <div className={cn(
-          "absolute left-6 -top-3 w-0.5 h-3",
-          isLocked ? "bg-gray-200 dark:bg-gray-700" : "bg-emerald-400"
-        )} />
-      )}
-      
       <Card className={cn(
-        "overflow-hidden transition-all bg-white dark:bg-gray-900 shadow-sm",
-        isLocked 
-          ? "border-gray-200 dark:border-gray-700" 
-          : isCompleted 
-            ? "border-emerald-100 dark:border-emerald-900/50" 
-            : isInProgress
-              ? "border-purple-100 dark:border-purple-900/50"
-              : "border-border"
-      )} data-testid={`lesson-card-${lesson.id}`}>
-        <div className="p-4">
+        "overflow-hidden transition-all bg-white dark:bg-gray-900 border-0 shadow-md",
+        "relative"
+      )}>
+        <div 
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-1.5 rounded-l-md",
+            isCompleted 
+              ? "bg-emerald-500" 
+              : isInProgress 
+                ? "bg-violet-500"
+                : "bg-gray-300 dark:bg-gray-600"
+          )}
+        />
+        
+        <div className="p-4 pl-5">
           <div className="flex items-start gap-3">
             <div className={cn(
-              "flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center",
+              "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
               isCompleted 
                 ? "bg-emerald-500" 
                 : isInProgress 
-                  ? "bg-purple-500"
-                  : "bg-gray-200 dark:bg-gray-700"
+                  ? "bg-violet-500"
+                  : "bg-gray-300 dark:bg-gray-600"
             )}>
               {isCompleted ? (
                 <Check className="h-5 w-5 text-white stroke-[3]" />
               ) : (
                 <span className={cn(
                   "text-base font-bold",
-                  isLocked ? "text-gray-400" : "text-white"
+                  isLocked ? "text-gray-500" : "text-white"
                 )}>
                   {lesson.lessonNumber}
                 </span>
@@ -218,63 +205,43 @@ function LessonCard({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className={cn(
-                    "text-xs font-semibold uppercase tracking-wide block",
-                    isCompleted 
-                      ? "text-emerald-600 dark:text-emerald-400" 
-                      : isInProgress 
-                        ? "text-purple-600 dark:text-purple-400"
-                        : "text-gray-400"
-                  )}>
+                <div className="flex-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-gray-400 block">
                     LICAO {lesson.lessonNumber}
                   </span>
-                  <span className={cn(
-                    "text-xs font-medium",
-                    isCompleted 
-                      ? "text-emerald-600 dark:text-emerald-400" 
-                      : isInProgress 
-                        ? "text-purple-600 dark:text-purple-400"
-                        : "text-gray-400"
+                  <h3 className={cn(
+                    "font-bold text-base mt-0.5 leading-tight",
+                    isLocked ? "text-gray-400" : "text-foreground"
                   )}>
-                    {isCompleted ? "Completa" : isInProgress ? "Em Progresso" : "Bloqueada"}
-                  </span>
+                    Licao {lesson.lessonNumber}: {lesson.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {getStatusText()} <span className="mx-1">•</span> {sectionsCompleted}/{totalSections} secoes
+                  </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <span className={cn("text-sm font-bold", getXpColor())}>
-                    {getXpDisplay()}
+                  <span className={cn(
+                    "text-sm font-bold",
+                    isCompleted 
+                      ? "text-emerald-500" 
+                      : isInProgress 
+                        ? "text-violet-500"
+                        : "text-gray-400"
+                  )}>
+                    {lesson.xpReward} XP
                   </span>
-                  <p className="text-xs text-muted-foreground">
-                    {sectionsCompleted}/{totalSections} secoes
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-3">
-            <h3 className={cn(
-              "font-bold text-base",
-              isLocked ? "text-gray-400" : "text-foreground"
-            )}>
-              {lesson.title}
-            </h3>
-            {lesson.description && (
-              <p className={cn(
-                "text-sm mt-1 line-clamp-2",
-                isLocked ? "text-gray-300 dark:text-gray-600" : "text-muted-foreground"
-              )}>
-                {lesson.description}
-              </p>
-            )}
-          </div>
-
           <div className="flex items-center gap-2 mt-4">
             <ActionButton
-              icon={FileText}
+              icon={BookOpen}
               label="Estude"
               completed={studyDone}
               disabled={isLocked}
+              active={!studyDone && !isLocked}
               onClick={!isLocked ? onClick : undefined}
             />
             <ActionButton
@@ -282,36 +249,18 @@ function LessonCard({
               label="Medite"
               completed={meditationDone}
               disabled={isLocked || !studyDone}
+              active={studyDone && !meditationDone && !isLocked}
             />
             <ActionButton
               icon={Pen}
               label="Responda"
               completed={quizDone}
               disabled={isLocked || !meditationDone}
+              active={meditationDone && !quizDone && !isLocked}
             />
           </div>
-
-          {isInProgress && !isLocked && (
-            <Button
-              onClick={onClick}
-              className="w-full mt-4 font-bold text-white rounded-xl h-12"
-              style={{ 
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                boxShadow: '0 4px 0 0 #6d28d9' 
-              }}
-              data-testid="button-continue-lesson"
-            >
-              Continuar Licao
-            </Button>
-          )}
         </div>
       </Card>
-
-      {isLocked && (
-        <p className="text-xs text-center text-muted-foreground mt-2">
-          Complete a Licao {lesson.lessonNumber - 1} para desbloquear
-        </p>
-      )}
     </motion.div>
   );
 }

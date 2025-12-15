@@ -170,9 +170,9 @@ export function RespondaScreen({
   const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [points, setPoints] = useState(340);
-  const [correctCount, setCorrectCount] = useState(12);
-  const [wrongCount, setWrongCount] = useState(3);
+  const [points, setPoints] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
   const [hintUsed, setHintUsed] = useState(false);
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);

@@ -23,6 +23,7 @@ export interface LessonData {
   totalSections: number;
   xpReward: number;
   stages: LessonStage[];
+  coverImageUrl?: string | null;
 }
 
 export interface UnitData {
@@ -100,31 +101,46 @@ export function LessonCard({
       )}
       data-testid={`lesson-card-${lesson.id}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <div className={cn(
-            "w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold",
-            circleColor
-          )}>
-            {isCompleted ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              lesson.number
-            )}
+      <div className="flex items-start gap-3 mb-3">
+        {lesson.coverImageUrl && (
+          <div className="shrink-0">
+            <img 
+              src={lesson.coverImageUrl} 
+              alt="Capa da revista"
+              className="w-12 h-16 sm:w-14 sm:h-20 rounded-md object-cover shadow-sm"
+            />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Licao {lesson.number}
-            </p>
-            <h4 className="font-bold text-foreground text-sm sm:text-base line-clamp-2">{lesson.title}</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} secoes
-            </p>
+        )}
+        <div className="flex-1 flex flex-col gap-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className={cn(
+                "w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold",
+                circleColor
+              )}>
+                {isCompleted ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  lesson.number
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Licao {lesson.number}
+                </p>
+                <h4 className="font-bold text-foreground text-sm line-clamp-2 break-words" data-testid={`lesson-title-${lesson.id}`}>
+                  {lesson.title}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} secoes
+                </p>
+              </div>
+            </div>
+            <span className={cn("text-xs font-bold shrink-0", xpColor)}>
+              {isCompleted ? "+" : ""}{lesson.xpReward} XP
+            </span>
           </div>
         </div>
-        <span className={cn("text-xs sm:text-sm font-bold shrink-0", xpColor)}>
-          {isCompleted ? "+" : ""}{lesson.xpReward} XP
-        </span>
       </div>
 
       <div className="flex gap-2">

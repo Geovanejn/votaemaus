@@ -72,7 +72,7 @@ interface SeasonDetailResponse extends Season {
   } | null;
 }
 
-function transformLessonToLessonData(lesson: Lesson, previousCompleted: boolean): LessonData {
+function transformLessonToLessonData(lesson: Lesson, previousCompleted: boolean, coverImageUrl?: string | null): LessonData {
   const isCompleted = lesson.status === 'completed';
   const isInProgress = lesson.status === 'in_progress' || (previousCompleted && !isCompleted && !lesson.isLocked);
   const isLocked = lesson.isLocked || (!previousCompleted && !isCompleted);
@@ -120,7 +120,8 @@ function transformLessonToLessonData(lesson: Lesson, previousCompleted: boolean)
     sectionsCompleted,
     totalSections,
     xpReward: lesson.xpReward,
-    stages
+    stages,
+    coverImageUrl
   };
 }
 
@@ -449,7 +450,7 @@ function SeasonContent({
                   {lessons.map((lesson, index) => {
                     const previousLesson = lessons[index - 1];
                     const previousCompleted = index === 0 || previousLesson?.status === 'completed';
-                    const transformedLesson = transformLessonToLessonData(lesson, previousCompleted);
+                    const transformedLesson = transformLessonToLessonData(lesson, previousCompleted, season.coverImageUrl);
                     
                     return (
                       <div 

@@ -150,6 +150,7 @@ interface SavedLessonProgress {
   stage: string | null;
   savedAt: number;
   heartsWereDepleted: boolean;
+  respondaQuestionIndex?: number;
 }
 
 function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress | null {
@@ -158,11 +159,8 @@ function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress
     const saved = localStorage.getItem(key);
     if (saved) {
       const progress: SavedLessonProgress = JSON.parse(saved);
-      // Only restore if:
-      // 1. Hearts were depleted (user ran out of lives)
-      // 2. Saved within last 24 hours
-      if (progress.heartsWereDepleted &&
-          Date.now() - progress.savedAt < 24 * 60 * 60 * 1000) {
+      // Restore if saved within last 24 hours
+      if (Date.now() - progress.savedAt < 24 * 60 * 60 * 1000) {
         return progress;
       }
     }
@@ -172,7 +170,7 @@ function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress
   return null;
 }
 
-function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null): void {
+function saveProgress(lessonId: number, userId: number, unitIndex: number, stage: string | null, heartsWereDepleted: boolean, respondaQuestionIndex?: number): void {
   try {
     const key = getLessonProgressKey(lessonId, userId);
     const progress: SavedLessonProgress = {
@@ -181,12 +179,17 @@ function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitInde
       unitIndex,
       stage,
       savedAt: Date.now(),
-      heartsWereDepleted: true,
+      heartsWereDepleted,
+      respondaQuestionIndex: respondaQuestionIndex ?? 0,
     };
     localStorage.setItem(key, JSON.stringify(progress));
   } catch (e) {
     console.error("Error saving progress:", e);
   }
+}
+
+function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null, respondaQuestionIndex?: number): void {
+  saveProgress(lessonId, userId, unitIndex, stage, true, respondaQuestionIndex);
 }
 
 function clearSavedProgress(lessonId: number, userId: number): void {
@@ -238,6 +241,8 @@ export default function LessonPage() {
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
   const [stageOverride, setStageOverride] = useState<string | null>(null);
+  const [currentRespondaQuestionIndex, setCurrentRespondaQuestionIndex] = useState(0);
+  const [initialRespondaQuestionIndex, setInitialRespondaQuestionIndex] = useState(0);
   
   // Reset stageOverride when URL stage param changes or lesson changes
   // BUT only if we don't have restored progress (which sets its own stageOverride)
@@ -440,6 +445,11 @@ export default function LessonPage() {
         if (savedProgress.stage) {
           setStageOverride(savedProgress.stage);
         }
+        // Restore the responda question index if it was saved
+        if (savedProgress.respondaQuestionIndex !== undefined) {
+          setInitialRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
+          setCurrentRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
+        }
         setProgressRestored(true);
         // Don't clear yet - wait until user actually resumes the lesson with hearts
       }
@@ -464,9 +474,9 @@ export default function LessonPage() {
         !progressSavedForDepletion.current) {
       // Mark as saved to prevent multiple saves
       progressSavedForDepletion.current = true;
-      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage);
+      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage, currentRespondaQuestionIndex);
     }
-  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id]);
+  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id, currentRespondaQuestionIndex]);
 
   // Clear saved progress when lesson is completed
   useEffect(() => {
@@ -907,7 +917,12 @@ export default function LessonPage() {
   };
 
   const handleClose = () => {
-    if (window.confirm("Tem certeza que deseja sair? Seu progresso será perdido.")) {
+    if (window.confirm("Tem certeza que deseja sair? Você pode continuar de onde parou mais tarde.")) {
+      // Save progress before exiting (not hearts depleted, just normal exit)
+      if (user?.id && lessonId > 0) {
+        const currentStage = stageOverride || stageParam || null;
+        saveProgress(lessonId, user.id, currentUnitIndex, currentStage, false, currentRespondaQuestionIndex);
+      }
       setLocation("/study");
     }
   };
@@ -1157,6 +1172,7 @@ export default function LessonPage() {
             maxHearts={profileData?.heartsMax || 5}
             crystals={profileData?.crystals || 0}
             initialXp={displayXp}
+            initialQuestionIndex={initialRespondaQuestionIndex}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
             onClose={handleClose}
@@ -1165,8 +1181,11 @@ export default function LessonPage() {
               setStageOverride(tab);
               setCurrentUnitIndex(0);
               setStudyProgress(null);
+              setInitialRespondaQuestionIndex(0);
+              setCurrentRespondaQuestionIndex(0);
             }}
             onXpChange={(xp) => setDisplayXp(xp)}
+            onQuestionChange={(index) => setCurrentRespondaQuestionIndex(index)}
           />
         ) : (
           <>

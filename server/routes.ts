@@ -5467,6 +5467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? Math.max(...existingLessons.map(l => l.orderIndex)) + 1 
         : 1;
       const newTotalLessons = existingLessons.length + 1;
+      
+      // Use the lesson number selected by the user (from form) or fallback to auto-incrementing
+      const selectedLessonNumber = parseInt(req.body.lessonNumber) || newTotalLessons;
 
       await storage.updateSeason(seasonId, {
         aiExtractedTitle: extractedLesson.title,
@@ -5479,7 +5482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: extractedLesson.baseVerseReference ? `Versículo base: ${extractedLesson.baseVerseReference}` : "",
         type: "study",
         orderIndex: nextOrderIndex,
-        lessonNumber: newTotalLessons,
+        lessonNumber: selectedLessonNumber,
         xpReward: 50,
         icon: "book-open"
       });

@@ -1258,11 +1258,19 @@ ESTRUTURA DE EXTRAÇÃO:
 5. Extraia aplicações práticas e meditações para a seção "Medite"
 6. Gere EXATAMENTE 5 perguntas para a seção "Responda"
 
-IMPORTANTE - ORTOGRAFIA E ACENTUAÇÃO:
+IMPORTANTE - CORREÇÃO DE ORTOGRAFIA, PONTUAÇÃO E ERROS DE OCR:
 - Use SEMPRE português brasileiro correto com acentuação apropriada.
 - Use "é", "á", "ã", "ç", "ê", "í", "ó", "ú" corretamente.
-- CORRIJA erros de OCR do PDF: palavras como "oracao" devem ser "oração", "fe" deve ser "fé", "Deus" nunca "deus".
-- O texto do PDF pode ter erros de leitura - interprete o contexto e corrija automaticamente.
+- CORRIJA TODOS os erros de OCR do PDF: palavras como "oracao" devem ser "oração", "fe" deve ser "fé", "Deus" nunca "deus".
+- O texto do PDF pode ter ERROS DE LEITURA - interprete o CONTEXTO e corrija automaticamente.
+- Se uma palavra parece errada ou não faz sentido no contexto, DEDUZA qual seria a palavra correta baseando-se no significado da frase.
+- Exemplo: "O Senhor é meu pastor, nada me faltarg" → corrija para "faltará"
+- Exemplo: "Jesus crist0" → corrija para "Jesus Cristo" 
+- Exemplo: "oracao" → corrija para "oração"
+- Exemplo: "fcazer" → corrija para "fazer" baseado no contexto
+- SEMPRE corrija pontuação: adicione vírgulas, pontos, dois-pontos onde necessário.
+- SEMPRE inicie frases com letra maiúscula após ponto final.
+- Nomes próprios bíblicos SEMPRE com maiúscula: Deus, Jesus, Cristo, Senhor, Espírito Santo, Maria, José, etc.
 
 IMPORTANTE - MEDITAÇÃO CRISTÃ:
 A meditação cristã é DIFERENTE da meditação oriental. NÃO inclua:
@@ -1299,17 +1307,23 @@ REGRAS PARA DICAS (HINTS):
 - A dica deve manter o grau de dificuldade da pergunta
 - O usuário perde XP ao usar a dica, então ela deve valer a pena mas não ser fácil demais
 
-REGRAS PARA FILL_BLANK (PREENCHER LACUNAS):
+REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
 - A frase DEVE ter contexto completo para o usuário entender o que preencher
 - OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
-- COERÊNCIA SEMÂNTICA: As alternativas devem ser da mesma classe gramatical:
-  * Se a resposta é um VERBO (amar, crer, orar), todas alternativas devem ser VERBOS
-  * Se a resposta é um SUBSTANTIVO ABSTRATO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS ABSTRATOS
-  * Se a resposta é um SUBSTANTIVO CONCRETO (cruz, pão, água), alternativas devem ser SUBSTANTIVOS CONCRETOS
-  * Se a resposta é um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
-  * Se a resposta é um NOME PRÓPRIO (Jesus, Paulo, Davi), alternativas devem ser NOMES PRÓPRIOS
-- Exemplo BOM: "correctAnswer": "fé", "options": ["fé", "esperança", "amor", "graça"] (todos abstratos)
-- Exemplo RUIM: "correctAnswer": "fé", "options": ["fé", "Jesus", "cruz", "orar"] (classes mistas)
+- COERÊNCIA SEMÂNTICA OBRIGATÓRIA: As alternativas DEVEM fazer sentido gramatical na frase:
+  * Se a lacuna requer um VERBO no infinitivo (glorificar, amar), TODAS alternativas devem ser VERBOS NO INFINITIVO
+  * Se a lacuna requer um VERBO conjugado (amou, morreu), TODAS alternativas devem ser VERBOS NO MESMO TEMPO/PESSOA
+  * Se a lacuna requer um SUBSTANTIVO ABSTRATO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS ABSTRATOS
+  * Se a lacuna requer um SUBSTANTIVO CONCRETO (cruz, pão, água), alternativas devem ser SUBSTANTIVOS CONCRETOS
+  * Se a lacuna requer um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
+  * Se a lacuna requer um NOME PRÓPRIO/PESSOA (Jesus, Paulo, Davi), alternativas devem ser NOMES DE PESSOAS
+  * Se a lacuna requer um LUGAR (Jerusalém, Egito), alternativas devem ser LUGARES
+- TESTE MENTAL: Leia a frase substituindo cada alternativa - TODAS devem formar frases gramaticalmente corretas
+- Exemplo BOM: "Nós devemos viver para ___ a Deus" → ["glorificar", "amar", "servir", "honrar"] (todos verbos no infinitivo)
+- Exemplo RUIM: "Nós devemos viver para ___ a Deus" → ["glorificar", "amor", "fé", "vida"] (classes mistas)
+- Exemplo BOM: "Foi ___ que morreu na Cruz" → ["Jesus", "Pedro", "Paulo", "João"] (todos nomes de pessoas)
+- Exemplo RUIM: "Foi ___ que morreu na Cruz" → ["Jesus", "amor", "fé", "mundo"] (classes mistas)
+- NUNCA misture classes gramaticais diferentes nas alternativas
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 

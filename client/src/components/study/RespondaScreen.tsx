@@ -48,12 +48,14 @@ interface RespondaScreenProps {
   maxHearts?: number;
   crystals?: number;
   initialXp?: number;
+  initialQuestionIndex?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
   onComplete: () => void;
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
   onXpChange?: (xp: number) => void;
+  onQuestionChange?: (currentIndex: number) => void;
 }
 
 function detectAnswerType(answer: string): string {
@@ -166,14 +168,16 @@ export function RespondaScreen({
   maxHearts = 5,
   crystals = 0,
   initialXp = 0,
+  initialQuestionIndex = 0,
   onAnswer,
   onComplete, 
   onClose,
   onProgress,
   onSwitchTab,
-  onXpChange
+  onXpChange,
+  onQuestionChange
 }: RespondaScreenProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [trueFalseAnswer, setTrueFalseAnswer] = useState<boolean | null>(null);
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
@@ -230,6 +234,12 @@ export function RespondaScreen({
       onProgress(currentIndex + 1, totalQuestions);
     }
   }, [currentIndex, totalQuestions, onProgress]);
+  
+  useEffect(() => {
+    if (onQuestionChange) {
+      onQuestionChange(currentIndex);
+    }
+  }, [currentIndex, onQuestionChange]);
   
   useEffect(() => {
     clearAutoAdvanceTimeout();

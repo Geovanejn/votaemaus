@@ -1155,10 +1155,15 @@ export default function LessonPage() {
 
   // Hide progress bar, stats, and entire header for dedicated session screens (Estude, Medite, Responda)
   // These screens have their own headers built-in
-  // Normalize activeStage to lowercase for reliable comparison, then check both stage and content flags
-  const normalizedStage = activeStage?.toLowerCase();
-  const isSessionByStage = normalizedStage === 'estude' || normalizedStage === 'medite' || normalizedStage === 'responda';
-  const isSessionScreen = isSessionByStage || showStudyContent || showMediteContent || showRespondaContent;
+  // Use targetStage (which comes from stageOverride or stageParam) for reliable detection
+  // Also check stageParam directly to hide header immediately when URL contains a stage parameter
+  // This prevents the header from flashing before data loads
+  // Normalize to lowercase for comparison, and also check content flags as fallback
+  const normalizedTargetStage = targetStage?.toLowerCase();
+  const normalizedStageParam = stageParam?.toLowerCase();
+  const isSessionByStage = normalizedTargetStage === 'estude' || normalizedTargetStage === 'medite' || normalizedTargetStage === 'responda';
+  const isSessionByUrlParam = normalizedStageParam === 'estude' || normalizedStageParam === 'medite' || normalizedStageParam === 'responda';
+  const isSessionScreen = isSessionByStage || isSessionByUrlParam || showStudyContent || showMediteContent || showRespondaContent;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">

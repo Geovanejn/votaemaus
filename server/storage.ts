@@ -2921,6 +2921,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async publishSeason(id: number): Promise<schema.Season | null> {
+    // First, unlock all lessons in this season so they appear immediately
+    await db.update(schema.studyLessons)
+      .set({ isLocked: false, isReleased: true, releaseDate: new Date(), updatedAt: new Date() })
+      .where(eq(schema.studyLessons.seasonId, id));
+    
+    // Then update the season status
     const [updated] = await db.update(schema.seasons)
       .set({ status: "published", publishedAt: new Date(), updatedAt: new Date() })
       .where(eq(schema.seasons.id, id))

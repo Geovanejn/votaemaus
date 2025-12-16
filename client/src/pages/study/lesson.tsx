@@ -135,6 +135,55 @@ function useQueryParam(param: string): string | null {
   return searchParams.get(param);
 }
 
+// Key for saving lesson progress in localStorage
+const LESSON_PROGRESS_KEY = "deo_glory_lesson_progress";
+
+interface SavedLessonProgress {
+  lessonId: number;
+  unitIndex: number;
+  stage: string | null;
+  savedAt: number;
+}
+
+function getSavedProgress(lessonId: number): SavedLessonProgress | null {
+  try {
+    const saved = localStorage.getItem(LESSON_PROGRESS_KEY);
+    if (saved) {
+      const progress: SavedLessonProgress = JSON.parse(saved);
+      // Only restore if it's the same lesson and saved within last 24 hours
+      if (progress.lessonId === lessonId && 
+          Date.now() - progress.savedAt < 24 * 60 * 60 * 1000) {
+        return progress;
+      }
+    }
+  } catch (e) {
+    console.error("Error reading saved progress:", e);
+  }
+  return null;
+}
+
+function saveProgress(lessonId: number, unitIndex: number, stage: string | null): void {
+  try {
+    const progress: SavedLessonProgress = {
+      lessonId,
+      unitIndex,
+      stage,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(LESSON_PROGRESS_KEY, JSON.stringify(progress));
+  } catch (e) {
+    console.error("Error saving progress:", e);
+  }
+}
+
+function clearSavedProgress(): void {
+  try {
+    localStorage.removeItem(LESSON_PROGRESS_KEY);
+  } catch (e) {
+    console.error("Error clearing saved progress:", e);
+  }
+}
+
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -142,7 +191,10 @@ export default function LessonPage() {
   const lessonId = parseInt(id || "0");
   const stageParam = useQueryParam('stage');
   
-  const [currentUnitIndex, setCurrentUnitIndex] = useState(0);
+  // Restore saved progress on initial load
+  const savedProgress = getSavedProgress(lessonId);
+  const [currentUnitIndex, setCurrentUnitIndex] = useState(savedProgress?.unitIndex ?? 0);
+  const [progressRestored, setProgressRestored] = useState(!!savedProgress);
   const [initialStageSet, setInitialStageSet] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackData, setFeedbackData] = useState<{
@@ -319,11 +371,35 @@ export default function LessonPage() {
       if (validStages.includes(stageParam)) {
         // When filtering by stage, always start at index 0 of the filtered units
         // The filtering happens later, so we just need to reset to beginning
-        setCurrentUnitIndex(0);
+        // But only if we don't have restored progress
+        if (!progressRestored) {
+          setCurrentUnitIndex(0);
+        }
       }
       setInitialStageSet(true);
     }
-  }, [lessonData, stageParam, initialStageSet]);
+  }, [lessonData, stageParam, initialStageSet, progressRestored]);
+
+  // Save progress when running out of hearts
+  useEffect(() => {
+    if (noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) {
+      saveProgress(lessonId, currentUnitIndex, stageParam);
+    }
+  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, stageParam]);
+
+  // Clear saved progress when lesson is completed
+  useEffect(() => {
+    if (isCompleted) {
+      clearSavedProgress();
+    }
+  }, [isCompleted]);
+
+  // Clear restored flag after loading
+  useEffect(() => {
+    if (progressRestored && lessonStarted) {
+      setProgressRestored(false);
+    }
+  }, [progressRestored, lessonStarted]);
 
   if (!user) {
     return (

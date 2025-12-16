@@ -270,20 +270,33 @@ interface FillBlankExerciseProps {
 }
 
 function detectAnswerType(answer: string): string {
+  const lowerAnswer = answer.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
   const versePattern = /^\d+:\d+$/;
   if (versePattern.test(answer)) return "verse_reference";
   
   const numberPattern = /^\d+$/;
   if (numberPattern.test(answer)) return "number";
   
-  const adjectives = ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "mau", "grande", "pequeno", "forte", "fraco", "novo", "velho", "primeiro", "ultimo"];
-  if (adjectives.includes(answer.toLowerCase())) return "adjective";
+  const verbs = ["amar", "crer", "orar", "louvar", "servir", "adorar", "perdoar", "salvar", "redimir", "santificar", "justificar", "morrer", "viver", "ressuscitar", "glorificar", "exaltar", "bendizer", "clamar", "buscar", "seguir", "obedecer", "confiar", "esperar", "aguardar"];
+  const verbEndings = ["ar", "er", "ir", "ou", "eu", "iu", "ando", "endo", "indo", "ado", "ido", "ada", "ida"];
+  if (verbs.includes(lowerAnswer) || verbEndings.some(end => lowerAnswer.endsWith(end) && lowerAnswer.length > 4)) return "verb";
   
-  const people = ["Cristo", "Jesus", "Deus", "Espirito", "Pai", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "José", "Salomão", "Elias", "Isaías", "Jeremias", "Daniel", "Jonas"];
-  if (people.some(p => answer.toLowerCase() === p.toLowerCase())) return "person";
+  const adjectives = ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "mau", "grande", "pequeno", "forte", "fraco", "novo", "velho", "primeiro", "ultimo", "misericordioso", "gracioso", "amoroso", "bondoso", "piedoso", "humilde", "manso", "paciente", "longânimo", "benigno", "soberano", "onipotente", "onisciente", "onipresente"];
+  const adjectiveEndings = ["oso", "osa", "vel", "nte", "dor", "dora", "ivo", "iva", "ico", "ica"];
+  if (adjectives.includes(lowerAnswer) || adjectiveEndings.some(end => lowerAnswer.endsWith(end) && lowerAnswer.length > 4)) return "adjective";
   
-  const places = ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Roma", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai"];
-  if (places.some(p => answer.toLowerCase() === p.toLowerCase())) return "place";
+  const people = ["Cristo", "Jesus", "Deus", "Espirito", "Pai", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "José", "Salomão", "Elias", "Eliseu", "Isaías", "Jeremias", "Daniel", "Jonas", "Noé", "Adão", "Eva", "Samuel", "Saul", "Jacó", "Isaque", "Rebeca", "Raquel", "Lia", "Rute", "Ester", "Jó", "Ezequiel", "Oséias", "Joel", "Amós", "Obadias", "Miquéias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", "Timóteo", "Tito", "Filemom", "Barnabé", "Silas", "Lucas", "Marcos", "Mateus", "Tiago", "Judas"];
+  if (people.some(p => lowerAnswer === p.toLowerCase())) return "person";
+  
+  const places = ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Roma", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai", "Damasco", "Corinto", "Éfeso", "Filipos", "Tessalônica", "Galácia", "Antioquia", "Betânia", "Belém", "Nazaré", "Cafarnaum", "Gólgota", "Getsêmani"];
+  if (places.some(p => lowerAnswer === p.toLowerCase())) return "place";
+  
+  const abstractNouns = ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "perdão", "pecado", "redenção", "santificação", "justificação", "reconciliação", "comunhão", "aliança", "promessa", "bênção", "consolo", "arrependimento", "conversão", "adoração", "obediência", "humildade", "mansidão", "paciência", "benignidade", "bondade", "fidelidade", "temperança", "domínio"];
+  if (abstractNouns.includes(lowerAnswer)) return "abstract_noun";
+  
+  const concreteNouns = ["cruz", "sangue", "cordeiro", "pão", "vinho", "água", "fogo", "vento", "pedra", "rocha", "árvore", "fruto", "semente", "trigo", "joio", "ovelha", "pastor", "rebanho", "templo", "altar", "sacrifício", "oferta", "dízimo", "primícias"];
+  if (concreteNouns.includes(lowerAnswer)) return "concrete_noun";
   
   return "noun";
 }
@@ -294,9 +307,12 @@ function generateOptions(correctAnswer: string): string[] {
   const optionsByType: Record<string, string[]> = {
     verse_reference: ["1:1", "3:16", "23:1", "12:25", "5:8", "8:28", "6:33", "4:13", "11:25", "15:13", "7:7", "10:9", "14:6", "16:31", "19:14"],
     number: ["1", "2", "3", "4", "5", "6", "7", "10", "12", "40", "70", "100", "7000"],
-    adjective: ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "forte", "grande", "misericordioso", "gracioso", "amoroso"],
-    person: ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel", "Samuel"],
-    place: ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai", "Roma", "Damasco"],
+    verb: ["amar", "crer", "orar", "louvar", "servir", "adorar", "perdoar", "salvar", "redimir", "santificar", "justificar", "viver", "ressuscitar", "glorificar", "buscar", "seguir", "obedecer", "confiar", "esperar", "aguardar", "exaltar", "bendizer", "clamar"],
+    adjective: ["santo", "justo", "eterno", "divino", "celestial", "perfeito", "fiel", "verdadeiro", "puro", "bom", "forte", "grande", "misericordioso", "gracioso", "amoroso", "bondoso", "piedoso", "humilde", "manso", "paciente", "longânimo", "benigno", "soberano"],
+    person: ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel", "Samuel", "Noé", "Jacó", "Isaque", "Rute", "Ester", "Jó", "Barnabé", "Silas", "Lucas", "Marcos", "Mateus", "Tiago"],
+    place: ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Galileia", "Judeia", "Samaria", "Éden", "Canaã", "Sinai", "Roma", "Damasco", "Corinto", "Éfeso", "Belém", "Nazaré"],
+    abstract_noun: ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "perdão", "pecado", "redenção", "santificação", "reconciliação", "comunhão", "aliança", "promessa", "bênção", "arrependimento"],
+    concrete_noun: ["cruz", "sangue", "cordeiro", "pão", "vinho", "água", "fogo", "vento", "pedra", "rocha", "árvore", "fruto", "semente", "trigo", "ovelha", "pastor", "rebanho", "templo", "altar", "sacrifício", "oferta"],
     noun: ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "perdão"]
   };
   

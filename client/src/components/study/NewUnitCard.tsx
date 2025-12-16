@@ -100,10 +100,10 @@ export function LessonCard({
       )}
       data-testid={`lesson-card-${lesson.id}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold",
+            "w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold",
             circleColor
           )}>
             {isCompleted ? (
@@ -112,17 +112,17 @@ export function LessonCard({
               lesson.number
             )}
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               Licao {lesson.number}
             </p>
-            <h4 className="font-bold text-foreground">{lesson.title}</h4>
-            <p className="text-sm text-muted-foreground">
+            <h4 className="font-bold text-foreground text-sm sm:text-base line-clamp-2">{lesson.title}</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} secoes
             </p>
           </div>
         </div>
-        <span className={cn("text-sm font-bold", xpColor)}>
+        <span className={cn("text-xs sm:text-sm font-bold shrink-0", xpColor)}>
           {isCompleted ? "+" : ""}{lesson.xpReward} XP
         </span>
       </div>

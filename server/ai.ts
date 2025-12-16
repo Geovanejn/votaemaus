@@ -300,10 +300,15 @@ Gere um JSON com a seguinte estrutura:
             // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
             // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
-            // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Exemplos:
-            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6" }
-            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "explanationCorrect": "Deus trabalha para nosso benefício!", "explanationIncorrect": "A resposta é 'bem'. Romanos 8:28 nos ensina sobre a providência divina." }
-            //   - { "question": "O fruto do Espírito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciência", "explanationCorrect": "Gálatas 5:22 lista os frutos do Espírito", "explanationIncorrect": "A resposta é 'paciência'. Veja Gálatas 5:22." }
+            // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Inclua campo "options" com 4 alternativas semanticamente coerentes!
+            //   - Se a resposta é um VERBO, as alternativas devem ser VERBOS
+            //   - Se a resposta é um SUBSTANTIVO, as alternativas devem ser SUBSTANTIVOS do mesmo tipo
+            //   - Se a resposta é um ADJETIVO, as alternativas devem ser ADJETIVOS
+            //   - Se a resposta é um NOME PRÓPRIO (pessoa), as alternativas devem ser NOMES PRÓPRIOS
+            //   Exemplos:
+            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "options": ["caminho", "destino", "propósito", "sentido"], "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6", "hint": "Pense em como chegamos a um lugar" }
+            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Deus trabalha para nosso benefício!", "explanationIncorrect": "A resposta é 'bem'. Romanos 8:28 nos ensina sobre a providência divina.", "hint": "Deus trabalha para nosso..." }
+            //   - { "question": "O fruto do Espírito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciência", "options": ["paciência", "mansidão", "longanimidade", "temperança"], "explanationCorrect": "Gálatas 5:22 lista os frutos do Espírito", "explanationIncorrect": "A resposta é 'paciência'. Veja Gálatas 5:22.", "hint": "Um fruto que nos ajuda a esperar" }
           },
           "xpValue": 2-10
         }
@@ -1256,6 +1261,8 @@ ESTRUTURA DE EXTRAÇÃO:
 IMPORTANTE - ORTOGRAFIA E ACENTUAÇÃO:
 - Use SEMPRE português brasileiro correto com acentuação apropriada.
 - Use "é", "á", "ã", "ç", "ê", "í", "ó", "ú" corretamente.
+- CORRIJA erros de OCR do PDF: palavras como "oracao" devem ser "oração", "fe" deve ser "fé", "Deus" nunca "deus".
+- O texto do PDF pode ter erros de leitura - interprete o contexto e corrija automaticamente.
 
 IMPORTANTE - MEDITAÇÃO CRISTÃ:
 A meditação cristã é DIFERENTE da meditação oriental. NÃO inclua:
@@ -1291,6 +1298,18 @@ REGRAS PARA DICAS (HINTS):
 - Exemplo BOM de dica: "Pense no que nos é dado sem merecermos" ou "Considere o conceito central de Efésios 2:8"
 - A dica deve manter o grau de dificuldade da pergunta
 - O usuário perde XP ao usar a dica, então ela deve valer a pena mas não ser fácil demais
+
+REGRAS PARA FILL_BLANK (PREENCHER LACUNAS):
+- A frase DEVE ter contexto completo para o usuário entender o que preencher
+- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
+- COERÊNCIA SEMÂNTICA: As alternativas devem ser da mesma classe gramatical:
+  * Se a resposta é um VERBO (amar, crer, orar), todas alternativas devem ser VERBOS
+  * Se a resposta é um SUBSTANTIVO ABSTRATO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS ABSTRATOS
+  * Se a resposta é um SUBSTANTIVO CONCRETO (cruz, pão, água), alternativas devem ser SUBSTANTIVOS CONCRETOS
+  * Se a resposta é um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
+  * Se a resposta é um NOME PRÓPRIO (Jesus, Paulo, Davi), alternativas devem ser NOMES PRÓPRIOS
+- Exemplo BOM: "correctAnswer": "fé", "options": ["fé", "esperança", "amor", "graça"] (todos abstratos)
+- Exemplo RUIM: "correctAnswer": "fé", "options": ["fé", "Jesus", "cruz", "orar"] (classes mistas)
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 
@@ -1387,6 +1406,7 @@ Retorne um JSON com a seguinte estrutura:
       "content": {
         "question": "Frase completa com ___ para completar",
         "correctAnswer": "palavra",
+        "options": ["palavra", "alternativa1", "alternativa2", "alternativa3"],
         "explanationCorrect": "Explicação detalhada",
         "explanationIncorrect": "Explicação educativa",
         "hint": "Dica sutil sobre o contexto da palavra"

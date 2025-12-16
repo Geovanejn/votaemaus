@@ -129,14 +129,14 @@ export function HeroBanner() {
     {
       type: 'devotional',
       id: 0,
-      title: "A Força da Oração",
-      subtitle: '"Orai sem cessar."',
-      caption: "1 Tessalonicenses 5:17",
+      title: "Bem-vindo ao Emaús",
+      subtitle: 'Conectando jovens à fé e à comunidade',
+      caption: "Comunidade UMP Emaús",
       imageUrl: defaultDevotionalImg,
-      linkUrl: '/devocionais',
-      linkText: 'Ler Devocional',
+      linkUrl: '/sobre',
+      linkText: 'Conhecer',
       icon: BookOpen,
-      badge: 'Devocional do Dia',
+      badge: 'Comunidade',
     },
   ];
 

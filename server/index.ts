@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler } from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler } from "./scheduler";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
 import cors from "cors";
@@ -179,6 +179,7 @@ app.use((req, res, next) => {
   initDailyVerseScheduler();
   initRecoveryVersesScheduler();
   initInstagramScheduler();
+  initDailyMissionsScheduler();
   
   const server = await registerRoutes(app);
   

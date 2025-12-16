@@ -1284,11 +1284,14 @@ export class DatabaseStorage implements IStorage {
       { type: 'maintain_streak', title: 'Mantenha o Foco', description: 'Complete uma lição para manter sua ofensiva', icon: 'Flame', xpReward: 10 },
       { type: 'perfect_answers', title: 'Perfeição', description: 'Acerte 5 respostas seguidas', icon: 'Star', xpReward: 25 },
       // Additional variety missions
-      { type: 'timed_challenge', title: 'Contra o Relógio', description: 'Responda perguntas antes do tempo acabar', icon: 'Timer', xpReward: 30 },
+      { type: 'timed_challenge', title: 'Contra o Relógio', description: 'Responda 5 perguntas em 30 segundos', icon: 'Timer', xpReward: 30 },
       { type: 'bible_character', title: 'Personagem Bíblico', description: 'Conheça um personagem da Bíblia', icon: 'User', xpReward: 15 },
       { type: 'simple_prayer', title: 'Momento de Oração', description: 'Escreva uma oração de gratidão', icon: 'Heart', xpReward: 15 },
       { type: 'bible_fact', title: 'Curiosidade Bíblica', description: 'Aprenda um fato interessante da Bíblia', icon: 'Lightbulb', xpReward: 10 },
-      { type: 'memorize_theme', title: 'Memorize o Tema', description: 'Memorize e teste seu conhecimento', icon: 'Brain', xpReward: 20 },
+      // New challenging missions (replaced memorize_theme)
+      { type: 'verse_memory', title: 'Memorize o Versículo', description: 'Complete as palavras que faltam no versículo', icon: 'Brain', xpReward: 20 },
+      { type: 'daily_reflection', title: 'Reflexão Diária', description: 'Escreva uma reflexão sobre o estudo de hoje', icon: 'MessageSquare', xpReward: 15 },
+      { type: 'share_knowledge', title: 'Compartilhe a Palavra', description: 'Compartilhe um ensinamento com alguém hoje', icon: 'Share2', xpReward: 25 },
     ];
 
     for (const mission of defaultMissions) {
@@ -2076,6 +2079,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyUsersWithProfiles(): Promise<any[]> {
+    // Only get active members (same as Emaús Vota ranking)
     const usersWithProfiles = await db.select({
       id: schema.users.id,
       fullName: schema.users.fullName,
@@ -2092,6 +2096,7 @@ export class DatabaseStorage implements IStorage {
     })
       .from(schema.users)
       .leftJoin(schema.studyProfiles, eq(schema.studyProfiles.userId, schema.users.id))
+      .where(eq(schema.users.activeMember, true))
       .orderBy(desc(schema.studyProfiles.totalXp));
 
     const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (user) => {

@@ -132,18 +132,7 @@ export default function HomePage() {
     retry: 2,
   });
 
-  const defaultDevotional = {
-    id: 1,
-    title: "A Força da Oração",
-    verse: "Orai sem cessar.",
-    verseReference: "1 Tessalonicenses 5:17",
-    summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
-    author: "Secretaria de Espiritualidade",
-    imageUrl: devocionalArt,
-    publishedAt: new Date().toISOString(),
-  };
-
-  const devotional = isError ? defaultDevotional : (highlights?.devotional || defaultDevotional);
+  const devotional = highlights?.devotional || null;
 
   const events = (highlights?.events || []).map((event, index) => ({
     ...event,
@@ -160,7 +149,7 @@ export default function HomePage() {
       : fallbackInstagramImages[index % fallbackInstagramImages.length],
   }));
 
-  const devotionalImage = devotional.imageUrl && !devotional.imageUrl.includes('placeholder')
+  const devotionalImage = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder')
     ? devotional.imageUrl
     : fallbackDevotionalImages[0];
 
@@ -186,6 +175,12 @@ export default function HomePage() {
             <Card className="overflow-hidden">
               <CardContent className="p-12 flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </CardContent>
+            </Card>
+          ) : !devotional ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Nenhum devocional publicado no momento.
               </CardContent>
             </Card>
           ) : (

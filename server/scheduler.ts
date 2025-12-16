@@ -3,7 +3,7 @@ import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
-import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
+import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, generateDailyMissionsWithAI, isAIConfigured } from "./ai";
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
@@ -56,7 +56,7 @@ async function sendBirthdayEmails(): Promise<void> {
   console.log('[Birthday Scheduler] Running daily birthday check...');
   
   try {
-    const allMembers = storage.getAllMembers();
+    const allMembers = await storage.getAllMembers();
     const todayDateString = getTodayDateString();
     
     const birthdayMembers = allMembers.filter(member => {
@@ -412,4 +412,58 @@ export function initInstagramScheduler(): void {
   runInstagramSync();
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync };
+async function refreshDailyMissionsWithAI(): Promise<void> {
+  console.log('[Daily Missions Scheduler] Refreshing daily missions with AI...');
+  
+  try {
+    if (!isAIConfigured()) {
+      console.log('[Daily Missions Scheduler] AI not configured, skipping mission generation');
+      return;
+    }
+    
+    const aiMissions = await generateDailyMissionsWithAI();
+    
+    if (!aiMissions || aiMissions.length === 0) {
+      console.log('[Daily Missions Scheduler] AI did not generate any missions');
+      return;
+    }
+    
+    // Store the AI-generated missions for today
+    const today = new Date().toISOString().split('T')[0];
+    const existingContent = await storage.getDailyMissionContent(today);
+    
+    if (existingContent) {
+      console.log(`[Daily Missions Scheduler] Missions already generated for today (${today})`);
+      return;
+    }
+    
+    await storage.createDailyMissionContent({
+      contentDate: today,
+      aiGeneratedMissions: JSON.stringify(aiMissions)
+    });
+    
+    console.log(`[Daily Missions Scheduler] Generated ${aiMissions.length} AI missions for ${today}`);
+  } catch (error) {
+    console.error('[Daily Missions Scheduler] Error refreshing missions:', error);
+  }
+}
+
+export function initDailyMissionsScheduler(): void {
+  // Run daily at midnight (00:00) to refresh missions
+  cron.schedule('0 0 * * *', refreshDailyMissionsWithAI, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)');
+  
+  // Also run at startup to ensure missions are available
+  setTimeout(async () => {
+    try {
+      console.log('[Daily Missions Scheduler] Running initial check at startup...');
+      await refreshDailyMissionsWithAI();
+    } catch (error) {
+      console.error('[Daily Missions Scheduler] Startup error:', error);
+    }
+  }, 10000);
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI };

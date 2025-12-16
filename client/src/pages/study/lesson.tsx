@@ -135,23 +135,33 @@ function useQueryParam(param: string): string | null {
   return searchParams.get(param);
 }
 
-// Key for saving lesson progress in localStorage
-const LESSON_PROGRESS_KEY = "deo_glory_lesson_progress";
+// Key prefix for saving lesson progress in localStorage when hearts run out
+// Each lesson+user combination gets its own key to avoid overwrites
+const LESSON_PROGRESS_KEY_PREFIX = "deo_glory_lesson_progress_";
+
+function getLessonProgressKey(lessonId: number, userId: number): string {
+  return `${LESSON_PROGRESS_KEY_PREFIX}${userId}_${lessonId}`;
+}
 
 interface SavedLessonProgress {
   lessonId: number;
+  userId: number;
   unitIndex: number;
   stage: string | null;
   savedAt: number;
+  heartsWereDepleted: boolean;
 }
 
-function getSavedProgress(lessonId: number): SavedLessonProgress | null {
+function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress | null {
   try {
-    const saved = localStorage.getItem(LESSON_PROGRESS_KEY);
+    const key = getLessonProgressKey(lessonId, userId);
+    const saved = localStorage.getItem(key);
     if (saved) {
       const progress: SavedLessonProgress = JSON.parse(saved);
-      // Only restore if it's the same lesson and saved within last 24 hours
-      if (progress.lessonId === lessonId && 
+      // Only restore if:
+      // 1. Hearts were depleted (user ran out of lives)
+      // 2. Saved within last 24 hours
+      if (progress.heartsWereDepleted &&
           Date.now() - progress.savedAt < 24 * 60 * 60 * 1000) {
         return progress;
       }
@@ -162,23 +172,27 @@ function getSavedProgress(lessonId: number): SavedLessonProgress | null {
   return null;
 }
 
-function saveProgress(lessonId: number, unitIndex: number, stage: string | null): void {
+function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null): void {
   try {
+    const key = getLessonProgressKey(lessonId, userId);
     const progress: SavedLessonProgress = {
       lessonId,
+      userId,
       unitIndex,
       stage,
       savedAt: Date.now(),
+      heartsWereDepleted: true,
     };
-    localStorage.setItem(LESSON_PROGRESS_KEY, JSON.stringify(progress));
+    localStorage.setItem(key, JSON.stringify(progress));
   } catch (e) {
     console.error("Error saving progress:", e);
   }
 }
 
-function clearSavedProgress(): void {
+function clearSavedProgress(lessonId: number, userId: number): void {
   try {
-    localStorage.removeItem(LESSON_PROGRESS_KEY);
+    const key = getLessonProgressKey(lessonId, userId);
+    localStorage.removeItem(key);
   } catch (e) {
     console.error("Error clearing saved progress:", e);
   }
@@ -191,10 +205,10 @@ export default function LessonPage() {
   const lessonId = parseInt(id || "0");
   const stageParam = useQueryParam('stage');
   
-  // Restore saved progress on initial load
-  const savedProgress = getSavedProgress(lessonId);
-  const [currentUnitIndex, setCurrentUnitIndex] = useState(savedProgress?.unitIndex ?? 0);
-  const [progressRestored, setProgressRestored] = useState(!!savedProgress);
+  const [currentUnitIndex, setCurrentUnitIndex] = useState(0);
+  const [progressRestored, setProgressRestored] = useState(false);
+  const [progressCheckDone, setProgressCheckDone] = useState(false);
+  const progressSavedForDepletion = useRef(false); // Track if we already saved for this depletion
   const [initialStageSet, setInitialStageSet] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackData, setFeedbackData] = useState<{
@@ -226,9 +240,12 @@ export default function LessonPage() {
   const [stageOverride, setStageOverride] = useState<string | null>(null);
   
   // Reset stageOverride when URL stage param changes or lesson changes
+  // BUT only if we don't have restored progress (which sets its own stageOverride)
   useEffect(() => {
-    setStageOverride(null);
-  }, [stageParam, lessonId]);
+    if (!progressRestored) {
+      setStageOverride(null);
+    }
+  }, [stageParam, lessonId, progressRestored]);
   
   const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "achievement" | "complete">("none");
   const [unlockedAchievementsList, setUnlockedAchievementsList] = useState<any[]>([]);
@@ -380,26 +397,83 @@ export default function LessonPage() {
     }
   }, [lessonData, stageParam, initialStageSet, progressRestored]);
 
-  // Save progress when running out of hearts
+  // Reset progress check when lesson or user changes
+  useEffect(() => {
+    setProgressCheckDone(false);
+    setProgressRestored(false);
+  }, [lessonId, user?.id]);
+
+  // Force profile refetch when showing no-hearts screen to get fresh heart count
   useEffect(() => {
     if (noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) {
-      saveProgress(lessonId, currentUnitIndex, stageParam);
+      // Refetch profile every 2 seconds while on no-hearts screen to detect recovery
+      const interval = setInterval(() => {
+        refetchProfile();
+      }, 2000);
+      return () => clearInterval(interval);
     }
-  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, stageParam]);
+  }, [noHeartsError, serverHearts, refetchProfile]);
+
+  // Reset noHeartsError when hearts are recovered (check profileData directly for fresh data)
+  useEffect(() => {
+    const freshHearts = profileData?.hearts;
+    if ((noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) && 
+        freshHearts !== undefined && freshHearts > 0) {
+      setNoHeartsError(false);
+      // Reset the save flag so we can save again if hearts deplete again
+      progressSavedForDepletion.current = false;
+      // Reset mutation state and re-trigger lesson start
+      startLessonMutation.reset();
+      if (lessonData) {
+        startLessonMutation.mutate();
+      }
+    }
+  }, [noHeartsError, serverHearts, profileData?.hearts, lessonData]);
+
+  // Restore saved progress on initial load (only for authenticated users)
+  useEffect(() => {
+    if (user?.id && lessonId > 0 && !progressCheckDone) {
+      const savedProgress = getSavedProgress(lessonId, user.id);
+      if (savedProgress) {
+        setCurrentUnitIndex(savedProgress.unitIndex);
+        // Restore the stage filter if it was saved
+        if (savedProgress.stage) {
+          setStageOverride(savedProgress.stage);
+        }
+        setProgressRestored(true);
+        // Don't clear yet - wait until user actually resumes the lesson with hearts
+      }
+      setProgressCheckDone(true);
+    }
+  }, [user?.id, lessonId, progressCheckDone]);
+
+  // Clear saved progress only after successfully resuming (has hearts and lesson started)
+  useEffect(() => {
+    if (progressRestored && lessonStarted && serverHearts !== undefined && serverHearts > 0 && user?.id) {
+      clearSavedProgress(lessonId, user.id);
+      setProgressRestored(false);
+    }
+  }, [progressRestored, lessonStarted, serverHearts, lessonId, user?.id]);
+
+  // Save progress when running out of hearts (only ONCE per depletion)
+  // Use stageOverride if available, otherwise use URL param
+  const activeStage = stageOverride ?? stageParam;
+  useEffect(() => {
+    if (user?.id && 
+        (noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) && 
+        !progressSavedForDepletion.current) {
+      // Mark as saved to prevent multiple saves
+      progressSavedForDepletion.current = true;
+      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage);
+    }
+  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id]);
 
   // Clear saved progress when lesson is completed
   useEffect(() => {
-    if (isCompleted) {
-      clearSavedProgress();
+    if (isCompleted && user?.id) {
+      clearSavedProgress(lessonId, user.id);
     }
-  }, [isCompleted]);
-
-  // Clear restored flag after loading
-  useEffect(() => {
-    if (progressRestored && lessonStarted) {
-      setProgressRestored(false);
-    }
-  }, [progressRestored, lessonStarted]);
+  }, [isCompleted, lessonId, user?.id]);
 
   if (!user) {
     return (

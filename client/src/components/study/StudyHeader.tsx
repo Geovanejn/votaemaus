@@ -15,6 +15,7 @@ interface StudyHeaderProps {
   onClose?: () => void;
   onBack?: () => void;
   showProgress?: boolean;
+  showStats?: boolean;
   className?: string;
   currentStage?: LessonStage;
   showStages?: boolean;
@@ -36,6 +37,7 @@ export function StudyHeader({
   onClose,
   onBack,
   showProgress = true,
+  showStats = true,
   className,
   currentStage,
   showStages = false
@@ -108,14 +110,16 @@ export function StudyHeader({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <CrystalDisplay size="md" />
-          <HeartsDisplay
-            current={hearts}
-            max={maxHearts}
-            size="md"
-          />
-        </div>
+        {showStats && (
+          <div className="flex items-center gap-2">
+            <CrystalDisplay size="md" />
+            <HeartsDisplay
+              current={hearts}
+              max={maxHearts}
+              size="md"
+            />
+          </div>
+        )}
       </div>
     </header>
   );

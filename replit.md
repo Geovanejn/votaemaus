@@ -100,6 +100,8 @@ npm run db:push  # Sincronizar esquema do banco
 - **Prompt de PDF melhorado**: Instruções fortalecidas para garantir que TODOS os tópicos do PDF sejam extraídos sem exceção. Adicionada validação para confirmar que nenhum tópico foi ignorado.
 - **Penalidade de XP no quiz**: Confirmado: -10 XP ao errar questão e -5 XP ao usar dica (já implementado anteriormente).
 - **XP diário com timezone correto**: Cálculo usa SQL nativo com `DATE_TRUNC` e `AT TIME ZONE 'America/Sao_Paulo'` para janela correta de 00:00-23:59 no fuso de São Paulo
+- **Cabeçalho branco corrigido**: StudyHeader agora verifica `stageParam` diretamente da URL para ocultar o cabeçalho imediatamente quando usuário navega para sessões (Estude, Medite, Responda), eliminando o flash branco antes dos dados carregarem
+- **Visibilidade de membros DeoGlory**: Confirmado que backend retorna TODOS os membros (isMember=true) independente de activeMember. Status "Suspenso" é atribuído para membros com activeMember=false
 
 ### 15/12/2025 - UI Improvements in Quiz Section (Responda)
 - **Orange card layout**: All question types (multiple choice, true/false, fill-blank) now use consistent bg-orange-50 dark:bg-orange-900/20

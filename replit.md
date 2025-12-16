@@ -93,7 +93,12 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
-### 16/12/2025 - Correções Críticas do Sistema DeoGlory
+### 16/12/2025 - Correções Críticas do Sistema DeoGlory (Parte 2)
+- **Missão Contra o Relógio**: Corrigida para só permitir conclusão se o usuário acertar TODAS as perguntas DENTRO do tempo. Adicionado flag `timedOutFlag` para bloquear respostas após tempo esgotar. Botão de tentar novamente reseta completamente o estado.
+- **Pódio do Ranking**: Adicionado pódio visual para os 3 primeiros colocados com plataformas de alturas diferentes (ouro, prata, bronze). Agora suporta menos de 3 usuários sem quebrar o layout. Medalhas e troféus nos pedestais ao invés de números duplicados.
+- **Acessibilidade (Text-to-Speech)**: Função de leitura agora normaliza corretamente conteúdo JSON/HTML/Markdown antes de ler. Usa extração recursiva para lidar com formatos TipTap/ProseMirror aninhados.
+
+### 16/12/2025 - Correções Críticas do Sistema DeoGlory (Parte 1)
 - **Instagram no site**: Seção Instagram agora só é exibida quando há posts reais sincronizados da API. Não mostra mais imagens de placeholder/stock quando a API não está configurada. Filtra posts com URLs de placeholder ou stock_images.
 - **Ranking XP diário corrigido**: Cálculo de XP diário agora usa tabela `xpTransactions` ao invés de `userLessonProgress`. Isso garante que XP de unidades individuais, lições completas, conquistas e bônus são todos contados corretamente.
 - **XP inicial no Quiz**: Quando o usuário vai direto para a etapa "Responda", o XP Total agora inicia com o XP acumulado das etapas anteriores (Estude + Medite), não zero. Usa `useMemo` para cálculo estável e `useRef` para evitar re-execução.

@@ -53,6 +53,7 @@ interface LessonWithProgress {
   id: number;
   studyWeekId: number;
   orderIndex: number;
+  lessonNumber: number;
   title: string;
   type: string;
   description: string;
@@ -470,7 +471,7 @@ export default function StudyHomePage() {
 
     return {
       id: lesson.id,
-      number: lesson.orderIndex + 1,
+      number: lesson.lessonNumber || lesson.orderIndex + 1,
       title: lesson.title,
       status: lessonStatus,
       sectionsCompleted: completedUnits,

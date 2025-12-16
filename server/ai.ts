@@ -17,11 +17,23 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
   }
 }
 
-// Get Gemini model with specific key
-export function getGeminiModel(keyNumber: string = "1"): GenerativeModel {
+// Models to try in order of preference (fallback chain)
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash", 
+  "gemini-1.5-flash"
+];
+
+// Get Gemini model with specific key and optional model override
+export function getGeminiModel(keyNumber: string = "1", modelName: string = GEMINI_MODELS[0]): GenerativeModel {
   const apiKey = getGeminiApiKey(keyNumber);
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  return genAI.getGenerativeModel({ model: modelName });
+}
+
+// Sleep function for retry delays
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Initialize default Gemini AI (backward compatibility)
@@ -178,23 +190,69 @@ function safeJsonParse(jsonString: string): any {
 
 async function generateWithGemini(systemPrompt: string, userPrompt: string, geminiKey: string = "1"): Promise<string> {
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-  const selectedModel = getGeminiModel(geminiKey);
   
-  const result = await selectedModel.generateContent({
-    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-    generationConfig: {
-      temperature: 0.7,
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 32768,
-    },
-  });
+  // Try each model with retries
+  for (let modelIndex = 0; modelIndex < GEMINI_MODELS.length; modelIndex++) {
+    const currentModel = GEMINI_MODELS[modelIndex];
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[AI] Tentativa ${attempt}/${maxRetries} com modelo ${currentModel}`);
+        const selectedModel = getGeminiModel(geminiKey, currentModel);
+        
+        const result = await selectedModel.generateContent({
+          contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 32768,
+          },
+        });
 
-  const response = result.response;
-  const text = response.text();
+        const response = result.response;
+        const text = response.text();
+        
+        console.log(`[AI] Sucesso com modelo ${currentModel}`);
+        return extractJsonFromResponse(text);
+        
+      } catch (error: any) {
+        const isOverloaded = error?.status === 503 || 
+          error?.message?.includes('overloaded') || 
+          error?.message?.includes('503');
+        
+        const isRateLimit = error?.status === 429 ||
+          error?.message?.includes('429') ||
+          error?.message?.includes('rate limit');
+        
+        console.warn(`[AI] Erro com ${currentModel} (tentativa ${attempt}/${maxRetries}): ${error?.message || error}`);
+        
+        if (isOverloaded || isRateLimit) {
+          // Wait before retry with exponential backoff
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          
+          if (attempt < maxRetries) {
+            console.log(`[AI] Aguardando ${waitTime}ms antes da próxima tentativa...`);
+            await sleep(waitTime);
+          } else if (modelIndex < GEMINI_MODELS.length - 1) {
+            // Try next model in the fallback chain
+            console.log(`[AI] Modelo ${currentModel} indisponível, tentando ${GEMINI_MODELS[modelIndex + 1]}...`);
+            break; // Exit retry loop, continue to next model
+          }
+        } else {
+          // For non-503/429 errors, don't retry with same model
+          if (modelIndex < GEMINI_MODELS.length - 1) {
+            console.log(`[AI] Erro não recuperável com ${currentModel}, tentando próximo modelo...`);
+            break;
+          }
+          throw error;
+        }
+      }
+    }
+  }
   
-  // Extract JSON from response using robust parsing
-  return extractJsonFromResponse(text);
+  throw new Error('Todos os modelos Gemini estão indisponíveis. Tente novamente em alguns minutos.');
 }
 
 export async function generateStudyContentFromText(

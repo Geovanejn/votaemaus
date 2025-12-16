@@ -1295,14 +1295,19 @@ A meditação cristã DEVE incluir:
 - Oração direcionada ao Senhor
 - Aplicação prática do texto bíblico
 
-REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS:
-- ANALISE TODO O TEXTO DO PDF COM ATENÇÃO para não perder nenhum tópico
+REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS - LEIA COM MÁXIMA ATENÇÃO:
+- ANALISE TODO O TEXTO DO PDF LINHA POR LINHA, do início ao fim
+- É OBRIGATÓRIO extrair TODOS os tópicos/seções do PDF sem exceção
+- ERRO COMUM: Ignorar tópicos no meio ou final do documento - NÃO FAÇA ISSO
 - Procure por padrões como: números romanos (I, II, III), números (1., 2., 3.), letras (a), b), c))
 - Procure por títulos em MAIÚSCULAS ou em negrito/destaque
-- Procure por palavras-chave como: "Primeiro", "Segundo", "Terceiro", "Em seguida", "Por fim"
+- Procure por palavras-chave como: "Primeiro", "Segundo", "Terceiro", "Em seguida", "Por fim", "Finalmente"
 - Procure por seções separadas por linhas em branco ou quebras de página
-- INCLUA TODOS OS TÓPICOS encontrados, mesmo que pareçam pequenos
+- INCLUA TODOS OS TÓPICOS encontrados, mesmo que pareçam pequenos ou secundários
+- LISTE os tópicos NA ORDEM em que aparecem no documento
 - Cada tópico deve ter um resumo COMPLETO do conteúdo (mínimo 150 palavras)
+- VALIDAÇÃO: Antes de responder, RELEIA o PDF e confirme que TODOS os tópicos foram incluídos
+- Se o PDF tiver 4 tópicos, você DEVE retornar 4 tópicos. Se tiver 6, DEVE retornar 6.
 
 REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
 - TODAS as 4 alternativas devem ser MUITO PLAUSÍVEIS e parecerem corretas

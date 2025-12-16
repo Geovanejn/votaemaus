@@ -2582,20 +2582,21 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
     
     // Calculate daily XP for each user (XP earned today from 00:00 to 23:59 in America/Sao_Paulo timezone)
-    // Use SQL timezone conversion for accurate calculation regardless of server timezone or DST changes
+    // Use xpTransactions table for accurate calculation including XP from units, lessons, achievements, etc.
+    // SQL timezone conversion ensures accurate calculation regardless of server timezone or DST changes
     const saoPauloTodayStart = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`;
     const saoPauloTodayEnd = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' + INTERVAL '1 day' - INTERVAL '1 second')`;
     
     const usersWithDailyXp = await Promise.all(usersWithProfiles.map(async (user) => {
+      // Sum ALL XP transactions from today (units, lessons, achievements, bonuses)
       const [dailyXpResult] = await db.select({
-        dailyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
+        dailyXp: sql<number>`COALESCE(SUM(${schema.xpTransactions.amount}), 0)`
       })
-        .from(schema.userLessonProgress)
+        .from(schema.xpTransactions)
         .where(and(
-          eq(schema.userLessonProgress.userId, user.userId),
-          eq(schema.userLessonProgress.status, 'completed'),
-          sql`${schema.userLessonProgress.completedAt} >= ${saoPauloTodayStart}`,
-          sql`${schema.userLessonProgress.completedAt} <= ${saoPauloTodayEnd}`
+          eq(schema.xpTransactions.userId, user.userId),
+          sql`${schema.xpTransactions.createdAt} >= ${saoPauloTodayStart}`,
+          sql`${schema.xpTransactions.createdAt} <= ${saoPauloTodayEnd}`
         ));
       
       return {

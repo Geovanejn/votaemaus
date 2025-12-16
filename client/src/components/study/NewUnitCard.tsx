@@ -117,13 +117,13 @@ export function LessonCard({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Licao {lesson.number}
+                  Lição {lesson.number}
                 </p>
                 <h4 className="font-bold text-foreground text-sm line-clamp-2 break-words" data-testid={`lesson-title-${lesson.id}`}>
                   {lesson.title}
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} secoes
+                  {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} seções
                 </p>
               </div>
             </div>

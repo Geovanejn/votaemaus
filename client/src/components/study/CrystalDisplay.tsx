@@ -144,12 +144,12 @@ export function CrystalBalanceCard({ className }: { className?: string }) {
             {crystalsData.balance} Cristais
           </p>
           <p className="text-xs text-purple-600 dark:text-purple-400">
-            {crystalsData.freezesAvailable} congelamentos disponiveis
+            {crystalsData.freezesAvailable} congelamentos disponíveis
           </p>
         </div>
       </div>
       <div className="text-right">
-        <p className="text-xs text-muted-foreground">Proximo congelamento</p>
+        <p className="text-xs text-muted-foreground">Próximo congelamento</p>
         <p className="font-bold text-purple-600 dark:text-purple-400">
           {crystalsData.nextFreezeCost} cristais
         </p>

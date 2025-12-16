@@ -553,18 +553,18 @@ export default function FinalChallengePage() {
   const handleShare = async () => {
     if (!result) return;
 
-    const text = `Completei o Desafio Final com ${Math.round(result.score)}% de acerto e ganhei ${result.xpEarned} XP!${result.isPerfect ? " Pontuacao PERFEITA!" : ""} #UMPEmaus #EstudoBiblico`;
+    const text = `Completei o Desafio Final com ${Math.round(result.score)}% de acerto e ganhei ${result.xpEarned} XP!${result.isPerfect ? " Pontuação PERFEITA!" : ""} #UMPEmaus #EstudoBíblico`;
 
     if (navigator.share) {
       try {
         await navigator.share({ text });
       } catch {
         await navigator.clipboard.writeText(text);
-        toast({ title: "Copiado!", description: "Texto copiado para a area de transferencia" });
+        toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
       }
     } else {
       await navigator.clipboard.writeText(text);
-      toast({ title: "Copiado!", description: "Texto copiado para a area de transferencia" });
+      toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
     }
   };
 
@@ -585,7 +585,7 @@ export default function FinalChallengePage() {
         <div className="text-center max-w-sm">
           <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
           <p className="text-muted-foreground mb-4">
-            Nao foi possivel carregar o desafio. Verifique se voce completou todas as licoes.
+            Não foi possível carregar o desafio. Verifique se você completou todas as lições.
           </p>
           <Button onClick={handleBack} data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />

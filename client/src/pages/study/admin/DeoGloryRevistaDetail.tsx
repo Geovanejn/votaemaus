@@ -497,7 +497,7 @@ export default function DeoGloryRevistaDetail() {
           <DialogHeader>
             <DialogTitle>Upload de PDF</DialogTitle>
             <DialogDescription>
-              Selecione o numero da licao e faca upload do PDF
+              Selecione o número da lição e faça upload do PDF
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 overflow-x-hidden">

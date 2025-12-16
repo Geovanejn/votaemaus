@@ -27,58 +27,15 @@ interface BoardMember {
   isCurrent: boolean;
 }
 
-const defaultBoardMembers: BoardMember[] = [
-  {
-    id: 1,
-    name: "Joao Pedro Silva",
-    position: "Presidente",
-    bio: "Membro da UMP ha 5 anos, apaixonado por lideranca e estudos biblicos.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 0,
-    isCurrent: true,
-  },
-  {
-    id: 2,
-    name: "Maria Luisa Santos",
-    position: "Vice-Presidente",
-    bio: "Comprometida com o crescimento espiritual dos jovens e com a evangelizacao.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 1,
-    isCurrent: true,
-  },
-  {
-    id: 3,
-    name: "Lucas Oliveira",
-    position: "1o Secretario",
-    bio: "Responsavel pela organizacao e comunicacao interna da UMP.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 2,
-    isCurrent: true,
-  },
-  {
-    id: 4,
-    name: "Juliana Ferreira",
-    position: "2o Secretario",
-    bio: "Auxilia na secretaria e organizacao de documentos e atas.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 3,
-    isCurrent: true,
-  },
-  {
-    id: 5,
-    name: "Ana Carolina Lima",
-    position: "Tesoureiro",
-    bio: "Cuida das financas e prestacao de contas da mocidade.",
-    termStart: "2024",
-    termEnd: "2025",
-    orderIndex: 4,
-    isCurrent: true,
-  },
-];
+const defaultBoardMembers: BoardMember[] = [];
+
+const EmptyStateMessage = () => (
+  <div className="text-center py-16">
+    <p className="text-muted-foreground text-lg">
+      A diretoria ainda não foi cadastrada. Em breve você conhecerá nossos líderes.
+    </p>
+  </div>
+);
 
 function getInitials(name: string): string {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -122,10 +79,10 @@ export default function DiretoriaPage() {
               Diretoria
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Conheca os lideres que servem na UMP Emaus
+              Conheça os líderes que servem na UMP Emaús
             </p>
             <Badge variant="secondary" className="mt-4">
-              Gestao {currentTerm}
+              Gestão {currentTerm}
             </Badge>
           </motion.div>
         </div>
@@ -137,6 +94,8 @@ export default function DiretoriaPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
+          ) : allMembers.length === 0 ? (
+            <EmptyStateMessage />
           ) : (
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {allMembers.map((member) => (

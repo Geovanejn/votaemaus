@@ -31,8 +31,8 @@ export function NotificationSettings() {
             <BellOff className="h-5 w-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="font-medium text-foreground">Notificacoes Push</p>
-            <p className="text-xs text-muted-foreground">Nao suportado neste navegador</p>
+            <p className="font-medium text-foreground">Notificações Push</p>
+            <p className="text-xs text-muted-foreground">Não suportado neste navegador</p>
           </div>
         </div>
       </div>
@@ -88,12 +88,12 @@ export function NotificationSettings() {
           </AnimatePresence>
         </motion.div>
         <div>
-          <p className="font-medium text-foreground">Notificacoes Push</p>
+          <p className="font-medium text-foreground">Notificações Push</p>
           <p className="text-xs text-muted-foreground">
             {isSubscribed 
-              ? 'Voce recebera lembretes de estudo' 
+              ? 'Você receberá lembretes de estudo' 
               : permission === 'denied'
-                ? 'Permissao negada no navegador'
+                ? 'Permissão negada no navegador'
                 : 'Receba lembretes para estudar'}
           </p>
         </div>

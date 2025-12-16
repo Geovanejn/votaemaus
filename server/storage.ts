@@ -196,6 +196,7 @@ export interface IStorage {
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   getStudyStats(): Promise<any>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
+  getStudyUsersWithProfiles(): Promise<any[]>;
   
   // Third Scrutiny Methods
   checkThirdScrutinyTie(electionPositionId: number): Promise<{ isTie: boolean; candidates?: any[] }>;
@@ -2072,6 +2073,63 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(schema.studyLessons.id, lessonIds));
     
     return lessons;
+  }
+
+  async getStudyUsersWithProfiles(): Promise<any[]> {
+    const usersWithProfiles = await db.select({
+      id: schema.users.id,
+      fullName: schema.users.fullName,
+      email: schema.users.email,
+      photoUrl: schema.users.photoUrl,
+      activeMember: schema.users.activeMember,
+      createdAt: schema.users.createdAt,
+      totalXp: schema.studyProfiles.totalXp,
+      currentLevel: schema.studyProfiles.currentLevel,
+      currentStreak: schema.studyProfiles.currentStreak,
+      lastActivityDate: schema.studyProfiles.lastActivityDate,
+      lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
+      crystals: schema.studyProfiles.crystals,
+    })
+      .from(schema.users)
+      .leftJoin(schema.studyProfiles, eq(schema.studyProfiles.userId, schema.users.id))
+      .orderBy(desc(schema.studyProfiles.totalXp));
+
+    const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (user) => {
+      const [lessonCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.userLessonProgress)
+        .where(and(
+          eq(schema.userLessonProgress.userId, user.id),
+          eq(schema.userLessonProgress.status, 'completed')
+        ));
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const lastActivityDate = user.lastActivityDate ? new Date(user.lastActivityDate) : null;
+      
+      let status: "Ativo" | "Inativo" | "Suspenso" = "Inativo";
+      if (!user.activeMember) {
+        status = "Suspenso";
+      } else if (lastActivityDate && lastActivityDate >= sevenDaysAgo) {
+        status = "Ativo";
+      }
+
+      return {
+        id: user.id,
+        name: user.fullName,
+        email: user.email,
+        avatarUrl: user.photoUrl,
+        status,
+        registrationDate: user.createdAt,
+        lastAccess: user.lastActivityDate || user.lastLessonCompletedAt,
+        lessonsCompleted: Number(lessonCount?.count || 0),
+        totalXp: user.totalXp || 0,
+        currentLevel: user.currentLevel || 1,
+        currentStreak: user.currentStreak || 0,
+        crystals: user.crystals || 0,
+      };
+    }));
+
+    return usersWithLessonCounts;
   }
 
   // Third Scrutiny Methods

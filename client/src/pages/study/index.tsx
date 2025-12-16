@@ -134,9 +134,9 @@ function UserProfileHeader({
             </Avatar>
             <div>
               <h1 className="text-lg font-bold text-white" data-testid="text-user-name">
-                Ola, {userName.split(' ')[0]}!
+                Olá, {userName.split(' ')[0]}!
               </h1>
-              <p className="text-sm text-white/80">Nivel {profile.currentLevel}</p>
+              <p className="text-sm text-white/80">Nível {profile.currentLevel}</p>
             </div>
           </div>
           
@@ -210,7 +210,7 @@ function UserProfileHeader({
                 <ListChecks className="h-6 w-6 text-white" />
               </div>
               <span className="font-bold text-foreground text-sm">{missionsCompleted}/{missionsTotal}</span>
-              <span className="text-[10px] text-muted-foreground">Missoes</span>
+              <span className="text-[10px] text-muted-foreground">Missões</span>
             </motion.div>
           </div>
         </div>

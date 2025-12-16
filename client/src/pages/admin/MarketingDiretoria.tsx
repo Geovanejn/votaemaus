@@ -78,7 +78,7 @@ export default function MarketingDiretoria() {
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel remover o membro.",
+        description: "Não foi possível remover o membro.",
         variant: "destructive",
       });
     },
@@ -97,7 +97,7 @@ export default function MarketingDiretoria() {
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel reordenar.",
+        description: "Não foi possível reordenar.",
         variant: "destructive",
       });
     },
@@ -246,9 +246,9 @@ export default function MarketingDiretoria() {
       <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusao</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover este membro da diretoria? Esta acao nao pode ser desfeita.
+              Tem certeza que deseja remover este membro da diretoria? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

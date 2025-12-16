@@ -334,7 +334,7 @@ function LessonRow({
           "text-[10px] font-bold uppercase tracking-wider",
           isLocked ? "text-muted-foreground/50" : "text-white/70"
         )}>
-          Licao {lessonNumber}
+          Lição {lessonNumber}
         </span>
         <h4 className={cn(
           "font-bold text-base leading-tight mt-1",
@@ -518,10 +518,10 @@ function PracticeRow({
         <p className={cn("text-sm mt-0.5", isLocked ? "text-muted-foreground/40" : "text-white/80")}>
           {isLocked 
             ? practiceStatus 
-              ? `Complete ${totalLessons - lessonsCompleted} licoes para desbloquear`
-              : "Complete todas as licoes para desbloquear"
+              ? `Complete ${totalLessons - lessonsCompleted} lições para desbloquear`
+              : "Complete todas as lições para desbloquear"
             : isMastered 
-              ? "Voce dominou esta semana!"
+              ? "Você dominou esta semana!"
               : "Teste seus conhecimentos"
           }
         </p>

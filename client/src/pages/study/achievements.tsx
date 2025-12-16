@@ -349,13 +349,13 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
           await navigator.clipboard.writeText(shareText);
           toast({
             title: "Link copiado!",
-            description: "O texto foi copiado para a area de transferencia."
+            description: "O texto foi copiado para a área de transferência."
           });
         } catch {
           toast({
             variant: "destructive",
             title: "Erro",
-            description: "Nao foi possivel copiar o texto."
+            description: "Não foi possível copiar o texto."
           });
         }
         setIsGenerating(false);
@@ -392,7 +392,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
         await navigator.clipboard.writeText(shareText);
         toast({
           title: "Link copiado!",
-          description: "O texto foi copiado para a area de transferencia."
+          description: "O texto foi copiado para a área de transferência."
         });
       }
     } catch (error) {
@@ -402,14 +402,14 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
           await navigator.clipboard.writeText(fallbackText);
           toast({
             title: "Link copiado!",
-            description: "O texto foi copiado para a area de transferencia."
+            description: "O texto foi copiado para a área de transferência."
           });
         } catch (clipboardError) {
           console.error("Share/clipboard error:", error, clipboardError);
           toast({
             variant: "destructive",
             title: "Erro",
-            description: "Nao foi possivel compartilhar. Tente novamente."
+            description: "Não foi possível compartilhar. Tente novamente."
           });
         }
       }
@@ -427,7 +427,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
         toast({
           variant: "destructive",
           title: "Erro",
-          description: "Nao foi possivel gerar a imagem."
+          description: "Não foi possível gerar a imagem."
         });
         return;
       }
@@ -448,7 +448,7 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nao foi possivel baixar a imagem."
+        description: "Não foi possível baixar a imagem."
       });
     } finally {
       setIsGenerating(false);

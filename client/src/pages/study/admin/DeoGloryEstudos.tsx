@@ -191,11 +191,11 @@ export default function DeoGloryEstudos() {
           const uploadData = await uploadRes.json();
           coverImageUrl = uploadData.url;
         } else if (uploadRes.status === 401) {
-          toast({ title: "Sessao expirada", description: "Por favor, faca login novamente", variant: "destructive" });
+          toast({ title: "Sessão expirada", description: "Por favor, faça login novamente", variant: "destructive" });
           setIsUploading(false);
           return;
         } else {
-          toast({ title: "Aviso", description: "Nao foi possivel enviar a imagem de capa. A revista sera criada sem imagem." });
+          toast({ title: "Aviso", description: "Não foi possível enviar a imagem de capa. A revista será criada sem imagem." });
         }
       }
 
@@ -242,7 +242,7 @@ export default function DeoGloryEstudos() {
       if (response.ok) {
         toast({
           title: "PDF processado com sucesso!",
-          description: `Licao "${data.lessonTitle}" criada com ${data.questionsCount} perguntas.`,
+          description: `Lição "${data.lessonTitle}" criada com ${data.questionsCount} perguntas.`,
         });
         queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
         resetUploadModal();

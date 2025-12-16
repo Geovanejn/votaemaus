@@ -53,20 +53,20 @@ interface TimelineItem {
 
 const iconOptions = [
   { value: "BookOpen", label: "Livro Aberto" },
-  { value: "Heart", label: "Coracao" },
+  { value: "Heart", label: "Coração" },
   { value: "Church", label: "Igreja" },
   { value: "Target", label: "Alvo" },
 ];
 
 const sections = [
-  { key: "historia", label: "Nossa Historia", icon: History, description: "Texto principal sobre a historia da UMP", type: "text" },
-  { key: "missao", label: "Missao", icon: Target, description: "A missao da organizacao", type: "text" },
-  { key: "visao", label: "Visao", icon: Eye, description: "A visao da organizacao", type: "text" },
+  { key: "historia", label: "Nossa História", icon: History, description: "Texto principal sobre a história da UMP", type: "text" },
+  { key: "missao", label: "Missão", icon: Target, description: "A missão da organização", type: "text" },
+  { key: "visao", label: "Visão", icon: Eye, description: "A visão da organização", type: "text" },
   { key: "valores", label: "Valores", icon: Heart, description: "Os valores que norteiam a UMP", type: "values" },
-  { key: "timeline", label: "Linha do Tempo", icon: History, description: "Marcos historicos", type: "timeline" },
-  { key: "endereco", label: "Endereco", icon: MapPin, description: "Endereco fisico com link para o Maps", type: "location" },
-  { key: "horarios", label: "Horarios", icon: Clock, description: "Horarios de cultos e estudos", type: "text" },
-  { key: "telefone", label: "Telefone", icon: Phone, description: "Numero de contato", type: "text" },
+  { key: "timeline", label: "Linha do Tempo", icon: History, description: "Marcos históricos", type: "timeline" },
+  { key: "endereco", label: "Endereço", icon: MapPin, description: "Endereço físico com link para o Maps", type: "location" },
+  { key: "horarios", label: "Horários", icon: Clock, description: "Horários de cultos e estudos", type: "text" },
+  { key: "telefone", label: "Telefone", icon: Phone, description: "Número de contato", type: "text" },
   { key: "email", label: "E-mail", icon: Mail, description: "E-mail de contato", type: "text" },
 ];
 
@@ -110,13 +110,13 @@ function ValuesEditor({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Icone</Label>
+                <Label>Ícone</Label>
                 <Select
                   value={item.icon}
                   onValueChange={(value) => updateValue(index, "icon", value)}
                 >
                   <SelectTrigger data-testid={`select-icon-${index}`}>
-                    <SelectValue placeholder="Selecione um icone" />
+                    <SelectValue placeholder="Selecione um ícone" />
                   </SelectTrigger>
                   <SelectContent>
                     {iconOptions.map((option) => (
@@ -128,17 +128,17 @@ function ValuesEditor({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Titulo</Label>
+                <Label>Título</Label>
                 <Input
                   value={item.title}
                   onChange={(e) => updateValue(index, "title", e.target.value)}
-                  placeholder="Ex: Amor ao proximo"
+                  placeholder="Ex: Amor ao próximo"
                   data-testid={`input-value-title-${index}`}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Descricao</Label>
+              <Label>Descrição</Label>
               <Textarea
                 value={item.description}
                 onChange={(e) => updateValue(index, "description", e.target.value)}
@@ -207,21 +207,21 @@ function TimelineEditor({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Titulo</Label>
+                <Label>Título</Label>
                 <Input
                   value={item.title}
                   onChange={(e) => updateItem(index, "title", e.target.value)}
-                  placeholder="Ex: Fundacao"
+                  placeholder="Ex: Fundação"
                   data-testid={`input-timeline-title-${index}`}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Descricao</Label>
+              <Label>Descrição</Label>
               <Textarea
                 value={item.description}
                 onChange={(e) => updateItem(index, "description", e.target.value)}
-                placeholder="Descreva este marco historico..."
+                placeholder="Descreva este marco histórico..."
                 rows={2}
                 data-testid={`input-timeline-description-${index}`}
               />
@@ -264,14 +264,14 @@ export default function MarketingQuemSomos() {
       queryClient.invalidateQueries({ queryKey: ["/api/site-content/quem-somos"] });
       toast({
         title: "Salvo!",
-        description: "O conteudo foi salvo com sucesso.",
+        description: "O conteúdo foi salvo com sucesso.",
       });
       setEditingSection(null);
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel salvar o conteudo.",
+        description: "Não foi possível salvar o conteúdo.",
         variant: "destructive",
       });
     },

@@ -508,10 +508,10 @@ export default function LessonPage() {
             <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            Licao ja concluida!
+            Lição já concluída!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Voce ja completou esta licao. Continue sua jornada de estudo com outras licoes disponiveis.
+            Você já completou esta lição. Continue sua jornada de estudo com outras lições disponíveis.
           </p>
           <div className="flex flex-col gap-3">
             <Button

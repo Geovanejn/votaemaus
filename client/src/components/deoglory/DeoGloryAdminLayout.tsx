@@ -66,7 +66,7 @@ export function DeoGloryAdminLayout({ children, title, subtitle }: DeoGloryAdmin
           </div>
           {!isSidebarCollapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-lg truncate">Estudo Biblico</h1>
+              <h1 className="font-bold text-lg truncate">Estudo Bíblico</h1>
               <p className="text-xs text-white/70 truncate">Painel Admin</p>
             </div>
           )}
@@ -183,7 +183,7 @@ export function DeoGloryAdminLayout({ children, title, subtitle }: DeoGloryAdmin
                   <GraduationCap className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">Estudo Biblico</h1>
+                  <h1 className="font-bold text-lg">Estudo Bíblico</h1>
                   <p className="text-xs text-white/70">Painel Admin</p>
                 </div>
               </div>

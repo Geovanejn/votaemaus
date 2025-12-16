@@ -136,9 +136,9 @@ export default function EspiritualidadeComentarios() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir comentario?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir comentário?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acao nao pode ser desfeita. O comentario sera removido permanentemente.
+                      Esta ação não pode ser desfeita. O comentário será removido permanentemente.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -180,9 +180,9 @@ export default function EspiritualidadeComentarios() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir comentario?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir comentário?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acao nao pode ser desfeita. O comentario sera removido permanentemente.
+                      Esta ação não pode ser desfeita. O comentário será removido permanentemente.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

@@ -74,9 +74,9 @@ const categories = [
   { value: "geral", label: "Geral" },
   { value: "culto", label: "Culto" },
   { value: "retiro", label: "Retiro" },
-  { value: "estudo", label: "Estudo Biblico" },
+  { value: "estudo", label: "Estudo Bíblico" },
   { value: "social", label: "Social" },
-  { value: "confraternizacao", label: "Confraternizacao" },
+  { value: "confraternizacao", label: "Confraternização" },
 ];
 
 export default function MarketingEventoEditor({ params }: { params?: { id: string } }) {
@@ -143,7 +143,7 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel criar o evento.",
+        description: "Não foi possível criar o evento.",
         variant: "destructive",
       });
     },
@@ -164,7 +164,7 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel atualizar o evento.",
+        description: "Não foi possível atualizar o evento.",
         variant: "destructive",
       });
     },

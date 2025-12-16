@@ -100,21 +100,21 @@ function VerseReaderActivity({
       <Card className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
         <div className="text-center mb-4">
           <BookMarked className="w-12 h-12 mx-auto text-amber-600 mb-3" />
-          <h3 className="text-lg font-bold text-foreground">Versiculo do Dia</h3>
+          <h3 className="text-lg font-bold text-foreground">Versículo do Dia</h3>
         </div>
         
         <blockquote className="text-lg italic text-center text-foreground/90 mb-4 leading-relaxed">
-          "{content?.dailyVerse || 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.'}"
+          "{content?.dailyVerse || 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.'}"
         </blockquote>
         
         <p className="text-center font-semibold text-amber-700 dark:text-amber-400" data-testid="verse-reference">
-          {content?.verseReference || 'Joao 3:16'}
+          {content?.verseReference || 'João 3:16'}
         </p>
       </Card>
 
       <div className="space-y-4">
         <p className="text-center text-muted-foreground">
-          Tire um momento para refletir sobre este versiculo e deixe a Palavra de Deus tocar seu coracao.
+          Tire um momento para refletir sobre este versículo e deixe a Palavra de Deus tocar seu coração.
         </p>
         
         {!hasRead ? (
@@ -123,7 +123,7 @@ function VerseReaderActivity({
             className="w-full bg-amber-600 text-white"
             data-testid="button-mark-read"
           >
-            Ja li e meditei
+            Já li e meditei
           </Button>
         ) : (
           <motion.div
@@ -136,7 +136,7 @@ function VerseReaderActivity({
               data-testid="button-complete-verse"
             >
               <Check className="w-4 h-4 mr-2" />
-              Concluir Missao
+              Concluir Missão
             </Button>
           </motion.div>
         )}
@@ -156,9 +156,9 @@ function QuizActivity({
 }) {
   const { sounds } = useSounds();
   const defaultQuestions = [
-    { question: "Quantos livros tem a Biblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
-    { question: "Quem escreveu Proverbios?", options: ["Moises", "Salomao", "Davi", "Paulo"], correctIndex: 1 },
-    { question: "Quem foi lancado na cova dos leoes?", options: ["Jose", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
+    { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
+    { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
+    { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
   ];
 
   const questions = content?.quizQuestions || defaultQuestions;
@@ -232,10 +232,10 @@ function QuizActivity({
         
         <div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            {canComplete ? 'Parabens!' : 'Quase la!'}
+            {canComplete ? 'Parabéns!' : 'Quase lá!'}
           </h3>
           <p className="text-muted-foreground">
-            Voce acertou {correctAnswers} de {questions.length} perguntas
+            Você acertou {correctAnswers} de {questions.length} perguntas
           </p>
         </div>
 
@@ -246,11 +246,11 @@ function QuizActivity({
             data-testid="button-complete-quiz"
           >
             <Check className="w-4 h-4 mr-2" />
-            Concluir Missao
+            Concluir Missão
           </Button>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Voce precisa acertar pelo menos {minCorrect} perguntas para completar a missao.
+            Você precisa acertar pelo menos {minCorrect} perguntas para completar a missão.
           </p>
         )}
       </div>
@@ -344,7 +344,7 @@ function BibleCharacterActivity({
 
   const character = content?.bibleCharacter || 'Daniel';
   const story = content?.characterStory || 
-    'Daniel foi um jovem judeu levado cativo para a Babilonia. Ele se destacou por sua fe inabalavel em Deus, mesmo enfrentando a cova dos leoes. Sua historia nos ensina sobre fidelidade e coragem diante das adversidades.';
+    'Daniel foi um jovem judeu levado cativo para a Babilônia. Ele se destacou por sua fé inabalável em Deus, mesmo enfrentando a cova dos leões. Sua história nos ensina sobre fidelidade e coragem diante das adversidades.';
 
   return (
     <div className="space-y-6" data-testid="bible-character-activity">
@@ -356,7 +356,7 @@ function BibleCharacterActivity({
           <h3 className="text-xl font-bold text-foreground" data-testid="character-name">
             {character}
           </h3>
-          <Badge variant="secondary" className="mt-2">Personagem Biblico do Dia</Badge>
+          <Badge variant="secondary" className="mt-2">Personagem Bíblico do Dia</Badge>
         </div>
         
         <p className="text-foreground/90 leading-relaxed text-center" data-testid="character-story">
@@ -370,7 +370,7 @@ function BibleCharacterActivity({
           className="w-full bg-purple-600 text-white"
           data-testid="button-understood"
         >
-          Entendi a historia
+          Entendi a história
         </Button>
       ) : (
         <motion.div
@@ -383,7 +383,7 @@ function BibleCharacterActivity({
             data-testid="button-complete-character"
           >
             <Check className="w-4 h-4 mr-2" />
-            Concluir Missao
+            Concluir Missão
           </Button>
         </motion.div>
       )}
@@ -404,9 +404,9 @@ function PrayerActivity({
       <Card className="p-6 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-rose-200 dark:border-rose-800">
         <div className="text-center mb-4">
           <Heart className="w-12 h-12 mx-auto text-rose-500 mb-3" />
-          <h3 className="text-lg font-bold text-foreground">Oracao de Gratidao</h3>
+          <h3 className="text-lg font-bold text-foreground">Oração de Gratidão</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            Escreva uma oracao curta agradecendo a Deus por algo especial em sua vida.
+            Escreva uma oração curta agradecendo a Deus por algo especial em sua vida.
           </p>
         </div>
 
@@ -419,7 +419,7 @@ function PrayerActivity({
         />
         
         <p className="text-xs text-muted-foreground text-right mt-2">
-          {prayer.length} caracteres (minimo {minLength})
+          {prayer.length} caracteres (mínimo {minLength})
         </p>
       </Card>
 
@@ -430,7 +430,7 @@ function PrayerActivity({
         data-testid="button-submit-prayer"
       >
         <Send className="w-4 h-4 mr-2" />
-        Enviar Oracao
+        Enviar Oração
       </Button>
     </div>
   );
@@ -446,15 +446,15 @@ function BibleFactActivity({
   const [hasRead, setHasRead] = useState(false);
 
   const fact = content?.bibleFact || 
-    'O livro de Ester e um dos dois livros da Biblia que nao menciona o nome de Deus diretamente (o outro e Cantares de Salomao). Mesmo assim, a providencia divina e claramente vista em toda a narrativa.';
+    'O livro de Ester é um dos dois livros da Bíblia que não menciona o nome de Deus diretamente (o outro é Cantares de Salomão). Mesmo assim, a providência divina é claramente vista em toda a narrativa.';
 
   return (
     <div className="space-y-6" data-testid="bible-fact-activity">
       <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800">
         <div className="text-center mb-4">
           <Lightbulb className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
-          <h3 className="text-lg font-bold text-foreground">Voce Sabia?</h3>
-          <Badge variant="secondary" className="mt-2">Fato Biblico do Dia</Badge>
+          <h3 className="text-lg font-bold text-foreground">Você Sabia?</h3>
+          <Badge variant="secondary" className="mt-2">Fato Bíblico do Dia</Badge>
         </div>
         
         <p className="text-foreground/90 leading-relaxed text-center" data-testid="bible-fact">
@@ -482,7 +482,7 @@ function BibleFactActivity({
             data-testid="button-complete-fact"
           >
             <Check className="w-4 h-4 mr-2" />
-            Concluir Missao
+            Concluir Missão
           </Button>
         </motion.div>
       )}
@@ -500,9 +500,9 @@ function MemorizeThemeActivity({
   const [step, setStep] = useState<'read' | 'test' | 'done'>('read');
   const [userAnswer, setUserAnswer] = useState('');
 
-  const theme = content?.themeToMemorize || 'Graca';
+  const theme = content?.themeToMemorize || 'Graça';
   const explanation = content?.themeExplanation || 
-    'A Graca e o favor imerecido de Deus para conosco. Nao conseguimos merecer a salvacao por nossas obras, mas Deus nos oferece gratuitamente atraves de Jesus Cristo.';
+    'A Graça é o favor imerecido de Deus para conosco. Não conseguimos merecer a salvação por nossas obras, mas Deus nos oferece gratuitamente através de Jesus Cristo.';
 
   const handleTest = () => {
     if (userAnswer.toLowerCase().includes(theme.toLowerCase())) {
@@ -534,7 +534,7 @@ function MemorizeThemeActivity({
         {step === 'test' && (
           <div className="space-y-4">
             <p className="text-center text-muted-foreground">
-              Qual foi o tema que voce acabou de estudar?
+              Qual foi o tema que você acabou de estudar?
             </p>
             <Textarea
               placeholder="Digite o tema..."
@@ -549,7 +549,7 @@ function MemorizeThemeActivity({
         {step === 'done' && (
           <div className="text-center">
             <Check className="w-16 h-16 mx-auto text-[#58CC02] mb-3" />
-            <p className="text-[#58CC02] font-bold">Correto! Voce memorizou o tema.</p>
+            <p className="text-[#58CC02] font-bold">Correto! Você memorizou o tema.</p>
           </div>
         )}
       </Card>
@@ -561,7 +561,7 @@ function MemorizeThemeActivity({
           data-testid="button-test-memory"
         >
           <Brain className="w-4 h-4 mr-2" />
-          Testar Memoria
+          Testar Memória
         </Button>
       )}
 
@@ -583,7 +583,7 @@ function MemorizeThemeActivity({
           data-testid="button-complete-memorize"
         >
           <Check className="w-4 h-4 mr-2" />
-          Concluir Missao
+          Concluir Missão
         </Button>
       )}
     </div>
@@ -601,9 +601,9 @@ function LessonRedirectActivity({
     <div className="space-y-6 text-center" data-testid="lesson-redirect-activity">
       <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
         <BookOpen className="w-16 h-16 mx-auto text-blue-500 mb-4" />
-        <h3 className="text-lg font-bold text-foreground mb-2">Conclua uma Licao</h3>
+        <h3 className="text-lg font-bold text-foreground mb-2">Conclua uma Lição</h3>
         <p className="text-muted-foreground">
-          Para completar esta missao, voce precisa concluir uma licao na sua trilha de estudos.
+          Para completar esta missão, você precisa concluir uma lição na sua trilha de estudos.
         </p>
       </Card>
 
@@ -613,7 +613,7 @@ function LessonRedirectActivity({
         data-testid="button-go-to-lessons"
       >
         <ArrowRight className="w-4 h-4 mr-2" />
-        Ir para as Licoes
+        Ir para as Lições
       </Button>
     </div>
   );
@@ -650,9 +650,9 @@ function StreakActivity({
       <div className="space-y-6 text-center" data-testid="streak-activity-incomplete">
         <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
           <Flame className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-2">Complete uma Licao Hoje</h3>
+          <h3 className="text-lg font-bold text-foreground mb-2">Complete uma Lição Hoje</h3>
           <p className="text-muted-foreground mb-4">
-            Para completar esta missao, voce precisa concluir pelo menos uma licao hoje para garantir sua ofensiva do dia!
+            Para completar esta missão, você precisa concluir pelo menos uma lição hoje para garantir sua ofensiva do dia!
           </p>
           <Badge variant="outline" className="text-orange-600 border-orange-300">
             Ofensiva atual: {profile?.currentStreak || 0} dias
@@ -682,7 +682,7 @@ function StreakActivity({
         </motion.div>
         <h3 className="text-lg font-bold text-foreground mb-2">Ofensiva Conquistada Hoje!</h3>
         <p className="text-muted-foreground mb-2">
-          Parabens! Voce completou uma licao hoje e garantiu sua ofensiva!
+          Parabéns! Você completou uma lição hoje e garantiu sua ofensiva!
         </p>
         <Badge className="bg-orange-500 text-white">
           {profile?.currentStreak || 0} dias de ofensiva
@@ -695,7 +695,7 @@ function StreakActivity({
         data-testid="button-complete-streak"
       >
         <Check className="w-4 h-4 mr-2" />
-        Concluir Missao
+        Concluir Missão
       </Button>
     </div>
   );
@@ -708,16 +708,16 @@ function PerfectAnswersActivity({
 }) {
   const { play } = useSound();
   const allQuestions = [
-    { question: "Quem construiu a arca?", options: ["Abraao", "Noe", "Moises", "Davi"], correctIndex: 1 },
-    { question: "Qual profeta enfrentou os profetas de Baal?", options: ["Elias", "Eliseu", "Isaias", "Jeremias"], correctIndex: 0 },
-    { question: "Quantos discipulos Jesus escolheu?", options: ["10", "11", "12", "13"], correctIndex: 2 },
-    { question: "Quem foi jogado na cova dos leoes?", options: ["Jonas", "Daniel", "Jose", "Elias"], correctIndex: 1 },
-    { question: "Em que cidade Jesus nasceu?", options: ["Nazare", "Jerusalem", "Belem", "Cafarnaum"], correctIndex: 2 },
-    { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomao", "Saul", "Samuel"], correctIndex: 2 },
-    { question: "Quem escreveu a maior parte dos Salmos?", options: ["Moises", "Salomao", "Davi", "Asafe"], correctIndex: 2 },
-    { question: "Qual era a profissao de Pedro antes de seguir Jesus?", options: ["Carpinteiro", "Pescador", "Cobrador de impostos", "Pastor"], correctIndex: 1 },
-    { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "Jose"], correctIndex: 0 },
-    { question: "Qual mulher foi escolhida rainha da Persia?", options: ["Rute", "Ester", "Raabe", "Debora"], correctIndex: 1 },
+    { question: "Quem construiu a arca?", options: ["Abraão", "Noé", "Moisés", "Davi"], correctIndex: 1 },
+    { question: "Qual profeta enfrentou os profetas de Baal?", options: ["Elias", "Eliseu", "Isaías", "Jeremias"], correctIndex: 0 },
+    { question: "Quantos discípulos Jesus escolheu?", options: ["10", "11", "12", "13"], correctIndex: 2 },
+    { question: "Quem foi jogado na cova dos leões?", options: ["Jonas", "Daniel", "José", "Elias"], correctIndex: 1 },
+    { question: "Em que cidade Jesus nasceu?", options: ["Nazaré", "Jerusalém", "Belém", "Cafarnaum"], correctIndex: 2 },
+    { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomão", "Saul", "Samuel"], correctIndex: 2 },
+    { question: "Quem escreveu a maior parte dos Salmos?", options: ["Moisés", "Salomão", "Davi", "Asafe"], correctIndex: 2 },
+    { question: "Qual era a profissão de Pedro antes de seguir Jesus?", options: ["Carpinteiro", "Pescador", "Cobrador de impostos", "Pastor"], correctIndex: 1 },
+    { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "José"], correctIndex: 0 },
+    { question: "Qual mulher foi escolhida rainha da Pérsia?", options: ["Rute", "Ester", "Raabe", "Débora"], correctIndex: 1 },
   ];
 
   // Shuffle and select 5 random questions
@@ -751,9 +751,9 @@ function PerfectAnswersActivity({
       <div className="space-y-6 text-center" data-testid="perfect-failed">
         <Card className="p-6">
           <Target className="w-16 h-16 mx-auto text-orange-500 mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-2">Ops! Voce errou</h3>
+          <h3 className="text-lg font-bold text-foreground mb-2">Ops! Você errou</h3>
           <p className="text-muted-foreground mb-4">
-            Para completar esta missao, voce precisa acertar 5 perguntas seguidas sem errar.
+            Para completar esta missão, você precisa acertar 5 perguntas seguidas sem errar.
           </p>
           <Button 
             onClick={() => {
@@ -778,7 +778,7 @@ function PerfectAnswersActivity({
           <Star className="w-16 h-16 mx-auto text-[#58CC02] mb-4" />
           <h3 className="text-lg font-bold text-foreground mb-2">Perfeito!</h3>
           <p className="text-muted-foreground">
-            Voce acertou {perfectStreak} perguntas seguidas!
+            Você acertou {perfectStreak} perguntas seguidas!
           </p>
         </Card>
 
@@ -788,7 +788,7 @@ function PerfectAnswersActivity({
           data-testid="button-complete-perfect"
         >
           <Check className="w-4 h-4 mr-2" />
-          Concluir Missao
+          Concluir Missão
         </Button>
       </div>
     );
@@ -878,7 +878,7 @@ export default function MissionActivityPage() {
       <div className="flex items-center justify-center min-h-screen" data-testid="loading-state">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#FFC800]" />
-          <span className="text-muted-foreground">Carregando missao...</span>
+          <span className="text-muted-foreground">Carregando missão...</span>
         </div>
       </div>
     );
@@ -889,10 +889,10 @@ export default function MissionActivityPage() {
       <div className="flex flex-col items-center justify-center min-h-screen p-4" data-testid="error-state">
         <AlertCircle className="w-16 h-16 text-destructive mb-4" />
         <h3 className="font-bold text-lg text-foreground mb-2">
-          Erro ao carregar missao
+          Erro ao carregar missão
         </h3>
         <p className="text-sm text-muted-foreground text-center mb-4">
-          Nao foi possivel carregar a missao. Tente novamente.
+          Não foi possível carregar a missão. Tente novamente.
         </p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setLocation('/study/missions')} data-testid="button-back-error">
@@ -912,13 +912,13 @@ export default function MissionActivityPage() {
         <div className="max-w-lg mx-auto pt-12 text-center">
           <Check className="w-20 h-20 mx-auto text-[#58CC02] mb-4" />
           <h3 className="text-xl font-bold text-foreground mb-2">
-            Missao ja concluida!
+            Missão já concluída!
           </h3>
           <p className="text-muted-foreground mb-6">
-            Voce ja completou esta missao hoje.
+            Você já completou esta missão hoje.
           </p>
           <Button onClick={() => setLocation('/study/missions')} data-testid="button-back-completed">
-            Voltar para Missoes
+            Voltar para Missões
           </Button>
         </div>
       </div>
@@ -930,10 +930,10 @@ export default function MissionActivityPage() {
       <div className="flex flex-col items-center justify-center min-h-screen p-4" data-testid="error-state">
         <AlertCircle className="w-16 h-16 text-destructive mb-4" />
         <h3 className="font-bold text-lg text-foreground mb-2">
-          Dados da missao incompletos
+          Dados da missão incompletos
         </h3>
         <p className="text-sm text-muted-foreground text-center mb-4">
-          Os detalhes da missao nao foram carregados corretamente.
+          Os detalhes da missão não foram carregados corretamente.
         </p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setLocation('/study/missions')} data-testid="button-back-error">
@@ -984,7 +984,7 @@ export default function MissionActivityPage() {
         return (
           <div className="text-center py-12">
             <AlertCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Tipo de missao nao suportado.</p>
+            <p className="text-muted-foreground">Tipo de missão não suportado.</p>
           </div>
         );
     }
@@ -1034,7 +1034,7 @@ export default function MissionActivityPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-testid="completing-overlay">
             <div className="bg-card rounded-xl p-6 flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-[#58CC02]" />
-              <span className="text-foreground font-medium">Concluindo missao...</span>
+              <span className="text-foreground font-medium">Concluindo missão...</span>
             </div>
           </div>
         )}

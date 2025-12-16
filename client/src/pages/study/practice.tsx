@@ -95,7 +95,7 @@ export default function PracticePage() {
 
   const startPracticeMutation = useMutation({
     mutationFn: async () => {
-      if (weekId === 0) throw new Error("Semana nao encontrada");
+      if (weekId === 0) throw new Error("Semana não encontrada");
       const response = await apiRequest("POST", `/api/study/practice/${weekId}/start`);
       return response.json() as Promise<PracticeStartResponse>;
     },
@@ -284,7 +284,7 @@ export default function PracticePage() {
             transition={{ delay: 0.8 }}
             className="text-2xl font-bold mb-2"
           >
-            Voce ja dominou esta semana!
+            Você já dominou esta semana!
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -292,7 +292,7 @@ export default function PracticePage() {
             transition={{ delay: 1 }}
             className="text-muted-foreground mb-6 max-w-xs"
           >
-            Parabens! Voce completou o Pratique com 3 estrelas. Continue estudando as proximas semanas!
+            Parabéns! Você completou o Pratique com 3 estrelas. Continue estudando as próximas semanas!
           </motion.p>
 
           <motion.div
@@ -406,9 +406,9 @@ export default function PracticePage() {
 
   if (isFinished && result) {
     const getMessage = () => {
-      if (result.starsEarned === 3) return "Perfeito! Voce dominou!";
-      if (result.starsEarned === 2) return "Otimo trabalho!";
-      if (result.starsEarned === 1) return "Bom comeco!";
+      if (result.starsEarned === 3) return "Perfeito! Você dominou!";
+      if (result.starsEarned === 2) return "Ótimo trabalho!";
+      if (result.starsEarned === 1) return "Bom começo!";
       return "Continue praticando!";
     };
 

@@ -242,7 +242,7 @@ export default function AgendaPage() {
               Agenda
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Confira os proximos eventos e atividades da UMP Emaus
+              Confira os próximos eventos e atividades da UMP Emaús
             </p>
           </motion.div>
         </div>
@@ -251,7 +251,7 @@ export default function AgendaPage() {
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <h2 className="text-2xl font-bold">Proximos Eventos</h2>
+            <h2 className="text-2xl font-bold">Próximos Eventos</h2>
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
@@ -315,8 +315,8 @@ export default function AgendaPage() {
                     <h3 className="text-lg font-semibold mb-2">Nenhum evento encontrado</h3>
                     <p className="text-muted-foreground">
                       {viewMode === "calendar" && selectedDate
-                        ? "Nao ha eventos nesta data"
-                        : "Nao ha eventos programados"}
+                        ? "Não há eventos nesta data"
+                        : "Não há eventos programados"}
                     </p>
                   </div>
                 ) : (

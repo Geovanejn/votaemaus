@@ -83,13 +83,13 @@ function getIconComponent(iconName: string) {
 
 function getLevelTitle(level: number): { title: string; nextLevel: number } {
   const levelTitles = [
-    { minLevel: 1, title: "Iniciante na Fe", nextLevel: 5 },
+    { minLevel: 1, title: "Iniciante na Fé", nextLevel: 5 },
     { minLevel: 5, title: "Aprendiz das Escrituras", nextLevel: 10 },
     { minLevel: 10, title: "Estudante Dedicado", nextLevel: 20 },
-    { minLevel: 20, title: "Discipulo Fiel", nextLevel: 40 },
+    { minLevel: 20, title: "Discípulo Fiel", nextLevel: 40 },
     { minLevel: 40, title: "Mestre dos Estudos", nextLevel: 60 },
-    { minLevel: 60, title: "Sabio Biblico", nextLevel: 80 },
-    { minLevel: 80, title: "Guardiao da Palavra", nextLevel: 100 },
+    { minLevel: 60, title: "Sábio Bíblico", nextLevel: 80 },
+    { minLevel: 80, title: "Guardião da Palavra", nextLevel: 100 },
     { minLevel: 100, title: "Supremo Conhecedor das Escrituras", nextLevel: 999 },
   ];
   
@@ -98,7 +98,7 @@ function getLevelTitle(level: number): { title: string; nextLevel: number } {
       return { title: levelTitles[i].title, nextLevel: levelTitles[i].nextLevel };
     }
   }
-  return { title: "Iniciante na Fe", nextLevel: 5 };
+  return { title: "Iniciante na Fé", nextLevel: 5 };
 }
 
 function LoadingState() {
@@ -149,32 +149,8 @@ export default function ProfilePage() {
   const displayAchievements = (achievements || []).slice(0, 6);
   const unlockedCount = (achievements || []).filter(a => a.unlocked).length;
 
-  const recentActivities: RecentActivity[] = [
-    {
-      id: 1,
-      type: "lesson",
-      title: 'Licao "O Filho Prodigo" concluida',
-      subtitle: "+150 XP - Hoje as 14:30",
-      icon: "check",
-      color: "#22C55E",
-    },
-    {
-      id: 2,
-      type: "streak",
-      title: `${profile?.currentStreak || 12} dias de ofensiva alcancados`,
-      subtitle: "Conquista desbloqueada - Hoje as 09:15",
-      icon: "flame",
-      color: "#F97316",
-    },
-    {
-      id: 3,
-      type: "ranking",
-      title: "Subiu para 8o lugar no ranking",
-      subtitle: "Ranking semanal - Ontem as 20:45",
-      icon: "trophy",
-      color: "#8B5CF6",
-    },
-  ];
+  const recentActivities: RecentActivity[] = [];
+  const hasRecentActivities = recentActivities.length > 0;
 
   const lessonsCompleted = 18;
   const unitsCompleted = 3;
@@ -247,7 +223,7 @@ export default function ProfilePage() {
             <Badge 
               className="mt-1 text-xs bg-white/20 text-white border-0"
             >
-              Nivel {currentLevel}
+              Nível {currentLevel}
             </Badge>
           </motion.div>
 
@@ -269,7 +245,7 @@ export default function ProfilePage() {
                 <Star className="h-5 w-5 text-yellow-400" />
                 <span className="text-lg font-bold text-white">{currentLevel}</span>
               </div>
-              <span className="text-xs text-white/70">Nivel</span>
+              <span className="text-xs text-white/70">Nível</span>
             </div>
             <div className="flex flex-col items-center" data-testid="profile-crystals">
               <div className="flex items-center gap-1">
@@ -315,9 +291,9 @@ export default function ProfilePage() {
         >
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-foreground">Progresso do Nivel</h3>
+              <h3 className="font-bold text-foreground">Progresso do Nível</h3>
               <div className="text-right">
-                <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>Nivel {currentLevel}</p>
+                <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>Nível {currentLevel}</p>
                 <p className="text-xs text-muted-foreground">{currentXp.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP</p>
               </div>
             </div>
@@ -329,7 +305,7 @@ export default function ProfilePage() {
               }}
             />
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{xpRemaining} XP para o proximo nivel</p>
+              <p className="text-xs text-muted-foreground">{xpRemaining} XP para o próximo nível</p>
               <Badge 
                 className="text-xs font-medium px-2 py-1"
                 style={{ 
@@ -376,7 +352,7 @@ export default function ProfilePage() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Dias Totais</span>
             </div>
             <p className="text-2xl font-black text-foreground">{studyDays}</p>
-            <p className="text-xs text-muted-foreground">Desde marco</p>
+            <p className="text-xs text-muted-foreground">Desde março</p>
           </Card>
         </motion.div>
 
@@ -457,7 +433,7 @@ export default function ProfilePage() {
           transition={{ delay: 0.45 }}
         >
           <Card className="p-4">
-            <h3 className="text-lg font-bold text-foreground mb-4">Estatisticas</h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Estatísticas</h3>
             <div className="grid grid-cols-2 gap-3">
               <div 
                 className="p-4 rounded-xl text-center"
@@ -471,7 +447,7 @@ export default function ProfilePage() {
                 style={{ backgroundColor: "#F3E8FF" }}
               >
                 <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{lessonsCompleted}</p>
-                <p className="text-xs text-muted-foreground">Licoes Completas</p>
+                <p className="text-xs text-muted-foreground">Lições Completas</p>
               </div>
               <div 
                 className="p-4 rounded-xl text-center"
@@ -497,26 +473,34 @@ export default function ProfilePage() {
           transition={{ delay: 0.5 }}
         >
           <h3 className="text-lg font-bold text-foreground mb-3">Atividade Recente</h3>
-          <div className="space-y-3">
-            {recentActivities.map((activity) => (
-              <Card key={activity.id} className="p-4">
-                <div className="flex items-start gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: activity.color }}
-                  >
-                    {activity.icon === "check" && <CheckCircle className="h-5 w-5 text-white" />}
-                    {activity.icon === "flame" && <Flame className="h-5 w-5 text-white" />}
-                    {activity.icon === "trophy" && <Trophy className="h-5 w-5 text-white" />}
+          {hasRecentActivities ? (
+            <div className="space-y-3">
+              {recentActivities.map((activity) => (
+                <Card key={activity.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: activity.color }}
+                    >
+                      {activity.icon === "check" && <CheckCircle className="h-5 w-5 text-white" />}
+                      {activity.icon === "flame" && <Flame className="h-5 w-5 text-white" />}
+                      {activity.icon === "trophy" && <Trophy className="h-5 w-5 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm">{activity.title}</p>
+                      <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-4">
+              <p className="text-center text-muted-foreground text-sm">
+                Você ainda não possui atividades recentes. Complete suas primeiras lições para ver seu progresso aqui!
+              </p>
+            </Card>
+          )}
         </motion.div>
       </main>
 

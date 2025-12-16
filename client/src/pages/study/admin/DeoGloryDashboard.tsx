@@ -140,7 +140,7 @@ export default function DeoGloryDashboard() {
   });
 
   return (
-    <DeoGloryAdminLayout title="Dashboard" subtitle="Visao geral do seu aplicativo de estudo biblico">
+    <DeoGloryAdminLayout title="Dashboard" subtitle="Visão geral do seu aplicativo de estudo bíblico">
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statsLoading ? (
@@ -345,7 +345,7 @@ export default function DeoGloryDashboard() {
                             {member.fullName}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Nivel {member.currentLevel} | {member.lessonsCompleted} licoes
+                            Nível {member.currentLevel} | {member.lessonsCompleted} lições
                           </p>
                         </div>
                         <div className="text-right">
@@ -363,20 +363,20 @@ export default function DeoGloryDashboard() {
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                Licoes Recentes
+                Lições Recentes
               </CardTitle>
               <Badge variant="outline" className="text-green-600 border-green-200">
-                Ultimas 5
+                Últimas 5
               </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {[
                   { title: "O Amor de Deus", status: "published", views: 432, date: "15/01/2024" },
-                  { title: "Fe e Obras", status: "published", views: 387, date: "22/01/2024" },
-                  { title: "A Graca Divina", status: "draft", views: 341, date: "29/01/2024" },
-                  { title: "Oracao e Jejum", status: "published", views: 298, date: "05/02/2024" },
-                  { title: "Salvacao em Cristo", status: "published", views: 256, date: "12/02/2024" },
+                  { title: "Fé e Obras", status: "published", views: 387, date: "22/01/2024" },
+                  { title: "A Graça Divina", status: "draft", views: 341, date: "29/01/2024" },
+                  { title: "Oração e Jejum", status: "published", views: 298, date: "05/02/2024" },
+                  { title: "Salvação em Cristo", status: "published", views: 256, date: "12/02/2024" },
                 ].map((lesson, index) => (
                   <div
                     key={index}

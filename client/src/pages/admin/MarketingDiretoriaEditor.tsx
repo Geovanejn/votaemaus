@@ -151,14 +151,14 @@ export default function MarketingDiretoriaEditor({ params }: { params?: { id: st
       queryClient.invalidateQueries({ queryKey: ["/api/marketing/stats"] });
       toast({
         title: "Membro adicionado",
-        description: "O membro foi adicionado a diretoria.",
+        description: "O membro foi adicionado à diretoria.",
       });
       navigate("/admin/marketing/diretoria");
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel adicionar o membro.",
+        description: "Não foi possível adicionar o membro.",
         variant: "destructive",
       });
     },
@@ -179,7 +179,7 @@ export default function MarketingDiretoriaEditor({ params }: { params?: { id: st
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel atualizar o membro.",
+        description: "Não foi possível atualizar o membro.",
         variant: "destructive",
       });
     },

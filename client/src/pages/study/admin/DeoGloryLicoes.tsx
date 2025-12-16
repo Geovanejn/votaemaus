@@ -357,7 +357,7 @@ export default function DeoGloryLicoes() {
   const WeekYearSelector = () => (
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label>Numero da Semana</Label>
+        <Label>Número da Semana</Label>
         <Input
           type="number"
           min={1}
@@ -382,26 +382,26 @@ export default function DeoGloryLicoes() {
   );
 
   return (
-    <DeoGloryAdminLayout title="Gerenciar Licoes" subtitle="Crie e gerencie licoes de estudo biblico">
+    <DeoGloryAdminLayout title="Gerenciar Lições" subtitle="Crie e gerencie lições de estudo bíblico">
       <div className="space-y-8">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Criar Nova Licao
+            Criar Nova Lição
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CreateOptionCard
               title="Criar com IA"
-              description="Escreva um texto e deixe a IA gerar as licoes automaticamente"
+              description="Escreva um texto e deixe a IA gerar as lições automaticamente"
               icon={Sparkles}
-              buttonText="Comecar"
+              buttonText="Começar"
               variant="primary"
               onClick={() => setShowTextDialog(true)}
             />
             <CreateOptionCard
               title="Upload de PDF"
-              description="Envie um arquivo PDF e deixe a IA extrair e organizar o conteudo"
+              description="Envie um arquivo PDF e deixe a IA extrair e organizar o conteúdo"
               icon={Upload}
-              buttonText="Comecar"
+              buttonText="Começar"
               variant="secondary"
               onClick={() => setShowPdfDialog(true)}
             />
@@ -410,7 +410,7 @@ export default function DeoGloryLicoes() {
 
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Licoes Existentes
+            Lições Existentes
           </h2>
 
           {isLoading ? (
@@ -530,10 +530,10 @@ export default function DeoGloryLicoes() {
                   <Sparkles className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Nenhuma licao encontrada
+                  Nenhuma lição encontrada
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Crie sua primeira licao usando IA ou enviando um PDF.
+                  Crie sua primeira lição usando IA ou enviando um PDF.
                 </p>
               </CardContent>
             </Card>
@@ -546,10 +546,10 @@ export default function DeoGloryLicoes() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-600" />
-              Gerar Licoes com IA
+              Gerar Lições com IA
             </DialogTitle>
             <DialogDescription>
-              Escreva ou cole o texto base e a IA gerara as licoes automaticamente.
+              Escreva ou cole o texto base e a IA gerará as lições automaticamente.
             </DialogDescription>
           </DialogHeader>
           
@@ -557,9 +557,9 @@ export default function DeoGloryLicoes() {
             <GeminiKeySelector />
             <WeekYearSelector />
             <div className="space-y-2">
-              <Label>Texto Base (minimo 100 caracteres)</Label>
+              <Label>Texto Base (mínimo 100 caracteres)</Label>
               <Textarea
-                placeholder="Cole aqui o texto biblico, devocional ou tema para gerar as licoes..."
+                placeholder="Cole aqui o texto bíblico, devocional ou tema para gerar as lições..."
                 className="min-h-40"
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
@@ -724,7 +724,7 @@ export default function DeoGloryLicoes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Semana</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{selectedWeek?.title}"? Esta acao nao pode ser desfeita e todas as licoes associadas serao removidas.
+              Tem certeza que deseja excluir "{selectedWeek?.title}"? Esta ação não pode ser desfeita e todas as lições associadas serão removidas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

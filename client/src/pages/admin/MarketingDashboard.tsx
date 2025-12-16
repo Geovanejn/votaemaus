@@ -133,7 +133,7 @@ export default function MarketingDashboard() {
 
         <Card data-testid="card-upcoming-events">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Proximos Eventos</CardTitle>
+            <CardTitle className="text-sm font-medium">Próximos Eventos</CardTitle>
             <CalendarDays className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -308,7 +308,7 @@ export default function MarketingDashboard() {
           ) : !isInstagramConfigured ? (
             <div className="text-center py-8 text-muted-foreground">
               <Instagram className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Instagram nao configurado</p>
+              <p>Instagram não configurado</p>
               <p className="text-sm">{instagramData?.message || "Configure INSTAGRAM_ACCESS_TOKEN e INSTAGRAM_USER_ID nos secrets."}</p>
             </div>
           ) : instagramPosts && instagramPosts.length > 0 ? (

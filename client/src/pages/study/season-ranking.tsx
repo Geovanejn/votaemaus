@@ -160,7 +160,7 @@ function RankingCard({ entry, index }: { entry: RankingEntry; index: number }) {
               </span>
               {entry.isCurrentUser && (
                 <Badge variant="outline" className="text-xs shrink-0">
-                  Voce
+                  Você
                 </Badge>
               )}
             </div>
@@ -168,7 +168,7 @@ function RankingCard({ entry, index }: { entry: RankingEntry; index: number }) {
             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Target className="w-3 h-3" />
-                <span>{entry.lessonsCompleted} licoes</span>
+                <span>{entry.lessonsCompleted} lições</span>
               </div>
               {entry.challengeScore !== null && (
                 <div className="flex items-center gap-1">
@@ -301,7 +301,7 @@ export default function SeasonRankingPage() {
     } catch (error) {
       toast({
         title: "Erro ao gerar imagem",
-        description: "Nao foi possivel gerar a imagem do ranking.",
+        description: "Não foi possível gerar a imagem do ranking.",
         variant: "destructive",
       });
     } finally {
@@ -338,7 +338,7 @@ export default function SeasonRankingPage() {
           <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">Erro ao carregar ranking</h2>
           <p className="text-muted-foreground mb-4">
-            Nao foi possivel carregar o ranking. Tente novamente.
+            Não foi possível carregar o ranking. Tente novamente.
           </p>
           <Button onClick={handleRetry} data-testid="button-retry-ranking">
             Tentar novamente
@@ -353,9 +353,9 @@ export default function SeasonRankingPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-6 text-center">
           <Trophy className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Temporada nao encontrada</h2>
+          <h2 className="text-xl font-semibold mb-2">Temporada não encontrada</h2>
           <p className="text-muted-foreground mb-4">
-            A temporada que voce esta procurando nao existe.
+            A temporada que você está procurando não existe.
           </p>
           <Link href="/study/seasons">
             <Button data-testid="button-back-seasons">Voltar para temporadas</Button>

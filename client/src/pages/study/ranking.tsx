@@ -238,13 +238,13 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
                 isCurrentUser ? "text-white" : "text-foreground"
               )}>
                 {user.username}
-                {isCurrentUser && " (Voce)"}
+                {isCurrentUser && " (Você)"}
               </p>
               <p className={cn(
                 "text-xs",
                 isCurrentUser ? "text-white/70" : "text-muted-foreground"
               )}>
-                Nivel {user.level} • {user.currentStreak} dias
+                Nível {user.level} • {user.currentStreak} dias
               </p>
             </div>
 

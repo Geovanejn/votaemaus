@@ -184,7 +184,7 @@ export function GoldenMasteryAnimation({ show, starsEarned, onClose }: GoldenMas
                 MESTRE!
               </motion.h2>
               <p className="text-amber-200 text-lg mb-2">
-                Voce dominou esta semana!
+                Você dominou esta semana!
               </p>
               <motion.p 
                 className="text-yellow-400 font-bold text-sm mb-6"
@@ -192,7 +192,7 @@ export function GoldenMasteryAnimation({ show, starsEarned, onClose }: GoldenMas
                 animate={{ opacity: 1 }}
                 transition={{ delay: 2 }}
               >
-                Todas as licoes ficaram douradas!
+                Todas as lições ficaram douradas!
               </motion.p>
             </motion.div>
 

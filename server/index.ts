@@ -12,94 +12,94 @@ async function seedAchievementsAndVerses() {
   try {
     const existingVerses = await storage.getAllBibleVerses();
     if (existingVerses.length === 0) {
-      console.log("[Seed] Criando versiculos biblicos iniciais...");
+      console.log("[Seed] Criando versículos bíblicos iniciais...");
       const verses = [
-        { reference: "Joao 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna.", reflection: "O amor de Deus e tao grande que Ele sacrificou Seu proprio Filho por nos.", category: "amor" },
-        { reference: "Salmos 23:1", text: "O Senhor e o meu pastor; nada me faltara.", reflection: "Deus cuida de nos como um pastor cuida de suas ovelhas.", category: "provisao" },
-        { reference: "Filipenses 4:13", text: "Posso todas as coisas naquele que me fortalece.", reflection: "Cristo nos da forca para enfrentar qualquer situacao.", category: "forca" },
-        { reference: "Jeremias 29:11", text: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz, e nao de mal, para vos dar o fim que esperais.", reflection: "Deus tem planos de esperanca e futuro para nos.", category: "esperanca" },
-        { reference: "Isaias 41:10", text: "Nao temas, porque eu sou contigo; nao te assombres, porque eu sou teu Deus; eu te fortaleco, e te ajudo, e te sustento com a destra da minha justica.", reflection: "Deus esta sempre conosco para nos fortalecer.", category: "forca" },
-        { reference: "Romanos 8:28", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que sao chamados segundo o seu proposito.", reflection: "Deus transforma todas as situacoes para o nosso bem.", category: "esperanca" },
-        { reference: "Salmos 46:1", text: "Deus e o nosso refugio e fortaleza, socorro bem presente na angustia.", reflection: "Podemos confiar em Deus em todos os momentos.", category: "protecao" },
+        { reference: "João 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reflection: "O amor de Deus é tão grande que Ele sacrificou Seu próprio Filho por nós.", category: "amor" },
+        { reference: "Salmos 23:1", text: "O Senhor é o meu pastor; nada me faltará.", reflection: "Deus cuida de nós como um pastor cuida de suas ovelhas.", category: "provisão" },
+        { reference: "Filipenses 4:13", text: "Posso todas as coisas naquele que me fortalece.", reflection: "Cristo nos dá força para enfrentar qualquer situação.", category: "força" },
+        { reference: "Jeremias 29:11", text: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz, e não de mal, para vos dar o fim que esperais.", reflection: "Deus tem planos de esperança e futuro para nós.", category: "esperança" },
+        { reference: "Isaías 41:10", text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.", reflection: "Deus está sempre conosco para nos fortalecer.", category: "força" },
+        { reference: "Romanos 8:28", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito.", reflection: "Deus transforma todas as situações para o nosso bem.", category: "esperança" },
+        { reference: "Salmos 46:1", text: "Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.", reflection: "Podemos confiar em Deus em todos os momentos.", category: "proteção" },
         { reference: "Mateus 11:28", text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reflection: "Jesus oferece descanso para nossas almas.", category: "descanso" },
-        { reference: "Proverbios 3:5-6", text: "Confia no Senhor de todo o teu coracao, e nao te estribes no teu proprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitara as tuas veredas.", reflection: "Confiar em Deus nos guia pelo caminho certo.", category: "sabedoria" },
-        { reference: "1 Corintios 10:13", text: "Nao veio sobre vos tentacao, senao humana; mas fiel e Deus, que nao vos deixara tentar acima do que podeis, antes com a tentacao dara tambem o escape, para que a possais suportar.", reflection: "Deus sempre nos da um caminho de saida nas tentacoes.", category: "forca" },
-        { reference: "Salmos 119:105", text: "Lampada para os meus pes e a tua palavra, e luz para o meu caminho.", reflection: "A Palavra de Deus ilumina nossa vida.", category: "sabedoria" },
-        { reference: "2 Timoteo 1:7", text: "Porque Deus nao nos deu o espirito de temor, mas de fortaleza, e de amor, e de moderacao.", reflection: "Deus nos capacita com coragem e amor.", category: "coragem" },
-        { reference: "Hebreus 11:1", text: "Ora, a fe e o firme fundamento das coisas que se esperam, e a prova das coisas que se nao veem.", reflection: "A fe e a certeza do que esperamos em Deus.", category: "fe" },
-        { reference: "Romanos 12:2", text: "E nao sede conformados com este mundo, mas sede transformados pela renovacao do vosso entendimento, para que experimenteis qual seja a boa, agradavel, e perfeita vontade de Deus.", reflection: "Devemos buscar a transformacao em Cristo.", category: "transformacao" },
-        { reference: "Galatas 5:22-23", text: "Mas o fruto do Espirito e: amor, gozo, paz, longanimidade, benignidade, bondade, fe, mansidao, temperanca. Contra estas coisas nao ha lei.", reflection: "O Espirito Santo produz frutos em nossa vida.", category: "espirito" }
+        { reference: "Provérbios 3:5-6", text: "Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas.", reflection: "Confiar em Deus nos guia pelo caminho certo.", category: "sabedoria" },
+        { reference: "1 Coríntios 10:13", text: "Não veio sobre vós tentação, senão humana; mas fiel é Deus, que não vos deixará tentar acima do que podeis, antes com a tentação dará também o escape, para que a possais suportar.", reflection: "Deus sempre nos dá um caminho de saída nas tentações.", category: "força" },
+        { reference: "Salmos 119:105", text: "Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho.", reflection: "A Palavra de Deus ilumina nossa vida.", category: "sabedoria" },
+        { reference: "2 Timóteo 1:7", text: "Porque Deus não nos deu o espírito de temor, mas de fortaleza, e de amor, e de moderação.", reflection: "Deus nos capacita com coragem e amor.", category: "coragem" },
+        { reference: "Hebreus 11:1", text: "Ora, a fé é o firme fundamento das coisas que se esperam, e a prova das coisas que se não veem.", reflection: "A fé é a certeza do que esperamos em Deus.", category: "fé" },
+        { reference: "Romanos 12:2", text: "E não sede conformados com este mundo, mas sede transformados pela renovação do vosso entendimento, para que experimenteis qual seja a boa, agradável, e perfeita vontade de Deus.", reflection: "Devemos buscar a transformação em Cristo.", category: "transformação" },
+        { reference: "Gálatas 5:22-23", text: "Mas o fruto do Espírito é: amor, gozo, paz, longanimidade, benignidade, bondade, fé, mansidão, temperança. Contra estas coisas não há lei.", reflection: "O Espírito Santo produz frutos em nossa vida.", category: "espírito" }
       ];
 
       for (const verse of verses) {
         await storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
       }
-      console.log(`[Seed] ${verses.length} versiculos biblicos criados com sucesso!`);
+      console.log(`[Seed] ${verses.length} versículos bíblicos criados com sucesso!`);
     }
 
     const existingAchievements = await storage.getAllAchievements();
     if (existingAchievements.length === 0) {
       console.log("[Seed] Criando conquistas iniciais...");
       const achievements = [
-        // LICOES (12 conquistas)
-        { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira licao", icon: "trophy", xpReward: 50, category: "lessons", requirement: JSON.stringify({ lessons: 1 }) },
-        { code: "lessons_3", name: "Comecando Bem", description: "Complete 3 licoes", icon: "book", xpReward: 40, category: "lessons", requirement: JSON.stringify({ lessons: 3 }) },
-        { code: "lessons_5", name: "Estudante Dedicado", description: "Complete 5 licoes", icon: "book-open", xpReward: 75, category: "lessons", requirement: JSON.stringify({ lessons: 5 }) },
-        { code: "lessons_10", name: "Discipulo Fiel", description: "Complete 10 licoes", icon: "book-marked", xpReward: 150, category: "lessons", requirement: JSON.stringify({ lessons: 10 }) },
-        { code: "lessons_15", name: "Estudioso", description: "Complete 15 licoes", icon: "bookmark", xpReward: 200, category: "lessons", requirement: JSON.stringify({ lessons: 15 }) },
-        { code: "lessons_25", name: "Mestre da Palavra", description: "Complete 25 licoes", icon: "graduation-cap", xpReward: 300, category: "lessons", requirement: JSON.stringify({ lessons: 25 }) },
-        { code: "lessons_50", name: "Erudito Biblico", description: "Complete 50 licoes", icon: "library", xpReward: 500, category: "lessons", requirement: JSON.stringify({ lessons: 50 }) },
-        { code: "lessons_75", name: "Teologo", description: "Complete 75 licoes", icon: "scroll", xpReward: 750, category: "lessons", requirement: JSON.stringify({ lessons: 75 }) },
-        { code: "lessons_100", name: "Centuriao da Palavra", description: "Complete 100 licoes", icon: "shield", xpReward: 1000, category: "lessons", requirement: JSON.stringify({ lessons: 100 }) },
-        { code: "lessons_150", name: "Apostolo do Estudo", description: "Complete 150 licoes", icon: "crown", xpReward: 1500, category: "lessons", requirement: JSON.stringify({ lessons: 150 }) },
-        { code: "lessons_200", name: "Doutor das Escrituras", description: "Complete 200 licoes", icon: "sparkles", xpReward: 2000, category: "lessons", requirement: JSON.stringify({ lessons: 200 }) },
-        { code: "lessons_365", name: "Um Ano de Estudos", description: "Complete 365 licoes", icon: "calendar", xpReward: 3650, category: "lessons", requirement: JSON.stringify({ lessons: 365 }) },
+        // LIÇÕES (12 conquistas)
+        { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira lição", icon: "trophy", xpReward: 50, category: "lessons", requirement: JSON.stringify({ lessons: 1 }) },
+        { code: "lessons_3", name: "Começando Bem", description: "Complete 3 lições", icon: "book", xpReward: 40, category: "lessons", requirement: JSON.stringify({ lessons: 3 }) },
+        { code: "lessons_5", name: "Estudante Dedicado", description: "Complete 5 lições", icon: "book-open", xpReward: 75, category: "lessons", requirement: JSON.stringify({ lessons: 5 }) },
+        { code: "lessons_10", name: "Discípulo Fiel", description: "Complete 10 lições", icon: "book-marked", xpReward: 150, category: "lessons", requirement: JSON.stringify({ lessons: 10 }) },
+        { code: "lessons_15", name: "Estudioso", description: "Complete 15 lições", icon: "bookmark", xpReward: 200, category: "lessons", requirement: JSON.stringify({ lessons: 15 }) },
+        { code: "lessons_25", name: "Mestre da Palavra", description: "Complete 25 lições", icon: "graduation-cap", xpReward: 300, category: "lessons", requirement: JSON.stringify({ lessons: 25 }) },
+        { code: "lessons_50", name: "Erudito Bíblico", description: "Complete 50 lições", icon: "library", xpReward: 500, category: "lessons", requirement: JSON.stringify({ lessons: 50 }) },
+        { code: "lessons_75", name: "Teólogo", description: "Complete 75 lições", icon: "scroll", xpReward: 750, category: "lessons", requirement: JSON.stringify({ lessons: 75 }) },
+        { code: "lessons_100", name: "Centurião da Palavra", description: "Complete 100 lições", icon: "shield", xpReward: 1000, category: "lessons", requirement: JSON.stringify({ lessons: 100 }) },
+        { code: "lessons_150", name: "Apóstolo do Estudo", description: "Complete 150 lições", icon: "crown", xpReward: 1500, category: "lessons", requirement: JSON.stringify({ lessons: 150 }) },
+        { code: "lessons_200", name: "Doutor das Escrituras", description: "Complete 200 lições", icon: "sparkles", xpReward: 2000, category: "lessons", requirement: JSON.stringify({ lessons: 200 }) },
+        { code: "lessons_365", name: "Um Ano de Estudos", description: "Complete 365 lições", icon: "calendar", xpReward: 3650, category: "lessons", requirement: JSON.stringify({ lessons: 365 }) },
         
         // OFENSIVA/STREAK (15 conquistas)
-        { code: "streak_3", name: "Constante", description: "Mantenha uma sequencia de 3 dias", icon: "flame", xpReward: 30, category: "streak", requirement: JSON.stringify({ streak: 3 }) },
-        { code: "streak_5", name: "Comprometido", description: "Mantenha uma sequencia de 5 dias", icon: "flame", xpReward: 50, category: "streak", requirement: JSON.stringify({ streak: 5 }) },
-        { code: "streak_7", name: "Dedicado", description: "Mantenha uma sequencia de 7 dias", icon: "flame", xpReward: 100, category: "streak", requirement: JSON.stringify({ streak: 7 }) },
-        { code: "streak_14", name: "Perseverante", description: "Mantenha uma sequencia de 14 dias", icon: "flame", xpReward: 200, category: "streak", requirement: JSON.stringify({ streak: 14 }) },
-        { code: "streak_21", name: "Formador de Habito", description: "Mantenha uma sequencia de 21 dias", icon: "flame", xpReward: 300, category: "streak", requirement: JSON.stringify({ streak: 21 }) },
-        { code: "streak_30", name: "Imbativel", description: "Mantenha uma sequencia de 30 dias", icon: "flame", xpReward: 500, category: "streak", requirement: JSON.stringify({ streak: 30 }) },
-        { code: "streak_45", name: "Quarentena Espiritual", description: "Mantenha uma sequencia de 45 dias", icon: "flame", xpReward: 700, category: "streak", requirement: JSON.stringify({ streak: 45 }) },
-        { code: "streak_60", name: "Lenda Viva", description: "Mantenha uma sequencia de 60 dias", icon: "crown", xpReward: 1000, category: "streak", requirement: JSON.stringify({ streak: 60 }) },
-        { code: "streak_90", name: "Trimestre de Fe", description: "Mantenha uma sequencia de 90 dias", icon: "crown", xpReward: 1500, category: "streak", requirement: JSON.stringify({ streak: 90 }) },
-        { code: "streak_120", name: "Fidelidade Inabalavel", description: "Mantenha uma sequencia de 120 dias", icon: "crown", xpReward: 2000, category: "streak", requirement: JSON.stringify({ streak: 120 }) },
-        { code: "streak_150", name: "Semestre de Dedicacao", description: "Mantenha uma sequencia de 150 dias", icon: "crown", xpReward: 2500, category: "streak", requirement: JSON.stringify({ streak: 150 }) },
-        { code: "streak_180", name: "Meio Ano Invicto", description: "Mantenha uma sequencia de 180 dias", icon: "crown", xpReward: 3000, category: "streak", requirement: JSON.stringify({ streak: 180 }) },
-        { code: "streak_270", name: "Tres Quartos do Ano", description: "Mantenha uma sequencia de 270 dias", icon: "crown", xpReward: 4000, category: "streak", requirement: JSON.stringify({ streak: 270 }) },
-        { code: "streak_365", name: "Um Ano Perfeito", description: "Mantenha uma sequencia de 365 dias", icon: "crown", xpReward: 5000, category: "streak", requirement: JSON.stringify({ streak: 365 }) },
-        { code: "streak_500", name: "Guerreiro da Fe", description: "Mantenha uma sequencia de 500 dias", icon: "sword", xpReward: 7500, category: "streak", requirement: JSON.stringify({ streak: 500 }) },
+        { code: "streak_3", name: "Constante", description: "Mantenha uma sequência de 3 dias", icon: "flame", xpReward: 30, category: "streak", requirement: JSON.stringify({ streak: 3 }) },
+        { code: "streak_5", name: "Comprometido", description: "Mantenha uma sequência de 5 dias", icon: "flame", xpReward: 50, category: "streak", requirement: JSON.stringify({ streak: 5 }) },
+        { code: "streak_7", name: "Dedicado", description: "Mantenha uma sequência de 7 dias", icon: "flame", xpReward: 100, category: "streak", requirement: JSON.stringify({ streak: 7 }) },
+        { code: "streak_14", name: "Perseverante", description: "Mantenha uma sequência de 14 dias", icon: "flame", xpReward: 200, category: "streak", requirement: JSON.stringify({ streak: 14 }) },
+        { code: "streak_21", name: "Formador de Hábito", description: "Mantenha uma sequência de 21 dias", icon: "flame", xpReward: 300, category: "streak", requirement: JSON.stringify({ streak: 21 }) },
+        { code: "streak_30", name: "Imbatível", description: "Mantenha uma sequência de 30 dias", icon: "flame", xpReward: 500, category: "streak", requirement: JSON.stringify({ streak: 30 }) },
+        { code: "streak_45", name: "Quarentena Espiritual", description: "Mantenha uma sequência de 45 dias", icon: "flame", xpReward: 700, category: "streak", requirement: JSON.stringify({ streak: 45 }) },
+        { code: "streak_60", name: "Lenda Viva", description: "Mantenha uma sequência de 60 dias", icon: "crown", xpReward: 1000, category: "streak", requirement: JSON.stringify({ streak: 60 }) },
+        { code: "streak_90", name: "Trimestre de Fé", description: "Mantenha uma sequência de 90 dias", icon: "crown", xpReward: 1500, category: "streak", requirement: JSON.stringify({ streak: 90 }) },
+        { code: "streak_120", name: "Fidelidade Inabalável", description: "Mantenha uma sequência de 120 dias", icon: "crown", xpReward: 2000, category: "streak", requirement: JSON.stringify({ streak: 120 }) },
+        { code: "streak_150", name: "Semestre de Dedicação", description: "Mantenha uma sequência de 150 dias", icon: "crown", xpReward: 2500, category: "streak", requirement: JSON.stringify({ streak: 150 }) },
+        { code: "streak_180", name: "Meio Ano Invicto", description: "Mantenha uma sequência de 180 dias", icon: "crown", xpReward: 3000, category: "streak", requirement: JSON.stringify({ streak: 180 }) },
+        { code: "streak_270", name: "Três Quartos do Ano", description: "Mantenha uma sequência de 270 dias", icon: "crown", xpReward: 4000, category: "streak", requirement: JSON.stringify({ streak: 270 }) },
+        { code: "streak_365", name: "Um Ano Perfeito", description: "Mantenha uma sequência de 365 dias", icon: "crown", xpReward: 5000, category: "streak", requirement: JSON.stringify({ streak: 365 }) },
+        { code: "streak_500", name: "Guerreiro da Fé", description: "Mantenha uma sequência de 500 dias", icon: "sword", xpReward: 7500, category: "streak", requirement: JSON.stringify({ streak: 500 }) },
         
         // XP (10 conquistas)
         { code: "xp_100", name: "Iniciante", description: "Alcance 100 XP", icon: "zap", xpReward: 25, category: "xp", requirement: JSON.stringify({ xp: 100 }) },
         { code: "xp_250", name: "Em Crescimento", description: "Alcance 250 XP", icon: "zap", xpReward: 35, category: "xp", requirement: JSON.stringify({ xp: 250 }) },
-        { code: "xp_500", name: "Intermediario", description: "Alcance 500 XP", icon: "zap", xpReward: 50, category: "xp", requirement: JSON.stringify({ xp: 500 }) },
-        { code: "xp_1000", name: "Avancado", description: "Alcance 1000 XP", icon: "trending-up", xpReward: 100, category: "xp", requirement: JSON.stringify({ xp: 1000 }) },
+        { code: "xp_500", name: "Intermediário", description: "Alcance 500 XP", icon: "zap", xpReward: 50, category: "xp", requirement: JSON.stringify({ xp: 500 }) },
+        { code: "xp_1000", name: "Avançado", description: "Alcance 1000 XP", icon: "trending-up", xpReward: 100, category: "xp", requirement: JSON.stringify({ xp: 1000 }) },
         { code: "xp_2500", name: "Experiente", description: "Alcance 2500 XP", icon: "trending-up", xpReward: 150, category: "xp", requirement: JSON.stringify({ xp: 2500 }) },
         { code: "xp_5000", name: "Expert", description: "Alcance 5000 XP", icon: "star", xpReward: 250, category: "xp", requirement: JSON.stringify({ xp: 5000 }) },
         { code: "xp_10000", name: "Mestre XP", description: "Alcance 10000 XP", icon: "star", xpReward: 500, category: "xp", requirement: JSON.stringify({ xp: 10000 }) },
         { code: "xp_25000", name: "Grande Mestre", description: "Alcance 25000 XP", icon: "crown", xpReward: 1000, category: "xp", requirement: JSON.stringify({ xp: 25000 }) },
-        { code: "xp_50000", name: "Lendario", description: "Alcance 50000 XP", icon: "crown", xpReward: 2000, category: "xp", requirement: JSON.stringify({ xp: 50000 }) },
-        { code: "xp_100000", name: "Mitico", description: "Alcance 100000 XP", icon: "sparkles", xpReward: 5000, category: "xp", requirement: JSON.stringify({ xp: 100000 }) },
+        { code: "xp_50000", name: "Lendário", description: "Alcance 50000 XP", icon: "crown", xpReward: 2000, category: "xp", requirement: JSON.stringify({ xp: 50000 }) },
+        { code: "xp_100000", name: "Mítico", description: "Alcance 100000 XP", icon: "sparkles", xpReward: 5000, category: "xp", requirement: JSON.stringify({ xp: 100000 }) },
         
-        // NIVEIS (8 conquistas)
-        { code: "level_3", name: "Novico", description: "Alcance o nivel 3", icon: "award", xpReward: 50, category: "level", requirement: JSON.stringify({ level: 3 }) },
-        { code: "level_5", name: "Aprendiz", description: "Alcance o nivel 5", icon: "award", xpReward: 100, category: "level", requirement: JSON.stringify({ level: 5 }) },
-        { code: "level_10", name: "Estudante", description: "Alcance o nivel 10", icon: "award", xpReward: 200, category: "level", requirement: JSON.stringify({ level: 10 }) },
-        { code: "level_15", name: "Discipulo", description: "Alcance o nivel 15", icon: "award", xpReward: 300, category: "level", requirement: JSON.stringify({ level: 15 }) },
-        { code: "level_20", name: "Pregador", description: "Alcance o nivel 20", icon: "award", xpReward: 400, category: "level", requirement: JSON.stringify({ level: 20 }) },
-        { code: "level_25", name: "Mestre", description: "Alcance o nivel 25", icon: "crown", xpReward: 500, category: "level", requirement: JSON.stringify({ level: 25 }) },
-        { code: "level_50", name: "Sabio", description: "Alcance o nivel 50", icon: "crown", xpReward: 1000, category: "level", requirement: JSON.stringify({ level: 50 }) },
-        { code: "level_100", name: "Patriarca", description: "Alcance o nivel 100", icon: "sparkles", xpReward: 2500, category: "level", requirement: JSON.stringify({ level: 100 }) },
+        // NÍVEIS (8 conquistas)
+        { code: "level_3", name: "Noviço", description: "Alcance o nível 3", icon: "award", xpReward: 50, category: "level", requirement: JSON.stringify({ level: 3 }) },
+        { code: "level_5", name: "Aprendiz", description: "Alcance o nível 5", icon: "award", xpReward: 100, category: "level", requirement: JSON.stringify({ level: 5 }) },
+        { code: "level_10", name: "Estudante", description: "Alcance o nível 10", icon: "award", xpReward: 200, category: "level", requirement: JSON.stringify({ level: 10 }) },
+        { code: "level_15", name: "Discípulo", description: "Alcance o nível 15", icon: "award", xpReward: 300, category: "level", requirement: JSON.stringify({ level: 15 }) },
+        { code: "level_20", name: "Pregador", description: "Alcance o nível 20", icon: "award", xpReward: 400, category: "level", requirement: JSON.stringify({ level: 20 }) },
+        { code: "level_25", name: "Mestre", description: "Alcance o nível 25", icon: "crown", xpReward: 500, category: "level", requirement: JSON.stringify({ level: 25 }) },
+        { code: "level_50", name: "Sábio", description: "Alcance o nível 50", icon: "crown", xpReward: 1000, category: "level", requirement: JSON.stringify({ level: 50 }) },
+        { code: "level_100", name: "Patriarca", description: "Alcance o nível 100", icon: "sparkles", xpReward: 2500, category: "level", requirement: JSON.stringify({ level: 100 }) },
         
         // ESPECIAIS (5 conquistas)
-        { code: "perfect_lesson", name: "Perfeito!", description: "Complete uma licao sem erros", icon: "star", xpReward: 25, category: "special", isSecret: false },
-        { code: "early_bird", name: "Madrugador", description: "Estude antes das 7h da manha", icon: "sunrise", xpReward: 30, category: "special", isSecret: false },
-        { code: "night_owl", name: "Coruja Noturna", description: "Estude apos as 22h", icon: "moon", xpReward: 30, category: "special", isSecret: false },
-        { code: "bookworm", name: "Leitor Voraz", description: "Leia 10 versiculos biblicos", icon: "book-heart", xpReward: 50, category: "special", isSecret: false },
-        { code: "comeback_kid", name: "Nunca Desisto", description: "Recupere todas as vidas usando versiculos", icon: "heart", xpReward: 30, category: "special", isSecret: false }
+        { code: "perfect_lesson", name: "Perfeito!", description: "Complete uma lição sem erros", icon: "star", xpReward: 25, category: "special", isSecret: false },
+        { code: "early_bird", name: "Madrugador", description: "Estude antes das 7h da manhã", icon: "sunrise", xpReward: 30, category: "special", isSecret: false },
+        { code: "night_owl", name: "Coruja Noturna", description: "Estude após as 22h", icon: "moon", xpReward: 30, category: "special", isSecret: false },
+        { code: "bookworm", name: "Leitor Voraz", description: "Leia 10 versículos bíblicos", icon: "book-heart", xpReward: 50, category: "special", isSecret: false },
+        { code: "comeback_kid", name: "Nunca Desisto", description: "Recupere todas as vidas usando versículos", icon: "heart", xpReward: 30, category: "special", isSecret: false }
       ];
 
       for (const achievement of achievements) {
@@ -108,15 +108,15 @@ async function seedAchievementsAndVerses() {
       console.log(`[Seed] ${achievements.length} conquistas criadas com sucesso!`);
     }
 
-    // Inicializar missoes diarias
+    // Inicializar missões diárias
     const existingMissions = await storage.getDailyMissions();
     if (existingMissions.length === 0) {
-      console.log("[Seed] Criando missoes diarias iniciais...");
+      console.log("[Seed] Criando missões diárias iniciais...");
       await storage.initializeDailyMissions();
-      console.log("[Seed] Missoes diarias criadas com sucesso!");
+      console.log("[Seed] Missões diárias criadas com sucesso!");
     }
   } catch (error: any) {
-    console.error("[Seed] Erro ao inicializar conquistas e versiculos:", error.message);
+    console.error("[Seed] Erro ao inicializar conquistas e versículos:", error.message);
   }
 }
 

@@ -60,7 +60,7 @@ const categoryLabels: Record<string, string> = {
   retiro: "Retiro",
   estudo: "Estudo",
   social: "Social",
-  confraternizacao: "Confraternizacao",
+  confraternizacao: "Confraternização",
 };
 
 export default function MarketingEventos() {
@@ -87,7 +87,7 @@ export default function MarketingEventos() {
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel remover o evento.",
+        description: "Não foi possível remover o evento.",
         variant: "destructive",
       });
     },
@@ -107,7 +107,7 @@ export default function MarketingEventos() {
     onError: () => {
       toast({
         title: "Erro",
-        description: "Nao foi possivel atualizar o status.",
+        description: "Não foi possível atualizar o status.",
         variant: "destructive",
       });
     },
@@ -230,7 +230,7 @@ export default function MarketingEventos() {
                           {event.isPublished ? "Publicado" : "Rascunho"}
                         </Badge>
                         {isUpcoming(event.startDate) ? (
-                          <Badge variant="secondary" className="text-xs">Proximo</Badge>
+                          <Badge variant="secondary" className="text-xs">Próximo</Badge>
                         ) : (
                           <Badge variant="outline" className="text-xs">Passado</Badge>
                         )}
@@ -280,9 +280,9 @@ export default function MarketingEventos() {
       <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusao</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover este evento? Esta acao nao pode ser desfeita.
+              Tem certeza que deseja remover este evento? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

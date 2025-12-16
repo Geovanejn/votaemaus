@@ -179,7 +179,7 @@ function MissionCard({
             className="font-semibold text-sm"
             style={{ color: isCompleted ? "#2ECC71" : "#5B6EE1" }}
           >
-            {isCompleted ? "Missao concluida" : "Iniciar missao"}
+            {isCompleted ? "Missão concluída" : "Iniciar missão"}
           </span>
           {!isCompleted && (
             <ArrowRight 
@@ -237,10 +237,10 @@ function RewardModal({
             </motion.div>
             
             <h2 className="text-2xl font-bold text-foreground mb-2" data-testid="reward-modal-title">
-              Parabens!
+              Parabéns!
             </h2>
             <p className="text-muted-foreground mb-4" data-testid="reward-modal-message">
-              Voce completou todas as missoes de hoje!
+              Você completou todas as missões de hoje!
             </p>
             
             <div className="bg-[#58CC02]/10 rounded-xl p-4 mb-6">
@@ -249,7 +249,7 @@ function RewardModal({
                 <span className="text-2xl font-bold text-[#58CC02]" data-testid="reward-modal-xp">+{bonusXp} XP</span>
                 <Star className="w-6 h-6 text-[#FFC800]" />
               </div>
-              <p className="text-sm text-[#58CC02] mt-1">Bonus de conclusao!</p>
+              <p className="text-sm text-[#58CC02] mt-1">Bônus de conclusão!</p>
             </div>
             
             <Button 
@@ -283,7 +283,7 @@ export default function MissionsPage() {
       <div className="flex items-center justify-center min-h-screen bg-background" data-testid="loading-state">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#5B6EE1]" />
-          <span className="text-muted-foreground">Carregando missoes...</span>
+          <span className="text-muted-foreground">Carregando missões...</span>
         </div>
       </div>
     );
@@ -294,10 +294,10 @@ export default function MissionsPage() {
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background" data-testid="error-state">
         <AlertCircle className="w-16 h-16 text-destructive mb-4" />
         <h3 className="font-bold text-lg text-foreground mb-2">
-          Erro ao carregar missoes
+          Erro ao carregar missões
         </h3>
         <p className="text-sm text-muted-foreground text-center mb-4">
-          Nao foi possivel carregar as missoes. Tente novamente.
+          Não foi possível carregar as missões. Tente novamente.
         </p>
         <Button onClick={() => refetch()} data-testid="button-retry">
           Tentar novamente
@@ -334,7 +334,7 @@ export default function MissionsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-white" data-testid="page-title">
-                Missoes Diarias
+                Missões Diárias
               </h1>
               <p className="text-white/80 text-sm mt-1">
                 Continue sua jornada espiritual
@@ -391,10 +391,10 @@ export default function MissionsPage() {
             <div className="text-center py-12" data-testid="empty-state">
               <Flame className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
               <h3 className="font-bold text-lg text-muted-foreground mb-2">
-                Sem missoes disponiveis
+                Sem missões disponíveis
               </h3>
               <p className="text-sm text-muted-foreground">
-                As missoes serao atualizadas em breve!
+                As missões serão atualizadas em breve!
               </p>
             </div>
           )}
@@ -420,10 +420,10 @@ export default function MissionsPage() {
                   <Check className="w-8 h-8 text-[#2ECC71]" />
                 </div>
                 <h3 className="font-bold text-lg text-[#2ECC71] mb-2">
-                  Todas as missoes concluidas!
+                  Todas as missões concluídas!
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Parabens! Voce completou todas as missoes de hoje e ganhou +50 XP bonus!
+                  Parabéns! Você completou todas as missões de hoje e ganhou +50 XP bônus!
                 </p>
               </div>
             </motion.div>

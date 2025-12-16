@@ -230,13 +230,13 @@ export function AchievementUnlockAnimation({
           await navigator.clipboard.writeText(shareText);
           toast({
             title: "Link copiado!",
-            description: "O texto foi copiado para a area de transferencia."
+            description: "O texto foi copiado para a área de transferência."
           });
         } catch {
           toast({
             variant: "destructive",
             title: "Erro",
-            description: "Nao foi possivel copiar o texto."
+            description: "Não foi possível copiar o texto."
           });
         }
         setIsGenerating(false);
@@ -273,7 +273,7 @@ export function AchievementUnlockAnimation({
         await navigator.clipboard.writeText(shareText);
         toast({
           title: "Link copiado!",
-          description: "O texto foi copiado para a area de transferencia."
+          description: "O texto foi copiado para a área de transferência."
         });
       }
     } catch (error) {
@@ -283,14 +283,14 @@ export function AchievementUnlockAnimation({
           await navigator.clipboard.writeText(fallbackText);
           toast({
             title: "Link copiado!",
-            description: "O texto foi copiado para a area de transferencia."
+            description: "O texto foi copiado para a área de transferência."
           });
         } catch (clipboardError) {
           console.error("Share/clipboard error:", error, clipboardError);
           toast({
             variant: "destructive",
             title: "Erro",
-            description: "Nao foi possivel compartilhar. Tente novamente."
+            description: "Não foi possível compartilhar. Tente novamente."
           });
         }
       }
@@ -307,7 +307,7 @@ export function AchievementUnlockAnimation({
         toast({
           variant: "destructive",
           title: "Erro",
-          description: "Nao foi possivel gerar a imagem."
+          description: "Não foi possível gerar a imagem."
         });
         setIsGenerating(false);
         return;
@@ -329,7 +329,7 @@ export function AchievementUnlockAnimation({
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nao foi possivel baixar a imagem."
+        description: "Não foi possível baixar a imagem."
       });
     } finally {
       setIsGenerating(false);

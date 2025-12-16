@@ -955,10 +955,10 @@ function InstagramTab() {
               <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-700 dark:text-amber-400">
-                  API do Instagram nao configurada
+                  API do Instagram não configurada
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Para conectar o Instagram, configure as variaveis de ambiente:
+                  Para conectar o Instagram, configure as variáveis de ambiente:
                 </p>
                 <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside">
                   <li>INSTAGRAM_ACCESS_TOKEN</li>

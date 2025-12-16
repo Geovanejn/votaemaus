@@ -277,7 +277,7 @@ export function EstudeScreen({
   };
   
   const sections = rawSections.length > 0 ? rawSections : [
-    { type: "topic" as const, title: lessonTitle, content: "Conteudo nao disponivel." }
+    { type: "topic" as const, title: lessonTitle, content: "Conteúdo não disponível." }
   ];
   
   const totalSections = sections.length;

@@ -100,12 +100,12 @@ export function HeroBanner() {
       id: e.id,
       title: e.title,
       subtitle: e.description || 'Participe conosco!',
-      caption: `${formatEventDate(e.startDate)}${e.time ? ` as ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
+      caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
       imageUrl: e.imageUrl || defaultEventImg,
       linkUrl: `/agenda/${e.id}`,
       linkText: 'Ver Detalhes',
       icon: Calendar,
-      badge: 'Proximo Evento',
+      badge: 'Próximo Evento',
     });
   }
 
@@ -115,7 +115,7 @@ export function HeroBanner() {
       type: 'instagram',
       id: p.id,
       title: 'Novidades no Instagram',
-      subtitle: p.caption || 'Confira nossa ultima postagem!',
+      subtitle: p.caption || 'Confira nossa última postagem!',
       caption: '@umpemaus',
       imageUrl: p.imageUrl || defaultInstagramImg,
       linkUrl: p.permalink || 'https://instagram.com/umpemaus',
@@ -129,7 +129,7 @@ export function HeroBanner() {
     {
       type: 'devotional',
       id: 0,
-      title: "A Forca da Oracao",
+      title: "A Força da Oração",
       subtitle: '"Orai sem cessar."',
       caption: "1 Tessalonicenses 5:17",
       imageUrl: defaultDevotionalImg,
@@ -303,7 +303,7 @@ export function HeroBanner() {
           <button
             onClick={goToNext}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors"
-            aria-label="Proximo"
+            aria-label="Próximo"
             data-testid="banner-next-button"
           >
             <ChevronRight className="h-6 w-6" />

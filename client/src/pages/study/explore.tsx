@@ -213,7 +213,7 @@ export default function ExplorePage() {
           {dailyVerseLoading ? (
             <div className="flex items-center justify-center gap-2 py-8">
               <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-              <p className="text-muted-foreground">Carregando versiculo...</p>
+              <p className="text-muted-foreground">Carregando versículo...</p>
             </div>
           ) : dailyVerse ? (
             <>
@@ -230,12 +230,12 @@ export default function ExplorePage() {
                 className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 mx-2"
               >
                 <p className="text-foreground text-sm leading-relaxed">
-                  "O amor de Deus e incondicional e eterno. Hoje, lembre-se de que voce e profundamente amado e que este amor transformador esta disponivel para todos."
+                  "O amor de Deus é incondicional e eterno. Hoje, lembre-se de que você é profundamente amado e que este amor transformador está disponível para todos."
                 </p>
               </div>
             </>
           ) : (
-            <p className="text-muted-foreground py-8">Versiculo indisponivel no momento</p>
+            <p className="text-muted-foreground py-8">Versículo indisponível no momento</p>
           )}
         </motion.div>
 
@@ -261,11 +261,11 @@ export default function ExplorePage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-foreground">Marcar como Lido</h3>
-                <p className="text-sm text-muted-foreground">Confirme sua leitura diaria</p>
+                <p className="text-sm text-muted-foreground">Confirme sua leitura diária</p>
               </div>
               {dailyVerseRead ? (
                 <div className="px-4 py-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <span className="text-green-600 dark:text-green-400 font-bold text-sm">Concluido</span>
+                  <span className="text-green-600 dark:text-green-400 font-bold text-sm">Concluído</span>
                 </div>
               ) : (
                 <Button
@@ -291,7 +291,7 @@ export default function ExplorePage() {
                 <span className="text-white text-xs font-bold">!</span>
               </div>
               <p className="text-green-700 dark:text-green-400 text-sm">
-                Marque como lido para manter sua sequencia diaria!
+                Marque como lido para manter sua sequência diária!
               </p>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function ExplorePage() {
 
           <h3 className="font-bold text-xl text-foreground mb-2">Recuperar Vidas</h3>
           <p className="text-muted-foreground text-sm mb-6">
-            Leia versiculos para ganhar vidas extras
+            Leia versículos para ganhar vidas extras
           </p>
 
           {/* Card de vidas */}
@@ -343,11 +343,11 @@ export default function ExplorePage() {
             </div>
             {currentHearts >= maxHearts ? (
               <p className="text-green-600 dark:text-green-400 text-sm font-medium">
-                Voce ja possui o maximo de vidas!
+                Você já possui o máximo de vidas!
               </p>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Voce pode recuperar {maxHearts - currentHearts} vida{maxHearts - currentHearts > 1 ? 's' : ''}
+                Você pode recuperar {maxHearts - currentHearts} vida{maxHearts - currentHearts > 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -359,7 +359,7 @@ export default function ExplorePage() {
               data-testid="button-recover-hearts"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              Ler Versiculos
+              Ler Versículos
             </Button>
           )}
         </motion.div>

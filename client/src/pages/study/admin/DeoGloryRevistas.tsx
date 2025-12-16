@@ -98,13 +98,13 @@ function MagazineCard({ season }: { season: Season }) {
           {season.aiExtractedTitle || season.title}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-1 md:line-clamp-2 hidden md:block">
-          {season.description || "Estudo biblico"}
+          {season.description || "Estudo bíblico"}
         </p>
         {isPublished ? (
           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2 flex-wrap">
             <div className="flex items-center gap-1">
               <BookOpen className="h-3 w-3" />
-              <span className="hidden sm:inline">{season.totalLessons} licoes</span>
+              <span className="hidden sm:inline">{season.totalLessons} lições</span>
               <span className="sm:hidden">{season.totalLessons}</span>
             </div>
           </div>
@@ -149,14 +149,14 @@ function CreateMagazineCard() {
         </div>
         <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Criar Nova Revista</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Comece um novo estudo biblico
+          Comece um novo estudo bíblico
         </p>
         <Button 
           className="bg-blue-600 hover:bg-blue-700" 
           data-testid="button-create-magazine"
           onClick={() => navigate("/study/admin/estudos")}
         >
-          Comecar Agora
+          Começar Agora
         </Button>
       </CardContent>
     </Card>

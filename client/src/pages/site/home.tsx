@@ -88,15 +88,15 @@ const quickAccessItems = [
   },
   {
     icon: Vote,
-    title: "Emaus Vota",
-    description: "Sistema de Eleicoes",
+    title: "Emaús Vota",
+    description: "Sistema de Eleições",
     href: "/membro",
     color: "text-green-500",
     bg: "bg-green-500/10",
   },
   {
     icon: Heart,
-    title: "Oracao",
+    title: "Oração",
     description: "Envie seu pedido",
     href: "/oracao",
     color: "text-primary",
@@ -134,10 +134,10 @@ export default function HomePage() {
 
   const defaultDevotional = {
     id: 1,
-    title: "A Forca da Oracao",
+    title: "A Força da Oração",
     verse: "Orai sem cessar.",
     verseReference: "1 Tessalonicenses 5:17",
-    summary: "A oracao e a nossa linha direta com Deus. Atraves dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
+    summary: "A oração é a nossa linha direta com Deus. Através dela, podemos expressar nossas alegrias, tristezas, pedidos e agradecimentos ao nosso Pai celestial.",
     author: "Secretaria de Espiritualidade",
     imageUrl: devocionalArt,
     publishedAt: new Date().toISOString(),
@@ -253,7 +253,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between gap-2 mb-8 flex-wrap">
             <div className="flex items-center gap-3">
               <Calendar className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Proximos Eventos</h2>
+              <h2 className="text-2xl font-bold">Próximos Eventos</h2>
             </div>
             <Link href="/agenda">
               <Button variant="ghost" className="gap-2" data-testid="link-all-events">
@@ -344,7 +344,7 @@ export default function HomePage() {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold mb-2">Acesso Rapido</h2>
+            <h2 className="text-2xl font-bold mb-2">Acesso Rápido</h2>
             <p className="text-muted-foreground">
               Navegue pelos nossos recursos
             </p>
@@ -449,11 +449,11 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl font-bold mb-4">
-              Precisa de oracao?
+              Precisa de oração?
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
               Compartilhe seu pedido conosco. Nossa equipe de espiritualidade 
-              estara orando por voce.
+              estará orando por você.
             </p>
             <Link href="/oracao">
               <Button 
@@ -462,7 +462,7 @@ export default function HomePage() {
                 data-testid="button-send-prayer"
               >
                 <Heart className="h-5 w-5 mr-2" />
-                Enviar Pedido de Oracao
+                Enviar Pedido de Oração
               </Button>
             </Link>
           </motion.div>

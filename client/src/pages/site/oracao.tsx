@@ -43,8 +43,8 @@ import {
 } from "@/components/ui/select";
 
 const categories = [
-  { value: "saude", label: "Saude" },
-  { value: "familia", label: "Familia" },
+  { value: "saude", label: "Saúde" },
+  { value: "familia", label: "Família" },
   { value: "trabalho", label: "Trabalho/Estudos" },
   { value: "financeiro", label: "Financeiro" },
   { value: "espiritual", label: "Vida Espiritual" },
@@ -53,10 +53,10 @@ const categories = [
 ];
 
 const prayerFormSchema = z.object({
-  name: z.string().min(2, "Nome e obrigatorio e deve ter pelo menos 2 caracteres"),
+  name: z.string().min(2, "Nome é obrigatório e deve ter pelo menos 2 caracteres"),
   whatsapp: z.string().optional(),
   category: z.string().min(1, "Selecione uma categoria"),
-  request: z.string().min(10, "O pedido deve ter pelo menos 10 caracteres").max(1000, "O pedido deve ter no maximo 1000 caracteres"),
+  request: z.string().min(10, "O pedido deve ter pelo menos 10 caracteres").max(1000, "O pedido deve ter no máximo 1000 caracteres"),
   allowPublic: z.boolean().default(false),
 });
 
@@ -147,7 +147,7 @@ export default function OracaoPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro",
-        description: error.message || "Nao foi possivel enviar seu pedido. Tente novamente.",
+        description: error.message || "Não foi possível enviar seu pedido. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -161,7 +161,7 @@ export default function OracaoPage() {
         body: JSON.stringify({ sessionId }),
       });
       if (!response.ok) {
-        throw new Error('Erro ao registrar oracao');
+        throw new Error('Erro ao registrar oração');
       }
       return response.json();
     },
@@ -186,14 +186,14 @@ export default function OracaoPage() {
       toast({
         title: data.isPraying ? "Obrigado!" : "Desmarcado",
         description: data.isPraying 
-          ? "Sua oracao foi registrada." 
-          : "Voce desmarcou sua oracao.",
+          ? "Sua oração foi registrada." 
+          : "Você desmarcou sua oração.",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
-        description: error.message || "Nao foi possivel registrar sua oracao.",
+        description: error.message || "Não foi possível registrar sua oração.",
         variant: "destructive",
       });
     },
@@ -225,11 +225,11 @@ export default function OracaoPage() {
               <Heart className="h-8 w-8" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Pedido de Oracao
+              Pedido de Oração
             </h1>
             <p className="text-lg opacity-90 max-w-2xl mx-auto">
               Compartilhe suas necessidades. Nossa equipe de espiritualidade 
-              estara orando por voce.
+              estará orando por você.
             </p>
           </motion.div>
         </div>
@@ -253,12 +253,12 @@ export default function OracaoPage() {
                       Pedido Recebido!
                     </h2>
                     <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                      Seu pedido de oracao foi enviado com sucesso. Apos aprovacao,
-                      ele aparecera no Mural da Oracao.
+                      Seu pedido de oração foi enviado com sucesso. Após aprovação,
+                      ele aparecerá no Mural da Oração.
                     </p>
                     <blockquote className="border-l-4 border-primary pl-4 py-2 text-left max-w-md mx-auto mb-8 bg-primary/5 rounded-r-lg">
                       <p className="italic text-foreground/90">
-                        "Orai uns pelos outros, para serdes curados. A suplica de um justo pode muito na sua atuacao."
+                        "Orai uns pelos outros, para serdes curados. A súplica de um justo pode muito na sua atuação."
                       </p>
                       <cite className="text-sm text-muted-foreground mt-1 block">
                         - Tiago 5:16
@@ -315,7 +315,7 @@ export default function OracaoPage() {
                                     />
                                   </FormControl>
                                   <FormDescription>
-                                    Se desejar receber atualizacoes sobre as oracoes
+                                    Se desejar receber atualizações sobre as orações
                                   </FormDescription>
                                   <FormMessage />
                                 </FormItem>
@@ -389,10 +389,10 @@ export default function OracaoPage() {
                                   </FormControl>
                                   <div className="flex-1">
                                     <FormLabel className="text-base cursor-pointer">
-                                      Permitir exibicao no Mural
+                                      Permitir exibição no Mural
                                     </FormLabel>
                                     <FormDescription>
-                                      Se marcado, apos aprovacao seu pedido podera aparecer no Mural da Oracao
+                                      Se marcado, após aprovação seu pedido poderá aparecer no Mural da Oração
                                     </FormDescription>
                                   </div>
                                 </FormItem>
@@ -426,7 +426,7 @@ export default function OracaoPage() {
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
                         <Shield className="h-5 w-5 text-primary shrink-0" />
                         <p className="text-sm text-muted-foreground">
-                          Seus dados estao seguros
+                          Seus dados estão seguros
                         </p>
                       </div>
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
@@ -455,10 +455,10 @@ export default function OracaoPage() {
               >
                 <div className="flex items-center gap-2 mb-6">
                   <Sparkles className="h-6 w-6 text-primary" />
-                  <h2 className="text-2xl font-bold">Mural da Oracao</h2>
+                  <h2 className="text-2xl font-bold">Mural da Oração</h2>
                 </div>
                 <p className="text-muted-foreground mb-6">
-                  Ore conosco pelos irmaos que compartilharam seus pedidos.
+                  Ore conosco pelos irmãos que compartilharam seus pedidos.
                 </p>
 
                 {loadingPrayers ? (
@@ -521,7 +521,7 @@ export default function OracaoPage() {
                     <CardContent className="p-8 text-center">
                       <Heart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                       <p className="text-muted-foreground">
-                        Nenhum pedido de oracao no mural ainda.
+                        Nenhum pedido de oração no mural ainda.
                       </p>
                       <p className="text-sm text-muted-foreground mt-2">
                         Seja o primeiro a compartilhar!

@@ -146,8 +146,8 @@ export function MediteScreen({
       type: "reflection" as const, 
       title: "O Amor Transformador", 
       content: "Pause por um momento e reflita sobre a profundidade desse amor incondicional. Como essa verdade transforma sua vida hoje?",
-      verseReference: "Joao 3:16",
-      verseText: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito, para que todo aquele que nele cre nao pereca, mas tenha a vida eterna."
+      verseReference: "João 3:16",
+      verseText: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."
     }
   ];
   

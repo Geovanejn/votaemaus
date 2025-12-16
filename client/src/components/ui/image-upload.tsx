@@ -77,7 +77,7 @@ export function ImageUpload({
       console.error("Upload error:", error);
       toast({
         title: "Erro no upload",
-        description: "Nao foi possivel enviar a imagem. Tente novamente.",
+        description: "Não foi possível enviar a imagem. Tente novamente.",
         variant: "destructive",
       });
     } finally {

@@ -36,14 +36,14 @@ interface TabItem {
 
 const tabs: TabItem[] = [
   { id: "geral", label: "Geral", icon: Settings },
-  { id: "notificacoes", label: "Notificacoes", icon: Bell },
-  { id: "seguranca", label: "Seguranca", icon: Shield },
-  { id: "preferencias", label: "Preferencias", icon: Palette },
+  { id: "notificacoes", label: "Notificações", icon: Bell },
+  { id: "seguranca", label: "Segurança", icon: Shield },
+  { id: "preferencias", label: "Preferências", icon: Palette },
 ];
 
 export default function DeoGloryConfiguracoes() {
   const [activeTab, setActiveTab] = useState<TabType>("geral");
-  const [appName, setAppName] = useState("Estudo Biblico");
+  const [appName, setAppName] = useState("Estudo Bíblico");
   const [language, setLanguage] = useState("pt-br");
   const [timezone, setTimezone] = useState("gmt-3");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -63,8 +63,8 @@ export default function DeoGloryConfiguracoes() {
 
   return (
     <DeoGloryAdminLayout
-      title="Configuracoes"
-      subtitle="Gerencie preferencias e notificacoes do sistema"
+      title="Configurações"
+      subtitle="Gerencie preferências e notificações do sistema"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -110,7 +110,7 @@ export default function DeoGloryConfiguracoes() {
                   <Smartphone className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold">Configuracoes do Aplicativo</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Configurações do Aplicativo</CardTitle>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Ajustes gerais do sistema</p>
                 </div>
               </CardHeader>
@@ -130,23 +130,23 @@ export default function DeoGloryConfiguracoes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Idioma do Sistema</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Selecione o idioma padrao</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Selecione o idioma padrão</p>
                   </div>
                   <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger className="w-48 bg-gray-50 dark:bg-gray-700" data-testid="select-language">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pt-br">Portugues (BR)</SelectItem>
+                      <SelectItem value="pt-br">Português (BR)</SelectItem>
                       <SelectItem value="en-us">English (US)</SelectItem>
-                      <SelectItem value="es">Espanol</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Fuso Horario</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Ajuste para sua regiao</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Fuso Horário</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Ajuste para sua região</p>
                   </div>
                   <Select value={timezone} onValueChange={setTimezone}>
                     <SelectTrigger className="w-48 bg-gray-50 dark:bg-gray-700" data-testid="select-timezone">
@@ -179,15 +179,15 @@ export default function DeoGloryConfiguracoes() {
                   <Sparkles className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold">Configuracoes de IA</CardTitle>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Ajustes para geracao de conteudo</p>
+                  <CardTitle className="text-lg font-semibold">Configurações de IA</CardTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Ajustes para geração de conteúdo</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Modelo de IA</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Escolha o modelo para geracao</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Escolha o modelo para geração</p>
                   </div>
                   <Select value={aiModel} onValueChange={setAiModel}>
                     <SelectTrigger className="w-48 bg-gray-50 dark:bg-gray-700" data-testid="select-ai-model">
@@ -204,7 +204,7 @@ export default function DeoGloryConfiguracoes() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">Criatividade</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Nivel de variacao nas respostas</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Nível de variação nas respostas</p>
                     </div>
                     <span className="text-violet-600 font-medium">{creativity[0]}</span>
                   </div>
@@ -221,7 +221,7 @@ export default function DeoGloryConfiguracoes() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Tamanho Maximo</p>
+                      <p className="font-medium text-gray-900 dark:text-white">Tamanho Máximo</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Tokens por resposta</p>
                     </div>
                     <span className="text-violet-600 font-medium">{maxTokens[0]}</span>
@@ -238,8 +238,8 @@ export default function DeoGloryConfiguracoes() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Geracao Automatica</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Gerar licoes automaticamente</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Geração Automática</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Gerar lições automaticamente</p>
                   </div>
                   <Switch
                     checked={autoGenerate}
@@ -256,15 +256,15 @@ export default function DeoGloryConfiguracoes() {
                   <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold">Preferencias de Usuario</CardTitle>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Configuracoes padrao para novos usuarios</p>
+                  <CardTitle className="text-lg font-semibold">Preferências de Usuário</CardTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Configurações padrão para novos usuários</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Registro Automatico</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Permitir novos usuarios</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Registro Automático</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Permitir novos usuários</p>
                   </div>
                   <Switch
                     checked={autoRegister}
@@ -285,8 +285,8 @@ export default function DeoGloryConfiguracoes() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Perfil Publico</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Visibilidade padrao</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Perfil Público</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Visibilidade padrão</p>
                   </div>
                   <Switch
                     checked={publicProfile}
@@ -296,8 +296,8 @@ export default function DeoGloryConfiguracoes() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Limite de Estudos Diarios</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Maximo por usuario</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Limite de Estudos Diários</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Máximo por usuário</p>
                   </div>
                   <Input
                     type="number"
@@ -318,7 +318,7 @@ export default function DeoGloryConfiguracoes() {
                   <Bell className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-semibold">Notificacoes</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Notificações</CardTitle>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Gerencie alertas</p>
                 </div>
               </CardHeader>
@@ -326,7 +326,7 @@ export default function DeoGloryConfiguracoes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Email</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificacoes por email</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificações por email</p>
                   </div>
                   <Switch
                     checked={emailNotifications}
@@ -337,7 +337,7 @@ export default function DeoGloryConfiguracoes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Push</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificacoes push</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificações push</p>
                   </div>
                   <Switch
                     checked={pushNotifications}
@@ -359,7 +359,7 @@ export default function DeoGloryConfiguracoes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">In-App</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificacoes no app</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Notificações no app</p>
                   </div>
                   <Switch
                     checked={inAppNotifications}
@@ -372,7 +372,7 @@ export default function DeoGloryConfiguracoes() {
 
             <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold">Tipos de Notificacao</CardTitle>
+                <CardTitle className="text-lg font-semibold">Tipos de Notificação</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -380,7 +380,7 @@ export default function DeoGloryConfiguracoes() {
                     <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <UserPlus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">Novos Usuarios</span>
+                    <span className="font-medium text-gray-900 dark:text-white">Novos Usuários</span>
                   </div>
                   <Switch
                     checked={newUserNotifications}

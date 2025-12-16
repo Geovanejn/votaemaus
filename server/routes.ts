@@ -2694,7 +2694,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Get admin stats error:", error);
-      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+      res.status(500).json({ message: "Erro ao buscar estatísticas" });
+    }
+  });
+
+  // Admin: Get all users with study profiles - admin or espiritualidade
+  app.get("/api/study/admin/users", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const users = await storage.getStudyUsersWithProfiles();
+      res.json(users);
+    } catch (error) {
+      console.error("Get study users error:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários" });
     }
   });
 

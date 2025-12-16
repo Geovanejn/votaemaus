@@ -106,7 +106,7 @@ export default function DevocionalDetailPage() {
       if (!data.alreadyRead) {
         toast({
           title: "Devocional marcado como lido!",
-          description: "Voce ganhou pontos para sua meta semanal.",
+          description: "Você ganhou pontos para sua meta semanal.",
         });
       }
     },
@@ -122,8 +122,8 @@ export default function DevocionalDetailPage() {
   const handleMarkAsRead = () => {
     if (!isAuthenticated) {
       toast({
-        title: "Faca login para continuar",
-        description: "Voce precisa estar logado para marcar o devocional como lido.",
+        title: "Faça login para continuar",
+        description: "Você precisa estar logado para marcar o devocional como lido.",
         variant: "destructive",
       });
       return;
@@ -222,7 +222,7 @@ export default function DevocionalDetailPage() {
         toast({
           title: "Compartilhado com sucesso!",
           description: clipboardSuccess 
-            ? "O link tambem foi copiado para a area de transferencia." 
+            ? "O link também foi copiado para a área de transferência." 
             : "Imagem compartilhada.",
         });
       } else {
@@ -271,19 +271,19 @@ export default function DevocionalDetailPage() {
           await navigator.clipboard.writeText(shareText);
           toast({
             title: "Link copiado",
-            description: "O link foi copiado para a area de transferencia.",
+            description: "O link foi copiado para a área de transferência.",
           });
         } else {
           toast({
-            title: "Compartilhamento nao disponivel",
-            description: "Copie o link manualmente da barra de endereco.",
+            title: "Compartilhamento não disponível",
+            description: "Copie o link manualmente da barra de endereço.",
             variant: "destructive",
           });
         }
       } catch {
         toast({
           title: "Erro ao copiar",
-          description: "Copie o link manualmente da barra de endereco.",
+          description: "Copie o link manualmente da barra de endereço.",
           variant: "destructive",
         });
       }
@@ -305,7 +305,7 @@ export default function DevocionalDetailPage() {
       <SiteLayout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center bg-background gap-4">
           <BookOpen className="h-16 w-16 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">Devocional nao encontrado</h2>
+          <h2 className="text-xl font-semibold">Devocional não encontrado</h2>
           <Link href="/devocionais">
             <Button variant="outline" data-testid="button-back-list">
               Voltar aos Devocionais

@@ -167,7 +167,7 @@ export function NotificationCenter() {
         data-testid="notification-center-popover"
       >
         <div className="flex items-center justify-between gap-2 p-3 border-b">
-          <h3 className="font-semibold">Notificacoes</h3>
+          <h3 className="font-semibold">Notificações</h3>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
@@ -190,7 +190,7 @@ export function NotificationCenter() {
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
               <Bell className="w-10 h-10 opacity-50" />
-              <p className="text-sm">Nenhuma notificacao</p>
+              <p className="text-sm">Nenhuma notificação</p>
             </div>
           ) : (
             <div className="divide-y">

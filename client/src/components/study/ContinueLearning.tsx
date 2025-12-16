@@ -54,7 +54,7 @@ export function ContinueLearning({ data, onContinue, onViewAll }: ContinueLearni
 
         <h3 className="font-bold text-xl mb-1">{data.lessonTitle}</h3>
         <p className="text-white/80 text-sm mb-3">
-          Licao {data.lessonNumber} • {data.sectionsRemaining} secoes restantes
+          Lição {data.lessonNumber} • {data.sectionsRemaining} seções restantes
         </p>
 
         <div className="mb-4">

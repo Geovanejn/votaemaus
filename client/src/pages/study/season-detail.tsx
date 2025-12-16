@@ -137,7 +137,7 @@ function ErrorState({ onRetry, onBack }: { onRetry: () => void; onBack: () => vo
       <div className="text-center max-w-sm">
         <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
         <p className="text-muted-foreground mb-4">
-          Nao foi possivel carregar os estudos. Por favor, tente novamente.
+          Não foi possível carregar os estudos. Por favor, tente novamente.
         </p>
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={onBack} data-testid="button-back">

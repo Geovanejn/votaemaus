@@ -142,7 +142,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <div className="text-center max-w-sm">
         <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar</h1>
         <p className="text-muted-foreground mb-4">
-          Nao foi possivel carregar os estudos. Por favor, tente novamente.
+          Não foi possível carregar os estudos. Por favor, tente novamente.
         </p>
         <Button onClick={onRetry} data-testid="button-retry">
           Tentar novamente
@@ -164,9 +164,9 @@ function EmptyState() {
       >
         <BookOpen className="h-12 w-12 text-muted-foreground" />
       </motion.div>
-      <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponivel</h2>
+      <h2 className="text-xl font-bold text-foreground mb-2">Nenhum estudo disponível</h2>
       <p className="text-muted-foreground mb-4">
-        Os estudos serao liberados em breve. Enquanto isso, continue estudando as licoes da semana!
+        Os estudos serão liberados em breve. Enquanto isso, continue estudando as lições da semana!
       </p>
       <Button 
         onClick={() => setLocation('/study')} 

@@ -157,7 +157,7 @@ export function CrystalGainAnimation({
           transition={{ delay: 0.2 }}
           className="text-lg text-purple-600 dark:text-purple-400 mb-2 font-bold"
         >
-          Voce ganhou cristais!
+          Você ganhou cristais!
         </motion.p>
         
         <motion.p

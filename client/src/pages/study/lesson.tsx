@@ -1153,22 +1153,25 @@ export default function LessonPage() {
     ? studyProgress.total 
     : totalUnits;
 
-  // Hide progress bar and stats (hearts/crystals) for Estude and Medite stages
-  const isStudyOrMediteStage = showStudyContent || showMediteContent;
+  // Hide progress bar, stats, and entire header for dedicated session screens (Estude, Medite, Responda)
+  // These screens have their own headers built-in
+  const isSessionScreen = showStudyContent || showMediteContent || showRespondaContent;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
-      <StudyHeader
-        currentStep={headerCurrentStep}
-        totalSteps={headerTotalSteps}
-        hearts={currentHearts}
-        maxHearts={profileData?.maxHearts || 5}
-        onClose={handleClose}
-        currentStage={currentStage}
-        showStages={!targetStage}
-        showProgress={!isStudyOrMediteStage}
-        showStats={!isStudyOrMediteStage}
-      />
+      {!isSessionScreen && (
+        <StudyHeader
+          currentStep={headerCurrentStep}
+          totalSteps={headerTotalSteps}
+          hearts={currentHearts}
+          maxHearts={profileData?.maxHearts || 5}
+          onClose={handleClose}
+          currentStage={currentStage}
+          showStages={!targetStage}
+          showProgress={true}
+          showStats={true}
+        />
+      )}
 
       <main className="flex-1 flex flex-col">
         {showStudyContent ? (

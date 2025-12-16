@@ -834,34 +834,6 @@ export function RespondaScreen({
         </div>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 border-t px-4 py-3 safe-area-inset-bottom">
-        <div className="flex justify-around max-w-lg mx-auto">
-          <button 
-            className="flex flex-col items-center gap-1 text-muted-foreground"
-            onClick={() => onSwitchTab?.("estude")}
-            data-testid="tab-estude-responda"
-          >
-            <BookOpen className="h-6 w-6" />
-            <span className="text-xs font-medium">Estude</span>
-          </button>
-          <button 
-            className="flex flex-col items-center gap-1 text-muted-foreground"
-            onClick={() => onSwitchTab?.("medite")}
-            data-testid="tab-medite-responda"
-          >
-            <Heart className="h-6 w-6" />
-            <span className="text-xs font-medium">Medite</span>
-          </button>
-          <button 
-            className="flex flex-col items-center gap-1 text-orange-600 dark:text-orange-400"
-            onClick={() => onSwitchTab?.("responda")}
-            data-testid="tab-responda-active"
-          >
-            <HelpCircle className="h-6 w-6" />
-            <span className="text-xs font-medium">Responda</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

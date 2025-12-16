@@ -2568,7 +2568,8 @@ export class DatabaseStorage implements IStorage {
 
   // Leaderboard Methods
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Get all active member users with their study profiles (LEFT JOIN to include users without profiles)
+    // Get all member users with their study profiles (LEFT JOIN to include users without profiles)
+    // Include all members (active or not), excluding only admins
     const usersWithProfiles = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
@@ -2579,10 +2580,7 @@ export class DatabaseStorage implements IStorage {
     })
       .from(schema.users)
       .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
-      .where(and(
-        eq(schema.users.isAdmin, false),
-        eq(schema.users.activeMember, true)
-      ))
+      .where(eq(schema.users.isAdmin, false))
       .limit(limit);
     
     // Calculate daily XP for each user (XP earned today from 00:00 to 23:59 in America/Sao_Paulo timezone)

@@ -1123,17 +1123,22 @@ export default function LessonPage() {
     ? studyProgress.total 
     : totalUnits;
 
+  // Hide StudyHeader for Estude and Medite stages - they have their own headers
+  const showStudyHeader = !showStudyContent && !showMediteContent;
+
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
-      <StudyHeader
-        currentStep={headerCurrentStep}
-        totalSteps={headerTotalSteps}
-        hearts={currentHearts}
-        maxHearts={profileData?.maxHearts || 5}
-        onClose={handleClose}
-        currentStage={currentStage}
-        showStages={!targetStage}
-      />
+      {showStudyHeader && (
+        <StudyHeader
+          currentStep={headerCurrentStep}
+          totalSteps={headerTotalSteps}
+          hearts={currentHearts}
+          maxHearts={profileData?.maxHearts || 5}
+          onClose={handleClose}
+          currentStage={currentStage}
+          showStages={!targetStage}
+        />
+      )}
 
       <main className="flex-1 flex flex-col">
         {showStudyContent ? (

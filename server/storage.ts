@@ -2079,13 +2079,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyUsersWithProfiles(): Promise<any[]> {
-    // Only get active members (same as Emaús Vota ranking)
+    // Get ALL members (active or not) except admins - DeoGlory should track everyone
     const usersWithProfiles = await db.select({
       id: schema.users.id,
       fullName: schema.users.fullName,
       email: schema.users.email,
       photoUrl: schema.users.photoUrl,
       activeMember: schema.users.activeMember,
+      isAdmin: schema.users.isAdmin,
       createdAt: schema.users.createdAt,
       totalXp: schema.studyProfiles.totalXp,
       currentLevel: schema.studyProfiles.currentLevel,
@@ -2096,7 +2097,10 @@ export class DatabaseStorage implements IStorage {
     })
       .from(schema.users)
       .leftJoin(schema.studyProfiles, eq(schema.studyProfiles.userId, schema.users.id))
-      .where(eq(schema.users.activeMember, true))
+      .where(and(
+        eq(schema.users.isMember, true),
+        eq(schema.users.isAdmin, false)
+      ))
       .orderBy(desc(schema.studyProfiles.totalXp));
 
     const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (user) => {

@@ -485,6 +485,36 @@ export default function LessonPage() {
     }
   }, [isCompleted, lessonId, user?.id]);
 
+  // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
+  // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
+  const previousStagesXp = useMemo(() => {
+    if (!lessonData?.units) return 0;
+    const allU = lessonData.units;
+    const estudeXp = allU
+      .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'))
+      .reduce((sum, u) => sum + (u.xpValue || 2), 0);
+    const mediteXp = allU
+      .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'))
+      .reduce((sum, u) => sum + (u.xpValue || 3), 0);
+    return estudeXp + mediteXp;
+  }, [lessonData?.units]);
+  
+  // Ref para controlar se já inicializamos o XP para esta sessão de responda
+  // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
+  const xpInitializedForLesson = useRef<number | null>(null);
+  
+  // Calcular targetStage para usar no useEffect abaixo
+  const earlyTargetStage = (stageOverride ?? stageParam) as "estude" | "medite" | "responda" | null;
+  
+  useEffect(() => {
+    // Se entramos na etapa responda diretamente e displayXp é 0, inicializar com XP das etapas anteriores
+    // Só executa uma vez por lessonId para evitar loops
+    if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId) {
+      xpInitializedForLesson.current = lessonId;
+      setDisplayXp(previousStagesXp);
+    }
+  }, [earlyTargetStage, previousStagesXp, lessonId, displayXp]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="not-authenticated">
@@ -698,32 +728,6 @@ export default function LessonPage() {
   const isMediteType = currentUnit?.type === 'meditation' || currentUnit?.type === 'reflection';
   const mediteUnits = allUnits
     .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'));
-
-  // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
-  // Usamos useMemo para calcular o XP total das etapas anteriores de forma estável
-  const previousStagesXp = useMemo(() => {
-    if (!lessonData?.units) return 0;
-    const allU = lessonData.units;
-    const estudeXp = allU
-      .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'))
-      .reduce((sum, u) => sum + (u.xpValue || 2), 0);
-    const mediteXp = allU
-      .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'))
-      .reduce((sum, u) => sum + (u.xpValue || 3), 0);
-    return estudeXp + mediteXp;
-  }, [lessonData?.units]);
-  
-  // Ref para controlar se já inicializamos o XP para esta sessão de responda
-  const xpInitializedForLesson = useRef<number | null>(null);
-  
-  useEffect(() => {
-    // Se entramos na etapa responda diretamente e displayXp é 0, inicializar com XP das etapas anteriores
-    // Só executa uma vez por lessonId para evitar loops
-    if (targetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId) {
-      xpInitializedForLesson.current = lessonId;
-      setDisplayXp(previousStagesXp);
-    }
-  }, [targetStage, previousStagesXp, lessonId, displayXp]);
   
   const mediteSections: MeditationSection[] = mediteUnits.map((unit) => {
     return {

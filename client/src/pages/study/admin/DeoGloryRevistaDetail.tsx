@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 import type { Season, StudyLesson } from "@shared/schema";
 
 const MAGAZINE_COVER_ASPECT_RATIO = 2 / 3;
@@ -397,38 +398,41 @@ export default function DeoGloryRevistaDetail() {
                       .map((lesson) => (
                         <div 
                           key={lesson.id}
-                          className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                           data-testid={`lesson-row-${lesson.id}`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30">
+                            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30">
                               <span className="text-sm font-bold text-violet-600">
                                 {lesson.lessonNumber || lesson.orderIndex + 1}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                              <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base line-clamp-2 sm:truncate">
                                 {lesson.title}
                               </h4>
                               {lesson.description && (
-                                <p className="text-sm text-muted-foreground truncate">
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                   {lesson.description}
                                 </p>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                             <Badge 
-                              className={lesson.isLocked 
-                                ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-0" 
-                                : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-0"
-                              }
+                              className={cn(
+                                "text-xs",
+                                lesson.isLocked 
+                                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-0" 
+                                  : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-0"
+                              )}
                             >
                               {lesson.isLocked ? "Bloqueada" : "Liberada"}
                             </Badge>
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => {
                                 setEditingLesson({ id: lesson.id, title: lesson.title });
                                 setShowEditLessonModal(true);
@@ -440,6 +444,7 @@ export default function DeoGloryRevistaDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => navigate(`/admin/study/licao/${lesson.id}`)}
                               data-testid={`button-view-lesson-${lesson.id}`}
                             >
@@ -448,6 +453,7 @@ export default function DeoGloryRevistaDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => toggleLessonLockMutation.mutate({ 
                                 lessonId: lesson.id, 
                                 isLocked: !lesson.isLocked 
@@ -464,6 +470,7 @@ export default function DeoGloryRevistaDetail() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => {
                                 if (confirm("Tem certeza que deseja remover esta lição?")) {
                                   deleteLessonMutation.mutate(lesson.id);
@@ -486,15 +493,15 @@ export default function DeoGloryRevistaDetail() {
       </div>
 
       <Dialog open={showUploadModal} onOpenChange={(open) => !isProcessingPdf && setShowUploadModal(open)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle>Upload de PDF</DialogTitle>
             <DialogDescription>
-              Selecione o número da lição e faça upload do PDF. A IA irá extrair o conteúdo automaticamente.
+              Selecione o numero da licao e faca upload do PDF
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 py-4 overflow-x-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Número da Lição</Label>
                 <Select 

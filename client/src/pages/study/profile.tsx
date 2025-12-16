@@ -81,6 +81,26 @@ function getIconComponent(iconName: string) {
   return iconMap[iconName.toLowerCase()] || Star;
 }
 
+function getLevelTitle(level: number): { title: string; nextLevel: number } {
+  const levelTitles = [
+    { minLevel: 1, title: "Iniciante na Fe", nextLevel: 5 },
+    { minLevel: 5, title: "Aprendiz das Escrituras", nextLevel: 10 },
+    { minLevel: 10, title: "Estudante Dedicado", nextLevel: 20 },
+    { minLevel: 20, title: "Discipulo Fiel", nextLevel: 40 },
+    { minLevel: 40, title: "Mestre dos Estudos", nextLevel: 60 },
+    { minLevel: 60, title: "Sabio Biblico", nextLevel: 80 },
+    { minLevel: 80, title: "Guardiao da Palavra", nextLevel: 100 },
+    { minLevel: 100, title: "Supremo Conhecedor das Escrituras", nextLevel: 999 },
+  ];
+  
+  for (let i = levelTitles.length - 1; i >= 0; i--) {
+    if (level >= levelTitles[i].minLevel) {
+      return { title: levelTitles[i].title, nextLevel: levelTitles[i].nextLevel };
+    }
+  }
+  return { title: "Iniciante na Fe", nextLevel: 5 };
+}
+
 function LoadingState() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -222,8 +242,13 @@ export default function ProfilePage() {
               {user?.fullName || "Usuario"}
             </h2>
             <p className="text-white/70 text-sm">
-              Estudante Dedicada
+              {getLevelTitle(currentLevel).title}
             </p>
+            <Badge 
+              className="mt-1 text-xs bg-white/20 text-white border-0"
+            >
+              Nivel {currentLevel}
+            </Badge>
           </motion.div>
 
           <motion.div

@@ -2417,7 +2417,9 @@ export class DatabaseStorage implements IStorage {
         const requirementKeys = Object.keys(requirement);
         if (requirementKeys.length === 0) {
           // Handle event-based achievements (no static requirements)
-          const currentHour = new Date().getHours();
+          // Use São Paulo timezone for correct time-based achievements
+          const saoPauloTime = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+          const currentHour = new Date(saoPauloTime).getHours();
           
           if (achievement.code === 'perfect_lesson' && context.event === 'lesson_complete' && context.value === 1) {
             const result = await this.unlockAchievement(userId, achievement.id);

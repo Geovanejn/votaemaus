@@ -3,10 +3,28 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Filter, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Trophy, Filter, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+
+interface Season {
+  id: number;
+  title: string;
+  status: string;
+  aiExtractedTitle?: string;
+}
+
+interface Achievement {
+  id: number;
+  code: string;
+  name: string;
+  icon: string;
+  unlockedAt: string;
+  xpReward: number;
+}
 
 interface RankingUser {
   rank: number;
@@ -252,9 +270,54 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
 }
 
 function ConquistasRecentes() {
+  const { data: achievements, isLoading } = useQuery<Achievement[]>({
+    queryKey: ['/api/study/achievements/recent'],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/achievements?limit=5", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data || []).filter((a: any) => a.unlocked).slice(0, 5);
+    },
+  });
+
+  const iconMap: Record<string, typeof Star> = {
+    flame: Flame,
+    book: BookOpen,
+    trophy: Trophy,
+    star: Star,
+    medal: Medal,
+  };
+
+  const getIcon = (iconName: string) => iconMap[iconName?.toLowerCase()] || Star;
+
+  if (isLoading || !achievements || achievements.length === 0) {
+    return null;
+  }
+
   return (
     <div className="px-4 mt-6 mb-4">
-      <h3 className="font-bold text-lg">Conquistas Recentes</h3>
+      <h3 className="font-bold text-lg mb-3">Conquistas Recentes</h3>
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {achievements.map((achievement) => {
+          const IconComponent = getIcon(achievement.icon);
+          return (
+            <Card 
+              key={achievement.id} 
+              className="flex-shrink-0 p-3 flex flex-col items-center gap-2 min-w-[80px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <IconComponent className="h-5 w-5 text-amber-600" />
+              </div>
+              <p className="text-[10px] text-center font-medium line-clamp-2">
+                {achievement.name}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -283,8 +346,22 @@ function EmptyState() {
 }
 
 export default function RankingPage() {
-  const [period, setPeriod] = useState("revista");
+  const [period, setPeriod] = useState("geral");
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
   const { user, isAuthenticated } = useAuth();
+
+  const { data: seasons = [] } = useQuery<Season[]>({
+    queryKey: ["/api/study/seasons"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/seasons", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
 
   const { data: geralData, isLoading: geralLoading } = useQuery<LeaderboardResponse>({
     queryKey: ["/api/study/leaderboard", { period: "weekly" }],
@@ -312,8 +389,31 @@ export default function RankingPage() {
     enabled: isAuthenticated,
   });
 
-  const isLoading = isAuthenticated && (period === "geral" ? geralLoading : anualLoading);
-  const currentData = period === "geral" ? geralData : period === "anual" ? anualData : geralData;
+  const { data: revistaData, isLoading: revistaLoading } = useQuery<LeaderboardResponse>({
+    queryKey: ["/api/study/leaderboard", { period: "seasonal", seasonId: selectedSeasonId }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const url = selectedSeasonId 
+        ? `/api/study/leaderboard?period=seasonal&seasonId=${selectedSeasonId}`
+        : "/api/study/leaderboard?period=seasonal";
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Erro ao carregar ranking");
+      return res.json();
+    },
+    enabled: isAuthenticated && period === "revista",
+  });
+
+  const isLoading = isAuthenticated && (
+    period === "geral" ? geralLoading : 
+    period === "anual" ? anualLoading : 
+    revistaLoading
+  );
+  
+  const currentData = period === "geral" ? geralData : 
+                      period === "anual" ? anualData : 
+                      revistaData;
   const entries = currentData?.entries || [];
 
   const currentUserEntry = entries.find((e) => e.userId === user?.id);
@@ -342,7 +442,7 @@ export default function RankingPage() {
       
       <TopThreePodium users={entries} />
 
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-4 space-y-3">
         <Tabs value={period} onValueChange={setPeriod} className="w-full">
           <TabsList className="grid w-full grid-cols-3 h-10 bg-muted/30 p-1 rounded-lg">
             <TabsTrigger
@@ -368,6 +468,22 @@ export default function RankingPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        
+        {period === "revista" && seasons.length > 0 && (
+          <Select value={selectedSeasonId} onValueChange={setSelectedSeasonId}>
+            <SelectTrigger className="w-full" data-testid="select-revista">
+              <SelectValue placeholder="Selecione uma revista" />
+            </SelectTrigger>
+            <SelectContent>
+              {seasons.map((season) => (
+                <SelectItem key={season.id} value={season.id.toString()}>
+                  {season.aiExtractedTitle || season.title}
+                  {season.status === "published" ? " (Publicada)" : " (Em andamento)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {entries.length > 0 ? (

@@ -484,11 +484,14 @@ const achievements = [
   { code: "first_ranking", name: "Top 10", description: "Entre no top 10 do ranking semanal", icon: "trophy", xpReward: 100, category: "special", requirement: { rankingTop: 10 } },
   { code: "champion", name: "Campeao Semanal", description: "Fique em primeiro lugar no ranking semanal", icon: "crown", xpReward: 200, category: "special", requirement: { rankingTop: 1 } },
   
-  // Conquistas de Nivel
-  { code: "level_5", name: "Nivel 5", description: "Alcance o nivel 5", icon: "trending-up", xpReward: 25, category: "xp", requirement: { level: 5 } },
-  { code: "level_10", name: "Nivel 10", description: "Alcance o nivel 10", icon: "trending-up", xpReward: 50, category: "xp", requirement: { level: 10 } },
-  { code: "level_25", name: "Nivel 25", description: "Alcance o nivel 25", icon: "award", xpReward: 150, category: "xp", requirement: { level: 25 } },
-  { code: "level_50", name: "Nivel 50", description: "Alcance o nivel 50", icon: "crown", xpReward: 500, category: "xp", requirement: { level: 50 } },
+  // Conquistas de Nivel (alinhadas com titulos do jogador)
+  { code: "level_5", name: "Aprendiz das Escrituras", description: "Alcance o nivel 5", icon: "trending-up", xpReward: 25, category: "xp", requirement: { level: 5 } },
+  { code: "level_10", name: "Estudante Dedicado", description: "Alcance o nivel 10", icon: "trending-up", xpReward: 50, category: "xp", requirement: { level: 10 } },
+  { code: "level_20", name: "Discipulo Fiel", description: "Alcance o nivel 20", icon: "book-open", xpReward: 100, category: "xp", requirement: { level: 20 } },
+  { code: "level_40", name: "Mestre dos Estudos", description: "Alcance o nivel 40", icon: "award", xpReward: 200, category: "xp", requirement: { level: 40 } },
+  { code: "level_60", name: "Sabio Biblico", description: "Alcance o nivel 60", icon: "star", xpReward: 350, category: "xp", requirement: { level: 60 } },
+  { code: "level_80", name: "Guardiao da Palavra", description: "Alcance o nivel 80", icon: "shield", xpReward: 500, category: "xp", requirement: { level: 80 } },
+  { code: "level_100", name: "Supremo Conhecedor", description: "Alcance o nivel 100", icon: "crown", xpReward: 1000, category: "xp", requirement: { level: 100 } },
   
   // Conquistas de Missoes
   { code: "mission_first", name: "Primeira Missao", description: "Complete sua primeira missao diaria", icon: "target", xpReward: 5, category: "special", requirement: { missions: 1 } },

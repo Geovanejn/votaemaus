@@ -193,7 +193,36 @@ export function EstudeScreen({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [highlightedVerses, setHighlightedVerses] = useState<Set<number>>(new Set());
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [fontSize, setFontSize] = useState(16);
+  const [isReading, setIsReading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  const toggleFontSize = () => {
+    setFontSize(prev => {
+      if (prev >= 24) return 14;
+      return prev + 2;
+    });
+  };
+  
+  const speakText = () => {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+      return;
+    }
+    
+    const currentSection = sections[currentIndex];
+    const textToRead = currentSection.content;
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.9;
+      utterance.onend = () => setIsReading(false);
+      window.speechSynthesis.speak(utterance);
+      setIsReading(true);
+    }
+  };
   
   const sections = rawSections.length > 0 ? rawSections : [
     { type: "topic" as const, title: lessonTitle, content: "Conteudo nao disponivel." }
@@ -297,14 +326,31 @@ export function EstudeScreen({
         <div className="max-w-lg mx-auto space-y-4">
           <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-purple-600 dark:text-purple-400 font-medium text-sm">
-                {currentSection.title || "Versiculo do Dia"}
-              </span>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-font-size">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-purple-600 text-white text-xs font-bold">
+                  {currentIndex + 1}
+                </span>
+                <span className="text-lg font-bold text-foreground">
+                  {currentSection.title || "Versiculo do Dia"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn("h-8 w-8", fontSize !== 16 ? "text-purple-600" : "text-muted-foreground")}
+                  onClick={toggleFontSize}
+                  data-testid="button-font-size"
+                >
                   <Type className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-accessibility">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn("h-8 w-8", isReading ? "text-purple-600" : "text-muted-foreground")}
+                  onClick={speakText}
+                  data-testid="button-accessibility"
+                >
                   <Accessibility className="h-4 w-4" />
                 </Button>
               </div>
@@ -317,6 +363,7 @@ export function EstudeScreen({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
+                style={{ fontSize: `${fontSize}px` }}
               >
                 {renderContent(currentSection)}
               </motion.div>

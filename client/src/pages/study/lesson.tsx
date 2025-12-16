@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { HeartCrack, Loader2, AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
@@ -699,19 +699,31 @@ export default function LessonPage() {
   const mediteUnits = allUnits
     .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'));
 
-  // Calcular XP inicial das etapas anteriores (estude + medite) quando entra na etapa responda
-  // O XP Total deve iniciar com o XP acumulado das etapas anteriores, não zero
+  // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
+  // Usamos useMemo para calcular o XP total das etapas anteriores de forma estável
+  const previousStagesXp = useMemo(() => {
+    if (!lessonData?.units) return 0;
+    const allU = lessonData.units;
+    const estudeXp = allU
+      .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'))
+      .reduce((sum, u) => sum + (u.xpValue || 2), 0);
+    const mediteXp = allU
+      .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'))
+      .reduce((sum, u) => sum + (u.xpValue || 3), 0);
+    return estudeXp + mediteXp;
+  }, [lessonData?.units]);
+  
+  // Ref para controlar se já inicializamos o XP para esta sessão de responda
+  const xpInitializedForLesson = useRef<number | null>(null);
+  
   useEffect(() => {
-    if (targetStage === 'responda' && displayXp === 0 && allUnits.length > 0) {
-      // Calcular XP das etapas estude e medite
-      const estudeXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
-      const mediteXp = mediteUnits.reduce((sum, u) => sum + (u.xpValue || 3), 0);
-      const initialXp = estudeXp + mediteXp;
-      if (initialXp > 0) {
-        setDisplayXp(initialXp);
-      }
+    // Se entramos na etapa responda diretamente e displayXp é 0, inicializar com XP das etapas anteriores
+    // Só executa uma vez por lessonId para evitar loops
+    if (targetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId) {
+      xpInitializedForLesson.current = lessonId;
+      setDisplayXp(previousStagesXp);
     }
-  }, [targetStage, allUnits.length, studyUnits.length, mediteUnits.length]);
+  }, [targetStage, previousStagesXp, lessonId, displayXp]);
   
   const mediteSections: MeditationSection[] = mediteUnits.map((unit) => {
     return {

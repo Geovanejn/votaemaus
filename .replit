@@ -9,7 +9,7 @@ packages = ["ffmpeg", "imagemagick", "unzip", "sqlite", "poppler", "cairo", "pan
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["node", "./dist/index.cjs"]
 
 [[ports]]
 localPort = 5000

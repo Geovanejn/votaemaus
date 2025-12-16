@@ -92,31 +92,59 @@ function VerseContent({
   };
   
   const startVerse = extractStartVerse(reference);
-  const verses = content.split(/(?=\d+\s)/).filter(v => v.trim());
-  const parsedVerses = verses.map((verse, idx) => {
-    const match = verse.match(/^(\d+)\s*([\s\S]*)/);
-    if (match) {
-      return { number: parseInt(match[1]), text: match[2].trim() };
+  
+  // Melhorado: divide por números de versículos no início de linha ou após espaço/quebra
+  // Suporta formatos: "25 texto", "\n25 texto", "25. texto"
+  const parseVerses = (text: string): Array<{number: number; text: string}> => {
+    const result: Array<{number: number; text: string}> = [];
+    
+    // Regex melhorado para capturar versículos com número seguido de texto
+    // Captura: número no início, ou após quebra de linha, seguido de espaço ou ponto
+    const versePattern = /(?:^|\n)\s*(\d+)[.\s]+([^\n]*(?:\n(?!\s*\d+[.\s])[^\n]*)*)/g;
+    
+    let match;
+    while ((match = versePattern.exec(text)) !== null) {
+      result.push({
+        number: parseInt(match[1]),
+        text: match[2].trim()
+      });
     }
-    return { number: startVerse + idx, text: verse.trim() };
-  });
+    
+    // Se não encontrou versículos com o padrão, tenta split simples
+    if (result.length === 0) {
+      const simpleVerseParts = text.split(/(?=\d+\s)/).filter(v => v.trim());
+      simpleVerseParts.forEach((verse, idx) => {
+        const simpleMatch = verse.match(/^(\d+)\s*([\s\S]*)/);
+        if (simpleMatch) {
+          result.push({ number: parseInt(simpleMatch[1]), text: simpleMatch[2].trim() });
+        } else if (verse.trim()) {
+          result.push({ number: startVerse + idx, text: verse.trim() });
+        }
+      });
+    }
+    
+    return result;
+  };
+  
+  const parsedVerses = parseVerses(content);
 
+  // Se não encontrou versículos estruturados, mostra o conteúdo completo
   if (parsedVerses.length === 0 || (parsedVerses.length === 1 && !parsedVerses[0].text)) {
     return (
-      <p className={cn(
+      <div className={cn(
         "text-foreground leading-relaxed text-base",
         highlightedVerses.has(1) && "bg-yellow-100 dark:bg-yellow-900/30"
       )}>
-        {content}
-      </p>
+        <FormattedText content={content} />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {parsedVerses.map((verse) => (
+      {parsedVerses.map((verse, idx) => (
         <p 
-          key={verse.number}
+          key={`${verse.number}-${idx}`}
           className={cn(
             "text-foreground leading-relaxed text-base cursor-pointer transition-colors",
             highlightedVerses.has(verse.number) && "bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 -mx-2 rounded"
@@ -135,34 +163,58 @@ function VerseContent({
 }
 
 function TopicContent({ title, content, topicNumber }: { title: string; content: string; topicNumber?: number }) {
+  // Normaliza texto removendo acentos para comparação
+  const normalizeText = (text: string) => 
+    text.toLowerCase().trim()
+      .replace(/[áàâã]/g, 'a')
+      .replace(/[éèê]/g, 'e')
+      .replace(/[íìî]/g, 'i')
+      .replace(/[óòôõ]/g, 'o')
+      .replace(/[úùû]/g, 'u')
+      .replace(/ç/g, 'c');
+
   // Remove título duplicado do início do conteúdo se existir
   const cleanContent = (() => {
     if (!title || !content) return content;
-    const titleLower = title.toLowerCase().trim();
-    const contentLines = content.split('\n');
+    const titleNorm = normalizeText(title);
+    const contentLines = content.split('\n').filter(line => line.trim());
     
     // Verifica se a primeira linha é o título (exato ou muito similar)
     if (contentLines.length > 0) {
-      const firstLine = contentLines[0].replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '').trim().toLowerCase();
-      if (firstLine === titleLower || firstLine.includes(titleLower) || titleLower.includes(firstLine)) {
+      const firstLine = contentLines[0]
+        .replace(/^#+\s*/, '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .replace(/^\d+\.\s*/, '')
+        .trim();
+      const firstLineNorm = normalizeText(firstLine);
+      
+      if (firstLineNorm === titleNorm || 
+          firstLineNorm.includes(titleNorm) || 
+          titleNorm.includes(firstLineNorm) ||
+          firstLineNorm.replace(/\s+/g, '') === titleNorm.replace(/\s+/g, '')) {
         return contentLines.slice(1).join('\n').trim();
       }
     }
     return content;
   })();
 
+  // Usa o conteúdo original se cleanContent estiver vazio
+  const finalContent = cleanContent && cleanContent.trim() ? cleanContent : content;
+
   return (
-    <div className="py-4">
-      <div className="mb-3">
-        {topicNumber !== undefined && topicNumber > 0 && (
-          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-purple-600 text-white text-xs font-bold mr-2">
-            {topicNumber}
-          </span>
-        )}
-        <span className="text-lg font-bold text-foreground">{title}</span>
-      </div>
-      <div className="text-foreground leading-relaxed pl-8">
-        <FormattedText content={cleanContent} />
+    <div className="py-2">
+      {title && (
+        <div className="flex items-center gap-2 mb-3">
+          {topicNumber !== undefined && topicNumber > 0 && (
+            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-600 text-white text-xs font-bold flex-shrink-0">
+              {topicNumber}
+            </span>
+          )}
+          <span className="text-lg font-bold text-foreground uppercase">{title}</span>
+        </div>
+      )}
+      <div className="text-foreground leading-relaxed">
+        <FormattedText content={finalContent} />
       </div>
     </div>
   );
@@ -327,12 +379,16 @@ export function EstudeScreen({
           <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
+                {/* Número da seção atual (página) */}
                 <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-purple-600 text-white text-xs font-bold">
                   {currentIndex + 1}
                 </span>
-                <span className="text-lg font-bold text-foreground">
-                  {currentSection.title || "Versiculo do Dia"}
-                </span>
+                {/* Título no cabeçalho apenas para verse e conclusion - topic tem título interno com número próprio */}
+                {currentSection.type !== 'topic' && (
+                  <span className="text-lg font-bold text-foreground">
+                    {currentSection.title || "Versículo Base"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button 

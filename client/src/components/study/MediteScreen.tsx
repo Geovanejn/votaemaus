@@ -19,7 +19,9 @@ import {
   BookOpen,
   Heart,
   HelpCircle,
-  Music
+  Music,
+  Type,
+  Accessibility
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -108,7 +110,36 @@ export function MediteScreen({
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const [fontSize, setFontSize] = useState(16);
+  const [isReading, setIsReading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const toggleFontSize = () => {
+    setFontSize(prev => {
+      if (prev >= 24) return 14;
+      return prev + 2;
+    });
+  };
+
+  const speakText = () => {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+      return;
+    }
+    
+    const currentSection = sections[currentIndex];
+    const textToRead = currentSection.content;
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.9;
+      utterance.onend = () => setIsReading(false);
+      window.speechSynthesis.speak(utterance);
+      setIsReading(true);
+    }
+  };
   
   const sections = rawSections.length > 0 ? rawSections : [
     { 
@@ -210,35 +241,52 @@ export function MediteScreen({
               transition={{ duration: 0.2 }}
             >
               <Card className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
-                <div className="flex flex-col items-center text-center mb-6">
-                  <div className="relative mb-4">
-                    <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                      <Leaf className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                      <Heart className="h-3 w-3 text-white fill-white" />
-                    </div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-600 text-white text-xs font-bold">
+                      {currentIndex + 1}
+                    </span>
+                    <span className="text-lg font-bold text-foreground">
+                      {currentSection.title}
+                    </span>
                   </div>
-                  
-                  <h2 className="text-xl font-bold text-foreground mb-1">
-                    {currentSection.title}
-                  </h2>
-                  {currentSection.verseReference && (
-                    <p className="text-emerald-600 dark:text-emerald-400 text-sm">
-                      {currentSection.verseReference}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn("h-8 w-8", fontSize !== 16 ? "text-emerald-600" : "text-muted-foreground")}
+                      onClick={toggleFontSize}
+                      data-testid="button-font-size-medite"
+                    >
+                      <Type className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn("h-8 w-8", isReading ? "text-emerald-600" : "text-muted-foreground")}
+                      onClick={speakText}
+                      data-testid="button-accessibility-medite"
+                    >
+                      <Accessibility className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+                
+                {currentSection.verseReference && (
+                  <p className="text-emerald-600 dark:text-emerald-400 text-sm text-center mb-3">
+                    {currentSection.verseReference}
+                  </p>
+                )}
                 
                 {currentSection.verseText && (
                   <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 mb-4">
-                    <p className="text-emerald-800 dark:text-emerald-200 text-center italic leading-relaxed">
+                    <p className="text-emerald-800 dark:text-emerald-200 text-center italic leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
                       "{currentSection.verseText}"
                     </p>
                   </div>
                 )}
                 
-                <p className="text-muted-foreground text-center leading-relaxed">
+                <p className="text-muted-foreground text-center leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
                   {cleanDuplicateTitle(currentSection.title, currentSection.content)}
                 </p>
               </Card>

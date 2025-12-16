@@ -22,7 +22,9 @@ import {
   Check,
   X,
   CheckCircle2,
-  Gem
+  Gem,
+  Type,
+  Accessibility
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSounds } from "@/hooks/use-sounds";
@@ -189,8 +191,38 @@ export function RespondaScreen({
   const [wrongCount, setWrongCount] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
   const [hintUsed, setHintUsed] = useState(false);
+  const [fontSize, setFontSize] = useState(16);
+  const [isReading, setIsReading] = useState(false);
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSounds();
+
+  const toggleFontSize = () => {
+    setFontSize(prev => {
+      if (prev >= 24) return 14;
+      return prev + 2;
+    });
+  };
+
+  const speakText = () => {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+      return;
+    }
+    
+    const currentQ = questions[currentIndex];
+    const textToRead = currentQ.question;
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.9;
+      utterance.onend = () => setIsReading(false);
+      window.speechSynthesis.speak(utterance);
+      setIsReading(true);
+    }
+  };
   
   const questions = useMemo(() => {
     return rawQuestions.length > 0 ? rawQuestions : [
@@ -315,6 +347,7 @@ export function RespondaScreen({
       onComplete();
     } else {
       setCurrentIndex(prev => prev + 1);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
@@ -421,7 +454,7 @@ export function RespondaScreen({
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 -mt-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 -mt-4">
         <div className="max-w-lg mx-auto space-y-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -433,14 +466,36 @@ export function RespondaScreen({
             >
               <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
                 <div className="flex items-center justify-between mb-3">
-                  {currentQuestion.category && (
-                    <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-0">
-                      {currentQuestion.category}
-                    </Badge>
-                  )}
-                  <div className="flex items-center gap-1 text-yellow-500">
-                    <Star className="h-4 w-4 fill-current" />
-                    <span className="text-sm font-medium">+{currentQuestion.points || 15} pts</span>
+                  <div className="flex items-center gap-2">
+                    {currentQuestion.category && (
+                      <Badge className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-0">
+                        {currentQuestion.category}
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-1 text-yellow-500">
+                      <Star className="h-4 w-4 fill-current" />
+                      <span className="text-sm font-medium">+{currentQuestion.points || 15} pts</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn("h-8 w-8", fontSize !== 16 ? "text-orange-600" : "text-muted-foreground")}
+                      onClick={toggleFontSize}
+                      data-testid="button-font-size-responda"
+                    >
+                      <Type className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn("h-8 w-8", isReading ? "text-orange-600" : "text-muted-foreground")}
+                      onClick={speakText}
+                      data-testid="button-accessibility-responda"
+                    >
+                      <Accessibility className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 
@@ -455,11 +510,11 @@ export function RespondaScreen({
                 {currentQuestion.type === "multiple_choice" && currentQuestion.options && (
                   <>
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 mb-4">
-                      <p className="text-foreground text-center font-bold">
+                      <p className="text-foreground text-center font-bold" style={{ fontSize: `${fontSize}px` }}>
                         {currentQuestion.question}
                       </p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2" style={{ fontSize: `${fontSize}px` }}>
                     {currentQuestion.options.map((option, idx) => {
                       const isSelected = selectedAnswer === idx;
                       const isCorrect = idx === currentQuestion.correctIndex;
@@ -508,7 +563,7 @@ export function RespondaScreen({
                 {currentQuestion.type === "true_false" && (
                   <>
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 mb-4">
-                      <p className="text-foreground text-center font-bold">
+                      <p className="text-foreground text-center font-bold" style={{ fontSize: `${fontSize}px` }}>
                         {currentQuestion.question}
                       </p>
                     </div>

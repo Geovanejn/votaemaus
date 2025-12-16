@@ -1155,7 +1155,10 @@ export default function LessonPage() {
 
   // Hide progress bar, stats, and entire header for dedicated session screens (Estude, Medite, Responda)
   // These screens have their own headers built-in
-  const isSessionScreen = showStudyContent || showMediteContent || showRespondaContent;
+  // Normalize activeStage to lowercase for reliable comparison, then check both stage and content flags
+  const normalizedStage = activeStage?.toLowerCase();
+  const isSessionByStage = normalizedStage === 'estude' || normalizedStage === 'medite' || normalizedStage === 'responda';
+  const isSessionScreen = isSessionByStage || showStudyContent || showMediteContent || showRespondaContent;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">

@@ -10,25 +10,11 @@ import {
   Clock,
   FileText,
   TrendingUp,
-  TrendingDown,
   BookOpen,
   Zap,
   Target,
   Award,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-} from "recharts";
 
 interface StudyStats {
   totalUsers: number;
@@ -49,39 +35,16 @@ interface MemberProgress {
   lessonsCompleted: number;
 }
 
-const monthlyProgressData = [
-  { month: "Jan", estudos: 120 },
-  { month: "Fev", estudos: 145 },
-  { month: "Mar", estudos: 160 },
-  { month: "Abr", estudos: 195 },
-  { month: "Mai", estudos: 210 },
-  { month: "Jun", estudos: 225 },
-];
-
-const weeklyActivityData = [
-  { day: "Dom", atividade: 45 },
-  { day: "Seg", atividade: 85 },
-  { day: "Ter", atividade: 72 },
-  { day: "Qua", atividade: 68 },
-  { day: "Qui", atividade: 90 },
-  { day: "Sex", atividade: 55 },
-  { day: "Sab", atividade: 42 },
-];
 
 interface StatCardProps {
   title: string;
   value: string | number;
   icon: React.ElementType;
-  trend?: number;
-  trendLabel?: string;
   iconBgColor: string;
   iconColor: string;
 }
 
-function StatCard({ title, value, icon: Icon, trend, trendLabel, iconBgColor, iconColor }: StatCardProps) {
-  const isPositive = trend && trend > 0;
-  const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-
+function StatCard({ title, value, icon: Icon, iconBgColor, iconColor }: StatCardProps) {
   return (
     <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
       <CardContent className="p-6">
@@ -89,14 +52,6 @@ function StatCard({ title, value, icon: Icon, trend, trendLabel, iconBgColor, ic
           <div className="space-y-2">
             <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-            {trend !== undefined && (
-              <div className="flex items-center gap-1">
-                <TrendIcon className={`h-4 w-4 ${isPositive ? "text-green-500" : "text-red-500"}`} />
-                <span className={`text-sm font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
-                  {isPositive ? "+" : ""}{trend}%
-                </span>
-              </div>
-            )}
           </div>
           <div className={`p-3 rounded-xl ${iconBgColor}`}>
             <Icon className={`h-6 w-6 ${iconColor}`} />
@@ -159,7 +114,6 @@ export default function DeoGloryDashboard() {
                 title="Usuarios Ativos"
                 value={stats?.activeUsers?.toLocaleString() || "0"}
                 icon={Users}
-                trend={12.5}
                 iconBgColor="bg-violet-100 dark:bg-violet-900/30"
                 iconColor="text-violet-600 dark:text-violet-400"
               />
@@ -167,15 +121,13 @@ export default function DeoGloryDashboard() {
                 title="Estudos Concluidos"
                 value={stats?.completedLessons?.toLocaleString() || "0"}
                 icon={CheckCircle}
-                trend={8.2}
                 iconBgColor="bg-green-100 dark:bg-green-900/30"
                 iconColor="text-green-600 dark:text-green-400"
               />
               <StatCard
-                title="Tempo Medio"
-                value={`${Math.round(stats?.averageStreak || 0)}min`}
+                title="Sequencia Media"
+                value={`${Math.round(stats?.averageStreak || 0)} dias`}
                 icon={Clock}
-                trend={-2.1}
                 iconBgColor="bg-blue-100 dark:bg-blue-900/30"
                 iconColor="text-blue-600 dark:text-blue-400"
               />
@@ -183,7 +135,6 @@ export default function DeoGloryDashboard() {
                 title="Licoes Ativas"
                 value={stats?.totalLessons || "0"}
                 icon={FileText}
-                trend={5.3}
                 iconBgColor="bg-purple-100 dark:bg-purple-900/30"
                 iconColor="text-purple-600 dark:text-purple-400"
               />
@@ -199,22 +150,12 @@ export default function DeoGloryDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyProgressData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="estudos" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-64 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Grafico de progresso mensal</p>
+                  <p className="text-xs mt-1">Dados serao exibidos conforme os usuarios estudam</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -226,28 +167,12 @@ export default function DeoGloryDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyActivityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="day" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="atividade"
-                      stroke="#10b981"
-                      fill="#10b98120"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="h-64 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Grafico de atividade semanal</p>
+                  <p className="text-xs mt-1">Dados serao exibidos conforme os usuarios estudam</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -363,47 +288,78 @@ export default function DeoGloryDashboard() {
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                Lições Recentes
+                Resumo do Sistema
               </CardTitle>
               <Badge variant="outline" className="text-green-600 border-green-200">
-                Últimas 5
+                Tempo Real
               </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[
-                  { title: "O Amor de Deus", status: "published", views: 432, date: "15/01/2024" },
-                  { title: "Fé e Obras", status: "published", views: 387, date: "22/01/2024" },
-                  { title: "A Graça Divina", status: "draft", views: 341, date: "29/01/2024" },
-                  { title: "Oração e Jejum", status: "published", views: 298, date: "05/02/2024" },
-                  { title: "Salvação em Cristo", status: "published", views: 256, date: "12/02/2024" },
-                ].map((lesson, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700"
-                  >
-                    <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                      <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-white truncate">
-                        {lesson.title}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {lesson.views} visualizacoes | {lesson.date}
-                      </p>
-                    </div>
-                    <Badge
-                      className={
-                        lesson.status === "published"
-                          ? "bg-green-100 text-green-700 border-0"
-                          : "bg-gray-100 text-gray-700 border-0"
-                      }
-                    >
-                      {lesson.status === "published" ? "Publicado" : "Rascunho"}
-                    </Badge>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                    <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   </div>
-                ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      Total de Licoes
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Licoes cadastradas no sistema
+                    </p>
+                  </div>
+                  <Badge className="bg-violet-100 text-violet-700 border-0">
+                    {stats?.totalLessons || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      Estudos Concluidos
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Total de conclusoes pelos usuarios
+                    </p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700 border-0">
+                    {stats?.completedLessons || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      Total de Usuarios
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Usuarios registrados no DeoGlory
+                    </p>
+                  </div>
+                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                    {stats?.totalUsers || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                    <Zap className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      XP Total Gerado
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Pontos de experiencia distribuidos
+                    </p>
+                  </div>
+                  <Badge className="bg-orange-100 text-orange-700 border-0">
+                    {stats?.totalXpEarned?.toLocaleString() || 0}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -94,11 +94,12 @@ npm run db:push  # Sincronizar esquema do banco
 ## Últimas Alterações
 
 ### 16/12/2025 - Correções Críticas do Sistema DeoGlory
-- **Instagram no site**: Seção Instagram agora só é exibida quando há posts reais sincronizados da API. Não mostra mais imagens de placeholder quando a API não está configurada.
-- **Ranking em tempo real**: Ranking atualiza automaticamente a cada 5 segundos com `refetchInterval: 5000` e `refetchOnWindowFocus: true`
-- **XP diário com timezone correto**: Cálculo de XP diário agora usa SQL nativo com `DATE_TRUNC` e `AT TIME ZONE 'America/Sao_Paulo'` para janela correta de 00:00-23:59 no fuso de São Paulo
-- **Penalidade de XP no quiz**: Adicionada dedução de -10 XP ao errar uma questão no RespondaScreen (além da dedução de -5 XP ao usar dica que já existia)
-- **Remoção do sistema OCR**: Removido completamente Tesseract + ImageMagick da leitura de PDFs. Agora só usa pdf-parse para extrair texto selecionável de PDFs
+- **Instagram no site**: Seção Instagram agora só é exibida quando há posts reais sincronizados da API. Não mostra mais imagens de placeholder/stock quando a API não está configurada. Filtra posts com URLs de placeholder ou stock_images.
+- **Ranking XP diário corrigido**: Cálculo de XP diário agora usa tabela `xpTransactions` ao invés de `userLessonProgress`. Isso garante que XP de unidades individuais, lições completas, conquistas e bônus são todos contados corretamente.
+- **XP inicial no Quiz**: Quando o usuário vai direto para a etapa "Responda", o XP Total agora inicia com o XP acumulado das etapas anteriores (Estude + Medite), não zero. Usa `useMemo` para cálculo estável e `useRef` para evitar re-execução.
+- **Prompt de PDF melhorado**: Instruções fortalecidas para garantir que TODOS os tópicos do PDF sejam extraídos sem exceção. Adicionada validação para confirmar que nenhum tópico foi ignorado.
+- **Penalidade de XP no quiz**: Confirmado: -10 XP ao errar questão e -5 XP ao usar dica (já implementado anteriormente).
+- **XP diário com timezone correto**: Cálculo usa SQL nativo com `DATE_TRUNC` e `AT TIME ZONE 'America/Sao_Paulo'` para janela correta de 00:00-23:59 no fuso de São Paulo
 
 ### 15/12/2025 - UI Improvements in Quiz Section (Responda)
 - **Orange card layout**: All question types (multiple choice, true/false, fill-blank) now use consistent bg-orange-50 dark:bg-orange-900/20

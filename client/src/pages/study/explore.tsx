@@ -9,9 +9,7 @@ import {
   BookOpen, 
   Heart, 
   Check,
-  Loader2,
-  Bell,
-  Compass
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -115,77 +113,6 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background pb-24" data-testid="explore-page">
-      {/* Header com gradiente roxo */}
-      <div 
-        className="relative"
-        style={{
-          background: 'linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #EC4899 100%)',
-        }}
-      >
-        {/* Top bar com usuario */}
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-              {user?.profileImageUrl ? (
-                <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white font-bold text-lg">{userName.charAt(0)}</span>
-              )}
-            </div>
-            <div>
-              <p className="text-white font-bold text-lg">Ola, {userName}!</p>
-              <div className="flex items-center gap-1">
-                <span className="text-yellow-300 text-sm">🔥</span>
-                <span className="text-white/90 text-sm">{streak} dias</span>
-              </div>
-            </div>
-          </div>
-          <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-white" />
-          </button>
-        </div>
-
-        {/* Stats bar */}
-        <div 
-          className="mx-4 mb-4 p-3 rounded-xl flex items-center justify-between"
-          style={{
-            background: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-white font-semibold text-sm">Vidas Disponiveis</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              {Array.from({ length: maxHearts }).map((_, i) => (
-                <Heart
-                  key={i}
-                  className={cn(
-                    "h-4 w-4",
-                    i < currentHearts 
-                      ? "fill-red-400 text-red-400" 
-                      : "fill-white/30 text-white/30"
-                  )}
-                />
-              ))}
-              <span className="text-white font-bold text-sm ml-1">{currentHearts}/{maxHearts}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Segunda linha de stats */}
-        <div className="mx-4 pb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-yellow-300">⭐</span>
-            <span className="text-white font-bold">{totalXP.toLocaleString()} XP</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Compass className="h-4 w-4 text-white" />
-            <span className="text-white text-sm">Explorando</span>
-          </div>
-        </div>
-      </div>
-
       <main className="px-4 py-6 space-y-6">
         {/* Versiculo do Dia */}
         <motion.div

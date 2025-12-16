@@ -196,7 +196,7 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
       {users.map((user, index) => {
         const position = index + 1;
         const isCurrentUser = user.userId === currentUserId;
-        const dailyXp = user.dailyXp || Math.floor(50 + position * 10);
+        const dailyXp = user.dailyXp || 0;
 
         return (
           <motion.div
@@ -255,12 +255,14 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
               )}>
                 {user.totalXp.toLocaleString()} XP
               </p>
-              <p className={cn(
-                "text-xs",
-                isCurrentUser ? "text-white/70" : "text-orange-500"
-              )}>
-                +{dailyXp} hoje
-              </p>
+              {dailyXp > 0 && (
+                <p className={cn(
+                  "text-xs",
+                  isCurrentUser ? "text-white/70" : "text-orange-500"
+                )}>
+                  +{dailyXp} hoje
+                </p>
+              )}
             </div>
           </motion.div>
         );

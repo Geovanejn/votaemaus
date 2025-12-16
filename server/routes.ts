@@ -1836,6 +1836,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const missionWeekKey = getCurrentWeekKey();
         console.log(`[Missions] Checking ${userMissions.length} missions for user ${req.user.id} on ${today}`);
         
+        // Check if all missions were already completed before auto-completion
+        const allCompletedBefore = userMissions.length > 0 && userMissions.every(m => m.completed);
+        
         for (const mission of userMissions) {
           if (mission.completed) continue;
           
@@ -1846,12 +1849,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (missionType === 'complete_lesson') {
             console.log(`[Missions] Completing complete_lesson mission ${mission.missionId}`);
             await storage.completeMission(req.user.id, mission.missionId, today);
-            await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }
           // Complete "maintain_streak" type missions
           if (missionType === 'maintain_streak') {
             console.log(`[Missions] Completing maintain_streak mission ${mission.missionId}`);
             await storage.completeMission(req.user.id, mission.missionId, today);
+          }
+        }
+        
+        // Check if ALL daily missions are now completed after auto-completion
+        // Only increment if they weren't already all completed before
+        if (!allCompletedBefore) {
+          const updatedMissions = await storage.getUserDailyMissions(req.user.id, today);
+          const allCompletedAfter = updatedMissions.length > 0 && updatedMissions.every(m => m.completed);
+          if (allCompletedAfter) {
+            console.log(`[Missions] All daily missions completed via auto-complete, incrementing weekly count`);
             await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
           }
         }
@@ -3541,15 +3553,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Auto-complete "maintain_streak" and "complete_lesson" missions if user completed a lesson today
-      // Note: Weekly mission increment is handled in the lesson completion route
       if (hasCompletedLessonToday) {
-        const weekKey = getCurrentWeekKey();
         for (const mission of missions) {
           const missionType = mission.mission?.type;
           if ((missionType === 'maintain_streak' || missionType === 'complete_lesson') && !mission.completed) {
             await storage.completeMission(userId, mission.missionId, today);
-            // Increment weekly mission count for missions auto-completed here
-            await storage.incrementWeeklyMission(userId, weekKey);
             needsRefresh = true;
           }
         }
@@ -3610,19 +3618,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const missionId = parseInt(req.params.missionId);
       const today = getTodayBrazilDate();
       
+      // Check how many missions were completed before this one
+      const missionsBeforeCompletion = await storage.getUserDailyMissions(userId, today);
+      const completedBeforeCount = missionsBeforeCompletion.filter(m => m.completed).length;
+      
       const result = await storage.completeMission(userId, missionId, today);
       
       if (!result) {
         return res.status(404).json({ message: "Missao nao encontrada ou ja concluida" });
       }
       
-      // Increment weekly mission count for weekly goals
-      const weekKey = getCurrentWeekKey();
-      await storage.incrementWeeklyMission(userId, weekKey);
+      // Check if ALL daily missions are now completed (this was the last one)
+      const missionsAfterCompletion = await storage.getUserDailyMissions(userId, today);
+      const completedAfterCount = missionsAfterCompletion.filter(m => m.completed).length;
+      const allCompleted = missionsAfterCompletion.length > 0 && completedAfterCount === missionsAfterCompletion.length;
+      
+      // Only increment weekly mission count when ALL daily missions are completed for the first time
+      if (allCompleted && completedBeforeCount < missionsAfterCompletion.length) {
+        const weekKey = getCurrentWeekKey();
+        await storage.incrementWeeklyMission(userId, weekKey);
+      }
       
       res.json({
         message: "Missao concluida com sucesso!",
         ...result,
+        allDailyMissionsCompleted: allCompleted,
       });
     } catch (error) {
       console.error("Complete mission error:", error);

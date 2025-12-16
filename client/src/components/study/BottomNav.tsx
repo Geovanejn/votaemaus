@@ -12,9 +12,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: "", icon: Home, label: "Início", activeColor: "#1CB0F6" },
-  { path: "/estudos", icon: BookOpen, label: "Estudos", activeColor: "#FFA500" },
+  { path: "/estudos", icon: BookOpen, label: "Estudos", activeColor: "#1CB0F6" },
   { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
-  { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#1CB0F6" },
+  { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#F97316" },
   { path: "/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
 ];
 

@@ -155,7 +155,13 @@ function QuizActivity({
   onComplete: () => void;
 }) {
   const { sounds } = useSounds();
-  const defaultQuestions = [
+  const defaultQuestions = missionType === 'timed_challenge' ? [
+    { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
+    { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
+    { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
+    { question: "Qual livro vem depois de Gênesis?", options: ["Números", "Êxodo", "Levítico", "Deuteronômio"], correctIndex: 1 },
+    { question: "Quantos discípulos Jesus tinha?", options: ["10", "11", "12", "13"], correctIndex: 2 },
+  ] : [
     { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
     { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
     { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
@@ -166,7 +172,7 @@ function QuizActivity({
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(missionType === 'timed_challenge' ? 60 : null);
+  const [timeLeft, setTimeLeft] = useState(missionType === 'timed_challenge' ? 30 : null);
   const [quizComplete, setQuizComplete] = useState(false);
 
   useEffect(() => {
@@ -214,7 +220,7 @@ function QuizActivity({
     }, 1500);
   };
 
-  const minCorrect = missionType === 'quick_quiz' ? 3 : 2;
+  const minCorrect = missionType === 'quick_quiz' ? 3 : (missionType === 'timed_challenge' ? 3 : 2);
   const canComplete = quizComplete && correctAnswers >= minCorrect;
 
   if (quizComplete) {

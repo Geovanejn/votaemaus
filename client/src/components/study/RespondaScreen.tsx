@@ -501,7 +501,7 @@ export function RespondaScreen({
                 
                 {currentQuestion.verseReference && (
                   <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-3 mb-4">
-                    <p className="text-orange-800 dark:text-orange-200 text-sm italic">
+                    <p className="text-orange-800 dark:text-orange-200 italic" style={{ fontSize: `${Math.max(fontSize - 2, 12)}px` }}>
                       "{currentQuestion.verseReference}"
                     </p>
                   </div>
@@ -548,9 +548,9 @@ export function RespondaScreen({
                              optionLabels[idx]}
                           </span>
                           <span className={cn(
-                            "flex-1 text-sm",
+                            "flex-1",
                             (showCorrect || (isSelected && !showResult)) && "font-medium"
-                          )}>
+                          )} style={{ fontSize: `${fontSize}px` }}>
                             {option}
                           </span>
                         </button>
@@ -629,7 +629,7 @@ export function RespondaScreen({
                 {currentQuestion.type === "fill_blank" && (
                   <div className="space-y-4">
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4">
-                      <p className="text-foreground text-center font-bold">
+                      <p className="text-foreground text-center font-bold" style={{ fontSize: `${fontSize}px` }}>
                         {(() => {
                           const questionText = currentQuestion.question;
                           const blankPatterns = ["_____", "____", "___", "...", "…", "__"];
@@ -747,7 +747,7 @@ export function RespondaScreen({
               <Card className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-0">
                 <div className="flex items-start gap-2">
                   <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <p className="text-yellow-800 dark:text-yellow-200" style={{ fontSize: `${fontSize}px` }}>
                     {currentQuestion.hint}
                   </p>
                 </div>

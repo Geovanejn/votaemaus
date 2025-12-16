@@ -1258,19 +1258,34 @@ ESTRUTURA DE EXTRAÇÃO:
 5. Extraia aplicações práticas e meditações para a seção "Medite"
 6. Gere EXATAMENTE 5 perguntas para a seção "Responda"
 
-IMPORTANTE - CORREÇÃO DE ORTOGRAFIA, PONTUAÇÃO E ERROS DE OCR:
-- Use SEMPRE português brasileiro correto com acentuação apropriada.
-- Use "é", "á", "ã", "ç", "ê", "í", "ó", "ú" corretamente.
-- CORRIJA TODOS os erros de OCR do PDF: palavras como "oracao" devem ser "oração", "fe" deve ser "fé", "Deus" nunca "deus".
-- O texto do PDF pode ter ERROS DE LEITURA - interprete o CONTEXTO e corrija automaticamente.
-- Se uma palavra parece errada ou não faz sentido no contexto, DEDUZA qual seria a palavra correta baseando-se no significado da frase.
-- Exemplo: "O Senhor é meu pastor, nada me faltarg" → corrija para "faltará"
-- Exemplo: "Jesus crist0" → corrija para "Jesus Cristo" 
-- Exemplo: "oracao" → corrija para "oração"
-- Exemplo: "fcazer" → corrija para "fazer" baseado no contexto
-- SEMPRE corrija pontuação: adicione vírgulas, pontos, dois-pontos onde necessário.
-- SEMPRE inicie frases com letra maiúscula após ponto final.
-- Nomes próprios bíblicos SEMPRE com maiúscula: Deus, Jesus, Cristo, Senhor, Espírito Santo, Maria, José, etc.
+IMPORTANTE - CORREÇÃO OBRIGATÓRIA DE ERROS DE OCR E ORTOGRAFIA:
+A extração de PDF frequentemente produz ERROS DE OCR. Você DEVE corrigir TODOS os erros automaticamente:
+
+CORREÇÕES DE CARACTERES TROCADOS (muito comum em OCR):
+- Números no lugar de letras: "0" → "o", "1" → "l" ou "i", "3" → "e", "5" → "s", "8" → "B"
+- Exemplo: "Mis0o3s" → "Missões", "crist0" → "Cristo", "1greja" → "Igreja", "5enhor" → "Senhor"
+- Exemplo: "f3" → "fé", "oraça0" → "oração", "D3us" → "Deus"
+- Letras trocadas ou faltando: "fcazer" → "fazer", "igrja" → "igreja", "palvra" → "palavra"
+- Caracteres estranhos ou símbolos: remova caracteres como "§", "¶", "€" que não fazem sentido no contexto
+
+CORREÇÕES DE ACENTUAÇÃO (OCR frequentemente perde acentos):
+- "oracao" → "oração", "fe" → "fé", "coracao" → "coração", "bencao" → "bênção"
+- "missao" → "missão", "salvacao" → "salvação", "comunhao" → "comunhão"
+- "espirito" → "espírito", "misericordia" → "misericórdia", "proposito" → "propósito"
+
+CORREÇÕES BASEADAS NO CONTEXTO:
+- Se uma palavra não existe mas é similar a uma palavra real, corrija para a palavra correta
+- Analise o contexto da frase para deduzir a palavra correta
+- Exemplo: "O Senhor é meu pastor, nada me faltarg" → "faltará"
+- Exemplo: "Vai e nao peques majs" → "mais"
+
+CORREÇÕES DE FORMATAÇÃO:
+- Espaços extras ou faltando entre palavras
+- Pontuação correta: vírgulas, pontos, dois-pontos
+- Maiúsculas no início de frases e em nomes próprios
+- Nomes bíblicos SEMPRE com maiúscula: Deus, Jesus, Cristo, Senhor, Espírito Santo, etc.
+
+REGRA DE OURO: Quando em dúvida sobre uma palavra estranha, SEMPRE corrija para a palavra mais provável baseado no contexto religioso/bíblico do texto.
 
 IMPORTANTE - MEDITAÇÃO CRISTÃ:
 A meditação cristã é DIFERENTE da meditação oriental. NÃO inclua:

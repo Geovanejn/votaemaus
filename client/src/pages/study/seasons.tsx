@@ -263,23 +263,19 @@ function SeasonCard({
                 <img 
                   src={season.coverImageUrl} 
                   alt="Capa da revista"
-                  className="w-20 h-28 rounded-lg object-cover shadow-lg border-2 border-white/20"
+                  className="w-20 h-28 rounded-lg object-cover border-2 border-white/20"
+                  style={{ boxShadow: '0 8px 25px rgba(0,0,0,0.4)' }}
                 />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3">
-                {!season.coverImageUrl && (
+              {!season.coverImageUrl && (
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                )}
-                <Badge 
-                  className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1 rounded-full border-0"
-                >
-                  Trimestre 2024
-                </Badge>
-              </div>
+                </div>
+              )}
               
               <h2 className="text-xl font-bold text-white mb-1 line-clamp-2">{season.title}</h2>
               <p className="text-white/80 text-sm mb-3 line-clamp-2">

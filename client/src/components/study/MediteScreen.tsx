@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -71,6 +71,21 @@ interface MeditationSection {
   verseText?: string;
 }
 
+// Remove título duplicado do início do conteúdo se existir
+function cleanDuplicateTitle(title: string, content: string): string {
+  if (!title || !content) return content;
+  const titleLower = title.toLowerCase().trim();
+  const contentLines = content.split('\n');
+  
+  if (contentLines.length > 0) {
+    const firstLine = contentLines[0].replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '').trim().toLowerCase();
+    if (firstLine === titleLower || firstLine.includes(titleLower) || titleLower.includes(firstLine)) {
+      return contentLines.slice(1).join('\n').trim();
+    }
+  }
+  return content;
+}
+
 interface MediteScreenProps {
   lessonTitle: string;
   sections: MeditationSection[];
@@ -93,6 +108,7 @@ export function MediteScreen({
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const sections = rawSections.length > 0 ? rawSections : [
     { 
@@ -117,12 +133,14 @@ export function MediteScreen({
   const goNext = () => {
     if (!isLast) {
       setCurrentIndex(prev => prev + 1);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
   const goPrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
@@ -179,20 +197,9 @@ export function MediteScreen({
             <MoreVertical className="h-5 w-5" />
           </Button>
         </div>
-        
-        <div className="flex items-center justify-between text-sm">
-          <span>Sessao de Meditacao</span>
-          <span>Etapa {currentIndex + 1} de {totalSections}</span>
-        </div>
-        <div className="mt-2 h-2 bg-white/30 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-white rounded-full transition-all"
-            style={{ width: `${((currentIndex + 1) / totalSections) * 100}%` }}
-          />
-        </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 -mt-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 -mt-4">
         <div className="max-w-lg mx-auto space-y-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -232,7 +239,7 @@ export function MediteScreen({
                 )}
                 
                 <p className="text-muted-foreground text-center leading-relaxed">
-                  {currentSection.content}
+                  {cleanDuplicateTitle(currentSection.title, currentSection.content)}
                 </p>
               </Card>
             </motion.div>

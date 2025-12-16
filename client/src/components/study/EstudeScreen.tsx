@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -135,6 +135,22 @@ function VerseContent({
 }
 
 function TopicContent({ title, content, topicNumber }: { title: string; content: string; topicNumber?: number }) {
+  // Remove título duplicado do início do conteúdo se existir
+  const cleanContent = (() => {
+    if (!title || !content) return content;
+    const titleLower = title.toLowerCase().trim();
+    const contentLines = content.split('\n');
+    
+    // Verifica se a primeira linha é o título (exato ou muito similar)
+    if (contentLines.length > 0) {
+      const firstLine = contentLines[0].replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '').trim().toLowerCase();
+      if (firstLine === titleLower || firstLine.includes(titleLower) || titleLower.includes(firstLine)) {
+        return contentLines.slice(1).join('\n').trim();
+      }
+    }
+    return content;
+  })();
+
   return (
     <div className="py-4">
       <div className="mb-3">
@@ -146,7 +162,7 @@ function TopicContent({ title, content, topicNumber }: { title: string; content:
         <span className="text-lg font-bold text-foreground">{title}</span>
       </div>
       <div className="text-foreground leading-relaxed pl-8">
-        <FormattedText content={content} />
+        <FormattedText content={cleanContent} />
       </div>
     </div>
   );
@@ -177,6 +193,7 @@ export function EstudeScreen({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [highlightedVerses, setHighlightedVerses] = useState<Set<number>>(new Set());
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const sections = rawSections.length > 0 ? rawSections : [
     { type: "topic" as const, title: lessonTitle, content: "Conteudo nao disponivel." }
@@ -195,12 +212,14 @@ export function EstudeScreen({
   const goNext = () => {
     if (!isLast) {
       setCurrentIndex(prev => prev + 1);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
   const goPrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
   
@@ -274,7 +293,7 @@ export function EstudeScreen({
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
         <div className="max-w-lg mx-auto space-y-4">
           <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
             <div className="flex items-center justify-between mb-4">

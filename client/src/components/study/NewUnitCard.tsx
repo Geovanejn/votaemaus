@@ -102,15 +102,6 @@ export function LessonCard({
       data-testid={`lesson-card-${lesson.id}`}
     >
       <div className="flex items-start gap-3 mb-3">
-        {lesson.coverImageUrl && (
-          <div className="shrink-0">
-            <img 
-              src={lesson.coverImageUrl} 
-              alt="Capa da revista"
-              className="w-12 h-16 sm:w-14 sm:h-20 rounded-md object-cover shadow-sm"
-            />
-          </div>
-        )}
         <div className="flex-1 flex flex-col gap-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">

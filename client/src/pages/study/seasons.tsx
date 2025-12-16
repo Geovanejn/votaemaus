@@ -257,39 +257,54 @@ function SeasonCard({
         }}
       >
         <div className="p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
-            <Badge 
-              className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1 rounded-full border-0"
-            >
-              Trimestre 2024
-            </Badge>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-2">{season.title}</h2>
-          <p className="text-white/80 text-sm mb-4">
-            {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
-          </p>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-white/90 text-sm">
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="h-4 w-4" />
-                <span>{lessonsCount} Licoes</span>
+          <div className="flex gap-4">
+            {season.coverImageUrl && (
+              <div className="shrink-0">
+                <img 
+                  src={season.coverImageUrl} 
+                  alt="Capa da revista"
+                  className="w-20 h-28 rounded-lg object-cover shadow-lg border-2 border-white/20"
+                />
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                <span>~{avgMinutes} min cada</span>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-3">
+                {!season.coverImageUrl && (
+                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                )}
+                <Badge 
+                  className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1 rounded-full border-0"
+                >
+                  Trimestre 2024
+                </Badge>
+              </div>
+              
+              <h2 className="text-xl font-bold text-white mb-1 line-clamp-2">{season.title}</h2>
+              <p className="text-white/80 text-sm mb-3 line-clamp-2">
+                {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
+              </p>
+              
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 text-white/90 text-sm flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{lessonsCount} Licoes</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    <span>~{avgMinutes} min</span>
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="h-5 w-5 text-white/80" />
+                </motion.div>
               </div>
             </div>
-            <motion.div
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown className="h-5 w-5 text-white/80" />
-            </motion.div>
           </div>
         </div>
       </Card>

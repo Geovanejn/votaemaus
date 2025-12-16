@@ -5440,6 +5440,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Revista não encontrada", errorType: "not_found" });
       }
 
+      // Salvar o status original para restaurar após o processamento
+      const originalStatus = season.status;
+
       if (!isAIConfigured()) {
         return res.status(500).json({ message: "IA não configurada. Configure a chave GEMINI_API_KEY nas variáveis de ambiente.", errorType: "config" });
       }
@@ -5450,14 +5453,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfText = pdfData.text;
 
       if (!pdfText || pdfText.trim().length < 100) {
-        await storage.updateSeason(seasonId, { status: "draft" });
+        await storage.updateSeason(seasonId, { status: originalStatus });
         return res.status(400).json({ message: "PDF não contém texto suficiente para processamento. Verifique se o PDF contém texto selecionável.", errorType: "pdf_content" });
       }
 
       const extractedLesson = await generateLessonFromPDFExact(pdfText, geminiKey);
 
       if (!extractedLesson || !extractedLesson.title) {
-        await storage.updateSeason(seasonId, { status: "draft" });
+        await storage.updateSeason(seasonId, { status: originalStatus });
         return res.status(500).json({ message: "Erro ao processar PDF com IA" });
       }
 
@@ -5542,7 +5545,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      await storage.updateSeason(seasonId, { status: "draft" });
+      // Restaurar o status original da revista (publicada ou rascunho)
+      await storage.updateSeason(seasonId, { status: originalStatus });
 
       res.json({
         message: "PDF processado com sucesso",
@@ -5553,6 +5557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Import PDF exact error:", error);
+      // Em caso de erro, restaurar para rascunho
       await storage.updateSeason(parseInt(req.params.id), { status: "draft" });
       
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";

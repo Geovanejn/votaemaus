@@ -1532,6 +1532,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user statistics for profile page
+  app.get("/api/study/profile/stats", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const stats = await storage.getUserProfileStats(req.user.id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get user stats error:", error);
+      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+    }
+  });
+
   // Get all published study weeks
   app.get("/api/study/weeks", authenticateToken, async (req: AuthRequest, res) => {
     try {

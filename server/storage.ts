@@ -195,6 +195,7 @@ export interface IStorage {
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   getStudyStats(): Promise<any>;
+  getUserProfileStats(userId: number): Promise<any>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
   getStudyUsersWithProfiles(): Promise<any[]>;
   
@@ -2021,7 +2022,7 @@ export class DatabaseStorage implements IStorage {
 
   private async addXp(userId: number, amount: number, source: string, sourceId?: number): Promise<void> {
     // Ensure the study profile exists before adding XP
-    await this.getOrCreateStudyProfile(userId);
+    const profile = await this.getOrCreateStudyProfile(userId);
     
     await db.insert(schema.xpTransactions).values({
       userId,
@@ -2030,8 +2031,18 @@ export class DatabaseStorage implements IStorage {
       sourceId,
     });
     
+    const newTotalXp = (profile.totalXp || 0) + amount;
+    
+    // Calculate new level based on XP thresholds (500 XP per level)
+    const xpPerLevel = 500;
+    const newLevel = Math.max(1, Math.floor(newTotalXp / xpPerLevel) + 1);
+    
     await db.update(schema.studyProfiles)
-      .set({ totalXp: sql`total_xp + ${amount}`, updatedAt: new Date() })
+      .set({ 
+        totalXp: newTotalXp, 
+        currentLevel: newLevel,
+        updatedAt: new Date() 
+      })
       .where(eq(schema.studyProfiles.userId, userId));
   }
 
@@ -2050,6 +2061,61 @@ export class DatabaseStorage implements IStorage {
       totalLessons: Number(lessonCount?.count || 0),
       totalUnits: Number(unitCount?.count || 0),
       totalStudents: Number(profileCount?.count || 0),
+    };
+  }
+
+  async getUserProfileStats(userId: number): Promise<any> {
+    // Get completed lessons count
+    const [lessonsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ));
+    
+    // Get completed units count
+    const [unitsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userUnitProgress)
+      .where(and(
+        eq(schema.userUnitProgress.userId, userId),
+        eq(schema.userUnitProgress.isCompleted, true)
+      ));
+    
+    // Get distinct study days count (single timezone conversion)
+    const [studyDaysResult] = await db.select({ 
+      count: sql<number>`count(DISTINCT date_trunc('day', ${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo'))` 
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ));
+    
+    // Get user ranking position using all users ordered by totalXp
+    const [rankResult] = await db.select({
+      rank: sql<number>`
+        (SELECT COUNT(*) + 1 FROM ${schema.studyProfiles} sp2 
+         WHERE sp2.total_xp > (SELECT total_xp FROM ${schema.studyProfiles} WHERE user_id = ${userId}))
+      `
+    }).from(sql`(SELECT 1) as dummy`);
+    
+    // Check if user has a profile (if not, rank is null)
+    const profile = await this.getStudyProfile(userId);
+    const userRank = profile ? Number(rankResult?.rank || 1) : null;
+    
+    // Get first activity date
+    const [firstActivity] = await db.select({ 
+      firstDate: sql<string>`MIN(${schema.userLessonProgress.completedAt})` 
+    })
+      .from(schema.userLessonProgress)
+      .where(eq(schema.userLessonProgress.userId, userId));
+    
+    return {
+      lessonsCompleted: Number(lessonsResult?.count || 0),
+      unitsCompleted: Number(unitsResult?.count || 0),
+      studyDays: Number(studyDaysResult?.count || 0),
+      rankingPosition: userRank,
+      firstActivityDate: firstActivity?.firstDate || null,
     };
   }
 

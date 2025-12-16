@@ -126,6 +126,19 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
+  interface UserStats {
+    lessonsCompleted: number;
+    unitsCompleted: number;
+    studyDays: number;
+    rankingPosition: number | null;
+    firstActivityDate: string | null;
+  }
+
+  const { data: userStats } = useQuery<UserStats>({
+    queryKey: ['/api/study/profile/stats'],
+    enabled: isAuthenticated,
+  });
+
   if (profileLoading || achievementsLoading) {
     return <LoadingState />;
   }
@@ -152,9 +165,11 @@ export default function ProfilePage() {
   const recentActivities: RecentActivity[] = [];
   const hasRecentActivities = recentActivities.length > 0;
 
-  const lessonsCompleted = 18;
-  const unitsCompleted = 3;
-  const studyDays = 89;
+  const lessonsCompleted = userStats?.lessonsCompleted ?? 0;
+  const unitsCompleted = userStats?.unitsCompleted ?? 0;
+  const studyDays = userStats?.studyDays ?? 0;
+  const rankingPosition = userStats?.rankingPosition;
+  const firstActivityDate = userStats?.firstActivityDate;
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="profile-page">
@@ -275,7 +290,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1">
                 <Trophy className="h-5 w-5 text-blue-400" />
-                <span className="text-lg font-bold text-white">8</span>
+                <span className="text-lg font-bold text-white">{rankingPosition !== null ? rankingPosition : "-"}</span>
               </div>
               <span className="text-xs text-white/70">Posicao</span>
             </div>
@@ -337,8 +352,8 @@ export default function ProfilePage() {
               </div>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Ofensiva Atual</span>
             </div>
-            <p className="text-2xl font-black text-foreground">{profile?.currentStreak || 12} dias</p>
-            <p className="text-xs text-muted-foreground">Maior: {profile?.longestStreak || 25} dias</p>
+            <p className="text-2xl font-black text-foreground">{profile?.currentStreak || 0} dias</p>
+            <p className="text-xs text-muted-foreground">Maior: {profile?.longestStreak || 0} dias</p>
           </Card>
           
           <Card className="p-4">
@@ -352,7 +367,11 @@ export default function ProfilePage() {
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Dias Totais</span>
             </div>
             <p className="text-2xl font-black text-foreground">{studyDays}</p>
-            <p className="text-xs text-muted-foreground">Desde março</p>
+            <p className="text-xs text-muted-foreground">
+              {firstActivityDate 
+                ? `Desde ${new Date(firstActivityDate).toLocaleDateString('pt-BR', { month: 'long' })}`
+                : 'Sem atividades'}
+            </p>
           </Card>
         </motion.div>
 

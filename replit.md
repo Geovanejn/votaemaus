@@ -217,6 +217,15 @@ npm run db:push  # Sincronizar esquema do banco
   - weeklyLessonsStreak: dias consecutivos de estudo
 - **Logica de reset**: Counters sao resetados quando o usuario pula um dia
 
+### 16/12/2025 - Estatisticas Reais do Perfil
+- **Nova API**: Adicionado endpoint `/api/study/profile/stats` para estatisticas do usuario
+- **Funcao getUserProfileStats**: Retorna licoes completadas, unidades, dias de estudo e posicao no ranking
+- **Perfil Atualizado**: Pagina de perfil agora exibe dados reais em vez de valores hardcoded
+  - Posicao no ranking calculada dinamicamente
+  - Dias de estudo contados por datas distintas de conclusao de licoes
+  - Data da primeira atividade para contexto
+  - Streak atual e maior streak exibem 0 quando nao ha dados
+
 ### 07/12/2025
 - Configuracao do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
 - Integracao Instagram configurada e funcionando com posts reais do @umpemaus

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Trophy, Filter, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
+import { Trophy, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -44,7 +44,7 @@ interface LeaderboardResponse {
   entries: RankingUser[];
 }
 
-function HeaderSection({ userPosition, userXp, userPhoto, userName }: { userPosition: number; userXp: number; userPhoto?: string | null; userName?: string }) {
+function HeaderSection({ userXp }: { userXp: number }) {
   return (
     <div 
       className="px-4 pt-4 pb-8"
@@ -52,27 +52,6 @@ function HeaderSection({ userPosition, userXp, userPhoto, userName }: { userPosi
         background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #dc2626 100%)'
       }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-12 w-12 border-2 border-emerald-400">
-            <AvatarImage src={userPhoto || ""} />
-            <AvatarFallback className="bg-amber-100 text-amber-700 font-bold">
-              {userName?.charAt(0) || "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="font-bold text-xl text-white">Ranking</h1>
-            <div className="flex items-center gap-1">
-              <Trophy className="h-4 w-4 text-amber-300" />
-              <span className="text-white/90 text-sm">Posição #{userPosition || "-"}</span>
-            </div>
-          </div>
-        </div>
-        <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-          <Filter className="h-5 w-5 text-white" />
-        </button>
-      </div>
-      
       <div 
         className="rounded-2xl p-5 text-center"
         style={{
@@ -143,9 +122,6 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
             data-testid="podium-first"
           >
             <div className="relative mb-2" data-testid={`avatar-user-${first.userId}`}>
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                <Trophy className="w-6 h-6 text-amber-400 drop-shadow-lg" />
-              </div>
               <Avatar className="h-18 w-18 border-4 border-amber-400 shadow-xl ring-4 ring-amber-200">
                 <AvatarImage src={first.photoUrl || ""} className="h-[72px] w-[72px]" />
                 <AvatarFallback className="bg-amber-100 text-amber-700 font-bold text-xl h-[72px] w-[72px]">
@@ -451,7 +427,7 @@ export default function RankingPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-        <HeaderSection userPosition={0} userXp={0} userPhoto={null} userName="Usuário" />
+        <HeaderSection userXp={0} />
         <div className="bg-background -mt-4 rounded-t-3xl">
           <EmptyState />
         </div>
@@ -462,7 +438,7 @@ export default function RankingPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
-      <HeaderSection userPosition={currentPosition} userXp={currentUserXp} userPhoto={user?.photoUrl} userName={user?.username} />
+      <HeaderSection userXp={currentUserXp} />
       
       <TopThreePodium users={entries} />
 

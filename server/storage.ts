@@ -2430,12 +2430,8 @@ export class DatabaseStorage implements IStorage {
 
       if (achievement.xpReward > 0) {
         await this.addCrystals(userId, Math.floor(achievement.xpReward / 25), "achievement", `Conquista: ${achievement.name}`);
-        const profile = await this.getStudyProfile(userId);
-        if (profile) {
-          await db.update(schema.studyProfiles)
-            .set({ totalXp: profile.totalXp + achievement.xpReward, updatedAt: new Date() })
-            .where(eq(schema.studyProfiles.id, profile.id));
-        }
+        // FIXED: Use addXp to record the transaction for accurate daily XP calculation
+        await this.addXp(userId, achievement.xpReward, 'achievement', achievementId);
       }
 
       return { userAchievement, achievement };
@@ -2585,20 +2581,18 @@ export class DatabaseStorage implements IStorage {
     
     // Calculate daily XP for each user (XP earned today from 00:00 to 23:59 in America/Sao_Paulo timezone)
     // Use xpTransactions table for accurate calculation including XP from units, lessons, achievements, etc.
-    // SQL timezone conversion ensures accurate calculation regardless of server timezone or DST changes
-    const saoPauloTodayStart = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`;
-    const saoPauloTodayEnd = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' + INTERVAL '1 day' - INTERVAL '1 second')`;
-    
+    // FIXED: Convert createdAt to São Paulo timezone before comparing to ensure accurate daily calculation
+    // The comparison uses DATE() on both sides converted to São Paulo timezone for correct date matching
     const usersWithDailyXp = await Promise.all(usersWithProfiles.map(async (user) => {
       // Sum ALL XP transactions from today (units, lessons, achievements, bonuses)
+      // Convert createdAt to São Paulo timezone and compare DATE part only
       const [dailyXpResult] = await db.select({
         dailyXp: sql<number>`COALESCE(SUM(${schema.xpTransactions.amount}), 0)`
       })
         .from(schema.xpTransactions)
         .where(and(
           eq(schema.xpTransactions.userId, user.userId),
-          sql`${schema.xpTransactions.createdAt} >= ${saoPauloTodayStart}`,
-          sql`${schema.xpTransactions.createdAt} <= ${saoPauloTodayEnd}`
+          sql`DATE(${schema.xpTransactions.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE(NOW() AT TIME ZONE 'America/Sao_Paulo')`
         ));
       
       return {
@@ -3547,12 +3541,8 @@ export class DatabaseStorage implements IStorage {
         xpBonus,
       });
       
-      const profile = await this.getStudyProfile(userId);
-      if (profile) {
-        await db.update(schema.studyProfiles)
-          .set({ totalXp: profile.totalXp + xpBonus, updatedAt: new Date() })
-          .where(eq(schema.studyProfiles.id, profile.id));
-      }
+      // FIXED: Use addXp to record the transaction for accurate daily XP calculation
+      await this.addXp(userId, xpBonus, 'weekly_goal_bonus', undefined);
     }
   }
 
@@ -3950,12 +3940,8 @@ export class DatabaseStorage implements IStorage {
     await this.addCrystals(userId, milestone.crystalReward, "streak_milestone", `Marco de ${milestone.days} dias de ofensiva: ${milestone.title}`);
     
     if (milestone.xpReward > 0) {
-      const profile = await this.getStudyProfile(userId);
-      if (profile) {
-        await db.update(schema.studyProfiles)
-          .set({ totalXp: profile.totalXp + milestone.xpReward, updatedAt: new Date() })
-          .where(eq(schema.studyProfiles.id, profile.id));
-      }
+      // FIXED: Use addXp to record the transaction for accurate daily XP calculation
+      await this.addXp(userId, milestone.xpReward, 'streak_milestone', milestone.id);
     }
     
     return { milestone, crystalsAwarded: milestone.crystalReward, xpAwarded: milestone.xpReward };

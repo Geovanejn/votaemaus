@@ -264,13 +264,61 @@ export function EstudeScreen({
     }
     
     const currentSection = sections[currentIndex];
-    const textToRead = currentSection.content;
+    let textToRead = currentSection.content || '';
     
-    if ('speechSynthesis' in window) {
+    // Normalize text - remove HTML tags, JSON structures, and clean up
+    const normalizeForSpeech = (text: string): string => {
+      // Recursively extract text from any node structure
+      const extractTextDeep = (node: any): string => {
+        if (node === null || node === undefined) return '';
+        if (typeof node === 'string') return node;
+        if (typeof node === 'number') return String(node);
+        if (Array.isArray(node)) {
+          return node.map(extractTextDeep).join(' ');
+        }
+        if (typeof node === 'object') {
+          // Check for text property first (TipTap/ProseMirror format)
+          if (node.text) return node.text;
+          // Then check for content array
+          if (node.content) return extractTextDeep(node.content);
+          // Check for children (some editor formats)
+          if (node.children) return extractTextDeep(node.children);
+          // Check for value
+          if (node.value) return extractTextDeep(node.value);
+          // Last resort: try all properties
+          return Object.values(node).map(extractTextDeep).join(' ');
+        }
+        return '';
+      };
+      
+      // Try to parse JSON content
+      if (text.startsWith('{') || text.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(text);
+          text = extractTextDeep(parsed);
+        } catch (e) {
+          // Not valid JSON, continue with string
+        }
+      }
+      
+      // Remove HTML tags
+      text = text.replace(/<[^>]*>/g, ' ');
+      // Remove markdown formatting
+      text = text.replace(/[#*_~`]/g, '');
+      // Replace multiple spaces and newlines with single space
+      text = text.replace(/\s+/g, ' ');
+      // Trim
+      return text.trim();
+    };
+    
+    textToRead = normalizeForSpeech(textToRead);
+    
+    if ('speechSynthesis' in window && textToRead) {
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = 'pt-BR';
       utterance.rate = 0.9;
       utterance.onend = () => setIsReading(false);
+      utterance.onerror = () => setIsReading(false);
       window.speechSynthesis.speak(utterance);
       setIsReading(true);
     }

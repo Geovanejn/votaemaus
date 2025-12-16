@@ -93,82 +93,98 @@ function HeaderSection({ userPosition, userXp, userPhoto, userName }: { userPosi
 function TopThreePodium({ users }: { users: RankingUser[] }) {
   const top3 = users.slice(0, 3);
 
+  // Need at least 1 user to show the podium
   if (top3.length === 0) {
     return null;
   }
 
   const first = top3[0];
-  const second = top3[1];
-  const third = top3[2];
+  const second = top3.length > 1 ? top3[1] : null;
+  const third = top3.length > 2 ? top3[2] : null;
 
   return (
-    <div className="bg-background -mt-4 rounded-t-3xl pt-6 pb-4">
-      <h2 className="text-lg font-bold text-center mb-6">Top 3 Participantes</h2>
+    <div className="bg-background -mt-4 rounded-t-3xl pt-6 pb-4" data-testid="podium-section">
+      <h2 className="text-lg font-bold text-center mb-4" data-testid="text-podium-title">Top 3 Participantes</h2>
       
-      <div className="flex items-end justify-center gap-6 px-4">
+      <div className="flex items-end justify-center gap-2 px-4">
+        {/* 2nd Place - Left */}
         {second && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="flex flex-col items-center"
+            data-testid="podium-second"
           >
-            <div className="relative">
-              <Avatar className="h-16 w-16 border-4 border-gray-300">
+            <div className="relative mb-2" data-testid={`avatar-user-${second.userId}`}>
+              <Avatar className="h-14 w-14 border-4 border-gray-300 shadow-lg">
                 <AvatarImage src={second.photoUrl || ""} />
                 <AvatarFallback className="bg-gray-300 text-gray-700 font-bold text-lg">
                   {second.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                2
-              </div>
             </div>
-            <p className="text-sm font-semibold mt-2 text-center">{second.username.split(" ")[0]}</p>
-            <p className="text-xs text-muted-foreground">{second.totalXp.toLocaleString()} XP</p>
+            <p className="text-xs font-semibold text-center truncate max-w-[70px]" data-testid="text-podium-second-name">{second.username.split(" ")[0]}</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-podium-second-xp">{second.totalXp.toLocaleString()} XP</p>
+            {/* Podium Platform - Silver */}
+            <div className="mt-2 w-20 h-16 bg-gradient-to-b from-gray-300 to-gray-400 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-silver">
+              <Medal className="w-6 h-6 text-white drop-shadow-md" />
+            </div>
           </motion.div>
         )}
 
+        {/* 1st Place - Center */}
         {first && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0 }}
-            className="flex flex-col items-center -mt-6"
+            className="flex flex-col items-center -mt-4"
+            data-testid="podium-first"
           >
-            <div className="relative">
-              <Avatar className="h-20 w-20 border-4 border-amber-400 shadow-lg">
-                <AvatarImage src={first.photoUrl || ""} />
-                <AvatarFallback className="bg-amber-100 text-amber-700 font-bold text-xl">
+            <div className="relative mb-2" data-testid={`avatar-user-${first.userId}`}>
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                <Trophy className="w-6 h-6 text-amber-400 drop-shadow-lg" />
+              </div>
+              <Avatar className="h-18 w-18 border-4 border-amber-400 shadow-xl ring-4 ring-amber-200">
+                <AvatarImage src={first.photoUrl || ""} className="h-[72px] w-[72px]" />
+                <AvatarFallback className="bg-amber-100 text-amber-700 font-bold text-xl h-[72px] w-[72px]">
                   {first.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
             </div>
-            <p className="text-sm font-bold mt-2 text-center">{first.username.split(" ")[0]}</p>
-            <p className="text-xs font-semibold text-amber-500">{first.totalXp.toLocaleString()} XP</p>
+            <p className="text-sm font-bold text-center truncate max-w-[80px]" data-testid="text-podium-first-name">{first.username.split(" ")[0]}</p>
+            <p className="text-xs font-semibold text-amber-500" data-testid="text-podium-first-xp">{first.totalXp.toLocaleString()} XP</p>
+            {/* Podium Platform - Gold */}
+            <div className="mt-2 w-24 h-24 bg-gradient-to-b from-amber-400 to-amber-500 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-gold">
+              <Trophy className="w-8 h-8 text-white drop-shadow-md" />
+            </div>
           </motion.div>
         )}
 
+        {/* 3rd Place - Right */}
         {third && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex flex-col items-center"
+            data-testid="podium-third"
           >
-            <div className="relative">
-              <Avatar className="h-14 w-14 border-4 border-orange-400">
+            <div className="relative mb-2" data-testid={`avatar-user-${third.userId}`}>
+              <Avatar className="h-12 w-12 border-4 border-orange-400 shadow-lg">
                 <AvatarImage src={third.photoUrl || ""} />
                 <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">
                   {third.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs border-2 border-white">
-                3
-              </div>
             </div>
-            <p className="text-sm font-semibold mt-2 text-center">{third.username.split(" ")[0]}</p>
-            <p className="text-xs text-muted-foreground">{third.totalXp.toLocaleString()} XP</p>
+            <p className="text-xs font-semibold text-center truncate max-w-[70px]" data-testid="text-podium-third-name">{third.username.split(" ")[0]}</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-podium-third-xp">{third.totalXp.toLocaleString()} XP</p>
+            {/* Podium Platform - Bronze */}
+            <div className="mt-2 w-20 h-12 bg-gradient-to-b from-orange-400 to-orange-500 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-bronze">
+              <Medal className="w-5 h-5 text-white drop-shadow-md" />
+            </div>
           </motion.div>
         )}
       </div>

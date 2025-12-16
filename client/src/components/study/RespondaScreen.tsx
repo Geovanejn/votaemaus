@@ -212,13 +212,42 @@ export function RespondaScreen({
     }
     
     const currentQ = questions[currentIndex];
-    const textToRead = currentQ.question;
+    let textToRead = currentQ.question || '';
     
-    if ('speechSynthesis' in window) {
+    // Also read the verse reference if available
+    if (currentQ.verseReference) {
+      textToRead = `${currentQ.verseReference}. ${textToRead}`;
+    }
+    
+    // Read options too if it's a multiple choice question
+    if (currentQ.type === 'multiple_choice' && currentQ.options) {
+      const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+      const optionsText = currentQ.options.map((opt, i) => 
+        `Opção ${optionLabels[i]}: ${opt}`
+      ).join('. ');
+      textToRead = `${textToRead}. As opções são: ${optionsText}`;
+    }
+    
+    // Normalize text - remove HTML tags and clean up
+    const normalizeForSpeech = (text: string): string => {
+      // Remove HTML tags
+      text = text.replace(/<[^>]*>/g, ' ');
+      // Remove markdown formatting
+      text = text.replace(/[#*_~`]/g, '');
+      // Replace multiple spaces and newlines with single space
+      text = text.replace(/\s+/g, ' ');
+      // Trim
+      return text.trim();
+    };
+    
+    textToRead = normalizeForSpeech(textToRead);
+    
+    if ('speechSynthesis' in window && textToRead) {
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = 'pt-BR';
       utterance.rate = 0.9;
       utterance.onend = () => setIsReading(false);
+      utterance.onerror = () => setIsReading(false);
       window.speechSynthesis.speak(utterance);
       setIsReading(true);
     }

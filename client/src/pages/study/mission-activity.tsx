@@ -175,12 +175,16 @@ function QuizActivity({
   const [timeLeft, setTimeLeft] = useState(missionType === 'timed_challenge' ? 30 : null);
   const [quizComplete, setQuizComplete] = useState(false);
 
+  const [timedOutFlag, setTimedOutFlag] = useState(false);
+
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0 || quizComplete) return;
     
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev === null || prev <= 1) {
+          // Time ran out - set both flags
+          setTimedOutFlag(true);
           setQuizComplete(true);
           return 0;
         }
@@ -192,7 +196,8 @@ function QuizActivity({
   }, [timeLeft, quizComplete]);
 
   const handleAnswer = (index: number) => {
-    if (selectedAnswer !== null) return;
+    // Block answers if already answered, time is up, or quiz is complete
+    if (selectedAnswer !== null || timedOutFlag || (timeLeft !== null && timeLeft <= 0)) return;
     
     setSelectedAnswer(index);
     const isCorrect = index === questions[currentQuestion].correctIndex;
@@ -207,6 +212,9 @@ function QuizActivity({
     setShowResult(true);
     
     setTimeout(() => {
+      // Don't proceed if time ran out during the delay
+      if (timedOutFlag) return;
+      
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(prev => prev + 1);
         setSelectedAnswer(null);
@@ -220,10 +228,65 @@ function QuizActivity({
     }, 1500);
   };
 
-  const minCorrect = missionType === 'quick_quiz' ? 3 : (missionType === 'timed_challenge' ? 3 : 2);
-  const canComplete = quizComplete && correctAnswers >= minCorrect;
+  // Para timed_challenge: deve acertar TODAS as perguntas DENTRO do tempo
+  // Se o tempo acabar antes de responder todas, a missão falha
+  const isTimedChallenge = missionType === 'timed_challenge';
+  
+  // Para timed_challenge: só pode completar se acertou TODAS as perguntas e NÃO esgotou o tempo
+  // Para outros tipos: precisa acertar o mínimo exigido
+  const minCorrect = missionType === 'quick_quiz' ? 3 : (isTimedChallenge ? questions.length : 2);
+  const canComplete = isTimedChallenge 
+    ? (quizComplete && correctAnswers === questions.length && !timedOutFlag)
+    : (quizComplete && correctAnswers >= minCorrect);
+  
+  // Para timed_challenge: se o tempo acabou ou não acertou todas, falhou
+  const timedChallengeFailed = isTimedChallenge && quizComplete && (timedOutFlag || correctAnswers < questions.length);
 
   if (quizComplete) {
+    // Se é timed_challenge e falhou, mostrar opção de tentar novamente
+    if (timedChallengeFailed) {
+      return (
+        <div className="space-y-6 text-center" data-testid="quiz-result-failed">
+          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-red-500">
+            <Clock className="w-10 h-10 text-white" />
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              {timedOutFlag ? 'Tempo Esgotado!' : 'Não foi dessa vez!'}
+            </h3>
+            <p className="text-muted-foreground">
+              {timedOutFlag 
+                ? 'O tempo acabou antes de você responder todas as perguntas.' 
+                : `Você acertou ${correctAnswers} de ${questions.length} perguntas.`}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Para completar esta missão, você precisa acertar TODAS as {questions.length} perguntas dentro do tempo.
+            </p>
+          </div>
+
+          <Button 
+            onClick={() => {
+              // Reset para tentar novamente com novas perguntas
+              setCurrentQuestion(0);
+              setCorrectAnswers(0);
+              setSelectedAnswer(null);
+              setShowResult(false);
+              setTimeLeft(30);
+              setQuizComplete(false);
+              setTimedOutFlag(false);
+            }}
+            variant="outline"
+            className="w-full"
+            data-testid="button-retry-quiz"
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            Tentar Novamente
+          </Button>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6 text-center" data-testid="quiz-result">
         <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${

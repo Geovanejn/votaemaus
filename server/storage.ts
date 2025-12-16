@@ -2564,7 +2564,7 @@ export class DatabaseStorage implements IStorage {
 
   // Leaderboard Methods
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Get all non-admin users with their study profiles (LEFT JOIN to include users without profiles)
+    // Get all active member users with their study profiles (LEFT JOIN to include users without profiles)
     const usersWithProfiles = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
@@ -2575,11 +2575,35 @@ export class DatabaseStorage implements IStorage {
     })
       .from(schema.users)
       .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
-      .where(eq(schema.users.isAdmin, false))
+      .where(and(
+        eq(schema.users.isAdmin, false),
+        eq(schema.users.activeMember, true)
+      ))
       .limit(limit);
     
+    // Calculate daily XP for each user (XP earned today from lesson completions)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const usersWithDailyXp = await Promise.all(usersWithProfiles.map(async (user) => {
+      const [dailyXpResult] = await db.select({
+        dailyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
+      })
+        .from(schema.userLessonProgress)
+        .where(and(
+          eq(schema.userLessonProgress.userId, user.userId),
+          eq(schema.userLessonProgress.status, 'completed'),
+          gte(schema.userLessonProgress.completedAt, today)
+        ));
+      
+      return {
+        ...user,
+        dailyXp: Number(dailyXpResult?.dailyXp || 0)
+      };
+    }));
+    
     // Sort by XP (treating null as 0) and assign ranks
-    const sortedUsers = usersWithProfiles.sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
+    const sortedUsers = usersWithDailyXp.sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
     
     return sortedUsers.map((p, index) => ({
       rank: index + 1,
@@ -2589,6 +2613,7 @@ export class DatabaseStorage implements IStorage {
       totalXp: p.totalXp || 0,
       level: p.currentLevel || 1,
       currentStreak: p.currentStreak || 0,
+      dailyXp: p.dailyXp || 0,
     }));
   }
 

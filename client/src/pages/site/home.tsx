@@ -142,12 +142,13 @@ export default function HomePage() {
       : fallbackEventImages[index % fallbackEventImages.length],
   }));
 
-  const instagramPosts = (highlights?.instagramPosts || []).map((post, index) => ({
-    ...post,
-    imageUrl: post.imageUrl && !post.imageUrl.includes('placeholder') 
-      ? post.imageUrl 
-      : fallbackInstagramImages[index % fallbackInstagramImages.length],
-  }));
+  // Só usa posts reais da API - não mostra fallback de imagens stock
+  // Se a API do Instagram não estiver configurada ou não houver posts, a seção fica oculta
+  const instagramPosts = (highlights?.instagramPosts || [])
+    .filter(post => post.imageUrl && !post.imageUrl.includes('placeholder') && !post.imageUrl.includes('stock_images'))
+    .map(post => ({
+      ...post,
+    }));
 
   const devotionalImage = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder')
     ? devotional.imageUrl

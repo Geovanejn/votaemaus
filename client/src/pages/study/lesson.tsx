@@ -698,6 +698,20 @@ export default function LessonPage() {
   const isMediteType = currentUnit?.type === 'meditation' || currentUnit?.type === 'reflection';
   const mediteUnits = allUnits
     .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'));
+
+  // Calcular XP inicial das etapas anteriores (estude + medite) quando entra na etapa responda
+  // O XP Total deve iniciar com o XP acumulado das etapas anteriores, não zero
+  useEffect(() => {
+    if (targetStage === 'responda' && displayXp === 0 && allUnits.length > 0) {
+      // Calcular XP das etapas estude e medite
+      const estudeXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
+      const mediteXp = mediteUnits.reduce((sum, u) => sum + (u.xpValue || 3), 0);
+      const initialXp = estudeXp + mediteXp;
+      if (initialXp > 0) {
+        setDisplayXp(initialXp);
+      }
+    }
+  }, [targetStage, allUnits.length, studyUnits.length, mediteUnits.length]);
   
   const mediteSections: MeditationSection[] = mediteUnits.map((unit) => {
     return {

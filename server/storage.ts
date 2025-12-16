@@ -2581,9 +2581,10 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(limit);
     
-    // Calculate daily XP for each user (XP earned today from lesson completions)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Calculate daily XP for each user (XP earned today from 00:00 to 23:59 in America/Sao_Paulo timezone)
+    // Use SQL timezone conversion for accurate calculation regardless of server timezone or DST changes
+    const saoPauloTodayStart = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`;
+    const saoPauloTodayEnd = sql`(DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo' + INTERVAL '1 day' - INTERVAL '1 second')`;
     
     const usersWithDailyXp = await Promise.all(usersWithProfiles.map(async (user) => {
       const [dailyXpResult] = await db.select({
@@ -2593,7 +2594,8 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(schema.userLessonProgress.userId, user.userId),
           eq(schema.userLessonProgress.status, 'completed'),
-          gte(schema.userLessonProgress.completedAt, today)
+          sql`${schema.userLessonProgress.completedAt} >= ${saoPauloTodayStart}`,
+          sql`${schema.userLessonProgress.completedAt} <= ${saoPauloTodayEnd}`
         ));
       
       return {

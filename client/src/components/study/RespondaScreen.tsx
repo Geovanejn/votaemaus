@@ -328,6 +328,12 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
     } else {
       playSound('practiceError');
+      // Penalidade de -10 XP ao errar uma questão
+      setTotalXp(prev => {
+        const newXp = Math.max(prev - 10, 0);
+        onXpChange?.(newXp);
+        return newXp;
+      });
       setWrongCount(prev => prev + 1);
     }
     

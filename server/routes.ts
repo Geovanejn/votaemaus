@@ -118,101 +118,6 @@ async function logAuditAction(
   }
 }
 import { PDFParse } from "pdf-parse";
-import Tesseract from "tesseract.js";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
-
-async function extractTextWithOCR(pdfBuffer: Buffer): Promise<string> {
-  console.log("[OCR] Starting OCR extraction from PDF using ImageMagick...");
-  
-  // Create temp directory for PDF and images
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-ocr-'));
-  const pdfPath = path.join(tempDir, 'input.pdf');
-  
-  try {
-    // Write PDF buffer to temp file
-    fs.writeFileSync(pdfPath, pdfBuffer);
-    console.log("[OCR] PDF saved to temp file:", pdfPath);
-    
-    // Convert PDF to images using ImageMagick
-    const outputPattern = path.join(tempDir, 'page-%03d.png');
-    console.log("[OCR] Converting PDF pages to images with ImageMagick...");
-    
-    try {
-      await execAsync(`convert -density 200 "${pdfPath}" -quality 100 "${outputPattern}"`, {
-        timeout: 120000 // 2 minute timeout for large PDFs
-      });
-    } catch (convertError: any) {
-      console.error("[OCR] ImageMagick convert error:", convertError.message);
-      throw convertError;
-    }
-    
-    // Get list of generated images
-    const files = fs.readdirSync(tempDir)
-      .filter(f => f.startsWith('page-') && f.endsWith('.png'))
-      .sort();
-    
-    console.log("[OCR] Generated", files.length, "page images");
-    
-    if (files.length === 0) {
-      throw new Error("No images generated from PDF");
-    }
-    
-    let fullText = "";
-    
-    for (let i = 0; i < files.length; i++) {
-      const imagePath = path.join(tempDir, files[i]);
-      console.log(`[OCR] Running OCR on page ${i + 1}/${files.length}...`);
-      
-      try {
-        // Read image file
-        const imageBuffer = fs.readFileSync(imagePath);
-        
-        // Process with Tesseract OCR
-        const result = await Tesseract.recognize(imageBuffer, 'por', {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              const progress = Math.round(m.progress * 100);
-              if (progress === 50 || progress === 100) {
-                console.log(`[OCR] Page ${i + 1} OCR progress: ${progress}%`);
-              }
-            }
-          }
-        });
-        
-        fullText += result.data.text + "\n\n";
-        console.log(`[OCR] Page ${i + 1} text extracted, length: ${result.data.text.length}`);
-        
-      } catch (pageError) {
-        console.error(`[OCR] Error processing page ${i + 1}:`, pageError);
-      }
-    }
-    
-    console.log("[OCR] OCR extraction complete, total text length:", fullText.length);
-    return fullText;
-    
-  } catch (error) {
-    console.error("[OCR] Error during OCR extraction:", error);
-    throw error;
-  } finally {
-    // Cleanup temp files
-    try {
-      const files = fs.readdirSync(tempDir);
-      for (const file of files) {
-        fs.unlinkSync(path.join(tempDir, file));
-      }
-      fs.rmdirSync(tempDir);
-      console.log("[OCR] Cleaned up temp directory");
-    } catch (cleanupError) {
-      console.error("[OCR] Error cleaning up temp files:", cleanupError);
-    }
-  }
-}
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   console.log("[PDF Parser] Starting PDF extraction, buffer size:", buffer.length);
@@ -225,30 +130,14 @@ async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
     console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", textResult.length);
     
     if (textResult.trim().length < 100) {
-      console.log("[PDF Parser] Insufficient text extracted. PDF may contain scanned images. Attempting OCR...");
+      console.log("[PDF Parser] Insufficient text extracted. PDF must contain selectable text (not scanned images).");
     } else {
       console.log("[PDF Parser] Text extraction successful. First 500 chars:", textResult.substring(0, 500));
-      return { text: textResult };
     }
   } catch (error) {
     console.error("[PDF Parser] Error extracting text with pdf-parse:", error);
   } finally {
     await parser.destroy();
-  }
-  
-  // If text extraction failed or returned insufficient content, try OCR
-  if (textResult.trim().length < 100) {
-    try {
-      console.log("[PDF Parser] Falling back to OCR extraction...");
-      const ocrText = await extractTextWithOCR(buffer);
-      if (ocrText && ocrText.trim().length > 100) {
-        console.log("[PDF Parser] OCR extraction successful. Text length:", ocrText.length);
-        console.log("[PDF Parser] First 500 chars from OCR:", ocrText.substring(0, 500));
-        return { text: ocrText };
-      }
-    } catch (ocrError) {
-      console.error("[PDF Parser] OCR extraction failed:", ocrError);
-    }
   }
   
   return { text: textResult };

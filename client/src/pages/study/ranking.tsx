@@ -376,6 +376,8 @@ export default function RankingPage() {
       return res.json();
     },
     enabled: isAuthenticated,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: anualData, isLoading: anualLoading } = useQuery<LeaderboardResponse>({
@@ -389,6 +391,8 @@ export default function RankingPage() {
       return res.json();
     },
     enabled: isAuthenticated,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: revistaData, isLoading: revistaLoading } = useQuery<LeaderboardResponse>({
@@ -405,6 +409,8 @@ export default function RankingPage() {
       return res.json();
     },
     enabled: isAuthenticated && period === "revista",
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const isLoading = isAuthenticated && (

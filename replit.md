@@ -93,6 +93,13 @@ npm run db:push  # Sincronizar esquema do banco
 
 ## Últimas Alterações
 
+### 16/12/2025 - Correções Críticas do Sistema DeoGlory
+- **Instagram no site**: Seção Instagram agora só é exibida quando há posts reais sincronizados da API. Não mostra mais imagens de placeholder quando a API não está configurada.
+- **Ranking em tempo real**: Ranking atualiza automaticamente a cada 5 segundos com `refetchInterval: 5000` e `refetchOnWindowFocus: true`
+- **XP diário com timezone correto**: Cálculo de XP diário agora usa SQL nativo com `DATE_TRUNC` e `AT TIME ZONE 'America/Sao_Paulo'` para janela correta de 00:00-23:59 no fuso de São Paulo
+- **Penalidade de XP no quiz**: Adicionada dedução de -10 XP ao errar uma questão no RespondaScreen (além da dedução de -5 XP ao usar dica que já existia)
+- **Remoção do sistema OCR**: Removido completamente Tesseract + ImageMagick da leitura de PDFs. Agora só usa pdf-parse para extrair texto selecionável de PDFs
+
 ### 15/12/2025 - UI Improvements in Quiz Section (Responda)
 - **Orange card layout**: All question types (multiple choice, true/false, fill-blank) now use consistent bg-orange-50 dark:bg-orange-900/20
 - **Ellipsis fix**: Removed trailing ellipsis from fill-blank questions display

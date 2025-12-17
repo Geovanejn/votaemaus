@@ -151,6 +151,7 @@ interface SavedLessonProgress {
   savedAt: number;
   heartsWereDepleted: boolean;
   respondaQuestionIndex?: number;
+  accumulatedXp?: number;
 }
 
 function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress | null {
@@ -170,7 +171,7 @@ function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress
   return null;
 }
 
-function saveProgress(lessonId: number, userId: number, unitIndex: number, stage: string | null, heartsWereDepleted: boolean, respondaQuestionIndex?: number): void {
+function saveProgress(lessonId: number, userId: number, unitIndex: number, stage: string | null, heartsWereDepleted: boolean, respondaQuestionIndex?: number, accumulatedXp?: number): void {
   try {
     const key = getLessonProgressKey(lessonId, userId);
     const progress: SavedLessonProgress = {
@@ -181,6 +182,7 @@ function saveProgress(lessonId: number, userId: number, unitIndex: number, stage
       savedAt: Date.now(),
       heartsWereDepleted,
       respondaQuestionIndex: respondaQuestionIndex ?? 0,
+      accumulatedXp: accumulatedXp ?? 0,
     };
     localStorage.setItem(key, JSON.stringify(progress));
   } catch (e) {
@@ -450,6 +452,10 @@ export default function LessonPage() {
           setInitialRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
           setCurrentRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
         }
+        // Restore accumulated XP if it was saved
+        if (savedProgress.accumulatedXp !== undefined && savedProgress.accumulatedXp > 0) {
+          setDisplayXp(savedProgress.accumulatedXp);
+        }
         setProgressRestored(true);
         // Don't clear yet - wait until user actually resumes the lesson with hearts
       }
@@ -513,7 +519,8 @@ export default function LessonPage() {
   useEffect(() => {
     // Se entramos na etapa responda diretamente, inicializar XP e creditar seções anteriores no backend
     // Só executa uma vez por lessonId para evitar loops
-    if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId) {
+    // NÃO sobrescrever se já restauramos XP de progresso salvo
+    if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId && !progressRestored) {
       xpInitializedForLesson.current = lessonId;
       setDisplayXp(previousStagesXp);
       
@@ -1011,7 +1018,7 @@ export default function LessonPage() {
       // Save progress before exiting (not hearts depleted, just normal exit)
       if (user?.id && lessonId > 0) {
         const currentStage = stageOverride || stageParam || null;
-        saveProgress(lessonId, user.id, currentUnitIndex, currentStage, false, currentRespondaQuestionIndex);
+        saveProgress(lessonId, user.id, currentUnitIndex, currentStage, false, currentRespondaQuestionIndex, displayXp);
       }
       setLocation("/study");
     }

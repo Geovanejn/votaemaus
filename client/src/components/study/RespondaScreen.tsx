@@ -348,9 +348,9 @@ export function RespondaScreen({
     
     if (isCorrect) {
       playSound('practiceCorrect');
-      const basePoints = currentQuestion.points || 20;
+      const XP_PER_CORRECT = 20;
       setTotalXp(prev => {
-        const newXp = prev + basePoints;
+        const newXp = prev + XP_PER_CORRECT;
         onXpChange?.(newXp);
         return newXp;
       });

@@ -12,9 +12,26 @@ const OPENAI_MODELS = [
   "gpt-3.5-turbo"     // Fallback
 ];
 
+// Get OpenAI API key by number (1-5)
+function getOpenAIApiKey(keyNumber: string = "1"): string {
+  switch (keyNumber) {
+    case "2":
+      return process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY || "";
+    case "3":
+      return process.env.OPENAI_API_KEY_3 || process.env.OPENAI_API_KEY || "";
+    case "4":
+      return process.env.OPENAI_API_KEY_4 || process.env.OPENAI_API_KEY || "";
+    case "5":
+      return process.env.OPENAI_API_KEY_5 || process.env.OPENAI_API_KEY || "";
+    case "1":
+    default:
+      return process.env.OPENAI_API_KEY_1 || process.env.OPENAI_API_KEY || "";
+  }
+}
+
 // Get OpenAI client
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
+function getOpenAIClient(keyNumber: string = "1"): OpenAI {
+  const apiKey = getOpenAIApiKey(keyNumber);
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY não está configurada");
   }
@@ -298,8 +315,8 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
 }
 
 // OpenAI generation function with fallback models
-async function generateWithOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  const openai = getOpenAIClient();
+async function generateWithOpenAI(systemPrompt: string, userPrompt: string, keyNumber: string = "1"): Promise<string> {
+  const openai = getOpenAIClient(keyNumber);
   
   for (let modelIndex = 0; modelIndex < OPENAI_MODELS.length; modelIndex++) {
     const currentModel = OPENAI_MODELS[modelIndex];
@@ -375,10 +392,11 @@ async function generateWithAI(
   systemPrompt: string, 
   userPrompt: string, 
   provider: AIProvider = "gemini",
-  geminiKey: string = "1"
+  geminiKey: string = "1",
+  openaiKey: string = "1"
 ): Promise<string> {
   if (provider === "openai") {
-    return generateWithOpenAI(systemPrompt, userPrompt);
+    return generateWithOpenAI(systemPrompt, userPrompt, openaiKey);
   } else {
     return generateWithGemini(systemPrompt, userPrompt, geminiKey);
   }
@@ -389,7 +407,8 @@ export async function generateStudyContentFromText(
   weekNumber: number,
   year: number,
   geminiKey: string = "1",
-  provider: AIProvider = "gemini"
+  provider: AIProvider = "gemini",
+  openaiKey: string = "1"
 ): Promise<GeneratedWeekContent> {
   const systemPrompt = `Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa é transformar o texto fornecido em um conteúdo de estudo semanal completo para jovens da UMP (União da Mocidade Presbiteriana).
@@ -547,7 +566,7 @@ REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
-    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey);
+    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey, openaiKey);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -808,13 +827,14 @@ export async function generateStudyContentFromPDF(
   weekNumber: number,
   year: number,
   geminiKey: string = "1",
-  provider: AIProvider = "gemini"
+  provider: AIProvider = "gemini",
+  openaiKey: string = "1"
 ): Promise<GeneratedWeekContent> {
   // Clean the PDF text first
   const cleanedText = await extractTextFromPDFContent(pdfText);
   
   // Use the same generation function with selected provider and key
-  return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey, provider);
+  return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey, provider, openaiKey);
 }
 
 function validateAndCleanUnit(unit: GeneratedUnit, type: string): GeneratedUnit {
@@ -1430,7 +1450,8 @@ export interface ExtractedLessonFromPDF {
 export async function generateLessonFromPDFExact(
   pdfText: string,
   geminiKey: string = "1",
-  provider: AIProvider = "gemini"
+  provider: AIProvider = "gemini",
+  openaiKey: string = "1"
 ): Promise<ExtractedLessonFromPDF> {
   const systemPrompt = `Você é um especialista em educação cristã reformada. Sua tarefa é extrair e processar o conteúdo de uma lição bíblica de um PDF.
 
@@ -1653,7 +1674,7 @@ LEMBRE-SE:
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
-    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey);
+    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey, openaiKey);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }

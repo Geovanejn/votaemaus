@@ -60,6 +60,7 @@ export default function DeoGloryRevistaDetail() {
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const [geminiKey, setGeminiKey] = useState<string>("1");
+  const [openaiKey, setOpenaiKey] = useState<string>("1");
   const [aiProvider, setAiProvider] = useState<"gemini" | "openai">("gemini");
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -170,6 +171,7 @@ export default function DeoGloryRevistaDetail() {
     setSelectedLessonNumber("");
     setIsProcessingPdf(false);
     setGeminiKey("1");
+    setOpenaiKey("1");
     setAiProvider("gemini");
   };
 
@@ -205,6 +207,7 @@ export default function DeoGloryRevistaDetail() {
       formData.append("pdf", pdfFile);
       formData.append("lessonNumber", selectedLessonNumber);
       formData.append("geminiKey", geminiKey);
+      formData.append("openaiKey", openaiKey);
       formData.append("aiProvider", aiProvider);
 
       const response = await fetch(`/api/study/admin/seasons/${seasonId}/import-pdf-exact`, {
@@ -562,6 +565,30 @@ export default function DeoGloryRevistaDetail() {
                     disabled={isProcessingPdf}
                   >
                     <SelectTrigger data-testid="select-gemini-key">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Chave 1</SelectItem>
+                      <SelectItem value="2">Chave 2</SelectItem>
+                      <SelectItem value="3">Chave 3</SelectItem>
+                      <SelectItem value="4">Chave 4</SelectItem>
+                      <SelectItem value="5">Chave 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {aiProvider === "openai" && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Chave OpenAI
+                  </Label>
+                  <Select 
+                    value={openaiKey} 
+                    onValueChange={setOpenaiKey}
+                    disabled={isProcessingPdf}
+                  >
+                    <SelectTrigger data-testid="select-openai-key">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>

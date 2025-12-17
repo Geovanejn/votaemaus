@@ -190,8 +190,8 @@ function saveProgress(lessonId: number, userId: number, unitIndex: number, stage
   }
 }
 
-function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null, respondaQuestionIndex?: number): void {
-  saveProgress(lessonId, userId, unitIndex, stage, true, respondaQuestionIndex);
+function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null, respondaQuestionIndex?: number, accumulatedXp?: number): void {
+  saveProgress(lessonId, userId, unitIndex, stage, true, respondaQuestionIndex, accumulatedXp);
 }
 
 function clearSavedProgress(lessonId: number, userId: number): void {
@@ -404,10 +404,14 @@ export default function LessonPage() {
     }
   }, [lessonData, stageParam, initialStageSet, progressRestored]);
 
+  // Ref to guard against race condition when restoring XP from saved progress
+  const restoredXpRef = useRef(false);
+  
   // Reset progress check when lesson or user changes
   useEffect(() => {
     setProgressCheckDone(false);
     setProgressRestored(false);
+    restoredXpRef.current = false;
   }, [lessonId, user?.id]);
 
   // Force profile refetch when showing no-hearts screen to get fresh heart count
@@ -453,7 +457,9 @@ export default function LessonPage() {
           setCurrentRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
         }
         // Restore accumulated XP if it was saved
+        // Set ref BEFORE state to guard against race condition with responda bootstrap effect
         if (savedProgress.accumulatedXp !== undefined && savedProgress.accumulatedXp > 0) {
+          restoredXpRef.current = true;
           setDisplayXp(savedProgress.accumulatedXp);
         }
         setProgressRestored(true);
@@ -480,9 +486,9 @@ export default function LessonPage() {
         !progressSavedForDepletion.current) {
       // Mark as saved to prevent multiple saves
       progressSavedForDepletion.current = true;
-      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage, currentRespondaQuestionIndex);
+      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage, currentRespondaQuestionIndex, displayXp);
     }
-  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id, currentRespondaQuestionIndex]);
+  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id, currentRespondaQuestionIndex, displayXp]);
 
   // Clear saved progress when lesson is completed
   useEffect(() => {
@@ -520,7 +526,8 @@ export default function LessonPage() {
     // Se entramos na etapa responda diretamente, inicializar XP e creditar seções anteriores no backend
     // Só executa uma vez por lessonId para evitar loops
     // NÃO sobrescrever se já restauramos XP de progresso salvo
-    if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId && !progressRestored) {
+    // Check restoredXpRef.current (synchronous) to prevent race condition with progress restoration
+    if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId && !progressRestored && !restoredXpRef.current) {
       xpInitializedForLesson.current = lessonId;
       setDisplayXp(previousStagesXp);
       

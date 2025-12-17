@@ -1187,7 +1187,6 @@ export default function LessonPage() {
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
   
   const handleRespondaAnswer = async (questionIndex: number, answer: any, _isCorrect: boolean) => {
-    const RESPONDA_XP_PER_CORRECT = 20;
     const unit = respondaUnits[questionIndex];
     if (!unit) return;
     
@@ -1197,9 +1196,7 @@ export default function LessonPage() {
         answer: answer 
       });
       
-      if (result.correct) {
-        setDisplayXp(prev => prev + RESPONDA_XP_PER_CORRECT);
-      } else {
+      if (!result.correct) {
         setMistakes(prev => prev + 1);
       }
     } catch (error) {

@@ -1,233 +1,58 @@
 # Site UMP Emaús
 
-## Visão Geral
-Sistema web completo para a União de Mocidade Presbiteriana (UMP) da Igreja Presbiteriana Emaús. Inclui site público, área de membros e painel administrativo.
+## Overview
+This project is a comprehensive web system for the União de Mocidade Presbiteriana (UMP) of the Emaús Presbyterian Church. It includes a public-facing website, a members-only area, and an administrative panel. The system aims to enhance community engagement, streamline event management, and provide spiritual resources. Key capabilities include daily devotionals, event scheduling, member management, and integration with social media. The DeoGlory study system is a significant component, offering an interactive learning experience with gamification, achievements, and real-time progress tracking.
 
-## Configuração de Ambiente
+## User Preferences
+- I prefer simple and direct language.
+- I want iterative development with frequent, small updates rather than large, infrequent ones.
+- Ask for my confirmation before implementing any major architectural changes or refactoring.
+- I prefer detailed explanations for complex features or decisions.
+- Do not make changes to the folder `Z`.
+- Do not make changes to the file `Y`.
 
-### Variáveis de Ambiente Obrigatórias (Secrets)
+## System Architecture
 
-| Variável | Descrição |
-|----------|-----------|
-| `DATABASE_URL` | URL de conexão PostgreSQL (automático no Replit) |
-| `SESSION_SECRET` | Chave secreta para sessões |
-| `JWT_SECRET` | Chave para tokens JWT |
-| `ADMIN_EMAIL` | Email do administrador raiz |
-| `ADMIN_PASSWORD` | Senha do administrador raiz |
-| `INSTAGRAM_ACCESS_TOKEN` | Token de acesso da API do Instagram |
-| `INSTAGRAM_USER_ID` | ID do usuário Instagram @umpemaus |
-| `VAPID_PUBLIC_KEY` | Chave pública para notificações push |
-| `VAPID_PRIVATE_KEY` | Chave privada para notificações push |
+### UI/UX Decisions
+The front-end is built with React, featuring a responsive design. The DeoGlory study system incorporates gamified elements like a ranking podium for the top 3 users, animated streak and crystal gain feedback, and golden styling for completed sections. Consistent card layouts and color schemes (e.g., `bg-orange-50` for quiz sections) are used throughout. Accessibility features include text-to-speech normalization for various content formats.
 
-### Administrador Raiz
+### Technical Implementations
+- **Frontend**: React
+- **Backend**: Express.js
+- **Database**: PostgreSQL (managed with Drizzle ORM)
+- **Authentication**: JWT for API security, session-based for general access.
+- **Scheduled Tasks**: Background tasks for Instagram synchronization and other periodic operations.
+- **Real-time Features**: Push notifications for member engagement.
+- **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality.
+- **Study System (DeoGlory)**:
+    - **XP System**: Tracks experience points, with corrections to prevent duplication and ensure accurate daily XP calculation. Penalties for incorrect answers and hints are implemented.
+    - **Crystal System**: Rewards members based on specific criteria like perfect lessons, consecutive perfect lessons, daily lessons, and weekly streaks.
+    - **Achievements**: Automatic unlocking of achievements based on predefined JSON criteria (streak, lessons, XP, special).
+    - **Quiz Mechanics**: Includes multiple-choice, true/false, and fill-in-the-blank questions. Questions are randomized, and "Against the Clock" missions require 100% accuracy within a time limit.
+    - **Content Generation**: AI-powered generation of study materials, exercises, and practice questions.
 
-O administrador raiz é criado automaticamente na inicialização do banco quando `ADMIN_EMAIL` e `ADMIN_PASSWORD` estão definidos como secrets. Se o usuário já existir, ele é promovido a admin.
+### Feature Specifications
+- **Public Site**: Home banner with highlighted Instagram posts, daily devotionals, event agenda, "Who We Are" page, and directory.
+- **Member Area**: User profiles, push notifications, event participation, and access to the DeoGlory study system.
+- **Admin Panel**:
+    - **General**: User and event management, devotional creation, directory management.
+    - **Marketing**: Instagram post synchronization and highlighting, location input for addresses.
+    - **DeoGlory Admin**: Full lesson management (AI generation or PDF upload), status tracking (Draft/Published), and control over lesson availability.
+    - **Multi-Panel Dashboard**: Admins have a selection page to access different administrative panels (Emaus Vota, Espiritualidade, Marketing, DeoGlory, Site Institucional).
 
-### Integração Instagram
+### System Design Choices
+- **Modular Project Structure**: Clear separation of client, server, and shared codebases.
+- **Database Schema**: Managed with Drizzle, allowing for `db:push` command for schema synchronization.
+- **Environment Configuration**: Utilizes environment variables (`secrets`) for sensitive information and API keys.
+- **Root Administrator**: Automatic creation and promotion of a root admin user based on environment variables.
 
-**Como configurar:**
-1. Acesse [developers.facebook.com](https://developers.facebook.com/)
-2. Crie um app do tipo "Business"
-3. Configure a Instagram Graph API
-4. Adicione sua conta como "Instagram Tester" em Roles > Instagram Testers
-5. Aceite o convite em [instagram.com/accounts/manage_access/](https://instagram.com/accounts/manage_access/)
-6. Gere um token de acesso de longa duração (60 dias)
-7. Adicione `INSTAGRAM_ACCESS_TOKEN` e `INSTAGRAM_USER_ID` nos secrets
-
-**Sincronização:**
-- Os posts são sincronizados automaticamente a cada 6 horas
-- É possível sincronizar manualmente no painel de marketing
-- Posts podem ser destacados para aparecer no banner da home
-
-## Estrutura do Projeto
-
-```
-├── client/                 # Frontend React
-│   ├── src/
-│   │   ├── components/    # Componentes reutilizáveis
-│   │   ├── pages/         # Páginas da aplicação
-│   │   │   ├── admin/     # Painel administrativo
-│   │   │   ├── member/    # Área do membro
-│   │   │   └── site/      # Site público
-│   │   └── lib/           # Utilitários
-├── server/                 # Backend Express
-│   ├── routes.ts          # Rotas da API
-│   ├── storage.ts         # Interface de armazenamento
-│   ├── instagram.ts       # Integração Instagram
-│   ├── scheduler.ts       # Tarefas agendadas
-│   └── db.ts              # Conexão com banco
-└── shared/                 # Código compartilhado
-    └── schema.ts          # Esquema do banco (Drizzle)
-```
-
-## Funcionalidades
-
-### Site Público
-- Home com banner destacado do Instagram
-- Devocionais diários
-- Agenda de eventos
-- Página "Quem Somos"
-- Diretoria
-
-### Área do Membro
-- Login/Cadastro
-- Perfil pessoal
-- Notificações push
-- Participação em eventos
-
-### Painel Admin
-- Gerenciamento de eventos
-- Gerenciamento de diretoria
-- Devocionais
-- **Instagram**: sincronização e destaque de posts no banner
-- Gerenciamento de membros
-
-## Comandos
-
-```bash
-npm run dev      # Desenvolvimento
-npm run build    # Build para produção
-npm run start    # Iniciar em produção
-npm run db:push  # Sincronizar esquema do banco
-```
-
-## Últimas Alterações
-
-### 16/12/2025 - Correções Críticas do Sistema DeoGlory (Parte 2)
-- **Missão Contra o Relógio**: Corrigida para só permitir conclusão se o usuário acertar TODAS as perguntas DENTRO do tempo. Adicionado flag `timedOutFlag` para bloquear respostas após tempo esgotar. Botão de tentar novamente reseta completamente o estado.
-- **Pódio do Ranking**: Adicionado pódio visual para os 3 primeiros colocados com plataformas de alturas diferentes (ouro, prata, bronze). Agora suporta menos de 3 usuários sem quebrar o layout. Medalhas e troféus nos pedestais ao invés de números duplicados.
-- **Acessibilidade (Text-to-Speech)**: Função de leitura agora normaliza corretamente conteúdo JSON/HTML/Markdown antes de ler. Usa extração recursiva para lidar com formatos TipTap/ProseMirror aninhados.
-
-### 16/12/2025 - Correções Críticas do Sistema DeoGlory (Parte 1)
-- **Instagram no site**: Seção Instagram agora só é exibida quando há posts reais sincronizados da API. Não mostra mais imagens de placeholder/stock quando a API não está configurada. Filtra posts com URLs de placeholder ou stock_images.
-- **Ranking XP diário corrigido**: Cálculo de XP diário agora usa tabela `xpTransactions` ao invés de `userLessonProgress`. Isso garante que XP de unidades individuais, lições completas, conquistas e bônus são todos contados corretamente.
-- **XP inicial no Quiz**: Quando o usuário vai direto para a etapa "Responda", o XP Total agora inicia com o XP acumulado das etapas anteriores (Estude + Medite), não zero. Usa `useMemo` para cálculo estável e `useRef` para evitar re-execução.
-- **Prompt de PDF melhorado**: Instruções fortalecidas para garantir que TODOS os tópicos do PDF sejam extraídos sem exceção. Adicionada validação para confirmar que nenhum tópico foi ignorado.
-- **Penalidade de XP no quiz**: Confirmado: -10 XP ao errar questão e -5 XP ao usar dica (já implementado anteriormente).
-- **XP diário com timezone correto**: Cálculo usa SQL nativo com `DATE_TRUNC` e `AT TIME ZONE 'America/Sao_Paulo'` para janela correta de 00:00-23:59 no fuso de São Paulo
-- **Cabeçalho branco corrigido**: StudyHeader agora verifica `stageParam` diretamente da URL para ocultar o cabeçalho imediatamente quando usuário navega para sessões (Estude, Medite, Responda), eliminando o flash branco antes dos dados carregarem
-- **Visibilidade de membros DeoGlory**: Confirmado que backend retorna TODOS os membros (isMember=true) independente de activeMember. Status "Suspenso" é atribuído para membros com activeMember=false
-
-### 15/12/2025 - UI Improvements in Quiz Section (Responda)
-- **Orange card layout**: All question types (multiple choice, true/false, fill-blank) now use consistent bg-orange-50 dark:bg-orange-900/20
-- **Ellipsis fix**: Removed trailing ellipsis from fill-blank questions display
-- **Accumulated XP**: RespondaScreen now receives initialXp prop with XP from Estude/Medite sessions
-- **Instant XP feedback**: Hint button now deducts 5 XP immediately with visual update
-- **Verse numbering**: VerseContent now preserves original verse numbers based on reference (e.g., João 3:6-10 starts at verse 6)
-
-### 15/12/2025 - DeoGlory Study System Improvements
-- **getStageFromUnitType helper**: Nova função centralizada em routes.ts que mapeia tipos de unidade para stages (text/verse→estude, meditation/reflection→medite, multiple_choice/true_false/fill_blank→responda)
-- **Seed data fix**: Corrigido bug onde questões não apareciam na seção Responda (faltava stage correto)
-- **AI prompts melhorados**: generateExercisesFromTopic e generateUniquePracticeQuestions agora geram alternativas mais desafiadoras e plausíveis
-  - Instruções para criar distratores inteligentes
-  - Evita alternativas obviamente erradas
-  - Varia posição da resposta correta
-
-### 14/12/2025 - DeoGloryLicoes Admin Reescrito
-- **DeoGloryLicoes.tsx**: Reescrito completamente com funcionalidade completa
-  - Removida opcao "Escrever Manualmente" - mantido apenas "Criar com IA" e "Upload de PDF"
-  - Seletor de chave Gemini (1-5) para distribuir carga entre chaves de API
-  - Dialogs de geracao com input de texto ou upload de PDF
-  - Cards de semanas com badges de status (Rascunho/Publicado)
-  - Acoes de gerenciamento: Editar, Publicar, Liberar/Bloquear licoes, Excluir
-  - Estados de carregamento com Skeleton e empty state
-
-### 14/12/2025 - Nova Tela de Seleção de Painéis para Admin
-- **AdminDashboard**: Criada nova página de seleção de painéis para admins
-  - Admins agora veem uma tela com cards para todos os painéis disponíveis
-  - Painéis: Emaus Vota, Espiritualidade, Marketing, DeoGlory, Site Institucional
-  - Interface similar à experiência de membros com secretaria
-- **Rotas atualizadas**:
-  - `/admin` - Nova tela de seleção de painéis
-  - `/admin/emaus-vota` - Painel de gerenciamento de eleições (antigo /admin)
-  - `/admin/espiritualidade` - Painel de espiritualidade
-  - `/admin/marketing` - Painel de marketing
-  - `/admin/study` - Painel DeoGlory Admin
-  - `/admin/site` - Painel do Site Institucional
-
-### 08/12/2025
-- Adicionada rota `/agenda/:id` para deep-linking de eventos
-- Botao "Ver Detalhes" do banner agora abre diretamente o dialog do evento
-- Adicionado LocationInput no painel Marketing > Quem Somos para editar endereco
-- Removida integracao com Google Maps (nao usada)
-- Adicionados componentes simples para links de localizacao (LocationLink e LocationInput)
-- Localizacoes agora sao exibidas como links clicaveis que abrem no Google Maps
-- Atualizado footer, pagina Quem Somos e Agenda para usar os novos componentes
-
-### 11/12/2025 - Correcoes DeoGlory Study
-- **Pratique Unlock**: Cache do practiceStatus agora e invalidado apos completar licao, garantindo desbloqueio imediato
-- **Fill-blank Cleanup**: Removidas reticencias e underscores extras das questoes de lacunas (cleanTrailingDots)
-- **Markdown Formatting**: FormattedText agora limpa caracteres de escape (\\n, \\*, \\_) antes de renderizar com ReactMarkdown
-- **Multiple Choice Randomization**: Respostas corretas de multipla escolha agora sao distribuidas aleatoriamente entre A, B, C e D (eliminado vies para letra B)
-  - Criada funcao `createMultipleChoice` que embaralha opcoes e recalcula correctIndex
-  - Perguntas de fallback agora tambem passam pela randomizacao
-- **Stars Display**: Estrelas na secao Pratique agora preenchidas em branco quando conquistadas
-  - Tamanho aumentado de h-4 para h-5 para melhor visibilidade
-  - Adicionado drop-shadow para contraste
-  - Estrelas nao conquistadas ficam transparentes com contorno
-- **Golden Styling**: Secoes Estude, Medite, Responda e Pratique ficam douradas ao conquistar 3 estrelas
-
-### 10/12/2025 - DeoGlory Study System Fixes
-- **Crystal Display**: Adicionado componente CrystalDisplay.tsx para mostrar saldo de cristais no frontend
-- **StudyHeader**: Atualizado para incluir exibicao de cristais junto com coracoes
-- **Profile Page**: Adicionado CrystalBalanceCard na pagina de perfil do DeoGlory
-- **Achievement Unlocking**: Implementada logica de desbloqueio automatico de conquistas
-  - Funcao `checkAndUnlockAchievements()` verifica requisitos apos licoes completadas
-  - Funcao `unlockAchievement()` desbloqueia conquistas e concede XP/cristais
-  - Logica corrigida para exigir TODOS os criterios (conjuntiva) nao apenas um
-- **Daily Verse Endpoint**: Adicionado GET `/api/study/daily-verse` separado dos versiculos de recuperacao
-- **Achievements Seeding**: Atualizado seed de conquistas com requisitos JSON para auto-unlock
-  - Categorias: streak, lessons, xp, special
-  - 22 conquistas com criterios claros de desbloqueio
-
-### 10/12/2025 - Animacoes de Streak e Cristais
-- **StreakIncrementAnimation**: Componente de animacao para aumento de streak
-  - Transicao animada do numero anterior para o novo valor
-  - Frase motivacional "Mantenha a Chama do Evangelho Acesa"
-  - Icone de chama animado com pulsacao
-  - Som de streak no inicio e som de conquista no final
-- **CrystalGainAnimation**: Componente de animacao para ganho de cristais
-  - Particulas de cristal flutuantes com efeito de brilho
-  - Contador animado incrementando ate o valor total
-  - Som de cristal durante contagem e som de conquista no final
-- **Sound System**: Adicionado som 'crystal' no use-sounds.ts
-- **Lesson Flow**: Animacoes integradas no fluxo de conclusao de licao
-  - Fase 1: Animacao de streak (se aumentou)
-  - Fase 2: Animacao de cristais (se ganhou cristais)
-  - Fase 3: Tela de conclusao da licao
-- **Defensive Guards**: Protecao contra divisao por zero em animacoes
-
-### 10/12/2025 - Sistema de Criterios para Cristais
-- **Novo sistema de recompensas**: Cristais nao sao mais dados em toda licao
-- **Criterios implementados**:
-  - Licao perfeita (sem erros): 3 cristais
-  - Sequencia de 2 licoes perfeitas: +5 cristais bonus
-  - Sequencia de 3 licoes perfeitas: +8 cristais bonus
-  - Sequencia de 5 licoes perfeitas: +15 cristais bonus
-  - 3 licoes consecutivas: 5 cristais
-  - 5 licoes consecutivas: 10 cristais
-  - 7 licoes consecutivas: 20 cristais
-  - Primeira licao do dia: 2 cristais
-  - 1 semana estudando todos os dias (7 dias consecutivos): 25 cristais
-- **Novos campos no studyProfiles**:
-  - consecutivePerfectLessons: sequencia de licoes perfeitas
-  - consecutiveLessons: sequencia de licoes (qualquer resultado)
-  - totalLessonsCompletedToday: licoes feitas hoje
-  - lastLessonDate: data da ultima licao
-  - weeklyLessonsStreak: dias consecutivos de estudo
-- **Logica de reset**: Counters sao resetados quando o usuario pula um dia
-
-### 16/12/2025 - Estatisticas Reais do Perfil
-- **Nova API**: Adicionado endpoint `/api/study/profile/stats` para estatisticas do usuario
-- **Funcao getUserProfileStats**: Retorna licoes completadas, unidades, dias de estudo e posicao no ranking
-- **Perfil Atualizado**: Pagina de perfil agora exibe dados reais em vez de valores hardcoded
-  - Posicao no ranking calculada dinamicamente
-  - Dias de estudo contados por datas distintas de conclusao de licoes
-  - Data da primeira atividade para contexto
-  - Streak atual e maior streak exibem 0 quando nao ha dados
-
-### 07/12/2025
-- Configuracao do ADMIN_EMAIL e ADMIN_PASSWORD como secrets permanentes
-- Integracao Instagram configurada e funcionando com posts reais do @umpemaus
-- Adicionada secao de Instagram no painel de marketing
-- Funcionalidade de destacar post do Instagram no banner da home
+## External Dependencies
+- **PostgreSQL**: Primary database for the application.
+- **Instagram Graph API**: Used for fetching and displaying posts from the @umpemaus account. Requires `INSTAGRAM_ACCESS_TOKEN` and `INSTAGRAM_USER_ID`.
+- **Web Push Notifications (VAPID)**: For sending push notifications to members. Requires `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
+- **Gemini API**: Used for AI-powered content generation within the DeoGlory study system.
+- **React**: Frontend library.
+- **Express.js**: Backend framework.
+- **Drizzle ORM**: For database interaction.
+- **React Markdown**: For rendering Markdown content.
+- **Google Maps (indirect)**: Location links open in Google Maps, but direct integration has been removed.

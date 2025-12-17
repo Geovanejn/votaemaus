@@ -56,14 +56,14 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
-// Updated: Using only currently available models in v1beta API
+// Updated: Prioritize 2.5 models as requested by user
 // Note: gemini-1.5 models are deprecated and return 404
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",       // Primary: fast and capable
-  "gemini-2.5-flash-lite",  // Lite version of 2.5 flash - lower rate limits
-  "gemini-2.0-flash",       // Fallback: stable
-  "gemini-2.0-flash-lite",  // Lite: faster, simpler tasks
-  "gemini-2.5-pro",         // Pro: more capable, lower rate limits (try last due to quota)
+  "gemini-2.5-flash",       // Primary: fast and capable (user priority)
+  "gemini-2.5-flash-lite",  // Lite: lower rate limits, good for simple tasks (user priority)
+  "gemini-2.5-pro",         // Pro: most capable, use when others fail
+  "gemini-2.0-flash",       // Fallback: stable older version
+  "gemini-2.0-flash-lite",  // Lite fallback: last resort
 ];
 
 // Get Gemini model with specific key and optional model override
@@ -1316,9 +1316,19 @@ Responda APENAS em formato JSON:
   }
 }
 
+// Local fallback recovery verses to avoid API calls when quota is low
+const LOCAL_RECOVERY_VERSES = [
+  { verse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.", reference: "Isaías 41:10 (ARA)", reflection: "Deus está sempre conosco, mesmo nos momentos mais difíceis." },
+  { verse: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reference: "Mateus 11:28 (ARA)", reflection: "Jesus oferece descanso para nossa alma cansada." },
+  { verse: "Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.", reference: "1 Pedro 5:7 (ARA)", reflection: "Podemos entregar nossas preocupações a Deus, pois Ele cuida de nós." },
+  { verse: "Mas os que esperam no Senhor renovarão as suas forças; subirão com asas como águias; correrão e não se cansarão; caminharão e não se fatigarão.", reference: "Isaías 40:31 (ARA)", reflection: "A espera em Deus renova nossas forças espirituais." },
+  { verse: "O Senhor é o meu pastor; nada me faltará.", reference: "Salmos 23:1 (ARA)", reflection: "Com Deus como nosso guia, nada nos faltará." },
+];
+
 export async function generateRecoveryVersesWithAI(count: number = 5): Promise<Array<{ verse: string; reference: string; reflection: string }> | null> {
   const { getRecoveryVerses } = await import("./bible-api.js");
   
+  // First try Bible API (no AI cost)
   try {
     const bibleApiResult = await getRecoveryVerses(count);
     if (bibleApiResult && bibleApiResult.length > 0) {
@@ -1326,110 +1336,90 @@ export async function generateRecoveryVersesWithAI(count: number = 5): Promise<A
       return bibleApiResult;
     }
   } catch (error) {
-    console.warn("[BibleAPI] Failed to fetch recovery verses, falling back to Gemini:", error);
+    console.warn("[BibleAPI] Failed to fetch recovery verses from API");
   }
 
-  if (!isAIConfigured()) {
-    console.log("[AI] Gemini not configured and Bible API failed");
-    return null;
-  }
-
-  try {
-    const prompt = `Você é um conselheiro espiritual experiente. Gere ${count} versículos bíblicos de conforto e recuperação para pessoas que estão passando por momentos difíceis.
-
-Cada versículo deve:
-- Ser um versículo real da Bíblia na versão ARA (Almeida Revista e Atualizada)
-- Trazer conforto, paz e esperança
-- Ser apropriado para momentos de dificuldade ou desânimo
-- Incluir uma breve reflexão de como aplicar na vida
-- Use APENAS texto da versão ARA
-
-Responda APENAS em formato JSON:
-{
-  "verses": [
-    {
-      "verse": "Texto completo do versículo na versão ARA",
-      "reference": "Livro Capítulo:Versículo (ARA)",
-      "reflection": "Breve reflexão de aplicação (1-2 frases)"
+  // Try AI generation if configured, but with quick fallback on quota errors
+  if (isAIConfigured()) {
+    try {
+      const prompt = `Gere ${count} versículos bíblicos de conforto (versão ARA) com reflexões breves. JSON: {"verses":[{"verse":"texto","reference":"Livro X:Y (ARA)","reflection":"reflexão"}]}`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.verses && parsed.verses.length > 0) {
+          console.log("[Recovery Verses] Successfully generated with AI");
+          return parsed.verses;
+        }
+      }
+    } catch (error: any) {
+      const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
+      if (isQuotaError) {
+        console.log("[Recovery Verses] AI quota exceeded, using local fallback");
+      } else {
+        console.error("[Recovery Verses] AI error:", error?.message);
+      }
     }
-  ]
-}`;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("[AI] Could not extract JSON from recovery verses response");
-      return null;
-    }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
-    return parsed.verses;
-  } catch (error) {
-    console.error("[AI] Error generating recovery verses:", error);
-    return null;
   }
+
+  // Fallback to local verses
+  console.log("[Recovery Verses] Using local fallback verses");
+  const shuffled = [...LOCAL_RECOVERY_VERSES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
+// Local fallback daily missions to avoid API calls when quota is low
+const LOCAL_DAILY_MISSIONS = [
+  [
+    { title: "Leitura Matinal", description: "Leia um capítulo do livro de Provérbios", xpReward: 10, type: "easy" },
+    { title: "Oração Intercessória", description: "Ore por 5 pessoas diferentes da sua comunidade", xpReward: 25, type: "medium" },
+    { title: "Estudo Bíblico", description: "Faça um estudo aprofundado sobre um versículo e anote suas reflexões", xpReward: 50, type: "hard" },
+  ],
+  [
+    { title: "Versículo do Dia", description: "Memorize um versículo bíblico e medite nele", xpReward: 10, type: "easy" },
+    { title: "Ato de Bondade", description: "Pratique um ato de bondade com alguém hoje", xpReward: 25, type: "medium" },
+    { title: "Jejum e Oração", description: "Faça um jejum parcial e dedique o tempo à oração", xpReward: 50, type: "hard" },
+  ],
+  [
+    { title: "Gratidão", description: "Escreva 3 coisas pelas quais você é grato hoje", xpReward: 10, type: "easy" },
+    { title: "Compartilhar a Fé", description: "Compartilhe uma mensagem de encorajamento com alguém", xpReward: 25, type: "medium" },
+    { title: "Servir ao Próximo", description: "Ajude alguém necessitado de forma prática hoje", xpReward: 50, type: "hard" },
+  ],
+];
+
 export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
-  if (!isAIConfigured()) {
-    console.log("[AI] Gemini not configured, cannot generate daily missions");
-    return null;
+  // Try AI generation if configured, but with quick fallback on quota errors
+  if (isAIConfigured()) {
+    try {
+      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const dayName = dayNames[new Date().getDay()];
+      
+      const prompt = `Crie 3 missões espirituais para ${dayName}: fácil (10XP), média (25XP), difícil (50XP). JSON: {"missions":[{"title":"","description":"","xpReward":10,"type":"easy"},...]}`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.missions && parsed.missions.length > 0) {
+          console.log("[Daily Missions] Successfully generated with AI");
+          return parsed.missions;
+        }
+      }
+    } catch (error: any) {
+      const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
+      if (isQuotaError) {
+        console.log("[Daily Missions] AI quota exceeded, using local fallback");
+      } else {
+        console.error("[Daily Missions] AI error:", error?.message);
+      }
+    }
   }
 
-  try {
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const today = new Date();
-    const dayName = dayNames[today.getDay()];
-    
-    const prompt = `Você é um mentor espiritual. Crie 3 missões diárias para ${dayName} que incentivem o crescimento espiritual e prática da fé.
-
-As missões devem:
-- Ser práticas e alcançáveis em um dia
-- Variar em dificuldade (fácil, média, desafiadora)
-- Incluir ações como: leitura bíblica, oração, atos de bondade, reflexão, gratidão
-- Ter recompensas de XP proporcionais (10 para fácil, 25 para média, 50 para desafiadora)
-
-Responda APENAS em formato JSON:
-{
-  "missions": [
-    {
-      "title": "Título curto da missão",
-      "description": "Descrição clara do que fazer",
-      "xpReward": 10,
-      "type": "easy"
-    },
-    {
-      "title": "Título curto da missão",
-      "description": "Descrição clara do que fazer",
-      "xpReward": 25,
-      "type": "medium"
-    },
-    {
-      "title": "Título curto da missão",
-      "description": "Descrição clara do que fazer",
-      "xpReward": 50,
-      "type": "hard"
-    }
-  ]
-}`;
-
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("[AI] Could not extract JSON from daily missions response");
-      return null;
-    }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
-    return parsed.missions;
-  } catch (error) {
-    console.error("[AI] Error generating daily missions:", error);
-    return null;
-  }
+  // Fallback to local missions
+  console.log("[Daily Missions] Using local fallback missions");
+  const randomIndex = Math.floor(Math.random() * LOCAL_DAILY_MISSIONS.length);
+  return LOCAL_DAILY_MISSIONS[randomIndex];
 }
 
 export interface ExtractedLessonFromPDF {

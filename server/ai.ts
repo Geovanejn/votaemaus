@@ -78,6 +78,29 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Simple quota tracking to avoid wasting quota on low-priority tasks
+// when quota is known to be exhausted
+let lastQuotaError: number = 0;
+const QUOTA_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown after quota error
+
+function markQuotaExhausted(): void {
+  lastQuotaError = Date.now();
+  console.log("[Quota] Marked quota as exhausted, cooldown for 5 minutes");
+}
+
+function isQuotaLikelyAvailable(): boolean {
+  if (lastQuotaError === 0) return true;
+  const elapsed = Date.now() - lastQuotaError;
+  return elapsed >= QUOTA_COOLDOWN_MS;
+}
+
+function isQuotaError(error: any): boolean {
+  return error?.status === 429 || 
+         error?.message?.includes('429') || 
+         error?.message?.includes('quota') ||
+         error?.message?.includes('RESOURCE_EXHAUSTED');
+}
+
 // Initialize default Gemini AI (backward compatibility)
 const genAI = new GoogleGenerativeAI(getGeminiApiKey("1"));
 // Using gemini-2.5-flash as specified by user
@@ -1339,8 +1362,9 @@ export async function generateRecoveryVersesWithAI(count: number = 5): Promise<A
     console.warn("[BibleAPI] Failed to fetch recovery verses from API");
   }
 
-  // Try AI generation if configured, but with quick fallback on quota errors
-  if (isAIConfigured()) {
+  // Try AI generation if configured and quota likely available
+  // This is a LOW-PRIORITY task, so we skip AI if quota was recently exhausted
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
     try {
       const prompt = `Gere ${count} versículos bíblicos de conforto (versão ARA) com reflexões breves. JSON: {"verses":[{"verse":"texto","reference":"Livro X:Y (ARA)","reflection":"reflexão"}]}`;
       const result = await model.generateContent(prompt);
@@ -1354,17 +1378,18 @@ export async function generateRecoveryVersesWithAI(count: number = 5): Promise<A
         }
       }
     } catch (error: any) {
-      const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
-      if (isQuotaError) {
+      if (isQuotaError(error)) {
+        markQuotaExhausted();
         console.log("[Recovery Verses] AI quota exceeded, using local fallback");
       } else {
         console.error("[Recovery Verses] AI error:", error?.message);
       }
     }
+  } else if (!isQuotaLikelyAvailable()) {
+    console.log("[Recovery Verses] Skipping AI (quota cooldown), using local fallback");
   }
 
   // Fallback to local verses
-  console.log("[Recovery Verses] Using local fallback verses");
   const shuffled = [...LOCAL_RECOVERY_VERSES].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
@@ -1389,8 +1414,9 @@ const LOCAL_DAILY_MISSIONS = [
 ];
 
 export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
-  // Try AI generation if configured, but with quick fallback on quota errors
-  if (isAIConfigured()) {
+  // Try AI generation if configured and quota likely available
+  // This is a LOW-PRIORITY task, so we skip AI if quota was recently exhausted
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
     try {
       const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
       const dayName = dayNames[new Date().getDay()];
@@ -1407,17 +1433,18 @@ export async function generateDailyMissionsWithAI(): Promise<Array<{ title: stri
         }
       }
     } catch (error: any) {
-      const isQuotaError = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota');
-      if (isQuotaError) {
+      if (isQuotaError(error)) {
+        markQuotaExhausted();
         console.log("[Daily Missions] AI quota exceeded, using local fallback");
       } else {
         console.error("[Daily Missions] AI error:", error?.message);
       }
     }
+  } else if (!isQuotaLikelyAvailable()) {
+    console.log("[Daily Missions] Skipping AI (quota cooldown), using local fallback");
   }
 
   // Fallback to local missions
-  console.log("[Daily Missions] Using local fallback missions");
   const randomIndex = Math.floor(Math.random() * LOCAL_DAILY_MISSIONS.length);
   return LOCAL_DAILY_MISSIONS[randomIndex];
 }

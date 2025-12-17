@@ -23,7 +23,9 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 - **Authentication**: JWT for API security, session-based for general access.
 - **Scheduled Tasks**: Background tasks for Instagram synchronization and other periodic operations.
 - **Real-time Features**: Push notifications for member engagement.
-- **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality.
+- **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality. Includes quota tracking with 5-minute cooldown to preserve quota for high-priority operations (PDF study generation) when low-priority schedulers hit rate limits.
+  - **Models**: Prioritizes gemini-2.5-flash and gemini-2.5-flash-lite for all AI operations.
+  - **Quota Management**: Schedulers (daily missions, recovery verses) use local fallback data when quota is exhausted, ensuring manual study generation has available quota.
 - **Study System (DeoGlory)**:
     - **XP System**: Tracks experience points, with corrections to prevent duplication and ensure accurate daily XP calculation. Penalties for incorrect answers and hints are implemented.
     - **Crystal System**: Rewards members based on specific criteria like perfect lessons, consecutive perfect lessons, daily lessons, and weekly streaks.

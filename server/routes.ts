@@ -38,7 +38,8 @@ import {
   generateReflectionQuestions,
   summarizeText,
   isAIConfigured,
-  generateLessonFromPDFExact
+  generateLessonFromPDFExact,
+  AIProvider
 } from "./ai";
 import multer from "multer";
 import sharp from "sharp";
@@ -2731,8 +2732,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate complete study week content from PDF and save to database - admin or espiritualidade
   app.post("/api/ai/generate-week-from-pdf", authenticateToken, requireAdminOrEspiritualidade, upload.single('pdf'), async (req: AuthRequest, res) => {
     try {
-      if (!isAIConfigured()) {
+      const geminiKey = req.body.geminiKey || "1";
+      const aiProvider: AIProvider = req.body.aiProvider === "openai" ? "openai" : "gemini";
+
+      // Check AI configuration based on provider
+      if (aiProvider === "gemini" && !isAIConfigured()) {
         return res.status(503).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
+      }
+      if (aiProvider === "openai" && !process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ message: "OpenAI nao configurada. Adicione a chave OPENAI_API_KEY." });
       }
 
       if (!req.file) {
@@ -2767,11 +2775,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
       }
 
-      // Get selected Gemini API key (1-4)
-      const geminiKey = req.body.geminiKey || "1";
-
-      // Generate content with AI using selected key
-      const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year, geminiKey);
+      // Generate content with AI using selected provider and key
+      const generatedContent = await generateStudyContentFromPDF(pdfText, weekNumber, year, geminiKey, aiProvider);
 
       // Create the week in database
       const week = await storage.createStudyWeek({
@@ -2961,7 +2966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
-      const { text, weekNumber, year, geminiKey } = req.body;
+      const { text, weekNumber, year, geminiKey, aiProvider } = req.body;
       
       if (!text || text.trim().length < 100) {
         return res.status(400).json({ message: "Texto muito curto. Forneca pelo menos 100 caracteres." });
@@ -2970,6 +2975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentYear = year || new Date().getFullYear();
       const currentWeekNumber = weekNumber || 1;
       const selectedGeminiKey = geminiKey || "1";
+      const selectedProvider: AIProvider = aiProvider === "openai" ? "openai" : "gemini";
 
       // Check if week already exists
       const existingWeek = await storage.getStudyWeekByNumber(currentWeekNumber, currentYear);
@@ -2980,8 +2986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Generate content with AI using selected key
-      const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear, selectedGeminiKey);
+      // Generate content with AI using selected key and provider
+      const generatedContent = await generateStudyContentFromText(text, currentWeekNumber, currentYear, selectedGeminiKey, selectedProvider);
 
       // Create the week in database
       const week = await storage.createStudyWeek({
@@ -5403,6 +5409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const geminiKey = req.body.geminiKey || "1";
+      const aiProvider: AIProvider = req.body.aiProvider === "openai" ? "openai" : "gemini";
 
       const season = await storage.getSeasonById(seasonId);
       if (!season) {
@@ -5412,8 +5419,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Salvar o status original para restaurar após o processamento
       const originalStatus = season.status;
 
-      if (!isAIConfigured()) {
+      if (!isAIConfigured() && aiProvider === "gemini") {
         return res.status(500).json({ message: "IA não configurada. Configure a chave GEMINI_API_KEY nas variáveis de ambiente.", errorType: "config" });
+      }
+
+      if (aiProvider === "openai" && !process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: "OpenAI não configurada. Configure a chave OPENAI_API_KEY nas variáveis de ambiente.", errorType: "config" });
       }
 
       await storage.updateSeason(seasonId, { status: "processing" });
@@ -5426,7 +5437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "PDF não contém texto suficiente para processamento. Verifique se o PDF contém texto selecionável.", errorType: "pdf_content" });
       }
 
-      const extractedLesson = await generateLessonFromPDFExact(pdfText, geminiKey);
+      const extractedLesson = await generateLessonFromPDFExact(pdfText, geminiKey, aiProvider);
 
       if (!extractedLesson || !extractedLesson.title) {
         await storage.updateSeason(seasonId, { status: originalStatus });

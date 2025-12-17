@@ -1,4 +1,25 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import OpenAI from "openai";
+
+// AI Provider type
+export type AIProvider = "gemini" | "openai";
+
+// OpenAI models to try in order of preference
+const OPENAI_MODELS = [
+  "gpt-4o",           // Most capable
+  "gpt-4o-mini",      // Faster, cheaper
+  "gpt-4-turbo",      // Previous generation
+  "gpt-3.5-turbo"     // Fallback
+];
+
+// Get OpenAI client
+function getOpenAIClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY não está configurada");
+  }
+  return new OpenAI({ apiKey });
+}
 
 // Get Gemini API key by number (1-5)
 function getGeminiApiKey(keyNumber: string = "1"): string {
@@ -276,11 +297,99 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
   throw new Error('Todos os modelos Gemini estão indisponíveis. Verifique se sua chave API tem cota disponível ou tente novamente em alguns minutos.');
 }
 
+// OpenAI generation function with fallback models
+async function generateWithOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const openai = getOpenAIClient();
+  
+  for (let modelIndex = 0; modelIndex < OPENAI_MODELS.length; modelIndex++) {
+    const currentModel = OPENAI_MODELS[modelIndex];
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[OpenAI] Tentativa ${attempt}/${maxRetries} com modelo ${currentModel}`);
+        
+        const response = await openai.chat.completions.create({
+          model: currentModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 16384,
+        });
+
+        const text = response.choices[0]?.message?.content;
+        if (!text) {
+          throw new Error("Resposta vazia da OpenAI");
+        }
+        
+        console.log(`[OpenAI] Sucesso com modelo ${currentModel}`);
+        return extractJsonFromResponse(text);
+        
+      } catch (error: any) {
+        const isRateLimit = error?.status === 429 ||
+          error?.message?.includes('429') ||
+          error?.message?.includes('rate limit') ||
+          error?.message?.includes('quota');
+        
+        const isNotFound = error?.status === 404 ||
+          error?.message?.includes('404') ||
+          error?.message?.includes('not found') ||
+          error?.message?.includes('does not exist');
+        
+        console.warn(`[OpenAI] Erro com ${currentModel} (tentativa ${attempt}/${maxRetries}): ${error?.message || error}`);
+        
+        // For 404 errors (model not found), immediately try next model
+        if (isNotFound) {
+          console.log(`[OpenAI] Modelo ${currentModel} não encontrado, tentando próximo modelo...`);
+          break;
+        }
+        
+        if (isRateLimit) {
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          
+          if (attempt < maxRetries) {
+            console.log(`[OpenAI] Aguardando ${waitTime}ms antes da próxima tentativa...`);
+            await sleep(waitTime);
+          } else if (modelIndex < OPENAI_MODELS.length - 1) {
+            console.log(`[OpenAI] Modelo ${currentModel} indisponível, tentando ${OPENAI_MODELS[modelIndex + 1]}...`);
+            break;
+          }
+        } else {
+          if (modelIndex < OPENAI_MODELS.length - 1) {
+            console.log(`[OpenAI] Erro não recuperável com ${currentModel}, tentando próximo modelo...`);
+            break;
+          }
+          throw error;
+        }
+      }
+    }
+  }
+  
+  throw new Error('Todos os modelos OpenAI estão indisponíveis. Verifique se sua chave API está configurada corretamente.');
+}
+
+// Unified AI generation function that supports both providers
+async function generateWithAI(
+  systemPrompt: string, 
+  userPrompt: string, 
+  provider: AIProvider = "gemini",
+  geminiKey: string = "1"
+): Promise<string> {
+  if (provider === "openai") {
+    return generateWithOpenAI(systemPrompt, userPrompt);
+  } else {
+    return generateWithGemini(systemPrompt, userPrompt, geminiKey);
+  }
+}
+
 export async function generateStudyContentFromText(
   text: string,
   weekNumber: number,
   year: number,
-  geminiKey: string = "1"
+  geminiKey: string = "1",
+  provider: AIProvider = "gemini"
 ): Promise<GeneratedWeekContent> {
   const systemPrompt = `Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa é transformar o texto fornecido em um conteúdo de estudo semanal completo para jovens da UMP (União da Mocidade Presbiteriana).
@@ -438,7 +547,7 @@ REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
-    const content = await generateWithGemini(systemPrompt, userPrompt, geminiKey);
+    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }
@@ -698,13 +807,14 @@ export async function generateStudyContentFromPDF(
   pdfText: string,
   weekNumber: number,
   year: number,
-  geminiKey: string = "1"
+  geminiKey: string = "1",
+  provider: AIProvider = "gemini"
 ): Promise<GeneratedWeekContent> {
   // Clean the PDF text first
   const cleanedText = await extractTextFromPDFContent(pdfText);
   
-  // Use the same generation function with selected Gemini key
-  return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey);
+  // Use the same generation function with selected provider and key
+  return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey, provider);
 }
 
 function validateAndCleanUnit(unit: GeneratedUnit, type: string): GeneratedUnit {
@@ -1319,7 +1429,8 @@ export interface ExtractedLessonFromPDF {
 
 export async function generateLessonFromPDFExact(
   pdfText: string,
-  geminiKey: string = "1"
+  geminiKey: string = "1",
+  provider: AIProvider = "gemini"
 ): Promise<ExtractedLessonFromPDF> {
   const systemPrompt = `Você é um especialista em educação cristã reformada. Sua tarefa é extrair e processar o conteúdo de uma lição bíblica de um PDF.
 
@@ -1542,7 +1653,7 @@ LEMBRE-SE:
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
-    const content = await generateWithGemini(systemPrompt, userPrompt, geminiKey);
+    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey);
     if (!content) {
       throw new Error("Resposta vazia da IA");
     }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,8 @@ import {
   Trash2,
   MoreVertical,
   Settings,
+  Key,
+  Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -59,6 +62,8 @@ export default function DeoGloryEstudos() {
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+  const [aiProvider, setAiProvider] = useState<"gemini" | "openai">("gemini");
+  const [geminiKey, setGeminiKey] = useState<string>("1");
   const coverInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -224,6 +229,8 @@ export default function DeoGloryEstudos() {
     try {
       const formData = new FormData();
       formData.append("pdf", pdfFile);
+      formData.append("aiProvider", aiProvider);
+      formData.append("geminiKey", geminiKey);
 
       const response = await fetch(`/api/study/admin/seasons/${selectedSeason.id}/import-pdf-exact`, {
         method: "POST",
@@ -483,6 +490,46 @@ export default function DeoGloryEstudos() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* AI Provider Selector */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Provedor de IA
+                </Label>
+                <Select value={aiProvider} onValueChange={(v) => setAiProvider(v as "gemini" | "openai")}>
+                  <SelectTrigger data-testid="select-ai-provider">
+                    <SelectValue placeholder="Selecione o provedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemini">Google Gemini</SelectItem>
+                    <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {aiProvider === "gemini" && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Chave Gemini
+                  </Label>
+                  <Select value={geminiKey} onValueChange={setGeminiKey}>
+                    <SelectTrigger data-testid="select-gemini-key">
+                      <SelectValue placeholder="Selecione a chave" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Chave 1</SelectItem>
+                      <SelectItem value="2">Chave 2</SelectItem>
+                      <SelectItem value="3">Chave 3</SelectItem>
+                      <SelectItem value="4">Chave 4</SelectItem>
+                      <SelectItem value="5">Chave 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            
             <input
               ref={pdfInputRef}
               type="file"

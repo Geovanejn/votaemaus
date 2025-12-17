@@ -130,6 +130,7 @@ export default function DeoGloryLicoes() {
   const [selectedWeek, setSelectedWeek] = useState<StudyWeek | null>(null);
   
   const [geminiKey, setGeminiKey] = useState<string>("1");
+  const [aiProvider, setAiProvider] = useState<"gemini" | "openai">("gemini");
   const [weekNumber, setWeekNumber] = useState<number>(1);
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [textContent, setTextContent] = useState("");
@@ -143,7 +144,7 @@ export default function DeoGloryLicoes() {
   });
 
   const generateFromTextMutation = useMutation({
-    mutationFn: async (data: { text: string; weekNumber: number; year: number; geminiKey: string }) => {
+    mutationFn: async (data: { text: string; weekNumber: number; year: number; geminiKey: string; aiProvider: string }) => {
       const response = await apiRequest("POST", "/api/ai/generate-week", data);
       return response.json();
     },
@@ -159,12 +160,13 @@ export default function DeoGloryLicoes() {
   });
 
   const generateFromPdfMutation = useMutation({
-    mutationFn: async (data: { file: File; weekNumber: number; year: number; geminiKey: string }) => {
+    mutationFn: async (data: { file: File; weekNumber: number; year: number; geminiKey: string; aiProvider: string }) => {
       const formData = new FormData();
       formData.append("pdf", data.file);
       formData.append("weekNumber", data.weekNumber.toString());
       formData.append("year", data.year.toString());
       formData.append("geminiKey", data.geminiKey);
+      formData.append("aiProvider", data.aiProvider);
       
       const response = await fetch("/api/ai/generate-week-from-pdf", {
         method: "POST",
@@ -281,7 +283,7 @@ export default function DeoGloryLicoes() {
       toast({ title: "Erro", description: "O texto deve ter pelo menos 100 caracteres.", variant: "destructive" });
       return;
     }
-    generateFromTextMutation.mutate({ text: textContent, weekNumber, year, geminiKey });
+    generateFromTextMutation.mutate({ text: textContent, weekNumber, year, geminiKey, aiProvider });
   };
 
   const handleGenerateFromPdf = () => {
@@ -289,7 +291,7 @@ export default function DeoGloryLicoes() {
       toast({ title: "Erro", description: "Selecione um arquivo PDF.", variant: "destructive" });
       return;
     }
-    generateFromPdfMutation.mutate({ file: selectedFile, weekNumber, year, geminiKey });
+    generateFromPdfMutation.mutate({ file: selectedFile, weekNumber, year, geminiKey, aiProvider });
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -333,24 +335,44 @@ export default function DeoGloryLicoes() {
     deleteWeekMutation.mutate(selectedWeek.id);
   };
 
-  const GeminiKeySelector = () => (
-    <div className="space-y-2">
-      <Label className="flex items-center gap-2">
-        <Key className="h-4 w-4" />
-        Chave Gemini
-      </Label>
-      <Select value={geminiKey} onValueChange={setGeminiKey}>
-        <SelectTrigger data-testid="select-gemini-key">
-          <SelectValue placeholder="Selecione a chave" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1">Chave 1</SelectItem>
-          <SelectItem value="2">Chave 2</SelectItem>
-          <SelectItem value="3">Chave 3</SelectItem>
-          <SelectItem value="4">Chave 4</SelectItem>
-          <SelectItem value="5">Chave 5</SelectItem>
-        </SelectContent>
-      </Select>
+  const AIProviderSelector = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          Provedor de IA
+        </Label>
+        <Select value={aiProvider} onValueChange={(v) => setAiProvider(v as "gemini" | "openai")}>
+          <SelectTrigger data-testid="select-ai-provider">
+            <SelectValue placeholder="Selecione o provedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="gemini">Google Gemini</SelectItem>
+            <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {aiProvider === "gemini" && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            Chave Gemini
+          </Label>
+          <Select value={geminiKey} onValueChange={setGeminiKey}>
+            <SelectTrigger data-testid="select-gemini-key">
+              <SelectValue placeholder="Selecione a chave" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Chave 1</SelectItem>
+              <SelectItem value="2">Chave 2</SelectItem>
+              <SelectItem value="3">Chave 3</SelectItem>
+              <SelectItem value="4">Chave 4</SelectItem>
+              <SelectItem value="5">Chave 5</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 
@@ -554,7 +576,7 @@ export default function DeoGloryLicoes() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <GeminiKeySelector />
+            <AIProviderSelector />
             <WeekYearSelector />
             <div className="space-y-2">
               <Label>Texto Base (mínimo 100 caracteres)</Label>
@@ -608,7 +630,7 @@ export default function DeoGloryLicoes() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <GeminiKeySelector />
+            <AIProviderSelector />
             <WeekYearSelector />
             <div className="space-y-2">
               <Label>Arquivo PDF</Label>

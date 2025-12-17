@@ -487,16 +487,17 @@ export default function LessonPage() {
 
   // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
   // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
+  // Valores fixos: Estude = 60 XP, Medite = 60 XP
   const previousStagesXp = useMemo(() => {
     if (!lessonData?.units) return 0;
     const allU = lessonData.units;
-    const estudeXp = allU
-      .filter(u => u.stage === 'estude' && (u.type === 'text' || u.type === 'verse'))
-      .reduce((sum, u) => sum + (u.xpValue || 2), 0);
-    const mediteXp = allU
-      .filter(u => u.stage === 'medite' && (u.type === 'meditation' || u.type === 'reflection'))
-      .reduce((sum, u) => sum + (u.xpValue || 3), 0);
-    return estudeXp + mediteXp;
+    const ESTUDE_FIXED_XP = 60;
+    const MEDITE_FIXED_XP = 60;
+    
+    const hasEstude = allU.some(u => u.stage === 'estude');
+    const hasMedite = allU.some(u => u.stage === 'medite');
+    
+    return (hasEstude ? ESTUDE_FIXED_XP : 0) + (hasMedite ? MEDITE_FIXED_XP : 0);
   }, [lessonData?.units]);
   
   // Ref para controlar se já inicializamos o XP para esta sessão de responda
@@ -506,14 +507,53 @@ export default function LessonPage() {
   // Calcular targetStage para usar no useEffect abaixo
   const earlyTargetStage = (stageOverride ?? stageParam) as "estude" | "medite" | "responda" | null;
   
+  // Ref para rastrear se as seções foram creditadas no backend
+  const stagesCreditedRef = useRef<{ estude: boolean; medite: boolean }>({ estude: false, medite: false });
+  
   useEffect(() => {
-    // Se entramos na etapa responda diretamente e displayXp é 0, inicializar com XP das etapas anteriores
+    // Se entramos na etapa responda diretamente, inicializar XP e creditar seções anteriores no backend
     // Só executa uma vez por lessonId para evitar loops
     if (earlyTargetStage === 'responda' && displayXp === 0 && previousStagesXp > 0 && xpInitializedForLesson.current !== lessonId) {
       xpInitializedForLesson.current = lessonId;
       setDisplayXp(previousStagesXp);
+      
+      // Creditar as seções anteriores no backend quando entra diretamente em Responda
+      // Backend é idempotente, então chamadas duplicadas são seguras
+      const creditPreviousStages = async () => {
+        const allU = lessonData?.units || [];
+        const hasEstude = allU.some(u => u.stage === 'estude');
+        const hasMedite = allU.some(u => u.stage === 'medite');
+        
+        if (hasEstude && !stagesCreditedRef.current.estude) {
+          try {
+            await apiRequest("POST", `/api/study/lessons/${lessonId}/complete-stage`, { stage: 'estude' });
+            stagesCreditedRef.current.estude = true;
+          } catch (error) {
+            console.error("Error awarding estude XP:", error);
+          }
+        }
+        
+        if (hasMedite && !stagesCreditedRef.current.medite) {
+          try {
+            const response = await apiRequest("POST", `/api/study/lessons/${lessonId}/complete-stage`, { stage: 'medite' });
+            stagesCreditedRef.current.medite = true;
+            
+            // Use the profile returned by backend to sync displayXp with actual XP
+            if (response.profile) {
+              queryClient.setQueryData(['/api/study/profile'], response.profile);
+            }
+          } catch (error) {
+            console.error("Error awarding medite XP:", error);
+          }
+        }
+        
+        // Invalidate profile cache to ensure sync with backend
+        queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
+      };
+      
+      creditPreviousStages();
     }
-  }, [earlyTargetStage, previousStagesXp, lessonId, displayXp]);
+  }, [earlyTargetStage, previousStagesXp, lessonId, displayXp, lessonData?.units]);
 
   if (!user) {
     return (
@@ -867,8 +907,8 @@ export default function LessonPage() {
   };
 
   const handleMeditateComplete = async () => {
+    const MEDITE_FIXED_XP = 60;
     const meditateUnits = allUnits.filter(u => u.stage === 'medite');
-    const totalXp = meditateUnits.reduce((sum, u) => sum + (u.xpValue || 3), 0);
     
     for (const unit of meditateUnits) {
       try {
@@ -876,6 +916,13 @@ export default function LessonPage() {
       } catch (error) {
         console.error("Error completing meditate unit:", error);
       }
+    }
+    
+    // Add fixed XP for completing Medite section
+    try {
+      await apiRequest("POST", `/api/study/lessons/${lessonId}/complete-stage`, { stage: 'medite' });
+    } catch (error) {
+      console.error("Error awarding medite XP:", error);
     }
     
     const lastMeditateIndex = allUnits.reduce((lastIdx, u, idx) => 
@@ -886,7 +933,7 @@ export default function LessonPage() {
     const nextUnit = nextIndex < allUnits.length ? allUnits[nextIndex] : null;
     
     setStageCompleteData({
-      xp: totalXp,
+      xp: MEDITE_FIXED_XP,
       stageType: "medite",
       nextStage: nextUnit?.stage || null,
       nextIndex: nextIndex
@@ -899,6 +946,23 @@ export default function LessonPage() {
       await completeUnitMutation.mutateAsync(currentUnit.id);
     } catch (error) {
       console.error("Error completing unit:", error);
+    }
+    
+    // For estude and medite sections, check if this is the last unit of the section
+    if (currentUnit.stage === 'estude') {
+      const estudeUnitsInFiltered = units.filter(u => u.stage === 'estude');
+      const currentEstudeIndex = estudeUnitsInFiltered.findIndex(u => u.id === currentUnit.id);
+      const isLastEstudeUnit = currentEstudeIndex === estudeUnitsInFiltered.length - 1;
+      
+      if (isLastEstudeUnit) {
+        handleStudyComplete();
+        return;
+      }
+      
+      if (currentUnitIndex < totalUnits - 1) {
+        setCurrentUnitIndex(prev => prev + 1);
+      }
+      return;
     }
     
     if (currentUnit.stage === 'medite') {
@@ -917,9 +981,6 @@ export default function LessonPage() {
       return;
     }
     
-    const xp = currentUnit.xpValue || 2;
-    setDisplayXp(prev => prev + xp);
-    
     if (currentUnitIndex < totalUnits - 1) {
       setCurrentUnitIndex(prev => prev + 1);
     } else {
@@ -928,15 +989,13 @@ export default function LessonPage() {
   };
 
   const handleLessonCompletion = async () => {
+    const LESSON_COMPLETION_BONUS = 50;
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const isPerfect = mistakes === 0;
-    const bonusXp = isPerfect ? 10 : 0;
-    // Only award lesson bonus XP here - unit XP was already awarded via completeUnitMutation
-    const estimatedXp = lessonData.xpReward + bonusXp;
     
     try {
       await completeLessonMutation.mutateAsync({
-        xpEarned: estimatedXp,
+        xpEarned: LESSON_COMPLETION_BONUS,
         mistakesCount: mistakes,
         timeSpentSeconds: timeSpent
       });
@@ -968,13 +1027,12 @@ export default function LessonPage() {
   };
 
   if (isCompleted) {
+    const LESSON_COMPLETION_BONUS = 50;
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
     const isPerfect = mistakes === 0;
-    const bonusXp = isPerfect ? 10 : 0;
-    // Display total XP earned in lesson (units + lesson bonus)
-    // Always use local calculation since server now only returns lesson bonus XP
-    const finalXp = displayXp + lessonData.xpReward + bonusXp;
+    // Display total XP earned in lesson: sections (estude 60 + medite 60 + responda 20*perguntas) + completion bonus 50
+    const finalXp = displayXp + LESSON_COMPLETION_BONUS;
     
     const handleStreakAnimationComplete = () => {
       if (crystalAnimationData) {
@@ -1059,7 +1117,7 @@ export default function LessonPage() {
   const currentStage = targetStage || currentUnit?.stage || 'responda';
   
   const handleStudyComplete = async () => {
-    const totalXp = studyUnits.reduce((sum, u) => sum + (u.xpValue || 2), 0);
+    const ESTUDE_FIXED_XP = 60;
     
     for (const unit of studyUnits) {
       try {
@@ -1067,6 +1125,13 @@ export default function LessonPage() {
       } catch (error) {
         console.error("Error completing study unit:", error);
       }
+    }
+    
+    // Add fixed XP for completing Estude section
+    try {
+      await apiRequest("POST", `/api/study/lessons/${lessonId}/complete-stage`, { stage: 'estude' });
+    } catch (error) {
+      console.error("Error awarding estude XP:", error);
     }
     
     const lastStudyIndex = allUnits.reduce((lastIdx, u, idx) => 
@@ -1077,7 +1142,7 @@ export default function LessonPage() {
     const nextUnit = nextIndex < allUnits.length ? allUnits[nextIndex] : null;
     
     setStageCompleteData({
-      xp: totalXp,
+      xp: ESTUDE_FIXED_XP,
       stageType: "estude",
       nextStage: nextUnit?.stage || null,
       nextIndex: nextIndex
@@ -1122,6 +1187,7 @@ export default function LessonPage() {
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
   
   const handleRespondaAnswer = async (questionIndex: number, answer: any, _isCorrect: boolean) => {
+    const RESPONDA_XP_PER_CORRECT = 20;
     const unit = respondaUnits[questionIndex];
     if (!unit) return;
     
@@ -1132,7 +1198,7 @@ export default function LessonPage() {
       });
       
       if (result.correct) {
-        setDisplayXp(prev => prev + (unit.xpValue || 5));
+        setDisplayXp(prev => prev + RESPONDA_XP_PER_CORRECT);
       } else {
         setMistakes(prev => prev + 1);
       }

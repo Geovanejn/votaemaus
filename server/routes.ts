@@ -1687,6 +1687,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete a stage/section (estude, medite) with fixed XP
+  app.post("/api/study/lessons/:lessonId/complete-stage", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const lessonId = parseInt(req.params.lessonId);
+      const { stage } = req.body;
+      
+      const STAGE_XP = {
+        estude: 60,
+        medite: 60
+      };
+      
+      const xpToAward = STAGE_XP[stage as keyof typeof STAGE_XP];
+      if (!xpToAward) {
+        return res.status(400).json({ message: "Stage invalido" });
+      }
+      
+      await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
+      const profile = await storage.getStudyProfile(req.user.id);
+      
+      res.json({ 
+        xpAwarded: xpToAward,
+        profile,
+        stage
+      });
+    } catch (error) {
+      console.error("Complete stage error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao completar secao" 
+      });
+    }
+  });
+
   // Complete a lesson
   app.post("/api/study/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {

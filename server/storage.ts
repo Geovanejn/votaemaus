@@ -194,6 +194,7 @@ export interface IStorage {
   submitUnitAnswer(userId: number, unitId: number, answer: any): Promise<any>;
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
+  addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void>;
   getStudyStats(): Promise<any>;
   getUserProfileStats(userId: number): Promise<any>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
@@ -1850,6 +1851,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async submitUnitAnswer(userId: number, unitId: number, answer: any): Promise<any> {
+    const RESPONDA_XP_PER_CORRECT = 20;
     const unit = await this.getStudyUnitById(unitId);
     if (!unit) return null;
     
@@ -1887,11 +1889,11 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.userUnitProgress.id, existing.id))
         .returning();
       
-      // Award XP only on first correct answer (not on retries)
+      // Award 20 XP only on first correct answer (not on retries)
       if (isCorrect && !existing.isCorrect) {
-        await this.addXp(userId, unit.xpValue, 'unit', unitId);
+        await this.addXp(userId, RESPONDA_XP_PER_CORRECT, 'unit', unitId);
       }
-      return { unitProgress: updated, isCorrect, xpEarned: (isCorrect && !existing.isCorrect) ? unit.xpValue : 0, heartLost };
+      return { unitProgress: updated, isCorrect, xpEarned: (isCorrect && !existing.isCorrect) ? RESPONDA_XP_PER_CORRECT : 0, heartLost };
     }
     
     const [progress] = await db.insert(schema.userUnitProgress)
@@ -1906,11 +1908,11 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     
-    // Award XP for correct answer on first attempt
+    // Award 20 XP for correct answer on first attempt
     if (isCorrect) {
-      await this.addXp(userId, unit.xpValue, 'unit', unitId);
+      await this.addXp(userId, RESPONDA_XP_PER_CORRECT, 'unit', unitId);
     }
-    return { unitProgress: progress, isCorrect, xpEarned: isCorrect ? unit.xpValue : 0, heartLost };
+    return { unitProgress: progress, isCorrect, xpEarned: isCorrect ? RESPONDA_XP_PER_CORRECT : 0, heartLost };
   }
 
   private checkAnswer(unitType: string, content: any, answer: any): boolean {
@@ -1958,19 +1960,12 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     if (existing) {
-      // Don't award XP again if already completed
-      if (!existing.isCompleted) {
-        await this.addXp(userId, unit.xpValue, 'unit', unitId);
-      }
       const [updated] = await db.update(schema.userUnitProgress)
         .set({ isCompleted: true, completedAt: new Date() })
         .where(eq(schema.userUnitProgress.id, existing.id))
         .returning();
-      return { unitProgress: updated, xpAwarded: existing.isCompleted ? 0 : unit.xpValue };
+      return { unitProgress: updated, xpAwarded: 0 };
     }
-    
-    // Award XP for first completion
-    await this.addXp(userId, unit.xpValue, 'unit', unitId);
     
     const [progress] = await db.insert(schema.userUnitProgress)
       .values({
@@ -1980,7 +1975,7 @@ export class DatabaseStorage implements IStorage {
         completedAt: new Date(),
       })
       .returning();
-    return { unitProgress: progress, xpAwarded: unit.xpValue };
+    return { unitProgress: progress, xpAwarded: 0 };
   }
 
   async completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any> {
@@ -2018,6 +2013,27 @@ export class DatabaseStorage implements IStorage {
     
     await this.addXp(userId, xpEarned, 'lesson', lessonId);
     return progress;
+  }
+
+  async addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void> {
+    // Make this idempotent - check if XP for this stage/lesson was already awarded
+    const source = `stage_${stage}`;
+    const existing = await db.select()
+      .from(schema.xpTransactions)
+      .where(and(
+        eq(schema.xpTransactions.userId, userId),
+        eq(schema.xpTransactions.source, source),
+        eq(schema.xpTransactions.sourceId, lessonId)
+      ))
+      .limit(1);
+    
+    // If already awarded, skip
+    if (existing.length > 0) {
+      console.log(`Stage XP already awarded for user ${userId}, stage ${stage}, lesson ${lessonId}`);
+      return;
+    }
+    
+    await this.addXp(userId, amount, source, lessonId);
   }
 
   private async addXp(userId: number, amount: number, source: string, sourceId?: number): Promise<void> {

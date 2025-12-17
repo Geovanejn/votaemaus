@@ -264,6 +264,8 @@ export interface IStorage {
   
   // Leaderboard Methods
   getLeaderboard(periodType: string, periodKey: string, limit?: number): Promise<any[]>;
+  getAnnualLeaderboard(year: number, limit?: number): Promise<any[]>;
+  getSeasonLeaderboard(seasonId: number, limit?: number): Promise<any[]>;
   
   // Prayer Requests Methods
   createPrayerRequest(data: InsertPrayerRequest, moderationData?: { hasProfanity?: boolean; hasHateSpeech?: boolean; hasSexualContent?: boolean; moderationDetails?: string }): Promise<PrayerRequest>;
@@ -1243,11 +1245,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async completeMission(userId: number, missionId: number, date: string): Promise<any | null> {
-    const mission = await db.select().from(schema.dailyMissions)
-      .where(eq(schema.dailyMissions.id, missionId))
-      .limit(1);
+    // Check if mission is already completed
+    const existingMission = await this.getUserMissionById(userId, missionId, date);
+    if (existingMission?.completed) {
+      return existingMission;
+    }
     
-    const xp = mission[0]?.xpReward || 10;
+    // Each daily mission gives 10XP
+    const xp = 10;
     
     const [result] = await db.update(schema.userDailyMissions)
       .set({ completed: true, completedAt: new Date(), xpAwarded: xp })
@@ -1257,6 +1262,22 @@ export class DatabaseStorage implements IStorage {
         eq(schema.userDailyMissions.assignedDate, date)
       ))
       .returning();
+    
+    if (result) {
+      // Add the mission XP to user's total
+      await this.addXp(userId, xp, 'daily_mission', missionId);
+      
+      // Check if all 5 daily missions are now completed for bonus XP
+      const allMissions = await this.getUserDailyMissions(userId, date);
+      const completedCount = allMissions.filter((m: any) => m.completed).length;
+      
+      if (completedCount === 5) {
+        // Give 25XP bonus for completing all 5 daily missions
+        await this.addXp(userId, 25, 'daily_missions_bonus');
+        console.log(`[Missions] User ${userId} completed all 5 daily missions! Bonus 25XP awarded.`);
+      }
+    }
+    
     return result || null;
   }
 
@@ -1279,21 +1300,21 @@ export class DatabaseStorage implements IStorage {
     if (existingMissions.length > 0) return;
 
     const defaultMissions = [
-      // Core missions
-      { type: 'complete_lesson', title: 'Estudante Dedicado', description: 'Complete uma lição hoje', icon: 'BookOpen', xpReward: 15 },
+      // All daily missions give 10XP each (5 missions x 10XP = 50XP + 25XP bonus = 75XP max daily)
+      { type: 'complete_lesson', title: 'Estudante Dedicado', description: 'Complete uma lição hoje', icon: 'BookOpen', xpReward: 10 },
       { type: 'read_daily_verse', title: 'Palavra do Dia', description: 'Leia o versículo do dia na aba Explorar', icon: 'BookMarked', xpReward: 10 },
-      { type: 'quick_quiz', title: 'Quiz Rápido', description: 'Responda 3 perguntas corretamente', icon: 'Zap', xpReward: 20 },
+      { type: 'quick_quiz', title: 'Quiz Rápido', description: 'Responda 3 perguntas corretamente', icon: 'Zap', xpReward: 10 },
       { type: 'maintain_streak', title: 'Mantenha o Foco', description: 'Complete uma lição para manter sua ofensiva', icon: 'Flame', xpReward: 10 },
-      { type: 'perfect_answers', title: 'Perfeição', description: 'Acerte 5 respostas seguidas', icon: 'Star', xpReward: 25 },
+      { type: 'perfect_answers', title: 'Perfeição', description: 'Acerte 5 respostas seguidas', icon: 'Star', xpReward: 10 },
       // Additional variety missions
-      { type: 'timed_challenge', title: 'Contra o Relógio', description: 'Responda 5 perguntas em 30 segundos', icon: 'Timer', xpReward: 30 },
-      { type: 'bible_character', title: 'Personagem Bíblico', description: 'Conheça um personagem da Bíblia', icon: 'User', xpReward: 15 },
-      { type: 'simple_prayer', title: 'Momento de Oração', description: 'Escreva uma oração de gratidão', icon: 'Heart', xpReward: 15 },
+      { type: 'timed_challenge', title: 'Contra o Relógio', description: 'Responda 5 perguntas em 30 segundos', icon: 'Timer', xpReward: 10 },
+      { type: 'bible_character', title: 'Personagem Bíblico', description: 'Conheça um personagem da Bíblia', icon: 'User', xpReward: 10 },
+      { type: 'simple_prayer', title: 'Momento de Oração', description: 'Escreva uma oração de gratidão', icon: 'Heart', xpReward: 10 },
       { type: 'bible_fact', title: 'Curiosidade Bíblica', description: 'Aprenda um fato interessante da Bíblia', icon: 'Lightbulb', xpReward: 10 },
       // New challenging missions (replaced memorize_theme)
-      { type: 'verse_memory', title: 'Memorize o Versículo', description: 'Complete as palavras que faltam no versículo', icon: 'Brain', xpReward: 20 },
-      { type: 'daily_reflection', title: 'Reflexão Diária', description: 'Escreva uma reflexão sobre o estudo de hoje', icon: 'MessageSquare', xpReward: 15 },
-      { type: 'share_knowledge', title: 'Compartilhe a Palavra', description: 'Compartilhe um ensinamento com alguém hoje', icon: 'Share2', xpReward: 25 },
+      { type: 'verse_memory', title: 'Memorize o Versículo', description: 'Complete as palavras que faltam no versículo', icon: 'Brain', xpReward: 10 },
+      { type: 'daily_reflection', title: 'Reflexão Diária', description: 'Escreva uma reflexão sobre o estudo de hoje', icon: 'MessageSquare', xpReward: 10 },
+      { type: 'share_knowledge', title: 'Compartilhe a Palavra', description: 'Compartilhe um ensinamento com alguém hoje', icon: 'Share2', xpReward: 10 },
     ];
 
     for (const mission of defaultMissions) {
@@ -2695,6 +2716,121 @@ export class DatabaseStorage implements IStorage {
       level: p.currentLevel || 1,
       currentStreak: p.currentStreak || 0,
       dailyXp: p.dailyXp || 0,
+    }));
+  }
+
+  // Annual leaderboard - XP earned within a specific year (Jan 1 00:00 to Dec 31 23:59)
+  async getAnnualLeaderboard(year: number, limit: number = 50): Promise<any[]> {
+    // Get all member users with their profiles
+    const usersWithProfiles = await db.select({
+      userId: schema.users.id,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
+      currentStreak: schema.studyProfiles.currentStreak,
+      currentLevel: schema.studyProfiles.currentLevel,
+    })
+      .from(schema.users)
+      .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
+      .where(eq(schema.users.isAdmin, false));
+    
+    // Calculate XP earned during the specified year for each user
+    const usersWithYearlyXp = await Promise.all(usersWithProfiles.map(async (user) => {
+      const [yearlyXpResult] = await db.select({
+        yearlyXp: sql<number>`COALESCE(SUM(${schema.xpTransactions.amount}), 0)`
+      })
+        .from(schema.xpTransactions)
+        .where(and(
+          eq(schema.xpTransactions.userId, user.userId),
+          sql`${schema.xpTransactions.createdAt} >= '${sql.raw(year.toString())}-01-01 00:00:00'::timestamp AT TIME ZONE 'America/Sao_Paulo'`,
+          sql`${schema.xpTransactions.createdAt} < '${sql.raw((year + 1).toString())}-01-01 00:00:00'::timestamp AT TIME ZONE 'America/Sao_Paulo'`
+        ));
+      
+      return {
+        ...user,
+        totalXp: Number(yearlyXpResult?.yearlyXp || 0)
+      };
+    }));
+    
+    // Filter out users with 0 XP and sort by XP
+    const sortedUsers = usersWithYearlyXp
+      .filter(u => u.totalXp > 0)
+      .sort((a, b) => b.totalXp - a.totalXp)
+      .slice(0, limit);
+    
+    return sortedUsers.map((p, index) => ({
+      rank: index + 1,
+      userId: p.userId,
+      username: p.fullName || 'Unknown',
+      photoUrl: p.photoUrl,
+      totalXp: p.totalXp,
+      level: p.currentLevel || 1,
+      currentStreak: p.currentStreak || 0,
+    }));
+  }
+
+  // Season leaderboard - only XP from lessons within a specific season (revista)
+  async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
+    // Get all users who have progress in this season with their lesson XP
+    const seasonProgress = await db.select({
+      userId: schema.userSeasonProgress.userId,
+      xpEarned: schema.userSeasonProgress.xpEarned,
+      lessonsCompleted: schema.userSeasonProgress.lessonsCompleted,
+    })
+      .from(schema.userSeasonProgress)
+      .where(eq(schema.userSeasonProgress.seasonId, seasonId));
+    
+    if (seasonProgress.length === 0) {
+      return [];
+    }
+    
+    // Get user details for each progress entry
+    const usersWithProgress = await Promise.all(seasonProgress.map(async (progress) => {
+      const [user] = await db.select({
+        id: schema.users.id,
+        fullName: schema.users.fullName,
+        photoUrl: schema.users.photoUrl,
+      })
+        .from(schema.users)
+        .where(and(
+          eq(schema.users.id, progress.userId),
+          eq(schema.users.isAdmin, false)
+        ))
+        .limit(1);
+      
+      if (!user) return null;
+      
+      const [profile] = await db.select({
+        currentStreak: schema.studyProfiles.currentStreak,
+        currentLevel: schema.studyProfiles.currentLevel,
+      })
+        .from(schema.studyProfiles)
+        .where(eq(schema.studyProfiles.userId, progress.userId))
+        .limit(1);
+      
+      return {
+        userId: user.id,
+        fullName: user.fullName,
+        photoUrl: user.photoUrl,
+        totalXp: progress.xpEarned || 0,
+        lessonsCompleted: progress.lessonsCompleted || 0,
+        currentStreak: profile?.currentStreak || 0,
+        currentLevel: profile?.currentLevel || 1,
+      };
+    }));
+    
+    // Filter null values and sort by XP
+    const validUsers = usersWithProgress.filter(u => u !== null && u.totalXp > 0) as any[];
+    const sortedUsers = validUsers.sort((a, b) => b.totalXp - a.totalXp).slice(0, limit);
+    
+    return sortedUsers.map((p, index) => ({
+      rank: index + 1,
+      userId: p.userId,
+      username: p.fullName || 'Unknown',
+      photoUrl: p.photoUrl,
+      totalXp: p.totalXp,
+      level: p.currentLevel,
+      currentStreak: p.currentStreak,
+      lessonsCompleted: p.lessonsCompleted,
     }));
   }
 

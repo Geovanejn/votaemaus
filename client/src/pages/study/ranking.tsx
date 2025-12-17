@@ -342,7 +342,12 @@ function EmptyState() {
 export default function RankingPage() {
   const [period, setPeriod] = useState("geral");
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const { user, isAuthenticated } = useAuth();
+  
+  // Generate available years (from 2024 to current year)
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: currentYear - 2023 }, (_, i) => (2024 + i).toString());
 
   const { data: seasons = [] } = useQuery<Season[]>({
     queryKey: ["/api/study/seasons"],
@@ -373,16 +378,16 @@ export default function RankingPage() {
   });
 
   const { data: anualData, isLoading: anualLoading } = useQuery<LeaderboardResponse>({
-    queryKey: ["/api/study/leaderboard", { period: "monthly" }],
+    queryKey: ["/api/study/leaderboard", { period: "annual", year: selectedYear }],
     queryFn: async () => {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/study/leaderboard?period=monthly", {
+      const res = await fetch(`/api/study/leaderboard?period=annual&year=${selectedYear}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("Erro ao carregar ranking");
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && period === "anual",
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
@@ -468,6 +473,21 @@ export default function RankingPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        
+        {period === "anual" && availableYears.length > 0 && (
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-full" data-testid="select-year">
+              <SelectValue placeholder="Selecione o ano" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         
         {period === "revista" && seasons.length > 0 && (
           <Select value={selectedSeasonId} onValueChange={setSelectedSeasonId}>

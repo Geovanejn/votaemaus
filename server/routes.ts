@@ -1933,20 +1933,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/leaderboard", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const periodType = (req.query.period as string) || 'weekly';
+      const seasonId = req.query.seasonId ? parseInt(req.query.seasonId as string) : undefined;
+      const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
       const now = new Date();
       let periodKey: string;
       
       if (periodType === 'weekly') {
+        // Weekly/General ranking - all XP from all sources
         const weekNumber = Math.ceil((now.getDate() + now.getDay()) / 7);
         periodKey = `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
-      } else if (periodType === 'monthly') {
-        periodKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const leaderboard = await storage.getLeaderboard(periodType, periodKey, 50);
+        res.json({ periodType, periodKey, entries: leaderboard });
+      } else if (periodType === 'monthly' || periodType === 'annual') {
+        // Annual ranking - filter by year (Jan 1 00:00 to Dec 31 23:59)
+        periodKey = year.toString();
+        const leaderboard = await storage.getAnnualLeaderboard(year, 50);
+        res.json({ periodType: 'annual', periodKey, year, entries: leaderboard });
+      } else if (periodType === 'seasonal') {
+        // Seasonal (Revista) - only lesson XP from that specific season
+        if (!seasonId) {
+          return res.json({ periodType, periodKey: '', entries: [] });
+        }
+        periodKey = `season-${seasonId}`;
+        const leaderboard = await storage.getSeasonLeaderboard(seasonId, 50);
+        res.json({ periodType, periodKey, seasonId, entries: leaderboard });
       } else {
         periodKey = now.getFullYear().toString();
+        const leaderboard = await storage.getLeaderboard(periodType, periodKey, 50);
+        res.json({ periodType, periodKey, entries: leaderboard });
       }
-
-      const leaderboard = await storage.getLeaderboard(periodType, periodKey, 20);
-      res.json({ periodType, periodKey, entries: leaderboard });
     } catch (error) {
       console.error("Get leaderboard error:", error);
       res.status(500).json({ message: "Erro ao buscar ranking" });

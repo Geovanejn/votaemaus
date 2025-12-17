@@ -28,6 +28,11 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
   - **Quota Management**: Schedulers (daily missions, recovery verses) use local fallback data when quota is exhausted, ensuring manual study generation has available quota.
 - **Study System (DeoGlory)**:
     - **XP System**: Tracks experience points, with corrections to prevent duplication and ensure accurate daily XP calculation. Penalties for incorrect answers and hints are implemented.
+    - **Daily Missions**: Each mission awards 10XP. Completing all 5 daily missions gives a 25XP bonus (total 75XP maximum per day from missions).
+    - **Ranking System**:
+        - **General**: Shows total XP from all sources (lessons, achievements, missions, etc.)
+        - **Annual**: Shows XP earned within a specific calendar year (Jan 1 00:00 to Dec 31 23:59), with year selector.
+        - **Revista (Seasonal)**: Shows only lesson XP from that specific season/magazine, not including missions or achievements.
     - **Crystal System**: Rewards members based on specific criteria like perfect lessons, consecutive perfect lessons, daily lessons, and weekly streaks.
     - **Achievements**: Automatic unlocking of achievements based on predefined JSON criteria (streak, lessons, XP, special).
     - **Quiz Mechanics**: Includes multiple-choice, true/false, and fill-in-the-blank questions. Questions are randomized, and "Against the Clock" missions require 100% accuracy within a time limit.

@@ -18,10 +18,12 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
+// Note: gemini-1.5-flash was discontinued, using gemini-1.5-flash-latest or gemini-pro as fallbacks
 const GEMINI_MODELS = [
   "gemini-2.5-flash",
-  "gemini-2.0-flash", 
-  "gemini-1.5-flash"
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash-latest"
 ];
 
 // Get Gemini model with specific key and optional model override
@@ -224,13 +226,29 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
         
         const isRateLimit = error?.status === 429 ||
           error?.message?.includes('429') ||
-          error?.message?.includes('rate limit');
+          error?.message?.includes('rate limit') ||
+          error?.message?.includes('quota');
+        
+        const isNotFound = error?.status === 404 ||
+          error?.message?.includes('404') ||
+          error?.message?.includes('not found');
         
         console.warn(`[AI] Erro com ${currentModel} (tentativa ${attempt}/${maxRetries}): ${error?.message || error}`);
         
+        // For 404 errors (model not found), immediately try next model
+        if (isNotFound) {
+          console.log(`[AI] Modelo ${currentModel} não encontrado, tentando próximo modelo...`);
+          break; // Exit retry loop, continue to next model
+        }
+        
         if (isOverloaded || isRateLimit) {
-          // Wait before retry with exponential backoff
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          // Extract retry delay from error message if available
+          let waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          const retryMatch = error?.message?.match(/retry in (\d+(?:\.\d+)?)/i);
+          if (retryMatch && isRateLimit) {
+            // Use the suggested retry time for rate limit errors, but cap at 30 seconds
+            waitTime = Math.min(Math.ceil(parseFloat(retryMatch[1]) * 1000), 30000);
+          }
           
           if (attempt < maxRetries) {
             console.log(`[AI] Aguardando ${waitTime}ms antes da próxima tentativa...`);
@@ -241,7 +259,7 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
             break; // Exit retry loop, continue to next model
           }
         } else {
-          // For non-503/429 errors, don't retry with same model
+          // For other non-recoverable errors, try next model
           if (modelIndex < GEMINI_MODELS.length - 1) {
             console.log(`[AI] Erro não recuperável com ${currentModel}, tentando próximo modelo...`);
             break;
@@ -252,7 +270,7 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
     }
   }
   
-  throw new Error('Todos os modelos Gemini estão indisponíveis. Tente novamente em alguns minutos.');
+  throw new Error('Todos os modelos Gemini estão indisponíveis. Verifique se sua chave API tem cota disponível ou tente novamente em alguns minutos.');
 }
 
 export async function generateStudyContentFromText(

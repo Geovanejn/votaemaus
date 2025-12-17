@@ -931,7 +931,8 @@ export default function LessonPage() {
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const isPerfect = mistakes === 0;
     const bonusXp = isPerfect ? 10 : 0;
-    const estimatedXp = displayXp + lessonData.xpReward + bonusXp;
+    // Only award lesson bonus XP here - unit XP was already awarded via completeUnitMutation
+    const estimatedXp = lessonData.xpReward + bonusXp;
     
     try {
       await completeLessonMutation.mutateAsync({
@@ -971,8 +972,9 @@ export default function LessonPage() {
     const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
     const isPerfect = mistakes === 0;
     const bonusXp = isPerfect ? 10 : 0;
-    const fallbackXp = displayXp + lessonData.xpReward + bonusXp;
-    const finalXp = finalXpFromServer ?? fallbackXp;
+    // Display total XP earned in lesson (units + lesson bonus)
+    // Always use local calculation since server now only returns lesson bonus XP
+    const finalXp = displayXp + lessonData.xpReward + bonusXp;
     
     const handleStreakAnimationComplete = () => {
       if (crystalAnimationData) {

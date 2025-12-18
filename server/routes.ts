@@ -1708,6 +1708,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
+      
+      // FIXED: Also track stage XP in season progress for magazine ranking
+      try {
+        const lesson = await storage.getLessonById(lessonId);
+        if (lesson?.seasonId) {
+          const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
+          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+            xpEarned: (currentProgress?.xpEarned || 0) + xpToAward,
+          });
+        }
+      } catch (seasonError) {
+        console.error("Error updating season progress for stage XP:", seasonError);
+      }
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
@@ -1741,13 +1755,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mistakesCount === 0
       );
       
-      // Update season progress with XP earned - FIXED: Track XP for magazine ranking
+      // Update season progress - FIXED: Track lesson completion for magazine ranking
+      // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
+      // The lesson completion only adds the bonus XP (50) + responda XP to avoid double-counting
+      // The xpEarned from frontend includes answer XP from responda + completion bonus
       try {
         const lesson = await storage.getLessonById(lessonId);
         if (lesson?.seasonId) {
+          const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
+          // Only add the xpEarned (bonus + responda XP), stage XP already tracked separately
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.xpEarned || 0) + (xpEarned || 0),
-            lessonsCompleted: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.lessonsCompleted || 0) + 1,
+            xpEarned: (currentProgress?.xpEarned || 0) + (xpEarned || 0),
+            lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
           });
         }
       } catch (seasonError) {

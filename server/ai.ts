@@ -57,12 +57,12 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 
 // Models to try in order of preference (fallback chain)
 // EXACT ORDER: gemini-3-flash -> gemini-2.5-flash -> gemini-2.5-flash-lite -> gemini-2.5-flash-tts
-// User specified this exact priority order - request gemini-3-flash first, then fallback
+// gemini-3-flash is now available (verified via Google AI Studio API)
 const GEMINI_MODELS = [
-  "gemini-2.5-flash-preview-05-20",       // Primary: gemini 3 flash (preview model name)
-  "gemini-2.5-flash",       // Fallback 1: fast and capable
-  "gemini-2.5-flash-lite",  // Fallback 2: lite version with lower rate limits
-  "gemini-2.5-flash-8b",    // Fallback 3: 8B version as last resort
+  "gemini-3-flash",         // Primary: Latest Gemini 3 Flash (0/5 RPM, 0/250K TPM available)
+  "gemini-2.5-flash",       // Fallback 1: fast and capable (2/5 RPM)
+  "gemini-2.5-flash-lite",  // Fallback 2: lite version with lower rate limits (1/10 RPM)
+  "gemini-2.5-flash-8b",    // Fallback 3: 8B version (0/3 RPM)
 ];
 
 // Get Gemini model with specific key and optional model override

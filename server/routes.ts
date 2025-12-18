@@ -1741,6 +1741,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mistakesCount === 0
       );
       
+      // Update season progress with XP earned - FIXED: Track XP for magazine ranking
+      try {
+        const lesson = await storage.getLessonById(lessonId);
+        if (lesson?.seasonId) {
+          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+            xpEarned: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.xpEarned || 0) + (xpEarned || 0),
+            lessonsCompleted: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.lessonsCompleted || 0) + 1,
+          });
+        }
+      } catch (seasonError) {
+        console.error("Error updating season progress:", seasonError);
+        // Don't fail the entire request if season update fails
+      }
+      
       // Increment weekly lesson count for weekly goals
       const weekKey = getWeekKeyForLesson();
       await storage.incrementWeeklyLesson(req.user.id, weekKey);

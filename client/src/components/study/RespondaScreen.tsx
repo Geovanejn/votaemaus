@@ -371,6 +371,11 @@ export function RespondaScreen({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ amount: 10, reason: 'wrong_answer', lessonId })
+      }).then(() => {
+        if (typeof window !== 'undefined') {
+          const { queryClient } = require('@/lib/queryClient');
+          queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'] });
+        }
       }).catch(error => console.error('Erro ao deduzir XP por resposta errada:', error));
     }
     
@@ -438,6 +443,10 @@ export function RespondaScreen({
           credentials: 'include',
           body: JSON.stringify({ amount: 5, reason: 'hint', lessonId })
         });
+        if (typeof window !== 'undefined') {
+          const { queryClient } = require('@/lib/queryClient');
+          queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'] });
+        }
       } catch (error) {
         console.error('Erro ao deduzir XP por dica:', error);
       }

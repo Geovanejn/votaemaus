@@ -231,26 +231,64 @@ export function MediteScreen({
     try {
       const summary = getMeditationSummary();
       
+      // Try to fetch AI-generated background image
+      let backgroundImage: HTMLImageElement | null = null;
+      try {
+        const response = await fetch('/api/study/meditation/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ geminiKey: "1" })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.imageBase64) {
+            backgroundImage = new Image();
+            backgroundImage.src = `data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`;
+            await new Promise((resolve, reject) => {
+              backgroundImage!.onload = resolve;
+              backgroundImage!.onerror = reject;
+            });
+            console.log(`[Share] Using AI-generated background theme: ${data.theme}`);
+          }
+        }
+      } catch (err) {
+        console.log('[Share] Could not fetch AI background, using gradient fallback:', err);
+      }
+      
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
-        const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-        gradient.addColorStop(0, '#059669');
-        gradient.addColorStop(0.5, '#10B981');
-        gradient.addColorStop(1, '#34D399');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 1080, 1920);
+        // Draw background (AI image or gradient)
+        if (backgroundImage) {
+          ctx.drawImage(backgroundImage, 0, 0, 1080, 1920);
+          // Add semi-transparent overlay for better text readability
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fillRect(0, 0, 1080, 1920);
+        } else {
+          // Fallback gradient
+          const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
+          gradient.addColorStop(0, '#059669');
+          gradient.addColorStop(0.5, '#10B981');
+          gradient.addColorStop(1, '#34D399');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 1080, 1920);
+        }
         
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.beginPath();
-        ctx.arc(200, 300, 400, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(880, 1600, 300, 0, Math.PI * 2);
-        ctx.fill();
+        // Skip the decorative circles if using AI background
+        if (!backgroundImage) {
+        
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.beginPath();
+          ctx.arc(200, 300, 400, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(880, 1600, 300, 0, Math.PI * 2);
+          ctx.fill();
+        }
         
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';

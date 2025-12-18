@@ -373,7 +373,8 @@ export function RespondaScreen({
         credentials: 'include',
         body: JSON.stringify({ amount: 10, reason: 'wrong_answer', lessonId })
       }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'], refetchType: 'all' });
+        queryClient.refetchQueries({ queryKey: ['/api/study/profile'] });
       }).catch(error => console.error('Erro ao deduzir XP por resposta errada:', error));
     }
     
@@ -441,7 +442,8 @@ export function RespondaScreen({
           credentials: 'include',
           body: JSON.stringify({ amount: 5, reason: 'hint', lessonId })
         });
-        queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'], refetchType: 'all' });
+        queryClient.refetchQueries({ queryKey: ['/api/study/profile'] });
       } catch (error) {
         console.error('Erro ao deduzir XP por dica:', error);
       }

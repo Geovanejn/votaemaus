@@ -1471,6 +1471,7 @@ export interface ExtractedLessonFromPDF {
   studyContent: GeneratedUnit[];
   meditationContent: GeneratedUnit[];
   questions: GeneratedUnit[];
+  dailyReadingVerses?: GeneratedUnit[];
 }
 
 export async function generateLessonFromPDFExact(
@@ -1707,11 +1708,13 @@ ESTRUTURA OBRIGATÓRIA:
 1. ESTUDE: 1 versículo base + 1 unidade "text" para CADA tópico do PDF
 2. MEDITE: NO MÍNIMO 3 unidades (reflexões e aplicações práticas)
 3. RESPONDA: EXATAMENTE 5 perguntas (misture múltipla escolha, verdadeiro/falso, complete a frase)
+4. LEITURA DIÁRIA: Extrair versículos da PRIMEIRA PÁGINA do PDF como "dailyReadingVerses" (máximo 3 versículos com referências)
 
 LEMBRE-SE:
 - O título da lição e os títulos dos tópicos devem ser IDÊNTICOS ao PDF
 - Não altere, não parafraseie, não corrija erros do título original
 - Se o PDF tiver "A Forca da Oracao", mantenha exatamente assim
+- dailyReadingVerses deve ser um array de unidades de tipo "verse" com text e reference
 
 Retorne APENAS o JSON, sem explicações adicionais.`;
 

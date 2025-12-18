@@ -5340,6 +5340,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Check if daily verse was read today
+  // Get daily reading verses from lesson
+  app.get("/api/study/lessons/current/daily-reading", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      // Get current active lesson for user
+      const lessonProgress = await storage.getUserLessonProgress(userId);
+      if (!lessonProgress || lessonProgress.length === 0) {
+        return res.json({ verses: [] });
+      }
+
+      // Get the last/current lesson
+      const currentProgress = lessonProgress[0];
+      const lesson = await storage.getSeasonLessonById(currentProgress.lessonId);
+      
+      if (!lesson || !lesson.dailyReadingVerses) {
+        return res.json({ verses: [] });
+      }
+
+      try {
+        const verses = JSON.parse(lesson.dailyReadingVerses);
+        res.json({ verses });
+      } catch {
+        res.json({ verses: [] });
+      }
+    } catch (error) {
+      console.error("Get daily reading verses error:", error);
+      res.status(500).json({ message: "Erro ao buscar versículos" });
+    }
+  });
+
   app.get("/api/study/daily-verse/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const profile = await storage.getStudyProfile(req.user!.id);
@@ -5771,6 +5805,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stage: "responda"
           });
         }
+      }
+
+      // Store daily reading verses in lesson metadata
+      if (extractedLesson.dailyReadingVerses && extractedLesson.dailyReadingVerses.length > 0) {
+        await storage.updateSeasonLesson(lesson.id, {
+          dailyReadingVerses: JSON.stringify(extractedLesson.dailyReadingVerses)
+        });
       }
 
       // Restaurar o status original da revista (publicada ou rascunho)

@@ -55,6 +55,12 @@ export default function ExplorePage() {
     enabled: isAuthenticated,
   });
 
+  // Query for lesson daily reading verses
+  const { data: lessonDailyReadingVerses } = useQuery({
+    queryKey: ['/api/study/lessons/current/daily-reading'],
+    enabled: isAuthenticated,
+  });
+
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/study/daily-verse/confirm");
@@ -291,7 +297,7 @@ export default function ExplorePage() {
           )}
         </motion.div>
 
-        {/* Leitura Diária */}
+        {/* Leitura Diária - Com Versículos do PDF */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -312,9 +318,20 @@ export default function ExplorePage() {
           </div>
 
           <h3 className="font-bold text-xl text-foreground mb-2">Leitura Diária</h3>
-          <p className="text-muted-foreground text-sm mb-6">
+          <p className="text-muted-foreground text-sm mb-4">
             Leia um trecho inspirador da Palavra de Deus
           </p>
+
+          {lessonDailyReadingVerses?.verses && lessonDailyReadingVerses.verses.length > 0 && (
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 text-left space-y-3 max-h-40 overflow-y-auto" data-testid="daily-reading-verses">
+              {lessonDailyReadingVerses.verses.slice(0, 3).map((verse: any, idx: number) => (
+                <div key={idx} className="text-sm">
+                  <p className="text-muted-foreground italic">{verse.content?.text || verse.content?.verseText || 'Versículo'}</p>
+                  <p className="text-xs text-primary font-semibold mt-1">{verse.content?.reference || verse.content?.verseReference || ''}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <Button
             onClick={() => setLocation("/study/library")}

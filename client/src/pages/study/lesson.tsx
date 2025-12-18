@@ -1275,6 +1275,7 @@ export default function LessonPage() {
             lessonTitle={lessonData.title}
             sections={studySections}
             verseReference={studySections.find(s => s.type === 'verse')?.reference}
+            dailyReading={lessonData.weekTitle ? `${lessonData.weekTitle} - ${lessonData.title}` : undefined}
             onComplete={handleStudyComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}

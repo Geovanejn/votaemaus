@@ -526,7 +526,7 @@ Gere um JSON com a seguinte estrutura:
           "content": {
             // Para "text" (stage: "estude"): { "title": "Título do Tópico", "body": "Conteúdo principal de leitura. Deve ser rico e educativo.", "highlight": "Frase chave para destacar (opcional)" }
             // Para "verse" (stage: "estude"): { "title": "Versículo Base (ARA)", "body": "Texto completo do versículo na versão ARA", "highlight": "Referência: João 3:16" }
-            // Para "meditation" (stage: "medite"): { "title": "Meditação na Palavra", "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.", "meditationDuration": 60 }
+            // Para "meditation" (stage: "medite"): { "title": "Meditação na Palavra", "body": "Guia de meditação CRISTÃ completo (150-250 palavras). FINALIZE O TEXTO COMPLETAMENTE, SEM RETICÊNCIAS. Inclua: convite à oração, reflexão sobre a Palavra de Deus, e aplicação prática. NUNCA use '...' no final. SEM técnicas de respiração.", "meditationDuration": 60 }
             // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
             // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
@@ -1646,7 +1646,7 @@ Retorne um JSON com a seguinte estrutura:
       "stage": "medite",
       "content": {
         "title": "Meditação na Palavra",
-        "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.",
+        "body": "Guia de meditação CRISTÃ completo de 150 a 250 palavras. OBRIGATÓRIO: Finalize o texto completamente com uma conclusão clara. NUNCA termine com reticências (...). Inclua convite à oração, reflexão sobre a Palavra de Deus, e aplicação prática para o dia. O texto deve ter começo, meio e fim bem definidos. SEM técnicas de respiração ou yoga.",
         "meditationDuration": 60
       },
       "xpValue": 5

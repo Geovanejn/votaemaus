@@ -2059,6 +2059,46 @@ export class DatabaseStorage implements IStorage {
     return { awarded: true };
   }
 
+  async deductXp(userId: number, amount: number, reason: 'hint' | 'wrong_answer'): Promise<{ newTotalXp: number; actualDeduction: number }> {
+    const profile = await this.getOrCreateStudyProfile(userId);
+    const currentXp = profile.totalXp || 0;
+    
+    // Limitar dedução ao XP disponível para não ficar negativo
+    const actualDeduction = Math.min(Math.abs(amount), currentXp);
+    
+    // Se não há XP para deduzir, retorna sem fazer nada
+    if (actualDeduction === 0) {
+      console.log(`[XP Deduction] User ${userId} has 0 XP, skipping deduction for ${reason}`);
+      return { newTotalXp: 0, actualDeduction: 0 };
+    }
+    
+    const deductionAmount = -actualDeduction;
+    
+    // Registrar transação com valor real deduzido
+    await db.insert(schema.xpTransactions).values({
+      userId,
+      amount: deductionAmount,
+      source: `xp_deduction_${reason}`,
+      sourceId: null,
+    });
+    
+    const newTotalXp = currentXp - actualDeduction;
+    
+    const xpPerLevel = 500;
+    const newLevel = Math.max(1, Math.floor(newTotalXp / xpPerLevel) + 1);
+    
+    await db.update(schema.studyProfiles)
+      .set({ 
+        totalXp: newTotalXp, 
+        currentLevel: newLevel,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    console.log(`[XP Deduction] User ${userId} lost ${actualDeduction} XP for ${reason}. New total: ${newTotalXp}`);
+    return { newTotalXp, actualDeduction };
+  }
+
   private async addXp(userId: number, amount: number, source: string, sourceId?: number): Promise<void> {
     // Ensure the study profile exists before adding XP
     const profile = await this.getOrCreateStudyProfile(userId);

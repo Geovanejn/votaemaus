@@ -1053,7 +1053,9 @@ export default function LessonPage() {
     const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
     const isPerfect = mistakes === 0;
     // Display total XP earned in lesson: sections (estude 60 + medite 60 + responda 20*perguntas) + completion bonus 50
-    const finalXp = displayXp + LESSON_COMPLETION_BONUS;
+    // CRITICAL FIX: Use displayXpRef.current instead of displayXp state to ensure the last question's XP is included
+    // The state update from RespondaScreen's onXpChange may not have propagated before isCompleted renders
+    const finalXp = displayXpRef.current + LESSON_COMPLETION_BONUS;
     
     const handleStreakAnimationComplete = () => {
       if (crystalAnimationData) {

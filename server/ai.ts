@@ -1737,91 +1737,80 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
 }
 
 // Image generation for meditation sharing backgrounds
-// Uses gemini-2.5-flash-image model for AI-generated contemplative backgrounds
+// Uses OpenAI DALL-E for AI-generated contemplative backgrounds (Gemini doesn't support image generation)
 const MEDITATION_IMAGE_THEMES = [
-  "natureza serena com montanhas e lago ao amanhecer, cores suaves pastel",
-  "paisagem contemplativa com floresta enevoada e raios de sol",
-  "cena cristã pacífica com campo de trigo dourado ao pôr do sol",
-  "paisagem de reflexão espiritual com céu estrelado e silhueta de árvore",
-  "imagem meditativa com jardim tranquilo e flores delicadas",
-  "cenário de paz com mar calmo ao entardecer e nuvens coloridas",
-  "paisagem de oração com campo verde e céu azul sereno",
-  "natureza contemplativa com cachoeira suave e vegetação exuberante",
-  "cena de serenidade com montanhas nevadas ao amanhecer",
-  "paisagem espiritual com oliveiras e luz dourada do sol"
+  "serene nature with mountains and lake at dawn, soft pastel colors",
+  "contemplative landscape with misty forest and sun rays",
+  "peaceful Christian scene with golden wheat field at sunset",
+  "spiritual reflection landscape with starry sky and tree silhouette",
+  "meditative image with tranquil garden and delicate flowers",
+  "peaceful scenery with calm sea at dusk and colorful clouds",
+  "prayer landscape with green field and serene blue sky",
+  "contemplative nature with gentle waterfall and lush vegetation",
+  "serenity scene with snow-capped mountains at dawn",
+  "spiritual landscape with olive trees and golden sunlight"
 ];
 
 export async function generateMeditationBackgroundImage(
   keyNumber: string = "1"
 ): Promise<{ imageBase64: string; theme: string } | null> {
   try {
-    const apiKey = getGeminiApiKey(keyNumber);
-    if (!apiKey) {
-      console.log("[AI Image] No API key configured for image generation");
+    // Use OpenAI DALL-E for image generation (Gemini models cannot generate images)
+    const openaiApiKey = getOpenAIApiKey(keyNumber);
+    if (!openaiApiKey) {
+      console.log("[AI Image] No OpenAI API key configured for image generation");
       return null;
     }
-
-    const genAIInstance = new GoogleGenerativeAI(apiKey);
-    const imageModel = genAIInstance.getGenerativeModel({ model: GEMINI_IMAGE_MODEL });
 
     // Select random theme
     const randomIndex = Math.floor(Math.random() * MEDITATION_IMAGE_THEMES.length);
     const selectedTheme = MEDITATION_IMAGE_THEMES[randomIndex];
 
-    const prompt = `Gere uma imagem de fundo para compartilhamento de meditação cristã.
+    const prompt = `A serene and contemplative background image for Christian meditation sharing.
+
+Theme: ${selectedTheme}
+
+Requirements:
+- Peaceful and contemplative scene
+- Soft, harmonious colors with warm golden or purple tones
+- Simple composition suitable for text overlay (avoid details in center, keep center area simple)
+- Atmosphere of peace and spirituality
+- No people, no text, no explicit religious symbols
+- Soft artistic style, almost painted, impressionistic
+- Vertical composition (9:16 ratio ideal for mobile stories)
+- Beautiful natural landscape that evokes tranquility
+
+The image should convey peace, tranquility and spiritual connection.`;
+
+    console.log(`[AI Image] Generating meditation background with OpenAI DALL-E, theme: ${selectedTheme.substring(0, 50)}...`);
+
+    const openai = new OpenAI({ apiKey: openaiApiKey });
     
-Tema: ${selectedTheme}
-
-Requisitos:
-- Imagem serena e contemplativa
-- Cores suaves e harmoniosas
-- Adequada para texto sobreposto (evite detalhes no centro)
-- Atmosfera de paz e espiritualidade cristã
-- Sem pessoas, sem texto, sem símbolos religiosos explícitos
-- Estilo artístico suave, quase pintado
-- Proporção vertical (9:16) ideal para stories
-
-A imagem deve transmitir paz, tranquilidade e conexão espiritual.`;
-
-    console.log(`[AI Image] Generating meditation background with theme: ${selectedTheme.substring(0, 50)}...`);
-
-    const result = await imageModel.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.8,
-        topK: 40,
-        topP: 0.95,
-      },
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1792",
+      quality: "standard",
+      response_format: "b64_json",
     });
 
-    const response = result.response;
-    
-    // Check if response contains image data
-    const candidates = response.candidates;
-    if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData?.data) {
-            console.log("[AI Image] Successfully generated meditation background image");
-            return {
-              imageBase64: part.inlineData.data,
-              theme: selectedTheme
-            };
-          }
-        }
-      }
+    if (response.data && response.data[0]?.b64_json) {
+      console.log("[AI Image] Successfully generated meditation background image with DALL-E");
+      return {
+        imageBase64: response.data[0].b64_json,
+        theme: selectedTheme
+      };
     }
 
-    console.log("[AI Image] No image data in response, falling back to gradient");
+    console.log("[AI Image] No image data in OpenAI response, falling back to gradient");
     return null;
   } catch (error: any) {
     console.error("[AI Image] Error generating meditation background:", error?.message || error);
     
-    // Log specific error for quota issues
-    if (isQuotaError(error)) {
-      markQuotaExhausted();
-      console.log("[AI Image] Quota exceeded for image generation");
+    // Log specific error for rate limit issues
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('rate_limit')) {
+      console.log("[AI Image] Rate limit exceeded for image generation");
     }
     
     return null;

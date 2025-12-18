@@ -224,6 +224,7 @@ export default function LessonPage() {
     heartsLost: number;
   } | null>(null);
   const [displayXp, setDisplayXp] = useState(0);
+  const displayXpRef = useRef(0); // Ref to track latest displayXp for closure safety
   const [mistakes, setMistakes] = useState(0);
   const [startTime] = useState(Date.now());
   const [isCompleted, setIsCompleted] = useState(false);
@@ -253,6 +254,11 @@ export default function LessonPage() {
       setStageOverride(null);
     }
   }, [stageParam, lessonId, progressRestored]);
+  
+  // Keep displayXpRef in sync with displayXp state to avoid closure issues
+  useEffect(() => {
+    displayXpRef.current = displayXp;
+  }, [displayXp]);
   
   const [animationPhase, setAnimationPhase] = useState<"none" | "streak" | "crystal" | "achievement" | "complete">("none");
   const [unlockedAchievementsList, setUnlockedAchievementsList] = useState<any[]>([]);
@@ -900,7 +906,8 @@ export default function LessonPage() {
 
   const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
-    const totalXpFromResponda = displayXp;
+    // Use ref to get the latest XP value (avoids closure issues with stale state)
+    const totalXpFromResponda = displayXpRef.current;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {
@@ -1309,7 +1316,10 @@ export default function LessonPage() {
               setInitialRespondaQuestionIndex(0);
               setCurrentRespondaQuestionIndex(0);
             }}
-            onXpChange={(xp) => setDisplayXp(xp)}
+            onXpChange={(xp) => {
+              displayXpRef.current = xp; // Update ref immediately
+              setDisplayXp(xp);
+            }}
             onQuestionChange={(index) => setCurrentRespondaQuestionIndex(index)}
           />
         ) : (

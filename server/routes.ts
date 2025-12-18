@@ -1665,6 +1665,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.submitUnitAnswer(req.user.id, unitId, answer);
       const profile = await storage.getStudyProfile(req.user.id);
       
+      // CRITICAL FIX: Track question XP in season progress for magazine ranking
+      // This was missing - question XP was added to profile but not to season progress
+      if (result.isCorrect && result.xpEarned > 0) {
+        try {
+          // Get the unit to find its lesson, then the lesson's season
+          const unit = await storage.getStudyUnitById(unitId);
+          if (unit?.lessonId) {
+            const lesson = await storage.getLessonById(unit.lessonId);
+            if (lesson?.seasonId) {
+              const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
+              await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+                xpEarned: (currentProgress?.xpEarned || 0) + result.xpEarned,
+              });
+              console.log(`[Season XP] Added ${result.xpEarned} question XP for user ${req.user.id} in season ${lesson.seasonId}`);
+            }
+          }
+        } catch (seasonError) {
+          console.error("Error updating season progress for question XP:", seasonError);
+        }
+      }
+      
       res.json({ 
         unitProgress: result.unitProgress, 
         profile,
@@ -1811,8 +1832,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update season progress - FIXED: Track lesson completion for magazine ranking
       // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
-      // The lesson completion only adds the bonus XP (50) + responda XP to avoid double-counting
-      // The xpEarned from frontend includes answer XP from responda + completion bonus
+      // NOTE: Question XP is now tracked in the answer endpoint
+      // The xpEarned from frontend is ONLY the lesson completion bonus (50)
       try {
         const lesson = await storage.getLessonById(lessonId);
         if (lesson?.seasonId) {

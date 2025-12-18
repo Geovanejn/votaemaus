@@ -514,14 +514,16 @@ export function EstudeScreen({
             </Button>
           </div>
           
-          {/* Complete Button */}
-          <Button
-            onClick={onComplete}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
-            data-testid="button-complete-estude"
-          >
-            Concluir Estudo
-          </Button>
+          {/* Complete Button - Only show on last screen */}
+          {isLast && (
+            <Button
+              onClick={onComplete}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
+              data-testid="button-complete-estude"
+            >
+              Concluir Estudo
+            </Button>
+          )}
           
           {/* Daily Reading Card */}
           {dailyReading && (

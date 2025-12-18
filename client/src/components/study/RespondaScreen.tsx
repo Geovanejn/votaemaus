@@ -367,6 +367,14 @@ export function RespondaScreen({
     }
     
     onAnswer(currentIndex, userAnswer, isCorrect);
+    
+    // Auto-advance to next question after showing result for 1.5 seconds
+    setTimeout(() => {
+      setShowResult(true);
+      autoAdvanceTimeoutRef.current = setTimeout(() => {
+        goNext();
+      }, 1500);
+    }, 300);
   };
   
   const hasAnswer = () => {
@@ -384,6 +392,12 @@ export function RespondaScreen({
       setCurrentIndex(prev => prev + 1);
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const autoAdvanceToNext = () => {
+    autoAdvanceTimeoutRef.current = setTimeout(() => {
+      goNext();
+    }, 1500);
   };
   
   const handleTimeUp = () => {
@@ -807,7 +821,7 @@ export function RespondaScreen({
               </Button>
             )}
             
-            {!showResult ? (
+            {!showResult && (
               <Button
                 onClick={checkAnswer}
                 disabled={!hasAnswer()}
@@ -818,15 +832,6 @@ export function RespondaScreen({
                 data-testid="button-confirm"
               >
                 Confirmar
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                onClick={goNext}
-                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white rounded-xl"
-                data-testid="button-next-responda"
-              >
-                {currentIndex === totalQuestions - 1 ? "Concluir Quiz" : "Proxima"}
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             )}

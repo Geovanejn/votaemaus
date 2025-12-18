@@ -5,14 +5,9 @@ import { Card } from "@/components/ui/card";
 import { 
   ArrowLeft, 
   Bookmark, 
-  Highlighter, 
-  StickyNote, 
-  Share2,
   Type,
   Accessibility,
   BookOpen,
-  Heart,
-  HelpCircle,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -68,6 +63,7 @@ interface EstudeScreenProps {
   lessonTitle: string;
   sections: StudySection[];
   verseReference?: string;
+  dailyReading?: string;
   onComplete: () => void;
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
@@ -237,6 +233,7 @@ export function EstudeScreen({
   lessonTitle, 
   sections: rawSections, 
   verseReference,
+  dailyReading,
   onComplete, 
   onClose,
   onProgress,
@@ -517,61 +514,29 @@ export function EstudeScreen({
             </Button>
           </div>
           
-          <div className="flex justify-center gap-4 py-2">
-            <button 
-              className="flex flex-col items-center gap-2"
-              data-testid="button-destacar"
-            >
-              <div className="h-12 w-12 rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                <Highlighter className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <span className="text-xs text-muted-foreground">Destacar</span>
-            </button>
-            <button 
-              className="flex flex-col items-center gap-2"
-              data-testid="button-nota"
-            >
-              <div className="h-12 w-12 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <StickyNote className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-xs text-muted-foreground">Nota</span>
-            </button>
-            <button 
-              className="flex flex-col items-center gap-2"
-              data-testid="button-compartilhar"
-            >
-              <div className="h-12 w-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Share2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-xs text-muted-foreground">Compartilhar</span>
-            </button>
-          </div>
+          {/* Complete Button */}
+          <Button
+            onClick={onComplete}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
+            data-testid="button-complete-estude"
+          >
+            Concluir Estudo
+          </Button>
           
-          {currentSection.type === 'verse' && (
+          {/* Daily Reading Card */}
+          {dailyReading && (
             <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex gap-0.5">
                   <div className="w-1.5 h-5 bg-purple-600 rounded-full" />
                   <div className="w-1.5 h-5 bg-purple-400 rounded-full" />
                 </div>
-                <span className="font-bold text-foreground">Comentario</span>
+                <span className="font-bold text-foreground">Leitura Diaria</span>
               </div>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Este e um dos versiculos mais conhecidos da Biblia, que resume o evangelho de forma clara e direta. O amor de Deus e demonstrado atraves do sacrificio de seu Filho unico para a salvacao de todos que nele creem.
+                {dailyReading}
               </p>
             </Card>
-          )}
-          
-          {isLast && (
-            <div className="pt-4">
-              <Button
-                onClick={onComplete}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-6"
-                data-testid="button-complete-estude"
-              >
-                Concluir Estudo
-              </Button>
-            </div>
           )}
         </div>
       </div>

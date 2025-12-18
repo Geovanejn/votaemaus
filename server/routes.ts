@@ -1547,6 +1547,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recent activities for profile page
+  app.get("/api/study/profile/activities", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const activities = await storage.getUserRecentActivities(req.user.id, 10);
+      res.json(activities);
+    } catch (error) {
+      console.error("Get recent activities error:", error);
+      res.status(500).json({ message: "Erro ao buscar atividades recentes" });
+    }
+  });
+
   // Get all published study weeks
   app.get("/api/study/weeks", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -3048,7 +3062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id,
         aiMetadata: JSON.stringify({
           generatedAt: new Date().toISOString(),
-          model: "gemini-1.5-flash",
+          model: "gemini-2.0-flash",
           lessonsCount: generatedContent.lessons.length
         })
       });

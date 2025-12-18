@@ -197,6 +197,7 @@ export interface IStorage {
   addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void>;
   getStudyStats(): Promise<any>;
   getUserProfileStats(userId: number): Promise<any>;
+  getUserRecentActivities(userId: number, limit?: number): Promise<any[]>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
   getStudyUsersWithProfiles(): Promise<any[]>;
   
@@ -2154,6 +2155,63 @@ export class DatabaseStorage implements IStorage {
       rankingPosition: userRank,
       firstActivityDate: firstActivity?.firstDate || null,
     };
+  }
+
+  async getUserRecentActivities(userId: number, limit: number = 10): Promise<any[]> {
+    // Get completed lessons with lesson info
+    const completedLessons = await db.select({
+      type: sql<string>`'lesson_completed'`,
+      lessonId: schema.userLessonProgress.lessonId,
+      lessonTitle: schema.studyLessons.title,
+      xpEarned: schema.userLessonProgress.xpEarned,
+      completedAt: schema.userLessonProgress.completedAt,
+      perfectScore: schema.userLessonProgress.perfectScore,
+    })
+      .from(schema.userLessonProgress)
+      .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ))
+      .orderBy(desc(schema.userLessonProgress.completedAt))
+      .limit(limit);
+    
+    // Get achievements unlocked
+    const achievements = await db.select({
+      type: sql<string>`'achievement_unlocked'`,
+      achievementId: schema.userAchievements.achievementId,
+      achievementTitle: schema.achievements.title,
+      achievementIcon: schema.achievements.icon,
+      unlockedAt: schema.userAchievements.unlockedAt,
+    })
+      .from(schema.userAchievements)
+      .innerJoin(schema.achievements, eq(schema.userAchievements.achievementId, schema.achievements.id))
+      .where(eq(schema.userAchievements.userId, userId))
+      .orderBy(desc(schema.userAchievements.unlockedAt))
+      .limit(limit);
+    
+    // Combine and sort by date
+    const allActivities = [
+      ...completedLessons.map(l => ({
+        type: 'lesson_completed' as const,
+        title: l.lessonTitle,
+        xpEarned: l.xpEarned,
+        perfectScore: l.perfectScore,
+        date: l.completedAt,
+      })),
+      ...achievements.map(a => ({
+        type: 'achievement_unlocked' as const,
+        title: a.achievementTitle,
+        icon: a.achievementIcon,
+        date: a.unlockedAt,
+      })),
+    ].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    }).slice(0, limit);
+    
+    return allActivities;
   }
 
   async getCompletedLessonsWithExercises(userId: number): Promise<any[]> {

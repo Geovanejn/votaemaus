@@ -56,12 +56,12 @@ interface Achievement {
 }
 
 interface RecentActivity {
-  id: number;
-  type: "lesson" | "streak" | "ranking" | "achievement";
+  type: "lesson_completed" | "achievement_unlocked";
   title: string;
-  subtitle: string;
-  icon: "check" | "flame" | "trophy";
-  color: string;
+  xpEarned?: number;
+  perfectScore?: boolean;
+  icon?: string;
+  date: string | null;
 }
 
 const iconMap: Record<string, typeof Flame> = {
@@ -139,6 +139,11 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
+  const { data: recentActivities = [] } = useQuery<RecentActivity[]>({
+    queryKey: ['/api/study/profile/activities'],
+    enabled: isAuthenticated,
+  });
+
   if (profileLoading || achievementsLoading) {
     return <LoadingState />;
   }
@@ -162,8 +167,20 @@ export default function ProfilePage() {
   const displayAchievements = (achievements || []).slice(0, 6);
   const unlockedCount = (achievements || []).filter(a => a.unlocked).length;
 
-  const recentActivities: RecentActivity[] = [];
   const hasRecentActivities = recentActivities.length > 0;
+
+  const formatActivityDate = (dateStr: string | null) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Hoje';
+    if (diffDays === 1) return 'Ontem';
+    if (diffDays < 7) return `${diffDays} dias atras`;
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
 
   const lessonsCompleted = userStats?.lessonsCompleted ?? 0;
   const unitsCompleted = userStats?.unitsCompleted ?? 0;
@@ -494,20 +511,49 @@ export default function ProfilePage() {
           <h3 className="text-lg font-bold text-foreground mb-3">Atividade Recente</h3>
           {hasRecentActivities ? (
             <div className="space-y-3">
-              {recentActivities.map((activity) => (
-                <Card key={activity.id} className="p-4">
+              {recentActivities.map((activity, index) => (
+                <Card key={`${activity.type}-${index}`} className="p-4">
                   <div className="flex items-start gap-3">
                     <div 
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: activity.color }}
+                      style={{ 
+                        backgroundColor: activity.type === 'lesson_completed' 
+                          ? (activity.perfectScore ? '#22C55E' : '#8B5CF6')
+                          : '#FFC800'
+                      }}
                     >
-                      {activity.icon === "check" && <CheckCircle className="h-5 w-5 text-white" />}
-                      {activity.icon === "flame" && <Flame className="h-5 w-5 text-white" />}
-                      {activity.icon === "trophy" && <Trophy className="h-5 w-5 text-white" />}
+                      {activity.type === 'lesson_completed' && (
+                        <BookOpen className="h-5 w-5 text-white" />
+                      )}
+                      {activity.type === 'achievement_unlocked' && (
+                        <Trophy className="h-5 w-5 text-white" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground text-sm">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {activity.type === 'lesson_completed' && activity.xpEarned && (
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs"
+                            style={{ backgroundColor: '#F3E8FF', color: '#8B5CF6' }}
+                          >
+                            +{activity.xpEarned} XP
+                          </Badge>
+                        )}
+                        {activity.perfectScore && (
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs"
+                            style={{ backgroundColor: '#DCFCE7', color: '#22C55E' }}
+                          >
+                            Perfeito
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatActivityDate(activity.date)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -516,7 +562,7 @@ export default function ProfilePage() {
           ) : (
             <Card className="p-4">
               <p className="text-center text-muted-foreground text-sm">
-                Você ainda não possui atividades recentes. Complete suas primeiras lições para ver seu progresso aqui!
+                Voce ainda nao possui atividades recentes. Complete suas primeiras licoes para ver seu progresso aqui!
               </p>
             </Card>
           )}

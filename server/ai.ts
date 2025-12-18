@@ -56,13 +56,12 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
-// EXACT ORDER: gemini-3-flash -> gemini-2.5-flash -> gemini-2.5-flash-lite -> gemini-2.5-flash-tts
-// gemini-3-flash is now available (verified via Google AI Studio API)
+// Using Gemini 2.0 Flash as primary stable model
 const GEMINI_MODELS = [
-  "gemini-3-flash",         // Primary: Latest Gemini 3 Flash (0/5 RPM, 0/250K TPM available)
-  "gemini-2.5-flash",       // Fallback 1: fast and capable (2/5 RPM)
-  "gemini-2.5-flash-lite",  // Fallback 2: lite version with lower rate limits (1/10 RPM)
-  "gemini-2.5-flash-8b",    // Fallback 3: 8B version (0/3 RPM)
+  "gemini-2.0-flash",       // Primary: Gemini 2.0 Flash (stable)
+  "gemini-2.5-flash-preview-05-20",  // Fallback 1: Gemini 2.5 Flash preview
+  "gemini-1.5-pro",         // Fallback 2: Gemini 1.5 Pro (more capable)
+  "gemini-1.0-pro",         // Fallback 3: Gemini 1.0 Pro (legacy stable)
 ];
 
 // Get Gemini model with specific key and optional model override
@@ -102,8 +101,8 @@ function isQuotaError(error: any): boolean {
 
 // Initialize default Gemini AI (backward compatibility)
 const genAI = new GoogleGenerativeAI(getGeminiApiKey("1"));
-// Using gemini-2.5-flash as specified by user
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+// Using gemini-2.0-flash as stable default
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export interface GeneratedLesson {
   title: string;

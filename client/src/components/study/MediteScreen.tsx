@@ -2,29 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, 
   MoreVertical,
-  Leaf,
-  Play,
-  Pause,
-  Plus,
-  Image,
-  Mic,
-  Bookmark,
   Share2,
   ChevronRight,
   ChevronLeft,
-  BookOpen,
-  Heart,
-  HelpCircle,
-  Music,
   Type,
-  Accessibility
+  Accessibility,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import html2canvas from "html2canvas";
 
 function FormattedText({ content }: { content: string }) {
   if (!content) return null;
@@ -106,13 +96,11 @@ export function MediteScreen({
   onSwitchTab
 }: MediteScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [journalText, setJournalText] = useState("");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isReading, setIsReading] = useState(false);
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   const toggleFontSize = () => {
     setFontSize(prev => {
@@ -227,29 +215,161 @@ export function MediteScreen({
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-  
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setAudioProgress(prev => {
-          if (prev >= 100) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 0.5;
+
+  const getMeditationSummary = () => {
+    const allContent = sections.map(s => s.content).join('\n');
+    const verseRefs = sections.filter(s => s.verseReference).map(s => s.verseReference).join(', ');
+    return { 
+      title: lessonTitle,
+      summary: allContent.slice(0, 200) + (allContent.length > 200 ? '...' : ''),
+      verseReference: verseRefs || sections[0]?.verseReference || ''
+    };
+  };
+
+  const handleShare = async () => {
+    setIsGeneratingShare(true);
+    try {
+      const summary = getMeditationSummary();
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
+        gradient.addColorStop(0, '#059669');
+        gradient.addColorStop(0.5, '#10B981');
+        gradient.addColorStop(1, '#34D399');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1080, 1920);
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.beginPath();
+        ctx.arc(200, 300, 400, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(880, 1600, 300, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 48px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MEDITACAO', 540, 200);
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 72px system-ui, -apple-system, sans-serif';
+        const titleLines = wrapText(ctx, summary.title, 900);
+        let y = 400;
+        titleLines.forEach(line => {
+          ctx.fillText(line, 540, y);
+          y += 90;
         });
-      }, 100);
+        
+        if (summary.verseReference) {
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.font = 'italic 40px system-ui, -apple-system, sans-serif';
+          ctx.fillText(summary.verseReference, 540, y + 60);
+          y += 120;
+        }
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '36px system-ui, -apple-system, sans-serif';
+        const summaryLines = wrapText(ctx, summary.summary, 900);
+        y += 80;
+        summaryLines.slice(0, 6).forEach(line => {
+          ctx.fillText(line, 540, y);
+          y += 50;
+        });
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '32px system-ui, -apple-system, sans-serif';
+        ctx.fillText('UMP Emaus - DeoGlory', 540, 1800);
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], 'meditacao-deoglory.png', { type: 'image/png' });
+          
+          const canShare = typeof navigator.share === 'function' && 
+                          typeof navigator.canShare === 'function' &&
+                          navigator.canShare({ files: [file] });
+          
+          if (canShare) {
+            try {
+              await navigator.share({
+                title: 'Meditacao DeoGlory',
+                text: `Meditacao: ${summary.title}`,
+                files: [file]
+              });
+            } catch (err: any) {
+              if (err?.name !== 'AbortError') {
+                downloadImage(blob);
+              }
+            }
+          } else {
+            downloadImage(blob);
+          }
+        } else {
+          console.error('Failed to generate image blob');
+        }
+        setIsGeneratingShare(false);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error generating share image:', error);
+      setIsGeneratingShare(false);
+      downloadImage(null);
     }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-  
-  const formatTime = (progress: number) => {
-    const totalSeconds = 204;
-    const currentSeconds = Math.floor((progress / 100) * totalSeconds);
-    const minutes = Math.floor(currentSeconds / 60);
-    const seconds = currentSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const downloadImageFromCanvas = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'meditacao-deoglory.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  };
+
+  const downloadImage = (blob: Blob | null) => {
+    if (!blob) {
+      console.error('No blob to download');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meditacao-deoglory.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   
   return (
@@ -389,142 +509,35 @@ export function MediteScreen({
             </Button>
           </div>
           
-          <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <span className="font-medium text-foreground">Diario de Reflexao</span>
-              </div>
-              <button className="text-emerald-600 dark:text-emerald-400 text-sm font-medium flex items-center gap-1" data-testid="button-new-entry">
-                <Plus className="h-4 w-4" />
-                Nova
-              </button>
-            </div>
-            
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 mb-3">
-              <Textarea
-                placeholder="Escreva suas reflexoes e insights sobre esta meditacao..."
-                value={journalText}
-                onChange={(e) => setJournalText(e.target.value)}
-                className="min-h-[80px] resize-none border-0 bg-transparent focus-visible:ring-0 text-sm"
-                data-testid="textarea-journal"
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-add-image">
-                  <Image className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" data-testid="button-voice">
-                  <Mic className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6"
-                data-testid="button-save-journal"
-              >
-                Salvar
-              </Button>
-            </div>
-          </Card>
-          
-          <div 
-            className="rounded-2xl p-4 text-white"
-            style={{ background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)' }}
+          {/* Complete Button */}
+          <Button
+            onClick={onComplete}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-6"
+            data-testid="button-complete-medite"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Music className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">Musica Contemplativa</p>
-                <p className="text-white/70 text-sm">Sons para meditacao</p>
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="h-12 w-12 rounded-full bg-white text-emerald-600 hover:bg-white/90"
-                data-testid="button-play-music"
-              >
-                {isPlaying ? (
-                  <Pause className="h-6 w-6" />
-                ) : (
-                  <Play className="h-6 w-6 ml-0.5" />
-                )}
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/70">{formatTime(audioProgress)}</span>
-              <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-white rounded-full transition-all"
-                  style={{ width: `${audioProgress}%` }}
-                />
-              </div>
-              <span className="text-xs text-white/70">3:24</span>
-            </div>
-          </div>
+            Concluir Meditacao
+          </Button>
           
-          <div className="flex gap-3">
-            <button 
-              className="flex-1 flex flex-col items-center gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl"
-              data-testid="button-share"
-            >
-              <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <Share2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <span className="text-sm text-muted-foreground">Compartilhar</span>
-            </button>
-            <button 
-              onClick={() => setIsSaved(!isSaved)}
-              className="flex-1 flex flex-col items-center gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl"
-              data-testid="button-save"
-            >
-              <div className={cn(
-                "h-12 w-12 rounded-full flex items-center justify-center",
-                isSaved ? "bg-yellow-400" : "bg-yellow-100 dark:bg-yellow-900/30"
-              )}>
-                <Bookmark className={cn(
-                  "h-5 w-5",
-                  isSaved ? "text-white fill-white" : "text-yellow-600 dark:text-yellow-400"
-                )} />
-              </div>
-              <span className="text-sm text-muted-foreground">Salvar</span>
-            </button>
-          </div>
-          
-          <Card className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-0">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-medium text-foreground">Proxima Meditacao</span>
-              <span className="text-emerald-600 dark:text-emerald-400 text-sm">Em 2 dias</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <Leaf className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Paz Interior</p>
-                <p className="text-muted-foreground text-sm">Encontre a paz que excede todo entendimento atraves da presenca de...</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </Card>
-          
-          {isLast && (
-            <div className="pt-4">
-              <Button
-                onClick={onComplete}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-6"
-                data-testid="button-complete-medite"
-              >
-                Concluir Meditacao
-              </Button>
-            </div>
-          )}
+          {/* Share Button */}
+          <Button
+            onClick={handleShare}
+            disabled={isGeneratingShare}
+            variant="outline"
+            className="w-full rounded-xl py-5 border-emerald-300 dark:border-emerald-700"
+            data-testid="button-share-medite"
+          >
+            {isGeneratingShare ? (
+              <>
+                <Download className="h-5 w-5 mr-2 animate-pulse" />
+                Gerando imagem...
+              </>
+            ) : (
+              <>
+                <Share2 className="h-5 w-5 mr-2 text-emerald-600" />
+                Compartilhar Meditacao
+              </>
+            )}
+          </Button>
         </div>
       </div>
       

@@ -2751,9 +2751,8 @@ export class DatabaseStorage implements IStorage {
       };
     }));
     
-    // Filter out users with 0 XP and sort by XP
+    // Sort by XP (include users with 0 XP to show all members)
     const sortedUsers = usersWithYearlyXp
-      .filter(u => u.totalXp > 0)
       .sort((a, b) => b.totalXp - a.totalXp)
       .slice(0, limit);
     
@@ -2818,8 +2817,8 @@ export class DatabaseStorage implements IStorage {
       };
     }));
     
-    // Filter null values and sort by XP
-    const validUsers = usersWithProgress.filter(u => u !== null && u.totalXp > 0) as any[];
+    // Filter null values and sort by XP (include users with 0 XP to show all participants)
+    const validUsers = usersWithProgress.filter(u => u !== null) as any[];
     const sortedUsers = validUsers.sort((a, b) => b.totalXp - a.totalXp).slice(0, limit);
     
     return sortedUsers.map((p, index) => ({

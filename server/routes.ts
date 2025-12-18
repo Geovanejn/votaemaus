@@ -5314,6 +5314,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
+      // Salvar o status original para restaurar após o processamento
+      const originalStatus = season.status;
+
       if (!isAIConfigured()) {
         return res.status(500).json({ message: "IA não configurada" });
       }
@@ -5369,6 +5372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdLessons.push(lesson);
       }
 
+      // Restaurar o status original da revista (publicada ou rascunho)
+      await storage.updateSeason(seasonId, { status: originalStatus });
+
       if (generateFinalChallenge && lessonsData.lessons.length > 0) {
         const lessonTitles = lessonsData.lessons.map((l: any) => l.title).join(", ");
         const challengeUnits = await generateExercisesFromTopic(
@@ -5398,8 +5404,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-
-      await storage.updateSeason(seasonId, { status: "draft" });
 
       res.json({
         message: "PDF processado com sucesso",

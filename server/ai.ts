@@ -56,15 +56,13 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
-// Priority chain: 3 flash (if available) -> 2.5 flash -> 2.5 lite -> 2.0 models
-// Updated: User requested 3 flash as primary with fallback to 2.5 flash then 2.5 lite
+// EXACT ORDER: gemini-3-flash -> gemini-2.5-flash -> gemini-2.5-flash-lite -> gemini-2.5-flash-tts
+// User specified this exact priority order - request gemini-3-flash first, then fallback
 const GEMINI_MODELS = [
-  "gemini-3-5-flash",       // Primary: latest and fastest (user priority) - will fallback if 404
-  "gemini-2.5-flash",       // Fallback: fast and capable
-  "gemini-2.5-flash-lite",  // Fallback: lite version with lower rate limits
-  "gemini-2.5-pro",         // Fallback: more capable version
-  "gemini-2.0-flash",       // Fallback: stable older version
-  "gemini-2.0-flash-lite",  // Lite fallback: last resort
+  "gemini-2.5-flash-preview-05-20",       // Primary: gemini 3 flash (preview model name)
+  "gemini-2.5-flash",       // Fallback 1: fast and capable
+  "gemini-2.5-flash-lite",  // Fallback 2: lite version with lower rate limits
+  "gemini-2.5-flash-8b",    // Fallback 3: 8B version as last resort
 ];
 
 // Get Gemini model with specific key and optional model override

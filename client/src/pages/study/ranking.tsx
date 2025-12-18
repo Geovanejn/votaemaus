@@ -497,7 +497,7 @@ export default function RankingPage() {
             <SelectContent>
               {seasons.map((season) => (
                 <SelectItem key={season.id} value={season.id.toString()}>
-                  {season.aiExtractedTitle || season.title}
+                  {season.title}
                   {season.status === "published" ? " (Publicada)" : " (Em andamento)"}
                 </SelectItem>
               ))}

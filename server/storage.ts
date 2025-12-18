@@ -2767,59 +2767,54 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  // Season leaderboard - only XP from lessons within a specific season (revista)
+  // Season leaderboard - XP from lessons within a specific season (revista)
+  // Shows ALL registered members (not just those with progress) - same as general ranking
   async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
-    // Get all users who have progress in this season with their lesson XP
-    const seasonProgress = await db.select({
-      userId: schema.userSeasonProgress.userId,
-      xpEarned: schema.userSeasonProgress.xpEarned,
-      lessonsCompleted: schema.userSeasonProgress.lessonsCompleted,
+    // Get ALL member users (non-admin), same as general leaderboard
+    const allMembers = await db.select({
+      userId: schema.users.id,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
     })
-      .from(schema.userSeasonProgress)
-      .where(eq(schema.userSeasonProgress.seasonId, seasonId));
+      .from(schema.users)
+      .where(eq(schema.users.isAdmin, false));
     
-    if (seasonProgress.length === 0) {
-      return [];
-    }
-    
-    // Get user details for each progress entry
-    const usersWithProgress = await Promise.all(seasonProgress.map(async (progress) => {
-      const [user] = await db.select({
-        id: schema.users.id,
-        fullName: schema.users.fullName,
-        photoUrl: schema.users.photoUrl,
+    // Get season progress for each member (if exists)
+    const usersWithProgress = await Promise.all(allMembers.map(async (user) => {
+      // Get season progress if exists
+      const [progress] = await db.select({
+        xpEarned: schema.userSeasonProgress.xpEarned,
+        lessonsCompleted: schema.userSeasonProgress.lessonsCompleted,
       })
-        .from(schema.users)
+        .from(schema.userSeasonProgress)
         .where(and(
-          eq(schema.users.id, progress.userId),
-          eq(schema.users.isAdmin, false)
+          eq(schema.userSeasonProgress.userId, user.userId),
+          eq(schema.userSeasonProgress.seasonId, seasonId)
         ))
         .limit(1);
       
-      if (!user) return null;
-      
+      // Get profile for streak and level
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
         currentLevel: schema.studyProfiles.currentLevel,
       })
         .from(schema.studyProfiles)
-        .where(eq(schema.studyProfiles.userId, progress.userId))
+        .where(eq(schema.studyProfiles.userId, user.userId))
         .limit(1);
       
       return {
-        userId: user.id,
+        userId: user.userId,
         fullName: user.fullName,
         photoUrl: user.photoUrl,
-        totalXp: progress.xpEarned || 0,
-        lessonsCompleted: progress.lessonsCompleted || 0,
+        totalXp: progress?.xpEarned || 0,
+        lessonsCompleted: progress?.lessonsCompleted || 0,
         currentStreak: profile?.currentStreak || 0,
         currentLevel: profile?.currentLevel || 1,
       };
     }));
     
-    // Filter null values and sort by XP (include users with 0 XP to show all participants)
-    const validUsers = usersWithProgress.filter(u => u !== null) as any[];
-    const sortedUsers = validUsers.sort((a, b) => b.totalXp - a.totalXp).slice(0, limit);
+    // Sort by XP (include users with 0 XP to show all members)
+    const sortedUsers = usersWithProgress.sort((a, b) => b.totalXp - a.totalXp).slice(0, limit);
     
     return sortedUsers.map((p, index) => ({
       rank: index + 1,

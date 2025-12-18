@@ -219,9 +219,29 @@ export function MediteScreen({
   const getMeditationSummary = () => {
     const allContent = sections.map(s => s.content).join('\n');
     const verseRefs = sections.filter(s => s.verseReference).map(s => s.verseReference).join(', ');
+    
+    // Generate a complete summary without truncation
+    // Find the first complete sentence that ends with a period, exclamation, or question mark
+    const cleanContent = allContent.replace(/\s+/g, ' ').trim();
+    let summary = cleanContent;
+    
+    // If content is too long, try to find a natural break point (complete sentence)
+    if (cleanContent.length > 400) {
+      const sentences = cleanContent.match(/[^.!?]+[.!?]+/g) || [];
+      let builtSummary = '';
+      for (const sentence of sentences) {
+        if (builtSummary.length + sentence.length <= 400) {
+          builtSummary += sentence;
+        } else {
+          break;
+        }
+      }
+      summary = builtSummary.trim() || cleanContent.slice(0, 400);
+    }
+    
     return { 
       title: lessonTitle,
-      summary: allContent.slice(0, 200) + (allContent.length > 200 ? '...' : ''),
+      summary,
       verseReference: verseRefs || sections[0]?.verseReference || ''
     };
   };

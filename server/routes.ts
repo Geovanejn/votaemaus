@@ -1609,7 +1609,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content
       }));
       const progress = await storage.getUserLessonProgress(req.user.id, lessonId);
-      res.json({ ...lesson, units: unitsWithParsedContent, progress });
+      
+      // Get week title for daily reading card
+      let weekTitle: string | undefined;
+      if (lesson.studyWeekId) {
+        const week = await storage.getStudyWeekById(lesson.studyWeekId);
+        weekTitle = week?.title;
+      }
+      
+      // If no week title, try to get season title
+      if (!weekTitle && lesson.seasonId) {
+        const season = await storage.getSeasonById(lesson.seasonId);
+        weekTitle = season?.title || season?.aiExtractedTitle;
+      }
+      
+      res.json({ ...lesson, units: unitsWithParsedContent, progress, weekTitle });
     } catch (error) {
       console.error("Get lesson error:", error);
       res.status(500).json({ message: "Erro ao buscar licao" });
@@ -1707,7 +1721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       
-      const { amount, reason } = req.body;
+      const { amount, reason, lessonId } = req.body;
       
       if (!amount || typeof amount !== 'number' || amount <= 0) {
         return res.status(400).json({ message: "Amount deve ser um numero positivo" });
@@ -1718,6 +1732,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await storage.deductXp(req.user.id, amount, reason as 'hint' | 'wrong_answer');
+      
+      // Also deduct from season progress if lesson belongs to a season
+      if (lessonId && result.actualDeduction > 0) {
+        try {
+          const lesson = await storage.getLessonById(lessonId);
+          if (lesson?.seasonId) {
+            const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
+            const currentSeasonXp = currentProgress?.xpEarned || 0;
+            const newSeasonXp = Math.max(0, currentSeasonXp - result.actualDeduction);
+            await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+              xpEarned: newSeasonXp,
+            });
+            console.log(`[Season XP Deduction] Deducted ${result.actualDeduction} XP for user ${req.user.id} in season ${lesson.seasonId}. New season XP: ${newSeasonXp}`);
+          }
+        } catch (seasonError) {
+          console.error("Error updating season progress for XP deduction:", seasonError);
+        }
+      }
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
@@ -1812,6 +1845,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stock images for meditation fallback (nature, meditation, Christian, reflection themes)
+  const MEDITATION_STOCK_IMAGES = [
+    { url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1080&h=1920&fit=crop&crop=entropy", theme: "mountains" },
+    { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080&h=1920&fit=crop&crop=entropy", theme: "sunrise" },
+    { url: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1080&h=1920&fit=crop&crop=entropy", theme: "sunset" },
+    { url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1080&h=1920&fit=crop&crop=entropy", theme: "beach" },
+    { url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1080&h=1920&fit=crop&crop=entropy", theme: "forest" },
+    { url: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1080&h=1920&fit=crop&crop=entropy", theme: "waterfall" },
+    { url: "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=1080&h=1920&fit=crop&crop=entropy", theme: "lake" },
+    { url: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1080&h=1920&fit=crop&crop=entropy", theme: "clouds" },
+    { url: "https://images.unsplash.com/photo-1518173946687-a4c036bc0f16?w=1080&h=1920&fit=crop&crop=entropy", theme: "stars" },
+    { url: "https://images.unsplash.com/photo-1504892612018-159ffa1d147f?w=1080&h=1920&fit=crop&crop=entropy", theme: "dawn" },
+  ];
+
   // Generate AI meditation background image for sharing
   app.post("/api/study/meditation/generate-image", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -1827,14 +1874,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateMeditationBackgroundImage(selectedKey);
       
       if (!result) {
-        console.log("[API] Image generation returned null, using gradient fallback");
+        console.log("[API] Image generation returned null, using stock image fallback");
         
-        // Retornar indicação para usar gradiente no frontend
-        // O frontend já tem lógica de fallback com gradiente implementada
+        // Use stock image fallback instead of gradient
+        const randomStock = MEDITATION_STOCK_IMAGES[Math.floor(Math.random() * MEDITATION_STOCK_IMAGES.length)];
+        
         return res.json({ 
-          success: false, 
-          message: "Imagem nao gerada (quota ou erro), usando gradiente padrao",
-          useGradient: true
+          success: true, 
+          stockImageUrl: randomStock.url,
+          theme: randomStock.theme,
+          isStockImage: true
         });
       }
       
@@ -1846,10 +1895,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Meditation image generation error:", error);
-      res.status(500).json({ 
-        success: false,
-        message: "Erro ao gerar imagem de meditacao",
-        error: error?.message 
+      
+      // Even on error, try to return a stock image
+      const randomStock = MEDITATION_STOCK_IMAGES[Math.floor(Math.random() * MEDITATION_STOCK_IMAGES.length)];
+      res.json({ 
+        success: true,
+        stockImageUrl: randomStock.url,
+        theme: randomStock.theme,
+        isStockImage: true
       });
     }
   });

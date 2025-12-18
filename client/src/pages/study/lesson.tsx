@@ -1301,6 +1301,7 @@ export default function LessonPage() {
         ) : showRespondaContent ? (
           <RespondaScreen
             lessonTitle={lessonData.title}
+            lessonId={lessonData.id}
             questions={respondaQuestions}
             streak={profileData?.currentStreak || 0}
             hearts={currentHearts}

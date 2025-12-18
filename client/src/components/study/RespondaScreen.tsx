@@ -44,6 +44,7 @@ interface QuizQuestion {
 
 interface RespondaScreenProps {
   lessonTitle: string;
+  lessonId?: number;
   questions: QuizQuestion[];
   streak: number;
   hearts?: number;
@@ -163,7 +164,8 @@ function Timer({ isActive, onTimeUp }: { isActive: boolean; onTimeUp?: () => voi
 }
 
 export function RespondaScreen({ 
-  lessonTitle, 
+  lessonTitle,
+  lessonId,
   questions: rawQuestions, 
   streak,
   hearts = 5,
@@ -368,7 +370,7 @@ export function RespondaScreen({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ amount: 10, reason: 'wrong_answer' })
+        body: JSON.stringify({ amount: 10, reason: 'wrong_answer', lessonId })
       }).catch(error => console.error('Erro ao deduzir XP por resposta errada:', error));
     }
     
@@ -434,7 +436,7 @@ export function RespondaScreen({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ amount: 5, reason: 'hint' })
+          body: JSON.stringify({ amount: 5, reason: 'hint', lessonId })
         });
       } catch (error) {
         console.error('Erro ao deduzir XP por dica:', error);

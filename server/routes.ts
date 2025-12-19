@@ -1792,7 +1792,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Stage invalido" });
       }
       
-<<<<<<< HEAD
       const stageResult = await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
       
       // FIXED: Only update season progress if XP was actually awarded (avoid duplicates)
@@ -1814,9 +1813,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Season XP] Skipped duplicate stage XP for user ${req.user.id}, stage ${stage}, lesson ${lessonId}`);
       }
       
-=======
-      await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
->>>>>>> parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
@@ -1916,7 +1912,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
 <<<<<<< HEAD
-<<<<<<< HEAD
       // Update season progress - Apenas incrementa lições concluídas
       // XP é adicionado no método completeLesson()
 =======
@@ -1940,15 +1935,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
             lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
-=======
-      // Update season progress with XP earned - FIXED: Track XP for magazine ranking
-      try {
-        const lesson = await storage.getLessonById(lessonId);
-        if (lesson?.seasonId) {
-          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.xpEarned || 0) + (xpEarned || 0),
-            lessonsCompleted: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.lessonsCompleted || 0) + 1,
->>>>>>> parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
           });
           console.log(`[Season Progress] Incremented lessons completed for user ${req.user.id} in season ${lesson.seasonId}`);
         }

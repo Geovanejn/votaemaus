@@ -1753,25 +1753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Reason deve ser 'hint' ou 'wrong_answer'" });
       }
       
-      const result = await storage.deductXp(req.user.id, amount, reason as 'hint' | 'wrong_answer');
-      
-      // Also deduct from season progress if lesson belongs to a season
-      if (lessonId && result.actualDeduction > 0) {
-        try {
-          const lesson = await storage.getLessonById(lessonId);
-          if (lesson?.seasonId) {
-            const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-            const currentSeasonXp = currentProgress?.xpEarned || 0;
-            const newSeasonXp = Math.max(0, currentSeasonXp - result.actualDeduction);
-            await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-              xpEarned: newSeasonXp,
-            });
-            console.log(`[Season XP Deduction] Deducted ${result.actualDeduction} XP for user ${req.user.id} in season ${lesson.seasonId}. New season XP: ${newSeasonXp}`);
-          }
-        } catch (seasonError) {
-          console.error("Error updating season progress for XP deduction:", seasonError);
-        }
-      }
+      const result = await storage.deductXp(req.user.id, amount, reason as 'hint' | 'wrong_answer', lessonId);
       
       const profile = await storage.getStudyProfile(req.user.id);
       
@@ -1950,19 +1932,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mistakesCount === 0
       );
       
-      // Update season progress - Track lesson completion for magazine ranking
-      // Now includes XP deductions (-5 hint, -10 wrong answer) via updated getLessonXpBreakdown
+      // Update season progress - Apenas incrementa lições concluídas
+      // XP é adicionado no método completeLesson()
       try {
         const lesson = await storage.getLessonById(lessonId);
         if (lesson?.seasonId) {
           const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-          // Use the breakdown + 50 bonus, which now includes all deductions
-          const actualLessonXp = xpBreakdown.estude + xpBreakdown.medite + xpBreakdown.responda + 50;
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: (currentProgress?.xpEarned || 0) + actualLessonXp,
             lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
           });
-          console.log(`[Season XP] Lesson ${lessonId} completed with ${actualLessonXp} XP (including deductions) for user ${req.user.id}`);
+          console.log(`[Season Progress] Incremented lessons completed for user ${req.user.id} in season ${lesson.seasonId}`);
         }
       } catch (seasonError) {
         console.error("Error updating season progress:", seasonError);

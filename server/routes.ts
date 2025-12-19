@@ -1921,6 +1921,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // The xpEarned from frontend includes answer XP from responda + completion bonus
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> parent of 619df5c (Improve XP tracking and display across study components)
+=======
 >>>>>>> parent of 619df5c (Improve XP tracking and display across study components)
 =======
 >>>>>>> parent of 619df5c (Improve XP tracking and display across study components)

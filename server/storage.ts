@@ -2023,18 +2023,16 @@ export class DatabaseStorage implements IStorage {
       // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
       await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
       
-      // ⭐ FIXED: Update season progress with ONLY the completion bonus
-      // Other XP (estude, medite, responda) already added when each section completed
-      // Only add bonus here to avoid duplication
+      // Update season progress with XP
       try {
         const lesson = await this.getLessonById(lessonId);
         if (lesson?.seasonId) {
           const currentProgress = await this.getUserSeasonProgress(userId, lesson.seasonId);
           const currentXp = currentProgress?.xpEarned || 0;
           await this.updateUserSeasonProgress(userId, lesson.seasonId, {
-            xpEarned: currentXp + completionBonus,
+            xpEarned: currentXp + totalXpEarned,
           });
-          console.log(`[Season XP] Added ${completionBonus} XP (bonus only) to season ${lesson.seasonId} for user ${userId}`);
+          console.log(`[Season XP] Added ${totalXpEarned} XP to season ${lesson.seasonId} for user ${userId}`);
         }
       } catch (seasonError) {
         console.error("Error updating season XP in completeLesson:", seasonError);
@@ -2059,18 +2057,16 @@ export class DatabaseStorage implements IStorage {
     // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
     await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
     
-    // ⭐ FIXED: Update season progress with ONLY the completion bonus
-    // Other XP (estude, medite, responda) already added when each section completed
-    // Only add bonus here to avoid duplication
+    // Update season progress with XP
     try {
       const lesson = await this.getLessonById(lessonId);
       if (lesson?.seasonId) {
         const currentProgress = await this.getUserSeasonProgress(userId, lesson.seasonId);
         const currentXp = currentProgress?.xpEarned || 0;
         await this.updateUserSeasonProgress(userId, lesson.seasonId, {
-          xpEarned: currentXp + completionBonus,
+          xpEarned: currentXp + totalXpEarned,
         });
-        console.log(`[Season XP] Added ${completionBonus} XP (bonus only) to season ${lesson.seasonId} for user ${userId}`);
+        console.log(`[Season XP] Added ${totalXpEarned} XP to season ${lesson.seasonId} for user ${userId}`);
       }
     } catch (seasonError) {
       console.error("Error updating season XP in completeLesson:", seasonError);
@@ -2102,18 +2098,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLessonXpBreakdown(userId: number, lessonId: number): Promise<{ estude: number; medite: number; responda: number }> {
-    // ⭐ FIXED: Get XP earned for each stage of the lesson from xp_transactions
-    // Include both transactions with sourceId = lessonId AND deductions with sourceId = null
-    // (in case deductions were made before completing lesson)
+    // Get XP earned for each stage of the lesson from xp_transactions
     const transactions = await db.select()
       .from(schema.xpTransactions)
       .where(and(
         eq(schema.xpTransactions.userId, userId),
-        // Include both: transactions for this specific lesson AND deductions (which may have null sourceId)
-        or(
-          eq(schema.xpTransactions.sourceId, lessonId),
-          sql`(${schema.xpTransactions.sourceId} IS NULL AND ${schema.xpTransactions.source} LIKE 'xp_deduction_%')`
-        )
+        eq(schema.xpTransactions.sourceId, lessonId)
       ));
     
     let estude = 0;
@@ -2121,10 +2111,9 @@ export class DatabaseStorage implements IStorage {
     let responda = 0;
     
     for (const txn of transactions) {
-      if (txn.source === 'STUDY_ESTUDE' && txn.sourceId === lessonId) estude += Math.max(0, txn.amount);
-      if (txn.source === 'STUDY_MEDITE' && txn.sourceId === lessonId) medite += Math.max(0, txn.amount);
-      if (txn.source === 'unit' && txn.sourceId === lessonId) responda += txn.amount; // unit responses - allow negative
-      // Include deductions regardless of sourceId match (they should have been tracked for this lesson)
+      if (txn.source === 'STUDY_ESTUDE') estude += Math.max(0, txn.amount);
+      if (txn.source === 'STUDY_MEDITE') medite += Math.max(0, txn.amount);
+      if (txn.source === 'unit') responda += txn.amount; // unit responses - allow negative for deductions
       if (txn.source === 'xp_deduction_hint') responda += txn.amount; // Include hint deductions
       if (txn.source === 'xp_deduction_wrong_answer') responda += txn.amount; // Include wrong answer deductions
     }

@@ -56,11 +56,23 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
+<<<<<<< HEAD
 // Priority: gemini-3-flash-preview > gemini-2.5-flash > gemini-2.5-flash-lite
 const GEMINI_MODELS = [
   "gemini-3-flash-preview", // Primary: Gemini 3 Flash Preview (newest, most capable)
   "gemini-2.5-flash",       // Fallback 1: Gemini 2.5 Flash (stable)
   "gemini-2.5-flash-lite",  // Fallback 2: Gemini 2.5 Flash Lite (faster, lighter)
+=======
+// Includes both Flash (faster/cheaper) and Pro (more capable) models
+// Pro models have lower rate limits on free tier but are available
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",       // Primary: fast and capable
+  "gemini-2.0-flash",       // Fallback: stable
+  "gemini-2.5-pro",         // Pro: more capable, lower rate limits
+  "gemini-2.0-flash-lite",  // Lite: faster, simpler tasks
+  "gemini-1.5-pro",         // Pro fallback: stable, capable
+  "gemini-1.5-flash-latest" // Latest stable flash
+>>>>>>> parent of c4d8a46 (Update Gemini models to use available and current API versions)
 ];
 
 // Special purpose models

@@ -1919,6 +1919,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
       // The lesson completion only adds the bonus XP (50) + responda XP to avoid double-counting
       // The xpEarned from frontend includes answer XP from responda + completion bonus
+<<<<<<< HEAD
+>>>>>>> parent of 619df5c (Improve XP tracking and display across study components)
+=======
 >>>>>>> parent of 619df5c (Improve XP tracking and display across study components)
       try {
         const lesson = await storage.getLessonById(lessonId);

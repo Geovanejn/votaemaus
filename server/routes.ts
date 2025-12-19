@@ -1743,25 +1743,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Stage invalido" });
       }
       
-      const stageResult = await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
+      await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
       
-      // FIXED: Only update season progress if XP was actually awarded (avoid duplicates)
-      // This prevents XP inflation when users replay sections
-      if (stageResult.awarded) {
-        try {
-          const lesson = await storage.getLessonById(lessonId);
-          if (lesson?.seasonId) {
-            const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-            await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-              xpEarned: (currentProgress?.xpEarned || 0) + xpToAward,
-            });
-            console.log(`[Season XP] Added ${xpToAward} stage XP for user ${req.user.id} in season ${lesson.seasonId}`);
-          }
-        } catch (seasonError) {
-          console.error("Error updating season progress for stage XP:", seasonError);
+      // FIXED: Also track stage XP in season progress for magazine ranking
+      try {
+        const lesson = await storage.getLessonById(lessonId);
+        if (lesson?.seasonId) {
+          const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
+          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+            xpEarned: (currentProgress?.xpEarned || 0) + xpToAward,
+          });
         }
-      } else {
-        console.log(`[Season XP] Skipped duplicate stage XP for user ${req.user.id}, stage ${stage}, lesson ${lessonId}`);
+      } catch (seasonError) {
+        console.error("Error updating season progress for stage XP:", seasonError);
       }
       
       const profile = await storage.getStudyProfile(req.user.id);

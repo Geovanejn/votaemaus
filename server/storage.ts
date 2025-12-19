@@ -194,7 +194,7 @@ export interface IStorage {
   submitUnitAnswer(userId: number, unitId: number, answer: any): Promise<any>;
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
-  addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<{ awarded: boolean }>;
+  addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void>;
   getStudyStats(): Promise<any>;
   getUserProfileStats(userId: number): Promise<any>;
   getUserRecentActivities(userId: number, limit?: number): Promise<any[]>;
@@ -2037,7 +2037,7 @@ export class DatabaseStorage implements IStorage {
     return progress;
   }
 
-  async addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<{ awarded: boolean }> {
+  async addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void> {
     // Make this idempotent - check if XP for this stage/lesson was already awarded
     const source = `stage_${stage}`;
     const existing = await db.select()
@@ -2049,14 +2049,13 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     
-    // If already awarded, skip and return false
+    // If already awarded, skip
     if (existing.length > 0) {
       console.log(`Stage XP already awarded for user ${userId}, stage ${stage}, lesson ${lessonId}`);
-      return { awarded: false };
+      return;
     }
     
     await this.addXp(userId, amount, source, lessonId);
-    return { awarded: true };
   }
 
   private async addXp(userId: number, amount: number, source: string, sourceId?: number): Promise<void> {

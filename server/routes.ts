@@ -1700,39 +1700,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Deduct XP from user (for hints and wrong answers)
-  app.post("/api/study/xp/deduct", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
-      }
-      
-      const { amount, reason } = req.body;
-      
-      if (!amount || typeof amount !== 'number' || amount <= 0) {
-        return res.status(400).json({ message: "Amount deve ser um numero positivo" });
-      }
-      
-      if (!reason || !['hint', 'wrong_answer'].includes(reason)) {
-        return res.status(400).json({ message: "Reason deve ser 'hint' ou 'wrong_answer'" });
-      }
-      
-      const result = await storage.deductXp(req.user.id, amount, reason as 'hint' | 'wrong_answer');
-      const profile = await storage.getStudyProfile(req.user.id);
-      
-      res.json({ 
-        success: true,
-        newTotalXp: result.newTotalXp,
-        profile
-      });
-    } catch (error) {
-      console.error("Deduct XP error:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Erro ao deduzir XP" 
-      });
-    }
-  });
-
   // Mark a unit as completed (for text/reading units)
   app.post("/api/study/units/:unitId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -1827,14 +1794,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateMeditationBackgroundImage(selectedKey);
       
       if (!result) {
-        console.log("[API] Image generation returned null, using gradient fallback");
-        
-        // Retornar indicação para usar gradiente no frontend
-        // O frontend já tem lógica de fallback com gradiente implementada
+        console.log("[API] Image generation returned null, using fallback gradient");
         return res.json({ 
           success: false, 
           message: "Imagem nao gerada (quota ou erro), usando gradiente padrao",
-          useGradient: true
+          fallback: true
         });
       }
       

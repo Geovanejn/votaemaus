@@ -357,19 +357,13 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
     } else {
       playSound('practiceError');
+      // Penalidade de -10 XP ao errar uma questão
       setTotalXp(prev => {
         const newXp = Math.max(prev - 10, 0);
         onXpChange?.(newXp);
         return newXp;
       });
       setWrongCount(prev => prev + 1);
-      
-      fetch('/api/study/xp/deduct', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ amount: 10, reason: 'wrong_answer' })
-      }).catch(error => console.error('Erro ao deduzir XP por resposta errada:', error));
     }
     
     onAnswer(currentIndex, userAnswer, isCorrect);
@@ -418,7 +412,7 @@ export function RespondaScreen({
     }
   };
   
-  const useHint = async () => {
+  const useHint = () => {
     if (!hintUsed && currentQuestion.hint) {
       setShowHint(true);
       setHintUsed(true);
@@ -428,17 +422,6 @@ export function RespondaScreen({
         return newXp;
       });
       playSound('hint');
-      
-      try {
-        await fetch('/api/study/xp/deduct', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ amount: 5, reason: 'hint' })
-        });
-      } catch (error) {
-        console.error('Erro ao deduzir XP por dica:', error);
-      }
     }
   };
   

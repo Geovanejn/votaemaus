@@ -1623,29 +1623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weekTitle = season?.title || season?.aiExtractedTitle;
       }
       
-      // Extract daily reading from aiMetadata if available
-      let dailyReading: string | undefined;
-      if (lesson.studyWeekId) {
-        try {
-          const week = await storage.getStudyWeekById(lesson.studyWeekId);
-          if (week?.aiMetadata) {
-            const metadata = typeof week.aiMetadata === 'string' ? JSON.parse(week.aiMetadata) : week.aiMetadata;
-            if (metadata.dailyReadingContent) {
-              dailyReading = metadata.dailyReadingContent;
-            }
-          }
-        } catch (e) {
-          console.log('Could not parse aiMetadata for daily reading');
-        }
-      }
-      
-      res.json({ 
-        ...lesson, 
-        units: unitsWithParsedContent, 
-        progress, 
-        weekTitle,
-        dailyReading 
-      });
+      res.json({ ...lesson, units: unitsWithParsedContent, progress, weekTitle });
     } catch (error) {
       console.error("Get lesson error:", error);
       res.status(500).json({ message: "Erro ao buscar licao" });
@@ -3030,8 +3008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedAt: new Date().toISOString(),
           model: "gemini-2.0-flash",
           source: "pdf",
-          lessonsCount: generatedContent.lessons.length,
-          dailyReadingContent: generatedContent.dailyReadingContent || null
+          lessonsCount: generatedContent.lessons.length
         })
       });
 

@@ -235,10 +235,9 @@ export function MediteScreen({
     try {
       const summary = getMeditationSummary();
       
-      // Try to fetch AI-generated background image or stock image fallback
+      // Try to fetch AI-generated background image
       let backgroundImage: HTMLImageElement | null = null;
       let stockImageUrl: string | null = null;
-      let usedStockImage = false;
       try {
         const response = await fetch('/api/study/meditation/generate-image', {
           method: 'POST',
@@ -259,20 +258,13 @@ export function MediteScreen({
               });
               console.log(`[Share] Using AI-generated background theme: ${data.theme}`);
             } else if (data.stockImageUrl) {
-              // Try to load stock image, but don't fail if it doesn't load
               backgroundImage = new Image();
               backgroundImage.src = data.stockImageUrl;
-              stockImageUrl = data.stockImageUrl;
-              usedStockImage = true;
-              await new Promise((resolve) => {
-                // Resolve after 3 seconds or when image loads, don't reject
+              await new Promise((resolve, reject) => {
                 backgroundImage!.onload = resolve;
-                const timeout = setTimeout(resolve, 3000);
-                backgroundImage!.onerror = () => {
-                  clearTimeout(timeout);
-                  resolve(); // Resolve even if image fails to load
-                };
+                backgroundImage!.onerror = reject;
               });
+              stockImageUrl = data.stockImageUrl;
               console.log(`[Share] Using stock image theme: ${data.theme}`);
             }
           }
@@ -287,33 +279,14 @@ export function MediteScreen({
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
-        // Draw background (AI image, stock image, or gradient)
-        if (backgroundImage && backgroundImage.width > 0) {
-          // Image successfully loaded, draw it
-          try {
-            ctx.drawImage(backgroundImage, 0, 0, 1080, 1920);
-          } catch (e) {
-            // If drawImage fails, use gradient as fallback
-            const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-            gradient.addColorStop(0, '#059669');
-            gradient.addColorStop(0.5, '#10B981');
-            gradient.addColorStop(1, '#34D399');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 1080, 1920);
-          }
+        // Draw background (AI image or gradient)
+        if (backgroundImage) {
+          ctx.drawImage(backgroundImage, 0, 0, 1080, 1920);
           // Add semi-transparent overlay for better text readability
           ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
           ctx.fillRect(0, 0, 1080, 1920);
-        } else if (usedStockImage && stockImageUrl) {
-          // Stock image didn't load, use a nature-themed gradient
-          const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-          gradient.addColorStop(0, '#1f4d3b');
-          gradient.addColorStop(0.5, '#2a6b55');
-          gradient.addColorStop(1, '#3d8968');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, 1080, 1920);
         } else {
-          // Default gradient
+          // Fallback gradient
           const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
           gradient.addColorStop(0, '#059669');
           gradient.addColorStop(0.5, '#10B981');

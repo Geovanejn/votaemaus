@@ -146,7 +146,6 @@ export interface GeneratedUnit {
 export interface GeneratedWeekContent {
   weekTitle: string;
   weekDescription: string;
-  dailyReadingContent?: string | null;
   lessons: GeneratedLesson[];
 }
 
@@ -489,13 +488,6 @@ Responda SEMPRE em JSON válido com a estrutura exata especificada. NÃO use mar
 
   const userPrompt = `Transforme o seguinte texto em um conteúdo de estudo semanal (Semana ${weekNumber} de ${year}).
 
-IMPORTANTE - EXTRAÇÃO DE LEITURA DIÁRIA:
-Se o PDF contém uma lista de versículos de leitura diária (geralmente na primeira página), extraia-os no formato:
-"Segunda: Referência Bíblica
-Terça: Referência Bíblica
-etc..."
-Retorne esta lista no campo "dailyReadingContent" do JSON.
-
 TEXTO BASE:
 ${text}
 
@@ -520,7 +512,6 @@ Gere um JSON com a seguinte estrutura:
 {
   "weekTitle": "Título da semana baseado no tema principal",
   "weekDescription": "Descrição breve do conteúdo da semana",
-  "dailyReadingContent": "Se o PDF tiver leitura diária: Lista de versículos por dia. Caso contrário, deixe vazio ou null",
   "lessons": [
     {
       "title": "Título da lição",

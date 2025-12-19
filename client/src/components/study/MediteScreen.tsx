@@ -221,11 +221,27 @@ export function MediteScreen({
     const verseRefs = sections.filter(s => s.verseReference).map(s => s.verseReference).join(', ');
     
     // Generate a complete summary without truncation
+    // Find the first complete sentence that ends with a period, exclamation, or question mark
     const cleanContent = allContent.replace(/\s+/g, ' ').trim();
+    let summary = cleanContent;
+    
+    // If content is too long, try to find a natural break point (complete sentence)
+    if (cleanContent.length > 400) {
+      const sentences = cleanContent.match(/[^.!?]+[.!?]+/g) || [];
+      let builtSummary = '';
+      for (const sentence of sentences) {
+        if (builtSummary.length + sentence.length <= 400) {
+          builtSummary += sentence;
+        } else {
+          break;
+        }
+      }
+      summary = builtSummary.trim() || cleanContent.slice(0, 400);
+    }
     
     return { 
       title: lessonTitle,
-      summary: cleanContent,
+      summary,
       verseReference: verseRefs || sections[0]?.verseReference || ''
     };
   };
@@ -237,7 +253,6 @@ export function MediteScreen({
       
       // Try to fetch AI-generated background image
       let backgroundImage: HTMLImageElement | null = null;
-      let stockImageUrl: string | null = null;
       try {
         const response = await fetch('/api/study/meditation/generate-image', {
           method: 'POST',
@@ -248,25 +263,14 @@ export function MediteScreen({
         
         if (response.ok) {
           const data = await response.json();
-          if (data.success) {
-            if (data.imageBase64) {
-              backgroundImage = new Image();
-              backgroundImage.src = `data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`;
-              await new Promise((resolve, reject) => {
-                backgroundImage!.onload = resolve;
-                backgroundImage!.onerror = reject;
-              });
-              console.log(`[Share] Using AI-generated background theme: ${data.theme}`);
-            } else if (data.stockImageUrl) {
-              backgroundImage = new Image();
-              backgroundImage.src = data.stockImageUrl;
-              await new Promise((resolve, reject) => {
-                backgroundImage!.onload = resolve;
-                backgroundImage!.onerror = reject;
-              });
-              stockImageUrl = data.stockImageUrl;
-              console.log(`[Share] Using stock image theme: ${data.theme}`);
-            }
+          if (data.success && data.imageBase64) {
+            backgroundImage = new Image();
+            backgroundImage.src = `data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`;
+            await new Promise((resolve, reject) => {
+              backgroundImage!.onload = resolve;
+              backgroundImage!.onerror = reject;
+            });
+            console.log(`[Share] Using AI-generated background theme: ${data.theme}`);
           }
         }
       } catch (err) {

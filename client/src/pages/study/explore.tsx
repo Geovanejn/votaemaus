@@ -297,6 +297,51 @@ export default function ExplorePage() {
           )}
         </motion.div>
 
+        {/* Leitura Diária - Com Versículos do PDF */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-6 text-center"
+          data-testid="daily-reading-card"
+        >
+          {/* Icone de livro */}
+          <div className="flex justify-center mb-4">
+            <div 
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+              }}
+            >
+              <BookOpen className="h-7 w-7 text-white fill-white" />
+            </div>
+          </div>
+
+          <h3 className="font-bold text-xl text-foreground mb-2">Leitura Diária</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Leia um trecho inspirador da Palavra de Deus
+          </p>
+
+          {lessonDailyReadingVerses?.verses && lessonDailyReadingVerses.verses.length > 0 && (
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 text-left space-y-3 max-h-40 overflow-y-auto" data-testid="daily-reading-verses">
+              {lessonDailyReadingVerses.verses.slice(0, 3).map((verse: any, idx: number) => (
+                <div key={idx} className="text-sm">
+                  <p className="text-muted-foreground italic">{verse.content?.text || verse.content?.verseText || 'Versículo'}</p>
+                  <p className="text-xs text-primary font-semibold mt-1">{verse.content?.reference || verse.content?.verseReference || ''}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Button
+            onClick={() => setLocation("/study/library")}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold"
+            data-testid="button-daily-reading"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Iniciar Leitura
+          </Button>
+        </motion.div>
       </main>
 
       <BottomNav />

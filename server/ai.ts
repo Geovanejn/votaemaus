@@ -1545,34 +1545,18 @@ A meditação cristã DEVE incluir:
 - Oração direcionada ao Senhor
 - Aplicação prática do texto bíblico
 
-⚠️⚠️⚠️ ALTA PRIORIDADE - SEÇÕES OBRIGATÓRIAS ⚠️⚠️⚠️
-AS SEGUINTES SEÇÕES SÃO FREQUENTEMENTE IGNORADAS - VOCÊ DEVE INCLUÍ-LAS:
-1. INTRODUÇÃO - Geralmente aparece no início antes dos tópicos numerados. DEVE ser incluída como primeiro tópico.
-2. CONCLUSÃO - Geralmente aparece no final após os tópicos numerados. DEVE ser incluída como último tópico.
-3. APLICAÇÕES / APLICAÇÃO PRÁTICA - Pode aparecer como seção separada ou dentro da conclusão. DEVE ser extraída.
-4. CONSIDERAÇÕES FINAIS - Se existir, DEVE ser incluída.
-
-❌ ERRO GRAVE: Ignorar Introdução, Conclusão ou Aplicações é INACEITÁVEL.
-✅ CORRETO: Incluir TODAS as seções, mesmo que não tenham numeração.
-
 REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS - LEIA COM MÁXIMA ATENÇÃO:
 - ANALISE TODO O TEXTO DO PDF LINHA POR LINHA, do início ao fim
 - É OBRIGATÓRIO extrair TODOS os tópicos/seções do PDF sem exceção
 - ERRO COMUM: Ignorar tópicos no meio ou final do documento - NÃO FAÇA ISSO
-- INCLUA: INTRODUÇÃO (início), tópicos numerados (meio), CONCLUSÃO/APLICAÇÕES (final)
 - Procure por padrões como: números romanos (I, II, III), números (1., 2., 3.), letras (a), b), c))
 - Procure por títulos em MAIÚSCULAS ou em negrito/destaque
 - Procure por palavras-chave como: "Primeiro", "Segundo", "Terceiro", "Em seguida", "Por fim", "Finalmente"
-- Procure por: "Introdução", "Conclusão", "Aplicação", "Considerações", "Encerramento", "Resumo"
 - Procure por seções separadas por linhas em branco ou quebras de página
 - INCLUA TODOS OS TÓPICOS encontrados, mesmo que pareçam pequenos ou secundários
 - LISTE os tópicos NA ORDEM em que aparecem no documento
 - Cada tópico deve ter um resumo COMPLETO do conteúdo (mínimo 150 palavras)
-- VALIDAÇÃO FINAL: Antes de responder:
-  1. Verifique se a INTRODUÇÃO está incluída
-  2. Verifique se a CONCLUSÃO está incluída
-  3. Verifique se as APLICAÇÕES estão incluídas
-  4. Confirme que TODOS os tópicos foram incluídos
+- VALIDAÇÃO: Antes de responder, RELEIA o PDF e confirme que TODOS os tópicos foram incluídos
 - Se o PDF tiver 4 tópicos, você DEVE retornar 4 tópicos. Se tiver 6, DEVE retornar 6.
 
 REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:

@@ -380,12 +380,12 @@ export function RespondaScreen({
     
     onAnswer(currentIndex, userAnswer, isCorrect);
     
-    // Auto-advance to next question after showing result for 0.5 seconds
+    // Auto-advance to next question after showing result for 1.5 seconds
     setTimeout(() => {
       setShowResult(true);
       autoAdvanceTimeoutRef.current = setTimeout(() => {
         goNext();
-      }, 500);
+      }, 1500);
     }, 300);
   };
   
@@ -409,7 +409,7 @@ export function RespondaScreen({
   const autoAdvanceToNext = () => {
     autoAdvanceTimeoutRef.current = setTimeout(() => {
       goNext();
-    }, 500);
+    }, 1500);
   };
   
   const handleTimeUp = () => {

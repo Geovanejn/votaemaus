@@ -417,6 +417,24 @@ export function RespondaScreen({
       setTimerActive(false);
       setShowResult(true);
       setWrongCount(prev => prev + 1);
+      
+      // Deduct 10 XP for timeout (same as wrong answer)
+      setTotalXp(prev => {
+        const newXp = Math.max(prev - 10, 0);
+        onXpChange?.(newXp);
+        return newXp;
+      });
+      
+      fetch('/api/study/xp/deduct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ amount: 10, reason: 'wrong_answer', lessonId })
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/study/leaderboard'], refetchType: 'all' });
+        queryClient.refetchQueries({ queryKey: ['/api/study/profile'] });
+      }).catch(error => console.error('Erro ao deduzir XP por timeout:', error));
+      
       onAnswer(currentIndex, null, false);
       autoAdvanceTimeoutRef.current = setTimeout(() => {
         goNext();

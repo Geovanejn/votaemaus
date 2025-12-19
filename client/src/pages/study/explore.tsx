@@ -290,41 +290,6 @@ export default function ExplorePage() {
             </Button>
           )}
         </motion.div>
-
-        {/* Leitura Diária */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-card rounded-xl border border-border shadow-sm p-6 text-center"
-          data-testid="daily-reading-card"
-        >
-          {/* Icone de livro */}
-          <div className="flex justify-center mb-4">
-            <div 
-              className="w-14 h-14 rounded-full flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-              }}
-            >
-              <BookOpen className="h-7 w-7 text-white fill-white" />
-            </div>
-          </div>
-
-          <h3 className="font-bold text-xl text-foreground mb-2">Leitura Diária</h3>
-          <p className="text-muted-foreground text-sm mb-6">
-            Leia um trecho inspirador da Palavra de Deus
-          </p>
-
-          <Button
-            onClick={() => setLocation("/study/library")}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold"
-            data-testid="button-daily-reading"
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Iniciar Leitura
-          </Button>
-        </motion.div>
       </main>
 
       <BottomNav />

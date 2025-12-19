@@ -2022,22 +2022,6 @@ export class DatabaseStorage implements IStorage {
       
       // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
       await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
-      
-      // Update season progress with XP
-      try {
-        const lesson = await this.getLessonById(lessonId);
-        if (lesson?.seasonId) {
-          const currentProgress = await this.getUserSeasonProgress(userId, lesson.seasonId);
-          const currentXp = currentProgress?.xpEarned || 0;
-          await this.updateUserSeasonProgress(userId, lesson.seasonId, {
-            xpEarned: currentXp + totalXpEarned,
-          });
-          console.log(`[Season XP] Added ${totalXpEarned} XP to season ${lesson.seasonId} for user ${userId}`);
-        }
-      } catch (seasonError) {
-        console.error("Error updating season XP in completeLesson:", seasonError);
-      }
-      
       return updated;
     }
     
@@ -2056,22 +2040,6 @@ export class DatabaseStorage implements IStorage {
     
     // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
     await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
-    
-    // Update season progress with XP
-    try {
-      const lesson = await this.getLessonById(lessonId);
-      if (lesson?.seasonId) {
-        const currentProgress = await this.getUserSeasonProgress(userId, lesson.seasonId);
-        const currentXp = currentProgress?.xpEarned || 0;
-        await this.updateUserSeasonProgress(userId, lesson.seasonId, {
-          xpEarned: currentXp + totalXpEarned,
-        });
-        console.log(`[Season XP] Added ${totalXpEarned} XP to season ${lesson.seasonId} for user ${userId}`);
-      }
-    } catch (seasonError) {
-      console.error("Error updating season XP in completeLesson:", seasonError);
-    }
-    
     return progress;
   }
 
@@ -2121,7 +2089,7 @@ export class DatabaseStorage implements IStorage {
     return { estude, medite, responda };
   }
 
-  async deductXp(userId: number, amount: number, reason: 'hint' | 'wrong_answer', lessonId?: number): Promise<{ newTotalXp: number; actualDeduction: number }> {
+  async deductXp(userId: number, amount: number, reason: 'hint' | 'wrong_answer'): Promise<{ newTotalXp: number; actualDeduction: number }> {
     const profile = await this.getOrCreateStudyProfile(userId);
     const currentXp = profile.totalXp || 0;
     
@@ -2141,7 +2109,7 @@ export class DatabaseStorage implements IStorage {
       userId,
       amount: deductionAmount,
       source: `xp_deduction_${reason}`,
-      sourceId: lessonId,
+      sourceId: null,
     });
     
     const newTotalXp = currentXp - actualDeduction;
@@ -2156,24 +2124,6 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(schema.studyProfiles.userId, userId));
-    
-    // Also deduct from season progress if lesson belongs to a season
-    if (lessonId && actualDeduction > 0) {
-      try {
-        const lesson = await this.getLessonById(lessonId);
-        if (lesson?.seasonId) {
-          const currentProgress = await this.getUserSeasonProgress(userId, lesson.seasonId);
-          const currentSeasonXp = currentProgress?.xpEarned || 0;
-          const newSeasonXp = Math.max(0, currentSeasonXp - actualDeduction);
-          await this.updateUserSeasonProgress(userId, lesson.seasonId, {
-            xpEarned: newSeasonXp,
-          });
-          console.log(`[Season XP Deduction] Deducted ${actualDeduction} XP for user ${userId} in season ${lesson.seasonId}. New season XP: ${newSeasonXp}`);
-        }
-      } catch (seasonError) {
-        console.error("Error updating season progress for XP deduction:", seasonError);
-      }
-    }
     
     console.log(`[XP Deduction] User ${userId} lost ${actualDeduction} XP for ${reason}. New total: ${newTotalXp}`);
     return { newTotalXp, actualDeduction };

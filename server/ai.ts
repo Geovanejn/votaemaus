@@ -56,12 +56,11 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
-// Using Gemini 2.0 Flash as primary stable model
+// Using only Gemini 3 Flash Preview, Gemini 2.5 Flash, and Gemini 2.5 Lite
 const GEMINI_MODELS = [
-  "gemini-2.0-flash",       // Primary: Gemini 2.0 Flash (stable)
-  "gemini-2.5-flash-preview-05-20",  // Fallback 1: Gemini 2.5 Flash preview
-  "gemini-1.5-pro",         // Fallback 2: Gemini 1.5 Pro (more capable)
-  "gemini-1.0-pro",         // Fallback 3: Gemini 1.0 Pro (legacy stable)
+  "gemini-3-flash-preview",  // Primary: Gemini 3 Flash Preview
+  "gemini-2.5-flash",        // Fallback 1: Gemini 2.5 Flash
+  "gemini-2.5-lite"          // Fallback 2: Gemini 2.5 Lite
 ];
 
 // Get Gemini model with specific key and optional model override
@@ -101,8 +100,8 @@ function isQuotaError(error: any): boolean {
 
 // Initialize default Gemini AI (backward compatibility)
 const genAI = new GoogleGenerativeAI(getGeminiApiKey("1"));
-// Using gemini-2.0-flash as stable default
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Using gemini-3-flash-preview as stable default
+const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
 export interface GeneratedLesson {
   title: string;

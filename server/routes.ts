@@ -2850,7 +2850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id,
         aiMetadata: JSON.stringify({
           generatedAt: new Date().toISOString(),
-          model: "gemini-2.0-flash",
+          model: "gemini-3-flash-preview",
           source: "pdf",
           lessonsCount: generatedContent.lessons.length
         })
@@ -3062,7 +3062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id,
         aiMetadata: JSON.stringify({
           generatedAt: new Date().toISOString(),
-          model: "gemini-2.0-flash",
+          model: "gemini-3-flash-preview",
           lessonsCount: generatedContent.lessons.length
         })
       });

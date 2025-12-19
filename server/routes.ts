@@ -1950,19 +1950,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mistakesCount === 0
       );
       
-      // Update season progress - Track lesson completion for magazine ranking
-      // Now includes XP deductions (-5 hint, -10 wrong answer) via updated getLessonXpBreakdown
+      // Update season progress - FIXED: Track lesson completion for magazine ranking
+      // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
+      // NOTE: Question XP is now tracked in the answer endpoint
+      // NOTE: Completion bonus is tracked in completeLesson function
       try {
         const lesson = await storage.getLessonById(lessonId);
         if (lesson?.seasonId) {
           const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-          // Use the breakdown + 50 bonus, which now includes all deductions
-          const actualLessonXp = xpBreakdown.estude + xpBreakdown.medite + xpBreakdown.responda + 50;
+          // Add ALL XP for the lesson (estude + medite + responda + bonus), since stage XP is tracked separately
+          // we need to add estude + medite here (stage XP) + responda (unit XP) + 50 (bonus)
+          const totalLessonXp = xpBreakdown.estude + xpBreakdown.medite + xpBreakdown.responda + 50;
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: (currentProgress?.xpEarned || 0) + actualLessonXp,
+            xpEarned: (currentProgress?.xpEarned || 0) + totalLessonXp,
             lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
           });
-          console.log(`[Season XP] Lesson ${lessonId} completed with ${actualLessonXp} XP (including deductions) for user ${req.user.id}`);
         }
       } catch (seasonError) {
         console.error("Error updating season progress:", seasonError);

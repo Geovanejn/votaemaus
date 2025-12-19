@@ -2081,9 +2081,7 @@ export class DatabaseStorage implements IStorage {
     for (const txn of transactions) {
       if (txn.source === 'STUDY_ESTUDE') estude += Math.max(0, txn.amount);
       if (txn.source === 'STUDY_MEDITE') medite += Math.max(0, txn.amount);
-      if (txn.source === 'unit') responda += txn.amount; // unit responses - allow negative for deductions
-      if (txn.source === 'xp_deduction_hint') responda += txn.amount; // Include hint deductions
-      if (txn.source === 'xp_deduction_wrong_answer') responda += txn.amount; // Include wrong answer deductions
+      if (txn.source === 'unit') responda += Math.max(0, txn.amount); // unit responses
     }
     
     return { estude, medite, responda };

@@ -193,7 +193,7 @@ export interface IStorage {
   startLesson(userId: number, lessonId: number): Promise<any>;
   submitUnitAnswer(userId: number, unitId: number, answer: any): Promise<any>;
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
-  completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
+  completeLesson(userId: number, lessonId: number, xpBreakdown: { estude: number; medite: number; responda: number }, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<{ awarded: boolean }>;
   getStudyStats(): Promise<any>;
   getUserProfileStats(userId: number): Promise<any>;
@@ -2000,7 +2000,11 @@ export class DatabaseStorage implements IStorage {
     return { unitProgress: progress, xpAwarded: 0 };
   }
 
-  async completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any> {
+  async completeLesson(userId: number, lessonId: number, xpBreakdown: { estude: number; medite: number; responda: number }, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any> {
+    // Calculate total XP from breakdown + completion bonus
+    const completionBonus = 50;
+    const totalXpEarned = xpBreakdown.estude + xpBreakdown.medite + xpBreakdown.responda + completionBonus;
+    
     const existing = await this.getUserLessonProgress(userId, lessonId);
     
     if (existing) {
@@ -2008,7 +2012,7 @@ export class DatabaseStorage implements IStorage {
         .set({
           status: 'completed',
           completedAt: new Date(),
-          xpEarned,
+          xpEarned: totalXpEarned,
           mistakesCount: mistakes,
           timeSpentSeconds: timeSpent,
           perfectScore,
@@ -2016,7 +2020,8 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.userLessonProgress.id, existing.id))
         .returning();
       
-      await this.addXp(userId, xpEarned, 'lesson', lessonId);
+      // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
+      await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
       return updated;
     }
     
@@ -2026,20 +2031,21 @@ export class DatabaseStorage implements IStorage {
         lessonId,
         status: 'completed',
         completedAt: new Date(),
-        xpEarned,
+        xpEarned: totalXpEarned,
         mistakesCount: mistakes,
         timeSpentSeconds: timeSpent,
         perfectScore,
       })
       .returning();
     
-    await this.addXp(userId, xpEarned, 'lesson', lessonId);
+    // Only add completion bonus here, other XP already awarded via addStageXp and submitUnitAnswer
+    await this.addXp(userId, completionBonus, 'lesson_complete', lessonId);
     return progress;
   }
 
   async addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<{ awarded: boolean }> {
     // Make this idempotent - check if XP for this stage/lesson was already awarded
-    const source = `stage_${stage}`;
+    const source = `STUDY_${stage.toUpperCase()}`;
     const existing = await db.select()
       .from(schema.xpTransactions)
       .where(and(
@@ -2057,6 +2063,28 @@ export class DatabaseStorage implements IStorage {
     
     await this.addXp(userId, amount, source, lessonId);
     return { awarded: true };
+  }
+
+  async getLessonXpBreakdown(userId: number, lessonId: number): Promise<{ estude: number; medite: number; responda: number }> {
+    // Get XP earned for each stage of the lesson from xp_transactions
+    const transactions = await db.select()
+      .from(schema.xpTransactions)
+      .where(and(
+        eq(schema.xpTransactions.userId, userId),
+        eq(schema.xpTransactions.sourceId, lessonId)
+      ));
+    
+    let estude = 0;
+    let medite = 0;
+    let responda = 0;
+    
+    for (const txn of transactions) {
+      if (txn.source === 'STUDY_ESTUDE') estude += Math.max(0, txn.amount);
+      if (txn.source === 'STUDY_MEDITE') medite += Math.max(0, txn.amount);
+      if (txn.source === 'unit') responda += Math.max(0, txn.amount); // unit responses
+    }
+    
+    return { estude, medite, responda };
   }
 
   async deductXp(userId: number, amount: number, reason: 'hint' | 'wrong_answer'): Promise<{ newTotalXp: number; actualDeduction: number }> {
@@ -2765,9 +2793,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Leaderboard Methods
+  // GENERAL RANKING: All XP (lessons, achievements, daily missions)
+  // XP sources: STUDY_ESTUDE (60), STUDY_MEDITE (60), unit (20 per correct), lesson_complete (50), achievement, daily_mission
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
     // Get all member users with their study profiles (LEFT JOIN to include users without profiles)
     // Include all members (active or not), excluding only admins
+    // totalXp in studyProfiles is the sum of ALL XP from all sources
     const usersWithProfiles = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
@@ -2818,7 +2849,8 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  // Annual leaderboard - XP earned within a specific year (Jan 1 00:00 to Dec 31 23:59)
+  // ANNUAL RANKING: All XP earned within a specific year (Jan 1 00:00 to Dec 31 23:59 America/Sao_Paulo)
+  // Same sources as general ranking but filtered by date
   async getAnnualLeaderboard(year: number, limit: number = 50): Promise<any[]> {
     // Get all member users with their profiles
     const usersWithProfiles = await db.select({
@@ -2866,7 +2898,9 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  // Season leaderboard - XP from lessons within a specific season (revista)
+  // MAGAZINE RANKING (by season/revista): XP from LESSONS ONLY within a specific season/magazine
+  // XP sources for magazine ranking: STUDY_ESTUDE (60), STUDY_MEDITE (60), unit (20 per correct), lesson_complete (50)
+  // Does NOT include achievements or daily missions - only lesson XP
   // Shows ALL registered members (not just those with progress) - same as general ranking
   async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
     // Get ALL member users (non-admin), same as general leaderboard
@@ -2879,6 +2913,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.users.isAdmin, false));
     
     // Get season progress for each member (if exists)
+    // userSeasonProgress.xpEarned contains ONLY lesson XP for this season
     const usersWithProgress = await Promise.all(allMembers.map(async (user) => {
       // Get season progress if exists
       const [progress] = await db.select({

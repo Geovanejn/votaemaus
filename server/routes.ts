@@ -1936,12 +1936,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
-      const { xpEarned, mistakesCount, timeSpentSeconds } = req.body;
+      const { mistakesCount, timeSpentSeconds } = req.body;
 
+      // Get XP breakdown for this lesson (estude, medite, responda earned so far)
+      const xpBreakdown = await storage.getLessonXpBreakdown(req.user.id, lessonId);
+      
       const progress = await storage.completeLesson(
         req.user.id, 
         lessonId, 
-        xpEarned || 0, 
+        xpBreakdown,
         mistakesCount || 0, 
         timeSpentSeconds || 0,
         mistakesCount === 0
@@ -1950,14 +1953,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update season progress - FIXED: Track lesson completion for magazine ranking
       // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
       // NOTE: Question XP is now tracked in the answer endpoint
-      // The xpEarned from frontend is ONLY the lesson completion bonus (50)
+      // NOTE: Completion bonus is tracked in completeLesson function
       try {
         const lesson = await storage.getLessonById(lessonId);
         if (lesson?.seasonId) {
           const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-          // Only add the xpEarned (bonus + responda XP), stage XP already tracked separately
+          // Add ALL XP for the lesson (estude + medite + responda + bonus), since stage XP is tracked separately
+          // we need to add estude + medite here (stage XP) + responda (unit XP) + 50 (bonus)
+          const totalLessonXp = xpBreakdown.estude + xpBreakdown.medite + xpBreakdown.responda + 50;
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: (currentProgress?.xpEarned || 0) + (xpEarned || 0),
+            xpEarned: (currentProgress?.xpEarned || 0) + totalLessonXp,
             lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
           });
         }

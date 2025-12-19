@@ -1795,6 +1795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const stageResult = await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
       
+HEAD
       // FIXED: Only update season progress if XP was actually awarded (avoid duplicates)
       // This prevents XP inflation when users replay sections
       if (stageResult.awarded) {
@@ -1818,6 +1819,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
       await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
 parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
+
+      await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
+ parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
@@ -1916,6 +1920,7 @@ parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine 
         mistakesCount === 0
       );
       
+HEAD
       // Update season progress - Apenas incrementa lições concluídas
       // XP é adicionado no método completeLesson()
       // Update season progress - FIXED: Track lesson completion for magazine ranking
@@ -1934,6 +1939,15 @@ parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine 
           const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
           await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
             lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
+      // Update season progress with XP earned - FIXED: Track XP for magazine ranking
+      try {
+        const lesson = await storage.getLessonById(lessonId);
+        if (lesson?.seasonId) {
+          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
+            xpEarned: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.xpEarned || 0) + (xpEarned || 0),
+            lessonsCompleted: ((await storage.getUserSeasonProgress(req.user.id, lesson.seasonId))?.lessonsCompleted || 0) + 1,
+ parent of 0cf537f (Adjust study timers, improve AI topic extraction, and refine XP tracking)
+
       // Update season progress with XP earned - FIXED: Track XP for magazine ranking
       try {
         const lesson = await storage.getLessonById(lessonId);

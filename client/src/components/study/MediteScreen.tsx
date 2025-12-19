@@ -243,6 +243,7 @@ export function MediteScreen({
         const response = await fetch('/api/study/meditation/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ geminiKey: "1" })
         });
         
@@ -590,14 +591,16 @@ export function MediteScreen({
             </Button>
           </div>
           
-          {/* Complete Button */}
-          <Button
-            onClick={onComplete}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-6"
-            data-testid="button-complete-medite"
-          >
-            Concluir Meditacao
-          </Button>
+          {/* Complete Button - Only show on last screen */}
+          {isLast && (
+            <Button
+              onClick={onComplete}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-6"
+              data-testid="button-complete-medite"
+            >
+              Concluir Meditacao
+            </Button>
+          )}
           
           {/* Share Button */}
           <Button

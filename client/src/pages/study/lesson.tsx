@@ -1015,13 +1015,8 @@ export default function LessonPage() {
     const isPerfect = mistakes === 0;
     
     try {
-      // CRITICAL FIX: Send the total accumulated XP (displayXpRef.current) which includes all
-      // deductions from hints (-5) and wrong answers (-10) in the Responda stage.
-      // This ensures that XP reductions in Responda are properly reflected in rankings.
-      const totalXpToSend = displayXpRef.current + LESSON_COMPLETION_BONUS;
-      
       await completeLessonMutation.mutateAsync({
-        xpEarned: totalXpToSend,
+        xpEarned: LESSON_COMPLETION_BONUS,
         mistakesCount: mistakes,
         timeSpentSeconds: timeSpent
       });

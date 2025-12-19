@@ -56,16 +56,13 @@ function getGeminiApiKey(keyNumber: string = "1"): string {
 }
 
 // Models to try in order of preference (fallback chain)
-// Priority: gemini-3-flash-preview > gemini-2.5-flash > gemini-2.5-flash-lite
+// Using Gemini 2.0 Flash as primary stable model
 const GEMINI_MODELS = [
-  "gemini-3-flash-preview", // Primary: Gemini 3 Flash Preview (newest, most capable)
-  "gemini-2.5-flash",       // Fallback 1: Gemini 2.5 Flash (stable)
-  "gemini-2.5-flash-lite",  // Fallback 2: Gemini 2.5 Flash Lite (faster, lighter)
+  "gemini-2.0-flash",       // Primary: Gemini 2.0 Flash (stable)
+  "gemini-2.5-flash-preview-05-20",  // Fallback 1: Gemini 2.5 Flash preview
+  "gemini-1.5-pro",         // Fallback 2: Gemini 1.5 Pro (more capable)
+  "gemini-1.0-pro",         // Fallback 3: Gemini 1.0 Pro (legacy stable)
 ];
-
-// Special purpose models
-const GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"; // For image generation
-const GEMINI_TTS_MODEL = "gemini-2.5-flash-tts";     // For text-to-speech
 
 // Get Gemini model with specific key and optional model override
 export function getGeminiModel(keyNumber: string = "1", modelName: string = GEMINI_MODELS[0]): GenerativeModel {
@@ -104,8 +101,8 @@ function isQuotaError(error: any): boolean {
 
 // Initialize default Gemini AI (backward compatibility)
 const genAI = new GoogleGenerativeAI(getGeminiApiKey("1"));
-// Using gemini-3-flash-preview as primary model
-const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+// Using gemini-2.0-flash as stable default
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export interface GeneratedLesson {
   title: string;
@@ -1735,98 +1732,3 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
     throw new Error(`Falha ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
   }
 }
-
-// Image generation for meditation sharing backgrounds
-// Uses gemini-2.5-flash-image model for AI-generated contemplative backgrounds
-const MEDITATION_IMAGE_THEMES = [
-  "natureza serena com montanhas e lago ao amanhecer, cores suaves pastel",
-  "paisagem contemplativa com floresta enevoada e raios de sol",
-  "cena cristã pacífica com campo de trigo dourado ao pôr do sol",
-  "paisagem de reflexão espiritual com céu estrelado e silhueta de árvore",
-  "imagem meditativa com jardim tranquilo e flores delicadas",
-  "cenário de paz com mar calmo ao entardecer e nuvens coloridas",
-  "paisagem de oração com campo verde e céu azul sereno",
-  "natureza contemplativa com cachoeira suave e vegetação exuberante",
-  "cena de serenidade com montanhas nevadas ao amanhecer",
-  "paisagem espiritual com oliveiras e luz dourada do sol"
-];
-
-export async function generateMeditationBackgroundImage(
-  keyNumber: string = "1"
-): Promise<{ imageBase64: string; theme: string } | null> {
-  try {
-    const apiKey = getGeminiApiKey(keyNumber);
-    if (!apiKey) {
-      console.log("[AI Image] No API key configured for image generation");
-      return null;
-    }
-
-    const genAIInstance = new GoogleGenerativeAI(apiKey);
-    const imageModel = genAIInstance.getGenerativeModel({ model: GEMINI_IMAGE_MODEL });
-
-    // Select random theme
-    const randomIndex = Math.floor(Math.random() * MEDITATION_IMAGE_THEMES.length);
-    const selectedTheme = MEDITATION_IMAGE_THEMES[randomIndex];
-
-    const prompt = `Gere uma imagem de fundo para compartilhamento de meditação cristã.
-    
-Tema: ${selectedTheme}
-
-Requisitos:
-- Imagem serena e contemplativa
-- Cores suaves e harmoniosas
-- Adequada para texto sobreposto (evite detalhes no centro)
-- Atmosfera de paz e espiritualidade cristã
-- Sem pessoas, sem texto, sem símbolos religiosos explícitos
-- Estilo artístico suave, quase pintado
-- Proporção vertical (9:16) ideal para stories
-
-A imagem deve transmitir paz, tranquilidade e conexão espiritual.`;
-
-    console.log(`[AI Image] Generating meditation background with theme: ${selectedTheme.substring(0, 50)}...`);
-
-    const result = await imageModel.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.8,
-        topK: 40,
-        topP: 0.95,
-      },
-    });
-
-    const response = result.response;
-    
-    // Check if response contains image data
-    const candidates = response.candidates;
-    if (candidates && candidates.length > 0) {
-      const parts = candidates[0].content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData?.data) {
-            console.log("[AI Image] Successfully generated meditation background image");
-            return {
-              imageBase64: part.inlineData.data,
-              theme: selectedTheme
-            };
-          }
-        }
-      }
-    }
-
-    console.log("[AI Image] No image data in response, falling back to gradient");
-    return null;
-  } catch (error: any) {
-    console.error("[AI Image] Error generating meditation background:", error?.message || error);
-    
-    // Log specific error for quota issues
-    if (isQuotaError(error)) {
-      markQuotaExhausted();
-      console.log("[AI Image] Quota exceeded for image generation");
-    }
-    
-    return null;
-  }
-}
-
-// Export image model constant for external use
-export { GEMINI_IMAGE_MODEL, GEMINI_TTS_MODEL };

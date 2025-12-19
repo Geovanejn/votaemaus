@@ -39,7 +39,6 @@ import {
   summarizeText,
   isAIConfigured,
   generateLessonFromPDFExact,
-  generateMeditationBackgroundImage,
   AIProvider
 } from "./ai";
 import multer from "multer";
@@ -1748,45 +1747,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Complete stage error:", error);
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Erro ao completar secao" 
-      });
-    }
-  });
-
-  // Generate AI meditation background image for sharing
-  app.post("/api/study/meditation/generate-image", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
-      }
-      
-      const { geminiKey } = req.body;
-      const selectedKey = geminiKey || "1";
-      
-      console.log(`[API] Generating meditation background image for user ${req.user.id}`);
-      
-      const result = await generateMeditationBackgroundImage(selectedKey);
-      
-      if (!result) {
-        console.log("[API] Image generation returned null, using fallback gradient");
-        return res.json({ 
-          success: false, 
-          message: "Imagem nao gerada (quota ou erro), usando gradiente padrao",
-          fallback: true
-        });
-      }
-      
-      res.json({
-        success: true,
-        imageBase64: result.imageBase64,
-        theme: result.theme,
-        mimeType: "image/png"
-      });
-    } catch (error: any) {
-      console.error("Meditation image generation error:", error);
-      res.status(500).json({ 
-        success: false,
-        message: "Erro ao gerar imagem de meditacao",
-        error: error?.message 
       });
     }
   });

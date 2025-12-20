@@ -11,7 +11,6 @@ interface RewardModalProps {
   streakDays?: number;
   lessonTitle?: string;
   perfectScore?: boolean;
-  bonusXP?: number;
 }
 
 function XPCounter({ amount, delay = 0 }: { amount: number; delay?: number }) {
@@ -96,10 +95,10 @@ export function RewardModal({
   xpEarned,
   streakDays,
   lessonTitle,
-  perfectScore,
-  bonusXP
+  perfectScore
 }: RewardModalProps) {
-  const totalXP = xpEarned + (bonusXP || 0);
+  // XP is authoritative from backend - NO COMPOSITION ON FRONTEND
+  const totalXP = xpEarned;
 
   return (
     <AnimatePresence>
@@ -179,18 +178,6 @@ export function RewardModal({
                 
                 {perfectScore && (
                   <PerfectScoreBadge delay={0.6} />
-                )}
-                
-                {bonusXP && bonusXP > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
-                    className="flex items-center gap-1 text-sm text-[#58CC02] font-semibold"
-                  >
-                    <Zap className="h-4 w-4" />
-                    <span>+{bonusXP} XP bonus</span>
-                  </motion.div>
                 )}
               </div>
 

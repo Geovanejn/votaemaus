@@ -245,7 +245,15 @@ export default function LessonPage() {
   const [stageOverride, setStageOverride] = useState<string | null>(null);
   const [currentRespondaQuestionIndex, setCurrentRespondaQuestionIndex] = useState(0);
   const [initialRespondaQuestionIndex, setInitialRespondaQuestionIndex] = useState(0);
+  const [displayXpBeforeResponda, setDisplayXpBeforeResponda] = useState(0);
   
+  // Capture displayXp when responda stage becomes visible
+  useEffect(() => {
+    if (showRespondaContent) {
+      setDisplayXpBeforeResponda(displayXp);
+    }
+  }, [showRespondaContent, displayXp]);
+
   // Reset stageOverride when URL stage param changes or lesson changes
   // BUT only if we don't have restored progress (which sets its own stageOverride)
   useEffect(() => {
@@ -900,7 +908,7 @@ export default function LessonPage() {
 
   const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
-    const totalXpFromResponda = displayXp;
+    const totalXpFromResponda = displayXp - displayXpBeforeResponda;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {

@@ -3714,10 +3714,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSeasonRanking(seasonId: number, userId: number): Promise<schema.SeasonRanking> {
-    const progress = await this.getUserSeasonProgress(userId, seasonId);
+    // CRITICAL FIX: Use single source of truth (user_lesson_progress.xpEarned + weekly bonuses)
+    // Do NOT use userSeasonProgress.xpEarned which is derived and incomplete
     
-    const xpEarned = progress?.xpEarned || 0;
-    const lessonsCompleted = progress?.lessonsCompleted || 0;
+    // Get XP and lesson count from lessons in this season
+    const [seasonXpResult] = await db.select({
+      seasonXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
+      lessonsCompleted: sql<number>`COALESCE(COUNT(*), 0)`,
+    })
+      .from(schema.userLessonProgress)
+      .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed'),
+        eq(schema.studyLessons.seasonId, seasonId)
+      ));
+    
+    // Get weekly bonuses earned during this season's timeframe
+    const [season] = await db.select({
+      startsAt: schema.seasons.startsAt,
+      endsAt: schema.seasons.endsAt,
+    })
+      .from(schema.seasons)
+      .where(eq(schema.seasons.id, seasonId))
+      .limit(1);
+    
+    let bonusXp = 0;
+    if (season?.startsAt && season?.endsAt) {
+      const [bonusResult] = await db.select({
+        seasonBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
+      })
+        .from(schema.weeklyPracticeBonus)
+        .where(and(
+          eq(schema.weeklyPracticeBonus.userId, userId),
+          sql`${schema.weeklyPracticeBonus.earnedAt} BETWEEN ${season.startsAt} AND ${season.endsAt}`
+        ));
+      bonusXp = Number(bonusResult?.seasonBonus || 0);
+    }
+    
+    const lessonXp = Number(seasonXpResult?.seasonXp || 0);
+    const xpEarned = lessonXp + bonusXp;
+    const lessonsCompleted = Number(seasonXpResult?.lessonsCompleted || 0);
+    
+    // Get other progress data from userSeasonProgress
+    const progress = await this.getUserSeasonProgress(userId, seasonId);
     const correctPercentage = progress?.totalAnswers ? 
       Math.round((progress.correctAnswers / progress.totalAnswers) * 100) : 0;
     const isMastered = progress?.isMastered || false;
@@ -3875,6 +3915,23 @@ export class DatabaseStorage implements IStorage {
         isGoalMet: true,
         xpBonus,
       });
+      
+      // CRITICAL FIX: Insert into weeklyPracticeBonus (immutable, single source of truth)
+      // Use ON CONFLICT to prevent duplicates - this is INSERT-ONLY
+      await db.insert(schema.weeklyPracticeBonus)
+        .values({
+          userId,
+          weekKey,
+          bonusXp: xpBonus,
+        })
+        .onConflictDoNothing()
+        .catch(err => {
+          if (err.message?.includes('unique')) {
+            console.log(`Weekly bonus already awarded for user ${userId}, week ${weekKey}`);
+          } else {
+            throw err;
+          }
+        });
       
       // FIXED: Use addXp to record the transaction for accurate daily XP calculation
       await this.addXp(userId, xpBonus, 'weekly_goal_bonus', undefined);

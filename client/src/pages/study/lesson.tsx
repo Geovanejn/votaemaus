@@ -1060,8 +1060,9 @@ export default function LessonPage() {
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
     const isPerfect = mistakes === 0;
-    // Display total XP earned in lesson: sections (estude 60 + medite 60 + responda 20*perguntas) + completion bonus 50
-    const finalXp = displayXp + LESSON_COMPLETION_BONUS;
+    // Use the actual XP value from server response. If not available yet, calculate from display XP
+    // The server value is authoritative and always correct
+    const finalXp = finalXpFromServer ?? (displayXp + LESSON_COMPLETION_BONUS);
     
     const handleStreakAnimationComplete = () => {
       if (crystalAnimationData) {

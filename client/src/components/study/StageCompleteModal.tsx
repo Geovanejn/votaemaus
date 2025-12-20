@@ -32,8 +32,8 @@ const stageConfig = {
   },
   responda: {
     icon: CheckCircle,
-    label: "Perguntas Concluídas!",
-    description: "Você completou todas as perguntas",
+    label: "Lição Concluída!",
+    description: "Você completou esta lição",
     bgGradient: "from-[#FF9600] to-[#E68600]",
     shadowColor: "#CC7600"
   }

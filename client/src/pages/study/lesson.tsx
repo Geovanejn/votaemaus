@@ -915,7 +915,6 @@ export default function LessonPage() {
 
   const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
-    const totalXpFromResponda = displayXp - displayXpBeforeResponda;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {
@@ -926,8 +925,9 @@ export default function LessonPage() {
       }
     }
     
+    // Use displayXp which is the total accumulated XP from all stages (estude + medite + responda)
     setStageCompleteData({
-      xp: totalXpFromResponda,
+      xp: displayXp,
       stageType: "responda",
       nextStage: null,
       nextIndex: allUnits.length

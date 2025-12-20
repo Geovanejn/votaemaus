@@ -1265,17 +1265,32 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (result) {
-      // Add the mission XP to user's total
-      await this.addXp(userId, xp, 'daily_mission', missionId);
-      
       // Check if all 5 daily missions are now completed for bonus XP
       const allMissions = await this.getUserDailyMissions(userId, date);
       const completedCount = allMissions.filter((m: any) => m.completed).length;
+      let totalMissionXp = xp;
+      let bonusXpAwarded = 0;
       
       if (completedCount === 5) {
-        // Give 25XP bonus for completing all 5 daily missions
-        await this.addXp(userId, 25, 'daily_missions_bonus');
+        bonusXpAwarded = 25;
+        totalMissionXp = xp + bonusXpAwarded;
         console.log(`[Missions] User ${userId} completed all 5 daily missions! Bonus 25XP awarded.`);
+      }
+      
+      // CRITICAL FIX: Insert into dailyMissionXp (immutable, single source of truth for leaderboards)
+      await db.insert(schema.dailyMissionXp)
+        .values({
+          userId,
+          missionDate: date,
+          missionXp: xp,
+          bonusXp: bonusXpAwarded,
+        })
+        .onConflictDoNothing();
+      
+      // Also record in xpTransactions for audit log
+      await this.addXp(userId, xp, 'daily_mission', missionId);
+      if (bonusXpAwarded > 0) {
+        await this.addXp(userId, bonusXpAwarded, 'daily_missions_bonus');
       }
     }
     
@@ -2591,7 +2606,15 @@ export class DatabaseStorage implements IStorage {
 
       if (achievement.xpReward > 0) {
         await this.addCrystals(userId, Math.floor(achievement.xpReward / 25), "achievement", `Conquista: ${achievement.name}`);
-        // FIXED: Use addXp to record the transaction for accurate daily XP calculation
+        // CRITICAL FIX: Insert into achievementXp (immutable, single source of truth for leaderboards)
+        await db.insert(schema.achievementXp)
+          .values({
+            userId,
+            achievementId,
+            xpReward: achievement.xpReward,
+          })
+          .onConflictDoNothing();
+        // Also record in xpTransactions for audit log
         await this.addXp(userId, achievement.xpReward, 'achievement', achievementId);
       }
 
@@ -2754,6 +2777,20 @@ export class DatabaseStorage implements IStorage {
         .from(schema.weeklyPracticeBonus)
         .where(eq(schema.weeklyPracticeBonus.userId, user.userId));
       
+      // Sum ALL immutable achievement XP
+      const [achievementResult] = await db.select({
+        totalAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
+      })
+        .from(schema.achievementXp)
+        .where(eq(schema.achievementXp.userId, user.userId));
+      
+      // Sum ALL immutable daily mission XP (mission XP + bonus XP)
+      const [dailyMissionResult] = await db.select({
+        totalDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
+      })
+        .from(schema.dailyMissionXp)
+        .where(eq(schema.dailyMissionXp.userId, user.userId));
+      
       // Get profile for streak and level
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
@@ -2765,7 +2802,9 @@ export class DatabaseStorage implements IStorage {
       
       const totalLessonXp = Number(lessonXpResult?.totalXp || 0);
       const totalBonusXp = Number(bonusResult?.totalBonus || 0);
-      const totalXp = totalLessonXp + totalBonusXp;
+      const totalAchievementXp = Number(achievementResult?.totalAchievementXp || 0);
+      const totalDailyMissionXp = Number(dailyMissionResult?.totalDailyMissionXp || 0);
+      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp;
       
       return {
         ...user,
@@ -2826,6 +2865,26 @@ export class DatabaseStorage implements IStorage {
           sql`EXTRACT(YEAR FROM ${schema.weeklyPracticeBonus.earnedAt}) = ${year}`
         ));
       
+      // Get achievement XP earned during that year
+      const [achievementResult] = await db.select({
+        yearlyAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
+      })
+        .from(schema.achievementXp)
+        .where(and(
+          eq(schema.achievementXp.userId, user.userId),
+          sql`EXTRACT(YEAR FROM ${schema.achievementXp.earnedAt}) = ${year}`
+        ));
+      
+      // Get daily mission XP earned during that year
+      const [dailyMissionResult] = await db.select({
+        yearlyDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
+      })
+        .from(schema.dailyMissionXp)
+        .where(and(
+          eq(schema.dailyMissionXp.userId, user.userId),
+          sql`EXTRACT(YEAR FROM ${schema.dailyMissionXp.earnedAt}) = ${year}`
+        ));
+      
       // Get profile for streak and level
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
@@ -2837,7 +2896,9 @@ export class DatabaseStorage implements IStorage {
       
       const totalLessonXp = Number(yearlyXpResult?.yearlyXp || 0);
       const totalBonusXp = Number(bonusResult?.yearlyBonus || 0);
-      const totalXp = totalLessonXp + totalBonusXp;
+      const totalAchievementXp = Number(achievementResult?.yearlyAchievementXp || 0);
+      const totalDailyMissionXp = Number(dailyMissionResult?.yearlyDailyMissionXp || 0);
+      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp;
       
       return {
         ...user,

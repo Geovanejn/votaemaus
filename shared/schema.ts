@@ -973,6 +973,49 @@ export const insertWeeklyPracticeBonusSchema = createInsertSchema(weeklyPractice
 export type InsertWeeklyPracticeBonus = z.infer<typeof insertWeeklyPracticeBonusSchema>;
 export type WeeklyPracticeBonus = typeof weeklyPracticeBonus.$inferSelect;
 
+// ==================== XP DE CONQUISTAS (IMUTAVEL - SINGLE SOURCE OF TRUTH) ====================
+// This table stores IMMUTABLE achievement XP rewards
+// Used for global and annual leaderboard calculations - never recalculated or modified
+export const achievementXp = pgTable("achievement_xp", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievements.id),
+  xpReward: integer("xp_reward").notNull(),
+  earnedAt: timestamp("earned_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserAchievement: unique().on(table.userId, table.achievementId),
+}));
+
+export const insertAchievementXpSchema = createInsertSchema(achievementXp).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export type InsertAchievementXp = z.infer<typeof insertAchievementXpSchema>;
+export type AchievementXp = typeof achievementXp.$inferSelect;
+
+// ==================== XP DE MISSÕES DIÁRIAS (IMUTAVEL - SINGLE SOURCE OF TRUTH) ====================
+// This table stores IMMUTABLE daily mission XP rewards (10 XP per mission + 25 XP bonus for all 5)
+// Used for global and annual leaderboard calculations - never recalculated or modified
+export const dailyMissionXp = pgTable("daily_mission_xp", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  missionDate: text("mission_date").notNull(),
+  missionXp: integer("mission_xp").notNull(),
+  bonusXp: integer("bonus_xp").notNull().default(0),
+  earnedAt: timestamp("earned_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserMissionDate: unique().on(table.userId, table.missionDate),
+}));
+
+export const insertDailyMissionXpSchema = createInsertSchema(dailyMissionXp).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export type InsertDailyMissionXp = z.infer<typeof insertDailyMissionXpSchema>;
+export type DailyMissionXp = typeof dailyMissionXp.$inferSelect;
+
 // ==================== LEITURA DE DEVOCIONAIS (CONFIRMACAO) ====================
 
 export const devotionalReadings = pgTable("devotional_readings", {

@@ -52,7 +52,7 @@ interface RespondaScreenProps {
   initialXp?: number;
   initialQuestionIndex?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
-  onComplete: () => void;
+  onComplete: (correctCount: number, wrongCount: number) => void;
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
@@ -387,7 +387,7 @@ export function RespondaScreen({
   const goNext = () => {
     clearAutoAdvanceTimeout();
     if (currentIndex === totalQuestions - 1) {
-      onComplete();
+      onComplete(correctCount, wrongCount);
     } else {
       setCurrentIndex(prev => prev + 1);
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });

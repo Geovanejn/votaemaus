@@ -2831,6 +2831,7 @@ export class DatabaseStorage implements IStorage {
 
   // Season leaderboard - XP from lessons within a specific season (revista)
   // Shows ALL registered members (not just those with progress) - same as general ranking
+  // FIXED: Use user_lesson_progress.xpEarned as single source of truth (not userSeasonProgress which is derived/mutable)
   async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
     // Get ALL member users (non-admin), same as general leaderboard
     const allMembers = await db.select({
@@ -2841,19 +2842,22 @@ export class DatabaseStorage implements IStorage {
       .from(schema.users)
       .where(eq(schema.users.isAdmin, false));
     
-    // Get season progress for each member (if exists)
+    // Calculate XP earned in this season for each member
+    // Use user_lesson_progress.xpEarned (consolidated XP) with JOIN to lessons filtered by season
+    // This ensures XP includes all factors: correct answers, deductions, bonuses, etc.
     const usersWithProgress = await Promise.all(allMembers.map(async (user) => {
-      // Get season progress if exists
-      const [progress] = await db.select({
-        xpEarned: schema.userSeasonProgress.xpEarned,
-        lessonsCompleted: schema.userSeasonProgress.lessonsCompleted,
+      // Get XP and lesson count from lessons in this season
+      const [seasonXpResult] = await db.select({
+        seasonXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
+        lessonsCompleted: sql<number>`COALESCE(COUNT(*), 0)`,
       })
-        .from(schema.userSeasonProgress)
+        .from(schema.userLessonProgress)
+        .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
         .where(and(
-          eq(schema.userSeasonProgress.userId, user.userId),
-          eq(schema.userSeasonProgress.seasonId, seasonId)
-        ))
-        .limit(1);
+          eq(schema.userLessonProgress.userId, user.userId),
+          eq(schema.userLessonProgress.status, 'completed'),
+          eq(schema.studyLessons.seasonId, seasonId)
+        ));
       
       // Get profile for streak and level
       const [profile] = await db.select({
@@ -2868,8 +2872,8 @@ export class DatabaseStorage implements IStorage {
         userId: user.userId,
         fullName: user.fullName,
         photoUrl: user.photoUrl,
-        totalXp: progress?.xpEarned || 0,
-        lessonsCompleted: progress?.lessonsCompleted || 0,
+        totalXp: Number(seasonXpResult?.seasonXp || 0),
+        lessonsCompleted: Number(seasonXpResult?.lessonsCompleted || 0),
         currentStreak: profile?.currentStreak || 0,
         currentLevel: profile?.currentLevel || 1,
       };

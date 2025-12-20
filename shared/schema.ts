@@ -952,6 +952,27 @@ export const insertWeeklyGoalProgressSchema = createInsertSchema(weeklyGoalProgr
 export type InsertWeeklyGoalProgress = z.infer<typeof insertWeeklyGoalProgressSchema>;
 export type WeeklyGoalProgress = typeof weeklyGoalProgress.$inferSelect;
 
+// ==================== BONUS PRATICO SEMANAL (IMUTAVEL - SINGLE SOURCE OF TRUTH) ====================
+// This table stores IMMUTABLE weekly bonuses (50 XP per week when goal is met)
+// Used for all leaderboard calculations - never recalculated or modified
+export const weeklyPracticeBonus = pgTable("weekly_practice_bonus", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  weekKey: text("week_key").notNull(),
+  bonusXp: integer("bonus_xp").notNull().default(50),
+  earnedAt: timestamp("earned_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserWeekBonus: unique().on(table.userId, table.weekKey),
+}));
+
+export const insertWeeklyPracticeBonusSchema = createInsertSchema(weeklyPracticeBonus).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export type InsertWeeklyPracticeBonus = z.infer<typeof insertWeeklyPracticeBonusSchema>;
+export type WeeklyPracticeBonus = typeof weeklyPracticeBonus.$inferSelect;
+
 // ==================== LEITURA DE DEVOCIONAIS (CONFIRMACAO) ====================
 
 export const devotionalReadings = pgTable("devotional_readings", {

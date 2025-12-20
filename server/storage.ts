@@ -2724,78 +2724,87 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Leaderboard Methods
+  // REFACTORED: Global leaderboard - SINGLE SOURCE OF TRUTH using user_lesson_progress.xpEarned + immutable weekly bonuses
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Get all member users with their study profiles (LEFT JOIN to include users without profiles)
-    // Include all members (active or not), excluding only admins
-    const usersWithProfiles = await db.select({
+    // Get all non-admin users
+    const allUsers = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
       photoUrl: schema.users.photoUrl,
-      totalXp: schema.studyProfiles.totalXp,
-      currentStreak: schema.studyProfiles.currentStreak,
-      currentLevel: schema.studyProfiles.currentLevel,
     })
       .from(schema.users)
-      .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
-      .where(eq(schema.users.isAdmin, false))
-      .limit(limit);
+      .where(eq(schema.users.isAdmin, false));
     
-    // Calculate daily XP for each user (XP earned today from 00:00 to 23:59 in America/Sao_Paulo timezone)
-    // Use xpTransactions table for accurate calculation including XP from units, lessons, achievements, etc.
-    // FIXED: Convert createdAt to São Paulo timezone before comparing to ensure accurate daily calculation
-    // The comparison uses DATE() on both sides converted to São Paulo timezone for correct date matching
-    const usersWithDailyXp = await Promise.all(usersWithProfiles.map(async (user) => {
-      // Sum ALL XP transactions from today (units, lessons, achievements, bonuses)
-      // Convert createdAt to São Paulo timezone and compare DATE part only
-      const [dailyXpResult] = await db.select({
-        dailyXp: sql<number>`COALESCE(SUM(${schema.xpTransactions.amount}), 0)`
+    // Calculate total XP for each user: lesson XP + weekly bonuses (single source of truth)
+    const usersWithXp = await Promise.all(allUsers.map(async (user) => {
+      // Sum ALL completed lesson XP (single source of truth)
+      const [lessonXpResult] = await db.select({
+        totalXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
       })
-        .from(schema.xpTransactions)
+        .from(schema.userLessonProgress)
         .where(and(
-          eq(schema.xpTransactions.userId, user.userId),
-          sql`DATE(${schema.xpTransactions.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE(NOW() AT TIME ZONE 'America/Sao_Paulo')`
+          eq(schema.userLessonProgress.userId, user.userId),
+          eq(schema.userLessonProgress.status, 'completed')
         ));
+      
+      // Sum ALL immutable weekly bonuses
+      const [bonusResult] = await db.select({
+        totalBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
+      })
+        .from(schema.weeklyPracticeBonus)
+        .where(eq(schema.weeklyPracticeBonus.userId, user.userId));
+      
+      // Get profile for streak and level
+      const [profile] = await db.select({
+        currentStreak: schema.studyProfiles.currentStreak,
+        currentLevel: schema.studyProfiles.currentLevel,
+      })
+        .from(schema.studyProfiles)
+        .where(eq(schema.studyProfiles.userId, user.userId))
+        .limit(1);
+      
+      const totalLessonXp = Number(lessonXpResult?.totalXp || 0);
+      const totalBonusXp = Number(bonusResult?.totalBonus || 0);
+      const totalXp = totalLessonXp + totalBonusXp;
       
       return {
         ...user,
-        dailyXp: Number(dailyXpResult?.dailyXp || 0)
+        totalXp,
+        currentStreak: profile?.currentStreak || 0,
+        currentLevel: profile?.currentLevel || 1,
       };
     }));
     
-    // Sort by XP (treating null as 0) and assign ranks
-    const sortedUsers = usersWithDailyXp.sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
+    // Sort by total XP and assign ranks
+    const sortedUsers = usersWithXp
+      .sort((a, b) => b.totalXp - a.totalXp)
+      .slice(0, limit);
     
     return sortedUsers.map((p, index) => ({
       rank: index + 1,
       userId: p.userId,
       username: p.fullName || 'Unknown',
       photoUrl: p.photoUrl,
-      totalXp: p.totalXp || 0,
-      level: p.currentLevel || 1,
-      currentStreak: p.currentStreak || 0,
-      dailyXp: p.dailyXp || 0,
+      totalXp: p.totalXp,
+      level: p.currentLevel,
+      currentStreak: p.currentStreak,
     }));
   }
 
-  // Annual leaderboard - XP earned within a specific year (Jan 1 00:00 to Dec 31 23:59)
-  // FIXED: Use user_lesson_progress.xpEarned as single source of truth (not xpTransactions which includes deductions)
+  // Annual leaderboard - REFACTORED: XP from lessons in specific year + immutable weekly bonuses (single source)
   async getAnnualLeaderboard(year: number, limit: number = 50): Promise<any[]> {
-    // Get all member users with their profiles
-    const usersWithProfiles = await db.select({
+    // Get all non-admin users
+    const allUsers = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
       photoUrl: schema.users.photoUrl,
-      currentStreak: schema.studyProfiles.currentStreak,
-      currentLevel: schema.studyProfiles.currentLevel,
     })
       .from(schema.users)
-      .leftJoin(schema.studyProfiles, eq(schema.users.id, schema.studyProfiles.userId))
       .where(eq(schema.users.isAdmin, false));
     
-    // Calculate XP earned during the specified year for each user
-    // Use user_lesson_progress.xpEarned (consolidated XP) with JOIN to lessons filtered by year
-    // This ensures XP includes all factors: correct answers, deductions, bonuses, etc.
-    const usersWithYearlyXp = await Promise.all(usersWithProfiles.map(async (user) => {
+    // Calculate XP earned during the specified year for each user: lessons + weekly bonuses
+    const usersWithYearlyXp = await Promise.all(allUsers.map(async (user) => {
+      // Get lesson XP from that year only
       const [yearlyXpResult] = await db.select({
         yearlyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
       })
@@ -2807,13 +2816,38 @@ export class DatabaseStorage implements IStorage {
           sql`EXTRACT(YEAR FROM ${schema.studyLessons.createdAt}) = ${year}`
         ));
       
+      // Get weekly bonuses earned during that year
+      const [bonusResult] = await db.select({
+        yearlyBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
+      })
+        .from(schema.weeklyPracticeBonus)
+        .where(and(
+          eq(schema.weeklyPracticeBonus.userId, user.userId),
+          sql`EXTRACT(YEAR FROM ${schema.weeklyPracticeBonus.earnedAt}) = ${year}`
+        ));
+      
+      // Get profile for streak and level
+      const [profile] = await db.select({
+        currentStreak: schema.studyProfiles.currentStreak,
+        currentLevel: schema.studyProfiles.currentLevel,
+      })
+        .from(schema.studyProfiles)
+        .where(eq(schema.studyProfiles.userId, user.userId))
+        .limit(1);
+      
+      const totalLessonXp = Number(yearlyXpResult?.yearlyXp || 0);
+      const totalBonusXp = Number(bonusResult?.yearlyBonus || 0);
+      const totalXp = totalLessonXp + totalBonusXp;
+      
       return {
         ...user,
-        totalXp: Number(yearlyXpResult?.yearlyXp || 0)
+        totalXp,
+        currentStreak: profile?.currentStreak || 0,
+        currentLevel: profile?.currentLevel || 1,
       };
     }));
     
-    // Sort by XP (include users with 0 XP to show all members)
+    // Sort by XP and limit
     const sortedUsers = usersWithYearlyXp
       .sort((a, b) => b.totalXp - a.totalXp)
       .slice(0, limit);
@@ -2824,16 +2858,14 @@ export class DatabaseStorage implements IStorage {
       username: p.fullName || 'Unknown',
       photoUrl: p.photoUrl,
       totalXp: p.totalXp,
-      level: p.currentLevel || 1,
-      currentStreak: p.currentStreak || 0,
+      level: p.currentLevel,
+      currentStreak: p.currentStreak,
     }));
   }
 
-  // Season leaderboard - XP from lessons within a specific season (revista)
-  // Shows ALL registered members (not just those with progress) - same as general ranking
-  // FIXED: Use user_lesson_progress.xpEarned as single source of truth (not userSeasonProgress which is derived/mutable)
+  // Season leaderboard - REFACTORED: XP from lessons in season + weekly bonuses earned during season (single source)
   async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
-    // Get ALL member users (non-admin), same as general leaderboard
+    // Get ALL non-admin users
     const allMembers = await db.select({
       userId: schema.users.id,
       fullName: schema.users.fullName,
@@ -2842,9 +2874,7 @@ export class DatabaseStorage implements IStorage {
       .from(schema.users)
       .where(eq(schema.users.isAdmin, false));
     
-    // Calculate XP earned in this season for each member
-    // Use user_lesson_progress.xpEarned (consolidated XP) with JOIN to lessons filtered by season
-    // This ensures XP includes all factors: correct answers, deductions, bonuses, etc.
+    // Calculate XP earned in this season for each member: lessons + weekly bonuses
     const usersWithProgress = await Promise.all(allMembers.map(async (user) => {
       // Get XP and lesson count from lessons in this season
       const [seasonXpResult] = await db.select({
@@ -2859,6 +2889,28 @@ export class DatabaseStorage implements IStorage {
           eq(schema.studyLessons.seasonId, seasonId)
         ));
       
+      // Get weekly bonuses earned during this season's timeframe
+      const [season] = await db.select({
+        startsAt: schema.seasons.startsAt,
+        endsAt: schema.seasons.endsAt,
+      })
+        .from(schema.seasons)
+        .where(eq(schema.seasons.id, seasonId))
+        .limit(1);
+      
+      let bonusXp = 0;
+      if (season?.startsAt && season?.endsAt) {
+        const [bonusResult] = await db.select({
+          seasonBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
+        })
+          .from(schema.weeklyPracticeBonus)
+          .where(and(
+            eq(schema.weeklyPracticeBonus.userId, user.userId),
+            sql`${schema.weeklyPracticeBonus.earnedAt} BETWEEN ${season.startsAt} AND ${season.endsAt}`
+          ));
+        bonusXp = Number(bonusResult?.seasonBonus || 0);
+      }
+      
       // Get profile for streak and level
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
@@ -2868,19 +2920,24 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.studyProfiles.userId, user.userId))
         .limit(1);
       
+      const lessonXp = Number(seasonXpResult?.seasonXp || 0);
+      const totalXp = lessonXp + bonusXp;
+      
       return {
         userId: user.userId,
         fullName: user.fullName,
         photoUrl: user.photoUrl,
-        totalXp: Number(seasonXpResult?.seasonXp || 0),
+        totalXp,
         lessonsCompleted: Number(seasonXpResult?.lessonsCompleted || 0),
         currentStreak: profile?.currentStreak || 0,
         currentLevel: profile?.currentLevel || 1,
       };
     }));
     
-    // Sort by XP (include users with 0 XP to show all members)
-    const sortedUsers = usersWithProgress.sort((a, b) => b.totalXp - a.totalXp).slice(0, limit);
+    // Sort by XP and limit
+    const sortedUsers = usersWithProgress
+      .sort((a, b) => b.totalXp - a.totalXp)
+      .slice(0, limit);
     
     return sortedUsers.map((p, index) => ({
       rank: index + 1,

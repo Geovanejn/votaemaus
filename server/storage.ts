@@ -2778,6 +2778,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Annual leaderboard - XP earned within a specific year (Jan 1 00:00 to Dec 31 23:59)
+  // FIXED: Use user_lesson_progress.xpEarned as single source of truth (not xpTransactions which includes deductions)
   async getAnnualLeaderboard(year: number, limit: number = 50): Promise<any[]> {
     // Get all member users with their profiles
     const usersWithProfiles = await db.select({
@@ -2792,15 +2793,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.users.isAdmin, false));
     
     // Calculate XP earned during the specified year for each user
+    // Use user_lesson_progress.xpEarned (consolidated XP) with JOIN to lessons filtered by year
+    // This ensures XP includes all factors: correct answers, deductions, bonuses, etc.
     const usersWithYearlyXp = await Promise.all(usersWithProfiles.map(async (user) => {
       const [yearlyXpResult] = await db.select({
-        yearlyXp: sql<number>`COALESCE(SUM(${schema.xpTransactions.amount}), 0)`
+        yearlyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
       })
-        .from(schema.xpTransactions)
+        .from(schema.userLessonProgress)
+        .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
         .where(and(
-          eq(schema.xpTransactions.userId, user.userId),
-          sql`${schema.xpTransactions.createdAt} >= '${sql.raw(year.toString())}-01-01 00:00:00'::timestamp AT TIME ZONE 'America/Sao_Paulo'`,
-          sql`${schema.xpTransactions.createdAt} < '${sql.raw((year + 1).toString())}-01-01 00:00:00'::timestamp AT TIME ZONE 'America/Sao_Paulo'`
+          eq(schema.userLessonProgress.userId, user.userId),
+          eq(schema.userLessonProgress.status, 'completed'),
+          sql`EXTRACT(YEAR FROM ${schema.studyLessons.createdAt}) = ${year}`
         ));
       
       return {

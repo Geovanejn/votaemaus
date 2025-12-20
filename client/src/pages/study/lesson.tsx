@@ -1024,7 +1024,7 @@ export default function LessonPage() {
     
     try {
       await completeLessonMutation.mutateAsync({
-        xpEarned: LESSON_COMPLETION_BONUS,
+        xpEarned: displayXp + LESSON_COMPLETION_BONUS,
         mistakesCount: mistakes,
         timeSpentSeconds: timeSpent
       });

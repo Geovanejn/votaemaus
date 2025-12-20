@@ -323,7 +323,7 @@ export function RespondaScreen({
     };
   }, [currentIndex]);
   
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     let isCorrect = false;
     let userAnswer: any = null;
     
@@ -366,7 +366,7 @@ export function RespondaScreen({
       setWrongCount(prev => prev + 1);
     }
     
-    onAnswer(currentIndex, userAnswer, isCorrect);
+    await onAnswer(currentIndex, userAnswer, isCorrect);
     
     // Auto-advance to next question after showing result for 0.5 seconds
     setTimeout(() => {

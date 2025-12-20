@@ -247,13 +247,6 @@ export default function LessonPage() {
   const [initialRespondaQuestionIndex, setInitialRespondaQuestionIndex] = useState(0);
   const [displayXpBeforeResponda, setDisplayXpBeforeResponda] = useState(0);
   
-  // Capture displayXp when responda stage becomes visible
-  useEffect(() => {
-    if (showRespondaContent) {
-      setDisplayXpBeforeResponda(displayXp);
-    }
-  }, [showRespondaContent, displayXp]);
-
   // Reset stageOverride when URL stage param changes or lesson changes
   // BUT only if we don't have restored progress (which sets its own stageOverride)
   useEffect(() => {
@@ -833,6 +826,14 @@ export default function LessonPage() {
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
   const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
+
+  // Capture displayXp when responda stage becomes visible
+  // MOVED HERE: This useEffect must come after showRespondaContent is defined (above)
+  useEffect(() => {
+    if (showRespondaContent) {
+      setDisplayXpBeforeResponda(displayXp);
+    }
+  }, [showRespondaContent, displayXp]);
   
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (

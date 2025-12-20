@@ -828,6 +828,12 @@ export default function LessonPage() {
     };
   });
   
+  // FIXED: Move derived content flags here (before useEffect at line 252 that uses them)
+  // These must be defined after their dependencies (studyUnits, mediteUnits, respondaUnits)
+  const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
+  const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
+  const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
+  
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="empty-stage">
@@ -1204,10 +1210,6 @@ export default function LessonPage() {
     }
   };
 
-  const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
-  const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
-  const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
-  
   const handleRespondaAnswer = async (questionIndex: number, answer: any, _isCorrect: boolean) => {
     const unit = respondaUnits[questionIndex];
     if (!unit) return;

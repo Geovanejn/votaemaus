@@ -498,6 +498,14 @@ export default function LessonPage() {
     }
   }, [isCompleted, lessonId, user?.id]);
 
+  // Capture displayXp when entering responda stage
+  const respondaStageOverride = stageOverride ?? stageParam;
+  useEffect(() => {
+    if (respondaStageOverride === 'responda' && displayXpBeforeResponda === 0) {
+      setDisplayXpBeforeResponda(displayXp);
+    }
+  }, [respondaStageOverride, displayXp, displayXpBeforeResponda]);
+
   // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
   // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
   // Valores fixos: Estude = 60 XP, Medite = 60 XP
@@ -826,13 +834,6 @@ export default function LessonPage() {
   const showStudyContent = isStudyStage && isTextType && studyUnits.length > 0;
   const showMediteContent = isMediteStage && isMediteType && mediteUnits.length > 0;
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
-
-  // Capture displayXp when responda stage becomes visible
-  useEffect(() => {
-    if (showRespondaContent) {
-      setDisplayXpBeforeResponda(displayXp);
-    }
-  }, [showRespondaContent, displayXp]);
   
   if (targetStage && filteredUnits !== null && filteredUnits.length === 0) {
     return (

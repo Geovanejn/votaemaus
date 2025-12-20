@@ -317,6 +317,22 @@ function EmptyState() {
   );
 }
 
+interface LeaderboardResponse {
+  periodType: string;
+  periodKey: string;
+  entries: Array<{
+    rank: number;
+    userId: number;
+    username: string;
+    photoUrl: string | null;
+    totalXp: number;
+    level: number;
+    currentStreak: number;
+    dailyXp?: number;
+    isCurrentUser?: boolean;
+  }>;
+}
+
 export default function StudyHomePage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
@@ -328,6 +344,29 @@ export default function StudyHomePage() {
     queryKey: ['/api/study/profile'],
     enabled: isAuthenticated,
   });
+
+  const { data: leaderboardData } = useQuery<LeaderboardResponse>({
+    queryKey: ["/api/study/leaderboard", { period: "weekly" }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/leaderboard?period=weekly", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Erro ao carregar XP");
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Get correct XP from leaderboard
+  const currentUserEntry = leaderboardData?.entries?.find((e) => e.userId === user?.id);
+  const leaderboardXp = currentUserEntry?.totalXp || 0;
+  
+  // Create profile object with correct XP from leaderboard
+  const displayProfile = profile ? {
+    ...profile,
+    totalXp: leaderboardXp || profile.totalXp
+  } : undefined;
 
   const { data: weeks, isLoading: weeksLoading, error: weeksError, refetch: refetchWeeks } = useQuery<StudyWeek[]>({
     queryKey: ['/api/study/weeks'],
@@ -393,7 +432,7 @@ export default function StudyHomePage() {
     return <LoadingState />;
   }
 
-  if (hasError || !profile) {
+  if (hasError || !profile || !displayProfile) {
     return <ErrorState onRetry={handleRetry} />;
   }
 
@@ -533,7 +572,7 @@ export default function StudyHomePage() {
       <UserProfileHeader 
         userName={user.fullName} 
         userPhoto={user.photoUrl}
-        profile={profile}
+        profile={displayProfile}
         missionsCompleted={missionsCompleted}
         missionsTotal={missionsTotal}
       />

@@ -112,12 +112,41 @@ function LoadingState() {
   );
 }
 
+interface LeaderboardResponse {
+  periodType: string;
+  periodKey: string;
+  entries: Array<{
+    rank: number;
+    userId: number;
+    username: string;
+    photoUrl: string | null;
+    totalXp: number;
+    level: number;
+    currentStreak: number;
+    dailyXp?: number;
+    isCurrentUser?: boolean;
+  }>;
+}
+
 export default function ProfilePage() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
 
   const { data: profile, isLoading: profileLoading } = useQuery<StudyProfile>({
     queryKey: ['/api/study/profile'],
+    enabled: isAuthenticated,
+  });
+
+  const { data: leaderboardData } = useQuery<LeaderboardResponse>({
+    queryKey: ["/api/study/leaderboard", { period: "weekly" }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/leaderboard?period=weekly", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Erro ao carregar XP");
+      return res.json();
+    },
     enabled: isAuthenticated,
   });
 
@@ -144,11 +173,16 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
+  // Get correct XP from leaderboard
+  const currentUserEntry = leaderboardData?.entries?.find((e) => e.userId === user?.id);
+  const leaderboardXp = currentUserEntry?.totalXp || 0;
+  
   if (profileLoading || achievementsLoading) {
     return <LoadingState />;
   }
 
-  const currentXp = profile?.totalXp || 0;
+  // Use leaderboard XP for stats, profile XP for other data
+  const currentXp = leaderboardXp || profile?.totalXp || 0;
   const currentLevel = profile?.currentLevel || 1;
   const xpForCurrentLevel = (currentLevel - 1) * 500;
   const xpForNextLevel = currentLevel * 500;

@@ -898,14 +898,9 @@ export default function LessonPage() {
     }
   };
 
-  const handleRespondaComplete = async (correctCount: number = 0, wrongCount: number = 0) => {
+  const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp;
-    const totalQuestionsInResponda = respondaQuestions.length;
-    
-    // Calculate mistakes from wrong count passed from RespondaScreen
-    const mistakesFromResponda = wrongCount || (totalQuestionsInResponda - correctCount);
-    setMistakes(mistakesFromResponda);
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {

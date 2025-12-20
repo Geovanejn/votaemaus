@@ -828,7 +828,6 @@ export default function LessonPage() {
   const showRespondaContent = isRespondaStage && isQuestionType && respondaUnits.length > 0;
 
   // Capture displayXp when responda stage becomes visible
-  // MOVED HERE: This useEffect must come after showRespondaContent is defined (above)
   useEffect(() => {
     if (showRespondaContent) {
       setDisplayXpBeforeResponda(displayXp);

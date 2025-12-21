@@ -30,7 +30,27 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: GOOGLE_GEMINI_API_KEY
+      - key: OPENAI_API_KEY_1
+        sync: false
+      - key: OPENAI_API_KEY_2
+        sync: false
+      - key: OPENAI_API_KEY_3
+        sync: false
+      - key: OPENAI_API_KEY_4
+        sync: false
+      - key: OPENAI_API_KEY_5
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY_1
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY_3
+        sync: false
+      - key: GEMINI_API_KEY_4
+        sync: false
+      - key: GEMINI_API_KEY_5
         sync: false
       - key: GOOGLE_CALENDAR_CLIENT_ID
         sync: false

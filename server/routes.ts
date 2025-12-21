@@ -118,27 +118,28 @@ async function logAuditAction(
     console.error("[Audit Log] Failed to create log:", error);
   }
 }
-import { PDFParse } from "pdf-parse";
+import * as pdfParse from "pdf-parse";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   console.log("[PDF Parser] Starting PDF extraction, buffer size:", buffer.length);
-  const parser = new PDFParse({ data: buffer });
   let textResult = "";
   
   try {
-    const result = await parser.getText();
-    textResult = result.text || "";
-    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", textResult.length);
+    const result = await (pdfParse as any).default(buffer);
+    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", result.text?.length || 0);
     
-    if (textResult.trim().length < 100) {
-      console.log("[PDF Parser] Insufficient text extracted. PDF must contain selectable text (not scanned images).");
+    if (result.text) {
+      textResult = result.text.trim();
+    }
+    
+    if (textResult.length < 100) {
+      console.warn("[PDF Parser] Warning: Extracted text is short. PDF must contain selectable text (not scanned images). Length:", textResult.length);
     } else {
       console.log("[PDF Parser] Text extraction successful. First 500 chars:", textResult.substring(0, 500));
     }
   } catch (error) {
     console.error("[PDF Parser] Error extracting text with pdf-parse:", error);
-  } finally {
-    await parser.destroy();
+    throw new Error(`Erro ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
   }
   
   return { text: textResult };
@@ -2831,11 +2832,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Parse PDF content
-      const pdfData = await parsePdfBuffer(req.file.buffer);
-      const pdfText = pdfData.text;
+      let pdfText = "";
+      try {
+        const pdfData = await parsePdfBuffer(req.file.buffer);
+        pdfText = pdfData.text;
+      } catch (pdfError) {
+        console.error("[PDF] Error parsing PDF:", pdfError);
+        return res.status(400).json({ 
+          message: "Erro ao importar PDF. Certifique-se que o arquivo é um PDF válido com texto selecionável (não uma imagem escaneada)." 
+        });
+      }
 
       if (!pdfText || pdfText.trim().length < 100) {
         return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
+      }
+
+      // Validate API key is configured for selected provider
+      if (aiProvider === "gemini") {
+        const apiKey = process.env[`GEMINI_API_KEY_${geminiKey}`];
+        if (!apiKey) {
+          return res.status(503).json({ 
+            message: `Chave Gemini ${geminiKey} nao esta configurada no ambiente. Configure GEMINI_API_KEY_${geminiKey} no Render.` 
+          });
+        }
+      } else if (aiProvider === "openai") {
+        const apiKey = process.env[`OPENAI_API_KEY_${openaiKey}`];
+        if (!apiKey) {
+          return res.status(503).json({ 
+            message: `Chave OpenAI ${openaiKey} nao esta configurada no ambiente. Configure OPENAI_API_KEY_${openaiKey} no Render.` 
+          });
+        }
       }
 
       // Generate content with AI using selected provider and key

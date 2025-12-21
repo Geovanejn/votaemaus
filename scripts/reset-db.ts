@@ -1,4 +1,4 @@
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 async function resetDatabase() {
   if (!process.env.DATABASE_URL) {

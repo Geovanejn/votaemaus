@@ -914,7 +914,6 @@ export default function LessonPage() {
   };
 
   const handleRespondaComplete = async () => {
-    const LESSON_COMPLETION_BONUS = 50;
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     
     // Mark all responda units as completed (ensures text-type units are also marked)
@@ -927,9 +926,8 @@ export default function LessonPage() {
     }
     
     // Use displayXp which is the total accumulated XP from all stages (estude + medite + responda)
-    // Plus the lesson completion bonus
     setStageCompleteData({
-      xp: displayXp + LESSON_COMPLETION_BONUS,
+      xp: displayXp,
       stageType: "responda",
       nextStage: null,
       nextIndex: allUnits.length

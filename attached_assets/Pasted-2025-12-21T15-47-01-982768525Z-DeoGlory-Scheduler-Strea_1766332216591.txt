@@ -1,0 +1,50 @@
+2025-12-21T15:47:01.982768525Z [DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+2025-12-21T15:47:02.038790775Z [DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+2025-12-21T15:47:02.042111645Z [Daily Verse Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+2025-12-21T15:47:02.04564498Z [Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+2025-12-21T15:47:02.045790423Z [Instagram Scheduler] Not configured - INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_USER_ID required
+2025-12-21T15:47:02.050002289Z [Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+2025-12-21T15:47:02.235611487Z [WebSocket] Server initialized
+2025-12-21T15:47:02.237481912Z 3:47:02 PM [express] serving on port 10000
+2025-12-21T15:47:06.230969243Z ==> Your service is live 🎉
+2025-12-21T15:47:06.318878038Z ==> 
+2025-12-21T15:47:06.352212236Z ==> ///////////////////////////////////////////////////////////
+2025-12-21T15:47:06.386740945Z ==> 
+2025-12-21T15:47:06.419135603Z ==> Available at your primary URL https://umpemaus.onrender.com
+2025-12-21T15:47:06.450831871Z ==> 
+2025-12-21T15:47:06.48166621Z ==> ///////////////////////////////////////////////////////////
+2025-12-21T15:47:07.044207123Z [Daily Verse Scheduler] Running initial check at startup...
+2025-12-21T15:47:07.044325305Z [Daily Verse Scheduler] Sending daily verse notification...
+2025-12-21T15:47:07.044408247Z [Daily Verse Scheduler] AI not configured, using fallback verse
+2025-12-21T15:47:07.095067089Z [Daily Verse Scheduler] Error sending daily verse: error: column "last_used" does not exist
+2025-12-21T15:47:07.09509731Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T15:47:07.0951016Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T15:47:07.09510625Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T15:47:07.09511009Z     at async sendPushToAllAnonymousVisitors (file:///opt/render/project/src/dist/index.js:8998:25)
+2025-12-21T15:47:07.09511396Z     at async notifyDailyVerse (file:///opt/render/project/src/dist/index.js:9251:27)
+2025-12-21T15:47:07.09511803Z     at async sendDailyVerse (file:///opt/render/project/src/dist/index.js:14702:5)
+2025-12-21T15:47:07.09512183Z     at async Timeout._onTimeout (file:///opt/render/project/src/dist/index.js:14716:7) {
+2025-12-21T15:47:07.09512549Z   length: 109,
+2025-12-21T15:47:07.0951298Z   severity: 'ERROR',
+2025-12-21T15:47:07.09513359Z   code: '42703',
+2025-12-21T15:47:07.09513737Z   detail: undefined,
+2025-12-21T15:47:07.09514108Z   hint: undefined,
+2025-12-21T15:47:07.095144751Z   position: '58',
+2025-12-21T15:47:07.09514932Z   internalPosition: undefined,
+2025-12-21T15:47:07.09515338Z   internalQuery: undefined,
+2025-12-21T15:47:07.095172711Z   where: undefined,
+2025-12-21T15:47:07.095175271Z   schema: undefined,
+2025-12-21T15:47:07.095177601Z   table: undefined,
+2025-12-21T15:47:07.095179921Z   column: undefined,
+2025-12-21T15:47:07.095182131Z   dataType: undefined,
+2025-12-21T15:47:07.095184281Z   constraint: undefined,
+2025-12-21T15:47:07.095186431Z   file: 'parse_relation.c',
+2025-12-21T15:47:07.095188831Z   line: '3822',
+2025-12-21T15:47:07.095191141Z   routine: 'errorMissingColumn'
+2025-12-21T15:47:07.095193321Z }
+2025-12-21T15:47:09.046318906Z [Recovery Verses Scheduler] Running initial check at startup...
+2025-12-21T15:47:09.04652589Z [Recovery Verses Scheduler] Generating daily recovery verses...
+2025-12-21T15:47:09.058781753Z [Recovery Verses Scheduler] Verses already generated for today (recovery-2025-12-21)
+2025-12-21T15:47:12.049781875Z [Daily Missions Scheduler] Running initial check at startup...
+2025-12-21T15:47:12.049948088Z [Daily Missions Scheduler] Refreshing daily missions with AI...
+2025-12-21T15:47:12.049963408Z [Daily Missions Scheduler] AI not configured, skipping mission generation

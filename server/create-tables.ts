@@ -765,7 +765,8 @@ export async function createAllTables(pool: Pool) {
       endpoint TEXT NOT NULL UNIQUE,
       p256dh TEXT NOT NULL,
       auth TEXT NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      last_used TIMESTAMP
     );
   `;
 

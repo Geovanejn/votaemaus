@@ -1318,7 +1318,6 @@ export default function LessonPage() {
             initialQuestionIndex={initialRespondaQuestionIndex}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
-            onComplete={handleRespondaComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}
             onSwitchTab={(tab) => {

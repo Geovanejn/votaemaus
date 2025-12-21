@@ -1268,32 +1268,24 @@ export class DatabaseStorage implements IStorage {
       // Check if all 5 daily missions are now completed for bonus XP
       const allMissions = await this.getUserDailyMissions(userId, date);
       const completedCount = allMissions.filter((m: any) => m.completed).length;
-      // Calculate total mission XP: 10 XP per completed mission
-      const totalCompletedXp = completedCount * 10;
+      let totalMissionXp = xp;
       let bonusXpAwarded = 0;
       
       if (completedCount === 5) {
         bonusXpAwarded = 25;
+        totalMissionXp = xp + bonusXpAwarded;
         console.log(`[Missions] User ${userId} completed all 5 daily missions! Bonus 25XP awarded.`);
       }
       
       // CRITICAL FIX: Insert into dailyMissionXp (immutable, single source of truth for leaderboards)
-      // Store the TOTAL XP from all completed missions (not just the current one) + bonus
-      // Use onConflictDoUpdate to ensure the record reflects all completions
       await db.insert(schema.dailyMissionXp)
         .values({
           userId,
           missionDate: date,
-          missionXp: totalCompletedXp,
+          missionXp: xp,
           bonusXp: bonusXpAwarded,
         })
-        .onConflictDoUpdate({
-          target: [schema.dailyMissionXp.userId, schema.dailyMissionXp.missionDate],
-          set: {
-            missionXp: totalCompletedXp,
-            bonusXp: bonusXpAwarded,
-          }
-        });
+        .onConflictDoNothing();
       
       // Also record in xpTransactions for audit log
       await this.addXp(userId, xp, 'daily_mission', missionId);

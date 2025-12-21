@@ -1,0 +1,376 @@
+2025-12-21T22:35:51.439026543Z [Instagram Scheduler] Not configured - INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_USER_ID required
+2025-12-21T22:35:51.441259941Z [Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+2025-12-21T22:35:51.546343615Z [WebSocket] Server initialized
+2025-12-21T22:35:51.547896115Z 10:35:51 PM [express] serving on port 10000
+2025-12-21T22:35:56.442334357Z [Daily Verse Scheduler] Running initial check at startup...
+2025-12-21T22:35:56.44244793Z [Daily Verse Scheduler] Sending daily verse notification...
+2025-12-21T22:35:57.225479295Z [BibleAPI] Error fetching verse: 500
+2025-12-21T22:35:57.470635055Z [BibleAPI] Using local fallback verse
+2025-12-21T22:35:57.470637275Z [BibleAPI] Error fetching random verse: 500
+2025-12-21T22:35:57.47082835Z [BibleAPI] Daily verse fetched successfully from ABíbliaDigital
+2025-12-21T22:35:57.470845181Z [Daily Verse Scheduler] Using AI-generated verse
+2025-12-21T22:35:57.632874581Z [Daily Verse Scheduler] Error sending daily verse: error: column "last_used" does not exist
+2025-12-21T22:35:57.632903362Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:35:57.632908922Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:35:57.632915982Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:35:57.632920462Z     at async sendPushToAllAnonymousVisitors (file:///opt/render/project/src/dist/index.js:9025:25)
+2025-12-21T22:35:57.632924952Z     at async notifyDailyVerse (file:///opt/render/project/src/dist/index.js:9278:27)
+2025-12-21T22:35:57.632928813Z     at async sendDailyVerse (file:///opt/render/project/src/dist/index.js:14759:5)
+2025-12-21T22:35:57.632932402Z     at async Timeout._onTimeout (file:///opt/render/project/src/dist/index.js:14773:7) {
+2025-12-21T22:35:57.632936573Z   length: 109,
+2025-12-21T22:35:57.632942013Z   severity: 'ERROR',
+2025-12-21T22:35:57.632961663Z   code: '42703',
+2025-12-21T22:35:57.632964773Z   detail: undefined,
+2025-12-21T22:35:57.632967643Z   hint: undefined,
+2025-12-21T22:35:57.632970094Z   position: '58',
+2025-12-21T22:35:57.632974594Z   internalPosition: undefined,
+2025-12-21T22:35:57.632977074Z   internalQuery: undefined,
+2025-12-21T22:35:57.632979574Z   where: undefined,
+2025-12-21T22:35:57.632982584Z   schema: undefined,
+2025-12-21T22:35:57.632985044Z   table: undefined,
+2025-12-21T22:35:57.632987374Z   column: undefined,
+2025-12-21T22:35:57.632989874Z   dataType: undefined,
+2025-12-21T22:35:57.632992674Z   constraint: undefined,
+2025-12-21T22:35:57.632995394Z   file: 'parse_relation.c',
+2025-12-21T22:35:57.632997674Z   line: '3822',
+2025-12-21T22:35:57.633000724Z   routine: 'errorMissingColumn'
+2025-12-21T22:35:57.633003294Z }
+2025-12-21T22:35:58.440199032Z [Recovery Verses Scheduler] Running initial check at startup...
+2025-12-21T22:35:58.440332485Z [Recovery Verses Scheduler] Generating daily recovery verses...
+2025-12-21T22:35:58.453567165Z [Recovery Verses Scheduler] Verses already generated for today (recovery-2025-12-21)
+2025-12-21T22:36:01.441229117Z [Daily Missions Scheduler] Running initial check at startup...
+2025-12-21T22:36:01.441358131Z [Daily Missions Scheduler] Refreshing daily missions with AI...
+2025-12-21T22:36:03.729683432Z 10:36:03 PM [express] GET /api/site-content/quem-somos 200 in 8ms :: {}
+2025-12-21T22:36:03.784366739Z Get site highlights error: error: column "content_html" does not exist
+2025-12-21T22:36:03.78439255Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:36:03.78439956Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:36:03.78440798Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:36:03.78441174Z     at async DatabaseStorage.getLatestDevotional (file:///opt/render/project/src/dist/index.js:4610:30)
+2025-12-21T22:36:03.784417271Z     at async Promise.all (index 0)
+2025-12-21T22:36:03.784420831Z     at async DatabaseStorage.getSiteHighlights (file:///opt/render/project/src/dist/index.js:4772:78)
+2025-12-21T22:36:03.784424501Z     at async file:///opt/render/project/src/dist/index.js:12526:26 {
+2025-12-21T22:36:03.784428051Z   length: 112,
+2025-12-21T22:36:03.784432261Z   severity: 'ERROR',
+2025-12-21T22:36:03.784435781Z   code: '42703',
+2025-12-21T22:36:03.784439261Z   detail: undefined,
+2025-12-21T22:36:03.784442951Z   hint: undefined,
+2025-12-21T22:36:03.784446421Z   position: '62',
+2025-12-21T22:36:03.784450692Z   internalPosition: undefined,
+2025-12-21T22:36:03.784454201Z   internalQuery: undefined,
+2025-12-21T22:36:03.784457652Z   where: undefined,
+2025-12-21T22:36:03.784461122Z   schema: undefined,
+2025-12-21T22:36:03.784464542Z   table: undefined,
+2025-12-21T22:36:03.784467982Z   column: undefined,
+2025-12-21T22:36:03.784471392Z   dataType: undefined,
+2025-12-21T22:36:03.784475232Z   constraint: undefined,
+2025-12-21T22:36:03.784478782Z   file: 'parse_relation.c',
+2025-12-21T22:36:03.784482412Z   line: '3822',
+2025-12-21T22:36:03.784488102Z   routine: 'errorMissingColumn'
+2025-12-21T22:36:03.784491682Z }
+2025-12-21T22:36:03.835443784Z 10:36:03 PM [express] GET /api/site/highlights 500 in 9ms :: {"message":"Erro ao buscar destaques do …
+2025-12-21T22:36:05.02254137Z Get site highlights error: error: column "content_html" does not exist
+2025-12-21T22:36:05.022611491Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:36:05.022617682Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:36:05.022636672Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:36:05.022639602Z     at async DatabaseStorage.getLatestDevotional (file:///opt/render/project/src/dist/index.js:4610:30)
+2025-12-21T22:36:05.022642532Z     at async Promise.all (index 0)
+2025-12-21T22:36:05.022645002Z     at async DatabaseStorage.getSiteHighlights (file:///opt/render/project/src/dist/index.js:4772:78)
+2025-12-21T22:36:05.022647343Z     at async file:///opt/render/project/src/dist/index.js:12526:26 {
+2025-12-21T22:36:05.022649692Z   length: 112,
+2025-12-21T22:36:05.022652823Z   severity: 'ERROR',
+2025-12-21T22:36:05.022655333Z   code: '42703',
+2025-12-21T22:36:05.022657543Z   detail: undefined,
+2025-12-21T22:36:05.022659913Z   hint: undefined,
+2025-12-21T22:36:05.022674013Z   position: '62',
+2025-12-21T22:36:05.022676803Z   internalPosition: undefined,
+2025-12-21T22:36:05.022679183Z   internalQuery: undefined,
+2025-12-21T22:36:05.022681353Z   where: undefined,
+2025-12-21T22:36:05.022683453Z   schema: undefined,
+2025-12-21T22:36:05.022685673Z   table: undefined,
+2025-12-21T22:36:05.022688004Z   column: undefined,
+2025-12-21T22:36:05.022690373Z   dataType: undefined,
+2025-12-21T22:36:05.022692754Z   constraint: undefined,
+2025-12-21T22:36:05.022694974Z   file: 'parse_relation.c',
+2025-12-21T22:36:05.022697424Z   line: '3822',
+2025-12-21T22:36:05.022699504Z   routine: 'errorMissingColumn'
+2025-12-21T22:36:05.022701784Z }
+2025-12-21T22:36:05.1297643Z 10:36:05 PM [express] GET /api/site/highlights 500 in 23ms :: {"message":"Erro ao buscar destaques do…
+2025-12-21T22:36:06.968780936Z [Daily Missions] Successfully generated with AI
+2025-12-21T22:36:06.977426478Z [Daily Missions Scheduler] Missions already generated for today (2025-12-21)
+2025-12-21T22:36:07.434126474Z Get site highlights error: error: column "content_html" does not exist
+2025-12-21T22:36:07.434141384Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:36:07.434144434Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:36:07.434149154Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:36:07.434151644Z     at async DatabaseStorage.getLatestDevotional (file:///opt/render/project/src/dist/index.js:4610:30)
+2025-12-21T22:36:07.434154244Z     at async Promise.all (index 0)
+2025-12-21T22:36:07.434156394Z     at async DatabaseStorage.getSiteHighlights (file:///opt/render/project/src/dist/index.js:4772:78)
+2025-12-21T22:36:07.434158734Z     at async file:///opt/render/project/src/dist/index.js:12526:26 {
+2025-12-21T22:36:07.434161044Z   length: 112,
+2025-12-21T22:36:07.434163804Z   severity: 'ERROR',
+2025-12-21T22:36:07.434166424Z   code: '42703',
+2025-12-21T22:36:07.434169315Z   detail: undefined,
+2025-12-21T22:36:07.434171715Z   hint: undefined,
+2025-12-21T22:36:07.434174565Z   position: '62',
+2025-12-21T22:36:07.434178735Z   internalPosition: undefined,
+2025-12-21T22:36:07.434181415Z   internalQuery: undefined,
+2025-12-21T22:36:07.434183905Z   where: undefined,
+2025-12-21T22:36:07.434186375Z   schema: undefined,
+2025-12-21T22:36:07.434188775Z   table: undefined,
+2025-12-21T22:36:07.434190975Z   column: undefined,
+2025-12-21T22:36:07.434193015Z   dataType: undefined,
+2025-12-21T22:36:07.434195205Z   constraint: undefined,
+2025-12-21T22:36:07.434197245Z   file: 'parse_relation.c',
+2025-12-21T22:36:07.434199355Z   line: '3822',
+2025-12-21T22:36:07.434201545Z   routine: 'errorMissingColumn'
+2025-12-21T22:36:07.434212776Z }
+2025-12-21T22:36:07.435037417Z 10:36:07 PM [express] GET /api/site/highlights 500 in 18ms :: {"message":"Erro ao buscar destaques do…
+2025-12-21T22:36:30.141220283Z 10:36:30 PM [express] POST /api/auth/login-password 200 in 716ms :: {"user":{"id":1,"fullName":"Admin…
+2025-12-21T22:36:39.617650717Z 10:36:39 PM [express] GET /api/study/ranking 200 in 2ms
+2025-12-21T22:36:39.653440308Z 10:36:39 PM [express] GET /api/study/admin/stats 200 in 27ms :: {"totalWeeks":0,"totalLessons":0,"tot…
+2025-12-21T22:36:44.104043177Z Get admin weeks error: error: column "season_id" does not exist
+2025-12-21T22:36:44.104066207Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:36:44.104072138Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:36:44.104076778Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:36:44.104081538Z     at async file:///opt/render/project/src/dist/index.js:11606:21 {
+2025-12-21T22:36:44.104086128Z   length: 110,
+2025-12-21T22:36:44.104091188Z   severity: 'ERROR',
+2025-12-21T22:36:44.104095428Z   code: '42703',
+2025-12-21T22:36:44.104099448Z   detail: undefined,
+2025-12-21T22:36:44.104103628Z   hint: undefined,
+2025-12-21T22:36:44.104108359Z   position: '127',
+2025-12-21T22:36:44.104113049Z   internalPosition: undefined,
+2025-12-21T22:36:44.104117229Z   internalQuery: undefined,
+2025-12-21T22:36:44.104121459Z   where: undefined,
+2025-12-21T22:36:44.104125799Z   schema: undefined,
+2025-12-21T22:36:44.104130229Z   table: undefined,
+2025-12-21T22:36:44.104134489Z   column: undefined,
+2025-12-21T22:36:44.104138629Z   dataType: undefined,
+2025-12-21T22:36:44.10414234Z   constraint: undefined,
+2025-12-21T22:36:44.10414722Z   file: 'parse_relation.c',
+2025-12-21T22:36:44.10415141Z   line: '3822',
+2025-12-21T22:36:44.10415511Z   routine: 'errorMissingColumn'
+2025-12-21T22:36:44.10415881Z }
+2025-12-21T22:36:44.104717394Z 10:36:44 PM [express] GET /api/study/admin/weeks 500 in 4ms :: {"message":"Erro ao buscar semanas"}
+2025-12-21T22:36:45.930223803Z 10:36:45 PM [express] GET /api/study/admin/seasons 200 in 25ms :: [{"id":2,"title":"Não Jogue Sua Vid…
+2025-12-21T22:36:50.742663086Z 10:36:50 PM [express] GET /api/study/admin/seasons/2 200 in 4ms :: {"id":2,"title":"Não Jogue Sua Vid…
+2025-12-21T22:36:50.74944139Z Get lessons for season error: error: column "season_id" does not exist
+2025-12-21T22:36:50.749457251Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:36:50.749463181Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:36:50.749468771Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:36:50.749473441Z     at async file:///opt/render/project/src/dist/index.js:13647:23 {
+2025-12-21T22:36:50.749478491Z   length: 109,
+2025-12-21T22:36:50.749483891Z   severity: 'ERROR',
+2025-12-21T22:36:50.749489152Z   code: '42703',
+2025-12-21T22:36:50.749495072Z   detail: undefined,
+2025-12-21T22:36:50.749500352Z   hint: undefined,
+2025-12-21T22:36:50.749504872Z   position: '31',
+2025-12-21T22:36:50.749509892Z   internalPosition: undefined,
+2025-12-21T22:36:50.749514352Z   internalQuery: undefined,
+2025-12-21T22:36:50.749518802Z   where: undefined,
+2025-12-21T22:36:50.749523222Z   schema: undefined,
+2025-12-21T22:36:50.749527453Z   table: undefined,
+2025-12-21T22:36:50.749531673Z   column: undefined,
+2025-12-21T22:36:50.749536063Z   dataType: undefined,
+2025-12-21T22:36:50.749551243Z   constraint: undefined,
+2025-12-21T22:36:50.749554303Z   file: 'parse_relation.c',
+2025-12-21T22:36:50.749557063Z   line: '3822',
+2025-12-21T22:36:50.749559713Z   routine: 'errorMissingColumn'
+2025-12-21T22:36:50.749562473Z }
+2025-12-21T22:36:50.749957113Z 10:36:50 PM [express] GET /api/study/admin/seasons/2/lessons 500 in 7ms :: {"message":"Erro ao buscar…
+2025-12-21T22:37:01.095609363Z [PDF Parser] Starting PDF extraction, buffer size: 206425
+2025-12-21T22:37:02.338466564Z [PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+2025-12-21T22:37:02.338496795Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+2025-12-21T22:37:02.338501545Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:02.33870954Z Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+2025-12-21T22:37:02.338724311Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+2025-12-21T22:37:02.338732111Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:02.343326889Z 10:37:02 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 1861ms :: {"message":"E…
+2025-12-21T22:37:08.213850648Z [PDF Parser] Starting PDF extraction, buffer size: 206425
+2025-12-21T22:37:08.214267588Z [PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+2025-12-21T22:37:08.214277088Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+2025-12-21T22:37:08.214280999Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:08.214284529Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:08.214390871Z Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+2025-12-21T22:37:08.214400592Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+2025-12-21T22:37:08.214406572Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:08.214412582Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:08.217909532Z 10:37:08 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 88ms :: {"message":"Err…
+2025-12-21T22:37:24.516088293Z [PDF Parser] Starting PDF extraction, buffer size: 206425
+2025-12-21T22:37:24.516362829Z [PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+2025-12-21T22:37:24.51638676Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+2025-12-21T22:37:24.51639206Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:24.51639597Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:24.516458342Z Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+2025-12-21T22:37:24.516467972Z     at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+2025-12-21T22:37:24.516472702Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:24.516476983Z     at async file:///opt/render/project/src/dist/index.js:13836:23
+2025-12-21T22:37:24.519954952Z 10:37:24 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 584ms :: {"message":"Er…
+2025-12-21T22:37:45.56728889Z Get admin weeks error: error: column "season_id" does not exist
+2025-12-21T22:37:45.567329831Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:37:45.567334831Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:45.567353012Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:37:45.567355432Z     at async file:///opt/render/project/src/dist/index.js:11606:21 {
+2025-12-21T22:37:45.567357532Z   length: 110,
+2025-12-21T22:37:45.567360122Z   severity: 'ERROR',
+2025-12-21T22:37:45.567362312Z   code: '42703',
+2025-12-21T22:37:45.567364442Z   detail: undefined,
+2025-12-21T22:37:45.567366652Z   hint: undefined,
+2025-12-21T22:37:45.567368742Z   position: '127',
+2025-12-21T22:37:45.567371523Z   internalPosition: undefined,
+2025-12-21T22:37:45.567373683Z   internalQuery: undefined,
+2025-12-21T22:37:45.567375783Z   where: undefined,
+2025-12-21T22:37:45.567377883Z   schema: undefined,
+2025-12-21T22:37:45.567380083Z   table: undefined,
+2025-12-21T22:37:45.567382253Z   column: undefined,
+2025-12-21T22:37:45.567384393Z   dataType: undefined,
+2025-12-21T22:37:45.567386603Z   constraint: undefined,
+2025-12-21T22:37:45.567388893Z   file: 'parse_relation.c',
+2025-12-21T22:37:45.567391153Z   line: '3822',
+2025-12-21T22:37:45.567393383Z   routine: 'errorMissingColumn'
+2025-12-21T22:37:45.567395623Z }
+2025-12-21T22:37:45.568094661Z 10:37:45 PM [express] GET /api/study/admin/weeks 500 in 14ms :: {"message":"Erro ao buscar semanas"}
+2025-12-21T22:37:55.675105911Z AI generate week from PDF error: error: column "season_id" does not exist
+2025-12-21T22:37:55.675131592Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:37:55.675135092Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:37:55.675138272Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:37:55.675140572Z     at async DatabaseStorage.getStudyWeekByNumber (file:///opt/render/project/src/dist/index.js:4307:24)
+2025-12-21T22:37:55.675142702Z     at async file:///opt/render/project/src/dist/index.js:11708:28 {
+2025-12-21T22:37:55.675144852Z   length: 110,
+2025-12-21T22:37:55.675148002Z   severity: 'ERROR',
+2025-12-21T22:37:55.675150183Z   code: '42703',
+2025-12-21T22:37:55.675152252Z   detail: undefined,
+2025-12-21T22:37:55.675154372Z   hint: undefined,
+2025-12-21T22:37:55.675156452Z   position: '127',
+2025-12-21T22:37:55.675158983Z   internalPosition: undefined,
+2025-12-21T22:37:55.675161053Z   internalQuery: undefined,
+2025-12-21T22:37:55.675163153Z   where: undefined,
+2025-12-21T22:37:55.675165193Z   schema: undefined,
+2025-12-21T22:37:55.675167223Z   table: undefined,
+2025-12-21T22:37:55.675169553Z   column: undefined,
+2025-12-21T22:37:55.675171613Z   dataType: undefined,
+2025-12-21T22:48:32.629027541Z Get study profile error: error: column "weekly_lessons_goal" does not exist
+2025-12-21T22:48:32.629051831Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:48:32.629057031Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:48:32.629061462Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:48:32.629065802Z     at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+2025-12-21T22:48:32.629070762Z     at async DatabaseStorage.getOrCreateStudyProfile (file:///opt/render/project/src/dist/index.js:4786:23)
+2025-12-21T22:48:32.629075152Z     at async file:///opt/render/project/src/dist/index.js:10595:23 {
+2025-12-21T22:48:32.629079342Z   length: 120,
+2025-12-21T22:48:32.629084522Z   severity: 'ERROR',
+2025-12-21T22:48:32.629088612Z   code: '42703',
+2025-12-21T22:48:32.629092382Z   detail: undefined,
+2025-12-21T22:48:32.629097063Z   hint: undefined,
+2025-12-21T22:48:32.629101463Z   position: '190',
+2025-12-21T22:48:32.629106603Z   internalPosition: undefined,
+2025-12-21T22:48:32.629110663Z   internalQuery: undefined,
+2025-12-21T22:48:32.629114743Z   where: undefined,
+2025-12-21T22:48:32.629130383Z   schema: undefined,
+2025-12-21T22:48:32.629133024Z   table: undefined,
+2025-12-21T22:48:32.629135864Z   column: undefined,
+2025-12-21T22:48:32.629138444Z   dataType: undefined,
+2025-12-21T22:48:32.629141074Z   constraint: undefined,
+2025-12-21T22:48:32.629143564Z   file: 'parse_relation.c',
+2025-12-21T22:48:32.629146124Z   line: '3822',
+2025-12-21T22:48:32.629148574Z   routine: 'errorMissingColumn'
+2025-12-21T22:48:32.629151104Z }
+2025-12-21T22:48:32.62977785Z 10:48:32 PM [express] GET /api/study/profile 500 in 364ms :: {"message":"Erro ao buscar perfil de est…
+2025-12-21T22:48:32.949459634Z Get daily missions error: error: column "weekly_lessons_goal" does not exist
+2025-12-21T22:48:32.949481284Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:48:32.949484584Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:48:32.949488884Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:48:32.949491465Z     at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+2025-12-21T22:48:32.949493625Z     at async file:///opt/render/project/src/dist/index.js:12298:23 {
+2025-12-21T22:48:32.949495805Z   length: 120,
+2025-12-21T22:48:32.949498415Z   severity: 'ERROR',
+2025-12-21T22:48:32.949500515Z   code: '42703',
+2025-12-21T22:48:32.949503315Z   detail: undefined,
+2025-12-21T22:48:32.949506905Z   hint: undefined,
+2025-12-21T22:48:32.949510365Z   position: '190',
+2025-12-21T22:48:32.949514285Z   internalPosition: undefined,
+2025-12-21T22:48:32.949517785Z   internalQuery: undefined,
+2025-12-21T22:48:32.949521355Z   where: undefined,
+2025-12-21T22:48:32.949524585Z   schema: undefined,
+2025-12-21T22:48:32.949528056Z   table: undefined,
+2025-12-21T22:48:32.949531316Z   column: undefined,
+2025-12-21T22:48:32.949534366Z   dataType: undefined,
+2025-12-21T22:48:32.949537356Z   constraint: undefined,
+2025-12-21T22:48:32.949540706Z   file: 'parse_relation.c',
+2025-12-21T22:48:32.949544196Z   line: '3822',
+2025-12-21T22:48:32.949547486Z   routine: 'errorMissingColumn'
+2025-12-21T22:48:32.949550566Z }
+2025-12-21T22:48:32.950259834Z 10:48:32 PM [express] GET /api/missions/daily 500 in 687ms :: {"message":"Erro ao buscar missoes diar…
+2025-12-21T22:48:32.951547237Z 10:48:32 PM [express] GET /api/study/leaderboard 200 in 699ms :: {"periodType":"weekly","periodKey":"…
+2025-12-21T22:48:33.95851637Z Get study profile error: error: column "weekly_lessons_goal" does not exist
+2025-12-21T22:48:33.958542541Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:48:33.958546021Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:48:33.958551601Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:48:33.958554181Z     at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+2025-12-21T22:48:33.958556391Z     at async DatabaseStorage.getOrCreateStudyProfile (file:///opt/render/project/src/dist/index.js:4786:23)
+2025-12-21T22:48:33.958558601Z     at async file:///opt/render/project/src/dist/index.js:10595:23 {
+2025-12-21T22:48:33.958560741Z   length: 120,
+2025-12-21T22:48:33.958563402Z   severity: 'ERROR',
+2025-12-21T22:48:33.958565731Z   code: '42703',
+2025-12-21T22:48:33.958567851Z   detail: undefined,
+2025-12-21T22:48:33.958569962Z   hint: undefined,
+2025-12-21T22:48:33.958572012Z   position: '190',
+2025-12-21T22:48:33.958574492Z   internalPosition: undefined,
+2025-12-21T22:48:33.958590862Z   internalQuery: undefined,
+2025-12-21T22:48:33.958593322Z   where: undefined,
+2025-12-21T22:48:33.958595412Z   schema: undefined,
+2025-12-21T22:48:33.958597502Z   table: undefined,
+2025-12-21T22:48:33.958599572Z   column: undefined,
+2025-12-21T22:48:33.958601763Z   dataType: undefined,
+2025-12-21T22:48:33.958603823Z   constraint: undefined,
+2025-12-21T22:48:33.958605852Z   file: 'parse_relation.c',
+2025-12-21T22:48:33.958608292Z   line: '3822',
+2025-12-21T22:48:33.958610513Z   routine: 'errorMissingColumn'
+2025-12-21T22:48:33.958612613Z }
+2025-12-21T22:48:33.959163597Z 10:48:33 PM [express] GET /api/study/profile 500 in 4ms :: {"message":"Erro ao buscar perfil de estud…
+2025-12-21T22:48:33.959541376Z Get study weeks error: error: column "season_id" does not exist
+2025-12-21T22:48:33.959548367Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:48:33.959551877Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:48:33.959555337Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:48:33.959557857Z     at async file:///opt/render/project/src/dist/index.js:10628:21 {
+2025-12-21T22:48:33.959560787Z   length: 110,
+2025-12-21T22:48:33.959563807Z   severity: 'ERROR',
+2025-12-21T22:48:33.959566297Z   code: '42703',
+2025-12-21T22:48:33.959568897Z   detail: undefined,
+2025-12-21T22:48:33.959571317Z   hint: undefined,
+2025-12-21T22:48:33.959573787Z   position: '127',
+2025-12-21T22:48:33.959576928Z   internalPosition: undefined,
+2025-12-21T22:48:33.959579217Z   internalQuery: undefined,
+2025-12-21T22:48:33.959581557Z   where: undefined,
+2025-12-21T22:48:33.959583957Z   schema: undefined,
+2025-12-21T22:48:33.959586348Z   table: undefined,
+2025-12-21T22:48:33.959588748Z   column: undefined,
+2025-12-21T22:48:33.959591228Z   dataType: undefined,
+2025-12-21T22:48:33.959593478Z   constraint: undefined,
+2025-12-21T22:48:33.959595728Z   file: 'parse_relation.c',
+2025-12-21T22:48:33.959598318Z   line: '3822',
+2025-12-21T22:48:33.959600718Z   routine: 'errorMissingColumn'
+2025-12-21T22:48:33.959603028Z }
+2025-12-21T22:48:33.96007077Z 10:48:33 PM [express] GET /api/study/weeks/ 500 in 7ms :: {"message":"Erro ao buscar semanas de estud…
+2025-12-21T22:48:34.137839478Z Get study weeks error: error: column "season_id" does not exist
+2025-12-21T22:48:34.137866898Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2025-12-21T22:48:34.137870289Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2025-12-21T22:48:34.137873178Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-12-21T22:48:34.137875429Z     at async file:///opt/render/project/src/dist/index.js:10628:21 {
+2025-12-21T22:48:34.137877559Z   length: 110,
+2025-12-21T22:48:34.137880329Z   severity: 'ERROR',
+2025-12-21T22:48:34.137882439Z   code: '42703',
+2025-12-21T22:48:34.137884529Z   detail: undefined,
+2025-12-21T22:48:34.137886719Z   hint: undefined,
+2025-12-21T22:48:34.137892469Z   position: '127',
+2025-12-21T22:48:34.137895259Z   internalPosition: undefined,
+2025-12-21T22:48:34.137897459Z   internalQuery: undefined,
+2025-12-21T22:48:34.137899559Z   where: undefined,
+2025-12-21T22:48:34.137901609Z   schema: undefined,
+2025-12-21T22:48:34.137903589Z   table: undefined,
+2025-12-21T22:48:34.137905929Z   column: undefined,
+2025-12-21T22:48:34.13791019Z   dataType: undefined,
+2025-12-21T22:48:34.137912519Z   constraint: undefined,
+2025-12-21T22:48:34.13792721Z   file: 'parse_relation.c',
+2025-12-21T22:48:34.13793004Z   line: '3822',
+2025-12-21T22:48:34.13793213Z   routine: 'errorMissingColumn'
+2025-12-21T22:48:34.13793426Z }
+2025-12-21T22:48:34.138586047Z 10:48:34 PM [express] GET /api/study/weeks 500 in 176ms :: {"message":"Erro ao buscar semanas de estu…

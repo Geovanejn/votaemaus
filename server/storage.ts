@@ -1278,6 +1278,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // CRITICAL FIX: Insert into dailyMissionXp (immutable, single source of truth for leaderboards)
+      // Use onConflictDoUpdate to accumulate XP from multiple missions
       await db.insert(schema.dailyMissionXp)
         .values({
           userId,
@@ -1285,7 +1286,13 @@ export class DatabaseStorage implements IStorage {
           missionXp: xp,
           bonusXp: bonusXpAwarded,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [schema.dailyMissionXp.userId, schema.dailyMissionXp.missionDate],
+          set: {
+            missionXp: sql`${schema.dailyMissionXp.missionXp} + ${xp}`,
+            bonusXp: bonusXpAwarded > 0 ? sql`${bonusXpAwarded}` : sql`${schema.dailyMissionXp.bonusXp}`,
+          },
+        });
       
       // Also record in xpTransactions for audit log
       await this.addXp(userId, xp, 'daily_mission', missionId);

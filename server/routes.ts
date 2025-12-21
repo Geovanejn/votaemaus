@@ -123,8 +123,9 @@ async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   let textResult = "";
   
   try {
-    // Dynamically import pdf-parse for ESM compatibility
-    const { default: pdfParse } = await import("pdf-parse/build/pdf.js");
+    // Dynamically import pdf-parse using ESM main entry point
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = pdfParseModule.default || pdfParseModule;
     const result = await pdfParse(buffer);
     console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", result.text?.length || 0);
     

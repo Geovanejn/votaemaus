@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "../server/storage";
 
 const faithStudy = {
   title: "O Que É a Fé?",

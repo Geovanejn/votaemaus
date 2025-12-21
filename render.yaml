@@ -44,9 +44,9 @@ services:
       - key: INSTAGRAM_USER_ID
         scope: build
         sync: false
-      - key: WEB_PUSH_PUBLIC_KEY
+      - key: VAPID_PUBLIC_KEY
         scope: build
         sync: false
-      - key: WEB_PUSH_PRIVATE_KEY
+      - key: VAPID_PRIVATE_KEY
         scope: build
         sync: false

@@ -1233,7 +1233,10 @@ export default function LessonPage() {
         answer: answer 
       });
       
-      if (!result.correct) {
+      if (result.correct) {
+        // Track correct answers during responda stage
+        setRespondaCorrectAnswers(prev => prev + 1);
+      } else {
         setMistakes(prev => prev + 1);
       }
     } catch (error) {

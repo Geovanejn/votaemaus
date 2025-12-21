@@ -1,0 +1,328 @@
+10:48:34 PM [express] GET /api/study/weeks 500 in 176ms :: {"message":"Erro ao buscar semanas de estu…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:10628:21 {
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get study weeks error: error: column "season_id" does not exist
+10:48:33 PM [express] GET /api/study/weeks/ 500 in 7ms :: {"message":"Erro ao buscar semanas de estud…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:10628:21 {
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get study weeks error: error: column "season_id" does not exist
+10:48:33 PM [express] GET /api/study/profile 500 in 4ms :: {"message":"Erro ao buscar perfil de estud…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '190',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 120,
+    at async file:///opt/render/project/src/dist/index.js:10595:23 {
+    at async DatabaseStorage.getOrCreateStudyProfile (file:///opt/render/project/src/dist/index.js:4786:23)
+    at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get study profile error: error: column "weekly_lessons_goal" does not exist
+10:48:32 PM [express] GET /api/study/leaderboard 200 in 699ms :: {"periodType":"weekly","periodKey":"…
+10:48:32 PM [express] GET /api/missions/daily 500 in 687ms :: {"message":"Erro ao buscar missoes diar…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '190',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 120,
+    at async file:///opt/render/project/src/dist/index.js:12298:23 {
+    at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get daily missions error: error: column "weekly_lessons_goal" does not exist
+10:48:32 PM [express] GET /api/study/profile 500 in 364ms :: {"message":"Erro ao buscar perfil de est…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '190',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 120,
+    at async file:///opt/render/project/src/dist/index.js:10595:23 {
+    at async DatabaseStorage.getOrCreateStudyProfile (file:///opt/render/project/src/dist/index.js:4786:23)
+    at async DatabaseStorage.getStudyProfile (file:///opt/render/project/src/dist/index.js:4782:27)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get study profile error: error: column "weekly_lessons_goal" does not exist
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:11708:28 {
+    at async DatabaseStorage.getStudyWeekByNumber (file:///opt/render/project/src/dist/index.js:4307:24)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+AI generate week from PDF error: error: column "season_id" does not exist
+10:37:55 PM [express] POST /api/ai/generate-week-from-pdf 500 in 277ms :: {"message":"column \"season…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:11708:28 {
+    at async DatabaseStorage.getStudyWeekByNumber (file:///opt/render/project/src/dist/index.js:4307:24)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+AI generate week from PDF error: error: column "season_id" does not exist
+10:37:45 PM [express] GET /api/study/admin/weeks 500 in 14ms :: {"message":"Erro ao buscar semanas"}
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:11606:21 {
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get admin weeks error: error: column "season_id" does not exist
+10:37:24 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 584ms :: {"message":"Er…
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+[PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+[PDF Parser] Starting PDF extraction, buffer size: 206425
+10:37:08 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 88ms :: {"message":"Err…
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+[PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+[PDF Parser] Starting PDF extraction, buffer size: 206425
+10:37:02 PM [express] POST /api/study/admin/seasons/2/import-pdf-exact 500 in 1861ms :: {"message":"E…
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9485:11)
+Import PDF exact error: Error: Erro ao processar PDF: pdfParse is not a function
+    at async file:///opt/render/project/src/dist/index.js:13836:23
+    at parsePdfBuffer (file:///opt/render/project/src/dist/index.js:9473:26)
+[PDF Parser] Error extracting text with pdf-parse: TypeError: pdfParse is not a function
+[PDF Parser] Starting PDF extraction, buffer size: 206425
+10:36:50 PM [express] GET /api/study/admin/seasons/2/lessons 500 in 7ms :: {"message":"Erro ao buscar…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '31',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 109,
+    at async file:///opt/render/project/src/dist/index.js:13647:23 {
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get lessons for season error: error: column "season_id" does not exist
+10:36:50 PM [express] GET /api/study/admin/seasons/2 200 in 4ms :: {"id":2,"title":"Não Jogue Sua Vid…
+10:36:45 PM [express] GET /api/study/admin/seasons 200 in 25ms :: [{"id":2,"title":"Não Jogue Sua Vid…
+10:36:44 PM [express] GET /api/study/admin/weeks 500 in 4ms :: {"message":"Erro ao buscar semanas"}
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '127',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 110,
+    at async file:///opt/render/project/src/dist/index.js:11606:21 {
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get admin weeks error: error: column "season_id" does not exist
+10:36:39 PM [express] GET /api/study/admin/stats 200 in 27ms :: {"totalWeeks":0,"totalLessons":0,"tot…
+10:36:39 PM [express] GET /api/study/ranking 200 in 2ms
+10:36:30 PM [express] POST /api/auth/login-password 200 in 716ms :: {"user":{"id":1,"fullName":"Admin…
+10:36:07 PM [express] GET /api/site/highlights 500 in 18ms :: {"message":"Erro ao buscar destaques do…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '62',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 112,
+    at async file:///opt/render/project/src/dist/index.js:12526:26 {
+    at async DatabaseStorage.getSiteHighlights (file:///opt/render/project/src/dist/index.js:4772:78)
+    at async Promise.all (index 0)
+    at async DatabaseStorage.getLatestDevotional (file:///opt/render/project/src/dist/index.js:4610:30)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+Get site highlights error: error: column "content_html" does not exist
+[Daily Missions Scheduler] Missions already generated for today (2025-12-21)
+[Daily Missions] Successfully generated with AI
+10:36:05 PM [express] GET /api/site/highlights 500 in 23ms :: {"message":"Erro ao buscar destaques do…
+}
+  routine: 'errorMissingColumn'
+  line: '3822',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '62',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+  length: 112,
+    at async file:///opt/render/project/src/dist/index.js:12526:26 {
+    at async DatabaseStorage.getSiteHighlights (file:///opt/render/project/src/dist/index.js:4772:78)
+    at async Promise.all (index 0)
+    at async DatabaseStorage.getLatestDevotional (file:///opt/render/project/src/dist/index.js:4610:30)

@@ -1223,25 +1223,26 @@ export default function LessonPage() {
     }
   };
 
-  const handleRespondaAnswer = async (questionIndex: number, answer: any, _isCorrect: boolean) => {
+  const handleRespondaAnswer = async (questionIndex: number, answer: any, isCorrect: boolean) => {
     const unit = respondaUnits[questionIndex];
     if (!unit) return;
     
+    // Track immediately using the local isCorrect from RespondaScreen (frontend validation)
+    // This ensures the counter is updated before the server responds
+    if (isCorrect) {
+      setRespondaCorrectAnswers(prev => prev + 1);
+    } else {
+      setMistakes(prev => prev + 1);
+    }
+    
+    // Submit to server for persistence (async, doesn't affect counter)
     try {
-      const result = await submitAnswerMutation.mutateAsync({ 
+      await submitAnswerMutation.mutateAsync({ 
         unitId: unit.id, 
         answer: answer 
       });
-      
-      if (result.correct) {
-        // Track correct answers during responda stage
-        setRespondaCorrectAnswers(prev => prev + 1);
-      } else {
-        setMistakes(prev => prev + 1);
-      }
     } catch (error) {
       console.error("Error submitting responda answer:", error);
-      setMistakes(prev => prev + 1);
     }
   };
   

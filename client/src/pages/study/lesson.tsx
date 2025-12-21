@@ -921,10 +921,9 @@ export default function LessonPage() {
     }
   };
 
-  const handleRespondaComplete = async () => {
+  const handleRespondaComplete = async (correctCount: number, totalQuestions: number) => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp - displayXpBeforeResponda;
-    const totalRespondaQuestions = respondaQuestions.length;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {
@@ -940,8 +939,8 @@ export default function LessonPage() {
       stageType: "responda",
       nextStage: null,
       nextIndex: allUnits.length,
-      respondaCorrectAnswers: respondaCorrectAnswers,
-      totalRespondaQuestions: totalRespondaQuestions
+      respondaCorrectAnswers: correctCount,
+      totalRespondaQuestions: totalQuestions
     });
     setShowStageComplete(true);
   };
@@ -1227,15 +1226,7 @@ export default function LessonPage() {
     const unit = respondaUnits[questionIndex];
     if (!unit) return;
     
-    // Track immediately using the local isCorrect from RespondaScreen (frontend validation)
-    // This ensures the counter is updated before the server responds
-    if (isCorrect) {
-      setRespondaCorrectAnswers(prev => prev + 1);
-    } else {
-      setMistakes(prev => prev + 1);
-    }
-    
-    // Submit to server for persistence (async, doesn't affect counter)
+    // Submit to server for persistence
     try {
       await submitAnswerMutation.mutateAsync({ 
         unitId: unit.id, 
@@ -1326,6 +1317,7 @@ export default function LessonPage() {
             initialXp={displayXp}
             initialQuestionIndex={initialRespondaQuestionIndex}
             onAnswer={handleRespondaAnswer}
+            onComplete={handleRespondaComplete}
             onComplete={handleRespondaComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}

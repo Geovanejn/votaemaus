@@ -12,53 +12,25 @@ const OPENAI_MODELS = [
   "gpt-3.5-turbo"     // Fallback
 ];
 
-// Get OpenAI API key by number (1-5)
+// Get OpenAI API key by number (1-5) - uses exact key specified, no fallback
 function getOpenAIApiKey(keyNumber: string = "1"): string {
-  // Try numbered keys only (1-5)
-  const numberedKey = process.env[`OPENAI_API_KEY_${keyNumber}`];
-  if (numberedKey) {
-    return numberedKey;
-  }
-  
-  // Try other numbered keys as fallback
-  for (let i = 1; i <= 5; i++) {
-    const key = process.env[`OPENAI_API_KEY_${i}`];
-    if (key) {
-      console.log(`[OpenAI] OPENAI_API_KEY_${keyNumber} not found, using OPENAI_API_KEY_${i}`);
-      return key;
-    }
-  }
-  
-  return "";
+  const key = process.env[`OPENAI_API_KEY_${keyNumber}`];
+  return key || "";
 }
 
 // Get OpenAI client
 function getOpenAIClient(keyNumber: string = "1"): OpenAI {
   const apiKey = getOpenAIApiKey(keyNumber);
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY_1 a OPENAI_API_KEY_5 não estão configuradas. Configure uma ou mais nas variáveis de ambiente do Render.");
+    throw new Error(`OPENAI_API_KEY_${keyNumber} não está configurada. Configure a chave específica nas variáveis de ambiente do Render.`);
   }
   return new OpenAI({ apiKey });
 }
 
-// Get Gemini API key by number (1-5)
+// Get Gemini API key by number (1-5) - uses exact key specified, no fallback
 function getGeminiApiKey(keyNumber: string = "1"): string {
-  // Try numbered keys only (1-5)
-  const numberedKey = process.env[`GEMINI_API_KEY_${keyNumber}`];
-  if (numberedKey) {
-    return numberedKey;
-  }
-  
-  // Try other numbered keys as fallback
-  for (let i = 1; i <= 5; i++) {
-    const key = process.env[`GEMINI_API_KEY_${i}`];
-    if (key) {
-      console.log(`[Gemini] GEMINI_API_KEY_${keyNumber} not found, using GEMINI_API_KEY_${i}`);
-      return key;
-    }
-  }
-  
-  return "";
+  const key = process.env[`GEMINI_API_KEY_${keyNumber}`];
+  return key || "";
 }
 
 // Models to try in order of preference (fallback chain)

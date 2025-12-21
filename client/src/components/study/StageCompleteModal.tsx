@@ -13,6 +13,8 @@ interface StageCompleteModalProps {
   xpEarned: number;
   stageType: StageType;
   nextStage?: StageType | null;
+  respondaCorrectAnswers?: number;
+  totalRespondaQuestions?: number;
 }
 
 const stageConfig = {
@@ -50,7 +52,9 @@ export function StageCompleteModal({
   onClose,
   xpEarned,
   stageType,
-  nextStage
+  nextStage,
+  respondaCorrectAnswers = 0,
+  totalRespondaQuestions = 0
 }: StageCompleteModalProps) {
   const config = stageConfig[stageType];
   const Icon = config.icon;
@@ -128,21 +132,43 @@ export function StageCompleteModal({
                   {config.description}
                 </motion.p>
 
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.25 }}
-                  className="flex items-center justify-center gap-2 mb-5 py-3 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20"
-                >
+                {stageType === 'responda' ? (
                   <motion.div
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 0.4, delay: 0.4 }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.25 }}
+                    className="flex flex-col items-center justify-center gap-1 mb-5 py-4 px-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30"
                   >
-                    <Zap className="h-6 w-6 text-amber-500 fill-amber-500/30" />
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                      <CheckCircle className="h-8 w-8 text-emerald-500" />
+                    </motion.div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-emerald-500">{respondaCorrectAnswers}</span>
+                      <span className="text-lg font-bold text-emerald-500">de</span>
+                      <span className="text-4xl font-black text-emerald-500">{totalRespondaQuestions}</span>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-500/70">Certas</span>
                   </motion.div>
-                  <span className="text-2xl font-black text-amber-500">+{xpEarned}</span>
-                  <span className="text-sm font-bold text-amber-500/70">XP</span>
-                </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.25 }}
+                    className="flex items-center justify-center gap-2 mb-5 py-3 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                  >
+                    <motion.div
+                      animate={{ rotate: [0, 15, -15, 0] }}
+                      transition={{ duration: 0.4, delay: 0.4 }}
+                    >
+                      <Zap className="h-6 w-6 text-amber-500 fill-amber-500/30" />
+                    </motion.div>
+                    <span className="text-2xl font-black text-amber-500">+{xpEarned}</span>
+                    <span className="text-sm font-bold text-amber-500/70">XP</span>
+                  </motion.div>
+                )}
 
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}

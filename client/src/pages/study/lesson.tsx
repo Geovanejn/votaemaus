@@ -240,12 +240,15 @@ export default function LessonPage() {
     stageType: "estude" | "medite" | "responda";
     nextStage: string | null;
     nextIndex: number;
+    respondaCorrectAnswers?: number;
+    totalRespondaQuestions?: number;
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
   const [stageOverride, setStageOverride] = useState<string | null>(null);
   const [currentRespondaQuestionIndex, setCurrentRespondaQuestionIndex] = useState(0);
   const [initialRespondaQuestionIndex, setInitialRespondaQuestionIndex] = useState(0);
   const [displayXpBeforeResponda, setDisplayXpBeforeResponda] = useState(0);
+  const [respondaCorrectAnswers, setRespondaCorrectAnswers] = useState(0);
   
   // Reset stageOverride when URL stage param changes or lesson changes
   // BUT only if we don't have restored progress (which sets its own stageOverride)
@@ -413,6 +416,7 @@ export default function LessonPage() {
     setProgressCheckDone(false);
     setProgressRestored(false);
     restoredXpRef.current = false;
+    setRespondaCorrectAnswers(0);
   }, [lessonId, user?.id]);
 
   // Force profile refetch when showing no-hearts screen to get fresh heart count
@@ -870,6 +874,10 @@ export default function LessonPage() {
 
       if (isCorrect) {
         setDisplayXp(prev => prev + xpForUnit);
+        // Track correct answers during responda stage
+        if (isRespondaStage) {
+          setRespondaCorrectAnswers(prev => prev + 1);
+        }
       } else {
         setMistakes(prev => prev + 1);
       }
@@ -916,6 +924,7 @@ export default function LessonPage() {
   const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp - displayXpBeforeResponda;
+    const totalRespondaQuestions = respondaQuestions.length;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {
@@ -930,7 +939,9 @@ export default function LessonPage() {
       xp: totalXpFromResponda,
       stageType: "responda",
       nextStage: null,
-      nextIndex: allUnits.length
+      nextIndex: allUnits.length,
+      respondaCorrectAnswers: respondaCorrectAnswers,
+      totalRespondaQuestions: totalRespondaQuestions
     });
     setShowStageComplete(true);
   };
@@ -1412,6 +1423,8 @@ export default function LessonPage() {
           xpEarned={stageCompleteData.xp}
           stageType={stageCompleteData.stageType}
           nextStage={stageCompleteData.nextStage as "estude" | "medite" | "responda" | null}
+          respondaCorrectAnswers={stageCompleteData.respondaCorrectAnswers}
+          totalRespondaQuestions={stageCompleteData.totalRespondaQuestions}
         />
       )}
     </div>

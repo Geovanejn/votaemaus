@@ -1254,6 +1254,13 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
 }
 
 export function isAIConfigured(): boolean {
+  // Check if any of the 5 Gemini keys are configured
+  for (let i = 1; i <= 5; i++) {
+    if (process.env[`GEMINI_API_KEY_${i}`]) {
+      return true;
+    }
+  }
+  // Also check for old single key format for backwards compatibility
   return !!process.env.GEMINI_API_KEY;
 }
 

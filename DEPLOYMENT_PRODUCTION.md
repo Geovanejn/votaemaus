@@ -144,7 +144,21 @@ No dashboard do Render:
 2. Adicione todas as variáveis listadas acima
 3. Use a DATABASE_URL do Neon
 
-### 4. Deploy
+### 4. Configurar Render Corretamente
+
+**IMPORTANTE**: Verificar a configuração do Web Service:
+
+1. **Root Directory**: `.` (ponto - raiz do projeto)
+2. **Build Command**: `npm run build`
+3. **Start Command**: `node ./dist/index.js` ⚠️ (NÃO é `.cjs`)
+
+Se você vê erro `Cannot find module '/opt/render/project/src/dist/index.cjs'`:
+- Vá em Settings > Build & Deploy
+- Mude Start Command para: `node ./dist/index.js`
+- Clique Save
+- Redeploy
+
+### 5. Deploy
 
 Render fará deploy automaticamente a cada push no branch principal.
 

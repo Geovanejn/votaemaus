@@ -1,4 +1,4 @@
-import { Pool } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 export async function createAllTables(pool: Pool) {
   console.log("Creating database tables...");
@@ -228,23 +228,126 @@ export async function createAllTables(pool: Pool) {
       UNIQUE(page, section)
     );
 
-    -- Study Profiles table
-    CREATE TABLE IF NOT EXISTS study_profiles (
+    -- Seasons table
+    CREATE TABLE IF NOT EXISTS seasons (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      description TEXT,
+      cover_image_url TEXT,
+      pdf_url TEXT,
+      ai_extracted_title TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      total_lessons INTEGER NOT NULL DEFAULT 0,
+      published_at TIMESTAMP,
+      starts_at TIMESTAMP,
+      ends_at TIMESTAMP,
+      created_by INTEGER REFERENCES users(id),
+      ai_metadata TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- Season Final Challenges table
+    CREATE TABLE IF NOT EXISTS season_final_challenges (
+      id SERIAL PRIMARY KEY,
+      season_id INTEGER NOT NULL REFERENCES seasons(id),
+      title TEXT NOT NULL DEFAULT 'Desafio Final',
+      description TEXT,
+      questions TEXT NOT NULL,
+      question_count INTEGER NOT NULL DEFAULT 15,
+      time_limit_seconds INTEGER NOT NULL DEFAULT 150,
+      xp_reward INTEGER NOT NULL DEFAULT 100,
+      perfect_xp_bonus INTEGER NOT NULL DEFAULT 50,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- User Final Challenge Progress table
+    CREATE TABLE IF NOT EXISTS user_final_challenge_progress (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
-      total_xp INTEGER NOT NULL DEFAULT 0,
-      current_level INTEGER NOT NULL DEFAULT 1,
-      current_streak INTEGER NOT NULL DEFAULT 0,
-      longest_streak INTEGER NOT NULL DEFAULT 0,
-      hearts INTEGER NOT NULL DEFAULT 5,
-      hearts_max INTEGER NOT NULL DEFAULT 5,
-      hearts_refill_at TIMESTAMP,
-      last_activity_date TEXT,
-      daily_goal_minutes INTEGER NOT NULL DEFAULT 10,
-      timezone TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
-      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      challenge_id INTEGER NOT NULL REFERENCES season_final_challenges(id),
+      started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMP,
+      time_spent_seconds INTEGER,
+      correct_answers INTEGER NOT NULL DEFAULT 0,
+      total_questions INTEGER NOT NULL DEFAULT 15,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      is_perfect BOOLEAN NOT NULL DEFAULT false,
+      is_completed BOOLEAN NOT NULL DEFAULT false,
+      answers_given TEXT,
+      challenge_token TEXT,
+      UNIQUE(user_id, challenge_id)
+    );
+
+    -- User Season Progress table
+    CREATE TABLE IF NOT EXISTS user_season_progress (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      season_id INTEGER NOT NULL REFERENCES seasons(id),
+      lessons_completed INTEGER NOT NULL DEFAULT 0,
+      total_lessons INTEGER NOT NULL DEFAULT 0,
+      bonus_lessons_completed INTEGER NOT NULL DEFAULT 0,
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      correct_answers INTEGER NOT NULL DEFAULT 0,
+      total_answers INTEGER NOT NULL DEFAULT 1, -- Avoid div by zero
+      hearts_lost INTEGER NOT NULL DEFAULT 0,
+      final_challenge_completed BOOLEAN NOT NULL DEFAULT false,
+      final_challenge_perfect BOOLEAN NOT NULL DEFAULT false,
+      is_mastered BOOLEAN NOT NULL DEFAULT false,
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      last_activity_at TIMESTAMP,
+      UNIQUE(user_id, season_id)
+    );
+
+    -- Season Rankings table
+    CREATE TABLE IF NOT EXISTS season_rankings (
+      id SERIAL PRIMARY KEY,
+      season_id INTEGER NOT NULL REFERENCES seasons(id),
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      xp_earned INTEGER NOT NULL DEFAULT 0,
+      lessons_completed INTEGER NOT NULL DEFAULT 0,
+      correct_percentage INTEGER NOT NULL DEFAULT 0,
+      final_challenge_score INTEGER,
+      is_mastered BOOLEAN NOT NULL DEFAULT false,
+      rank_position INTEGER,
+      is_winner BOOLEAN NOT NULL DEFAULT false,
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE(user_id)
+      UNIQUE(season_id, user_id)
+    );
+
+    -- Achievement XP table
+    CREATE TABLE IF NOT EXISTS achievement_xp (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      achievement_id INTEGER NOT NULL REFERENCES achievements(id),
+      xp_reward INTEGER NOT NULL,
+      earned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, achievement_id)
+    );
+
+    -- Daily Mission XP table
+    CREATE TABLE IF NOT EXISTS daily_mission_xp (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      mission_date TEXT NOT NULL,
+      mission_xp INTEGER NOT NULL,
+      bonus_xp INTEGER NOT NULL DEFAULT 0,
+      earned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, mission_date)
+    );
+
+    -- Devotional Readings table
+    CREATE TABLE IF NOT EXISTS devotional_readings (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      devotional_id INTEGER NOT NULL REFERENCES devotionals(id),
+      read_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      week_key TEXT,
+      UNIQUE(user_id, devotional_id)
     );
 
     -- Study Weeks table
@@ -259,6 +362,7 @@ export async function createAllTables(pool: Pool) {
       published_at TIMESTAMP,
       created_by INTEGER REFERENCES users(id),
       ai_metadata TEXT,
+      season_id INTEGER REFERENCES seasons(id),
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE(week_number, year)
@@ -267,8 +371,10 @@ export async function createAllTables(pool: Pool) {
     -- Study Lessons table
     CREATE TABLE IF NOT EXISTS study_lessons (
       id SERIAL PRIMARY KEY,
-      study_week_id INTEGER NOT NULL REFERENCES study_weeks(id),
+      study_week_id INTEGER REFERENCES study_weeks(id),
+      season_id INTEGER REFERENCES seasons(id),
       order_index INTEGER NOT NULL,
+      lesson_number INTEGER,
       title TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT 'study',
       description TEXT,
@@ -276,7 +382,11 @@ export async function createAllTables(pool: Pool) {
       estimated_minutes INTEGER NOT NULL DEFAULT 5,
       icon TEXT,
       is_bonus BOOLEAN NOT NULL DEFAULT false,
+      has_bonus_quiz BOOLEAN NOT NULL DEFAULT false,
+      bonus_quiz_questions TEXT,
       is_locked BOOLEAN NOT NULL DEFAULT true,
+      is_released BOOLEAN NOT NULL DEFAULT false,
+      release_date TIMESTAMP,
       unlock_date TIMESTAMP,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -312,22 +422,6 @@ export async function createAllTables(pool: Pool) {
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    -- Study Lesson Progress table (legacy)
-    CREATE TABLE IF NOT EXISTS study_lesson_progress (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      lesson_id INTEGER NOT NULL REFERENCES study_lessons(id),
-      status TEXT NOT NULL DEFAULT 'not_started',
-      xp_earned INTEGER NOT NULL DEFAULT 0,
-      correct_answers INTEGER NOT NULL DEFAULT 0,
-      total_questions INTEGER NOT NULL DEFAULT 0,
-      started_at TIMESTAMP,
-      completed_at TIMESTAMP,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE(user_id, lesson_id)
-    );
-
     -- Study Units table
     CREATE TABLE IF NOT EXISTS study_units (
       id SERIAL PRIMARY KEY,
@@ -338,31 +432,6 @@ export async function createAllTables(pool: Pool) {
       xp_value INTEGER NOT NULL DEFAULT 2,
       stage TEXT NOT NULL DEFAULT 'estude',
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    -- Bible Verses table
-    CREATE TABLE IF NOT EXISTS bible_verses (
-      id SERIAL PRIMARY KEY,
-      reference TEXT NOT NULL,
-      text TEXT NOT NULL,
-      reflection TEXT,
-      category TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    -- User Lesson Progress table (new)
-    CREATE TABLE IF NOT EXISTS user_lesson_progress (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      lesson_id INTEGER NOT NULL REFERENCES study_lessons(id),
-      status TEXT NOT NULL DEFAULT 'locked',
-      started_at TIMESTAMP,
-      completed_at TIMESTAMP,
-      xp_earned INTEGER NOT NULL DEFAULT 0,
-      mistakes_count INTEGER NOT NULL DEFAULT 0,
-      perfect_score BOOLEAN NOT NULL DEFAULT false,
-      time_spent_seconds INTEGER NOT NULL DEFAULT 0,
-      UNIQUE(user_id, lesson_id)
     );
 
     -- User Unit Progress table
@@ -378,130 +447,72 @@ export async function createAllTables(pool: Pool) {
       UNIQUE(user_id, unit_id)
     );
 
-    -- Verse Readings table
-    CREATE TABLE IF NOT EXISTS verse_readings (
+    -- Weekly Goal Progress table
+    CREATE TABLE IF NOT EXISTS weekly_goal_progress (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
-      verse_id INTEGER NOT NULL REFERENCES bible_verses(id),
-      read_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      hearts_recovered INTEGER NOT NULL DEFAULT 1
-    );
-
-    -- XP Transactions table
-    CREATE TABLE IF NOT EXISTS xp_transactions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      amount INTEGER NOT NULL,
-      source TEXT NOT NULL,
-      source_id INTEGER,
-      description TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    -- Daily Activity table
-    CREATE TABLE IF NOT EXISTS daily_activity (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      activity_date TEXT NOT NULL,
-      minutes_studied INTEGER NOT NULL DEFAULT 0,
+      week_key TEXT NOT NULL,
       lessons_completed INTEGER NOT NULL DEFAULT 0,
-      xp_earned INTEGER NOT NULL DEFAULT 0,
-      streak_maintained BOOLEAN NOT NULL DEFAULT false,
-      UNIQUE(user_id, activity_date)
-    );
-
-    -- Achievements table
-    CREATE TABLE IF NOT EXISTS achievements (
-      id SERIAL PRIMARY KEY,
-      code TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      description TEXT,
-      icon TEXT,
-      xp_reward INTEGER NOT NULL DEFAULT 0,
-      category TEXT NOT NULL,
-      requirement TEXT,
-      is_secret BOOLEAN NOT NULL DEFAULT false
-    );
-
-    -- User Achievements table
-    CREATE TABLE IF NOT EXISTS user_achievements (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      achievement_id INTEGER NOT NULL REFERENCES achievements(id),
-      unlocked_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE(user_id, achievement_id)
-    );
-
-    -- Leaderboard Entries table
-    CREATE TABLE IF NOT EXISTS leaderboard_entries (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      period_type TEXT NOT NULL,
-      period_key TEXT NOT NULL,
-      xp_earned INTEGER NOT NULL DEFAULT 0,
-      rank_position INTEGER,
+      verses_read INTEGER NOT NULL DEFAULT 0,
+      missions_completed INTEGER NOT NULL DEFAULT 0,
+      devotionals_read INTEGER NOT NULL DEFAULT 0,
+      is_goal_met BOOLEAN NOT NULL DEFAULT false,
+      xp_bonus INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE(user_id, period_type, period_key)
+      UNIQUE(user_id, week_key)
     );
 
-    -- Daily Missions table
-    CREATE TABLE IF NOT EXISTS daily_missions (
-      id SERIAL PRIMARY KEY,
-      type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      icon TEXT NOT NULL,
-      xp_reward INTEGER NOT NULL DEFAULT 10,
-      requirement TEXT,
-      is_active BOOLEAN NOT NULL DEFAULT true
-    );
-
-    -- User Daily Missions table
-    CREATE TABLE IF NOT EXISTS user_daily_missions (
+    -- Weekly Practice Bonus table
+    CREATE TABLE IF NOT EXISTS weekly_practice_bonus (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
-      mission_id INTEGER NOT NULL REFERENCES daily_missions(id),
-      assigned_date TEXT NOT NULL,
-      completed BOOLEAN NOT NULL DEFAULT false,
-      completed_at TIMESTAMP,
-      xp_awarded INTEGER NOT NULL DEFAULT 0,
-      UNIQUE(user_id, mission_id, assigned_date)
+      week_key TEXT NOT NULL,
+      bonus_xp INTEGER NOT NULL DEFAULT 50,
+      earned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, week_key)
     );
 
-    -- Daily Mission Content table
-    CREATE TABLE IF NOT EXISTS daily_mission_content (
+    -- Audit Logs table
+    CREATE TABLE IF NOT EXISTS audit_logs (
       id SERIAL PRIMARY KEY,
-      content_date TEXT NOT NULL UNIQUE,
-      daily_verse TEXT,
-      bible_fact TEXT,
-      bible_character TEXT,
-      daily_theme TEXT,
-      timed_quiz_questions TEXT,
+      user_id INTEGER REFERENCES users(id),
+      action TEXT NOT NULL,
+      resource TEXT NOT NULL,
+      resource_id INTEGER,
+      details TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    -- Push Subscriptions table
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
+    -- Weekly Practice table
+    CREATE TABLE IF NOT EXISTS weekly_practice (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
-      endpoint TEXT NOT NULL,
-      p256dh TEXT NOT NULL,
-      auth TEXT NOT NULL,
+      week_id INTEGER NOT NULL REFERENCES study_weeks(id),
+      stars_earned INTEGER NOT NULL DEFAULT 0,
+      correct_answers INTEGER NOT NULL DEFAULT 0,
+      total_questions INTEGER NOT NULL DEFAULT 10,
+      time_spent_seconds INTEGER NOT NULL DEFAULT 0,
+      completed_within_time BOOLEAN NOT NULL DEFAULT false,
+      is_mastered BOOLEAN NOT NULL DEFAULT false,
+      completed_at TIMESTAMP,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      last_used TIMESTAMP,
-      UNIQUE(user_id, endpoint)
+      UNIQUE(user_id, week_id)
     );
 
-    -- Notifications table
-    CREATE TABLE IF NOT EXISTS notifications (
+    -- Practice Questions table
+    CREATE TABLE IF NOT EXISTS practice_questions (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      type TEXT NOT NULL,
-      title TEXT NOT NULL,
-      body TEXT NOT NULL,
-      data TEXT,
-      read BOOLEAN NOT NULL DEFAULT false,
-      read_at TIMESTAMP,
+      week_id INTEGER NOT NULL REFERENCES study_weeks(id),
+      order_index INTEGER NOT NULL,
+      question_type TEXT NOT NULL DEFAULT 'multiple_choice',
+      question_text TEXT NOT NULL,
+      options TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
+      explanation TEXT,
+      xp_value INTEGER NOT NULL DEFAULT 5,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `;

@@ -258,7 +258,7 @@ export default function DeoGloryRevistaDetail() {
   };
 
   const usedLessonNumbers = lessons.map(l => l.lessonNumber).filter(Boolean) as number[];
-  const availableLessonNumbers = Array.from({ length: 20 }, (_, i) => i + 1).filter(
+  const availableLessonNumbers = Array.from({ length: 100 }, (_, i) => i + 1).filter(
     n => !usedLessonNumbers.includes(n)
   );
 

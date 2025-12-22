@@ -236,14 +236,20 @@ function SeasonCard({
   lessonsCount,
   avgMinutes,
   isExpanded,
-  onToggle
+  onToggle,
+  isCompleted
 }: { 
   season: Season;
   lessonsCount: number;
   avgMinutes: number;
   isExpanded: boolean;
   onToggle: () => void;
+  isCompleted?: boolean;
 }) {
+  const cardBackground = isCompleted 
+    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)'
+    : 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)';
+  
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
@@ -251,9 +257,9 @@ function SeasonCard({
       className="cursor-pointer"
     >
       <Card 
-        className="overflow-hidden border-0 shadow-lg rounded-2xl"
+        className={`overflow-hidden border-0 shadow-lg rounded-2xl ${isCompleted ? 'ring-2 ring-yellow-400' : ''}`}
         style={{
-          background: 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)',
+          background: cardBackground,
         }}
       >
         <div className="p-5">
@@ -277,7 +283,14 @@ function SeasonCard({
                 </div>
               )}
               
-              <h2 className="text-xl font-bold text-white mb-1 line-clamp-2">{season.title}</h2>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h2 className="text-xl font-bold text-white line-clamp-2">{season.title}</h2>
+                {isCompleted && (
+                  <Badge className="bg-yellow-400 text-yellow-900 border-0 text-xs">
+                    Concluída
+                  </Badge>
+                )}
+              </div>
               <p className="text-white/80 text-sm mb-3 line-clamp-2">
                 {season.description || season.subtitle || "Ensinamentos praticos para vida crista"}
               </p>
@@ -485,12 +498,105 @@ function SeasonContent({
   );
 }
 
+interface SeasonWithDetails extends Season {
+  lessons?: Lesson[];
+  progress?: SeasonDetailResponse['progress'];
+}
+
+function SeasonListItem({ 
+  season, 
+  onLessonClick,
+  focusLessonId 
+}: { 
+  season: SeasonWithDetails;
+  onLessonClick: (lessonId: number, stage?: "estude" | "medite" | "responda") => void;
+  focusLessonId?: number | null;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const lessonRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const hasScrolledToLesson = useRef(false);
+
+  const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetailResponse>({
+    queryKey: ['/api/study/seasons', season.id.toString()],
+    enabled: isExpanded,
+  });
+
+  const lessons = seasonDetail?.lessons || season.lessons || [];
+  const userProgress = seasonDetail?.progress || season.progress;
+  
+  const isCompleted = userProgress?.isMastered || 
+    (userProgress && userProgress.lessonsCompleted >= userProgress.totalLessons && userProgress.totalLessons > 0);
+
+  useEffect(() => {
+    if (focusLessonId && lessons.some(l => l.id === focusLessonId) && !hasScrolledToLesson.current) {
+      setIsExpanded(true);
+      hasScrolledToLesson.current = true;
+      setTimeout(() => {
+        lessonRefs.current[focusLessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
+    }
+  }, [focusLessonId, lessons]);
+
+  const estimatedTotalMinutes = lessons.reduce((acc, l) => acc + (l.estimatedMinutes || 45), 0);
+  const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
+
+  return (
+    <div className="space-y-3">
+      <SeasonCard 
+        season={season}
+        lessonsCount={season.totalLessons}
+        avgMinutes={avgMinutesPerLesson}
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
+        isCompleted={isCompleted}
+      />
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+              </div>
+            ) : (
+              <div className="pt-2 space-y-4">
+                {lessons.map((lesson, index) => {
+                  const previousLesson = lessons[index - 1];
+                  const previousCompleted = index === 0 || previousLesson?.status === 'completed';
+                  const transformedLesson = transformLessonToLessonData(lesson, previousCompleted, season.coverImageUrl);
+                  
+                  return (
+                    <div 
+                      key={lesson.id} 
+                      ref={el => { lessonRefs.current[lesson.id] = el; }}
+                    >
+                      <LessonCard
+                        lesson={transformedLesson}
+                        onStageClick={(lessonId, stage) => onLessonClick(lessonId, stage)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function SeasonsPage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   
-  // Parse lesson query param for focusing on a specific lesson after stage completion
   const searchParams = new URLSearchParams(searchString);
   const focusLessonId = searchParams.get('lesson') ? parseInt(searchParams.get('lesson')!) : null;
 
@@ -499,14 +605,7 @@ export default function SeasonsPage() {
     enabled: isAuthenticated,
   });
 
-  const currentSeason = seasons?.[0];
-
-  const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetailResponse>({
-    queryKey: ['/api/study/seasons', currentSeason?.id?.toString()],
-    enabled: isAuthenticated && !!currentSeason?.id,
-  });
-
-  const isLoading = authLoading || seasonsLoading || (currentSeason && detailLoading);
+  const isLoading = authLoading || seasonsLoading;
 
   const handleBack = () => {
     setLocation('/study');
@@ -526,60 +625,55 @@ export default function SeasonsPage() {
   }
 
   const hasSeasons = seasons && seasons.length > 0;
+  const sortedSeasons = hasSeasons ? [...seasons].reverse() : [];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="seasons-page">
-      {hasSeasons && seasonDetail?.id ? (
-        <SeasonContent 
-          season={{
-            id: seasonDetail.id,
-            title: seasonDetail.title,
-            subtitle: seasonDetail.subtitle,
-            description: seasonDetail.description,
-            coverImageUrl: seasonDetail.coverImageUrl,
-            status: seasonDetail.status,
-            totalLessons: seasonDetail.totalLessons,
-            publishedAt: seasonDetail.publishedAt,
-            startsAt: seasonDetail.startsAt,
-            endsAt: seasonDetail.endsAt,
-          }}
-          lessons={seasonDetail.lessons || []}
-          userProgress={seasonDetail.progress}
-          onBack={handleBack}
-          onLessonClick={handleLessonClick}
-          focusLessonId={focusLessonId}
-        />
-      ) : (
-        <>
-          <header 
-            className="sticky top-0 z-50"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
-            }}
+      <header 
+        className="sticky top-0 z-50"
+        style={{
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-3 gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleBack}
+            className="text-white no-default-hover-elevate no-default-active-elevate"
+            data-testid="button-back"
           >
-            <div className="flex items-center justify-between px-4 py-3 gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleBack}
-                className="text-white no-default-hover-elevate no-default-active-elevate"
-                data-testid="button-back"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <h1 className="font-bold text-lg text-white">Estudos</h1>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white no-default-hover-elevate no-default-active-elevate"
-                data-testid="button-menu"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </div>
-          </header>
-          <EmptyState />
-        </>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="font-bold text-lg text-white">Revistas</h1>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white no-default-hover-elevate no-default-active-elevate invisible"
+            data-testid="button-menu"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </Button>
+        </div>
+      </header>
+
+      {hasSeasons ? (
+        <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
+          <p className="text-sm text-muted-foreground">
+            {seasons.length} revista{seasons.length !== 1 ? 's' : ''} disponível{seasons.length !== 1 ? 'veis' : ''}
+          </p>
+          
+          {sortedSeasons.map((season) => (
+            <SeasonListItem
+              key={season.id}
+              season={season}
+              onLessonClick={handleLessonClick}
+              focusLessonId={focusLessonId}
+            />
+          ))}
+        </main>
+      ) : (
+        <EmptyState />
       )}
 
       <BottomNav />

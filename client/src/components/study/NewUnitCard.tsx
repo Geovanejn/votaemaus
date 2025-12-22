@@ -53,6 +53,12 @@ const unitColors = [
   { gradient: "from-[#F59E0B] to-[#FBBF24]", bg: "bg-[#F59E0B]", progress: "#FBBF24" },
 ];
 
+const completedColors = {
+  gradient: "from-[#F59E0B] to-[#D97706]",
+  bg: "bg-[#F59E0B]",
+  progress: "#D97706"
+};
+
 const lockedColors = {
   gradient: "from-[#9CA3AF] to-[#D1D5DB]",
   bg: "bg-[#9CA3AF]",
@@ -194,9 +200,9 @@ export function LessonCard({
 export function NewUnitCard({ unit, onLessonStageClick, defaultExpanded = false }: NewUnitCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const colorIndex = (unit.number - 1) % unitColors.length;
-  const colors = unit.status === "locked" ? lockedColors : unitColors[colorIndex];
   const isLocked = unit.status === "locked";
   const isCompleted = unit.status === "completed";
+  const colors = isLocked ? lockedColors : isCompleted ? completedColors : unitColors[colorIndex];
 
   return (
     <div className="space-y-3" data-testid={`unit-${unit.id}`}>

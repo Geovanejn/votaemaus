@@ -373,12 +373,29 @@ export default function StudyHomePage() {
     enabled: isAuthenticated && !!profile,
   });
 
-  const currentWeek = weeks?.[0];
+  const sortedWeeks = weeks ? [...weeks].reverse() : [];
+  const weekIds = sortedWeeks.map(w => w.id);
 
-  const { data: weekData, isLoading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useQuery<WeekWithLessons>({
-    queryKey: ['/api/study/weeks', currentWeek?.id?.toString()],
-    enabled: isAuthenticated && !!currentWeek?.id,
+  const { data: allWeeksData, isLoading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useQuery<WeekWithLessons[]>({
+    queryKey: ['/api/study/weeks/all', weekIds],
+    queryFn: async () => {
+      if (!sortedWeeks.length) return [];
+      const results = await Promise.all(
+        sortedWeeks.map(async (week) => {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`/api/study/weeks/${week.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (!res.ok) return null;
+          return res.json();
+        })
+      );
+      return results.filter(Boolean) as WeekWithLessons[];
+    },
+    enabled: isAuthenticated && !!weeks?.length,
   });
+
+  const currentWeek = sortedWeeks?.[sortedWeeks.length - 1];
 
   const { data: practiceStatusData } = useQuery<PracticeStatus>({
     queryKey: ['/api/study/practice', currentWeek?.id?.toString(), 'status'],
@@ -397,7 +414,7 @@ export default function StudyHomePage() {
   const hasError = profileError || weeksError || lessonsError;
 
   useEffect(() => {
-    if (!isLoading && weekData?.lessons && searchString && !scrollAttemptedRef.current) {
+    if (!isLoading && allWeeksData?.length && searchString && !scrollAttemptedRef.current) {
       const params = new URLSearchParams(searchString);
       const lessonId = params.get('lesson');
       
@@ -412,7 +429,7 @@ export default function StudyHomePage() {
         }, 100);
       }
     }
-  }, [isLoading, weekData, searchString]);
+  }, [isLoading, allWeeksData, searchString]);
 
   const handleRetry = () => {
     refetchProfile();
@@ -436,114 +453,107 @@ export default function StudyHomePage() {
     return <ErrorState onRetry={handleRetry} />;
   }
 
-  const rawLessons = weekData?.lessons || [];
-  
-  const transformedLessons: LessonData[] = rawLessons.map((lesson, index) => {
-    const previousLesson = index > 0 ? rawLessons[index - 1] : null;
-    const isPreviousLessonComplete = !previousLesson || previousLesson.status === 'completed';
-    
-    let lessonStatus: 'completed' | 'in_progress' | 'locked' = 'locked';
-    if (lesson.status === 'completed') {
-      lessonStatus = 'completed';
-    } else if ((lesson.status === 'in_progress' || lesson.status === 'available') && isPreviousLessonComplete) {
-      lessonStatus = 'in_progress';
-    } else if (isPreviousLessonComplete && lesson.status !== 'completed') {
-      lessonStatus = 'in_progress';
-    }
-
-    const stageProgress = lesson.progress?.stageProgress;
-    const estudeUnits = stageProgress?.estude?.total || 3;
-    const mediteUnits = stageProgress?.medite?.total || 2;
-    const respondaUnits = stageProgress?.responda?.total || 3;
-    const estudeCompleted = stageProgress?.estude?.completed || 0;
-    const mediteCompleted = stageProgress?.medite?.completed || 0;
-    const respondaCompleted = stageProgress?.responda?.completed || 0;
-    
-    const completedUnits = estudeCompleted + mediteCompleted + respondaCompleted;
-    const totalUnits = estudeUnits + mediteUnits + respondaUnits;
-    
-    let estudeStatus: 'completed' | 'current' | 'locked' = 'locked';
-    let mediteStatus: 'completed' | 'current' | 'locked' = 'locked';
-    let respondaStatus: 'completed' | 'current' | 'locked' = 'locked';
-    
-    if (lessonStatus === 'completed') {
-      estudeStatus = 'completed';
-      mediteStatus = 'completed';
-      respondaStatus = 'completed';
-    } else if (lessonStatus === 'in_progress') {
-      const estudeComplete = estudeCompleted >= estudeUnits && estudeUnits > 0;
-      const mediteComplete = mediteCompleted >= mediteUnits && mediteUnits > 0;
+  const transformLessonsForWeek = (weekData: WeekWithLessons | null): LessonData[] => {
+    if (!weekData?.lessons) return [];
+    return weekData.lessons.map((lesson: LessonWithProgress, index: number) => {
+      const previousLesson = index > 0 ? weekData.lessons[index - 1] : null;
+      const isPreviousLessonComplete = !previousLesson || previousLesson.status === 'completed';
       
-      if (estudeComplete) {
-        estudeStatus = 'completed';
-        if (mediteComplete) {
-          mediteStatus = 'completed';
-          respondaStatus = 'current';
-        } else {
-          mediteStatus = 'current';
-        }
-      } else {
-        estudeStatus = 'current';
+      let lessonStatus: 'completed' | 'in_progress' | 'locked' = 'locked';
+      if (lesson.status === 'completed') {
+        lessonStatus = 'completed';
+      } else if ((lesson.status === 'in_progress' || lesson.status === 'available') && isPreviousLessonComplete) {
+        lessonStatus = 'in_progress';
+      } else if (isPreviousLessonComplete && lesson.status !== 'completed') {
+        lessonStatus = 'in_progress';
       }
-    }
-    
-    const stages: LessonStage[] = [
-      {
-        type: 'estude' as const,
-        status: estudeStatus,
-        completedUnits: estudeCompleted,
-        totalUnits: estudeUnits
-      },
-      {
-        type: 'medite' as const,
-        status: mediteStatus,
-        completedUnits: mediteCompleted,
-        totalUnits: mediteUnits
-      },
-      {
-        type: 'responda' as const,
-        status: respondaStatus,
-        completedUnits: respondaCompleted,
-        totalUnits: respondaUnits
-      }
-    ];
 
+      const stageProgress = lesson.progress?.stageProgress;
+      const estudeUnits = stageProgress?.estude?.total || 3;
+      const mediteUnits = stageProgress?.medite?.total || 2;
+      const respondaUnits = stageProgress?.responda?.total || 3;
+      const estudeCompleted = stageProgress?.estude?.completed || 0;
+      const mediteCompleted = stageProgress?.medite?.completed || 0;
+      const respondaCompleted = stageProgress?.responda?.completed || 0;
+      
+      const completedUnits = estudeCompleted + mediteCompleted + respondaCompleted;
+      const totalUnits = estudeUnits + mediteUnits + respondaUnits;
+      
+      let estudeStatus: 'completed' | 'current' | 'locked' = 'locked';
+      let mediteStatus: 'completed' | 'current' | 'locked' = 'locked';
+      let respondaStatus: 'completed' | 'current' | 'locked' = 'locked';
+      
+      if (lessonStatus === 'completed') {
+        estudeStatus = 'completed';
+        mediteStatus = 'completed';
+        respondaStatus = 'completed';
+      } else if (lessonStatus === 'in_progress') {
+        const estudeComplete = estudeCompleted >= estudeUnits && estudeUnits > 0;
+        const mediteComplete = mediteCompleted >= mediteUnits && mediteUnits > 0;
+        
+        if (estudeComplete) {
+          estudeStatus = 'completed';
+          if (mediteComplete) {
+            mediteStatus = 'completed';
+            respondaStatus = 'current';
+          } else {
+            mediteStatus = 'current';
+          }
+        } else {
+          estudeStatus = 'current';
+        }
+      }
+      
+      const stages: LessonStage[] = [
+        { type: 'estude' as const, status: estudeStatus, completedUnits: estudeCompleted, totalUnits: estudeUnits },
+        { type: 'medite' as const, status: mediteStatus, completedUnits: mediteCompleted, totalUnits: mediteUnits },
+        { type: 'responda' as const, status: respondaStatus, completedUnits: respondaCompleted, totalUnits: respondaUnits }
+      ];
+
+      return {
+        id: lesson.id,
+        number: lesson.lessonNumber || lesson.orderIndex + 1,
+        title: lesson.title,
+        status: lessonStatus,
+        sectionsCompleted: completedUnits,
+        totalSections: totalUnits,
+        xpReward: lesson.xpReward || 50,
+        stages
+      };
+    });
+  };
+
+  const allUnitsData: UnitData[] = (allWeeksData || []).map((weekData) => {
+    const transformedLessons = transformLessonsForWeek(weekData);
+    const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
+    const week = weekData.week;
+    
     return {
-      id: lesson.id,
-      number: lesson.lessonNumber || lesson.orderIndex + 1,
-      title: lesson.title,
-      status: lessonStatus,
-      sectionsCompleted: completedUnits,
-      totalSections: totalUnits,
-      xpReward: lesson.xpReward || 50,
-      stages
+      id: week.id,
+      number: week.weekNumber,
+      title: week.title,
+      subtitle: week.description || '',
+      status: lessonsCompleted === transformedLessons.length && transformedLessons.length > 0 
+        ? 'completed' as const
+        : transformedLessons.some(l => l.status === 'in_progress') 
+          ? 'current' as const
+          : 'locked' as const,
+      lessonsCompleted,
+      totalLessons: transformedLessons.length,
+      progress: transformedLessons.length > 0 
+        ? Math.round((lessonsCompleted / transformedLessons.length) * 100)
+        : 0,
+      lessons: transformedLessons
     };
   });
 
-  const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
+  const allTransformedLessons = allUnitsData.flatMap(u => u.lessons);
+  const inProgressLesson = allTransformedLessons.find(l => l.status === 'in_progress');
+  const inProgressUnit = allUnitsData.find(u => u.lessons.some(l => l.id === inProgressLesson?.id));
   
-  const unitData: UnitData | null = currentWeek ? {
-    id: currentWeek.id,
-    number: currentWeek.weekNumber,
-    title: currentWeek.title,
-    subtitle: currentWeek.description || '',
-    status: lessonsCompleted === transformedLessons.length && transformedLessons.length > 0 
-      ? 'completed' 
-      : transformedLessons.some(l => l.status === 'in_progress') 
-        ? 'current' 
-        : 'locked',
-    lessonsCompleted,
-    totalLessons: transformedLessons.length,
-    progress: transformedLessons.length > 0 
-      ? Math.round((lessonsCompleted / transformedLessons.length) * 100)
-      : 0,
-    lessons: transformedLessons
-  } : null;
-
-  const inProgressLesson = transformedLessons.find(l => l.status === 'in_progress');
-  const continueLearningData: ContinueLearningData | null = inProgressLesson && currentWeek ? {
-    unitNumber: currentWeek.weekNumber,
-    unitTitle: currentWeek.title,
+  const continueLearningData: ContinueLearningData | null = inProgressLesson && inProgressUnit ? {
+    unitNumber: inProgressUnit.number,
+    unitTitle: inProgressUnit.title,
     lessonNumber: inProgressLesson.number,
     lessonTitle: inProgressLesson.title,
     sectionsRemaining: inProgressLesson.totalSections - inProgressLesson.sectionsCompleted,
@@ -555,7 +565,7 @@ export default function StudyHomePage() {
   } : null;
 
   const handleLessonStageClick = (lessonId: number, stage: 'estude' | 'medite' | 'responda') => {
-    const lesson = transformedLessons.find(l => l.id === lessonId);
+    const lesson = allTransformedLessons.find(l => l.id === lessonId);
     if (lesson && lesson.status !== 'locked') {
       setLocation(`/study/lesson/${lessonId}?stage=${stage}`);
     }
@@ -592,14 +602,20 @@ export default function StudyHomePage() {
             />
           )}
           
-          {unitData ? (
+          {allUnitsData.length > 0 ? (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-foreground">Unidades de Estudo</h2>
-              <NewUnitCard 
-                unit={unitData}
-                onLessonStageClick={handleLessonStageClick}
-                defaultExpanded={!continueLearningData}
-              />
+              <p className="text-sm text-muted-foreground">
+                {allUnitsData.length} unidade{allUnitsData.length !== 1 ? 's' : ''} disponível{allUnitsData.length !== 1 ? 'veis' : ''}
+              </p>
+              {allUnitsData.map((unitData, index) => (
+                <NewUnitCard 
+                  key={unitData.id}
+                  unit={unitData}
+                  onLessonStageClick={handleLessonStageClick}
+                  defaultExpanded={index === 0 && !continueLearningData}
+                />
+              ))}
             </div>
           ) : (
             <EmptyState />

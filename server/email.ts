@@ -45,12 +45,13 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   
   try {
     await resend.emails.send({
-      from: "Emaús Vota <suporte@emausvota.com.br>" ,
+      from: "UMP Emaús <suporte@emausvota.com.br>" ,
       to: email,
       subject: "Seu código de verificação - Emaús Vota",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #FFA500;">Emaús Vota</h2>
+          <p style="font-size: 12px; color: #888; margin-bottom: 15px;">Módulo: Emaús Vota (Sistema de Votação)</p>
           <p>Olá,</p>
           <p>Seu código de verificação para primeiro acesso é:</p>
           <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
@@ -59,7 +60,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
           <p>Este código expira em 15 minutos.</p>
           <p>Se você não solicitou este código, ignore este email.</p>
           <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px;">UMP Emaús - Sistema de Votação</p>
+          <p style="color: #888; font-size: 12px;">UMP Emaús</p>
         </div>
       `,
     });
@@ -78,14 +79,15 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
   
   try {
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: email,
       subject: "🔒 Recuperação de Senha - Emaús Vota",
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">🔒 Recuperação de Senha</h1>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">Recuperação de Senha</h1>
           </div>
 
           <!-- Main Content -->
@@ -93,7 +95,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
             <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Olá!</p>
             
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Você solicitou a recuperação de senha para sua conta no sistema Emaús Vota.
+              Você solicitou a recuperação de senha para sua conta no sistema UMP Emaús.
             </p>
 
             <p style="font-size: 15px; color: #555; line-height: 1.6; margin-top: 20px;">
@@ -126,7 +128,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús - Sistema de Votação
+              UMP Emaús
             </p>
             <p style="color: #aaa; font-size: 12px; margin: 0;">
               Este é um email automático, por favor não responda.
@@ -206,7 +208,7 @@ Toda a família UMP Emaús
     `.trim();
 
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: memberEmail,
       subject: `Parabéns pelo seu dia, ${formattedName}!`,
       text: plainText,
@@ -359,14 +361,15 @@ export async function sendCongratulationsEmail(
   try {
     // Prepare email payload with CID-embedded logo (Gmail-compatible method)
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: candidateEmail,
-      subject: `🎉 Parabéns! Você foi eleito(a) - Emaús Vota`,
+      subject: `Parabéns! Você foi eleito(a) - Emaús Vota`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🎉 Parabéns!</h1>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Parabéns!</h1>
           </div>
 
           <!-- Main Content -->
@@ -407,7 +410,7 @@ export async function sendCongratulationsEmail(
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús - Sistema de Votação
+              UMP Emaús
             </p>
             <p style="color: #aaa; font-size: 12px; margin: 0;">
               Este é um email automático, por favor não responda.
@@ -453,14 +456,15 @@ export async function sendAuditPDFEmail(
     const formattedName = getFirstAndLastName(presidentName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: presidentEmail,
-      subject: `📊 Relatório de Auditoria - ${electionName}`,
+      subject: `Relatório de Auditoria - ${electionName}`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">📊 Relatório de Auditoria</h1>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Relatório de Auditoria</h1>
           </div>
 
           <!-- Main Content -->
@@ -497,7 +501,7 @@ export async function sendAuditPDFEmail(
           <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
             <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús - Sistema de Votação
+              UMP Emaús
             </p>
             <p style="color: #aaa; font-size: 12px; margin: 0;">
               Este é um email automático, por favor não responda.
@@ -552,7 +556,7 @@ export async function sendNewPrayerRequestEmail(
     const preview = requestPreview.length > 150 ? requestPreview.substring(0, 150) + '...' : requestPreview;
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Novo Pedido de Oração - ${category}`,
       html: `
@@ -616,7 +620,7 @@ export async function sendNewCommentEmail(
     const preview = commentPreview.length > 150 ? commentPreview.substring(0, 150) + '...' : commentPreview;
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Novo Comentário em "${devotionalTitle}"`,
       html: `
@@ -678,7 +682,7 @@ export async function sendNewDevotionalEmail(
     const formattedName = getFirstAndLastName(recipientName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Novo Devocional: ${devotionalTitle}`,
       html: `
@@ -738,7 +742,7 @@ export async function sendNewEventEmail(
     const formattedName = getFirstAndLastName(recipientName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Novo Evento: ${eventTitle}`,
       html: `
@@ -799,7 +803,7 @@ export async function sendSeasonPublishedEmail(
     const formattedName = getFirstAndLastName(recipientName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Nova Temporada DeoGlory: ${seasonTitle}`,
       html: `
@@ -863,7 +867,7 @@ export async function sendSeasonEndedEmail(
     const completionRate = Math.round((lessonsCompleted / totalLessons) * 100);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Temporada Finalizada: ${seasonTitle} - Seu Relatório`,
       html: `
@@ -940,7 +944,7 @@ export async function sendBonusEventEmail(
     const formattedName = getFirstAndLastName(recipientName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Evento Especial DeoGlory: ${eventName}`,
       html: `
@@ -1001,7 +1005,7 @@ export async function sendLessonAvailableEmail(
     const formattedName = getFirstAndLastName(recipientName);
     
     const emailPayload: any = {
-      from: "Emaús Vota <suporte@emausvota.com.br>",
+      from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
       subject: `Nova Lição Disponível: ${lessonTitle}`,
       html: `

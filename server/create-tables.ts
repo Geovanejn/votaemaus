@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool } from "@neondatabase/serverless";
 
 export async function createAllTables(pool: Pool) {
   console.log("Creating database tables...");

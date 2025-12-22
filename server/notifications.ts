@@ -412,11 +412,12 @@ export async function notifyNewComment(
 export async function notifySeasonPublished(
   seasonId: number,
   seasonTitle: string,
-  seasonDescription?: string | null
+  seasonDescription?: string | null,
+  coverImageUrl?: string | null
 ): Promise<void> {
   const payload: NotificationPayload = {
-    title: "Nova Temporada DeoGlory!",
-    body: `"${seasonTitle}" esta disponivel. Comece a estudar agora!`,
+    title: "Nova Revista DeoGlory!",
+    body: `"${seasonTitle}" está disponível. Comece a estudar agora!`,
     url: "/study",
     tag: `season-${seasonId}`,
     icon: "/logo.png",
@@ -435,7 +436,7 @@ export async function notifySeasonPublished(
     );
     
     if (isEmailConfigured() && member.email) {
-      await sendSeasonPublishedEmail(member.email, member.fullName, seasonTitle, seasonDescription || null);
+      await sendSeasonPublishedEmail(member.email, member.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null);
     }
   }
 

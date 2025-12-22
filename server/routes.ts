@@ -5402,7 +5402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
       
-      notifySeasonPublished(season.id, season.title, season.description).catch(err => 
+      notifySeasonPublished(season.id, season.title, season.description, season.coverImageUrl).catch(err => 
         console.error("[Notifications] Error notifying season published:", err)
       );
       

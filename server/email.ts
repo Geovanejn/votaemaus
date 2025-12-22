@@ -792,7 +792,8 @@ export async function sendSeasonPublishedEmail(
   recipientEmail: string,
   recipientName: string,
   seasonTitle: string,
-  seasonDescription: string | null
+  seasonDescription: string | null,
+  coverImageUrl: string | null = null
 ): Promise<boolean> {
   if (!resend) {
     console.log(`[EMAIL DISABLED] Season published notification to ${recipientEmail}`);
@@ -802,27 +803,53 @@ export async function sendSeasonPublishedEmail(
   try {
     const formattedName = getFirstAndLastName(recipientName);
     
+    // Download cover image if available
+    let coverImageBuffer: Buffer | null = null;
+    if (coverImageUrl) {
+      coverImageBuffer = await downloadImageAsBuffer(coverImageUrl);
+    }
+    
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
-      subject: `Nova Temporada DeoGlory: ${seasonTitle}`,
+      subject: `Nova Revista DeoGlory: ${seasonTitle}`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Temporada DeoGlory!</h1>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Revista Disponível!</h1>
           </div>
           <div style="padding: 30px;">
             <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Uma nova temporada de estudos está disponível no DeoGlory:
+              Uma nova revista de estudos está disponível no DeoGlory:
             </p>
-            <div style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0 0 10px 0; color: #FFA500; font-weight: bold; font-size: 18px;">${seasonTitle}</p>
+            
+            <!-- Magazine Card with Cover -->
+            <div style="background-color: #FFF9E6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              ${coverImageBuffer ? `
+                <div style="margin-bottom: 15px;">
+                  <img src="cid:cover-image" alt="${seasonTitle}" style="max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+                </div>
+              ` : ''}
+              <p style="margin: 0 0 10px 0; color: #FFA500; font-weight: bold; font-size: 20px;">${seasonTitle}</p>
               ${seasonDescription ? `<p style="margin: 0; color: #666; font-size: 14px;">${seasonDescription}</p>` : ''}
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Comece seus estudos agora e ganhe XP!
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Acessar DeoGlory
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
@@ -832,12 +859,26 @@ export async function sendSeasonPublishedEmail(
       `,
     };
 
+    const attachments: any[] = [];
+    
+    if (coverImageBuffer) {
+      attachments.push({
+        content: coverImageBuffer.toString('base64'),
+        filename: 'cover.jpg',
+        contentId: 'cover-image',
+      });
+    }
+    
     if (logoBuffer) {
-      emailPayload.attachments = [{
+      attachments.push({
         content: logoBuffer.toString('base64'),
         filename: 'logo.png',
         contentId: 'logo-emaus',
-      }];
+      });
+    }
+    
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
     }
 
     await resend.emails.send(emailPayload);
@@ -866,19 +907,24 @@ export async function sendSeasonEndedEmail(
     const formattedName = getFirstAndLastName(recipientName);
     const completionRate = Math.round((lessonsCompleted / totalLessons) * 100);
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
-      subject: `Temporada Finalizada: ${seasonTitle} - Seu Relatório`,
+      subject: `Revista Finalizada: ${seasonTitle} - Seu Relatório`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Temporada Finalizada!</h1>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Revista Finalizada!</h1>
           </div>
           <div style="padding: 30px;">
             <p style="font-size: 16px; color: #333;">Parabéns, <strong>${formattedName}</strong>!</p>
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              A temporada "${seasonTitle}" chegou ao fim. Confira seu desempenho:
+              A revista "${seasonTitle}" chegou ao fim. Confira seu desempenho:
             </p>
             <div style="background-color: #F5F3FF; border-radius: 8px; padding: 25px; margin: 20px 0;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
@@ -901,8 +947,15 @@ export async function sendSeasonEndedEmail(
               <p style="margin: 10px 0 0 0; text-align: center; color: #7C3AED; font-size: 14px; font-weight: bold;">${completionRate}% Completo</p>
             </div>
             <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Continue crescendo na Palavra! Novas temporadas virão em breve.
+              Continue crescendo na Palavra! Novas revistas virão em breve.
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Acessar DeoGlory
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
@@ -943,6 +996,10 @@ export async function sendBonusEventEmail(
   try {
     const formattedName = getFirstAndLastName(recipientName);
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
@@ -950,6 +1007,7 @@ export async function sendBonusEventEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Evento Especial!</h1>
           </div>
           <div style="padding: 30px;">
@@ -962,9 +1020,16 @@ export async function sendBonusEventEmail(
               <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">${eventDescription}</p>
               ${bonusXp > 0 ? `<p style="margin: 0; color: #059669; font-weight: bold; font-size: 14px;">Bônus: +${bonusXp} XP</p>` : ''}
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Não perca essa oportunidade de ganhar XP extra!
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Acessar DeoGlory
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
@@ -1004,13 +1069,18 @@ export async function sendLessonAvailableEmail(
   try {
     const formattedName = getFirstAndLastName(recipientName);
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
-      subject: `Nova Lição Disponível: ${lessonTitle}`,
+      subject: `Nova Lição: ${lessonTitle} - DeoGlory`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Lição Disponível!</h1>
           </div>
           <div style="padding: 30px;">
@@ -1018,13 +1088,23 @@ export async function sendLessonAvailableEmail(
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Uma nova lição foi liberada para você estudar:
             </p>
-            <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 20px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0 0 5px 0; color: #3B82F6; font-weight: bold; font-size: 16px;">${lessonTitle}</p>
-              <p style="margin: 0; color: #666; font-size: 13px;">Temporada: ${seasonTitle}</p>
+            
+            <!-- Lesson Card -->
+            <div style="background-color: #EFF6FF; border-radius: 8px; padding: 25px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0 0 8px 0; color: #3B82F6; font-weight: bold; font-size: 20px;">${lessonTitle}</p>
+              <p style="margin: 0; color: #666; font-size: 14px;">Revista: ${seasonTitle}</p>
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Acesse o DeoGlory e continue sua jornada de aprendizado!
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Estudar Agora
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}

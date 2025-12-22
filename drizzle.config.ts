@@ -1,12 +1,10 @@
 import type { Config } from "drizzle-kit";
 
-const config: Config = {
-  schema: "./shared/schema.ts",
+export default {
+  schema: "./shared/schema.ts"
   out: "./drizzle",
   driver: "pg",
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
-};
-
-export default config;
+} satisfies Config;

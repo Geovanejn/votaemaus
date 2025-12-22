@@ -2264,20 +2264,24 @@ export class DatabaseStorage implements IStorage {
 
   async getStudyUsersWithProfiles(): Promise<any[]> {
     // Get ALL members (active or not) except admins - DeoGlory should track everyone
+    // Use separate object for user and profile to handle leftJoin properly
     const usersWithProfiles = await db.select({
-      id: schema.users.id,
-      fullName: schema.users.fullName,
-      email: schema.users.email,
-      photoUrl: schema.users.photoUrl,
-      activeMember: schema.users.activeMember,
-      isAdmin: schema.users.isAdmin,
-      createdAt: schema.users.createdAt,
-      totalXp: schema.studyProfiles.totalXp,
-      currentLevel: schema.studyProfiles.currentLevel,
-      currentStreak: schema.studyProfiles.currentStreak,
-      lastActivityDate: schema.studyProfiles.lastActivityDate,
-      lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
-      crystals: schema.studyProfiles.crystals,
+      user: {
+        id: schema.users.id,
+        fullName: schema.users.fullName,
+        email: schema.users.email,
+        photoUrl: schema.users.photoUrl,
+        activeMember: schema.users.activeMember,
+        isAdmin: schema.users.isAdmin,
+      },
+      profile: {
+        totalXp: schema.studyProfiles.totalXp,
+        currentLevel: schema.studyProfiles.currentLevel,
+        currentStreak: schema.studyProfiles.currentStreak,
+        lastActivityDate: schema.studyProfiles.lastActivityDate,
+        lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
+        crystals: schema.studyProfiles.crystals,
+      },
     })
       .from(schema.users)
       .leftJoin(schema.studyProfiles, eq(schema.studyProfiles.userId, schema.users.id))
@@ -2287,38 +2291,37 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(schema.studyProfiles.totalXp));
 
-    const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (user) => {
+    const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (row) => {
       const [lessonCount] = await db.select({ count: sql<number>`count(*)` })
         .from(schema.userLessonProgress)
         .where(and(
-          eq(schema.userLessonProgress.userId, user.id),
+          eq(schema.userLessonProgress.userId, row.user.id),
           eq(schema.userLessonProgress.status, 'completed')
         ));
 
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const lastActivityDate = user.lastActivityDate ? new Date(user.lastActivityDate) : null;
+      const lastActivityDate = row.profile?.lastActivityDate ? new Date(row.profile.lastActivityDate) : null;
       
       let status: "Ativo" | "Inativo" | "Suspenso" = "Inativo";
-      if (!user.activeMember) {
+      if (!row.user.activeMember) {
         status = "Suspenso";
       } else if (lastActivityDate && lastActivityDate >= sevenDaysAgo) {
         status = "Ativo";
       }
 
       return {
-        id: user.id,
-        name: user.fullName,
-        email: user.email,
-        avatarUrl: user.photoUrl,
+        id: row.user.id,
+        name: row.user.fullName,
+        email: row.user.email,
+        avatarUrl: row.user.photoUrl,
         status,
-        registrationDate: user.createdAt,
-        lastAccess: user.lastActivityDate || user.lastLessonCompletedAt,
+        lastAccess: row.profile?.lastActivityDate || row.profile?.lastLessonCompletedAt,
         lessonsCompleted: Number(lessonCount?.count || 0),
-        totalXp: user.totalXp || 0,
-        currentLevel: user.currentLevel || 1,
-        currentStreak: user.currentStreak || 0,
-        crystals: user.crystals || 0,
+        totalXp: row.profile?.totalXp || 0,
+        currentLevel: row.profile?.currentLevel || 1,
+        currentStreak: row.profile?.currentStreak || 0,
+        crystals: row.profile?.crystals || 0,
       };
     }));
 

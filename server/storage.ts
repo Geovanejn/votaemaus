@@ -2203,7 +2203,7 @@ export class DatabaseStorage implements IStorage {
     const achievements = await db.select({
       type: sql<string>`'achievement_unlocked'`,
       achievementId: schema.userAchievements.achievementId,
-      achievementTitle: schema.achievements.title,
+      achievementTitle: schema.achievements.name,
       achievementIcon: schema.achievements.icon,
       unlockedAt: schema.userAchievements.unlockedAt,
     })

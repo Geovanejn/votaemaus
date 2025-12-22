@@ -146,7 +146,7 @@ export default function DeoGloryLicoes() {
 
   const generateFromTextMutation = useMutation({
     mutationFn: async (data: { text: string; weekNumber: number; year: number; geminiKey: string; aiProvider: string; openaiKey: string }) => {
-      const response = await apiRequest("POST", "/api/ai/generate-week", data);
+      const response = await apiRequest("POST", "/api/ai/create-week-with-content", data);
       return response.json();
     },
     onSuccess: () => {

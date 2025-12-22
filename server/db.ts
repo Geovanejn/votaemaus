@@ -2,7 +2,6 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { createAllTables } from "./create-tables";
 import { hashPassword } from "./auth";
 
 if (!process.env.DATABASE_URL) {
@@ -95,7 +94,9 @@ export async function initializeDatabase() {
     const result = await pool.query('SELECT NOW()');
     console.log("PostgreSQL connection successful:", result.rows[0].now);
     
-    await createAllTables(pool);
+    // Tables are created via Drizzle migration (migrations/0000_seasons_schema.sql)
+    // No need to create tables here - Drizzle handles schema sync
+    
     await createDefaultPositions();
     await seedAdminUser();
     

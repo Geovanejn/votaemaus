@@ -1,5 +1,9 @@
 # Guia de Deployment em Produção - Render + Neon
 
+## ⚠️ AVISO PRÉ-DEPLOYMENT
+
+Verifique `SCHEMA_VERIFICATION_REPORT.md` - há discrepâncias no schema que precisam ser resolvidas.
+
 ## Visão Geral do Sistema
 
 Este documento descreve como fazer deploy da aplicação **Emaús** em produção usando:
@@ -12,98 +16,101 @@ Este documento descreve como fazer deploy da aplicação **Emaús** em produçã
 
 **55 tabelas criadas e configuradas:**
 
-1. **Base Tables (sem dependências)**
-   - users, positions, elections, bible_verses
-   - daily_mission_content, daily_missions
-   - streak_milestones, instagram_posts
-   - verification_codes, anonymous_push_subscriptions
+**Base Tables (sem dependências)**
+- users (11 colunas)
+- positions (2 colunas)
+- elections, bible_verses, daily_mission_content
+- daily_missions, streak_milestones, instagram_posts
+- verification_codes, anonymous_push_subscriptions
 
-2. **Election Management**
-   - candidates, election_winners
-   - election_positions, election_attendance
-   - votes, pdf_verifications
+**Election Management**
+- candidates, election_winners, election_positions
+- election_attendance, votes, pdf_verifications
 
-3. **Content Management**
-   - devotionals, devotional_comments, devotional_readings
-   - site_events, site_content, banners
-   - board_members
+**Content Management**
+- devotionals, devotional_comments, devotional_readings
+- site_events, site_content, banners
+- board_members
 
-4. **Learning System (Seasons & Lessons)**
-   - seasons, season_final_challenges
-   - season_rankings, user_season_progress
-   - user_final_challenge_progress
-   - study_weeks, study_lessons, study_units
-   - study_quiz_questions, study_quiz_responses
-   - user_lesson_progress, user_unit_progress
+**Learning System**
+- seasons (16 colunas), study_weeks, study_lessons
+- study_units, study_quiz_questions, study_quiz_responses
+- study_profiles (30 colunas - maior tabela)
 
-5. **Gamification**
-   - achievements, user_achievements, achievement_xp
-   - daily_missions, user_daily_missions, daily_mission_xp
-   - streak_milestones, user_streak_milestones, streak_freeze_history
-   - user_streak_milestones, daily_activity
-   - xp_transactions, crystal_transactions
-   - leaderboard_entries
+**Gamification**
+- achievements, user_achievements, achievement_xp
+- daily_missions, user_daily_missions, daily_mission_xp
+- streak_milestones, user_streak_milestones, streak_freeze_history
+- xp_transactions, crystal_transactions
+- leaderboard_entries, daily_activity
 
-6. **Learning Progress**
-   - weekly_goal_progress, weekly_practice, weekly_practice_bonus
-   - practice_questions, study_profiles
+**Learning Progress**
+- weekly_goal_progress, weekly_practice, weekly_practice_bonus
+- user_lesson_progress, user_unit_progress, practice_questions
+- user_season_progress, season_rankings
 
-7. **Social Features**
-   - prayer_requests, prayer_reactions
-   - notifications, push_subscriptions
+**Social Features**
+- prayer_requests (22 colunas), prayer_reactions
+- notifications, push_subscriptions
 
-8. **Audit & Logging**
-   - audit_logs
+**Audit & Logging**
+- audit_logs
 
-9. **Bible Verse System**
-   - verse_readings
+**Bible System**
+- verse_readings
+
+### 📊 Estatísticas do Schema
+
+```
+Total de Tabelas: 55
+Total de Colunas: 509
+Média por Tabela: 9.3
+Tabela Maior: study_profiles (30 colunas)
+Tabela Menor: positions (2 colunas)
+```
 
 ## Configuração no Neon
 
 ### 1. Criar Banco de Dados no Neon
 1. Acesse [neon.tech](https://neon.tech)
-2. Crie um novo projeto
-3. Crie um banco de dados chamado `emaús` ou similar
+2. Crie um novo projeto PostgreSQL
+3. Crie um banco de dados chamado `emaus` ou similar
 4. Copie a connection string: `postgresql://...`
 
 ### 2. Variáveis de Ambiente Necessárias
 
 ```env
-# Database
+# Database - OBRIGATÓRIO
 DATABASE_URL=postgresql://user:password@project.neon.tech/dbname?sslmode=require
 
-# JWT & Security
-JWT_SECRET=seu-jwt-secret-muito-seguro-aqui
+# Security - OBRIGATÓRIO
+JWT_SECRET=seu-jwt-secret-muito-seguro-aqui (gerar com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+SESSION_SECRET=seu-session-secret (gerar igual)
 
-# Email & Notifications
-RESEND_API_KEY=re_sua_chave_aqui
-VAPID_PUBLIC_KEY=sua_chave_publica
-VAPID_PRIVATE_KEY=sua_chave_privada
-
-# Admin
+# Admin - OBRIGATÓRIO
 ADMIN_EMAIL=seu-email-admin@example.com
 ADMIN_PASSWORD=senha-super-segura
 
-# Session
-SESSION_SECRET=seu-session-secret
+# Email & Notifications - OBRIGATÓRIO
+RESEND_API_KEY=re_sua_chave_aqui
+VAPID_PUBLIC_KEY=sua_chave_publica
+VAPID_PRIVATE_KEY=sua_chave_privada
+VITE_VAPID_PUBLIC_KEY=sua_chave_publica
 
-# Google APIs (opcional)
+# Google APIs (Opcional)
 GOOGLE_CLIENT_ID=seu-client-id
 GOOGLE_CLIENT_SECRET=seu-client-secret
-GOOGLE_CALENDAR_CREDENTIALS=seu-credentials-json
 
-# Instagram (opcional)
+# Instagram (Opcional)
 INSTAGRAM_ACCESS_TOKEN=seu-token
 INSTAGRAM_USER_ID=seu-user-id
 
-# OpenAI (opcional)
+# AI (Opcional)
 OPENAI_API_KEY=sua-chave-openai
-
-# Google Gemini (opcional)
 GEMINI_API_KEY=sua-chave-gemini
 
-# Frontend URL (para CORS)
-VITE_VAPID_PUBLIC_KEY=sua_chave_publica
+# Node Environment
+NODE_ENV=production
 ```
 
 ## Deployment no Render
@@ -115,8 +122,7 @@ VITE_VAPID_PUBLIC_KEY=sua_chave_publica
 npm run build
 
 # Garantir que migrations estão atualizadas
-npm run db:generate  # Se necessário
-npm run db:push      # Para sincronizar schema
+npm run db:push
 ```
 
 ### 2. Criar Web Service no Render
@@ -125,8 +131,8 @@ npm run db:push      # Para sincronizar schema
 2. Clique em "New +" > "Web Service"
 3. Conecte seu repositório GitHub
 4. Configure:
-   - **Name**: emaús (ou similar)
-   - **Root Directory**: `.` (raiz)
+   - **Name**: emaus
+   - **Root Directory**: `.`
    - **Runtime**: Node
    - **Build Command**: `npm run build`
    - **Start Command**: `node ./dist/index.cjs`
@@ -140,8 +146,7 @@ No dashboard do Render:
 
 ### 4. Deploy
 
-1. Render fará deploy automaticamente a cada push no branch principal
-2. Ou faça deploy manual: clique "Deploy"
+Render fará deploy automaticamente a cada push no branch principal.
 
 ## Checklist Pré-Produção
 
@@ -149,13 +154,13 @@ No dashboard do Render:
 - [ ] Neon project criado
 - [ ] Database criado
 - [ ] Variável DATABASE_URL obtida
-- [ ] SSL enabled no Neon (automático)
+- [ ] SSL enabled no Neon
+- [ ] **Revisar SCHEMA_VERIFICATION_REPORT.md**
 
 ### Aplicação
 - [ ] `npm run build` funciona localmente
 - [ ] `node ./dist/index.cjs` inicia sem erros
-- [ ] Todas as 55 tabelas estão em `create-tables.ts`
-- [ ] Migration file (`migrations/0000_seasons_schema.sql`) está completo
+- [ ] `npm run db:push` sincroniza schema
 
 ### Render
 - [ ] Web Service criado
@@ -166,9 +171,10 @@ No dashboard do Render:
 
 ### Secrets
 - [ ] JWT_SECRET - 64+ caracteres aleatórios
-- [ ] SESSION_SECRET - seguro
-- [ ] ADMIN_PASSWORD - forte
+- [ ] SESSION_SECRET - 64+ caracteres aleatórios
+- [ ] ADMIN_PASSWORD - forte (mínimo 12 caracteres)
 - [ ] Todos os tokens de APIs configurados
+- [ ] Nenhum secret commitado no repositório
 
 ## Monitoramento em Produção
 
@@ -179,23 +185,41 @@ No dashboard do Render:
 ### Neon
 - Acesse console Neon para monitorar banco
 - Veja query performance
+- Monitore connections e storage
+
+## Troubleshooting
+
+### Erro: "DATABASE_URL must be set"
+- Verifique se DATABASE_URL está definida no Render
+- Verifique se não há typos
+
+### Erro: "Connection timeout"
+- Verifique se SSL está habilitado no Neon
+- Verifique DATABASE_URL tem `?sslmode=require`
+
+### Tabelas não existem
+- Execute `npm run db:push` localmente
+- Verifique migration em `migrations/0000_seasons_schema.sql`
 
 ## Rollback em Caso de Problema
 
 Se algo der errado:
 
 1. **No Render**: Use "Deployments" > "Previous" para reverter
-2. **No Neon**: Banco de dados separado, sem risco de rollback no código
+2. **No Neon**: Backup automático disponível (verifique console)
 3. **Local**: Use `npm run db:push` para resincronizar schema
 
-## Contato & Suporte
+## Referências
 
 - **Render Docs**: https://render.com/docs
 - **Neon Docs**: https://neon.tech/docs
 - **PostgreSQL**: https://www.postgresql.org/docs/
+- **Drizzle ORM**: https://orm.drizzle.team
 
 ---
 
 **Data de Criação**: 22 de Dezembro de 2024
 **Versão do Node**: 20+
 **Banco de Dados**: PostgreSQL 14+
+**Tabelas**: 55
+**Colunas**: 509

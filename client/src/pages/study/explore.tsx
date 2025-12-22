@@ -91,9 +91,9 @@ export default function ExplorePage() {
   const dailyVerseRead = dailyVerseStatus?.isRead === true;
   const currentHearts = profile?.hearts ?? 5;
   const maxHearts = profile?.heartsMax ?? 5;
-  const streak = profile?.streak ?? 0;
-  const totalXP = profile?.xp ?? 0;
-  const userName = user?.name?.split(' ')[0] || 'Usuario';
+  const streak = profile?.currentStreak ?? 0;
+  const totalXP = profile?.totalXp ?? 0;
+  const userName = user?.fullName?.split(' ')[0] || 'Usuario';
 
   const handleMarkAsRead = () => {
     if (dailyVerseRead || markAsReadMutation.isPending) {

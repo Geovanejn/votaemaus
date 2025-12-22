@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from './button';
+import { Card, CardContent } from './card';
 
 type LoadingStateType = 'idle' | 'loading' | 'success' | 'error';
 
@@ -271,5 +272,88 @@ export function ProgressIndicator({
         />
       </div>
     </div>
+  );
+}
+
+interface AIProcessingCardProps {
+  title?: string;
+  description?: string;
+  steps?: string[];
+  currentStep?: number;
+  className?: string;
+}
+
+export function AIProcessingCard({
+  title = "Processando com IA...",
+  description = "Isso pode levar alguns minutos.",
+  steps,
+  currentStep = 0,
+  className,
+}: AIProcessingCardProps) {
+  return (
+    <Card className={`border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20 ${className}`}>
+      <CardContent className="py-6">
+        <div className="flex items-start gap-4">
+          <motion.div 
+            className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+          </motion.div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold">{title}</h3>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            
+            {steps && steps.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {steps.map((step, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    {index < currentStep ? (
+                      <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    ) : index === currentStep ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <Loader2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      </motion.div>
+                    ) : (
+                      <div className="h-4 w-4 rounded-full border-2 border-muted flex-shrink-0" />
+                    )}
+                    <span className={index <= currentStep ? 'text-foreground' : 'text-muted-foreground'}>
+                      {step}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface InlineLoadingProps {
+  text?: string;
+  size?: 'sm' | 'md';
+}
+
+export function InlineLoading({ text = "Carregando...", size = 'md' }: InlineLoadingProps) {
+  const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
+  const textSize = size === 'sm' ? 'text-xs' : 'text-sm';
+  
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${textSize} text-muted-foreground`}>
+      <Loader2 className={`${iconSize} animate-spin`} />
+      {text}
+    </span>
   );
 }

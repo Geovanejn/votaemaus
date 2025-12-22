@@ -203,3 +203,117 @@ export function VerseSkeleton() {
     </div>
   );
 }
+
+export function DevotionalSkeleton() {
+  return (
+    <Card className="overflow-hidden">
+      <div className="p-0">
+        <div className="grid md:grid-cols-3">
+          <div className="relative min-h-[280px] bg-muted">
+            <div className="p-8 flex flex-col justify-center h-full space-y-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-16 w-16 rounded-xl" />
+              <Skeleton className="h-7 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+          <div className="md:col-span-2 p-6 md:p-8 space-y-4">
+            <div className="border-l-4 border-muted-foreground/20 pl-4 py-2 space-y-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-md" />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export function EventCardSkeleton() {
+  return (
+    <Card className="w-[280px] md:w-auto overflow-hidden">
+      <div className="p-0">
+        <div className="flex">
+          <div className="relative min-w-[100px] min-h-[140px] bg-muted">
+            <div className="h-full flex flex-col items-center justify-center p-3 space-y-1">
+              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-8 w-10" />
+              <Skeleton className="h-3 w-6" />
+            </div>
+          </div>
+          <div className="p-4 flex-1 space-y-2">
+            <Skeleton className="h-5 w-3/4" />
+            <div className="space-y-1">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export function EventsSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-hidden">
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.1 }}
+        >
+          <EventCardSkeleton />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export function QuickAccessSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.05 }}
+        >
+          <Card className="p-6 text-center">
+            <div className="flex flex-col items-center space-y-3">
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </Card>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export function InstagramGridSkeleton() {
+  return (
+    <div className="flex gap-2 md:grid md:grid-cols-6">
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.05 }}
+        >
+          <Skeleton className="w-[120px] md:w-full aspect-square rounded-lg" />
+        </motion.div>
+      ))}
+    </div>
+  );
+}

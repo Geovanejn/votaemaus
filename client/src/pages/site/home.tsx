@@ -12,8 +12,7 @@ import {
   GraduationCap,
   MapPin,
   Clock,
-  Sparkles,
-  Loader2
+  Sparkles
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { HeroBanner } from "@/components/site/HeroBanner";
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { parseTipTapContent } from "@/lib/utils";
+import { DevotionalSkeleton, EventsSkeleton, InstagramGridSkeleton } from "@/components/ui/skeleton-cards";
 
 import devocionalArt from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 import eventImg1 from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
@@ -173,11 +173,7 @@ export default function HomePage() {
           </div>
 
           {isLoading ? (
-            <Card className="overflow-hidden">
-              <CardContent className="p-12 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </CardContent>
-            </Card>
+            <DevotionalSkeleton />
           ) : !devotional ? (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
@@ -259,9 +255,7 @@ export default function HomePage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <EventsSkeleton />
           ) : events.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
@@ -399,9 +393,7 @@ export default function HomePage() {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <InstagramGridSkeleton />
             ) : (
               <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
                 <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-6">

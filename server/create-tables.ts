@@ -116,13 +116,11 @@ export async function createAllTables(pool: Pool) {
       verse TEXT NOT NULL,
       verse_reference TEXT NOT NULL,
       content TEXT NOT NULL,
-      content_html TEXT,
       summary TEXT,
       prayer TEXT,
       image_url TEXT,
       author TEXT,
       published_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      scheduled_at TIMESTAMP,
       is_published BOOLEAN NOT NULL DEFAULT true,
       is_featured BOOLEAN NOT NULL DEFAULT false,
       created_by INTEGER REFERENCES users(id),
@@ -156,42 +154,26 @@ export async function createAllTables(pool: Pool) {
     -- Instagram Posts table
     CREATE TABLE IF NOT EXISTS instagram_posts (
       id SERIAL PRIMARY KEY,
-      instagram_id TEXT,
       caption TEXT,
       image_url TEXT NOT NULL,
-      video_url TEXT,
-      media_type TEXT DEFAULT 'IMAGE',
       permalink TEXT,
-      likes_count INTEGER DEFAULT 0,
-      comments_count INTEGER DEFAULT 0,
       posted_at TIMESTAMP NOT NULL DEFAULT NOW(),
       is_active BOOLEAN NOT NULL DEFAULT true,
-      is_featured_banner BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
     -- Prayer Requests table
     CREATE TABLE IF NOT EXISTS prayer_requests (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT,
       whatsapp TEXT,
       category TEXT NOT NULL DEFAULT 'outros',
       request TEXT NOT NULL,
+      is_anonymous BOOLEAN NOT NULL DEFAULT false,
       status TEXT NOT NULL DEFAULT 'pending',
       notes TEXT,
       prayed_by INTEGER REFERENCES users(id),
       prayed_at TIMESTAMP,
-      is_moderated BOOLEAN NOT NULL DEFAULT false,
-      moderated_by INTEGER REFERENCES users(id),
-      moderated_at TIMESTAMP,
-      is_approved BOOLEAN NOT NULL DEFAULT false,
-      approved_at TIMESTAMP,
-      approved_by INTEGER REFERENCES users(id),
-      in_prayer_count INTEGER NOT NULL DEFAULT 0,
-      has_profanity BOOLEAN DEFAULT false,
-      has_hate_speech BOOLEAN DEFAULT false,
-      has_sexual_content BOOLEAN DEFAULT false,
-      moderation_details TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
@@ -260,22 +242,6 @@ export async function createAllTables(pool: Pool) {
       last_activity_date TEXT,
       daily_goal_minutes INTEGER NOT NULL DEFAULT 10,
       timezone TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
-      weekly_lessons_goal INTEGER NOT NULL DEFAULT 1,
-      weekly_verses_goal INTEGER NOT NULL DEFAULT 7,
-      weekly_missions_goal INTEGER NOT NULL DEFAULT 3,
-      weekly_devotionals_goal INTEGER NOT NULL DEFAULT 1,
-      verses_read_for_recovery INTEGER NOT NULL DEFAULT 0,
-      crystals INTEGER NOT NULL DEFAULT 0,
-      streak_freezes_available INTEGER NOT NULL DEFAULT 0,
-      last_lesson_completed_at TIMESTAMP,
-      streak_warning_day INTEGER NOT NULL DEFAULT 0,
-      total_streak_freeze_used INTEGER NOT NULL DEFAULT 0,
-      consecutive_perfect_lessons INTEGER NOT NULL DEFAULT 0,
-      consecutive_lessons INTEGER NOT NULL DEFAULT 0,
-      total_lessons_completed_today INTEGER NOT NULL DEFAULT 0,
-      last_lesson_date TEXT,
-      weekly_lessons_streak INTEGER NOT NULL DEFAULT 0,
-      daily_verse_read_date TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE(user_id)
@@ -293,7 +259,6 @@ export async function createAllTables(pool: Pool) {
       published_at TIMESTAMP,
       created_by INTEGER REFERENCES users(id),
       ai_metadata TEXT,
-      season_id INTEGER REFERENCES seasons(id),
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE(week_number, year)
@@ -302,10 +267,8 @@ export async function createAllTables(pool: Pool) {
     -- Study Lessons table
     CREATE TABLE IF NOT EXISTS study_lessons (
       id SERIAL PRIMARY KEY,
-      study_week_id INTEGER REFERENCES study_weeks(id),
-      season_id INTEGER REFERENCES seasons(id),
+      study_week_id INTEGER NOT NULL REFERENCES study_weeks(id),
       order_index INTEGER NOT NULL,
-      lesson_number INTEGER,
       title TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT 'study',
       description TEXT,
@@ -313,11 +276,7 @@ export async function createAllTables(pool: Pool) {
       estimated_minutes INTEGER NOT NULL DEFAULT 5,
       icon TEXT,
       is_bonus BOOLEAN NOT NULL DEFAULT false,
-      has_bonus_quiz BOOLEAN NOT NULL DEFAULT false,
-      bonus_quiz_questions TEXT,
       is_locked BOOLEAN NOT NULL DEFAULT true,
-      is_released BOOLEAN NOT NULL DEFAULT false,
-      release_date TIMESTAMP,
       unlock_date TIMESTAMP,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -458,12 +417,10 @@ export async function createAllTables(pool: Pool) {
       name TEXT NOT NULL,
       description TEXT,
       icon TEXT,
-      custom_icon_url TEXT,
       xp_reward INTEGER NOT NULL DEFAULT 0,
       category TEXT NOT NULL,
       requirement TEXT,
-      is_secret BOOLEAN NOT NULL DEFAULT false,
-      season_id INTEGER REFERENCES seasons(id)
+      is_secret BOOLEAN NOT NULL DEFAULT false
     );
 
     -- User Achievements table

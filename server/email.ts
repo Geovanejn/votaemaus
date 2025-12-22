@@ -555,6 +555,10 @@ export async function sendNewPrayerRequestEmail(
     const formattedName = getFirstAndLastName(recipientName);
     const preview = requestPreview.length > 150 ? requestPreview.substring(0, 150) + '...' : requestPreview;
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
@@ -562,6 +566,7 @@ export async function sendNewPrayerRequestEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Pedido de Oração</h1>
           </div>
           <div style="padding: 30px;">
@@ -569,18 +574,25 @@ export async function sendNewPrayerRequestEmail(
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Um novo pedido de oração foi recebido e precisa de sua atenção:
             </p>
-            <div style="background-color: #F3E8FF; border-left: 4px solid #6B46C1; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <div style="background-color: #F3E8FF; border-radius: 8px; padding: 20px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0; color: #6B46C1; font-weight: bold; font-size: 14px;">Categoria: ${category}</p>
               <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${requesterName}</p>
               <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Acesse o painel de espiritualidade para revisar e aprovar o pedido.
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/admin/espiritualidade" style="display: inline-block; background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Acessar Painel
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Secretaria de Espiritualidade</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
           </div>
         </div>
       `,
@@ -619,6 +631,10 @@ export async function sendNewCommentEmail(
     const formattedName = getFirstAndLastName(recipientName);
     const preview = commentPreview.length > 150 ? commentPreview.substring(0, 150) + '...' : commentPreview;
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
@@ -626,6 +642,7 @@ export async function sendNewCommentEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Comentário</h1>
           </div>
           <div style="padding: 30px;">
@@ -633,18 +650,25 @@ export async function sendNewCommentEmail(
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Um novo comentário foi recebido no devocional e precisa de aprovação:
             </p>
-            <div style="background-color: #EFF6FF; border-left: 4px solid #2563EB; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <div style="background-color: #EFF6FF; border-radius: 8px; padding: 20px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0; color: #2563EB; font-weight: bold; font-size: 14px;">Devocional: ${devotionalTitle}</p>
               <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${commenterName}</p>
               <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Acesse o painel de espiritualidade para revisar e aprovar o comentário.
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${appUrl}/admin/espiritualidade" style="display: inline-block; background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Acessar Painel
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Secretaria de Espiritualidade</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
           </div>
         </div>
       `,
@@ -671,7 +695,8 @@ export async function sendNewDevotionalEmail(
   recipientEmail: string,
   recipientName: string,
   devotionalTitle: string,
-  devotionalId: number
+  devotionalId: number,
+  imageUrl: string | null = null
 ): Promise<boolean> {
   if (!resend) {
     console.log(`[EMAIL DISABLED] New devotional notification to ${recipientEmail}`);
@@ -681,6 +706,18 @@ export async function sendNewDevotionalEmail(
   try {
     const formattedName = getFirstAndLastName(recipientName);
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
+    const devotionalUrl = `${appUrl}/devocionais/${devotionalId}`;
+    
+    // Download devotional image if available
+    let devotionalImageBuffer: Buffer | null = null;
+    if (imageUrl) {
+      devotionalImageBuffer = await downloadImageAsBuffer(imageUrl);
+    }
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
@@ -688,6 +725,7 @@ export async function sendNewDevotionalEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Devocional</h1>
           </div>
           <div style="padding: 30px;">
@@ -695,27 +733,56 @@ export async function sendNewDevotionalEmail(
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Um novo devocional foi publicado para você:
             </p>
-            <div style="background-color: #ECFDF5; border-left: 4px solid #059669; padding: 20px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #059669; font-weight: bold; font-size: 18px;">${devotionalTitle}</p>
+            
+            <!-- Devotional Card with Image -->
+            <div style="background-color: #ECFDF5; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              ${devotionalImageBuffer ? `
+                <div style="margin-bottom: 15px;">
+                  <img src="cid:devotional-image" alt="${devotionalTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                </div>
+              ` : ''}
+              <p style="margin: 0; color: #059669; font-weight: bold; font-size: 20px;">${devotionalTitle}</p>
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Aproveite este momento de reflexão e crescimento espiritual!
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${devotionalUrl}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Ler Devocional
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
           </div>
         </div>
       `,
     };
 
+    const attachments: any[] = [];
+    
+    if (devotionalImageBuffer) {
+      attachments.push({
+        content: devotionalImageBuffer.toString('base64'),
+        filename: 'devotional.jpg',
+        contentId: 'devotional-image',
+      });
+    }
+    
     if (logoBuffer) {
-      emailPayload.attachments = [{
+      attachments.push({
         content: logoBuffer.toString('base64'),
         filename: 'logo.png',
         contentId: 'logo-emaus',
-      }];
+      });
+    }
+    
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
     }
 
     await resend.emails.send(emailPayload);
@@ -731,7 +798,9 @@ export async function sendNewEventEmail(
   recipientName: string,
   eventTitle: string,
   eventDate: string,
-  eventLocation: string | null
+  eventLocation: string | null,
+  eventId: number,
+  imageUrl: string | null = null
 ): Promise<boolean> {
   if (!resend) {
     console.log(`[EMAIL DISABLED] New event notification to ${recipientEmail}`);
@@ -741,6 +810,18 @@ export async function sendNewEventEmail(
   try {
     const formattedName = getFirstAndLastName(recipientName);
     
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://emausvota.com.br');
+    
+    const eventUrl = `${appUrl}/agenda/${eventId}`;
+    
+    // Download event image if available
+    let eventImageBuffer: Buffer | null = null;
+    if (imageUrl) {
+      eventImageBuffer = await downloadImageAsBuffer(imageUrl);
+    }
+    
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
@@ -748,6 +829,7 @@ export async function sendNewEventEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Marketing</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento</h1>
           </div>
           <div style="padding: 30px;">
@@ -755,29 +837,58 @@ export async function sendNewEventEmail(
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
               Um novo evento foi adicionado à agenda:
             </p>
-            <div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 20px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0 0 10px 0; color: #DC2626; font-weight: bold; font-size: 18px;">${eventTitle}</p>
+            
+            <!-- Event Card with Image -->
+            <div style="background-color: #FEF2F2; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              ${eventImageBuffer ? `
+                <div style="margin-bottom: 15px;">
+                  <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                </div>
+              ` : ''}
+              <p style="margin: 0 0 10px 0; color: #DC2626; font-weight: bold; font-size: 20px;">${eventTitle}</p>
               <p style="margin: 0 0 5px 0; color: #666; font-size: 14px;">Data: ${eventDate}</p>
               ${eventLocation ? `<p style="margin: 0; color: #666; font-size: 14px;">Local: ${eventLocation}</p>` : ''}
             </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px;">
+            
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
               Marque na sua agenda e participe!
             </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Ver Evento
+              </a>
+            </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Marketing</p>
           </div>
         </div>
       `,
     };
 
+    const attachments: any[] = [];
+    
+    if (eventImageBuffer) {
+      attachments.push({
+        content: eventImageBuffer.toString('base64'),
+        filename: 'event.jpg',
+        contentId: 'event-image',
+      });
+    }
+    
     if (logoBuffer) {
-      emailPayload.attachments = [{
+      attachments.push({
         content: logoBuffer.toString('base64'),
         filename: 'logo.png',
         contentId: 'logo-emaus',
-      }];
+      });
+    }
+    
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
     }
 
     await resend.emails.send(emailPayload);

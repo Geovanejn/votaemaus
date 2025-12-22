@@ -4343,7 +4343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "create", "event", event.id, `Criado: ${req.body.title}`, req);
       
       if (req.body.isPublished !== false) {
-        notifyNewEvent(event.id, event.title, event.startDate, event.location).catch(err => 
+        notifyNewEvent(event.id, event.title, event.startDate, event.location, event.imageUrl).catch(err => 
           console.error("[Notifications] Error notifying new event:", err)
         );
       }
@@ -5898,7 +5898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (isPublished) {
-        notifyNewDevotional(devotional.id, title).catch(err => 
+        notifyNewDevotional(devotional.id, title, imageUrl).catch(err => 
           console.error("[Notifications] Error notifying new devotional:", err)
         );
       }

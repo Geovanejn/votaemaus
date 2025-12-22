@@ -239,7 +239,8 @@ export async function createInAppNotification(
 
 export async function notifyNewDevotional(
   devotionalId: number,
-  title: string
+  title: string,
+  imageUrl?: string | null
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Novo Devocional",
@@ -262,7 +263,7 @@ export async function notifyNewDevotional(
     );
     
     if (isEmailConfigured() && member.email) {
-      await sendNewDevotionalEmail(member.email, member.fullName, title, devotionalId);
+      await sendNewDevotionalEmail(member.email, member.fullName, title, devotionalId, imageUrl || null);
     }
   }
 
@@ -275,7 +276,8 @@ export async function notifyNewEvent(
   eventId: number,
   title: string,
   eventDate?: string,
-  eventLocation?: string | null
+  eventLocation?: string | null,
+  imageUrl?: string | null
 ): Promise<void> {
   const payload: NotificationPayload = {
     title: "Novo Evento",
@@ -298,7 +300,7 @@ export async function notifyNewEvent(
     );
     
     if (isEmailConfigured() && member.email && eventDate) {
-      await sendNewEventEmail(member.email, member.fullName, title, eventDate, eventLocation || null);
+      await sendNewEventEmail(member.email, member.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null);
     }
   }
 

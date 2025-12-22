@@ -14,51 +14,45 @@ const OPENAI_MODELS = [
 
 // Get OpenAI API key by number (1-5)
 function getOpenAIApiKey(keyNumber: string = "1"): string {
-  // Try numbered keys only (1-5)
-  const numberedKey = process.env[`OPENAI_API_KEY_${keyNumber}`];
-  if (numberedKey) {
-    return numberedKey;
+  switch (keyNumber) {
+    case "2":
+      return process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY || "";
+    case "3":
+      return process.env.OPENAI_API_KEY_3 || process.env.OPENAI_API_KEY || "";
+    case "4":
+      return process.env.OPENAI_API_KEY_4 || process.env.OPENAI_API_KEY || "";
+    case "5":
+      return process.env.OPENAI_API_KEY_5 || process.env.OPENAI_API_KEY || "";
+    case "1":
+    default:
+      return process.env.OPENAI_API_KEY_1 || process.env.OPENAI_API_KEY || "";
   }
-  
-  // Try other numbered keys as fallback
-  for (let i = 1; i <= 5; i++) {
-    const key = process.env[`OPENAI_API_KEY_${i}`];
-    if (key) {
-      console.log(`[OpenAI] OPENAI_API_KEY_${keyNumber} not found, using OPENAI_API_KEY_${i}`);
-      return key;
-    }
-  }
-  
-  return "";
 }
 
 // Get OpenAI client
 function getOpenAIClient(keyNumber: string = "1"): OpenAI {
   const apiKey = getOpenAIApiKey(keyNumber);
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY_1 a OPENAI_API_KEY_5 não estão configuradas. Configure uma ou mais nas variáveis de ambiente do Render.");
+    throw new Error("OPENAI_API_KEY não está configurada");
   }
   return new OpenAI({ apiKey });
 }
 
 // Get Gemini API key by number (1-5)
 function getGeminiApiKey(keyNumber: string = "1"): string {
-  // Try numbered keys only (1-5)
-  const numberedKey = process.env[`GEMINI_API_KEY_${keyNumber}`];
-  if (numberedKey) {
-    return numberedKey;
+  switch (keyNumber) {
+    case "2":
+      return process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY || "";
+    case "3":
+      return process.env.GEMINI_API_KEY_3 || process.env.GEMINI_API_KEY || "";
+    case "4":
+      return process.env.GEMINI_API_KEY_4 || process.env.GEMINI_API_KEY || "";
+    case "5":
+      return process.env.GEMINI_API_KEY_5 || process.env.GEMINI_API_KEY || "";
+    case "1":
+    default:
+      return process.env.GEMINI_API_KEY_1 || process.env.GEMINI_API_KEY || "";
   }
-  
-  // Try other numbered keys as fallback
-  for (let i = 1; i <= 5; i++) {
-    const key = process.env[`GEMINI_API_KEY_${i}`];
-    if (key) {
-      console.log(`[Gemini] GEMINI_API_KEY_${keyNumber} not found, using GEMINI_API_KEY_${i}`);
-      return key;
-    }
-  }
-  
-  return "";
 }
 
 // Models to try in order of preference (fallback chain)

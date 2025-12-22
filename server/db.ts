@@ -4,7 +4,6 @@ import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { createAllTables } from "./create-tables";
 import { hashPassword } from "./auth";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -92,15 +91,6 @@ export async function initializeDatabase() {
   try {
     const result = await pool.query('SELECT NOW()');
     console.log("PostgreSQL connection successful:", result.rows[0].now);
-    
-    // Run migrations from migrations folder
-    try {
-      console.log("Running database migrations...");
-      await migrate(db, { migrationsFolder: "./migrations" });
-      console.log("Migrations completed successfully!");
-    } catch (migrationError: any) {
-      console.warn("Migration note:", migrationError.message || "Migrations may have already been applied");
-    }
     
     await createAllTables(pool);
     await createDefaultPositions();

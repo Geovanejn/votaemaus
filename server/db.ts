@@ -2,12 +2,19 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { createAllTables } from "@shared/db/create-tables";
 import { hashPassword } from "./auth";
 
+/* =======================
+   ENV VALIDATION
+======================= */
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set.");
+  throw new Error("DATABASE_URL must be set");
 }
 
+/* =======================
+   POSTGRES CONNECTION
+======================= */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl:
@@ -16,8 +23,14 @@ const pool = new Pool({
       : false,
 });
 
+/* =======================
+   DRIZZLE INSTANCE
+======================= */
 export const db = drizzle(pool, { schema });
 
+/* =======================
+   SEED: POSITIONS
+======================= */
 async function createDefaultPositions() {
   const positions = [
     { name: "Presidente" },
@@ -36,21 +49,24 @@ async function createDefaultPositions() {
 
     if (!existing) {
       await db.insert(schema.positions).values(pos);
-      console.log(`Position created: ${pos.name}`);
+      console.log(`✔ Cargo criado: ${pos.name}`);
     }
   }
 }
 
+/* =======================
+   SEED: ADMIN USER
+======================= */
 async function seedAdminUser() {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
 
-  if (!adminEmail || !adminPassword) {
-    console.log("ADMIN_EMAIL ou ADMIN_PASSWORD não definidos. Pulando admin seed.");
+  if (!email || !password) {
+    console.log("ℹ ADMIN_EMAIL ou ADMIN_PASSWORD não definidos. Pulando seed.");
     return;
   }
 
-  const normalizedEmail = adminEmail.toLowerCase().trim();
+  const normalizedEmail = email.toLowerCase().trim();
 
   const [existingUser] = await db
     .select()
@@ -65,12 +81,12 @@ async function seedAdminUser() {
         .set({ isAdmin: true })
         .where(eq(schema.users.id, existingUser.id));
 
-      console.log(`Usuário ${normalizedEmail} promovido a admin.`);
+      console.log(`✔ Usuário promovido a admin: ${normalizedEmail}`);
     }
     return;
   }
 
-  const hashedPassword = await hashPassword(adminPassword);
+  const hashedPassword = await hashPassword(password);
 
   await db.insert(schema.users).values({
     fullName: "Administrador",
@@ -83,22 +99,29 @@ async function seedAdminUser() {
     secretaria: null,
   });
 
-  console.log(`Admin criado com sucesso: ${normalizedEmail}`);
+  console.log(`✔ Admin criado: ${normalizedEmail}`);
 }
 
+/* =======================
+   DATABASE INITIALIZER
+======================= */
 export async function initializeDatabase() {
-  console.log("Initializing database...");
+  console.log("🚀 Initializing database...");
 
   try {
-    const result = await pool.query("SELECT 1");
-    console.log("PostgreSQL conectado.");
+    await pool.query("SELECT 1");
+    console.log("✔ PostgreSQL conectado");
 
+    // CRIA TABELAS (IDEMPOTENTE)
+    await createAllTables(pool);
+
+    // SEEDS
     await createDefaultPositions();
     await seedAdminUser();
 
-    console.log("Database initialization completed.");
+    console.log("✅ Database ready");
   } catch (error) {
-    console.error("Database initialization error:", error);
+    console.error("❌ Database initialization failed:", error);
     throw error;
   }
 }

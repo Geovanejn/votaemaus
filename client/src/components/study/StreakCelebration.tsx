@@ -113,10 +113,10 @@ export function StreakCelebration({
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-muted/50 rounded-2xl px-6 py-4 mb-8 max-w-xs text-center relative"
+        className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 border-2 border-orange-500/30 rounded-2xl px-6 py-5 mb-8 max-w-sm text-center relative shadow-lg"
       >
-        <p className="text-foreground font-medium">{message}</p>
-        <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-4 h-4 bg-muted/50 rotate-45" />
+        <p className="text-foreground font-bold text-lg leading-relaxed">{message}</p>
+        <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-orange-500/20 to-amber-500/10 border-r-2 border-b-2 border-orange-500/30 rotate-45" />
       </motion.div>
 
       <motion.div

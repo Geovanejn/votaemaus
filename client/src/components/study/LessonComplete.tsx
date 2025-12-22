@@ -30,21 +30,21 @@ function StatBox({
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: "spring", delay }}
-      className="flex-1 rounded-2xl p-4 text-center"
+      className="flex-1 rounded-2xl p-3 sm:p-4 text-center min-w-0"
       style={{
-        border: `3px solid ${color}`,
+        border: `2px solid ${color}`,
         backgroundColor: `${color}10`
       }}
     >
       <p 
-        className="text-[10px] font-bold uppercase tracking-wider mb-2"
+        className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1.5 sm:mb-2 truncate"
         style={{ color }}
       >
         {label}
       </p>
-      <div className="flex items-center justify-center gap-1.5">
-        <Icon className="h-5 w-5" style={{ color }} />
-        <span className="text-2xl font-black" style={{ color }}>
+      <div className="flex items-center justify-center gap-1">
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" style={{ color }} />
+        <span className="text-xl sm:text-2xl font-black truncate" style={{ color }}>
           {value}
         </span>
       </div>
@@ -119,7 +119,7 @@ export function LessonComplete({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="w-full max-w-sm flex gap-3 mb-12"
+        className="w-full max-w-sm flex gap-2 mb-12 px-2"
       >
         <StatBox 
           label="Total de XP" 

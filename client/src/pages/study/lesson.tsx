@@ -921,9 +921,18 @@ export default function LessonPage() {
     }
   };
 
-  const handleRespondaComplete = async (correctCount: number, totalQuestions: number) => {
+  const handleRespondaComplete = async () => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp - displayXpBeforeResponda;
+    
+    // Count question-type units for total questions
+    const questionUnits = respondaUnits.filter(u => 
+      u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'
+    );
+    const totalQuestions = questionUnits.length;
+    
+    // Use the state value which was incremented during answering
+    const correctCount = respondaCorrectAnswers;
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {

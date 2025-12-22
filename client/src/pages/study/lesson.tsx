@@ -914,25 +914,24 @@ export default function LessonPage() {
       setCurrentUnitIndex(prev => prev + 1);
     } else {
       if (targetStage === 'responda') {
-        handleRespondaComplete();
+        // Calculate from state when called from unit-by-unit flow
+        const respondaUnits = allUnits.filter(u => u.stage === 'responda');
+        const questionUnits = respondaUnits.filter(u => 
+          u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'
+        );
+        handleRespondaComplete(respondaCorrectAnswers, questionUnits.length);
       } else {
         handleLessonCompletion();
       }
     }
   };
 
-  const handleRespondaComplete = async () => {
+  const handleRespondaComplete = async (correctCount: number, totalQuestions: number) => {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp - displayXpBeforeResponda;
     
-    // Count question-type units for total questions
-    const questionUnits = respondaUnits.filter(u => 
-      u.type === 'multiple_choice' || u.type === 'true_false' || u.type === 'fill_blank'
-    );
-    const totalQuestions = questionUnits.length;
-    
-    // Use the state value which was incremented during answering
-    const correctCount = respondaCorrectAnswers;
+    // Note: mistakes are now tracked in real-time via handleRespondaAnswer
+    // No need to calculate here - the mistakes state is already accurate
     
     // Mark all responda units as completed (ensures text-type units are also marked)
     for (const unit of respondaUnits) {
@@ -1235,6 +1234,15 @@ export default function LessonPage() {
     const unit = respondaUnits[questionIndex];
     if (!unit) return;
     
+    // Track mistakes in real-time for accurate achievement calculation
+    // This is critical for the "Perfeito" achievement to work correctly
+    if (!isCorrect) {
+      setMistakes(prev => prev + 1);
+    } else {
+      // Track correct answers for the stage complete modal
+      setRespondaCorrectAnswers(prev => prev + 1);
+    }
+    
     // Submit to server for persistence
     try {
       await submitAnswerMutation.mutateAsync({ 
@@ -1326,7 +1334,6 @@ export default function LessonPage() {
             initialXp={displayXp}
             initialQuestionIndex={initialRespondaQuestionIndex}
             onAnswer={handleRespondaAnswer}
-            onComplete={handleRespondaComplete}
             onComplete={handleRespondaComplete}
             onClose={handleClose}
             onProgress={handleStudyProgress}

@@ -3408,7 +3408,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSeason(id: number): Promise<boolean> {
-    const result = await db.delete(schema.seasons)
+    const lessons = await this.getLessonsForSeason(id);
+    const lessonIds = lessons.map(l => l.id);
+    
+    if (lessonIds.length > 0) {
+      const units = await db.select({ id: schema.studyUnits.id })
+        .from(schema.studyUnits)
+        .where(inArray(schema.studyUnits.lessonId, lessonIds));
+      const unitIds = units.map(u => u.id);
+      
+      if (unitIds.length > 0) {
+        await db.delete(schema.userUnitProgress)
+          .where(inArray(schema.userUnitProgress.unitId, unitIds));
+        await db.delete(schema.studyUnits)
+          .where(inArray(schema.studyUnits.id, unitIds));
+      }
+      
+      await db.delete(schema.userLessonProgress)
+        .where(inArray(schema.userLessonProgress.lessonId, lessonIds));
+      await db.delete(schema.studyLessons)
+        .where(inArray(schema.studyLessons.id, lessonIds));
+    }
+    
+    await db.delete(schema.userSeasonProgress)
+      .where(eq(schema.userSeasonProgress.seasonId, id));
+    
+    const finalChallenges = await db.select({ id: schema.seasonFinalChallenges.id })
+      .from(schema.seasonFinalChallenges)
+      .where(eq(schema.seasonFinalChallenges.seasonId, id));
+    
+    if (finalChallenges.length > 0) {
+      const challengeIds = finalChallenges.map(c => c.id);
+      await db.delete(schema.userFinalChallengeProgress)
+        .where(inArray(schema.userFinalChallengeProgress.challengeId, challengeIds));
+      await db.delete(schema.seasonFinalChallenges)
+        .where(eq(schema.seasonFinalChallenges.seasonId, id));
+    }
+    
+    await db.delete(schema.seasons)
       .where(eq(schema.seasons.id, id));
     return true;
   }

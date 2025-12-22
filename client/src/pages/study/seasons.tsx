@@ -19,6 +19,14 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface SeasonProgress {
+  lessonsCompleted: number;
+  totalLessons: number;
+  xpEarned: number;
+  isMastered: boolean;
+  completedAt: string | null;
+}
+
 interface Season {
   id: number;
   title: string;
@@ -30,6 +38,7 @@ interface Season {
   publishedAt: string | null;
   startsAt: string | null;
   endsAt: string | null;
+  progress?: SeasonProgress | null;
 }
 
 interface Lesson {
@@ -55,13 +64,7 @@ interface Lesson {
 
 interface SeasonDetailResponse extends Season {
   lessons: Lesson[];
-  progress?: {
-    lessonsCompleted: number;
-    totalLessons: number;
-    xpEarned: number;
-    isMastered: boolean;
-    completedAt: string | null;
-  };
+  userProgress?: SeasonProgress;
   finalChallenge?: {
     id: number;
     title: string;
@@ -500,7 +503,6 @@ function SeasonContent({
 
 interface SeasonWithDetails extends Season {
   lessons?: Lesson[];
-  progress?: SeasonDetailResponse['progress'];
 }
 
 function SeasonListItem({ 
@@ -522,10 +524,10 @@ function SeasonListItem({
   });
 
   const lessons = seasonDetail?.lessons || season.lessons || [];
-  const userProgress = seasonDetail?.progress || season.progress;
+  const userProgress = seasonDetail?.userProgress || season.progress;
   
-  const isCompleted = userProgress?.isMastered || 
-    (userProgress && userProgress.lessonsCompleted >= userProgress.totalLessons && userProgress.totalLessons > 0);
+  const isCompleted = !!(userProgress?.isMastered === true || 
+    (userProgress && userProgress.lessonsCompleted >= userProgress.totalLessons && userProgress.totalLessons > 0));
 
   useEffect(() => {
     if (focusLessonId && lessons.some(l => l.id === focusLessonId) && !hasScrolledToLesson.current) {
@@ -605,6 +607,11 @@ export default function SeasonsPage() {
     enabled: isAuthenticated,
   });
 
+  const { data: currentLessonData } = useQuery<{ lesson: Lesson; season: Season } | null>({
+    queryKey: ['/api/study/current-lesson'],
+    enabled: isAuthenticated,
+  });
+
   const isLoading = authLoading || seasonsLoading;
 
   const handleBack = () => {
@@ -614,6 +621,10 @@ export default function SeasonsPage() {
   const handleLessonClick = (lessonId: number, stage?: "estude" | "medite" | "responda") => {
     const stageParam = stage ? `?stage=${stage}` : '';
     setLocation(`/study/lesson/${lessonId}${stageParam}`);
+  };
+
+  const handleContinueLearning = (lessonId: number) => {
+    setLocation(`/study/lesson/${lessonId}`);
   };
 
   if (isLoading) {
@@ -626,6 +637,19 @@ export default function SeasonsPage() {
 
   const hasSeasons = seasons && seasons.length > 0;
   const sortedSeasons = hasSeasons ? [...seasons].reverse() : [];
+
+  const continueLearningData: ContinueLearningData | null = currentLessonData ? {
+    unitNumber: 1,
+    unitTitle: currentLessonData.season.title,
+    lessonNumber: currentLessonData.lesson.lessonNumber,
+    lessonTitle: currentLessonData.lesson.title,
+    sectionsRemaining: (currentLessonData.lesson.totalSections || 3) - (currentLessonData.lesson.sectionsCompleted || 0),
+    totalSections: currentLessonData.lesson.totalSections || 3,
+    progress: currentLessonData.lesson.totalSections 
+      ? Math.round(((currentLessonData.lesson.sectionsCompleted || 0) / currentLessonData.lesson.totalSections) * 100)
+      : 0,
+    lessonId: currentLessonData.lesson.id
+  } : null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24" data-testid="seasons-page">
@@ -659,6 +683,13 @@ export default function SeasonsPage() {
 
       {hasSeasons ? (
         <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
+          {continueLearningData && (
+            <ContinueLearning 
+              data={continueLearningData}
+              onContinue={handleContinueLearning}
+            />
+          )}
+          
           <p className="text-sm text-muted-foreground">
             {seasons.length} revista{seasons.length !== 1 ? 's' : ''} disponível{seasons.length !== 1 ? 'veis' : ''}
           </p>

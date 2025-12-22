@@ -4777,11 +4777,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
   }
 
-  // Listar temporadas publicadas (usuário autenticado)
+  // Obter lição atual em progresso do usuário (para "Continue estudando")
+  app.get("/api/study/current-lesson", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const seasons = await storage.getPublishedSeasons();
+      
+      for (const season of seasons) {
+        const lessons = await storage.getLessonsWithProgressForSeason(req.user!.id, season.id);
+        
+        for (let i = 0; i < lessons.length; i++) {
+          const lesson = lessons[i];
+          const previousLesson = lessons[i - 1];
+          const previousCompleted = i === 0 || previousLesson?.status === 'completed';
+          
+          if (lesson.status !== 'completed' && previousCompleted && !lesson.isLocked) {
+            return res.json({
+              lesson: {
+                id: lesson.id,
+                lessonNumber: lesson.lessonNumber || (lesson.orderIndex + 1),
+                title: lesson.title,
+                sectionsCompleted: lesson.sectionsCompleted || 0,
+                totalSections: lesson.totalSections || 3,
+                status: lesson.status
+              },
+              season: {
+                id: season.id,
+                title: season.title
+              }
+            });
+          }
+        }
+      }
+      
+      res.json(null);
+    } catch (error) {
+      console.error("Get current lesson error:", error);
+      res.status(500).json({ message: "Erro ao buscar lição atual" });
+    }
+  });
+
+  // Listar temporadas publicadas (usuário autenticado) com progresso
   app.get("/api/study/seasons", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const seasons = await storage.getPublishedSeasons();
-      res.json(seasons);
+      
+      const seasonsWithProgress = await Promise.all(seasons.map(async (season) => {
+        const progress = await storage.getUserSeasonProgress(req.user!.id, season.id);
+        const lessonsCompleted = progress?.lessonsCompleted || 0;
+        const totalLessons = season.totalLessons || 0;
+        const isCompleted = totalLessons > 0 && lessonsCompleted >= totalLessons;
+        
+        return {
+          ...season,
+          progress: progress ? {
+            lessonsCompleted: progress.lessonsCompleted,
+            totalLessons: progress.totalLessons,
+            xpEarned: progress.xpEarned,
+            isMastered: progress.isMastered || isCompleted,
+            completedAt: progress.completedAt
+          } : null
+        };
+      }));
+      
+      res.json(seasonsWithProgress);
     } catch (error) {
       console.error("Get seasons error:", error);
       res.status(500).json({ message: "Erro ao buscar temporadas" });
@@ -4802,13 +4860,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const lessons = await storage.getLessonsWithProgressForSeason(req.user!.id, seasonId);
-      const progress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
+      const userProgress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
       const finalChallenge = await storage.getSeasonFinalChallenge(seasonId);
+      
+      const lessonsCompleted = userProgress?.lessonsCompleted || 0;
+      const totalLessons = season.totalLessons || 0;
+      const isCompleted = totalLessons > 0 && lessonsCompleted >= totalLessons;
 
       res.json({
         ...season,
         lessons,
-        userProgress: progress,
+        userProgress,
+        progress: userProgress ? {
+          lessonsCompleted: userProgress.lessonsCompleted,
+          totalLessons: userProgress.totalLessons,
+          xpEarned: userProgress.xpEarned,
+          isMastered: userProgress.isMastered || isCompleted,
+          completedAt: userProgress.completedAt
+        } : null,
         finalChallenge: finalChallenge ? { 
           id: finalChallenge.id,
           title: finalChallenge.title,

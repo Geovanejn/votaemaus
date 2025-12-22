@@ -449,7 +449,13 @@ export default function StudyHomePage() {
     return <LoadingState />;
   }
 
-  if (hasError || !profile || !displayProfile) {
+  if (hasError) {
+    console.error("[Study] Error loading data:", { profileError, weeksError, lessonsError });
+    return <ErrorState onRetry={handleRetry} />;
+  }
+
+  if (!profile || !displayProfile) {
+    console.error("[Study] Missing profile data:", { profile, displayProfile });
     return <ErrorState onRetry={handleRetry} />;
   }
 

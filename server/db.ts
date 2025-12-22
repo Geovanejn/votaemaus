@@ -1,22 +1,52 @@
 import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./auth";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// Lazy initialization - pool and db are created on first access after validation
+let pool: Pool | null = null;
+let _db: NodePgDatabase<typeof schema> | null = null;
 
-const dbUrl = process.env.DATABASE_URL || "";
-
-const pool = new Pool({ 
-  connectionString: dbUrl,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+// Getter for db - throws if not initialized
+export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
+  get(_, prop) {
+    if (!_db) {
+      throw new Error("Database not initialized. Call initializeDatabase() first.");
+    }
+    return (_db as any)[prop];
+  }
 });
-export const db = drizzle(pool, { schema });
+
+function validateAndCreatePool(): Pool {
+  const dbUrl = process.env.DATABASE_URL;
+  
+  if (!dbUrl) {
+    console.error("================================================================================");
+    console.error("[FATAL] DATABASE_URL environment variable is not set!");
+    console.error("[FATAL] Please configure DATABASE_URL in your environment variables.");
+    console.error("[FATAL] For Render: Go to Dashboard > Environment > Add DATABASE_URL");
+    console.error("[FATAL] Format: postgresql://user:password@host:port/database");
+    console.error("================================================================================");
+    throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  }
+
+  if (!dbUrl.startsWith("postgres://") && !dbUrl.startsWith("postgresql://")) {
+    console.error("================================================================================");
+    console.error("[FATAL] DATABASE_URL has invalid format!");
+    console.error("[FATAL] Current value starts with:", dbUrl.substring(0, Math.min(20, dbUrl.length)));
+    console.error("[FATAL] Expected format: postgresql://user:password@host:port/database");
+    console.error("================================================================================");
+    throw new Error("DATABASE_URL has invalid format - must start with postgres:// or postgresql://");
+  }
+
+  return new Pool({ 
+    connectionString: dbUrl,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+  });
+}
 
 async function createDefaultPositions() {
   const positions = [
@@ -89,8 +119,14 @@ async function seedAdminUser() {
   }
 }
 
-export async function initializeDatabase() {
+export async function initializeDatabase(): Promise<void> {
   console.log("Initializing PostgreSQL database connection...");
+  
+  // Validate and create pool on first call
+  if (!pool) {
+    pool = validateAndCreatePool();
+    _db = drizzle(pool, { schema });
+  }
   
   try {
     const result = await pool.query('SELECT NOW()');
@@ -104,7 +140,7 @@ export async function initializeDatabase() {
     
     console.log("Database initialized successfully!");
   } catch (error) {
-    console.error("Database initialization error:", error);
+    console.error("[DB] Database initialization error:", error);
     throw error;
   }
 }

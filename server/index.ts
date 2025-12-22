@@ -172,15 +172,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await initializeDatabase();
-  await seedAchievementsAndVerses();
-  initBirthdayScheduler();
-  initDeoGlorySchedulers();
-  initDailyVerseScheduler();
-  initRecoveryVersesScheduler();
-  initInstagramScheduler();
-  initDailyMissionsScheduler();
-  
   const server = await registerRoutes(app);
   
   // Initialize WebSocket server
@@ -208,11 +199,31 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  // START SERVER FIRST - Critical for Render port detection
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
+    
+    // Initialize database and seeders AFTER server starts
+    // Server will shut down if initialization fails
+    try {
+      await initializeDatabase();
+      await seedAchievementsAndVerses();
+      initBirthdayScheduler();
+      initDeoGlorySchedulers();
+      initDailyVerseScheduler();
+      initRecoveryVersesScheduler();
+      initInstagramScheduler();
+      initDailyMissionsScheduler();
+      log("Database and schedulers initialized successfully");
+    } catch (error: any) {
+      console.error("[FATAL] Failed to initialize:", error.message);
+      console.error("[FATAL] Shutting down server");
+      process.exit(1);
+    }
   });
 })();

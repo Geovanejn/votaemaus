@@ -52,6 +52,19 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 - **Database Schema**: Managed with Drizzle, allowing for `db:push` command for schema synchronization.
 - **Environment Configuration**: Utilizes environment variables (`secrets`) for sensitive information and API keys.
 - **Root Administrator**: Automatic creation and promotion of a root admin user based on environment variables.
+- **Render Deployment**: Server binds to port FIRST before database initialization. Uses lazy db initialization with Proxy pattern to ensure Render detects the port before any DATABASE_URL validation. If initialization fails, process exits with code 1 after port is bound.
+
+## Deployment (Render)
+- **Build Command**: `npm run build`
+- **Start Command**: `node ./dist/index.js`
+- **Environment Variables Required**:
+  - `DATABASE_URL`: PostgreSQL connection string (format: `postgresql://user:password@host:port/database`)
+  - `NODE_ENV`: Set to `production`
+  - `PORT`: Will be set automatically by Render
+  - `ADMIN_EMAIL` / `ADMIN_PASSWORD`: For root admin creation
+  - Optional: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (push notifications)
+  - Optional: `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID` (Instagram integration)
+  - Optional: `GEMINI_API_KEY` or `AI_INTEGRATIONS_OPENAI_API_KEY` (AI features)
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for the application.

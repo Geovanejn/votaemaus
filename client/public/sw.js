@@ -1,4 +1,4 @@
-const CACHE_NAME = 'emaus-vota-v2';
+const CACHE_NAME = 'ump-emaus-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -238,8 +238,8 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
   let data = {
-    title: 'Emaus Vota',
-    body: 'Voce tem uma nova notificacao!',
+    title: 'UMP Emaús',
+    body: 'Você tem uma nova notificação!',
     icon: '/logo.png',
     badge: '/favicon.png',
     tag: 'default',

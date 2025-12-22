@@ -605,6 +605,7 @@ export class DatabaseStorage implements IStorage {
   async initializeAttendance(electionId: number): Promise<void> {
     const members = await this.getAllMembers();
     for (const member of members) {
+      if (!member.activeMember) continue;
       await db.insert(schema.electionAttendance).values({
         electionId,
         memberId: member.id,

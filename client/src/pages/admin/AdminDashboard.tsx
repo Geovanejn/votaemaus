@@ -45,8 +45,8 @@ const StaggerItem = ({ children }: { children: React.ReactNode }) => (
 const adminPanels = [
   {
     id: "emaus-vota",
-    title: "Emaus Vota",
-    subtitle: "Sistema de Eleições",
+    title: "Eleições",
+    subtitle: "Sistema de Votação",
     description: "Participe das eleições e acompanhe os resultados em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",
@@ -61,8 +61,8 @@ const adminPanels = [
   },
   {
     id: "emaus-vota-admin",
-    title: "Emaús Vota Admin",
-    subtitle: "Gerenciamento de Eleições",
+    title: "Painel de Eleições",
+    subtitle: "Gerenciamento de Votações",
     description: "Gerencie eleições, candidatos, membros e acompanhe votações em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",

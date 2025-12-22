@@ -31,6 +31,7 @@ import { DevotionalComments } from "@/components/DevotionalComments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { parseTipTapContent } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
@@ -40,6 +41,7 @@ interface DevotionalData {
   verse: string;
   verseReference: string;
   content?: string;
+  contentHtml?: string;
   summary?: string;
   imageUrl?: string;
   author?: string;
@@ -322,6 +324,7 @@ export default function DevocionalDetailPage() {
     ? devotional.imageUrl 
     : defaultDevImg;
 
+  const hasHtmlContent = devotional.contentHtml && devotional.contentHtml.trim().length > 0;
   const contentText = parseTipTapContent(devotional.content) || parseTipTapContent(devotional.summary) || '';
 
   return (
@@ -390,30 +393,37 @@ export default function DevocionalDetailPage() {
               <Card>
                 <CardContent className="p-8">
                   <div className="prose prose-lg dark:prose-invert max-w-none">
-                    {contentText.split('\n\n').map((paragraph, index) => {
-                      if (!paragraph.trim()) return null;
-                      if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                    {hasHtmlContent ? (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(devotional.contentHtml!) }}
+                        className="devotional-content [&_p]:text-muted-foreground [&_p]:leading-relaxed [&_p]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_blockquote]:border-l-4 [&_blockquote]:border-primary/50 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4"
+                      />
+                    ) : (
+                      contentText.split('\n\n').map((paragraph, index) => {
+                        if (!paragraph.trim()) return null;
+                        if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                          return (
+                            <h3 key={index} className="text-xl font-semibold mt-6 mb-3">
+                              {paragraph.replace(/\*\*/g, '')}
+                            </h3>
+                          );
+                        }
+                        if (paragraph.match(/^\d\./)) {
+                          return (
+                            <p key={index} className="text-muted-foreground leading-relaxed mb-2">
+                              {paragraph.split('**').map((part, i) => 
+                                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                              )}
+                            </p>
+                          );
+                        }
                         return (
-                          <h3 key={index} className="text-xl font-semibold mt-6 mb-3">
-                            {paragraph.replace(/\*\*/g, '')}
-                          </h3>
-                        );
-                      }
-                      if (paragraph.match(/^\d\./)) {
-                        return (
-                          <p key={index} className="text-muted-foreground leading-relaxed mb-2">
-                            {paragraph.split('**').map((part, i) => 
-                              i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                            )}
+                          <p key={index} className="text-muted-foreground leading-relaxed mb-4">
+                            {paragraph}
                           </p>
                         );
-                      }
-                      return (
-                        <p key={index} className="text-muted-foreground leading-relaxed mb-4">
-                          {paragraph}
-                        </p>
-                      );
-                    })}
+                      })
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between flex-wrap gap-4 mt-8 pt-6 border-t">

@@ -48,8 +48,8 @@ type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
 const systems = [
   {
     id: "emaus-vota",
-    title: "Emaús Vota",
-    subtitle: "Sistema de Eleições",
+    title: "Eleições",
+    subtitle: "Sistema de Votação",
     description: "Participe das eleições da UMP Emaús de forma segura e transparente. Vote nos candidatos, acompanhe resultados em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",

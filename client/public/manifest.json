@@ -1,7 +1,7 @@
 {
-  "name": "Emaús Vota - Sistema da UMP Emaús",
-  "short_name": "Emaús Vota",
-  "description": "Sistema de votação seguro e plataforma de estudos bíblicos gamificada da UMP Emaús",
+  "name": "UMP Emaús - União de Mocidade Presbiteriana",
+  "short_name": "UMP Emaús",
+  "description": "Site oficial da União de Mocidade Presbiteriana da Igreja Presbiteriana Emaús",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

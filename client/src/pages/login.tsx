@@ -287,7 +287,7 @@ export default function LoginPage() {
               <div className="logo-container relative w-full max-w-[133px] mx-auto">
                 <img 
                   src={logoAnimated}
-                  alt="Emaús Vota Logo Animado"
+                  alt="UMP Emaús Logo"
                   className="w-full h-auto object-contain"
                   loading="lazy"
                   decoding="async"
@@ -296,8 +296,8 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Emaús Vota</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Sistema de votação da UMP Emaús</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">UMP Emaús</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">União de Mocidade Presbiteriana</p>
           </div>
 
           <Card className="border-border shadow-md">

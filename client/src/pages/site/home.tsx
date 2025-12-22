@@ -88,8 +88,8 @@ const quickAccessItems = [
   },
   {
     icon: Vote,
-    title: "Emaús Vota",
-    description: "Sistema de Eleições",
+    title: "Eleições",
+    description: "Sistema de Votação",
     href: "/membro",
     color: "text-green-500",
     bg: "bg-green-500/10",

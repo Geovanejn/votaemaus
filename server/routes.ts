@@ -118,16 +118,15 @@ async function logAuditAction(
     console.error("[Audit Log] Failed to create log:", error);
   }
 }
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
-
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   console.log("[PDF Parser] Starting PDF extraction, buffer size:", buffer.length);
   let textResult = "";
   
   try {
-    const result = await pdf(buffer);
+    // Dynamically import pdf-parse using ESM main entry point
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = pdfParseModule.default || pdfParseModule;
+    const result = await pdfParse(buffer);
     console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", result.text?.length || 0);
     
     if (result.text) {

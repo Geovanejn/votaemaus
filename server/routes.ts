@@ -2932,10 +2932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
       }
 
-      const { text, weekNumber, year, geminiKey, aiProvider, openaiKey } = req.body;
-      const selectedGeminiKey = geminiKey || "1";
-      const selectedOpenaiKey = openaiKey || "1";
-      const selectedProvider: AIProvider = aiProvider === "openai" ? "openai" : "gemini";
+      const { text, weekNumber, year } = req.body;
       
       if (!text || text.trim().length < 100) {
         return res.status(400).json({ message: "Texto muito curto. Forneca pelo menos 100 caracteres." });
@@ -2944,10 +2941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const content = await generateStudyContentFromText(
         text,
         weekNumber || 1,
-        year || new Date().getFullYear(),
-        selectedGeminiKey,
-        selectedProvider,
-        selectedOpenaiKey
+        year || new Date().getFullYear()
       );
 
       res.json(content);

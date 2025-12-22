@@ -423,24 +423,24 @@ export function MediteScreen({
                       {currentSection.title}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className={cn("h-8 w-8", fontSize !== 16 ? "text-emerald-600" : "text-muted-foreground")}
+                      className={cn("min-h-[44px] min-w-[44px] touch-manipulation", fontSize !== 16 ? "text-emerald-600" : "text-muted-foreground")}
                       onClick={toggleFontSize}
                       data-testid="button-font-size-medite"
                     >
-                      <Type className="h-4 w-4" />
+                      <Type className="h-5 w-5" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className={cn("h-8 w-8", isReading ? "text-emerald-600" : "text-muted-foreground")}
+                      className={cn("min-h-[44px] min-w-[44px] touch-manipulation", isReading ? "text-emerald-600" : "text-muted-foreground")}
                       onClick={speakText}
                       data-testid="button-accessibility-medite"
                     >
-                      <Accessibility className="h-4 w-4" />
+                      <Accessibility className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>

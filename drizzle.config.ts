@@ -10,5 +10,10 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,
+    // O Render exige SSL. rejectUnauthorized: false permite a conexão
+    // mesmo com certificados auto-assinados comuns em nuvem.
+    ssl: {
+      rejectUnauthorized: false,
+    },
   },
 });

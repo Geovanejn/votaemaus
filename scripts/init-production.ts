@@ -2,6 +2,9 @@ import { db } from "../server/db";
 import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { migrate } from "drizzle-orm/neon-serverless/migrator";
+import { Pool } from "@neondatabase/serverless";
 
 async function main() {
   console.log("=== Inicialização do Banco de Dados de Produção ===\n");

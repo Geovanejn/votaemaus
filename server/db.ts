@@ -10,16 +10,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Debug: Log DATABASE_URL to diagnose connection issues
-console.log("[DB] NODE_ENV:", process.env.NODE_ENV);
-console.log("[DB] DATABASE_URL exists:", !!process.env.DATABASE_URL);
-console.log("[DB] DATABASE_URL length:", process.env.DATABASE_URL?.length);
-console.log("[DB] DATABASE_URL (first 50 chars):", process.env.DATABASE_URL?.substring(0, 50));
-console.log("[DB] DATABASE_URL (last 30 chars):", process.env.DATABASE_URL?.substring(Math.max(0, process.env.DATABASE_URL.length - 30)));
+const dbUrl = process.env.DATABASE_URL || "";
 
 const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+  connectionString: dbUrl,
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 export const db = drizzle(pool, { schema });
 

@@ -278,15 +278,19 @@ function getChapterNumber(chapter: number | { number: number; verses: number }):
 async function fetchVerse(book: string, chapter: number, verse: number): Promise<BibleVerse | null> {
   try {
     const response = await fetch(`${BIBLE_API_BASE}/verses/${VERSION}/${book}/${chapter}/${verse}`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      signal: AbortSignal.timeout(5000)
     });
     if (!response.ok) {
-      console.error(`[BibleAPI] Error fetching verse: ${response.status}`);
+      // Only log warning for unexpected errors (not 500 which is common for this API)
+      if (response.status !== 500) {
+        console.warn(`[BibleAPI] Verse fetch returned ${response.status}`);
+      }
       return null;
     }
     return await response.json();
   } catch (error) {
-    console.error("[BibleAPI] Error fetching verse:", error);
+    // Silently fail - fallback will be used
     return null;
   }
 }
@@ -294,15 +298,19 @@ async function fetchVerse(book: string, chapter: number, verse: number): Promise
 async function fetchRandomVerse(): Promise<BibleVerse | null> {
   try {
     const response = await fetch(`${BIBLE_API_BASE}/verses/${VERSION}/random`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      signal: AbortSignal.timeout(5000)
     });
     if (!response.ok) {
-      console.error(`[BibleAPI] Error fetching random verse: ${response.status}`);
+      // Only log warning for unexpected errors
+      if (response.status !== 500) {
+        console.warn(`[BibleAPI] Random verse fetch returned ${response.status}`);
+      }
       return null;
     }
     return await response.json();
   } catch (error) {
-    console.error("[BibleAPI] Error fetching random verse:", error);
+    // Silently fail - fallback will be used
     return null;
   }
 }
@@ -337,8 +345,7 @@ export async function getDailyVerse(): Promise<{ verse: string; reference: strin
           reference: `${bookName} ${chapterNum}:${randomVerse.number} (ARA)`
         };
       }
-      // Use local fallback when external API is unavailable
-      console.log("[BibleAPI] Using local fallback verse");
+      // Use local fallback when external API is unavailable (silent - this is expected)
       return getLocalFallbackVerse();
     }
     

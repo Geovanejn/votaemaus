@@ -2,8 +2,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake, ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +36,7 @@ interface InstagramApiResponse {
 }
 
 export default function MarketingDashboard() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   const { data: stats, isLoading } = useQuery<MarketingStats>({
@@ -118,11 +119,21 @@ export default function MarketingDashboard() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">Painel Marketing</h1>
-          <p className="text-muted-foreground">
-            Gerencie eventos e a diretoria da UMP
-          </p>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setLocation("/admin")}
+            data-testid="button-back-panels"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold" data-testid="text-page-title">Painel Marketing</h1>
+            <p className="text-muted-foreground">
+              Gerencie eventos e a diretoria da UMP
+            </p>
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button 

@@ -91,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("loginTimestamp");
+    window.scrollTo(0, 0);
   };
 
   const value = {

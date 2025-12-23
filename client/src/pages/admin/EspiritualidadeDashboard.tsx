@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft } from "lucide-react";
 
 interface EspiritualidadeStats {
   devotionals: {
@@ -18,6 +18,7 @@ interface EspiritualidadeStats {
 }
 
 export default function EspiritualidadeDashboard() {
+  const [, setLocation] = useLocation();
   const { data: stats, isLoading } = useQuery<EspiritualidadeStats>({
     queryKey: ["/api/espiritualidade/stats"],
   });
@@ -25,11 +26,21 @@ export default function EspiritualidadeDashboard() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">Painel Espiritualidade</h1>
-          <p className="text-muted-foreground">
-            Gerencie devocionais e pedidos de oração
-          </p>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setLocation("/admin")}
+            data-testid="button-back-panels"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold" data-testid="text-page-title">Painel Espiritualidade</h1>
+            <p className="text-muted-foreground">
+              Gerencie devocionais e pedidos de oração
+            </p>
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Link href="/admin/espiritualidade/devocionais/novo">

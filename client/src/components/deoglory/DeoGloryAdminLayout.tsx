@@ -17,6 +17,8 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
+  ArrowLeft,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -103,12 +105,34 @@ export function DeoGloryAdminLayout({ children, title, subtitle }: DeoGloryAdmin
               </Link>
             );
           })}
+          
+          <div className="pt-3 mt-3 border-t border-white/10 space-y-1">
+            <Link href="/admin">
+              <button
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                data-testid="nav-back-panels"
+              >
+                <ArrowLeft className="h-5 w-5 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Voltar aos Paineis</span>}
+              </button>
+            </Link>
+            <Link href="/">
+              <button
+                onClick={() => logout()}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                data-testid="nav-logout-home"
+              >
+                <Home className="h-5 w-5 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Sair e Ir para Inicio</span>}
+              </button>
+            </Link>
+          </div>
         </nav>
 
         <div className="p-3 border-t border-white/10">
           <div className={cn("flex items-center gap-3", isSidebarCollapsed ? "justify-center" : "")}>
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarImage src={user?.avatarUrl || undefined} />
+              <AvatarImage src={user?.photoUrl || undefined} />
               <AvatarFallback className="bg-white/20 text-white">
                 {user?.fullName?.charAt(0) || "A"}
               </AvatarFallback>

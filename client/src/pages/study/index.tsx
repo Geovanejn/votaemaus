@@ -443,6 +443,7 @@ export default function StudyHomePage() {
     }
   }, [isLoading, allWeeksData, searchString]);
 
+
   const handleRetry = () => {
     refetchProfile();
     refetchWeeks();
@@ -640,14 +641,17 @@ export default function StudyHomePage() {
               <p className="text-sm text-muted-foreground">
                 {allUnitsData.length} unidade{allUnitsData.length !== 1 ? 's' : ''} disponível{allUnitsData.length !== 1 ? 'veis' : ''}
               </p>
-              {allUnitsData.map((unitData, index) => (
-                <NewUnitCard 
-                  key={unitData.id}
-                  unit={unitData}
-                  onLessonStageClick={handleLessonStageClick}
-                  defaultExpanded={index === 0 && !continueLearningData}
-                />
-              ))}
+              {allUnitsData.map((unitData) => {
+                const hasInProgressLesson = unitData.lessons.some(l => l.status === 'in_progress');
+                return (
+                  <NewUnitCard 
+                    key={unitData.id}
+                    unit={unitData}
+                    onLessonStageClick={handleLessonStageClick}
+                    defaultExpanded={hasInProgressLesson}
+                  />
+                );
+              })}
             </div>
           ) : (
             <EmptyState />

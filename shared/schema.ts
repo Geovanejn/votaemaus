@@ -1557,6 +1557,8 @@ export type WeeklyGoalStatus = {
   isGoalMet: boolean;
   xpBonus: number;
   overallProgress: number;
+  daysCompleted: number;
+  totalDays: number;
 };
 
 export type LessonStage = "estude" | "medite" | "responda";

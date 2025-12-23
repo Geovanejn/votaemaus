@@ -213,6 +213,7 @@ export interface IStorage {
   getUserRecentActivities(userId: number, limit?: number): Promise<any[]>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
   getStudyUsersWithProfiles(): Promise<any[]>;
+  recalculateAllLevels(): Promise<{ updated: number; total: number }>;
   
   // Third Scrutiny Methods
   checkThirdScrutinyTie(electionPositionId: number): Promise<{ isTie: boolean; candidates?: any[] }>;
@@ -2608,6 +2609,35 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return usersWithLessonCounts;
+  }
+
+  async recalculateAllLevels(): Promise<{ updated: number; total: number }> {
+    const xpPerLevel = 500;
+    
+    const allProfiles = await db.select({
+      userId: schema.studyProfiles.userId,
+      totalXp: schema.studyProfiles.totalXp,
+      currentLevel: schema.studyProfiles.currentLevel,
+    }).from(schema.studyProfiles);
+    
+    let updatedCount = 0;
+    
+    for (const profile of allProfiles) {
+      const correctLevel = Math.max(1, Math.floor((profile.totalXp || 0) / xpPerLevel) + 1);
+      
+      if (profile.currentLevel !== correctLevel) {
+        await db.update(schema.studyProfiles)
+          .set({ 
+            currentLevel: correctLevel,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.studyProfiles.userId, profile.userId));
+        updatedCount++;
+        console.log(`[Level Sync] User ${profile.userId}: level ${profile.currentLevel} -> ${correctLevel} (XP: ${profile.totalXp})`);
+      }
+    }
+    
+    return { updated: updatedCount, total: allProfiles.length };
   }
 
   // Third Scrutiny Methods

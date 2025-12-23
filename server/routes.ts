@@ -2784,6 +2784,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Recalculate all user levels based on XP - admin only
+  app.post("/api/study/admin/recalculate-levels", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = await storage.recalculateAllLevels();
+      res.json({ 
+        message: `Níveis recalculados: ${result.updated} de ${result.total} perfis atualizados`,
+        ...result 
+      });
+    } catch (error) {
+      console.error("Recalculate levels error:", error);
+      res.status(500).json({ message: "Erro ao recalcular níveis" });
+    }
+  });
+
   // Admin: Get lessons for a week - admin or espiritualidade
   app.get("/api/study/admin/lessons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {

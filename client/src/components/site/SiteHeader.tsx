@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { useAuth } from "@/lib/auth";
-import { useTheme } from "@/hooks/use-theme";
+import { useThemeContext } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 import logoDark from "@assets/2-1_1766464654126.png";
@@ -25,7 +25,7 @@ export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme } = useThemeContext();
 
   return (
     <>

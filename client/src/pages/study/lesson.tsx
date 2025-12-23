@@ -92,11 +92,12 @@ interface StudyProfile {
   currentStreak: number;
   longestStreak: number;
   hearts: number;
-  maxHearts: number;
+  heartsMax: number;
   weeklyXp: number;
   level: number;
   lastActivityAt: string | null;
   lastHeartRecoveryAt: string | null;
+  crystals: number;
 }
 
 interface AnswerResult {
@@ -566,8 +567,9 @@ export default function LessonPage() {
             stagesCreditedRef.current.medite = true;
             
             // Use the profile returned by backend to sync displayXp with actual XP
-            if (response.profile) {
-              queryClient.setQueryData(['/api/study/profile'], response.profile);
+            const data = await response.json();
+            if (data.profile) {
+              queryClient.setQueryData(['/api/study/profile'], data.profile);
             }
           } catch (error) {
             console.error("Error awarding medite XP:", error);
@@ -819,8 +821,8 @@ export default function LessonPage() {
   
   const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => {
     // Handle nested content structure: some questions have content.content.question
-    const innerContent = unit.content.content || unit.content;
-    const questionType = unit.content.type || unit.type;
+    const innerContent = (unit.content as any).content || unit.content;
+    const questionType = (unit.content as any).type || unit.type;
     
     return {
       type: questionType as 'multiple_choice' | 'true_false' | 'fill_blank',
@@ -1286,7 +1288,7 @@ export default function LessonPage() {
           currentStep={headerCurrentStep}
           totalSteps={headerTotalSteps}
           hearts={currentHearts}
-          maxHearts={profileData?.maxHearts || 5}
+          maxHearts={profileData?.heartsMax || 5}
           onClose={handleClose}
           currentStage={currentStage}
           showStages={!targetStage}

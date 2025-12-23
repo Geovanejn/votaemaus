@@ -421,7 +421,7 @@ export function RespondaScreen({
         onXpChange?.(newXp);
         return newXp;
       });
-      playSound('hint');
+      playSound('click');
     }
   };
   

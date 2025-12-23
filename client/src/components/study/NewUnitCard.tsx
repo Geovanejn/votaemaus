@@ -68,12 +68,15 @@ const lockedColors = {
 export function LessonCard({ 
   lesson, 
   onStageClick,
-  colorIndex = 0
+  colorIndex = 0,
+  defaultCollapsed = false
 }: { 
   lesson: LessonData;
   onStageClick?: (lessonId: number, stage: "estude" | "medite" | "responda") => void;
   colorIndex?: number;
+  defaultCollapsed?: boolean;
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const isCompleted = lesson.status === "completed";
   const isInProgress = lesson.status === "in_progress";
   const isLocked = lesson.status === "locked";
@@ -108,92 +111,122 @@ export function LessonCard({
       )}
       data-testid={`lesson-card-${lesson.id}`}
     >
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-1 flex flex-col gap-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className={cn(
-                "w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold",
-                circleColor
-              )}>
-                {isCompleted ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  lesson.number
+      <button
+        onClick={() => !isLocked && setIsCollapsed(!isCollapsed)}
+        disabled={isLocked}
+        className="w-full text-left"
+        data-testid={`lesson-toggle-${lesson.id}`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-1 flex flex-col gap-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className={cn(
+                  "w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold",
+                  circleColor
+                )}>
+                  {isCompleted ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    lesson.number
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Lição {lesson.number}
+                  </p>
+                  <h4 className="font-bold text-foreground text-sm line-clamp-2 break-words" data-testid={`lesson-title-${lesson.id}`}>
+                    {lesson.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} seções
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={cn("text-xs font-bold", xpColor)}>
+                  {isCompleted ? "+" : ""}{lesson.xpReward} XP
+                </span>
+                {!isLocked && (
+                  <ChevronDown className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    !isCollapsed && "rotate-180"
+                  )} />
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Lição {lesson.number}
-                </p>
-                <h4 className="font-bold text-foreground text-sm line-clamp-2 break-words" data-testid={`lesson-title-${lesson.id}`}>
-                  {lesson.title}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  {isCompleted ? "Completo" : isInProgress ? "Em progresso" : "Bloqueado"} • {lesson.sectionsCompleted}/{lesson.totalSections} seções
-                </p>
-              </div>
             </div>
-            <span className={cn("text-xs font-bold shrink-0", xpColor)}>
-              {isCompleted ? "+" : ""}{lesson.xpReward} XP
-            </span>
           </div>
         </div>
-      </div>
+      </button>
 
-      <div className="flex gap-2">
-        {lesson.stages.map((stage) => {
-          const stageIsLocked = stage.status === "locked";
-          const stageIsCompleted = stage.status === "completed";
-          
-          let bgClass = "";
-          let textClass = "";
-          let iconClass = "";
-          
-          if (stage.type === "estude") {
-            bgClass = stageIsLocked ? "bg-muted" : "bg-[#10B981]/10";
-            textClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
-            iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
-          } else if (stage.type === "medite") {
-            bgClass = stageIsLocked ? "bg-muted" : "bg-[#8B5CF6]/10";
-            textClass = stageIsLocked ? "text-muted-foreground" : "text-[#8B5CF6]";
-            iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#8B5CF6]";
-          } else {
-            bgClass = stageIsLocked ? "bg-muted" : "bg-[#10B981]/10";
-            textClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
-            iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
-          }
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex gap-2 mt-3">
+              {lesson.stages.map((stage) => {
+                const stageIsLocked = stage.status === "locked";
+                const stageIsCompleted = stage.status === "completed";
+                
+                let bgClass = "";
+                let textClass = "";
+                let iconClass = "";
+                
+                if (stage.type === "estude") {
+                  bgClass = stageIsLocked ? "bg-muted" : "bg-[#10B981]/10";
+                  textClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
+                  iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
+                } else if (stage.type === "medite") {
+                  bgClass = stageIsLocked ? "bg-muted" : "bg-[#8B5CF6]/10";
+                  textClass = stageIsLocked ? "text-muted-foreground" : "text-[#8B5CF6]";
+                  iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#8B5CF6]";
+                } else {
+                  bgClass = stageIsLocked ? "bg-muted" : "bg-[#10B981]/10";
+                  textClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
+                  iconClass = stageIsLocked ? "text-muted-foreground" : "text-[#10B981]";
+                }
 
-          const Icon = stage.type === "estude" 
-            ? BookOpen 
-            : stage.type === "medite" 
-              ? Heart 
-              : HelpCircle;
+                const Icon = stage.type === "estude" 
+                  ? BookOpen 
+                  : stage.type === "medite" 
+                    ? Heart 
+                    : HelpCircle;
 
-          return (
-            <button
-              key={stage.type}
-              onClick={() => !stageIsLocked && onStageClick?.(lesson.id, stage.type)}
-              disabled={stageIsLocked}
-              className={cn(
-                "flex-1 flex flex-col items-center gap-1 py-2.5 px-3 rounded-lg transition-all",
-                bgClass,
-                !stageIsLocked && "hover-elevate cursor-pointer"
-              )}
-              data-testid={`lesson-${lesson.id}-stage-${stage.type}`}
-            >
-              {stageIsLocked ? (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Icon className={cn("h-4 w-4", iconClass)} />
-              )}
-              <span className={cn("text-xs font-medium", textClass)}>
-                {stage.type === "estude" ? "Estude" : stage.type === "medite" ? "Medite" : "Responda"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                return (
+                  <button
+                    key={stage.type}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!stageIsLocked) onStageClick?.(lesson.id, stage.type);
+                    }}
+                    disabled={stageIsLocked}
+                    className={cn(
+                      "flex-1 flex flex-col items-center gap-1 py-2.5 px-3 rounded-lg transition-all",
+                      bgClass,
+                      !stageIsLocked && "hover-elevate cursor-pointer"
+                    )}
+                    data-testid={`lesson-${lesson.id}-stage-${stage.type}`}
+                  >
+                    {stageIsLocked ? (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Icon className={cn("h-4 w-4", iconClass)} />
+                    )}
+                    <span className={cn("text-xs font-medium", textClass)}>
+                      {stage.type === "estude" ? "Estude" : stage.type === "medite" ? "Medite" : "Responda"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

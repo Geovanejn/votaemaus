@@ -1,6 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { useEffect, useRef } from "react";
 import { BottomNav, LessonCard } from "@/components/study";
 import type { LessonData, LessonStage } from "@/components/study";
 import { Card } from "@/components/ui/card";
@@ -157,11 +158,27 @@ export default function SeasonDetailPage() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const seasonId = params.id;
+  const scrolledRef = useRef(false);
 
   const { data, isLoading, error, refetch } = useQuery<SeasonDetail>({
     queryKey: ['/api/study/seasons', seasonId],
     enabled: isAuthenticated && !!seasonId,
   });
+
+  useEffect(() => {
+    if (data?.lessons && !scrolledRef.current) {
+      const firstInProgress = data.lessons.find(l => l.status === 'in_progress');
+      if (firstInProgress) {
+        scrolledRef.current = true;
+        setTimeout(() => {
+          const element = document.getElementById(`lesson-${firstInProgress.id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      }
+    }
+  }, [data?.lessons]);
 
   const handleBack = () => {
     setLocation('/study/estudos');
@@ -312,12 +329,14 @@ export default function SeasonDetailPage() {
               const previousLesson = lessons[index - 1];
               const previousCompleted = index === 0 || previousLesson?.status === 'completed';
               const transformedLesson = transformLessonToLessonData(lesson, previousCompleted);
+              const isCompleted = lesson.status === 'completed';
               
               return (
                 <LessonCard
                   key={lesson.id}
                   lesson={transformedLesson}
                   onStageClick={(lessonId, stage) => handleLessonClick(lessonId)}
+                  defaultCollapsed={isCompleted}
                 />
               );
             })}

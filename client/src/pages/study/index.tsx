@@ -11,7 +11,7 @@ import {
 } from "@/components/study";
 import type { StageType, QuestionResult, UnitData, LessonData, LessonStage, ContinueLearningData, PracticeStatus } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Flame, Star, Heart, Loader2, ListChecks } from "lucide-react";
+import { Bell, Flame, Star, Heart, Loader2, ListChecks, Home, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -639,6 +639,31 @@ export default function StudyHomePage() {
     <div className="min-h-screen bg-background pb-20" data-testid="study-home">
       <CelebrationComponent />
       
+      <div className="bg-background border-b px-4 py-2">
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setLocation('/membro')}
+            data-testid="button-panels"
+            className="gap-1"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline">Painéis</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setLocation('/')}
+            data-testid="button-home"
+            className="gap-1"
+          >
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Button>
+        </div>
+      </div>
+      
       <UserProfileHeader 
         userName={user.fullName} 
         userPhoto={user.photoUrl}
@@ -666,7 +691,7 @@ export default function StudyHomePage() {
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-foreground">Unidades de Estudo</h2>
               <p className="text-sm text-muted-foreground">
-                {allUnitsData.length} unidade{allUnitsData.length !== 1 ? 's' : ''} disponível{allUnitsData.length !== 1 ? 'veis' : ''}
+                {allUnitsData.length} unidade{allUnitsData.length !== 1 ? 's' : ''} disponíve{allUnitsData.length !== 1 ? 'is' : 'l'}
               </p>
               {allUnitsData.map((unitData) => {
                 const urlParams = new URLSearchParams(searchString);

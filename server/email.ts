@@ -1242,3 +1242,101 @@ export async function sendLessonAvailableEmail(
 export function isEmailConfigured(): boolean {
   return resend !== null;
 }
+
+export async function sendSeasonRankingEmail(
+  recipientName: string,
+  recipientEmail: string,
+  seasonTitle: string,
+  position: number,
+  totalXp: number,
+  podium: { name: string; position: number; xp: number }[]
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] Season ranking email for ${recipientEmail} (position ${position})`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const positionLabels: Record<number, { emoji: string; color: string; text: string }> = {
+      1: { emoji: "", color: "#FFD700", text: "Primeiro Lugar" },
+      2: { emoji: "", color: "#C0C0C0", text: "Segundo Lugar" },
+      3: { emoji: "", color: "#CD7F32", text: "Terceiro Lugar" }
+    };
+    
+    const positionInfo = positionLabels[position] || { emoji: "", color: "#888", text: `${position} Lugar` };
+    
+    const podiumHtml = podium.map((p, idx) => {
+      const pInfo = positionLabels[p.position] || { emoji: "", color: "#888", text: `${p.position}` };
+      const isWinner = p.position === position;
+      return `
+        <div style="display: flex; align-items: center; padding: 12px; margin: 8px 0; background-color: ${isWinner ? '#FFF9E6' : '#f5f5f5'}; border-radius: 8px; border: ${isWinner ? '2px solid #FFA500' : 'none'};">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, ${pInfo.color} 0%, ${pInfo.color}AA 100%); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: white; margin-right: 12px;">
+            ${p.position}
+          </div>
+          <div style="flex: 1;">
+            <p style="margin: 0; font-weight: ${isWinner ? 'bold' : 'normal'}; color: #333;">${p.name}</p>
+            <p style="margin: 0; font-size: 12px; color: #666;">${p.xp.toLocaleString('pt-BR')} XP</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    const emailPayload: any = {
+      from: "UMP Emaús <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Parabens! Voce ficou em ${position} lugar na revista ${seasonTitle}!`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, ${positionInfo.color} 0%, ${positionInfo.color}CC 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <div style="font-size: 60px; margin-bottom: 10px;">${positionInfo.emoji}</div>
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+              ${positionInfo.text}!
+            </h1>
+            <p style="color: #ffffff; opacity: 0.9; margin: 10px 0 0 0;">Revista: ${seasonTitle}</p>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="font-size: 18px; color: #333; text-align: center;">
+              Parabens, <strong>${formattedName}</strong>!
+            </p>
+            
+            <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center;">
+              Voce concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position} lugar</strong>
+              com um total de <strong style="color: #FFA500;">${totalXp.toLocaleString('pt-BR')} XP</strong>!
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 20px; margin: 25px 0;">
+              <h3 style="margin: 0 0 15px 0; color: #333; text-align: center; font-size: 16px;">Podio Final</h3>
+              ${podiumHtml}
+            </div>
+            
+            <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center; margin-top: 20px;">
+              Continue sua jornada de aprendizado no DeoGlory!
+            </p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaus - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    if (logoBuffer) {
+      emailPayload.attachments = [{
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      }];
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending season ranking email:", error);
+    return false;
+  }
+}

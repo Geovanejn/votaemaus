@@ -135,6 +135,40 @@ export default function DeoGloryRevistaDetail() {
     },
   });
 
+  const toggleSeasonLockMutation = useMutation({
+    mutationFn: async (isLocked: boolean) => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/toggle-lock`, { isLocked });
+    },
+    onSuccess: (_, isLocked) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ 
+        title: isLocked ? "Revista bloqueada" : "Revista desbloqueada",
+        description: isLocked ? "Os usuários não podem acessar esta revista." : "Os usuários podem acessar esta revista."
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao alterar bloqueio", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const endSeasonMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/study/admin/seasons/${seasonId}/end`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ 
+        title: "Revista encerrada com sucesso!",
+        description: "O ranking foi calculado e emails de parabéns foram enviados aos top 3."
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao encerrar revista", description: error.message, variant: "destructive" });
+    },
+  });
+
   const updateSeasonTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
       return apiRequest("PUT", `/api/study/admin/seasons/${seasonId}`, { title: newTitle.trim() });
@@ -325,6 +359,47 @@ export default function DeoGloryRevistaDetail() {
               <Upload className="h-4 w-4 mr-2" />
               Upload PDF
             </Button>
+            {season.status === "published" && !season.isEnded && (
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={() => toggleSeasonLockMutation.mutate(!season.isLocked)}
+                  disabled={toggleSeasonLockMutation.isPending}
+                  data-testid="button-toggle-lock"
+                >
+                  {toggleSeasonLockMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : season.isLocked ? (
+                    <Unlock className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Lock className="h-4 w-4 mr-2" />
+                  )}
+                  {season.isLocked ? "Desbloquear" : "Bloquear"}
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm("Tem certeza que deseja encerrar esta revista? Esta ação é irreversível e enviará emails de parabéns para os top 3.")) {
+                      endSeasonMutation.mutate();
+                    }
+                  }}
+                  disabled={endSeasonMutation.isPending}
+                  data-testid="button-end-season"
+                >
+                  {endSeasonMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Encerrar Revista
+                </Button>
+              </>
+            )}
+            {season.isEnded && (
+              <Badge variant="secondary" className="bg-gray-200 dark:bg-gray-700">
+                Encerrada
+              </Badge>
+            )}
           </div>
         </div>
 

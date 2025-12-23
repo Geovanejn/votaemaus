@@ -30,7 +30,7 @@ import {
   generatePdfVerificationHash,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
-import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail } from "./email";
 import { 
   generateStudyContentFromText, 
   generateStudyContentFromPDF,
@@ -5526,6 +5526,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Publish season error:", error);
       res.status(500).json({ message: "Erro ao publicar temporada" });
+    }
+  });
+
+  // Bloquear/desbloquear temporada
+  app.post("/api/study/admin/seasons/:id/toggle-lock", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const { isLocked } = req.body;
+      if (typeof isLocked !== 'boolean') {
+        return res.status(400).json({ message: "isLocked é obrigatório" });
+      }
+
+      const season = await storage.toggleSeasonLock(seasonId, isLocked);
+      if (!season) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+      
+      res.json(season);
+    } catch (error) {
+      console.error("Toggle season lock error:", error);
+      res.status(500).json({ message: "Erro ao bloquear/desbloquear temporada" });
+    }
+  });
+
+  // Encerrar temporada e enviar email para top 3
+  app.post("/api/study/admin/seasons/:id/end", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const seasonId = parseInt(req.params.id);
+      if (isNaN(seasonId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const result = await storage.endSeason(seasonId);
+      if (!result) {
+        return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      // Send congratulations emails to top 3
+      for (let i = 0; i < result.topRankers.length && i < 3; i++) {
+        const ranker = result.topRankers[i];
+        try {
+          const user = await storage.getUserById(ranker.userId);
+          if (user?.email) {
+            await sendSeasonRankingEmail(
+              user.fullName,
+              user.email,
+              result.season.title,
+              i + 1, // position (1, 2, or 3)
+              ranker.xpEarned,
+              result.topRankers.slice(0, 3).map((r, idx) => ({
+                name: r.user.fullName,
+                position: idx + 1,
+                xp: r.xpEarned
+              }))
+            );
+            console.log(`[Season End] Sent ranking email to ${user.email} (position ${i + 1})`);
+          }
+        } catch (emailError) {
+          console.error(`[Season End] Error sending email to user ${ranker.userId}:`, emailError);
+        }
+      }
+      
+      res.json({ 
+        season: result.season, 
+        topRankers: result.topRankers,
+        message: "Temporada encerrada com sucesso" 
+      });
+    } catch (error) {
+      console.error("End season error:", error);
+      res.status(500).json({ message: "Erro ao encerrar temporada" });
     }
   });
 

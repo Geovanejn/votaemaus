@@ -360,7 +360,7 @@ export default function ProfilePage() {
               <h3 className="font-bold text-foreground">Progresso do Nível</h3>
               <div className="text-right">
                 <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>Nível {currentLevel}</p>
-                <p className="text-xs text-muted-foreground">{currentXp.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP</p>
+                <p className="text-xs text-muted-foreground">{xpInLevel.toLocaleString()} / {xpNeeded.toLocaleString()} XP</p>
               </div>
             </div>
             <Progress 

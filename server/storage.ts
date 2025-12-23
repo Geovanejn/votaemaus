@@ -2385,71 +2385,79 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyDashboardStats(): Promise<any> {
-    // Get total users count from users table (non-admin members)
-    const [totalUsersResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.users)
-      .where(and(
-        eq(schema.users.isMember, true),
-        eq(schema.users.isAdmin, false)
-      ));
-    
-    // Active users = users with lesson activity in last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    const [activeUsersResult] = await db.select({ 
-      count: sql<number>`count(DISTINCT ${schema.userLessonProgress.userId})` 
-    })
-      .from(schema.userLessonProgress)
-      .where(and(
-        eq(schema.userLessonProgress.status, 'completed'),
-        sql`${schema.userLessonProgress.completedAt} >= ${sevenDaysAgo}`
-      ));
+    // OPTIMIZED: Single query with all stats RESTRICTED to members only
+    const results = await db.execute(sql`
+      WITH members AS (
+        SELECT id FROM users WHERE is_member = true AND is_admin = false
+      ),
+      total_xp AS (
+        -- XP ONLY from members
+        SELECT COALESCE(SUM(xp), 0) as total_xp FROM (
+          SELECT xp_earned as xp FROM user_lesson_progress 
+          WHERE status = 'completed' AND user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT bonus_xp as xp FROM weekly_practice_bonus 
+          WHERE user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT xp_reward as xp FROM achievement_xp 
+          WHERE user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT mission_xp + bonus_xp as xp FROM daily_mission_xp 
+          WHERE user_id IN (SELECT id FROM members)
+        ) all_xp
+      ),
+      active_users AS (
+        -- Active users ONLY from members with ANY XP activity in last 7 days
+        SELECT COUNT(DISTINCT user_id) as count FROM (
+          SELECT user_id FROM user_lesson_progress 
+          WHERE status = 'completed' AND completed_at >= ${sevenDaysAgo} 
+            AND user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT user_id FROM daily_mission_xp 
+          WHERE earned_at >= ${sevenDaysAgo} 
+            AND user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT user_id FROM achievement_xp 
+          WHERE earned_at >= ${sevenDaysAgo} 
+            AND user_id IN (SELECT id FROM members)
+          UNION ALL
+          SELECT user_id FROM weekly_practice_bonus 
+          WHERE earned_at >= ${sevenDaysAgo} 
+            AND user_id IN (SELECT id FROM members)
+        ) recent_activity
+      ),
+      completed_lessons AS (
+        -- Completed lessons ONLY by members
+        SELECT COUNT(*) as count FROM user_lesson_progress 
+        WHERE status = 'completed' AND user_id IN (SELECT id FROM members)
+      ),
+      avg_streak AS (
+        -- Average streak only for members with study profiles
+        SELECT COALESCE(AVG(current_streak), 0) as avg_streak
+        FROM study_profiles sp
+        WHERE sp.user_id IN (SELECT id FROM members)
+      )
+      SELECT 
+        (SELECT COUNT(*) FROM members) as "totalUsers",
+        (SELECT count FROM active_users) as "activeUsers",
+        (SELECT COUNT(*) FROM study_lessons) as "totalLessons",
+        (SELECT count FROM completed_lessons) as "completedLessons",
+        (SELECT avg_streak FROM avg_streak) as "averageStreak",
+        (SELECT total_xp FROM total_xp) as "totalXpEarned"
+    `);
     
-    const [lessonsResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.studyLessons);
-    
-    const [completedLessonsResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.userLessonProgress)
-      .where(eq(schema.userLessonProgress.status, 'completed'));
-    
-    const [avgStreakResult] = await db.select({ avg: sql<number>`COALESCE(AVG(${schema.studyProfiles.currentStreak}), 0)` })
-      .from(schema.studyProfiles);
-    
-    // Calculate REAL total XP from all sources (same as getUserTotalXp)
-    const [lessonXpResult] = await db.select({ 
-      sum: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)` 
-    })
-      .from(schema.userLessonProgress)
-      .where(eq(schema.userLessonProgress.status, 'completed'));
-    
-    const [bonusXpResult] = await db.select({ 
-      sum: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)` 
-    })
-      .from(schema.weeklyPracticeBonus);
-    
-    const [achievementXpResult] = await db.select({ 
-      sum: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)` 
-    })
-      .from(schema.achievementXp);
-    
-    const [missionXpResult] = await db.select({ 
-      sum: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)` 
-    })
-      .from(schema.dailyMissionXp);
-    
-    const totalXpEarned = Number(lessonXpResult?.sum || 0) + 
-                          Number(bonusXpResult?.sum || 0) + 
-                          Number(achievementXpResult?.sum || 0) + 
-                          Number(missionXpResult?.sum || 0);
+    const row = (results.rows as any[])[0] || {};
     
     return {
-      totalUsers: Number(totalUsersResult?.count || 0),
-      activeUsers: Number(activeUsersResult?.count || 0),
-      totalLessons: Number(lessonsResult?.count || 0),
-      completedLessons: Number(completedLessonsResult?.count || 0),
-      averageStreak: Number(avgStreakResult?.avg || 0),
-      totalXpEarned,
+      totalUsers: Number(row.totalUsers || 0),
+      activeUsers: Number(row.activeUsers || 0),
+      totalLessons: Number(row.totalLessons || 0),
+      completedLessons: Number(row.completedLessons || 0),
+      averageStreak: Math.round(Number(row.averageStreak || 0) * 10) / 10,
+      totalXpEarned: Number(row.totalXpEarned || 0),
     };
   }
 

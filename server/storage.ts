@@ -2367,9 +2367,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyStats(): Promise<any> {
-    // Count seasons (revistas) instead of studyWeeks
+    // Count only published seasons (revistas)
     const [seasonCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.seasons);
+      .from(schema.seasons)
+      .where(eq(schema.seasons.status, "published"));
     const [lessonCount] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.studyLessons);
     const [unitCount] = await db.select({ count: sql<number>`count(*)` })
@@ -2447,7 +2448,8 @@ export class DatabaseStorage implements IStorage {
         (SELECT COUNT(*) FROM study_lessons) as "totalLessons",
         (SELECT count FROM completed_lessons) as "completedLessons",
         (SELECT avg_streak FROM avg_streak) as "averageStreak",
-        (SELECT total_xp FROM total_xp) as "totalXpEarned"
+        (SELECT total_xp FROM total_xp) as "totalXpEarned",
+        (SELECT COUNT(*) FROM seasons WHERE status = 'published') as "totalSeasons"
     `);
     
     const row = (results.rows as any[])[0] || {};
@@ -2459,6 +2461,7 @@ export class DatabaseStorage implements IStorage {
       completedLessons: Number(row.completedLessons || 0),
       averageStreak: Math.round(Number(row.averageStreak || 0) * 10) / 10,
       totalXpEarned: Number(row.totalXpEarned || 0),
+      totalWeeks: Number(row.totalSeasons || 0),
     };
   }
 

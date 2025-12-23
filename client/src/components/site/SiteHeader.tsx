@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
+
+import logoDark from "@assets/2-1_1766464654126.png";
+import logoLight from "@assets/EMAÚS_v3_sem_fundo_1766464756876.png";
 
 const menuItems = [
   { label: "Início", href: "/" },
@@ -21,6 +25,7 @@ export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
+  const { resolvedTheme } = useTheme();
 
   return (
     <>
@@ -30,12 +35,23 @@ export function SiteHeader() {
             <Link href="/" className="flex items-center">
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="flex items-center justify-center"
+                className="flex items-center justify-center relative h-12"
               >
                 <img 
-                  src="/logo-ump.png" 
+                  src={logoDark}
                   alt="Logo UMP Emaús" 
-                  className="h-12 w-auto object-contain"
+                  className={cn(
+                    "h-12 w-auto object-contain absolute transition-opacity duration-300",
+                    resolvedTheme === "dark" ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <img 
+                  src={logoLight}
+                  alt="Logo UMP Emaús" 
+                  className={cn(
+                    "h-12 w-auto object-contain transition-opacity duration-300",
+                    resolvedTheme === "light" ? "opacity-100" : "opacity-0"
+                  )}
                 />
               </motion.div>
             </Link>

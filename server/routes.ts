@@ -2762,6 +2762,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/study/admin/weekly-top-members", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const data = await storage.getTopWeeklyMembers(limit);
+      res.json(data);
+    } catch (error) {
+      console.error("Get weekly top members error:", error);
+      res.status(500).json({ message: "Erro ao buscar top membros da semana" });
+    }
+  });
+
   // Admin: Get all users with study profiles - admin or espiritualidade
   app.get("/api/study/admin/users", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {

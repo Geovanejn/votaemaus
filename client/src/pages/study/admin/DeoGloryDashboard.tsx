@@ -113,7 +113,7 @@ export default function DeoGloryDashboard() {
   });
 
   const { data: topMembers, isLoading: membersLoading } = useQuery<MemberProgress[]>({
-    queryKey: ["/api/study/ranking"],
+    queryKey: ["/api/study/admin/weekly-top-members"],
   });
 
   const { data: monthlyProgress, isLoading: monthlyLoading } = useQuery<MonthlyProgress[]>({

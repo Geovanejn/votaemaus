@@ -208,6 +208,7 @@ export interface IStorage {
   getStudyDashboardStats(): Promise<any>;
   getMonthlyProgressData(): Promise<any[]>;
   getWeeklyActivityData(): Promise<any[]>;
+  getTopWeeklyMembers(limit?: number): Promise<any[]>;
   getUserProfileStats(userId: number): Promise<any>;
   getUserRecentActivities(userId: number, limit?: number): Promise<any[]>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
@@ -2370,6 +2371,40 @@ export class DatabaseStorage implements IStorage {
     }
     
     return last7Days;
+  }
+
+  async getTopWeeklyMembers(limit: number = 5): Promise<any[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    
+    const results = await db.select({
+      id: schema.users.id,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
+      weeklyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
+      currentLevel: schema.studyProfiles.currentLevel,
+      streak: schema.studyProfiles.currentStreak,
+    })
+      .from(schema.userLessonProgress)
+      .innerJoin(schema.users, eq(schema.userLessonProgress.userId, schema.users.id))
+      .innerJoin(schema.studyProfiles, eq(schema.userLessonProgress.userId, schema.studyProfiles.userId))
+      .where(and(
+        eq(schema.userLessonProgress.status, 'completed'),
+        sql`${schema.userLessonProgress.completedAt} >= ${sevenDaysAgo}`
+      ))
+      .groupBy(schema.users.id, schema.users.fullName, schema.users.photoUrl, schema.studyProfiles.currentLevel, schema.studyProfiles.currentStreak)
+      .orderBy(sql`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0) DESC`)
+      .limit(limit);
+    
+    return results.map(r => ({
+      id: r.id,
+      fullName: r.fullName || 'Usuario',
+      avatarUrl: r.photoUrl,
+      currentXp: Number(r.weeklyXp || 0),
+      currentLevel: r.currentLevel || 1,
+      streak: r.streak || 0,
+    }));
   }
 
   async getUserProfileStats(userId: number): Promise<any> {

@@ -564,13 +564,13 @@ export async function sendNewPrayerRequestEmail(
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Mural de Oração</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Pedido de Oração</h1>
           </div>
           <div style="padding: 30px;">
             <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo pedido de oração foi recebido e precisa de sua atenção:
+              Um irmão da nossa comunidade enviou um pedido de oração. Vamos interceder juntos?
             </p>
             <div style="background-color: #F3E8FF; border-radius: 8px; padding: 20px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0; color: #6B46C1; font-weight: bold; font-size: 14px;">Categoria: ${category}</p>
@@ -578,19 +578,19 @@ export async function sendNewPrayerRequestEmail(
               <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
             </div>
             <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Acesse o painel de espiritualidade para revisar e aprovar o pedido.
+              Ore por este pedido e visite o Mural de Oração para ver mais pedidos.
             </p>
             
             <!-- CTA Button -->
             <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/admin/espiritualidade" style="display: inline-block; background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar Painel
+              <a href="${appUrl}/oracao" style="display: inline-block; background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Ver Mural de Oração
               </a>
             </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Mural de Oração</p>
           </div>
         </div>
       `,

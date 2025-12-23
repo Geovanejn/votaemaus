@@ -291,10 +291,10 @@ async function sendDailyVerse(): Promise<void> {
 }
 
 export function initDailyVerseScheduler(): void {
-  cron.schedule('30 15 * * *', sendDailyVerse, {
+  cron.schedule('0 7 * * *', sendDailyVerse, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Daily Verse Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)');
+  console.log('[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)');
   
   setTimeout(async () => {
     try {

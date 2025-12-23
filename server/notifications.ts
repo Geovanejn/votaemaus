@@ -318,34 +318,35 @@ export async function notifyNewPrayerRequest(
   const payload: NotificationPayload = {
     title: "Novo Pedido de Oracao",
     body: `${requesterName} enviou um pedido de oracao.`,
-    url: "/admin/espiritualidade/oracoes",
+    url: "/oracao",
     tag: `prayer-${requestId}`,
     icon: "/logo.png",
   };
 
-  const result = await sendPushToSecretaria("espiritualidade", payload);
-  console.log(`[Notifications] Prayer request notification: ${result.sent} sent, ${result.failed} failed`);
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Prayer request push notification: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 
   if (isEmailConfigured() && category && requestText) {
-    const users = await storage.getUsersBySecretaria("espiritualidade");
-    const admins = await storage.getAdminUsers();
-    const allUsers = [...users, ...admins];
-    const uniqueUsers = allUsers.filter((user, index, self) => 
-      index === self.findIndex(u => u.id === user.id)
-    );
+    const allMembers = await storage.getActiveMembers();
+    let emailsSent = 0;
 
-    for (const user of uniqueUsers) {
-      if (user.email) {
-        await sendNewPrayerRequestEmail(
-          user.email,
-          user.fullName,
-          requesterName,
-          category,
-          requestText
-        );
+    for (const member of allMembers) {
+      if (member.email) {
+        try {
+          await sendNewPrayerRequestEmail(
+            member.email,
+            member.fullName,
+            requesterName,
+            category,
+            requestText
+          );
+          emailsSent++;
+        } catch (error) {
+          console.error(`[Notifications] Failed to send prayer email to ${member.email}:`, error);
+        }
       }
     }
-    console.log(`[Notifications] Prayer request email sent to ${uniqueUsers.length} espiritualidade members`);
+    console.log(`[Notifications] Prayer request email sent to ${emailsSent} members`);
   }
 }
 

@@ -1815,11 +1815,91 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Study Profile Methods
+  
+  // SINGLE SOURCE OF TRUTH: Calculate real total XP for a user
+  // This is the ONLY function that should be used to get XP (used by profile, ranking, etc.)
+  async getUserTotalXp(userId: number): Promise<{ totalXp: number; lessonXp: number; bonusXp: number; achievementXp: number; missionXp: number }> {
+    // Sum ALL completed lesson XP
+    const [lessonXpResult] = await db.select({
+      totalXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ));
+    
+    // Sum ALL immutable weekly bonuses
+    const [bonusResult] = await db.select({
+      totalBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
+    })
+      .from(schema.weeklyPracticeBonus)
+      .where(eq(schema.weeklyPracticeBonus.userId, userId));
+    
+    // Sum ALL immutable achievement XP
+    const [achievementResult] = await db.select({
+      totalAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
+    })
+      .from(schema.achievementXp)
+      .where(eq(schema.achievementXp.userId, userId));
+    
+    // Sum ALL immutable daily mission XP (mission XP + bonus XP)
+    const [dailyMissionResult] = await db.select({
+      totalDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
+    })
+      .from(schema.dailyMissionXp)
+      .where(eq(schema.dailyMissionXp.userId, userId));
+    
+    const lessonXp = Number(lessonXpResult?.totalXp || 0);
+    const bonusXp = Number(bonusResult?.totalBonus || 0);
+    const achievementXp = Number(achievementResult?.totalAchievementXp || 0);
+    const missionXp = Number(dailyMissionResult?.totalDailyMissionXp || 0);
+    
+    return {
+      totalXp: lessonXp + bonusXp + achievementXp + missionXp,
+      lessonXp,
+      bonusXp,
+      achievementXp,
+      missionXp,
+    };
+  }
+  
   async getStudyProfile(userId: number): Promise<any | null> {
     const [profile] = await db.select().from(schema.studyProfiles)
       .where(eq(schema.studyProfiles.userId, userId))
       .limit(1);
-    return profile || null;
+    
+    if (!profile) return null;
+    
+    // Get real total XP from SINGLE SOURCE OF TRUTH
+    const xpData = await this.getUserTotalXp(userId);
+    
+    // Recalculate level based on real XP
+    const getXpPerLevel = (level: number): number => {
+      if (level <= 5) return 500;
+      if (level <= 10) return 750;
+      if (level <= 20) return 1000;
+      if (level <= 30) return 1500;
+      return 2000;
+    };
+
+    const calculateLevelFromXp = (totalXp: number): number => {
+      let level = 1;
+      let xpAccumulated = 0;
+      while (xpAccumulated + getXpPerLevel(level) <= totalXp) {
+        xpAccumulated += getXpPerLevel(level);
+        level++;
+      }
+      return level;
+    };
+    
+    const realLevel = calculateLevelFromXp(xpData.totalXp);
+    
+    return {
+      ...profile,
+      totalXp: xpData.totalXp,
+      currentLevel: realLevel,
+    };
   }
 
   async getAllStudyProfiles(): Promise<any[]> {
@@ -3143,7 +3223,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Leaderboard Methods
-  // REFACTORED: Global leaderboard - SINGLE SOURCE OF TRUTH using user_lesson_progress.xpEarned + immutable weekly bonuses
+  // REFACTORED: Global leaderboard - uses getUserTotalXp (SINGLE SOURCE OF TRUTH)
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
     // Get all non-admin users
     const allUsers = await db.select({
@@ -3154,59 +3234,43 @@ export class DatabaseStorage implements IStorage {
       .from(schema.users)
       .where(eq(schema.users.isAdmin, false));
     
-    // Calculate total XP for each user: lesson XP + weekly bonuses (single source of truth)
+    // Calculate total XP for each user using SINGLE SOURCE OF TRUTH
     const usersWithXp = await Promise.all(allUsers.map(async (user) => {
-      // Sum ALL completed lesson XP (single source of truth)
-      const [lessonXpResult] = await db.select({
-        totalXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
-      })
-        .from(schema.userLessonProgress)
-        .where(and(
-          eq(schema.userLessonProgress.userId, user.userId),
-          eq(schema.userLessonProgress.status, 'completed')
-        ));
+      // Use the same function that profile uses - SINGLE SOURCE OF TRUTH
+      const xpData = await this.getUserTotalXp(user.userId);
       
-      // Sum ALL immutable weekly bonuses
-      const [bonusResult] = await db.select({
-        totalBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
-      })
-        .from(schema.weeklyPracticeBonus)
-        .where(eq(schema.weeklyPracticeBonus.userId, user.userId));
-      
-      // Sum ALL immutable achievement XP
-      const [achievementResult] = await db.select({
-        totalAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
-      })
-        .from(schema.achievementXp)
-        .where(eq(schema.achievementXp.userId, user.userId));
-      
-      // Sum ALL immutable daily mission XP (mission XP + bonus XP)
-      const [dailyMissionResult] = await db.select({
-        totalDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
-      })
-        .from(schema.dailyMissionXp)
-        .where(eq(schema.dailyMissionXp.userId, user.userId));
-      
-      // Get profile for streak and level
+      // Get profile for streak
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
-        currentLevel: schema.studyProfiles.currentLevel,
       })
         .from(schema.studyProfiles)
         .where(eq(schema.studyProfiles.userId, user.userId))
         .limit(1);
       
-      const totalLessonXp = Number(lessonXpResult?.totalXp || 0);
-      const totalBonusXp = Number(bonusResult?.totalBonus || 0);
-      const totalAchievementXp = Number(achievementResult?.totalAchievementXp || 0);
-      const totalDailyMissionXp = Number(dailyMissionResult?.totalDailyMissionXp || 0);
-      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp;
+      // Calculate level from XP (same formula as profile)
+      const getXpPerLevel = (level: number): number => {
+        if (level <= 5) return 500;
+        if (level <= 10) return 750;
+        if (level <= 20) return 1000;
+        if (level <= 30) return 1500;
+        return 2000;
+      };
+
+      const calculateLevelFromXp = (totalXp: number): number => {
+        let level = 1;
+        let xpAccumulated = 0;
+        while (xpAccumulated + getXpPerLevel(level) <= totalXp) {
+          xpAccumulated += getXpPerLevel(level);
+          level++;
+        }
+        return level;
+      };
       
       return {
         ...user,
-        totalXp,
+        totalXp: xpData.totalXp,
         currentStreak: profile?.currentStreak || 0,
-        currentLevel: profile?.currentLevel || 1,
+        currentLevel: calculateLevelFromXp(xpData.totalXp),
       };
     }));
     

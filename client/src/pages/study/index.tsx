@@ -438,7 +438,7 @@ export default function StudyHomePage() {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
           window.history.replaceState({}, '', '/study');
-        }, 100);
+        }, 400);
       }
     }
   }, [isLoading, allWeeksData, searchString]);
@@ -642,13 +642,16 @@ export default function StudyHomePage() {
                 {allUnitsData.length} unidade{allUnitsData.length !== 1 ? 's' : ''} disponível{allUnitsData.length !== 1 ? 'veis' : ''}
               </p>
               {allUnitsData.map((unitData) => {
+                const urlParams = new URLSearchParams(searchString);
+                const urlLessonId = urlParams.get('lesson');
                 const hasInProgressLesson = unitData.lessons.some(l => l.status === 'in_progress');
+                const hasUrlLesson = urlLessonId ? unitData.lessons.some(l => l.id.toString() === urlLessonId) : false;
                 return (
                   <NewUnitCard 
                     key={unitData.id}
                     unit={unitData}
                     onLessonStageClick={handleLessonStageClick}
-                    defaultExpanded={hasInProgressLesson}
+                    defaultExpanded={hasInProgressLesson || hasUrlLesson}
                   />
                 );
               })}

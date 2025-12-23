@@ -399,30 +399,17 @@ export default function DeoGloryLicoes() {
     </div>
   );
 
-  const WeekYearSelector = () => (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label>Número da Semana</Label>
-        <Input
-          type="number"
-          min={1}
-          max={53}
-          value={weekNumber}
-          onChange={(e) => setWeekNumber(parseInt(e.target.value) || 1)}
-          data-testid="input-week-number"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>Ano</Label>
-        <Input
-          type="number"
-          min={2020}
-          max={2100}
-          value={year}
-          onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
-          data-testid="input-year"
-        />
-      </div>
+  const UnitNumberSelector = () => (
+    <div className="space-y-2">
+      <Label>Número da Unidade</Label>
+      <Input
+        type="number"
+        min={1}
+        max={99}
+        value={weekNumber}
+        onChange={(e) => setWeekNumber(parseInt(e.target.value) || 1)}
+        data-testid="input-unit-number"
+      />
     </div>
   );
 
@@ -522,7 +509,7 @@ export default function DeoGloryLicoes() {
                     <div className="flex items-center gap-4 text-xs text-gray-400 mb-4">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        Semana {week.weekNumber}/{week.year}
+                        Unidade {week.weekNumber}
                       </span>
                       <span className="flex items-center gap-1">
                         {new Date(week.createdAt).toLocaleDateString("pt-BR")}
@@ -600,7 +587,7 @@ export default function DeoGloryLicoes() {
           
           <div className="space-y-4">
             <AIProviderSelector />
-            <WeekYearSelector />
+            <UnitNumberSelector />
             <div className="space-y-2">
               <Label>Texto Base (mínimo 100 caracteres)</Label>
               <Textarea
@@ -654,7 +641,7 @@ export default function DeoGloryLicoes() {
           
           <div className="space-y-4">
             <AIProviderSelector />
-            <WeekYearSelector />
+            <UnitNumberSelector />
             <div className="space-y-2">
               <Label>Arquivo PDF</Label>
               <div 

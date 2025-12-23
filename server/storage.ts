@@ -369,6 +369,7 @@ export interface IStorage {
   getAllDevotionalComments(): Promise<DevotionalComment[]>;
   createDevotionalComment(data: InsertDevotionalComment): Promise<DevotionalComment>;
   approveDevotionalComment(id: number, approvedBy: number): Promise<DevotionalComment | null>;
+  autoApproveDevotionalComment(id: number): Promise<DevotionalComment | null>;
   highlightDevotionalComment(id: number, isHighlighted: boolean): Promise<DevotionalComment | null>;
   deleteDevotionalComment(id: number): Promise<void>;
 }
@@ -4531,6 +4532,19 @@ export class DatabaseStorage implements IStorage {
         approvedBy,
         approvedAt: new Date(),
         updatedAt: new Date(),
+      })
+      .where(eq(schema.devotionalComments.id, id))
+      .returning();
+    return comment || null;
+  }
+
+  async autoApproveDevotionalComment(id: number): Promise<DevotionalComment | null> {
+    const now = new Date();
+    const [comment] = await db.update(schema.devotionalComments)
+      .set({
+        isApproved: true,
+        approvedAt: now,
+        updatedAt: now,
       })
       .where(eq(schema.devotionalComments.id, id))
       .returning();

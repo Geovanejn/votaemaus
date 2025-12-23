@@ -6443,6 +6443,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId || null,
       });
       
+      // Auto-approve if content is clean (no profanity)
+      const shouldAutoApprove = !moderation.hasProfanity;
+      if (shouldAutoApprove) {
+        await storage.autoApproveDevotionalComment(comment.id);
+      }
+      
       const devotional = await storage.getDevotionalById(devotionalId);
       if (devotional) {
         notifyNewComment(devotionalId, devotional.title, name.trim(), content.trim()).catch(err => 
@@ -6450,7 +6456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
       
-      res.status(201).json({ message: "Comentario enviado! Aguardando aprovacao.", id: comment.id });
+      const message = shouldAutoApprove 
+        ? "Comentario publicado com sucesso!" 
+        : "Comentario enviado! Aguardando aprovacao.";
+      
+      res.status(201).json({ message, id: comment.id, autoApproved: shouldAutoApprove });
     } catch (error) {
       console.error("Create devotional comment error:", error);
       res.status(500).json({ message: "Erro ao enviar comentario" });

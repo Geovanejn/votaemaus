@@ -569,6 +569,15 @@ export default function StudyHomePage() {
   const inProgressLesson = allTransformedLessons.find(l => l.status === 'in_progress');
   const inProgressUnit = allUnitsData.find(u => u.lessons.some(l => l.id === inProgressLesson?.id));
   
+  const getCurrentStage = (lesson: LessonData): 'estude' | 'medite' | 'responda' => {
+    if (!lesson.stages) return 'estude';
+    const currentStage = lesson.stages.find(s => s.status === 'current');
+    if (currentStage) return currentStage.type as 'estude' | 'medite' | 'responda';
+    const firstIncomplete = lesson.stages.find(s => s.status !== 'completed');
+    if (firstIncomplete) return firstIncomplete.type as 'estude' | 'medite' | 'responda';
+    return 'estude';
+  };
+
   const continueLearningData: ContinueLearningData | null = inProgressLesson && inProgressUnit ? {
     unitNumber: inProgressUnit.number,
     unitTitle: inProgressUnit.title,
@@ -579,7 +588,8 @@ export default function StudyHomePage() {
     progress: inProgressLesson.totalSections > 0 
       ? Math.round((inProgressLesson.sectionsCompleted / inProgressLesson.totalSections) * 100) 
       : 0,
-    lessonId: inProgressLesson.id
+    lessonId: inProgressLesson.id,
+    currentStage: getCurrentStage(inProgressLesson)
   } : null;
 
   const handleLessonStageClick = (lessonId: number, stage: 'estude' | 'medite' | 'responda') => {
@@ -589,8 +599,12 @@ export default function StudyHomePage() {
     }
   };
   
-  const handleContinueLearning = (lessonId: number) => {
-    setLocation(`/study/lesson/${lessonId}`);
+  const handleContinueLearning = (lessonId: number, currentStage?: 'estude' | 'medite' | 'responda') => {
+    if (currentStage) {
+      setLocation(`/study/lesson/${lessonId}?stage=${currentStage}`);
+    } else {
+      setLocation(`/study/lesson/${lessonId}`);
+    }
   };
 
   return (

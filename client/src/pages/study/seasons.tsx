@@ -373,6 +373,12 @@ function SeasonContent({
     return isInProgress && !lesson.isLocked;
   });
 
+  const getCurrentStage = (lesson: Lesson): 'estude' | 'medite' | 'responda' => {
+    if (lesson.studyCompleted && lesson.meditationCompleted) return 'responda';
+    if (lesson.studyCompleted) return 'medite';
+    return 'estude';
+  };
+
   const continueLearningData: ContinueLearningData | null = inProgressLesson ? {
     unitNumber: 1,
     unitTitle: season.title,
@@ -383,18 +389,12 @@ function SeasonContent({
     progress: inProgressLesson.totalSections 
       ? Math.min(100, Math.round(((inProgressLesson.sectionsCompleted || 0) / inProgressLesson.totalSections) * 100))
       : 0,
-    lessonId: inProgressLesson.id
+    lessonId: inProgressLesson.id,
+    currentStage: getCurrentStage(inProgressLesson)
   } : null;
 
-  const handleContinueClick = (lessonId: number) => {
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setTimeout(() => {
-        lessonRefs.current[lessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 350);
-    } else {
-      lessonRefs.current[lessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+  const handleContinueClick = (lessonId: number, currentStage?: 'estude' | 'medite' | 'responda') => {
+    onLessonClick(lessonId, currentStage);
   };
 
   return (
@@ -623,8 +623,12 @@ export default function SeasonsPage() {
     setLocation(`/study/lesson/${lessonId}${stageParam}`);
   };
 
-  const handleContinueLearning = (lessonId: number) => {
-    setLocation(`/study/lesson/${lessonId}`);
+  const handleContinueLearning = (lessonId: number, currentStage?: 'estude' | 'medite' | 'responda') => {
+    if (currentStage) {
+      setLocation(`/study/lesson/${lessonId}?stage=${currentStage}`);
+    } else {
+      setLocation(`/study/lesson/${lessonId}`);
+    }
   };
 
   if (isLoading) {
@@ -638,6 +642,12 @@ export default function SeasonsPage() {
   const hasSeasons = seasons && seasons.length > 0;
   const sortedSeasons = hasSeasons ? [...seasons].reverse() : [];
 
+  const getCurrentStageForLesson = (lesson: Lesson): 'estude' | 'medite' | 'responda' => {
+    if (lesson.studyCompleted && lesson.meditationCompleted) return 'responda';
+    if (lesson.studyCompleted) return 'medite';
+    return 'estude';
+  };
+
   const continueLearningData: ContinueLearningData | null = currentLessonData ? {
     unitNumber: 1,
     unitTitle: currentLessonData.season.title,
@@ -648,7 +658,8 @@ export default function SeasonsPage() {
     progress: currentLessonData.lesson.totalSections 
       ? Math.round(((currentLessonData.lesson.sectionsCompleted || 0) / currentLessonData.lesson.totalSections) * 100)
       : 0,
-    lessonId: currentLessonData.lesson.id
+    lessonId: currentLessonData.lesson.id,
+    currentStage: getCurrentStageForLesson(currentLessonData.lesson)
   } : null;
 
   return (

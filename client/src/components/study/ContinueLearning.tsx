@@ -13,11 +13,12 @@ export interface ContinueLearningData {
   totalSections: number;
   progress: number;
   lessonId: number;
+  currentStage?: 'estude' | 'medite' | 'responda';
 }
 
 interface ContinueLearningProps {
   data: ContinueLearningData | null;
-  onContinue?: (lessonId: number) => void;
+  onContinue?: (lessonId: number, currentStage?: 'estude' | 'medite' | 'responda') => void;
   onViewAll?: () => void;
 }
 
@@ -65,7 +66,7 @@ export function ContinueLearning({ data, onContinue, onViewAll }: ContinueLearni
         </div>
 
         <Button
-          onClick={() => onContinue?.(data.lessonId)}
+          onClick={() => onContinue?.(data.lessonId, data.currentStage)}
           className="w-full bg-white text-[#7C3AED] hover:bg-white/90 font-bold"
           data-testid="button-continue-studying"
         >

@@ -237,16 +237,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // ==================== IMAGE UPLOAD API ====================
+  // Images are now stored as Base64 data URLs in the database
+  // This ensures images persist across deploys on platforms like Render
   app.post("/api/upload", authenticateToken, imageUpload.single('file'), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Nenhum arquivo enviado" });
       }
 
-      // Compress and resize image using sharp
-      const fileName = `${randomUUID()}.jpg`;
-      const filePath = path.join(uploadsDir, fileName);
-
+      const originalSizeKB = req.file.size / 1024;
+      
       try {
         // Get image metadata
         const metadata = await sharp(req.file.buffer).metadata();
@@ -268,29 +268,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Process and save image
-        await sharp(req.file.buffer)
+        // Process image: resize, compress, and convert to WebP for smaller size
+        const processedBuffer = await sharp(req.file.buffer)
           .resize(width, height, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: JPEG_QUALITY, progressive: true })
-          .toFile(filePath);
+          .webp({ quality: 80 })
+          .toBuffer();
 
-        const stats = await fs.promises.stat(filePath);
-        console.log(`[Upload] Image compressed: ${(req.file.size / 1024).toFixed(1)}KB -> ${(stats.size / 1024).toFixed(1)}KB`);
+        const compressedSizeKB = processedBuffer.length / 1024;
+        
+        // Check if image is too large (max 2MB after compression)
+        if (processedBuffer.length > 2 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: `Imagem muito grande (${compressedSizeKB.toFixed(0)}KB). Máximo permitido: 2MB após compressão.` 
+          });
+        }
+
+        // Convert to Base64 data URL
+        const base64 = processedBuffer.toString('base64');
+        const dataUrl = `data:image/webp;base64,${base64}`;
+
+        console.log(`[Upload] Image converted to Base64: ${originalSizeKB.toFixed(1)}KB -> ${compressedSizeKB.toFixed(1)}KB (${((1 - compressedSizeKB/originalSizeKB) * 100).toFixed(0)}% reduction)`);
+
+        res.json({ url: dataUrl, fileName: `image_${Date.now()}.webp` });
       } catch (sharpError) {
-        console.error("[Upload] Sharp error, saving original:", sharpError);
-        // Fallback: save original file if sharp fails
-        await fs.promises.writeFile(filePath, req.file.buffer);
+        console.error("[Upload] Sharp error, using original as Base64:", sharpError);
+        
+        // Fallback: convert original to Base64 if sharp fails
+        const base64 = req.file.buffer.toString('base64');
+        const mimeType = req.file.mimetype || 'image/jpeg';
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+        
+        res.json({ url: dataUrl, fileName: `image_${Date.now()}` });
       }
-
-      const url = `/uploads/${fileName}`;
-      res.json({ url, fileName });
     } catch (error) {
       console.error("[Upload] Error:", error);
       res.status(500).json({ message: "Erro ao fazer upload do arquivo" });
     }
   });
 
-  // ==================== STATIC FILES FOR UPLOADS ====================
+  // ==================== STATIC FILES FOR UPLOADS (Legacy support) ====================
+  // Keep this for backwards compatibility with existing file-based uploads
   app.use("/uploads", (await import("express")).default.static(uploadsDir));
 
 

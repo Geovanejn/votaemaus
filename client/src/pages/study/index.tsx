@@ -536,7 +536,7 @@ export default function StudyHomePage() {
         status: lessonStatus,
         sectionsCompleted: completedUnits,
         totalSections: totalUnits,
-        xpReward: lesson.xpReward || 50,
+        xpReward: 50,
         stages
       };
     });

@@ -205,6 +205,9 @@ export interface IStorage {
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void>;
   getStudyStats(): Promise<any>;
+  getStudyDashboardStats(): Promise<any>;
+  getMonthlyProgressData(): Promise<any[]>;
+  getWeeklyActivityData(): Promise<any[]>;
   getUserProfileStats(userId: number): Promise<any>;
   getUserRecentActivities(userId: number, limit?: number): Promise<any[]>;
   getCompletedLessonsWithExercises(userId: number): Promise<any[]>;
@@ -2258,6 +2261,115 @@ export class DatabaseStorage implements IStorage {
       totalUnits: Number(unitCount?.count || 0),
       totalStudents: Number(profileCount?.count || 0),
     };
+  }
+
+  async getStudyDashboardStats(): Promise<any> {
+    const [totalUsersResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.studyProfiles);
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
+    const [activeUsersResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.studyProfiles)
+      .where(sql`${schema.studyProfiles.lastActivityDate} >= ${sevenDaysAgoStr}`);
+    
+    const [lessonsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.studyLessons);
+    
+    const [completedLessonsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userLessonProgress)
+      .where(eq(schema.userLessonProgress.status, 'completed'));
+    
+    const [avgStreakResult] = await db.select({ avg: sql<number>`COALESCE(AVG(${schema.studyProfiles.currentStreak}), 0)` })
+      .from(schema.studyProfiles);
+    
+    const [totalXpResult] = await db.select({ sum: sql<number>`COALESCE(SUM(${schema.studyProfiles.totalXp}), 0)` })
+      .from(schema.studyProfiles);
+    
+    return {
+      totalUsers: Number(totalUsersResult?.count || 0),
+      activeUsers: Number(activeUsersResult?.count || 0),
+      totalLessons: Number(lessonsResult?.count || 0),
+      completedLessons: Number(completedLessonsResult?.count || 0),
+      averageStreak: Number(avgStreakResult?.avg || 0),
+      totalXpEarned: Number(totalXpResult?.sum || 0),
+    };
+  }
+
+  async getMonthlyProgressData(): Promise<any[]> {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    
+    const results = await db.select({
+      month: sql<string>`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM')`,
+      lessonsCompleted: sql<number>`count(*)`,
+      xpEarned: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.status, 'completed'),
+        sql`${schema.userLessonProgress.completedAt} >= ${sixMonthsAgo}`
+      ))
+      .groupBy(sql`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM')`)
+      .orderBy(sql`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM')`);
+    
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    
+    return results.map(r => {
+      const [year, monthNum] = (r.month || '').split('-');
+      const monthIndex = parseInt(monthNum, 10) - 1;
+      return {
+        month: monthNames[monthIndex] || r.month,
+        lessonsCompleted: Number(r.lessonsCompleted || 0),
+        xpEarned: Number(r.xpEarned || 0),
+      };
+    });
+  }
+
+  async getWeeklyActivityData(): Promise<any[]> {
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    
+    const results = await db.select({
+      dayOfWeek: sql<number>`EXTRACT(DOW FROM ${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo')`,
+      date: sql<string>`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`,
+      lessonsCompleted: sql<number>`count(*)`,
+      uniqueUsers: sql<number>`count(DISTINCT ${schema.userLessonProgress.userId})`,
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.status, 'completed'),
+        sql`${schema.userLessonProgress.completedAt} >= ${sevenDaysAgo}`
+      ))
+      .groupBy(
+        sql`EXTRACT(DOW FROM ${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo')`,
+        sql`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`
+      )
+      .orderBy(sql`to_char(${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')`);
+    
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayOfWeek = date.getDay();
+      
+      const found = results.find(r => r.date === dateStr);
+      last7Days.push({
+        day: dayNames[dayOfWeek],
+        date: dateStr,
+        lessonsCompleted: Number(found?.lessonsCompleted || 0),
+        uniqueUsers: Number(found?.uniqueUsers || 0),
+      });
+    }
+    
+    return last7Days;
   }
 
   async getUserProfileStats(userId: number): Promise<any> {

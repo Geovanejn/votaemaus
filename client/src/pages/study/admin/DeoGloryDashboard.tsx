@@ -9,12 +9,22 @@ import {
   CheckCircle,
   Clock,
   FileText,
-  TrendingUp,
-  BookOpen,
   Zap,
+  BookOpen,
   Target,
   Award,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from "recharts";
 
 interface StudyStats {
   totalUsers: number;
@@ -35,6 +45,18 @@ interface MemberProgress {
   lessonsCompleted: number;
 }
 
+interface MonthlyProgress {
+  month: string;
+  lessonsCompleted: number;
+  xpEarned: number;
+}
+
+interface WeeklyActivity {
+  day: string;
+  date: string;
+  lessonsCompleted: number;
+  uniqueUsers: number;
+}
 
 interface StatCardProps {
   title: string;
@@ -47,14 +69,14 @@ interface StatCardProps {
 function StatCard({ title, value, icon: Icon, iconBgColor, iconColor }: StatCardProps) {
   return (
     <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-1 sm:space-y-2 min-w-0">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{title}</p>
+            <p className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
           </div>
-          <div className={`p-3 rounded-xl ${iconBgColor}`}>
-            <Icon className={`h-6 w-6 ${iconColor}`} />
+          <div className={`p-2 sm:p-3 rounded-xl shrink-0 ${iconBgColor}`}>
+            <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${iconColor}`} />
           </div>
         </div>
       </CardContent>
@@ -72,14 +94,14 @@ interface PerformanceIndicatorProps {
 
 function PerformanceIndicator({ title, value, subtitle, icon: Icon, color }: PerformanceIndicatorProps) {
   return (
-    <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-      <div className={`p-3 rounded-xl ${color}`}>
-        <Icon className="h-5 w-5 text-white" />
+    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+      <div className={`p-2 sm:p-3 rounded-xl shrink-0 ${color}`}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
       </div>
-      <div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-        <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>
+      <div className="min-w-0">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{title}</p>
+        <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{subtitle}</p>
       </div>
     </div>
   );
@@ -94,16 +116,24 @@ export default function DeoGloryDashboard() {
     queryKey: ["/api/study/ranking"],
   });
 
+  const { data: monthlyProgress, isLoading: monthlyLoading } = useQuery<MonthlyProgress[]>({
+    queryKey: ["/api/study/admin/monthly-progress"],
+  });
+
+  const { data: weeklyActivity, isLoading: weeklyLoading } = useQuery<WeeklyActivity[]>({
+    queryKey: ["/api/study/admin/weekly-activity"],
+  });
+
   return (
-    <DeoGloryAdminLayout title="Dashboard" subtitle="Visão geral do seu aplicativo de estudo bíblico">
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <DeoGloryAdminLayout title="Dashboard" subtitle="Visao geral do seu aplicativo de estudo biblico">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statsLoading ? (
             <>
               {[1, 2, 3, 4].map((i) => (
                 <Card key={i} className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-                  <CardContent className="p-6">
-                    <Skeleton className="h-24 w-full" />
+                  <CardContent className="p-4 sm:p-6">
+                    <Skeleton className="h-16 sm:h-24 w-full" />
                   </CardContent>
                 </Card>
               ))}
@@ -142,50 +172,96 @@ export default function DeoGloryDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardHeader className="pb-2 px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Progresso de Estudos
               </CardTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground">Ultimos 6 meses</p>
             </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Grafico de progresso mensal</p>
-                  <p className="text-xs mt-1">Dados serao exibidos conforme os usuarios estudam</p>
+            <CardContent className="px-2 sm:px-6">
+              {monthlyLoading ? (
+                <Skeleton className="h-48 sm:h-64 w-full" />
+              ) : monthlyProgress && monthlyProgress.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200} className="sm:!h-[250px]">
+                  <LineChart data={monthlyProgress}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="month" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 12 }}
+                      formatter={(value: number, name: string) => [
+                        value.toLocaleString('pt-BR'),
+                        name === 'lessonsCompleted' ? 'Licoes' : 'XP'
+                      ]}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="lessonsCompleted" 
+                      stroke="#8B5CF6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#8B5CF6', strokeWidth: 2 }}
+                      name="Licoes"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-48 sm:h-64 flex items-center justify-center text-muted-foreground">
+                  <p className="text-sm text-center px-4">Nenhum dado de progresso disponivel</p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardHeader className="pb-2 px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Atividade Semanal
               </CardTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground">Ultimos 7 dias</p>
             </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Grafico de atividade semanal</p>
-                  <p className="text-xs mt-1">Dados serao exibidos conforme os usuarios estudam</p>
+            <CardContent className="px-2 sm:px-6">
+              {weeklyLoading ? (
+                <Skeleton className="h-48 sm:h-64 w-full" />
+              ) : weeklyActivity && weeklyActivity.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200} className="sm:!h-[250px]">
+                  <BarChart data={weeklyActivity}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="day" stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#9CA3AF" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ fontSize: 12 }}
+                      formatter={(value: number, name: string) => [
+                        value,
+                        name === 'lessonsCompleted' ? 'Licoes' : 'Usuarios'
+                      ]}
+                    />
+                    <Bar 
+                      dataKey="lessonsCompleted" 
+                      fill="#10B981" 
+                      radius={[4, 4, 0, 0]}
+                      name="Licoes"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-48 sm:h-64 flex items-center justify-center text-muted-foreground">
+                  <p className="text-sm text-center px-4">Nenhuma atividade nos ultimos 7 dias</p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+          <CardHeader className="pb-4 px-4 sm:px-6">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
               Indicadores de Desempenho
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardContent className="px-4 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <PerformanceIndicator
                 title="Media Ofensiva"
                 value={stats?.averageStreak?.toFixed(1) || "0"}
@@ -218,28 +294,28 @@ export default function DeoGloryDashboard() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4 px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Top Membros
               </CardTitle>
-              <Badge variant="outline" className="text-violet-600 border-violet-200">
+              <Badge variant="outline" className="text-violet-600 border-violet-200 text-xs">
                 Esta Semana
               </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="px-4 sm:px-6">
+              <div className="space-y-3 sm:space-y-4">
                 {membersLoading ? (
                   <>
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1">
+                        <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                        <div className="flex-1 min-w-0">
                           <Skeleton className="h-4 w-24 mb-1" />
                           <Skeleton className="h-3 w-16" />
                         </div>
-                        <Skeleton className="h-6 w-16" />
+                        <Skeleton className="h-6 w-16 shrink-0" />
                       </div>
                     ))}
                   </>
@@ -248,17 +324,18 @@ export default function DeoGloryDashboard() {
                     {topMembers?.slice(0, 5).map((member, index) => (
                       <div
                         key={member.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        data-testid={`top-member-${member.id}`}
                       >
-                        <div className="relative">
-                          <Avatar className="h-10 w-10">
+                        <div className="relative shrink-0">
+                          <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                             <AvatarImage src={member.avatarUrl || undefined} />
-                            <AvatarFallback className="bg-violet-100 text-violet-600">
+                            <AvatarFallback className="bg-violet-100 text-violet-600 text-sm">
                               {member.fullName?.charAt(0) || "?"}
                             </AvatarFallback>
                           </Avatar>
                           {index < 3 && (
-                            <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                            <div className={`absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white ${
                               index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : "bg-amber-600"
                             }`}>
                               {index + 1}
@@ -266,15 +343,15 @@ export default function DeoGloryDashboard() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white truncate">
+                          <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">
                             {member.fullName}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Nível {member.currentLevel} | {member.lessonsCompleted} lições
+                            Nivel {member.currentLevel} | {member.lessonsCompleted} licoes
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-violet-600">{member.currentXp?.toLocaleString()}</p>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-sm sm:text-base text-violet-600">{member.currentXp?.toLocaleString()}</p>
                           <p className="text-xs text-gray-500">XP</p>
                         </div>
                       </div>
@@ -286,77 +363,65 @@ export default function DeoGloryDashboard() {
           </Card>
 
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4 px-4 sm:px-6">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Resumo do Sistema
               </CardTitle>
-              <Badge variant="outline" className="text-green-600 border-green-200">
+              <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
                 Tempo Real
               </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                    <BookOpen className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <CardContent className="px-4 sm:px-6">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0">
+                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-violet-600 dark:text-violet-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                       Total de Licoes
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Licoes cadastradas no sistema
-                    </p>
                   </div>
-                  <Badge className="bg-violet-100 text-violet-700 border-0">
+                  <Badge className="bg-violet-100 text-violet-700 border-0 text-xs">
                     {stats?.totalLessons || 0}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-green-100 dark:bg-green-900/30 shrink-0">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                       Estudos Concluidos
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Total de conclusoes pelos usuarios
-                    </p>
                   </div>
-                  <Badge className="bg-green-100 text-green-700 border-0">
+                  <Badge className="bg-green-100 text-green-700 border-0 text-xs">
                     {stats?.completedLessons || 0}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                       Total de Usuarios
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Usuarios registrados no DeoGlory
-                    </p>
                   </div>
-                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                  <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
                     {stats?.totalUsers || 0}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                    <Zap className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 shrink-0">
+                    <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                       XP Total Gerado
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Pontos de experiencia distribuidos
-                    </p>
                   </div>
-                  <Badge className="bg-orange-100 text-orange-700 border-0">
+                  <Badge className="bg-orange-100 text-orange-700 border-0 text-xs">
                     {stats?.totalXpEarned?.toLocaleString() || 0}
                   </Badge>
                 </div>

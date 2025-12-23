@@ -2734,11 +2734,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Get study stats - admin or espiritualidade
   app.get("/api/study/admin/stats", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const stats = await storage.getStudyStats();
+      const stats = await storage.getStudyDashboardStats();
       res.json(stats);
     } catch (error) {
       console.error("Get admin stats error:", error);
       res.status(500).json({ message: "Erro ao buscar estatísticas" });
+    }
+  });
+
+  app.get("/api/study/admin/monthly-progress", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const data = await storage.getMonthlyProgressData();
+      res.json(data);
+    } catch (error) {
+      console.error("Get monthly progress error:", error);
+      res.status(500).json({ message: "Erro ao buscar progresso mensal" });
+    }
+  });
+
+  app.get("/api/study/admin/weekly-activity", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const data = await storage.getWeeklyActivityData();
+      res.json(data);
+    } catch (error) {
+      console.error("Get weekly activity error:", error);
+      res.status(500).json({ message: "Erro ao buscar atividade semanal" });
     }
   });
 

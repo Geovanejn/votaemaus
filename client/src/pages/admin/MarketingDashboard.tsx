@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink } from "lucide-react";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -95,6 +95,26 @@ export default function MarketingDashboard() {
     },
   });
 
+  const triggerBirthdayEmailsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/trigger-birthday-emails");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "E-mails Enviados",
+        description: data.message || "E-mails de aniversário disparados com sucesso",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao disparar e-mails de aniversário",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -105,6 +125,15 @@ export default function MarketingDashboard() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline"
+            onClick={() => triggerBirthdayEmailsMutation.mutate()}
+            disabled={triggerBirthdayEmailsMutation.isPending}
+            data-testid="button-trigger-birthday-emails"
+          >
+            <Cake className="h-4 w-4 mr-2" />
+            {triggerBirthdayEmailsMutation.isPending ? "Enviando..." : "Enviar E-mails de Aniversário"}
+          </Button>
           <Link href="/admin/marketing/eventos/novo">
             <Button data-testid="button-new-event">
               <Plus className="h-4 w-4 mr-2" />

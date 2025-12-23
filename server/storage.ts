@@ -1703,6 +1703,14 @@ export class DatabaseStorage implements IStorage {
     return profile || null;
   }
 
+  async getAllStudyProfiles(): Promise<any[]> {
+    return db.select().from(schema.studyProfiles);
+  }
+
+  async awardWeeklyGoalXp(userId: number, xpAmount: number): Promise<void> {
+    await this.addXp(userId, xpAmount, 'weekly_goal_completion', undefined);
+  }
+
   async getOrCreateStudyProfile(userId: number): Promise<any> {
     let profile = await this.getStudyProfile(userId);
     if (!profile) {

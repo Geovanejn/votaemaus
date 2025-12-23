@@ -937,6 +937,7 @@ export const weeklyGoalProgress = pgTable("weekly_goal_progress", {
   devotionalsRead: integer("devotionals_read").notNull().default(0),
   isGoalMet: boolean("is_goal_met").notNull().default(false),
   xpBonus: integer("xp_bonus").notNull().default(0),
+  weeklyBonusDistributed: boolean("weekly_bonus_distributed").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -1353,6 +1354,8 @@ export const dailyMissionContent = pgTable("daily_mission_content", {
   bibleCharacter: text("bible_character"),
   dailyTheme: text("daily_theme"),
   timedQuizQuestions: text("timed_quiz_questions"),
+  quizQuestions: text("quiz_questions"),
+  aiGeneratedMissions: text("ai_generated_missions"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

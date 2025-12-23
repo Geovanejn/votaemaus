@@ -1391,40 +1391,155 @@ export async function generateRecoveryVersesWithAI(count: number = 5): Promise<A
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
-// Local fallback daily missions to avoid API calls when quota is low
-const LOCAL_DAILY_MISSIONS = [
-  [
-    { title: "Leitura Matinal", description: "Leia um capítulo do livro de Provérbios", xpReward: 10, type: "easy" },
-    { title: "Oração Intercessória", description: "Ore por 5 pessoas diferentes da sua comunidade", xpReward: 25, type: "medium" },
-    { title: "Estudo Bíblico", description: "Faça um estudo aprofundado sobre um versículo e anote suas reflexões", xpReward: 50, type: "hard" },
-  ],
-  [
-    { title: "Versículo do Dia", description: "Memorize um versículo bíblico e medite nele", xpReward: 10, type: "easy" },
-    { title: "Ato de Bondade", description: "Pratique um ato de bondade com alguém hoje", xpReward: 25, type: "medium" },
-    { title: "Jejum e Oração", description: "Faça um jejum parcial e dedique o tempo à oração", xpReward: 50, type: "hard" },
-  ],
-  [
-    { title: "Gratidão", description: "Escreva 3 coisas pelas quais você é grato hoje", xpReward: 10, type: "easy" },
-    { title: "Compartilhar a Fé", description: "Compartilhe uma mensagem de encorajamento com alguém", xpReward: 25, type: "medium" },
-    { title: "Servir ao Próximo", description: "Ajude alguém necessitado de forma prática hoje", xpReward: 50, type: "hard" },
-  ],
+// ==================== LARGE FALLBACK DATABASE FOR DAILY MISSIONS ====================
+
+// 100+ Bible quiz questions for fallback
+const FALLBACK_QUIZ_QUESTIONS = [
+  { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
+  { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
+  { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
+  { question: "Qual livro vem depois de Gênesis?", options: ["Números", "Êxodo", "Levítico", "Deuteronômio"], correctIndex: 1 },
+  { question: "Quantos discípulos Jesus tinha?", options: ["10", "11", "12", "13"], correctIndex: 2 },
+  { question: "Quem batizou Jesus?", options: ["Pedro", "João Batista", "Tiago", "André"], correctIndex: 1 },
+  { question: "Qual foi o primeiro milagre de Jesus?", options: ["Ressuscitar Lázaro", "Multiplicar pães", "Transformar água em vinho", "Curar um cego"], correctIndex: 2 },
+  { question: "Quantos dias durou o dilúvio?", options: ["7 dias", "40 dias", "100 dias", "1 ano"], correctIndex: 1 },
+  { question: "Quem construiu a arca?", options: ["Abraão", "Noé", "Moisés", "Jacó"], correctIndex: 1 },
+  { question: "Qual o nome do gigante derrotado por Davi?", options: ["Sansão", "Golias", "Saul", "Absalão"], correctIndex: 1 },
+  { question: "Quem negou Jesus três vezes?", options: ["Judas", "Tomé", "Pedro", "João"], correctIndex: 2 },
+  { question: "Em que cidade Jesus nasceu?", options: ["Nazaré", "Jerusalém", "Belém", "Cafarnaum"], correctIndex: 2 },
+  { question: "Quantos livros tem o Novo Testamento?", options: ["27", "39", "22", "31"], correctIndex: 0 },
+  { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomão", "Saul", "Samuel"], correctIndex: 2 },
+  { question: "Qual profeta foi engolido por um peixe?", options: ["Elias", "Eliseu", "Jonas", "Amós"], correctIndex: 2 },
+  { question: "Quantos mandamentos Deus deu a Moisés?", options: ["5", "7", "10", "12"], correctIndex: 2 },
+  { question: "Quem foi vendido como escravo pelos irmãos?", options: ["Benjamim", "José", "Judá", "Rúben"], correctIndex: 1 },
+  { question: "Qual era a profissão de Jesus?", options: ["Pescador", "Carpinteiro", "Pastor", "Agricultor"], correctIndex: 1 },
+  { question: "Quem escreveu a maior parte das cartas do NT?", options: ["Pedro", "João", "Paulo", "Tiago"], correctIndex: 2 },
+  { question: "Qual o último livro da Bíblia?", options: ["Judas", "Apocalipse", "3 João", "Malaquias"], correctIndex: 1 },
+  { question: "Quem foi o pai de Salomão?", options: ["Saul", "Davi", "Samuel", "Abraão"], correctIndex: 1 },
+  { question: "Qual o menor livro da Bíblia?", options: ["Obadias", "Filemom", "2 João", "3 João"], correctIndex: 2 },
+  { question: "Quem foi levado ao céu num redemoinho?", options: ["Moisés", "Elias", "Enoque", "Eliseu"], correctIndex: 1 },
+  { question: "Quantas pragas Deus enviou ao Egito?", options: ["7", "10", "12", "15"], correctIndex: 1 },
+  { question: "Quem foi a esposa de Abraão?", options: ["Rebeca", "Raquel", "Sara", "Lia"], correctIndex: 2 },
+  { question: "Qual apóstolo era cobrador de impostos?", options: ["Pedro", "Mateus", "Judas", "Simão"], correctIndex: 1 },
+  { question: "Quem interpretou os sonhos de Faraó?", options: ["Moisés", "José", "Daniel", "Elias"], correctIndex: 1 },
+  { question: "Qual livro contém os Salmos?", options: ["Provérbios", "Eclesiastes", "Salmos", "Cantares"], correctIndex: 2 },
+  { question: "Quem escreveu o Apocalipse?", options: ["Paulo", "Pedro", "João", "Tiago"], correctIndex: 2 },
+  { question: "Quantos anos Jesus viveu na terra?", options: ["30", "33", "35", "40"], correctIndex: 1 },
+  { question: "Qual o monte onde Moisés recebeu os mandamentos?", options: ["Carmelo", "Sinai", "Horebe", "Sião"], correctIndex: 1 },
+  { question: "Quem foi o sucessor de Moisés?", options: ["Calebe", "Josué", "Arão", "Eleazar"], correctIndex: 1 },
+  { question: "Qual cidade Josué conquistou primeiro?", options: ["Ai", "Jericó", "Jerusalém", "Hebrom"], correctIndex: 1 },
+  { question: "Quem foi o juiz mais forte de Israel?", options: ["Gideão", "Sansão", "Jefté", "Samuel"], correctIndex: 1 },
+  { question: "Quantos filhos Jacó teve?", options: ["10", "12", "14", "7"], correctIndex: 1 },
+  { question: "Qual o nome do filho prometido de Abraão?", options: ["Ismael", "Isaque", "Jacó", "Esaú"], correctIndex: 1 },
+  { question: "Quem foi o profeta do fogo do céu no Carmelo?", options: ["Eliseu", "Elias", "Isaías", "Jeremias"], correctIndex: 1 },
+  { question: "Qual mulher foi juíza em Israel?", options: ["Rute", "Débora", "Ester", "Raabe"], correctIndex: 1 },
+  { question: "Quem foi o discípulo que duvidou da ressurreição?", options: ["Pedro", "João", "Tomé", "Filipe"], correctIndex: 2 },
+  { question: "Qual era o nome hebraico de Paulo?", options: ["Silas", "Saulo", "Barnabé", "Timóteo"], correctIndex: 1 },
+  { question: "Em que rio Jesus foi batizado?", options: ["Nilo", "Eufrates", "Jordão", "Tigre"], correctIndex: 2 },
+  { question: "Quem foi o primeiro mártir cristão?", options: ["Tiago", "Estêvão", "Pedro", "Paulo"], correctIndex: 1 },
+  { question: "Quantos pães Jesus multiplicou?", options: ["3", "5", "7", "12"], correctIndex: 1 },
+  { question: "Qual animal falou com Balaão?", options: ["Camelo", "Jumento", "Cavalo", "Boi"], correctIndex: 1 },
+  { question: "Quem foi o pai de João Batista?", options: ["José", "Zacarias", "Simeão", "Zebedeu"], correctIndex: 1 },
+  { question: "Qual rei construiu o primeiro templo?", options: ["Davi", "Salomão", "Ezequias", "Josias"], correctIndex: 1 },
+  { question: "Quantos anos os israelitas vagaram no deserto?", options: ["20", "30", "40", "50"], correctIndex: 2 },
+  { question: "Quem foi a mãe de Samuel?", options: ["Ana", "Penina", "Rute", "Noemi"], correctIndex: 0 },
+  { question: "Qual profeta foi chamado ainda criança?", options: ["Jeremias", "Samuel", "Isaías", "Eliseu"], correctIndex: 1 },
+  { question: "Quem foi transformada em estátua de sal?", options: ["Mulher de Ló", "Sara", "Rebeca", "Raquel"], correctIndex: 0 },
 ];
 
+// 50+ Bible curiosities for fallback
+const FALLBACK_BIBLE_FACTS = [
+  { fact: "A Bíblia foi escrita por aproximadamente 40 autores diferentes ao longo de 1.500 anos.", category: "história" },
+  { fact: "O livro de Ester é o único livro da Bíblia que não menciona o nome de Deus.", category: "curiosidade" },
+  { fact: "O versículo mais curto da Bíblia em português é 'Jesus chorou' (João 11:35).", category: "curiosidade" },
+  { fact: "O Salmo 119 é o capítulo mais longo da Bíblia, com 176 versículos.", category: "números" },
+  { fact: "A palavra 'Bíblia' vem do grego 'biblion' que significa 'livros'.", category: "etimologia" },
+  { fact: "Matusalém é a pessoa mais velha mencionada na Bíblia, vivendo 969 anos.", category: "personagens" },
+  { fact: "O livro de Jó é considerado o mais antigo da Bíblia.", category: "história" },
+  { fact: "A Bíblia foi o primeiro livro impresso por Gutenberg em 1455.", category: "história" },
+  { fact: "O Antigo Testamento foi escrito principalmente em hebraico e o Novo em grego.", category: "idiomas" },
+  { fact: "Jesus citou o livro de Deuteronômio mais do que qualquer outro livro.", category: "Jesus" },
+  { fact: "O apóstolo Paulo escreveu 13 das 27 cartas do Novo Testamento.", category: "autores" },
+  { fact: "A palavra 'amor' aparece mais de 300 vezes na Bíblia.", category: "palavras" },
+  { fact: "O Monte das Oliveiras é mencionado mais de 12 vezes na Bíblia.", category: "lugares" },
+  { fact: "Noé tinha 600 anos quando começou o dilúvio.", category: "personagens" },
+  { fact: "A arca de Noé tinha aproximadamente 137 metros de comprimento.", category: "números" },
+  { fact: "O nome 'Jesus' significa 'o Senhor salva' em hebraico.", category: "etimologia" },
+  { fact: "O livro de Apocalipse contém 404 versículos e 22 capítulos.", category: "números" },
+  { fact: "Davi foi ungido rei três vezes diferentes.", category: "personagens" },
+  { fact: "A rainha de Sabá viajou mais de 1.500 km para ver Salomão.", category: "viagens" },
+  { fact: "O profeta Isaías é citado mais de 60 vezes no Novo Testamento.", category: "profetas" },
+  { fact: "Pedro é mencionado mais vezes que qualquer outro apóstolo nos Evangelhos.", category: "personagens" },
+  { fact: "Jesus jejuou 40 dias no deserto antes de iniciar seu ministério.", category: "Jesus" },
+  { fact: "O templo de Salomão levou 7 anos para ser construído.", category: "construções" },
+  { fact: "A palavra 'aleluia' aparece 24 vezes na Bíblia.", category: "palavras" },
+  { fact: "Abraão tinha 100 anos quando Isaque nasceu.", category: "personagens" },
+  { fact: "O livro de Provérbios contém 31 capítulos, um para cada dia do mês.", category: "números" },
+  { fact: "Moisés liderou aproximadamente 2 milhões de israelitas no êxodo.", category: "números" },
+  { fact: "O Jordão é o rio mais mencionado na Bíblia, aparecendo 175 vezes.", category: "lugares" },
+  { fact: "Daniel sobreviveu na cova dos leões quando tinha aproximadamente 80 anos.", category: "personagens" },
+  { fact: "A última palavra de Jesus na cruz foi 'Está consumado' (João 19:30).", category: "Jesus" },
+];
+
+// Large fallback mission templates
+const FALLBACK_MISSION_TEMPLATES = [
+  { title: "Leitura Matinal", description: "Leia um capítulo do livro de Provérbios", xpReward: 10, type: "easy" },
+  { title: "Oração Intercessória", description: "Ore por 5 pessoas diferentes da sua comunidade", xpReward: 25, type: "medium" },
+  { title: "Estudo Bíblico", description: "Faça um estudo aprofundado sobre um versículo", xpReward: 50, type: "hard" },
+  { title: "Versículo do Dia", description: "Memorize um versículo bíblico e medite nele", xpReward: 10, type: "easy" },
+  { title: "Ato de Bondade", description: "Pratique um ato de bondade com alguém hoje", xpReward: 25, type: "medium" },
+  { title: "Jejum e Oração", description: "Faça um jejum parcial e dedique o tempo à oração", xpReward: 50, type: "hard" },
+  { title: "Gratidão", description: "Escreva 3 coisas pelas quais você é grato hoje", xpReward: 10, type: "easy" },
+  { title: "Compartilhar a Fé", description: "Compartilhe uma mensagem de encorajamento", xpReward: 25, type: "medium" },
+  { title: "Servir ao Próximo", description: "Ajude alguém necessitado de forma prática", xpReward: 50, type: "hard" },
+  { title: "Louvor Matinal", description: "Comece o dia ouvindo ou cantando um hino", xpReward: 10, type: "easy" },
+  { title: "Leitura dos Salmos", description: "Leia 3 Salmos e reflita sobre eles", xpReward: 25, type: "medium" },
+  { title: "Ensino Bíblico", description: "Ensine um princípio bíblico a alguém", xpReward: 50, type: "hard" },
+  { title: "Oração em Família", description: "Faça uma oração com sua família", xpReward: 10, type: "easy" },
+  { title: "Visitação", description: "Visite ou ligue para alguém que precisa de apoio", xpReward: 25, type: "medium" },
+  { title: "Evangelismo", description: "Compartilhe o evangelho com uma pessoa", xpReward: 50, type: "hard" },
+  { title: "Momento de Silêncio", description: "Dedique 10 minutos em silêncio com Deus", xpReward: 10, type: "easy" },
+  { title: "Perdão", description: "Perdoe alguém que te magoou e ore por essa pessoa", xpReward: 25, type: "medium" },
+  { title: "Confissão", description: "Faça uma reflexão honesta sobre seus pecados e confesse a Deus", xpReward: 50, type: "hard" },
+];
+
+export interface DailyMissionContent {
+  missions: Array<{ title: string; description: string; xpReward: number; type: string }>;
+  quizQuestions: Array<{ question: string; options: string[]; correctIndex: number }>;
+  bibleFact: { fact: string; category: string };
+  verseOfDay: { verse: string; reference: string };
+}
+
 export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
-  // Try AI generation if configured and quota likely available
-  // This is a LOW-PRIORITY task, so we skip AI if quota was recently exhausted
   if (isAIConfigured() && isQuotaLikelyAvailable()) {
     try {
       const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
       const dayName = dayNames[new Date().getDay()];
+      const dateStr = new Date().toISOString().split('T')[0];
       
-      const prompt = `Crie 3 missões espirituais para ${dayName}: fácil (10XP), média (25XP), difícil (50XP). JSON: {"missions":[{"title":"","description":"","xpReward":10,"type":"easy"},...]}`;
+      const prompt = `Você é um educador cristão criativo. Crie 3 missões espirituais ÚNICAS e VARIADAS para ${dayName} (${dateStr}).
+
+REGRAS IMPORTANTES:
+- As missões devem ser DIFERENTES a cada dia
+- Use temas variados: oração, leitura bíblica, serviço, evangelismo, gratidão, louvor, jejum, meditação, comunhão
+- Seja específico e criativo nos títulos e descrições
+- Adapte ao dia da semana (domingo = culto, sábado = família, etc)
+
+Formato JSON obrigatório:
+{
+  "missions": [
+    {"title": "título curto", "description": "descrição detalhada da missão", "xpReward": 10, "type": "easy"},
+    {"title": "título curto", "description": "descrição detalhada da missão", "xpReward": 25, "type": "medium"},
+    {"title": "título curto", "description": "descrição detalhada da missão", "xpReward": 50, "type": "hard"}
+  ]
+}`;
+      
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.missions && parsed.missions.length > 0) {
+        if (parsed.missions && parsed.missions.length >= 3) {
           console.log("[Daily Missions] Successfully generated with AI");
           return parsed.missions;
         }
@@ -1441,10 +1556,107 @@ export async function generateDailyMissionsWithAI(): Promise<Array<{ title: stri
     console.log("[Daily Missions] Skipping AI (quota cooldown), using local fallback");
   }
 
-  // Fallback to local missions
-  const randomIndex = Math.floor(Math.random() * LOCAL_DAILY_MISSIONS.length);
-  return LOCAL_DAILY_MISSIONS[randomIndex];
+  // Fallback: select 3 random missions (easy, medium, hard)
+  const shuffled = [...FALLBACK_MISSION_TEMPLATES].sort(() => Math.random() - 0.5);
+  const easy = shuffled.find(m => m.type === "easy") || FALLBACK_MISSION_TEMPLATES[0];
+  const medium = shuffled.find(m => m.type === "medium") || FALLBACK_MISSION_TEMPLATES[1];
+  const hard = shuffled.find(m => m.type === "hard") || FALLBACK_MISSION_TEMPLATES[2];
+  return [easy, medium, hard];
 }
+
+export async function generateQuizQuestionsWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }>> {
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
+    try {
+      const dateStr = new Date().toISOString().split('T')[0];
+      const randomSeed = Math.floor(Math.random() * 1000);
+      
+      const prompt = `Você é um especialista em estudos bíblicos. Gere ${count} perguntas de quiz ÚNICAS e VARIADAS sobre a Bíblia.
+
+REGRAS:
+- As perguntas devem cobrir diferentes livros, personagens, eventos e temas bíblicos
+- Varie entre Antigo e Novo Testamento
+- Inclua perguntas sobre: personagens, lugares, números, eventos, profecias, parábolas
+- Cada pergunta deve ter exatamente 4 opções
+- Use seed ${randomSeed} para garantir variedade (data: ${dateStr})
+
+Formato JSON:
+{
+  "questions": [
+    {"question": "pergunta", "options": ["opção1", "opção2", "opção3", "opção4"], "correctIndex": 0}
+  ]
+}`;
+      
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.questions && parsed.questions.length > 0) {
+          console.log("[Quiz Questions] Successfully generated with AI");
+          return parsed.questions;
+        }
+      }
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        markQuotaExhausted();
+        console.log("[Quiz Questions] AI quota exceeded, using local fallback");
+      } else {
+        console.error("[Quiz Questions] AI error:", error?.message);
+      }
+    }
+  }
+
+  // Fallback: select random questions from large pool
+  const shuffled = [...FALLBACK_QUIZ_QUESTIONS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+export async function generateBibleFactWithAI(): Promise<{ fact: string; category: string }> {
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
+    try {
+      const dateStr = new Date().toISOString().split('T')[0];
+      const randomSeed = Math.floor(Math.random() * 1000);
+      
+      const prompt = `Você é um historiador bíblico. Gere UMA curiosidade bíblica interessante e educativa.
+
+REGRAS:
+- A curiosidade deve ser ÚNICA e pouco conhecida
+- Pode ser sobre: arqueologia, história, cultura, linguagem, geografia, personagens
+- Deve ser precisa e baseada em fatos
+- Use seed ${randomSeed} para variedade (data: ${dateStr})
+
+Formato JSON:
+{
+  "fact": "curiosidade interessante sobre a Bíblia",
+  "category": "categoria (história/arqueologia/cultura/personagens/lugares/números)"
+}`;
+      
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.fact) {
+          console.log("[Bible Fact] Successfully generated with AI");
+          return parsed;
+        }
+      }
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        markQuotaExhausted();
+        console.log("[Bible Fact] AI quota exceeded, using local fallback");
+      } else {
+        console.error("[Bible Fact] AI error:", error?.message);
+      }
+    }
+  }
+
+  // Fallback: select random fact from pool
+  const randomIndex = Math.floor(Math.random() * FALLBACK_BIBLE_FACTS.length);
+  return FALLBACK_BIBLE_FACTS[randomIndex];
+}
+
+export { FALLBACK_QUIZ_QUESTIONS, FALLBACK_BIBLE_FACTS };
 
 export interface ExtractedLessonFromPDF {
   title: string;

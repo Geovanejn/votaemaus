@@ -3,7 +3,7 @@ import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
-import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, generateDailyMissionsWithAI, isAIConfigured } from "./ai";
+import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
@@ -416,33 +416,38 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
   console.log('[Daily Missions Scheduler] Refreshing daily missions with AI...');
   
   try {
-    if (!isAIConfigured()) {
-      console.log('[Daily Missions Scheduler] AI not configured, skipping mission generation');
-      return;
-    }
-    
-    const aiMissions = await generateDailyMissionsWithAI();
-    
-    if (!aiMissions || aiMissions.length === 0) {
-      console.log('[Daily Missions Scheduler] AI did not generate any missions');
-      return;
-    }
-    
     // Store the AI-generated missions for today
     const today = new Date().toISOString().split('T')[0];
     const existingContent = await storage.getDailyMissionContent(today);
     
     if (existingContent) {
-      console.log(`[Daily Missions Scheduler] Missions already generated for today (${today})`);
+      console.log(`[Daily Missions Scheduler] Content already generated for today (${today})`);
       return;
     }
     
+    // Import AI generation functions
+    const { generateDailyMissionsWithAI, generateQuizQuestionsWithAI, generateBibleFactWithAI } = await import('./ai');
+    
+    // Generate all content (AI with fallback)
+    console.log('[Daily Missions Scheduler] Generating missions, quiz and facts...');
+    
+    const [aiMissions, quizQuestions, bibleFact] = await Promise.all([
+      generateDailyMissionsWithAI(),
+      generateQuizQuestionsWithAI(10), // 10 questions for variety
+      generateBibleFactWithAI()
+    ]);
+    
     await storage.createDailyMissionContent({
       contentDate: today,
-      aiGeneratedMissions: JSON.stringify(aiMissions)
+      aiGeneratedMissions: JSON.stringify(aiMissions || []),
+      quizQuestions: JSON.stringify(quizQuestions || []),
+      bibleFact: JSON.stringify(bibleFact || {}),
     });
     
-    console.log(`[Daily Missions Scheduler] Generated ${aiMissions.length} AI missions for ${today}`);
+    console.log(`[Daily Missions Scheduler] Generated content for ${today}:`);
+    console.log(`  - Missions: ${aiMissions?.length || 0}`);
+    console.log(`  - Quiz questions: ${quizQuestions?.length || 0}`);
+    console.log(`  - Bible fact: ${bibleFact?.fact ? 'Yes' : 'No'}`);
   } catch (error) {
     console.error('[Daily Missions Scheduler] Error refreshing missions:', error);
   }
@@ -466,4 +471,101 @@ export function initDailyMissionsScheduler(): void {
   }, 10000);
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI };
+// ==================== WEEKLY GOAL SCHEDULER ====================
+
+function getCurrentWeekKey(): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo'
+  });
+  const localDate = new Date(formatter.format(now));
+  const year = localDate.getFullYear();
+  const startOfYear = new Date(year, 0, 1);
+  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+}
+
+function getPreviousWeekKey(): string {
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo'
+  });
+  const localDate = new Date(formatter.format(oneWeekAgo));
+  const year = localDate.getFullYear();
+  const startOfYear = new Date(year, 0, 1);
+  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+}
+
+async function processWeeklyGoalRewards(): Promise<void> {
+  console.log('[Weekly Goal Scheduler] Processing weekly goal rewards...');
+  
+  try {
+    const previousWeekKey = getPreviousWeekKey();
+    console.log(`[Weekly Goal Scheduler] Checking week: ${previousWeekKey}`);
+    
+    // Get all study profiles
+    const allProfiles = await storage.getAllStudyProfiles();
+    console.log(`[Weekly Goal Scheduler] Found ${allProfiles.length} profiles to check`);
+    
+    let rewardsDistributed = 0;
+    
+    for (const profile of allProfiles) {
+      try {
+        const progress = await storage.getWeeklyGoalProgress(profile.userId, previousWeekKey);
+        
+        if (!progress || progress.weeklyBonusDistributed) {
+          continue;
+        }
+        
+        // Count completed goals
+        const goals = {
+          lessons: (progress.lessonsCompleted || 0) >= (profile.weeklyLessonsGoal || 1),
+          verses: (progress.versesRead || 0) >= (profile.weeklyVersesGoal || 7),
+          missions: (progress.missionsCompleted || 0) >= (profile.weeklyMissionsGoal || 3),
+          devotionals: (progress.devotionalsRead || 0) >= (profile.weeklyDevotionalsGoal || 1),
+        };
+        
+        const completedGoals = Object.values(goals).filter(Boolean).length;
+        
+        // Calculate XP bonus: 25 per goal, max 100 + 50 bonus for all = 150
+        let xpBonus = 0;
+        if (completedGoals === 4) {
+          xpBonus = 150; // All 4 goals completed
+        } else if (completedGoals > 0) {
+          xpBonus = completedGoals * 25; // Proportional: 25, 50, or 75 XP
+        }
+        
+        if (xpBonus > 0) {
+          await storage.awardWeeklyGoalXp(profile.userId, xpBonus);
+          await storage.updateWeeklyGoalProgress(profile.userId, previousWeekKey, {
+            weeklyBonusDistributed: true,
+            xpBonus: xpBonus
+          } as any);
+          
+          console.log(`[Weekly Goal Scheduler] User ${profile.userId}: ${completedGoals}/4 goals, awarded ${xpBonus} XP`);
+          rewardsDistributed++;
+        }
+      } catch (error) {
+        console.error(`[Weekly Goal Scheduler] Error processing user ${profile.userId}:`, error);
+      }
+    }
+    
+    console.log(`[Weekly Goal Scheduler] Distributed rewards to ${rewardsDistributed} users`);
+  } catch (error) {
+    console.error('[Weekly Goal Scheduler] Error:', error);
+  }
+}
+
+export function initWeeklyGoalScheduler(): void {
+  // Run every Sunday at 23:59 to process weekly goals
+  cron.schedule('59 23 * * 0', processWeeklyGoalRewards, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Weekly Goal Scheduler] Initialized - will run every Sunday at 23:59 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards };

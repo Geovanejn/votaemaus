@@ -180,12 +180,18 @@ function QuizActivity({
     { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "José"], correctIndex: 0 },
   ];
   
-  const getShuffledQuestions = () => {
-    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+  const getShuffledQuestions = (sourceQuestions?: Array<{ question: string; options: string[]; correctIndex: number }>) => {
+    const source = sourceQuestions || allQuestions;
+    const shuffled = [...source].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 5);
   };
 
-  const [questions, setQuestions] = useState(() => content?.quizQuestions || getShuffledQuestions());
+  const [questions, setQuestions] = useState(() => {
+    if (content?.quizQuestions && content.quizQuestions.length > 0) {
+      return getShuffledQuestions(content.quizQuestions);
+    }
+    return getShuffledQuestions();
+  });
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -213,7 +219,11 @@ function QuizActivity({
   }, [timeLeft, quizComplete, failed]);
 
   const resetQuiz = () => {
-    setQuestions(getShuffledQuestions());
+    if (content?.quizQuestions && content.quizQuestions.length > 0) {
+      setQuestions(getShuffledQuestions(content.quizQuestions));
+    } else {
+      setQuestions(getShuffledQuestions());
+    }
     setCurrentQuestion(0);
     setCorrectAnswers(0);
     setSelectedAnswer(null);

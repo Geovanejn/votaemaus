@@ -10,6 +10,8 @@ interface LessonCompleteProps {
   mistakesCount: number;
   timeSpentSeconds: number;
   onContinue: () => void;
+  onNextLesson?: () => void;
+  hasNextLesson?: boolean;
 }
 
 function StatBox({ 
@@ -58,7 +60,9 @@ export function LessonComplete({
   streakDays,
   mistakesCount,
   timeSpentSeconds,
-  onContinue
+  onContinue,
+  onNextLesson,
+  hasNextLesson
 }: LessonCompleteProps) {
   const minutes = Math.floor(timeSpentSeconds / 60);
   const seconds = timeSpentSeconds % 60;
@@ -148,22 +152,49 @@ export function LessonComplete({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="w-full max-w-sm"
+        className="w-full max-w-sm space-y-3"
       >
-        <Button
-          onClick={onContinue}
-          className={cn(
-            "w-full py-7 text-lg font-black uppercase tracking-wide",
-            "bg-gradient-to-r from-[#1CB0F6] to-[#1899D6]",
-            "shadow-[0_6px_0_0_#1480B8]",
-            "hover:shadow-[0_4px_0_0_#1480B8] hover:translate-y-[2px]",
-            "active:shadow-[0_2px_0_0_#1480B8] active:translate-y-[4px]",
-            "transition-all duration-100"
-          )}
-          data-testid="button-continue"
-        >
-          Receber XP
-        </Button>
+        {hasNextLesson && onNextLesson ? (
+          <>
+            <Button
+              onClick={onNextLesson}
+              className={cn(
+                "w-full py-7 text-lg font-black uppercase tracking-wide",
+                "bg-gradient-to-r from-[#58CC02] to-[#46A302]",
+                "shadow-[0_6px_0_0_#3a9902]",
+                "hover:shadow-[0_4px_0_0_#3a9902] hover:translate-y-[2px]",
+                "active:shadow-[0_2px_0_0_#3a9902] active:translate-y-[4px]",
+                "transition-all duration-100"
+              )}
+              data-testid="button-next-lesson"
+            >
+              Proxima Licao
+            </Button>
+            <Button
+              onClick={onContinue}
+              variant="ghost"
+              className="w-full py-4 text-muted-foreground"
+              data-testid="button-continue"
+            >
+              Voltar ao Inicio
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={onContinue}
+            className={cn(
+              "w-full py-7 text-lg font-black uppercase tracking-wide",
+              "bg-gradient-to-r from-[#1CB0F6] to-[#1899D6]",
+              "shadow-[0_6px_0_0_#1480B8]",
+              "hover:shadow-[0_4px_0_0_#1480B8] hover:translate-y-[2px]",
+              "active:shadow-[0_2px_0_0_#1480B8] active:translate-y-[4px]",
+              "transition-all duration-100"
+            )}
+            data-testid="button-continue"
+          >
+            Continuar
+          </Button>
+        )}
       </motion.div>
     </div>
   );

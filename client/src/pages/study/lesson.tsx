@@ -281,6 +281,26 @@ export default function LessonPage() {
     enabled: !!user,
   });
 
+  interface WeekLessonsResponse {
+    id: number;
+    lessons: Array<{ id: number; orderIndex: number; status?: string }>;
+  }
+
+  const weekId = lessonData?.studyWeekId;
+  const { data: weekLessonsData } = useQuery<WeekLessonsResponse>({
+    queryKey: ['/api/study/weeks', weekId?.toString()],
+    enabled: !!weekId && isCompleted,
+  });
+
+  const nextLessonId = useMemo(() => {
+    if (!weekLessonsData?.lessons || !lessonData) return null;
+    const currentIndex = weekLessonsData.lessons.findIndex(l => l.id === lessonId);
+    if (currentIndex === -1 || currentIndex >= weekLessonsData.lessons.length - 1) return null;
+    const nextLesson = weekLessonsData.lessons[currentIndex + 1];
+    if (nextLesson?.status === 'completed') return null;
+    return nextLesson?.id || null;
+  }, [weekLessonsData, lessonId, lessonData]);
+
   const serverHearts = finalProfile?.hearts ?? profileData?.hearts;
 
   const startLessonMutation = useMutation({
@@ -1142,6 +1162,12 @@ export default function LessonPage() {
       );
     }
     
+    const handleNextLesson = () => {
+      if (nextLessonId) {
+        setLocation(`/study/lesson/${nextLessonId}`);
+      }
+    };
+
     return (
       <LessonComplete
         xpEarned={finalXp}
@@ -1150,6 +1176,8 @@ export default function LessonPage() {
         mistakesCount={mistakes}
         timeSpentSeconds={timeSpent}
         onContinue={handleLessonComplete}
+        hasNextLesson={!!nextLessonId}
+        onNextLesson={handleNextLesson}
       />
     );
   }

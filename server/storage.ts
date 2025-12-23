@@ -181,7 +181,10 @@ export interface IStorage {
   getInstagramPostById(id: number): Promise<any | null>;
   getInstagramPostsForAdmin(): Promise<any[]>;
   
-  getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null }>;
+  getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null; featuredDevotionals: any[]; featuredEvents: any[]; featuredInstagramPosts: any[] }>;
+  getFeaturedDevotionals(): Promise<any[]>;
+  getFeaturedEvents(): Promise<any[]>;
+  getFeaturedInstagramPosts(): Promise<any[]>;
   
   getBannerHighlights(): Promise<any[]>;
   addBannerHighlight(contentType: string, contentId: number): Promise<any>;
@@ -1661,6 +1664,37 @@ export class DatabaseStorage implements IStorage {
     return post || null;
   }
 
+  async getFeaturedInstagramPosts(): Promise<any[]> {
+    return db.select().from(schema.instagramPosts)
+      .where(and(
+        eq(schema.instagramPosts.isFeaturedBanner, true),
+        eq(schema.instagramPosts.isActive, true)
+      ))
+      .orderBy(desc(schema.instagramPosts.postedAt))
+      .limit(10);
+  }
+
+  async getFeaturedDevotionals(): Promise<any[]> {
+    return db.select().from(schema.devotionals)
+      .where(and(
+        eq(schema.devotionals.isFeatured, true),
+        eq(schema.devotionals.isPublished, true)
+      ))
+      .orderBy(desc(schema.devotionals.publishedAt))
+      .limit(10);
+  }
+
+  async getFeaturedEvents(): Promise<any[]> {
+    const today = new Date().toISOString().split('T')[0];
+    return db.select().from(schema.siteEvents)
+      .where(and(
+        eq(schema.siteEvents.isFeatured, true),
+        gte(schema.siteEvents.startDate, today)
+      ))
+      .orderBy(asc(schema.siteEvents.startDate))
+      .limit(10);
+  }
+
   async setFeaturedInstagramPost(id: number): Promise<any | null> {
     await db.update(schema.instagramPosts)
       .set({ isFeaturedBanner: false });
@@ -1690,15 +1724,18 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(schema.instagramPosts.postedAt));
   }
 
-  async getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null }> {
-    const [devotional, events, instagramPosts, featuredInstagramPost] = await Promise.all([
+  async getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null; featuredDevotionals: any[]; featuredEvents: any[]; featuredInstagramPosts: any[] }> {
+    const [devotional, events, instagramPosts, featuredInstagramPost, featuredDevotionals, featuredEvents, featuredInstagramPosts] = await Promise.all([
       this.getLatestDevotional(),
       this.getUpcomingEvents(5),
       this.getLatestInstagramPosts(6),
       this.getFeaturedInstagramPost(),
+      this.getFeaturedDevotionals(),
+      this.getFeaturedEvents(),
+      this.getFeaturedInstagramPosts(),
     ]);
     
-    return { devotional, events, instagramPosts, featuredInstagramPost };
+    return { devotional, events, instagramPosts, featuredInstagramPost, featuredDevotionals, featuredEvents, featuredInstagramPosts };
   }
 
   async getBannerHighlights(): Promise<any[]> {

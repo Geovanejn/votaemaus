@@ -542,27 +542,54 @@ export default function StudyHomePage() {
     });
   };
 
-  const allUnitsData: UnitData[] = (allWeeksData || []).filter(weekData => weekData && weekData.week && weekData.week.id).map((weekData) => {
+  const allUnitsData: UnitData[] = (allWeeksData || []).filter(weekData => weekData && weekData.week && weekData.week.id).map((weekData, unitIndex, allWeeks) => {
     const transformedLessons = transformLessonsForWeek(weekData);
     const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
     const week = weekData.week;
+    
+    const previousWeekData = unitIndex > 0 ? allWeeks[unitIndex - 1] : null;
+    const previousWeekLessons = previousWeekData ? transformLessonsForWeek(previousWeekData) : [];
+    const previousWeekCompleted = previousWeekLessons.length > 0 && 
+      previousWeekLessons.every(l => l.status === 'completed');
+    
+    const isFirstUnit = unitIndex === 0;
+    const isPreviousComplete = isFirstUnit || previousWeekCompleted;
+    
+    let unitStatus: 'completed' | 'current' | 'locked';
+    if (lessonsCompleted === transformedLessons.length && transformedLessons.length > 0) {
+      unitStatus = 'completed';
+    } else if (isPreviousComplete && transformedLessons.length > 0) {
+      unitStatus = 'current';
+    } else {
+      unitStatus = 'locked';
+    }
+    
+    const adjustedLessons = transformedLessons.map((lesson, lessonIndex) => {
+      if (unitStatus === 'locked') {
+        return { ...lesson, status: 'locked' as const };
+      }
+      if (unitStatus === 'completed') {
+        return { ...lesson, status: 'completed' as const };
+      }
+      const previousLessonComplete = lessonIndex === 0 || transformedLessons[lessonIndex - 1].status === 'completed';
+      if (lesson.status === 'locked' && previousLessonComplete) {
+        return { ...lesson, status: 'in_progress' as const };
+      }
+      return lesson;
+    });
     
     return {
       id: week.id,
       number: week.weekNumber,
       title: week.title,
       subtitle: week.description || '',
-      status: lessonsCompleted === transformedLessons.length && transformedLessons.length > 0 
-        ? 'completed' as const
-        : transformedLessons.some(l => l.status === 'in_progress') 
-          ? 'current' as const
-          : 'locked' as const,
+      status: unitStatus,
       lessonsCompleted,
       totalLessons: transformedLessons.length,
       progress: transformedLessons.length > 0 
         ? Math.round((lessonsCompleted / transformedLessons.length) * 100)
         : 0,
-      lessons: transformedLessons
+      lessons: adjustedLessons
     };
   });
 

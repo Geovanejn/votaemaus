@@ -2586,6 +2586,7 @@ export class DatabaseStorage implements IStorage {
         lastActivityDate: schema.studyProfiles.lastActivityDate,
         lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
         crystals: schema.studyProfiles.crystals,
+        createdAt: schema.studyProfiles.createdAt,
       },
     })
       .from(schema.users)
@@ -2627,6 +2628,7 @@ export class DatabaseStorage implements IStorage {
         currentLevel: row.profile?.currentLevel || 1,
         currentStreak: row.profile?.currentStreak || 0,
         crystals: row.profile?.crystals || 0,
+        registrationDate: row.profile?.createdAt?.toISOString() || null,
       };
     }));
 

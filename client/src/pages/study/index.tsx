@@ -387,7 +387,10 @@ export default function StudyHomePage() {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
           if (!res.ok) return null;
-          return res.json();
+          const data = await res.json();
+          // Transform flat response to expected WeekWithLessons format
+          const { lessons, ...weekData } = data;
+          return { week: weekData as StudyWeek, lessons: lessons || [] };
         })
       );
       return results.filter(Boolean) as WeekWithLessons[];

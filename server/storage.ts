@@ -1120,10 +1120,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async publishStudyWeek(weekId: number): Promise<any | null> {
+    // Update week status
     const [week] = await db.update(schema.studyWeeks)
       .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
       .where(eq(schema.studyWeeks.id, weekId))
       .returning();
+    
+    // Also unlock all lessons in this week so they appear to users
+    await db.update(schema.studyLessons)
+      .set({ isLocked: false, updatedAt: new Date() })
+      .where(eq(schema.studyLessons.studyWeekId, weekId));
+    
     return week || null;
   }
 

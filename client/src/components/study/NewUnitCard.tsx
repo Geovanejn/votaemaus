@@ -210,7 +210,7 @@ export function NewUnitCard({ unit, onLessonStageClick, defaultExpanded = false 
         onClick={() => !isLocked && setIsExpanded(!isExpanded)}
         disabled={isLocked}
         className={cn(
-          "w-full rounded-2xl overflow-hidden transition-all",
+          "w-full rounded-2xl overflow-hidden transition-all shadow-sm",
           !isLocked && "cursor-pointer"
         )}
         whileHover={!isLocked ? { scale: 1.01 } : undefined}

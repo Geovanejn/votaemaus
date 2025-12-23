@@ -273,7 +273,7 @@ function SeasonCard({
                   src={season.coverImageUrl} 
                   alt="Capa da revista"
                   className="w-20 h-28 rounded-lg object-cover border-2 border-white/20"
-                  style={{ boxShadow: '0 8px 25px rgba(0,0,0,0.4)' }}
+                  style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
                 />
               </div>
             )}

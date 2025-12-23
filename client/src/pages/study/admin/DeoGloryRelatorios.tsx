@@ -135,11 +135,16 @@ export default function DeoGloryRelatorios() {
   const activeUsers = users.filter(u => u.status === "Ativo").length;
   const totalXpEarned = users.reduce((sum, u) => sum + (u.totalXp || 0), 0);
   const totalLessonsCompleted = users.reduce((sum, u) => sum + (u.lessonsCompleted || 0), 0);
-  const averageStreak = users.length > 0 
-    ? Math.round(users.reduce((sum, u) => sum + (u.currentStreak || 0), 0) / users.length) 
+  
+  // Calculate average streak only for users who have actually studied (have XP or lessons completed)
+  const usersWithActivity = users.filter(u => (u.totalXp || 0) > 0 || (u.lessonsCompleted || 0) > 0);
+  const averageStreak = usersWithActivity.length > 0 
+    ? Math.round(usersWithActivity.reduce((sum, u) => sum + (u.currentStreak || 0), 0) / usersWithActivity.length) 
     : 0;
-  const averageLevel = users.length > 0 
-    ? Math.round(users.reduce((sum, u) => sum + (u.currentLevel || 1), 0) / users.length) 
+  
+  // Calculate average level only for users who have activity
+  const averageLevel = usersWithActivity.length > 0 
+    ? Math.round(usersWithActivity.reduce((sum, u) => sum + (u.currentLevel || 1), 0) / usersWithActivity.length) 
     : 1;
 
   const levelDistribution = [

@@ -2612,7 +2612,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recalculateAllLevels(): Promise<{ updated: number; total: number }> {
-    const xpPerLevel = 500;
+    // Progressive level system: level N requires N * 500 XP total to reach level N+1
+    // Level 1: 0-499 XP, Level 2: 500-999 XP, etc.
+    // To find level from XP: level = floor(XP / 500) + 1
     
     const allProfiles = await db.select({
       userId: schema.studyProfiles.userId,
@@ -2623,7 +2625,9 @@ export class DatabaseStorage implements IStorage {
     let updatedCount = 0;
     
     for (const profile of allProfiles) {
-      const correctLevel = Math.max(1, Math.floor((profile.totalXp || 0) / xpPerLevel) + 1);
+      const totalXp = profile.totalXp || 0;
+      // Calculate correct level: each 500 XP = 1 level
+      const correctLevel = Math.max(1, Math.floor(totalXp / 500) + 1);
       
       if (profile.currentLevel !== correctLevel) {
         await db.update(schema.studyProfiles)
@@ -2633,7 +2637,7 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(schema.studyProfiles.userId, profile.userId));
         updatedCount++;
-        console.log(`[Level Sync] User ${profile.userId}: level ${profile.currentLevel} -> ${correctLevel} (XP: ${profile.totalXp})`);
+        console.log(`[Level Sync] User ${profile.userId}: level ${profile.currentLevel} -> ${correctLevel} (XP: ${totalXp})`);
       }
     }
     

@@ -177,25 +177,25 @@ export default function ProfilePage() {
     return <LoadingState />;
   }
 
-  // Always use profile totalXp as the source of truth
+  // Use profile data as the source of truth
   const currentXp = profile?.totalXp || 0;
+  const currentLevel = profile?.currentLevel || 1;
   
-  // Calculate level thresholds based on 500 XP per level
-  const xpPerLevel = 500;
+  // Progressive level system: each level requires level * 500 XP total
+  // Level 17 requires 8,500 XP total (17 × 500)
+  // Level 18 requires 9,000 XP total (18 × 500)
+  const xpForNextLevel = currentLevel * 500;
+  const xpForCurrentLevel = (currentLevel - 1) * 500;
   
-  // Calculate level from XP (not from database) to ensure consistency
-  const currentLevel = Math.max(1, Math.floor(currentXp / xpPerLevel) + 1);
+  // XP progress shows total XP out of next level threshold
+  const xpInLevel = currentXp;
+  const xpNeeded = xpForNextLevel;
+  const xpRemaining = Math.max(0, xpForNextLevel - currentXp);
   
-  const xpForCurrentLevel = (currentLevel - 1) * xpPerLevel;
-  const xpForNextLevel = currentLevel * xpPerLevel;
-  
-  // XP progress within current level
-  const xpInLevel = currentXp - xpForCurrentLevel;
-  const xpNeeded = xpPerLevel;
-  const xpRemaining = xpForNextLevel - currentXp;
-  
-  // Calculate progress percentage (0-100)
-  const progressPercent = Math.max(0, Math.min((xpInLevel / xpNeeded) * 100, 100));
+  // Calculate progress percentage based on total XP towards next level
+  const progressPercent = xpForNextLevel > 0 
+    ? Math.max(0, Math.min((currentXp / xpForNextLevel) * 100, 100))
+    : 0;
 
   const categoryColorMap: Record<string, { bgColor: string }> = {
     streak: { bgColor: "#F97316" },

@@ -529,7 +529,7 @@ export default function StudyHomePage() {
     });
   };
 
-  const allUnitsData: UnitData[] = (allWeeksData || []).map((weekData) => {
+  const allUnitsData: UnitData[] = (allWeeksData || []).filter(weekData => weekData && weekData.week && weekData.week.id).map((weekData) => {
     const transformedLessons = transformLessonsForWeek(weekData);
     const lessonsCompleted = transformedLessons.filter(l => l.status === 'completed').length;
     const week = weekData.week;

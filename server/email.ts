@@ -47,11 +47,10 @@ export async function sendVerificationEmail(email: string, code: string): Promis
     await resend.emails.send({
       from: "UMP Emaús <suporte@emausvota.com.br>" ,
       to: email,
-      subject: "Seu código de verificação - Emaús Vota",
+      subject: "Seu código de verificação - UMP Emaús",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #FFA500;">Emaús Vota</h2>
-          <p style="font-size: 12px; color: #888; margin-bottom: 15px;">Módulo: Emaús Vota (Sistema de Votação)</p>
+          <h2 style="color: #FFA500;">UMP Emaús</h2>
           <p>Olá,</p>
           <p>Seu código de verificação para primeiro acesso é:</p>
           <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
@@ -81,12 +80,11 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: email,
-      subject: "🔒 Recuperação de Senha - Emaús Vota",
+      subject: "🔒 Recuperação de Senha - UMP Emaús",
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
             <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">Recuperação de Senha</h1>
           </div>
 

@@ -601,6 +601,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trigger birthday emails manually for today
+  app.post("/api/admin/trigger-birthday-emails", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { sendBirthdayEmails } = await import("./scheduler");
+      await sendBirthdayEmails();
+      res.json({ message: "E-mails de aniversário disparados com sucesso para hoje" });
+    } catch (error) {
+      console.error("Trigger birthday emails error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao disparar e-mails de aniversário" 
+      });
+    }
+  });
+
   app.post("/api/elections", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const { name } = req.body;

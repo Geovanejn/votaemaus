@@ -160,37 +160,49 @@ function QuizActivity({
   onComplete: () => void;
 }) {
   const { sounds } = useSounds();
-  const defaultQuestions = missionType === 'timed_challenge' ? [
+  
+  // Quiz Rápido: 5 perguntas em 30 segundos, precisa acertar TODAS
+  // Timed Challenge: 5 perguntas em 30 segundos, precisa acertar TODAS
+  const isQuickQuiz = missionType === 'quick_quiz';
+  const isTimedChallenge = missionType === 'timed_challenge';
+  const needsAllCorrect = isQuickQuiz || isTimedChallenge;
+  
+  const allQuestions = [
     { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
     { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
     { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
     { question: "Qual livro vem depois de Gênesis?", options: ["Números", "Êxodo", "Levítico", "Deuteronômio"], correctIndex: 1 },
     { question: "Quantos discípulos Jesus tinha?", options: ["10", "11", "12", "13"], correctIndex: 2 },
-  ] : [
-    { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
-    { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
-    { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
+    { question: "Quem construiu a arca?", options: ["Abraão", "Noé", "Moisés", "Davi"], correctIndex: 1 },
+    { question: "Qual profeta enfrentou os profetas de Baal?", options: ["Elias", "Eliseu", "Isaías", "Jeremias"], correctIndex: 0 },
+    { question: "Em que cidade Jesus nasceu?", options: ["Nazaré", "Jerusalém", "Belém", "Cafarnaum"], correctIndex: 2 },
+    { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomão", "Saul", "Samuel"], correctIndex: 2 },
+    { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "José"], correctIndex: 0 },
   ];
+  
+  const getShuffledQuestions = () => {
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  };
 
-  const questions = content?.quizQuestions || defaultQuestions;
+  const [questions, setQuestions] = useState(() => content?.quizQuestions || getShuffledQuestions());
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(missionType === 'timed_challenge' ? 30 : null);
+  const [timeLeft, setTimeLeft] = useState(needsAllCorrect ? 30 : null);
   const [quizComplete, setQuizComplete] = useState(false);
-
+  const [failed, setFailed] = useState(false);
   const [timedOutFlag, setTimedOutFlag] = useState(false);
 
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || quizComplete) return;
+    if (timeLeft === null || timeLeft <= 0 || quizComplete || failed) return;
     
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev === null || prev <= 1) {
-          // Time ran out - set both flags
           setTimedOutFlag(true);
-          setQuizComplete(true);
+          setFailed(true);
           return 0;
         }
         return prev - 1;
@@ -198,11 +210,22 @@ function QuizActivity({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, quizComplete]);
+  }, [timeLeft, quizComplete, failed]);
+
+  const resetQuiz = () => {
+    setQuestions(getShuffledQuestions());
+    setCurrentQuestion(0);
+    setCorrectAnswers(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setTimeLeft(30);
+    setQuizComplete(false);
+    setFailed(false);
+    setTimedOutFlag(false);
+  };
 
   const handleAnswer = (index: number) => {
-    // Block answers if already answered, time is up, or quiz is complete
-    if (selectedAnswer !== null || timedOutFlag || (timeLeft !== null && timeLeft <= 0)) return;
+    if (selectedAnswer !== null || timedOutFlag || failed || (timeLeft !== null && timeLeft <= 0)) return;
     
     setSelectedAnswer(index);
     const isCorrect = index === questions[currentQuestion].correctIndex;
@@ -212,13 +235,19 @@ function QuizActivity({
       sounds.practiceCorrect();
     } else {
       sounds.practiceError();
+      // Para quick_quiz e timed_challenge: errou uma = falhou imediatamente
+      if (needsAllCorrect) {
+        setTimeout(() => {
+          setFailed(true);
+        }, 1000);
+        return;
+      }
     }
     
     setShowResult(true);
     
     setTimeout(() => {
-      // Don't proceed if time ran out during the delay
-      if (timedOutFlag) return;
+      if (timedOutFlag || failed) return;
       
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(prev => prev + 1);
@@ -226,107 +255,68 @@ function QuizActivity({
         setShowResult(false);
       } else {
         setQuizComplete(true);
-        if (correctAnswers + (isCorrect ? 1 : 0) >= (missionType === 'quick_quiz' ? 3 : 2)) {
-          sounds.success();
-        }
+        sounds.success();
       }
-    }, 1500);
+    }, 1000);
   };
 
-  // Para timed_challenge: deve acertar TODAS as perguntas DENTRO do tempo
-  // Se o tempo acabar antes de responder todas, a missão falha
-  const isTimedChallenge = missionType === 'timed_challenge';
-  
-  // Para timed_challenge: só pode completar se acertou TODAS as perguntas e NÃO esgotou o tempo
-  // Para outros tipos: precisa acertar o mínimo exigido
-  const minCorrect = missionType === 'quick_quiz' ? 3 : (isTimedChallenge ? questions.length : 2);
-  const canComplete = isTimedChallenge 
-    ? (quizComplete && correctAnswers === questions.length && !timedOutFlag)
-    : (quizComplete && correctAnswers >= minCorrect);
-  
-  // Para timed_challenge: se o tempo acabou ou não acertou todas, falhou
-  const timedChallengeFailed = isTimedChallenge && quizComplete && (timedOutFlag || correctAnswers < questions.length);
-
-  if (quizComplete) {
-    // Se é timed_challenge e falhou, mostrar opção de tentar novamente
-    if (timedChallengeFailed) {
-      return (
-        <div className="space-y-6 text-center" data-testid="quiz-result-failed">
-          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-red-500">
-            <Clock className="w-10 h-10 text-white" />
-          </div>
-          
-          <div>
-            <h3 className="text-xl font-bold text-foreground mb-2">
-              {timedOutFlag ? 'Tempo Esgotado!' : 'Não foi dessa vez!'}
-            </h3>
-            <p className="text-muted-foreground">
-              {timedOutFlag 
-                ? 'O tempo acabou antes de você responder todas as perguntas.' 
-                : `Você acertou ${correctAnswers} de ${questions.length} perguntas.`}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Para completar esta missão, você precisa acertar TODAS as {questions.length} perguntas dentro do tempo.
-            </p>
-          </div>
-
-          <Button 
-            onClick={() => {
-              // Reset para tentar novamente com novas perguntas
-              setCurrentQuestion(0);
-              setCorrectAnswers(0);
-              setSelectedAnswer(null);
-              setShowResult(false);
-              setTimeLeft(30);
-              setQuizComplete(false);
-              setTimedOutFlag(false);
-            }}
-            variant="outline"
-            className="w-full"
-            data-testid="button-retry-quiz"
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            Tentar Novamente
-          </Button>
-        </div>
-      );
-    }
-
+  // Se falhou (errou ou tempo esgotou), mostrar tela de retry
+  if (failed) {
     return (
-      <div className="space-y-6 text-center" data-testid="quiz-result">
-        <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${
-          canComplete ? 'bg-[#58CC02]' : 'bg-orange-500'
-        }`}>
-          {canComplete ? (
-            <Star className="w-10 h-10 text-white" />
-          ) : (
-            <Target className="w-10 h-10 text-white" />
-          )}
+      <div className="space-y-6 text-center" data-testid="quiz-result-failed">
+        <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-red-500">
+          {timedOutFlag ? <Clock className="w-10 h-10 text-white" /> : <Target className="w-10 h-10 text-white" />}
         </div>
         
         <div>
           <h3 className="text-xl font-bold text-foreground mb-2">
-            {canComplete ? 'Parabéns!' : 'Quase lá!'}
+            {timedOutFlag ? 'Tempo Esgotado!' : 'Ops! Você errou'}
           </h3>
           <p className="text-muted-foreground">
-            Você acertou {correctAnswers} de {questions.length} perguntas
+            {timedOutFlag 
+              ? 'O tempo acabou antes de você responder todas as perguntas.' 
+              : 'Você precisa acertar todas as 5 perguntas sem errar.'}
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Acertou {correctAnswers} de {questions.length} perguntas.
           </p>
         </div>
 
-        {canComplete ? (
-          <Button 
-            onClick={onComplete} 
-            className="w-full bg-[#58CC02] text-white"
-            data-testid="button-complete-quiz"
-          >
-            <Check className="w-4 h-4 mr-2" />
-            Concluir Missão
-          </Button>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Você precisa acertar pelo menos {minCorrect} perguntas para completar a missão.
+        <Button 
+          onClick={resetQuiz}
+          variant="outline"
+          className="w-full"
+          data-testid="button-retry-quiz"
+        >
+          <Clock className="w-4 h-4 mr-2" />
+          Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
+
+  if (quizComplete) {
+    return (
+      <div className="space-y-6 text-center" data-testid="quiz-result">
+        <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-[#58CC02]">
+          <Star className="w-10 h-10 text-white" />
+        </div>
+        
+        <div>
+          <h3 className="text-xl font-bold text-foreground mb-2">Parabéns!</h3>
+          <p className="text-muted-foreground">
+            Você acertou todas as {questions.length} perguntas!
           </p>
-        )}
+        </div>
+
+        <Button 
+          onClick={onComplete} 
+          className="w-full bg-[#58CC02] text-white"
+          data-testid="button-complete-quiz"
+        >
+          <Check className="w-4 h-4 mr-2" />
+          Concluir Missão
+        </Button>
       </div>
     );
   }

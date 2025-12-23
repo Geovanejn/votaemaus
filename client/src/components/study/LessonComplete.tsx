@@ -37,14 +37,14 @@ function StatBox({
       }}
     >
       <p 
-        className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1.5 sm:mb-2 truncate"
+        className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1.5 sm:mb-2"
         style={{ color }}
       >
         {label}
       </p>
       <div className="flex items-center justify-center gap-1">
         <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" style={{ color }} />
-        <span className="text-xl sm:text-2xl font-black truncate" style={{ color }}>
+        <span className="text-xl sm:text-2xl font-black" style={{ color }}>
           {value}
         </span>
       </div>

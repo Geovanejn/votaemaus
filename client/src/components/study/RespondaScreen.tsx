@@ -383,15 +383,23 @@ export function RespondaScreen({
     return false;
   };
   
+  const goNextRef = useRef<() => void>(() => {});
+  
   const goNext = () => {
     clearAutoAdvanceTimeout();
-    if (currentIndex === totalQuestions - 1) {
-      onComplete(correctCount, totalQuestions);
-    } else {
-      setCurrentIndex(prev => prev + 1);
-      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    goNextRef.current();
   };
+  
+  useEffect(() => {
+    goNextRef.current = () => {
+      if (currentIndex === totalQuestions - 1) {
+        onComplete(correctCount, totalQuestions);
+      } else {
+        setCurrentIndex(prev => prev + 1);
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+  }, [currentIndex, totalQuestions, correctCount, onComplete]);
 
   const autoAdvanceToNext = () => {
     autoAdvanceTimeoutRef.current = setTimeout(() => {

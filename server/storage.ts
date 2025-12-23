@@ -2367,8 +2367,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyStats(): Promise<any> {
-    const [weekCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.studyWeeks);
+    // Count seasons (revistas) instead of studyWeeks
+    const [seasonCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.seasons);
     const [lessonCount] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.studyLessons);
     const [unitCount] = await db.select({ count: sql<number>`count(*)` })
@@ -2377,7 +2378,7 @@ export class DatabaseStorage implements IStorage {
       .from(schema.studyProfiles);
     
     return {
-      totalWeeks: Number(weekCount?.count || 0),
+      totalWeeks: Number(seasonCount?.count || 0),
       totalLessons: Number(lessonCount?.count || 0),
       totalUnits: Number(unitCount?.count || 0),
       totalStudents: Number(profileCount?.count || 0),

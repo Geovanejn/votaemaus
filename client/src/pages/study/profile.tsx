@@ -184,12 +184,19 @@ export default function ProfilePage() {
   // Use leaderboard XP for stats, profile XP for other data
   const currentXp = leaderboardXp || profile?.totalXp || 0;
   const currentLevel = profile?.currentLevel || 1;
-  const xpForCurrentLevel = (currentLevel - 1) * 500;
-  const xpForNextLevel = currentLevel * 500;
-  const xpInLevel = currentXp - xpForCurrentLevel;
-  const xpNeeded = xpForNextLevel - xpForCurrentLevel;
-  const xpRemaining = xpForNextLevel - currentXp;
-  const progressPercent = Math.min((xpInLevel / xpNeeded) * 100, 100);
+  
+  // Calculate level thresholds based on 500 XP per level
+  const xpPerLevel = 500;
+  const xpForCurrentLevel = (currentLevel - 1) * xpPerLevel;
+  const xpForNextLevel = currentLevel * xpPerLevel;
+  
+  // Ensure xpInLevel is never negative (handles data inconsistencies)
+  const xpInLevel = Math.max(0, currentXp - xpForCurrentLevel);
+  const xpNeeded = xpPerLevel;
+  const xpRemaining = Math.max(0, xpForNextLevel - currentXp);
+  
+  // Calculate progress percentage (0-100), ensuring valid range
+  const progressPercent = Math.max(0, Math.min((xpInLevel / xpNeeded) * 100, 100));
 
   const categoryColorMap: Record<string, { bgColor: string }> = {
     streak: { bgColor: "#F97316" },

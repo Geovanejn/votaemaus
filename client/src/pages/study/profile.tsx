@@ -173,29 +173,28 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  // Get correct XP from leaderboard
-  const currentUserEntry = leaderboardData?.entries?.find((e) => e.userId === user?.id);
-  const leaderboardXp = currentUserEntry?.totalXp || 0;
-  
   if (profileLoading || achievementsLoading) {
     return <LoadingState />;
   }
 
-  // Use leaderboard XP for stats, profile XP for other data
-  const currentXp = leaderboardXp || profile?.totalXp || 0;
-  const currentLevel = profile?.currentLevel || 1;
+  // Always use profile totalXp as the source of truth
+  const currentXp = profile?.totalXp || 0;
   
   // Calculate level thresholds based on 500 XP per level
   const xpPerLevel = 500;
+  
+  // Calculate level from XP (not from database) to ensure consistency
+  const currentLevel = Math.max(1, Math.floor(currentXp / xpPerLevel) + 1);
+  
   const xpForCurrentLevel = (currentLevel - 1) * xpPerLevel;
   const xpForNextLevel = currentLevel * xpPerLevel;
   
-  // Ensure xpInLevel is never negative (handles data inconsistencies)
-  const xpInLevel = Math.max(0, currentXp - xpForCurrentLevel);
+  // XP progress within current level
+  const xpInLevel = currentXp - xpForCurrentLevel;
   const xpNeeded = xpPerLevel;
-  const xpRemaining = Math.max(0, xpForNextLevel - currentXp);
+  const xpRemaining = xpForNextLevel - currentXp;
   
-  // Calculate progress percentage (0-100), ensuring valid range
+  // Calculate progress percentage (0-100)
   const progressPercent = Math.max(0, Math.min((xpInLevel / xpNeeded) * 100, 100));
 
   const categoryColorMap: Record<string, { bgColor: string }> = {

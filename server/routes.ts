@@ -3624,11 +3624,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Missao nao encontrada" });
       }
       
-      const content = await storage.getDailyMissionContent(today);
+      const rawContent = await storage.getDailyMissionContent(today);
+      
+      // Parse JSON fields from stored strings
+      const parsedContent: any = {};
+      if (rawContent) {
+        // Parse quiz questions from JSON string
+        if (rawContent.quizQuestions) {
+          try {
+            parsedContent.quizQuestions = JSON.parse(rawContent.quizQuestions);
+          } catch (e) {
+            console.error('[Mission Content] Failed to parse quizQuestions:', e);
+          }
+        }
+        // Parse bible fact from JSON string
+        if (rawContent.bibleFact) {
+          try {
+            const parsed = JSON.parse(rawContent.bibleFact);
+            parsedContent.bibleFact = parsed.fact || rawContent.bibleFact;
+          } catch (e) {
+            // If not JSON, use as plain string
+            parsedContent.bibleFact = rawContent.bibleFact;
+          }
+        }
+        // Copy other fields directly
+        if (rawContent.dailyVerse) parsedContent.dailyVerse = rawContent.dailyVerse;
+        if (rawContent.bibleCharacter) parsedContent.bibleCharacter = rawContent.bibleCharacter;
+        if (rawContent.dailyTheme) parsedContent.dailyTheme = rawContent.dailyTheme;
+      }
       
       res.json({
         ...mission,
-        content: content || {},
+        content: parsedContent,
       });
     } catch (error) {
       console.error("Get mission detail error:", error);

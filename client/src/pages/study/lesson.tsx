@@ -325,8 +325,10 @@ export default function LessonPage() {
       }
       queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/all'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
       queryClient.invalidateQueries({ queryKey: ['/api/study/practice'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] });
       
       const streakInfo = result.streakInfo;
       const previousStreak = previousStreakRef.current;

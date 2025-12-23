@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft,
   MoreVertical,
-  Flame,
   Star,
   Clock,
   Lightbulb,
@@ -468,27 +467,16 @@ export function RespondaScreen({
                   key={i}
                   className={cn(
                     "h-4 w-4",
-                    i < hearts ? "text-red-400 fill-red-400" : "text-white/30"
+                    i < hearts ? "text-violet-400 fill-violet-400" : "text-white/30"
                   )}
                 />
               ))}
             </div>
           </div>
-          <Timer key={currentIndex} isActive={timerActive && !showResult} onTimeUp={handleTimeUp} />
-        </div>
-        
-        <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-1">
-            <Flame className="h-4 w-4" />
-            <span className="font-medium">Sequencia</span>
+            <span className="font-medium">XP Total:</span>
+            <span className="text-xl font-bold">{totalXp}</span>
           </div>
-          <div>
-            <span className="font-medium">XP Total</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-bold text-yellow-300">{streak} dias</span>
-          <span className="text-2xl font-bold">{totalXp}</span>
         </div>
         
         <div className="mt-3 flex items-center justify-between text-sm">

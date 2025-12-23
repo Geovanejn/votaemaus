@@ -417,6 +417,15 @@ export default function StudyHomePage() {
   const hasError = profileError || weeksError || lessonsError;
 
   useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const lessonId = params.get('lesson');
+    
+    if (lessonId) {
+      scrollAttemptedRef.current = false;
+    }
+  }, [searchString]);
+
+  useEffect(() => {
     if (!isLoading && allWeeksData?.length && searchString && !scrollAttemptedRef.current) {
       const params = new URLSearchParams(searchString);
       const lessonId = params.get('lesson');

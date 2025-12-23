@@ -396,17 +396,12 @@ export default function ProfilePage() {
         >
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="font-bold text-foreground">Progresso do Nível</h3>
-                <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-total-xp">
-                  XP Total: <span className="font-bold text-foreground">{currentXp.toLocaleString('pt-BR')}</span>
-                </p>
-              </div>
+              <h3 className="font-bold text-foreground">Progresso do Nível</h3>
               <div className="text-right">
-                <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>
-                  Nível {currentLevel} <span className="text-muted-foreground font-normal">→</span> {currentLevel + 1}
+                <p className="text-sm font-bold" style={{ color: "#8B5CF6" }}>Nível {currentLevel + 1}</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-xp-progress">
+                  {currentXp.toLocaleString('pt-BR')} / {xpForNextLevel.toLocaleString('pt-BR')} XP
                 </p>
-                <p className="text-xs text-muted-foreground">{xpInLevel.toLocaleString('pt-BR')} / {xpNeeded.toLocaleString('pt-BR')} XP</p>
               </div>
             </div>
             <Progress 
@@ -417,7 +412,7 @@ export default function ProfilePage() {
               }}
             />
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-xs text-muted-foreground">{xpRemaining.toLocaleString('pt-BR')} XP para o nível {currentLevel + 1}</p>
+              <p className="text-xs text-muted-foreground">Faltam {xpRemaining.toLocaleString('pt-BR')} XP para o nível {currentLevel + 1}</p>
               <Badge 
                 className="text-xs font-medium px-2 py-1"
                 style={{ 

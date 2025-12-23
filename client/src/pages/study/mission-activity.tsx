@@ -22,7 +22,10 @@ import {
   Clock,
   Send,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  Share2,
+  PenLine
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,6 +48,8 @@ const iconMap: Record<string, LucideIcon> = {
   Heart,
   Lightbulb,
   Flame,
+  MessageSquare,
+  Share2,
 };
 
 interface MissionDetail {
@@ -659,6 +664,254 @@ function MemorizeThemeActivity({
   );
 }
 
+function VerseMemoryActivity({ 
+  content, 
+  onComplete 
+}: { 
+  content: MissionDetail['content']; 
+  onComplete: () => void;
+}) {
+  const { sounds } = useSounds();
+  const [step, setStep] = useState<'read' | 'fill' | 'done'>('read');
+  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  
+  const verse = content?.dailyVerse || "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.";
+  const reference = content?.verseReference || "João 3:16";
+  
+  const words = verse.split(' ');
+  const blanksIndices = [2, 5, 8, 11].filter(i => i < words.length);
+  const correctAnswers = blanksIndices.map(i => words[i].replace(/[.,;:!?]/g, ''));
+
+  const handleCheck = () => {
+    const allCorrect = userAnswers.every((ans, idx) => 
+      ans.toLowerCase().trim() === correctAnswers[idx].toLowerCase()
+    );
+    
+    if (allCorrect) {
+      sounds.success();
+      setStep('done');
+    } else {
+      sounds.error();
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="verse-memory-activity">
+      <Card className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800">
+        <div className="text-center mb-4">
+          <Brain className="w-12 h-12 mx-auto text-violet-600 mb-3" />
+          <h3 className="text-lg font-bold text-foreground">Memorize o Versículo</h3>
+        </div>
+        
+        {step === 'read' && (
+          <>
+            <blockquote className="text-lg italic text-center text-foreground/90 mb-4 leading-relaxed">
+              "{verse}"
+            </blockquote>
+            <p className="text-center font-semibold text-violet-700 dark:text-violet-400">
+              {reference}
+            </p>
+          </>
+        )}
+
+        {step === 'fill' && (
+          <div className="space-y-4">
+            <p className="text-center text-muted-foreground mb-4">
+              Complete as palavras que faltam:
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {words.map((word, idx) => {
+                const blankIdx = blanksIndices.indexOf(idx);
+                if (blankIdx !== -1) {
+                  return (
+                    <input
+                      key={idx}
+                      type="text"
+                      className="w-24 px-2 py-1 border-2 border-violet-300 rounded text-center bg-background"
+                      placeholder="..."
+                      value={userAnswers[blankIdx] || ''}
+                      onChange={(e) => {
+                        const newAnswers = [...userAnswers];
+                        newAnswers[blankIdx] = e.target.value;
+                        setUserAnswers(newAnswers);
+                      }}
+                      data-testid={`blank-input-${blankIdx}`}
+                    />
+                  );
+                }
+                return <span key={idx} className="text-foreground">{word}</span>;
+              })}
+            </div>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div className="text-center">
+            <Check className="w-16 h-16 mx-auto text-[#58CC02] mb-3" />
+            <p className="text-[#58CC02] font-bold">Parabéns! Você memorizou o versículo!</p>
+          </div>
+        )}
+      </Card>
+
+      {step === 'read' && (
+        <Button 
+          onClick={() => setStep('fill')} 
+          className="w-full bg-violet-600 text-white"
+          data-testid="button-start-memory"
+        >
+          <Brain className="w-4 h-4 mr-2" />
+          Testar Memória
+        </Button>
+      )}
+
+      {step === 'fill' && (
+        <Button 
+          onClick={handleCheck} 
+          disabled={userAnswers.length < blanksIndices.length || userAnswers.some(a => !a)}
+          className="w-full bg-violet-600 text-white"
+          data-testid="button-check-memory"
+        >
+          Verificar
+        </Button>
+      )}
+
+      {step === 'done' && (
+        <Button 
+          onClick={onComplete} 
+          className="w-full bg-[#58CC02] text-white"
+          data-testid="button-complete-verse-memory"
+        >
+          <Check className="w-4 h-4 mr-2" />
+          Concluir Missão
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function DailyReflectionActivity({ 
+  onComplete 
+}: { 
+  onComplete: (data: { reflectionText: string }) => void;
+}) {
+  const [reflection, setReflection] = useState('');
+  const { sounds } = useSounds();
+
+  const handleComplete = () => {
+    if (reflection.length >= 20) {
+      sounds.success();
+      onComplete({ reflectionText: reflection });
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="daily-reflection-activity">
+      <Card className="p-6 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 border-teal-200 dark:border-teal-800">
+        <div className="text-center mb-4">
+          <MessageSquare className="w-12 h-12 mx-auto text-teal-600 mb-3" />
+          <h3 className="text-lg font-bold text-foreground">Reflexão Diária</h3>
+        </div>
+        
+        <p className="text-center text-muted-foreground mb-4">
+          Escreva uma reflexão sobre o que Deus tem falado ao seu coração hoje. 
+          Pode ser sobre um versículo, uma situação ou algo que aprendeu.
+        </p>
+
+        <Textarea
+          placeholder="Escreva sua reflexão aqui..."
+          value={reflection}
+          onChange={(e) => setReflection(e.target.value)}
+          className="min-h-[120px]"
+          data-testid="reflection-input"
+        />
+        
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Mínimo de 20 caracteres ({reflection.length}/20)
+        </p>
+      </Card>
+
+      <Button 
+        onClick={handleComplete} 
+        disabled={reflection.length < 20}
+        className="w-full bg-[#58CC02] text-white"
+        data-testid="button-complete-reflection"
+      >
+        <Check className="w-4 h-4 mr-2" />
+        Concluir Missão
+      </Button>
+    </div>
+  );
+}
+
+function ShareKnowledgeActivity({ 
+  onComplete 
+}: { 
+  onComplete: () => void;
+}) {
+  const [shared, setShared] = useState(false);
+  const { sounds } = useSounds();
+
+  const handleConfirmShare = () => {
+    sounds.success();
+    setShared(true);
+  };
+
+  return (
+    <div className="space-y-6" data-testid="share-knowledge-activity">
+      <Card className="p-6 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 border-sky-200 dark:border-sky-800">
+        <div className="text-center mb-4">
+          <Share2 className="w-12 h-12 mx-auto text-sky-600 mb-3" />
+          <h3 className="text-lg font-bold text-foreground">Compartilhe a Palavra</h3>
+        </div>
+        
+        {!shared ? (
+          <>
+            <p className="text-center text-muted-foreground mb-4">
+              Sua missão é compartilhar um ensinamento bíblico com alguém hoje.
+              Pode ser pessoalmente, por mensagem, ou de qualquer outra forma.
+            </p>
+            
+            <div className="bg-sky-100 dark:bg-sky-900/30 rounded-lg p-4 text-sm space-y-2">
+              <p className="font-medium text-sky-800 dark:text-sky-200">Sugestões:</p>
+              <ul className="list-disc list-inside text-sky-700 dark:text-sky-300 space-y-1">
+                <li>Envie um versículo para um amigo</li>
+                <li>Conte sobre algo que aprendeu na Bíblia</li>
+                <li>Ore com alguém e compartilhe uma palavra</li>
+                <li>Poste uma reflexão nas redes sociais</li>
+              </ul>
+            </div>
+          </>
+        ) : (
+          <div className="text-center">
+            <Check className="w-16 h-16 mx-auto text-[#58CC02] mb-3" />
+            <p className="text-[#58CC02] font-bold">Que bom! Você espalhou a Palavra!</p>
+          </div>
+        )}
+      </Card>
+
+      {!shared ? (
+        <Button 
+          onClick={handleConfirmShare} 
+          className="w-full bg-sky-600 text-white"
+          data-testid="button-confirm-share"
+        >
+          <Share2 className="w-4 h-4 mr-2" />
+          Já Compartilhei!
+        </Button>
+      ) : (
+        <Button 
+          onClick={onComplete} 
+          className="w-full bg-[#58CC02] text-white"
+          data-testid="button-complete-share"
+        >
+          <Check className="w-4 h-4 mr-2" />
+          Concluir Missão
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function LessonRedirectActivity({ 
   onComplete 
 }: { 
@@ -936,7 +1189,7 @@ export default function MissionActivityPage() {
     },
   });
 
-  const handleComplete = useCallback((payload?: { prayerText?: string }) => {
+  const handleComplete = useCallback((payload?: { prayerText?: string; reflectionText?: string }) => {
     if (isCompleting || completeMutation.isPending) return;
     setIsCompleting(true);
     completeMutation.mutate(payload);
@@ -1049,11 +1302,20 @@ export default function MissionActivityPage() {
       case 'perfect_answers':
         return <PerfectAnswersActivity onComplete={() => handleComplete()} />;
       
+      case 'verse_memory':
+        return <VerseMemoryActivity content={mission.content} onComplete={() => handleComplete()} />;
+      
+      case 'daily_reflection':
+        return <DailyReflectionActivity onComplete={(data) => handleComplete(data)} />;
+      
+      case 'share_knowledge':
+        return <ShareKnowledgeActivity onComplete={() => handleComplete()} />;
+      
       default:
         return (
           <div className="text-center py-12">
             <AlertCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Tipo de missão não suportado.</p>
+            <p className="text-muted-foreground">Tipo de missão não suportado: {missionType}</p>
           </div>
         );
     }

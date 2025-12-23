@@ -1512,12 +1512,12 @@ export interface DailyMissionContent {
 
 export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
   if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    try {
-      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-      const dayName = dayNames[new Date().getDay()];
-      const dateStr = new Date().toISOString().split('T')[0];
-      
-      const prompt = `Você é um educador cristão criativo. Crie 3 missões espirituais ÚNICAS e VARIADAS para ${dayName} (${dateStr}).
+    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const dayName = dayNames[new Date().getDay()];
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    const systemPrompt = "Você é um educador cristão criativo especializado em missões espirituais.";
+    const userPrompt = `Crie 3 missões espirituais ÚNICAS e VARIADAS para ${dayName} (${dateStr}).
 
 REGRAS IMPORTANTES:
 - As missões devem ser DIFERENTES a cada dia
@@ -1533,25 +1533,31 @@ Formato JSON obrigatório:
     {"title": "título curto", "description": "descrição detalhada da missão", "xpReward": 50, "type": "hard"}
   ]
 }`;
-      
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.missions && parsed.missions.length >= 3) {
-          console.log("[Daily Missions] Successfully generated with AI");
-          return parsed.missions;
+    
+    // Try each Gemini key (1-5) with model fallback
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.missions && parsed.missions.length >= 3) {
+            console.log(`[Daily Missions] Successfully generated with AI (key ${keyNum})`);
+            return parsed.missions;
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Daily Missions] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Daily Missions] Key ${keyNum} error:`, error?.message);
         }
       }
-    } catch (error: any) {
-      if (isQuotaError(error)) {
-        markQuotaExhausted();
-        console.log("[Daily Missions] AI quota exceeded, using local fallback");
-      } else {
-        console.error("[Daily Missions] AI error:", error?.message);
-      }
     }
+    
+    markQuotaExhausted();
+    console.log("[Daily Missions] All keys exhausted, using local fallback");
   } else if (!isQuotaLikelyAvailable()) {
     console.log("[Daily Missions] Skipping AI (quota cooldown), using local fallback");
   }
@@ -1566,11 +1572,11 @@ Formato JSON obrigatório:
 
 export async function generateQuizQuestionsWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }>> {
   if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    try {
-      const dateStr = new Date().toISOString().split('T')[0];
-      const randomSeed = Math.floor(Math.random() * 1000);
-      
-      const prompt = `Você é um especialista em estudos bíblicos. Gere ${count} perguntas de quiz ÚNICAS e VARIADAS sobre a Bíblia.
+    const dateStr = new Date().toISOString().split('T')[0];
+    const randomSeed = Math.floor(Math.random() * 1000);
+    
+    const systemPrompt = "Você é um especialista em estudos bíblicos.";
+    const userPrompt = `Gere ${count} perguntas de quiz ÚNICAS e VARIADAS sobre a Bíblia.
 
 REGRAS:
 - As perguntas devem cobrir diferentes livros, personagens, eventos e temas bíblicos
@@ -1585,25 +1591,31 @@ Formato JSON:
     {"question": "pergunta", "options": ["opção1", "opção2", "opção3", "opção4"], "correctIndex": 0}
   ]
 }`;
-      
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.questions && parsed.questions.length > 0) {
-          console.log("[Quiz Questions] Successfully generated with AI");
-          return parsed.questions;
+    
+    // Try each Gemini key (1-5) with model fallback
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.questions && parsed.questions.length > 0) {
+            console.log(`[Quiz Questions] Successfully generated with AI (key ${keyNum})`);
+            return parsed.questions;
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Quiz Questions] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Quiz Questions] Key ${keyNum} error:`, error?.message);
         }
       }
-    } catch (error: any) {
-      if (isQuotaError(error)) {
-        markQuotaExhausted();
-        console.log("[Quiz Questions] AI quota exceeded, using local fallback");
-      } else {
-        console.error("[Quiz Questions] AI error:", error?.message);
-      }
     }
+    
+    markQuotaExhausted();
+    console.log("[Quiz Questions] All keys exhausted, using local fallback");
   }
 
   // Fallback: select random questions from large pool
@@ -1613,11 +1625,11 @@ Formato JSON:
 
 export async function generateBibleFactWithAI(): Promise<{ fact: string; category: string }> {
   if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    try {
-      const dateStr = new Date().toISOString().split('T')[0];
-      const randomSeed = Math.floor(Math.random() * 1000);
-      
-      const prompt = `Você é um historiador bíblico. Gere UMA curiosidade bíblica interessante e educativa.
+    const dateStr = new Date().toISOString().split('T')[0];
+    const randomSeed = Math.floor(Math.random() * 1000);
+    
+    const systemPrompt = "Você é um historiador bíblico especializado.";
+    const userPrompt = `Gere UMA curiosidade bíblica interessante e educativa.
 
 REGRAS:
 - A curiosidade deve ser ÚNICA e pouco conhecida
@@ -1630,25 +1642,31 @@ Formato JSON:
   "fact": "curiosidade interessante sobre a Bíblia",
   "category": "categoria (história/arqueologia/cultura/personagens/lugares/números)"
 }`;
-      
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.fact) {
-          console.log("[Bible Fact] Successfully generated with AI");
-          return parsed;
+    
+    // Try each Gemini key (1-5) with model fallback
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.fact) {
+            console.log(`[Bible Fact] Successfully generated with AI (key ${keyNum})`);
+            return parsed;
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Bible Fact] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Bible Fact] Key ${keyNum} error:`, error?.message);
         }
       }
-    } catch (error: any) {
-      if (isQuotaError(error)) {
-        markQuotaExhausted();
-        console.log("[Bible Fact] AI quota exceeded, using local fallback");
-      } else {
-        console.error("[Bible Fact] AI error:", error?.message);
-      }
     }
+    
+    markQuotaExhausted();
+    console.log("[Bible Fact] All keys exhausted, using local fallback");
   }
 
   // Fallback: select random fact from pool

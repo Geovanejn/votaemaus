@@ -35,11 +35,20 @@ interface InstagramPostData {
   permalink?: string;
 }
 
+interface BannerHighlightData {
+  id: number;
+  contentType: 'devotional' | 'event' | 'instagram';
+  contentId: number;
+  orderIndex: number;
+  content: DevotionalData | EventData | InstagramPostData;
+}
+
 interface HighlightsData {
   devotional: DevotionalData | null;
   events: EventData[];
   instagramPosts: InstagramPostData[];
   featuredInstagramPost: InstagramPostData | null;
+  bannerHighlights: BannerHighlightData[];
 }
 
 type BannerSlide = {
@@ -77,52 +86,100 @@ export function HeroBanner() {
 
   const slides: BannerSlide[] = [];
 
-  if (highlights?.devotional) {
-    const d = highlights.devotional;
-    slides.push({
-      type: 'devotional',
-      id: d.id,
-      title: d.title,
-      subtitle: `"${d.verse}"`,
-      caption: d.verseReference,
-      imageUrl: d.imageUrl || defaultDevotionalImg,
-      linkUrl: `/devocionais/${d.id}`,
-      linkText: 'Ler Devocional',
-      icon: BookOpen,
-      badge: 'Devocional do Dia',
+  if (highlights?.bannerHighlights && highlights.bannerHighlights.length > 0) {
+    highlights.bannerHighlights.forEach((bh) => {
+      if (bh.contentType === 'devotional') {
+        const d = bh.content as DevotionalData;
+        slides.push({
+          type: 'devotional',
+          id: d.id,
+          title: d.title,
+          subtitle: `"${d.verse}"`,
+          caption: d.verseReference,
+          imageUrl: d.imageUrl || defaultDevotionalImg,
+          linkUrl: `/devocionais/${d.id}`,
+          linkText: 'Ler Devocional',
+          icon: BookOpen,
+          badge: 'Devocional',
+        });
+      } else if (bh.contentType === 'event') {
+        const e = bh.content as EventData;
+        slides.push({
+          type: 'event',
+          id: e.id,
+          title: e.title,
+          subtitle: e.description || 'Participe conosco!',
+          caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
+          imageUrl: e.imageUrl || defaultEventImg,
+          linkUrl: `/agenda/${e.id}`,
+          linkText: 'Ver Detalhes',
+          icon: Calendar,
+          badge: 'Evento',
+        });
+      } else if (bh.contentType === 'instagram') {
+        const p = bh.content as InstagramPostData;
+        slides.push({
+          type: 'instagram',
+          id: p.id,
+          title: 'Novidades no Instagram',
+          subtitle: p.caption || 'Confira nossa última postagem!',
+          caption: '@umpemaus',
+          imageUrl: p.imageUrl || defaultInstagramImg,
+          linkUrl: p.permalink || 'https://instagram.com/umpemaus',
+          linkText: 'Ver no Instagram',
+          icon: Instagram,
+          badge: 'Instagram',
+        });
+      }
     });
-  }
+  } else {
+    if (highlights?.devotional) {
+      const d = highlights.devotional;
+      slides.push({
+        type: 'devotional',
+        id: d.id,
+        title: d.title,
+        subtitle: `"${d.verse}"`,
+        caption: d.verseReference,
+        imageUrl: d.imageUrl || defaultDevotionalImg,
+        linkUrl: `/devocionais/${d.id}`,
+        linkText: 'Ler Devocional',
+        icon: BookOpen,
+        badge: 'Devocional do Dia',
+      });
+    }
 
-  if (highlights?.events && highlights.events.length > 0) {
-    const e = highlights.events[0];
-    slides.push({
-      type: 'event',
-      id: e.id,
-      title: e.title,
-      subtitle: e.description || 'Participe conosco!',
-      caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
-      imageUrl: e.imageUrl || defaultEventImg,
-      linkUrl: `/agenda/${e.id}`,
-      linkText: 'Ver Detalhes',
-      icon: Calendar,
-      badge: 'Próximo Evento',
-    });
-  }
+    if (highlights?.events && highlights.events.length > 0) {
+      const e = highlights.events[0];
+      slides.push({
+        type: 'event',
+        id: e.id,
+        title: e.title,
+        subtitle: e.description || 'Participe conosco!',
+        caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
+        imageUrl: e.imageUrl || defaultEventImg,
+        linkUrl: `/agenda/${e.id}`,
+        linkText: 'Ver Detalhes',
+        icon: Calendar,
+        badge: 'Próximo Evento',
+      });
+    }
 
-  if (highlights?.featuredInstagramPost) {
-    const p = highlights.featuredInstagramPost;
-    slides.push({
-      type: 'instagram',
-      id: p.id,
-      title: 'Novidades no Instagram',
-      subtitle: p.caption || 'Confira nossa última postagem!',
-      caption: '@umpemaus',
-      imageUrl: p.imageUrl || defaultInstagramImg,
-      linkUrl: p.permalink || 'https://instagram.com/umpemaus',
-      linkText: 'Ver no Instagram',
-      icon: Instagram,
-      badge: 'Instagram',
-    });
+    if (highlights?.featuredInstagramPost) {
+      const p = highlights.featuredInstagramPost;
+      slides.push({
+        type: 'instagram',
+        id: p.id,
+        title: 'Novidades no Instagram',
+        subtitle: p.caption || 'Confira nossa última postagem!',
+        caption: '@umpemaus',
+        imageUrl: p.imageUrl || defaultInstagramImg,
+        linkUrl: p.permalink || 'https://instagram.com/umpemaus',
+        linkText: 'Ver no Instagram',
+        icon: Instagram,
+        badge: 'Instagram',
+      });
+    }
   }
 
   const defaultSlides: BannerSlide[] = [

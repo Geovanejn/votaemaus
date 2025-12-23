@@ -3900,10 +3900,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/highlights", async (req, res) => {
     try {
       const highlights = await storage.getSiteHighlights();
-      res.json(highlights);
+      const bannerHighlights = await storage.getBannerHighlights();
+      res.json({ ...highlights, bannerHighlights });
     } catch (error) {
       console.error("Get site highlights error:", error);
       res.status(500).json({ message: "Erro ao buscar destaques do site" });
+    }
+  });
+
+  // Banner highlights management (admin/marketing)
+  app.get("/api/admin/banner-highlights", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const highlights = await storage.getBannerHighlights();
+      const count = await storage.getBannerHighlightCount();
+      res.json({ highlights, count, maxAllowed: 10 });
+    } catch (error) {
+      console.error("Get banner highlights error:", error);
+      res.status(500).json({ message: "Erro ao buscar destaques do banner" });
+    }
+  });
+
+  app.post("/api/admin/banner-highlights", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { contentType, contentId } = req.body;
+      if (!contentType || !contentId) {
+        return res.status(400).json({ message: "Tipo e ID do conteúdo são obrigatórios" });
+      }
+      if (!['devotional', 'event', 'instagram'].includes(contentType)) {
+        return res.status(400).json({ message: "Tipo de conteúdo inválido" });
+      }
+      const highlight = await storage.addBannerHighlight(contentType, contentId);
+      await logAuditAction(req.user?.id, "create", "banner_highlight", highlight.id, `Destaque adicionado: ${contentType} #${contentId}`, req);
+      res.json(highlight);
+    } catch (error: any) {
+      console.error("Add banner highlight error:", error);
+      res.status(400).json({ message: error.message || "Erro ao adicionar destaque" });
+    }
+  });
+
+  app.delete("/api/admin/banner-highlights/:id", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.removeBannerHighlight(id);
+      await logAuditAction(req.user?.id, "delete", "banner_highlight", id, `Destaque removido`, req);
+      res.json({ message: "Destaque removido com sucesso" });
+    } catch (error) {
+      console.error("Remove banner highlight error:", error);
+      res.status(500).json({ message: "Erro ao remover destaque" });
+    }
+  });
+
+  app.patch("/api/admin/banner-highlights/reorder", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ message: "Lista de IDs ordenados é obrigatória" });
+      }
+      await storage.reorderBannerHighlights(orderedIds);
+      await logAuditAction(req.user?.id, "update", "banner_highlights", undefined, `Destaques reordenados`, req);
+      res.json({ message: "Ordem atualizada com sucesso" });
+    } catch (error) {
+      console.error("Reorder banner highlights error:", error);
+      res.status(500).json({ message: "Erro ao reordenar destaques" });
     }
   });
 

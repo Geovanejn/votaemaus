@@ -462,6 +462,24 @@ export const insertInstagramPostSchema = createInsertSchema(instagramPosts).omit
 export type InsertInstagramPost = z.infer<typeof insertInstagramPostSchema>;
 export type InstagramPost = typeof instagramPosts.$inferSelect;
 
+// ==================== BANNER HIGHLIGHTS ====================
+
+export const bannerHighlights = pgTable("banner_highlights", {
+  id: serial("id").primaryKey(),
+  contentType: text("content_type").notNull(),
+  contentId: integer("content_id").notNull(),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBannerHighlightSchema = createInsertSchema(bannerHighlights).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBannerHighlight = z.infer<typeof insertBannerHighlightSchema>;
+export type BannerHighlight = typeof bannerHighlights.$inferSelect;
+
 // ==================== PEDIDOS DE ORACAO ====================
 
 export type PrayerCategory = "saude" | "familia" | "trabalho" | "espiritual" | "relacionamento" | "outros";

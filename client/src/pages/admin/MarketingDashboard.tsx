@@ -304,6 +304,13 @@ export default function MarketingDashboard() {
                   <ArrowUpRight className="h-4 w-4 ml-auto" />
                 </Button>
               </Link>
+              <Link href="/admin/marketing/banner-destaques">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-edit-banner">
+                  <Star className="h-4 w-4 mr-2" />
+                  Gerenciar Destaques do Banner
+                  <ArrowUpRight className="h-4 w-4 ml-auto" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

@@ -183,6 +183,12 @@ export interface IStorage {
   
   getSiteHighlights(): Promise<{ devotional: any | null; events: any[]; instagramPosts: any[]; featuredInstagramPost: any | null }>;
   
+  getBannerHighlights(): Promise<any[]>;
+  addBannerHighlight(contentType: string, contentId: number): Promise<any>;
+  removeBannerHighlight(id: number): Promise<void>;
+  reorderBannerHighlights(orderedIds: number[]): Promise<void>;
+  getBannerHighlightCount(): Promise<number>;
+  
   // Study Profile Methods
   getStudyProfile(userId: number): Promise<any | null>;
   getOrCreateStudyProfile(userId: number): Promise<any>;
@@ -1693,6 +1699,74 @@ export class DatabaseStorage implements IStorage {
     ]);
     
     return { devotional, events, instagramPosts, featuredInstagramPost };
+  }
+
+  async getBannerHighlights(): Promise<any[]> {
+    const highlights = await db.select().from(schema.bannerHighlights)
+      .orderBy(schema.bannerHighlights.orderIndex);
+    
+    const enrichedHighlights = await Promise.all(highlights.map(async (h) => {
+      let content = null;
+      if (h.contentType === 'devotional') {
+        content = await this.getDevotionalById(h.contentId);
+      } else if (h.contentType === 'event') {
+        const events = await db.select().from(schema.siteEvents)
+          .where(eq(schema.siteEvents.id, h.contentId))
+          .limit(1);
+        content = events[0] || null;
+      } else if (h.contentType === 'instagram') {
+        content = await this.getInstagramPostById(h.contentId);
+      }
+      return { ...h, content };
+    }));
+    
+    return enrichedHighlights.filter(h => h.content !== null);
+  }
+
+  async addBannerHighlight(contentType: string, contentId: number): Promise<any> {
+    const count = await this.getBannerHighlightCount();
+    if (count >= 10) {
+      throw new Error('Limite máximo de 10 destaques atingido');
+    }
+    
+    const existing = await db.select().from(schema.bannerHighlights)
+      .where(and(
+        eq(schema.bannerHighlights.contentType, contentType),
+        eq(schema.bannerHighlights.contentId, contentId)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      throw new Error('Este item já está em destaque');
+    }
+    
+    const [highlight] = await db.insert(schema.bannerHighlights)
+      .values({
+        contentType,
+        contentId,
+        orderIndex: count,
+      })
+      .returning();
+    return highlight;
+  }
+
+  async removeBannerHighlight(id: number): Promise<void> {
+    await db.delete(schema.bannerHighlights)
+      .where(eq(schema.bannerHighlights.id, id));
+  }
+
+  async reorderBannerHighlights(orderedIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.update(schema.bannerHighlights)
+        .set({ orderIndex: i })
+        .where(eq(schema.bannerHighlights.id, orderedIds[i]));
+    }
+  }
+
+  async getBannerHighlightCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.bannerHighlights);
+    return Number(result[0]?.count || 0);
   }
 
   // Study Profile Methods

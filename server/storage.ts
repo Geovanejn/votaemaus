@@ -1107,8 +1107,6 @@ export class DatabaseStorage implements IStorage {
     // Delete practice questions (foreign key constraint)
     await db.delete(schema.practiceQuestions).where(eq(schema.practiceQuestions.weekId, weekId));
     
-    // Delete user week progress (foreign key constraint)
-    await db.delete(schema.userWeekProgress).where(eq(schema.userWeekProgress.weekId, weekId));
     
     // Finally delete the week
     await db.delete(schema.studyWeeks).where(eq(schema.studyWeeks.id, weekId));
@@ -4159,7 +4157,7 @@ export class DatabaseStorage implements IStorage {
 
   async updatePushSubscriptionLastUsed(subscriptionId: number): Promise<void> {
     await db.update(schema.pushSubscriptions)
-      .set({ lastUsedAt: new Date() })
+      .set({ lastUsed: new Date() })
       .where(eq(schema.pushSubscriptions.id, subscriptionId));
   }
 
@@ -4896,7 +4894,7 @@ export class DatabaseStorage implements IStorage {
 
     if (isMastered) {
       const xpBonus = 50;
-      await this.addXp(userId, xpBonus, 'weekly_practice_mastery', weekId, 'Dominou o Pratique semanal!');
+      await this.addXp(userId, xpBonus, 'weekly_practice_mastery', weekId);
     }
     
     return practice;

@@ -1213,10 +1213,12 @@ export default function LessonPage() {
     setStageCompleteData(null);
     
     queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/all'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/seasons'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] });
     
     if (stageType === 'responda') {
       await handleLessonCompletion();

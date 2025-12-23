@@ -373,7 +373,7 @@ export default function StudyHomePage() {
     enabled: isAuthenticated && !!profile,
   });
 
-  const sortedWeeks = weeks ? [...weeks].reverse() : [];
+  const sortedWeeks = weeks ? [...weeks].filter(w => w && w.id).reverse() : [];
   const weekIds = sortedWeeks.map(w => w.id);
 
   const { data: allWeeksData, isLoading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useQuery<WeekWithLessons[]>({

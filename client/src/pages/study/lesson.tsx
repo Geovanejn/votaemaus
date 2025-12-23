@@ -1162,12 +1162,6 @@ export default function LessonPage() {
       );
     }
     
-    const handleNextLesson = () => {
-      if (nextLessonId) {
-        setLocation(`/study/lesson/${nextLessonId}`);
-      }
-    };
-
     return (
       <LessonComplete
         xpEarned={finalXp}
@@ -1176,8 +1170,6 @@ export default function LessonPage() {
         mistakesCount={mistakes}
         timeSpentSeconds={timeSpent}
         onContinue={handleLessonComplete}
-        hasNextLesson={!!nextLessonId}
-        onNextLesson={handleNextLesson}
       />
     );
   }

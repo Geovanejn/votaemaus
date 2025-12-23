@@ -2385,16 +2385,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyDashboardStats(): Promise<any> {
+    // Get total users count from users table (non-admin members)
     const [totalUsersResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.studyProfiles);
+      .from(schema.users)
+      .where(and(
+        eq(schema.users.isMember, true),
+        eq(schema.users.isAdmin, false)
+      ));
     
+    // Active users = users with lesson activity in last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
     
-    const [activeUsersResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.studyProfiles)
-      .where(sql`${schema.studyProfiles.lastActivityDate} >= ${sevenDaysAgoStr}`);
+    const [activeUsersResult] = await db.select({ 
+      count: sql<number>`count(DISTINCT ${schema.userLessonProgress.userId})` 
+    })
+      .from(schema.userLessonProgress)
+      .where(and(
+        eq(schema.userLessonProgress.status, 'completed'),
+        sql`${schema.userLessonProgress.completedAt} >= ${sevenDaysAgo}`
+      ));
     
     const [lessonsResult] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.studyLessons);
@@ -2406,8 +2416,32 @@ export class DatabaseStorage implements IStorage {
     const [avgStreakResult] = await db.select({ avg: sql<number>`COALESCE(AVG(${schema.studyProfiles.currentStreak}), 0)` })
       .from(schema.studyProfiles);
     
-    const [totalXpResult] = await db.select({ sum: sql<number>`COALESCE(SUM(${schema.studyProfiles.totalXp}), 0)` })
-      .from(schema.studyProfiles);
+    // Calculate REAL total XP from all sources (same as getUserTotalXp)
+    const [lessonXpResult] = await db.select({ 
+      sum: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)` 
+    })
+      .from(schema.userLessonProgress)
+      .where(eq(schema.userLessonProgress.status, 'completed'));
+    
+    const [bonusXpResult] = await db.select({ 
+      sum: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)` 
+    })
+      .from(schema.weeklyPracticeBonus);
+    
+    const [achievementXpResult] = await db.select({ 
+      sum: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)` 
+    })
+      .from(schema.achievementXp);
+    
+    const [missionXpResult] = await db.select({ 
+      sum: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)` 
+    })
+      .from(schema.dailyMissionXp);
+    
+    const totalXpEarned = Number(lessonXpResult?.sum || 0) + 
+                          Number(bonusXpResult?.sum || 0) + 
+                          Number(achievementXpResult?.sum || 0) + 
+                          Number(missionXpResult?.sum || 0);
     
     return {
       totalUsers: Number(totalUsersResult?.count || 0),
@@ -2415,7 +2449,7 @@ export class DatabaseStorage implements IStorage {
       totalLessons: Number(lessonsResult?.count || 0),
       completedLessons: Number(completedLessonsResult?.count || 0),
       averageStreak: Number(avgStreakResult?.avg || 0),
-      totalXpEarned: Number(totalXpResult?.sum || 0),
+      totalXpEarned,
     };
   }
 
@@ -2498,32 +2532,55 @@ export class DatabaseStorage implements IStorage {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
     
-    const results = await db.select({
-      id: schema.users.id,
-      fullName: schema.users.fullName,
-      photoUrl: schema.users.photoUrl,
-      weeklyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
-      currentLevel: schema.studyProfiles.currentLevel,
-      streak: schema.studyProfiles.currentStreak,
-    })
-      .from(schema.userLessonProgress)
-      .innerJoin(schema.users, eq(schema.userLessonProgress.userId, schema.users.id))
-      .innerJoin(schema.studyProfiles, eq(schema.userLessonProgress.userId, schema.studyProfiles.userId))
-      .where(and(
-        eq(schema.userLessonProgress.status, 'completed'),
-        sql`${schema.userLessonProgress.completedAt} >= ${sevenDaysAgo}`
-      ))
-      .groupBy(schema.users.id, schema.users.fullName, schema.users.photoUrl, schema.studyProfiles.currentLevel, schema.studyProfiles.currentStreak)
-      .orderBy(sql`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0) DESC`)
-      .limit(limit);
+    // OPTIMIZED: Single query using UNION to aggregate all weekly XP sources
+    const weeklyXpResults = await db.execute(sql`
+      WITH weekly_xp AS (
+        SELECT user_id, SUM(xp) as total_xp FROM (
+          SELECT user_id, xp_earned as xp FROM user_lesson_progress 
+          WHERE status = 'completed' AND completed_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id, bonus_xp as xp FROM weekly_practice_bonus 
+          WHERE earned_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id, xp_reward as xp FROM achievement_xp 
+          WHERE earned_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id, mission_xp + bonus_xp as xp FROM daily_mission_xp 
+          WHERE earned_at >= ${sevenDaysAgo}
+        ) all_xp
+        GROUP BY user_id
+        HAVING SUM(xp) > 0
+      ),
+      weekly_lessons AS (
+        SELECT user_id, COUNT(*) as lessons_count FROM user_lesson_progress
+        WHERE status = 'completed' AND completed_at >= ${sevenDaysAgo}
+        GROUP BY user_id
+      )
+      SELECT 
+        u.id,
+        u.full_name as "fullName",
+        u.photo_url as "avatarUrl",
+        COALESCE(wx.total_xp, 0) as "currentXp",
+        COALESCE(sp.current_level, 1) as "currentLevel",
+        COALESCE(sp.current_streak, 0) as streak,
+        COALESCE(wl.lessons_count, 0) as "lessonsCompleted"
+      FROM users u
+      INNER JOIN weekly_xp wx ON u.id = wx.user_id
+      LEFT JOIN study_profiles sp ON u.id = sp.user_id
+      LEFT JOIN weekly_lessons wl ON u.id = wl.user_id
+      WHERE u.is_member = true AND u.is_admin = false
+      ORDER BY wx.total_xp DESC
+      LIMIT ${limit}
+    `);
     
-    return results.map(r => ({
+    return (weeklyXpResults.rows as any[]).map(r => ({
       id: r.id,
       fullName: r.fullName || 'Usuario',
-      avatarUrl: r.photoUrl,
-      currentXp: Number(r.weeklyXp || 0),
-      currentLevel: r.currentLevel || 1,
-      streak: r.streak || 0,
+      avatarUrl: r.avatarUrl,
+      currentXp: Number(r.currentXp || 0),
+      currentLevel: Number(r.currentLevel || 1),
+      streak: Number(r.streak || 0),
+      lessonsCompleted: Number(r.lessonsCompleted || 0),
     }));
   }
 
@@ -2665,71 +2722,92 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudyUsersWithProfiles(): Promise<any[]> {
-    // Get ALL members (active or not) except admins - DeoGlory should track everyone
-    // Use separate object for user and profile to handle leftJoin properly
-    const usersWithProfiles = await db.select({
-      user: {
-        id: schema.users.id,
-        fullName: schema.users.fullName,
-        email: schema.users.email,
-        photoUrl: schema.users.photoUrl,
-        activeMember: schema.users.activeMember,
-        isAdmin: schema.users.isAdmin,
-      },
-      profile: {
-        totalXp: schema.studyProfiles.totalXp,
-        currentLevel: schema.studyProfiles.currentLevel,
-        currentStreak: schema.studyProfiles.currentStreak,
-        lastActivityDate: schema.studyProfiles.lastActivityDate,
-        lastLessonCompletedAt: schema.studyProfiles.lastLessonCompletedAt,
-        crystals: schema.studyProfiles.crystals,
-        createdAt: schema.studyProfiles.createdAt,
-      },
-    })
-      .from(schema.users)
-      .leftJoin(schema.studyProfiles, eq(schema.studyProfiles.userId, schema.users.id))
-      .where(and(
-        eq(schema.users.isMember, true),
-        eq(schema.users.isAdmin, false)
-      ))
-      .orderBy(desc(schema.studyProfiles.totalXp));
-
-    const usersWithLessonCounts = await Promise.all(usersWithProfiles.map(async (row) => {
-      const [lessonCount] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.userLessonProgress)
-        .where(and(
-          eq(schema.userLessonProgress.userId, row.user.id),
-          eq(schema.userLessonProgress.status, 'completed')
-        ));
-
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const lastActivityDate = row.profile?.lastActivityDate ? new Date(row.profile.lastActivityDate) : null;
-      
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // OPTIMIZED: Single query to get all user data with computed XP
+    // XP calculation matches getUserTotalXp() exactly
+    const results = await db.execute(sql`
+      WITH total_xp AS (
+        SELECT user_id, SUM(xp) as total_xp FROM (
+          SELECT user_id, xp_earned as xp FROM user_lesson_progress WHERE status = 'completed'
+          UNION ALL
+          SELECT user_id, bonus_xp as xp FROM weekly_practice_bonus
+          UNION ALL
+          SELECT user_id, xp_reward as xp FROM achievement_xp
+          UNION ALL
+          SELECT user_id, mission_xp + bonus_xp as xp FROM daily_mission_xp
+        ) all_xp
+        GROUP BY user_id
+      ),
+      lesson_counts AS (
+        SELECT user_id, COUNT(*) as lessons_completed FROM user_lesson_progress
+        WHERE status = 'completed' GROUP BY user_id
+      ),
+      recent_activity AS (
+        -- Check for ANY recent XP activity (lessons, missions, achievements, bonuses)
+        SELECT user_id, COUNT(*) as recent_count FROM (
+          SELECT user_id FROM user_lesson_progress 
+          WHERE status = 'completed' AND completed_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id FROM daily_mission_xp 
+          WHERE earned_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id FROM achievement_xp 
+          WHERE earned_at >= ${sevenDaysAgo}
+          UNION ALL
+          SELECT user_id FROM weekly_practice_bonus 
+          WHERE earned_at >= ${sevenDaysAgo}
+        ) all_recent
+        GROUP BY user_id
+      )
+      SELECT 
+        u.id,
+        u.full_name as name,
+        u.email,
+        u.photo_url as "avatarUrl",
+        u.active_member as "activeMember",
+        COALESCE(tx.total_xp, 0) as "totalXp",
+        COALESCE(sp.current_level, 1) as "currentLevel",
+        COALESCE(sp.current_streak, 0) as "currentStreak",
+        COALESCE(sp.crystals, 0) as crystals,
+        COALESCE(lc.lessons_completed, 0) as "lessonsCompleted",
+        COALESCE(ra.recent_count, 0) as "recentActivity",
+        sp.last_activity_date as "lastActivityDate",
+        sp.last_lesson_completed_at as "lastLessonCompletedAt",
+        sp.created_at as "createdAt"
+      FROM users u
+      LEFT JOIN study_profiles sp ON u.id = sp.user_id
+      LEFT JOIN total_xp tx ON u.id = tx.user_id
+      LEFT JOIN lesson_counts lc ON u.id = lc.user_id
+      LEFT JOIN recent_activity ra ON u.id = ra.user_id
+      WHERE u.is_member = true AND u.is_admin = false
+      ORDER BY COALESCE(tx.total_xp, 0) DESC
+    `);
+    
+    return (results.rows as any[]).map(r => {
       let status: "Ativo" | "Inativo" | "Suspenso" = "Inativo";
-      if (!row.user.activeMember) {
+      if (!r.activeMember) {
         status = "Suspenso";
-      } else if (lastActivityDate && lastActivityDate >= sevenDaysAgo) {
+      } else if (Number(r.recentActivity || 0) > 0) {
         status = "Ativo";
       }
-
+      
       return {
-        id: row.user.id,
-        name: row.user.fullName,
-        email: row.user.email,
-        avatarUrl: row.user.photoUrl,
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        avatarUrl: r.avatarUrl,
         status,
-        lastAccess: row.profile?.lastActivityDate || row.profile?.lastLessonCompletedAt,
-        lessonsCompleted: Number(lessonCount?.count || 0),
-        totalXp: row.profile?.totalXp || 0,
-        currentLevel: row.profile?.currentLevel || 1,
-        currentStreak: row.profile?.currentStreak || 0,
-        crystals: row.profile?.crystals || 0,
-        registrationDate: row.profile?.createdAt?.toISOString() || null,
+        lastAccess: r.lastActivityDate || r.lastLessonCompletedAt,
+        lessonsCompleted: Number(r.lessonsCompleted || 0),
+        totalXp: Number(r.totalXp || 0),
+        currentLevel: Number(r.currentLevel || 1),
+        currentStreak: Number(r.currentStreak || 0),
+        crystals: Number(r.crystals || 0),
+        registrationDate: r.createdAt?.toISOString?.() || r.createdAt || null,
       };
-    }));
-
-    return usersWithLessonCounts;
+    });
   }
 
   async recalculateAllLevels(): Promise<{ updated: number; total: number }> {

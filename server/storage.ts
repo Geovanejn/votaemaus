@@ -1098,10 +1098,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStudyWeek(weekId: number): Promise<boolean> {
+    // Delete lessons first (this will also delete units and user progress)
     const lessons = await this.getLessonsForWeek(weekId);
     for (const lesson of lessons) {
       await this.deleteStudyLesson(lesson.id);
     }
+    
+    // Delete practice questions (foreign key constraint)
+    await db.delete(schema.practiceQuestions).where(eq(schema.practiceQuestions.weekId, weekId));
+    
+    // Delete user week progress (foreign key constraint)
+    await db.delete(schema.userWeekProgress).where(eq(schema.userWeekProgress.weekId, weekId));
+    
+    // Finally delete the week
     await db.delete(schema.studyWeeks).where(eq(schema.studyWeeks.id, weekId));
     return true;
   }

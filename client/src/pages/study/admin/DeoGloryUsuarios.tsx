@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DeoGloryAdminLayout } from "@/components/deoglory/DeoGloryAdminLayout";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ import {
   Gem,
   GraduationCap,
   Target,
+  RefreshCw,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -214,9 +217,31 @@ export default function DeoGloryUsuarios() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<StudyUser | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const { data: users = [], isLoading, isError } = useQuery<StudyUser[]>({
     queryKey: ['/api/study/admin/users'],
+  });
+
+  const recalculateLevelsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/study/admin/recalculate-levels");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Niveis recalculados",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/study/admin/users'] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Nao foi possivel recalcular os niveis",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredUsers = users.filter(user => {
@@ -335,15 +360,27 @@ export default function DeoGloryUsuarios() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-base sm:text-lg font-semibold">Gerenciar Usuarios</CardTitle>
-                <Button 
-                  variant="default" 
-                  className="gap-2 bg-violet-600 hover:bg-violet-700 w-full sm:w-auto" 
-                  onClick={handleExportPDF}
-                  data-testid="button-export"
-                >
-                  <Download className="h-4 w-4" />
-                  Exportar PDF
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="gap-2 w-full sm:w-auto" 
+                    onClick={() => recalculateLevelsMutation.mutate()}
+                    disabled={recalculateLevelsMutation.isPending}
+                    data-testid="button-recalculate-levels"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${recalculateLevelsMutation.isPending ? 'animate-spin' : ''}`} />
+                    {recalculateLevelsMutation.isPending ? "Recalculando..." : "Sincronizar Niveis"}
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    className="gap-2 bg-violet-600 hover:bg-violet-700 w-full sm:w-auto" 
+                    onClick={handleExportPDF}
+                    data-testid="button-export"
+                  >
+                    <Download className="h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">

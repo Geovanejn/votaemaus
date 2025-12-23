@@ -2234,9 +2234,31 @@ export class DatabaseStorage implements IStorage {
     
     const newTotalXp = (profile.totalXp || 0) + amount;
     
-    // Calculate new level based on XP thresholds (500 XP per level)
-    const xpPerLevel = 500;
-    const newLevel = Math.max(1, Math.floor(newTotalXp / xpPerLevel) + 1);
+    // Progressive XP system with increasing difficulty
+    // Levels 1-5: 500 XP per level
+    // Levels 6-10: 750 XP per level
+    // Levels 11-20: 1000 XP per level
+    // Levels 21-30: 1500 XP per level
+    // Levels 31+: 2000 XP per level
+    const getXpPerLevel = (level: number): number => {
+      if (level <= 5) return 500;
+      if (level <= 10) return 750;
+      if (level <= 20) return 1000;
+      if (level <= 30) return 1500;
+      return 2000;
+    };
+
+    const calculateLevelFromXp = (totalXp: number): number => {
+      let level = 1;
+      let xpAccumulated = 0;
+      while (xpAccumulated + getXpPerLevel(level) <= totalXp) {
+        xpAccumulated += getXpPerLevel(level);
+        level++;
+      }
+      return level;
+    };
+    
+    const newLevel = calculateLevelFromXp(newTotalXp);
     
     await db.update(schema.studyProfiles)
       .set({ 
@@ -2612,9 +2634,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recalculateAllLevels(): Promise<{ updated: number; total: number }> {
-    // Progressive level system: level N requires N * 500 XP total to reach level N+1
-    // Level 1: 0-499 XP, Level 2: 500-999 XP, etc.
-    // To find level from XP: level = floor(XP / 500) + 1
+    // Progressive XP system with increasing difficulty
+    // Levels 1-5: 500 XP per level
+    // Levels 6-10: 750 XP per level
+    // Levels 11-20: 1000 XP per level
+    // Levels 21-30: 1500 XP per level
+    // Levels 31+: 2000 XP per level
+    
+    const getXpPerLevel = (level: number): number => {
+      if (level <= 5) return 500;
+      if (level <= 10) return 750;
+      if (level <= 20) return 1000;
+      if (level <= 30) return 1500;
+      return 2000;
+    };
+
+    // Calculate level from total XP
+    const calculateLevelFromXp = (totalXp: number): number => {
+      let level = 1;
+      let xpAccumulated = 0;
+      while (xpAccumulated + getXpPerLevel(level) <= totalXp) {
+        xpAccumulated += getXpPerLevel(level);
+        level++;
+      }
+      return level;
+    };
     
     const allProfiles = await db.select({
       userId: schema.studyProfiles.userId,
@@ -2626,8 +2670,7 @@ export class DatabaseStorage implements IStorage {
     
     for (const profile of allProfiles) {
       const totalXp = profile.totalXp || 0;
-      // Calculate correct level: each 500 XP = 1 level
-      const correctLevel = Math.max(1, Math.floor(totalXp / 500) + 1);
+      const correctLevel = calculateLevelFromXp(totalXp);
       
       if (profile.currentLevel !== correctLevel) {
         await db.update(schema.studyProfiles)

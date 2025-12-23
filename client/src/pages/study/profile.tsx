@@ -177,24 +177,57 @@ export default function ProfilePage() {
     return <LoadingState />;
   }
 
+  // Progressive XP system with increasing difficulty
+  // Levels 1-5: 500 XP per level
+  // Levels 6-10: 750 XP per level
+  // Levels 11-20: 1000 XP per level
+  // Levels 21-30: 1500 XP per level
+  // Levels 31+: 2000 XP per level
+  const getXpPerLevel = (level: number): number => {
+    if (level <= 5) return 500;
+    if (level <= 10) return 750;
+    if (level <= 20) return 1000;
+    if (level <= 30) return 1500;
+    return 2000;
+  };
+
+  // Calculate total XP needed to reach a specific level
+  const getXpForLevel = (targetLevel: number): number => {
+    let totalXp = 0;
+    for (let lvl = 1; lvl < targetLevel; lvl++) {
+      totalXp += getXpPerLevel(lvl);
+    }
+    return totalXp;
+  };
+
+  // Calculate level from total XP
+  const calculateLevelFromXp = (totalXp: number): number => {
+    let level = 1;
+    let xpAccumulated = 0;
+    while (xpAccumulated + getXpPerLevel(level) <= totalXp) {
+      xpAccumulated += getXpPerLevel(level);
+      level++;
+    }
+    return level;
+  };
+
   // Use profile data as the source of truth
   const currentXp = profile?.totalXp || 0;
-  const currentLevel = profile?.currentLevel || 1;
+  const currentLevel = profile?.currentLevel || calculateLevelFromXp(currentXp);
   
-  // Progressive level system: each level requires level * 500 XP total
-  // Level 17 requires 8,500 XP total (17 × 500)
-  // Level 18 requires 9,000 XP total (18 × 500)
-  const xpForNextLevel = currentLevel * 500;
-  const xpForCurrentLevel = (currentLevel - 1) * 500;
+  // Calculate thresholds for current and next level
+  const xpForCurrentLevel = getXpForLevel(currentLevel);
+  const xpForNextLevel = getXpForLevel(currentLevel + 1);
+  const xpRequiredThisLevel = xpForNextLevel - xpForCurrentLevel;
   
-  // XP progress shows total XP out of next level threshold
-  const xpInLevel = currentXp;
-  const xpNeeded = xpForNextLevel;
+  // XP progress within current level
+  const xpInLevel = currentXp - xpForCurrentLevel;
+  const xpNeeded = xpRequiredThisLevel;
   const xpRemaining = Math.max(0, xpForNextLevel - currentXp);
   
-  // Calculate progress percentage based on total XP towards next level
-  const progressPercent = xpForNextLevel > 0 
-    ? Math.max(0, Math.min((currentXp / xpForNextLevel) * 100, 100))
+  // Calculate progress percentage within current level
+  const progressPercent = xpNeeded > 0 
+    ? Math.max(0, Math.min((xpInLevel / xpNeeded) * 100, 100))
     : 0;
 
   const categoryColorMap: Record<string, { bgColor: string }> = {

@@ -34,23 +34,26 @@ export function SiteHeader() {
           <div className="flex h-16 items-center justify-between gap-4">
             <Link href="/" className="flex items-center">
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="flex items-center justify-center relative h-12"
+                whileHover={{ scale: 1.02 }}
+                className="flex items-center justify-center relative overflow-hidden"
+                style={{ height: '48px' }}
               >
                 <img 
                   src={logoDark}
                   alt="Logo UMP Emaús" 
+                  style={{ height: '180px', width: 'auto', marginTop: '0px' }}
                   className={cn(
-                    "h-12 w-auto object-contain absolute transition-opacity duration-300",
+                    "object-cover absolute left-0 transition-opacity duration-300",
                     resolvedTheme === "dark" ? "opacity-100" : "opacity-0"
                   )}
                 />
                 <img 
                   src={logoLight}
                   alt="Logo UMP Emaús" 
+                  style={{ height: '180px', width: 'auto', marginTop: '0px' }}
                   className={cn(
-                    "h-12 w-auto object-contain transition-opacity duration-300",
-                    resolvedTheme === "light" ? "opacity-100" : "opacity-0"
+                    "object-cover transition-opacity duration-300",
+                    resolvedTheme === "dark" ? "opacity-0" : "opacity-100"
                   )}
                 />
               </motion.div>

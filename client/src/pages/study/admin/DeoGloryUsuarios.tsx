@@ -135,7 +135,7 @@ function UserDetailDialog({ user, open, onOpenChange }: UserDetailDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-md sm:mx-auto max-h-[85vh] overflow-y-auto fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <DialogHeader>
           <DialogTitle className="text-lg">Detalhes do Usuario</DialogTitle>
         </DialogHeader>

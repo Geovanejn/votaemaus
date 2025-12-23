@@ -465,8 +465,11 @@ export function EstudeScreen({
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
                 style={{ fontSize: `${fontSize}px` }}
+                className="study-content-wrapper"
               >
-                {renderContent(currentSection)}
+                <div style={{ fontSize: 'inherit' }} className="[&_p]:text-[length:inherit] [&_div]:text-[length:inherit] [&_span:not(.text-purple-600)]:text-[length:inherit]">
+                  {renderContent(currentSection)}
+                </div>
               </motion.div>
             </AnimatePresence>
           </Card>

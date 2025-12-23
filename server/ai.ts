@@ -466,19 +466,29 @@ O conteúdo deve ser:
 - Com exercícios variados e gamificados
 - Em português brasileiro correto
 
+REGRAS OBRIGATÓRIAS PARA DIFICULDADE DAS PERGUNTAS:
+⚠️ AS PERGUNTAS DEVEM SER DESAFIADORAS - NUNCA FAÇA PERGUNTAS ÓBVIAS ⚠️
+
+NÍVEIS DE DIFICULDADE (misture todos em cada lição):
+1. MÉDIO (2 perguntas): Requer leitura atenta. A resposta não é a primeira que vem à mente.
+2. MÉDIO-DIFÍCIL (2 perguntas): Requer análise e interpretação do texto.
+3. DIFÍCIL (1 pergunta): Requer síntese de múltiplos conceitos ou distinção entre ideias muito similares.
+
 REGRAS CRÍTICAS PARA EXERCÍCIOS DE MÚLTIPLA ESCOLHA:
-- TODAS as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
-- As alternativas devem ter TAMANHOS SIMILARES (não coloque uma resposta muito maior ou menor que as outras)
+- TODAS as 4 alternativas devem ser PLAUSÍVEIS e parecerem igualmente corretas à primeira vista
+- As alternativas devem ter TAMANHOS SIMILARES (a resposta correta NÃO pode ser a mais longa)
 - NUNCA use alternativas obviamente erradas como "Ignorar a Bíblia", "Desistir de tudo", "Nada disso"
 - As alternativas incorretas devem ser SUTILMENTE erradas, exigindo compreensão real do texto
-- Use conceitos bíblicos similares que poderiam ser confundidos (ex: fé vs obras, graça vs lei)
+- Use conceitos bíblicos similares que requerem conhecimento para distinguir (ex: fé vs obras, graça vs lei, justificação vs santificação)
 - Evite padrões como "Todas as alternativas", "Nenhuma das alternativas"
-- A resposta correta NÃO deve ser sempre a mais longa ou mais completa
-- Embaralhe a posição da resposta correta (não sempre A ou B)
+- A resposta correta NÃO pode ser identificada sem ler o texto de estudo
+- Embaralhe a posição da resposta correta (distribua entre A, B, C e D)
 
-EXEMPLOS DE ALTERNATIVAS BEM FEITAS:
-❌ RUIM: "Qual é o fruto do Espírito?" - A) Amor B) Ódio C) Inveja D) Maldade
-✅ BOM: "Qual é o fruto do Espírito?" - A) Alegria, paz e paciência B) Justiça, poder e glória C) Amor, fé e esperança D) Sabedoria, força e coragem
+EXEMPLOS DE DIFICULDADE:
+❌ MUITO FÁCIL (evite): "Quem morreu na cruz?" - alternativas óbvias
+❌ FÁCIL (evite): "Jesus é o caminho, a ____ e a vida" - A) verdade B) mentira
+✅ MÉDIO: "Qual consequência imediata de confiar em Cristo segundo o texto?"
+✅ DIFÍCIL: "Como o conceito de graça se diferencia de mérito no contexto estudado?"
 
 Responda SEMPRE em JSON válido com a estrutura exata especificada. NÃO use markdown, apenas JSON puro.`;
 
@@ -564,7 +574,7 @@ Regras Adicionais:
 2. Analise o PDF e divida o conteúdo em lições diárias com temas conectados
 3. Cada lição deve seguir as 3 etapas na ordem: ESTUDE -> MEDITE -> RESPONDA
 4. Use APENAS a versão ARA (Almeida Revista e Atualizada) para todos os versículos
-5. O texto de leitura deve ser substantivo (mínimo 100 palavras por tópico)
+5. O texto de leitura deve ser EXTENSO e detalhado (mínimo 150 palavras por tópico) - textos curtos serão rejeitados
 6. OBRIGATÓRIO: Inclua EXATAMENTE 5 perguntas por lição (etapa RESPONDA) - misture múltipla escolha, verdadeiro/falso e complete a frase
 7. OBRIGATÓRIO: A etapa ESTUDE deve ter NO MÍNIMO 6 telas (1 versículo base + 4 ou mais tópicos + 1 conclusão)
 8. As aplicações práticas (etapa MEDITE) devem conectar o texto bíblico com a vida cotidiana
@@ -1771,7 +1781,7 @@ REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS - LEIA COM MÁXIMA ATENÇÃO:
 - Procure por seções separadas por linhas em branco ou quebras de página
 - INCLUA TODOS OS TÓPICOS encontrados, mesmo que pareçam pequenos ou secundários
 - LISTE os tópicos NA ORDEM em que aparecem no documento
-- Cada tópico deve ter um resumo COMPLETO do conteúdo (mínimo 150 palavras)
+- Cada tópico deve ter um resumo COMPLETO e EXTENSO do conteúdo (mínimo 200 palavras)
 - VALIDAÇÃO FINAL: Antes de responder:
   1. Verifique se a INTRODUÇÃO está incluída
   2. Verifique se a CONCLUSÃO está incluída
@@ -1779,14 +1789,36 @@ REGRAS CRÍTICAS PARA EXTRAÇÃO DE TÓPICOS - LEIA COM MÁXIMA ATENÇÃO:
   4. Confirme que TODOS os tópicos foram incluídos
 - Se o PDF tiver 4 tópicos, você DEVE retornar 4 tópicos. Se tiver 6, DEVE retornar 6.
 
+REGRAS OBRIGATÓRIAS PARA DIFICULDADE DAS PERGUNTAS:
+⚠️ AS PERGUNTAS DEVEM SER DESAFIADORAS - NÃO FAÇA PERGUNTAS ÓBVIAS ⚠️
+
+NÍVEIS DE DIFICULDADE (misture todos em cada lição):
+1. MÉDIO (2 perguntas): Requer leitura atenta do texto. A resposta não é a primeira que vem à mente.
+2. MÉDIO-DIFÍCIL (2 perguntas): Requer análise e interpretação. O aluno precisa pensar sobre o significado.
+3. DIFÍCIL (1 pergunta): Requer síntese de múltiplos conceitos ou distinção entre conceitos muito similares.
+
+CARACTERÍSTICAS DE PERGUNTAS BEM FEITAS:
+- A resposta correta NÃO pode ser identificada sem ler o texto de estudo
+- Alternativas erradas devem parecer igualmente corretas à primeira vista
+- Use termos bíblicos relacionados que requerem conhecimento para distinguir
+- Explore nuances teológicas (ex: justificação vs santificação, fé vs obras)
+- Pergunte sobre aplicações práticas, não apenas fatos
+
+EXEMPLOS DE DIFICULDADE:
+❌ MUITO FÁCIL (evite): "Quem morreu na cruz?" - A) Jesus B) Pilatos C) Pedro D) Judas
+❌ FÁCIL (evite): "Jesus é o caminho, a ____ e a vida" - A) verdade B) mentira C) tristeza D) dúvida
+✅ MÉDIO: "Qual é a consequência imediata de confiar exclusivamente em Jesus segundo João 3:16?" - alternativas sobre vida eterna, salvação das obras, perdão vs justificação
+✅ MÉDIO-DIFÍCIL: "Como o conceito de graça se diferencia de misericórdia no contexto de Efésios 2?"
+✅ DIFÍCIL: "Analise: Segundo o texto, a fé que salva se manifesta principalmente através de..." (requer síntese)
+
 REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
-- TODAS as 4 alternativas devem ser MUITO PLAUSÍVEIS e parecerem corretas
-- As alternativas devem ter TAMANHOS SIMILARES
+- TODAS as 4 alternativas devem ser MUITO PLAUSÍVEIS e parecerem igualmente corretas
+- As alternativas devem ter TAMANHOS SIMILARES (a resposta correta NÃO pode ser a mais longa)
 - NUNCA use alternativas obviamente erradas como "Nenhuma das anteriores" ou respostas absurdas
-- Use alternativas que requerem conhecimento profundo para distinguir a correta
-- VARIE a posição da resposta correta (distribua entre A, B, C e D)
-- Crie alternativas que usem conceitos relacionados mas com nuances diferentes
-- Exemplo: se a resposta é "graça", alternativas podem ser "misericórdia", "amor", "perdão"
+- Use alternativas que requerem conhecimento profundo e leitura do texto para distinguir a correta
+- VARIE a posição da resposta correta (distribua entre A, B, C e D - não sempre A ou B)
+- Crie alternativas que usem conceitos teológicos relacionados mas com nuances diferentes
+- Exemplo: se a resposta é "justificação", alternativas podem ser "santificação", "regeneração", "glorificação"
 
 REGRAS PARA DICAS (HINTS):
 - Cada pergunta DEVE ter uma dica (hint) associada
@@ -1830,7 +1862,7 @@ Retorne um JSON com a seguinte estrutura:
   "topics": [
     {
       "title": "TÍTULO EXATO DO TÓPICO (como está no PDF, não altere)",
-      "summary": "Resumo do conteúdo do tópico para estudo (mínimo 100 palavras)",
+      "summary": "Resumo EXTENSO e detalhado do conteúdo do tópico para estudo (mínimo 150 palavras)",
       "originalContent": "Conteúdo original extraído do PDF para referência"
     }
   ],
@@ -1850,7 +1882,7 @@ Retorne um JSON com a seguinte estrutura:
       "stage": "estude",
       "content": {
         "title": "TÍTULO EXATO DO TÓPICO",
-        "body": "Resumo explicativo do tópico (mínimo 100 palavras)",
+        "body": "Resumo EXTENSO e detalhado do tópico com explicações profundas (mínimo 150 palavras)",
         "highlight": "Frase-chave para destacar (opcional)"
       },
       "xpValue": 5

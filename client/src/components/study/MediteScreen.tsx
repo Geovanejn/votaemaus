@@ -459,9 +459,9 @@ export function MediteScreen({
                   </div>
                 )}
                 
-                <p className="text-muted-foreground text-center leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
-                  {cleanDuplicateTitle(currentSection.title, currentSection.content)}
-                </p>
+                <div className="text-muted-foreground text-center leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
+                  <FormattedText content={cleanDuplicateTitle(currentSection.title, currentSection.content)} />
+                </div>
               </Card>
             </motion.div>
           </AnimatePresence>

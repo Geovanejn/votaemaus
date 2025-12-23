@@ -2233,6 +2233,7 @@ export class DatabaseStorage implements IStorage {
     });
     
     const newTotalXp = (profile.totalXp || 0) + amount;
+    const oldLevel = profile.currentLevel || 1;
     
     // Progressive XP system with increasing difficulty
     // Levels 1-5: 500 XP per level
@@ -2260,10 +2261,25 @@ export class DatabaseStorage implements IStorage {
     
     const newLevel = calculateLevelFromXp(newTotalXp);
     
+    // Check if user leveled up - award +1 life if not at max (5 hearts)
+    let newHearts = profile.hearts;
+    const didLevelUp = newLevel > oldLevel;
+    if (didLevelUp) {
+      const currentHearts = profile.hearts || 0;
+      const maxHearts = profile.heartsMax || 5;
+      if (currentHearts < maxHearts) {
+        newHearts = Math.min(currentHearts + 1, maxHearts);
+        console.log(`[Level Up] User ${userId}: Level ${oldLevel} -> ${newLevel}, Hearts ${currentHearts} -> ${newHearts}`);
+      } else {
+        console.log(`[Level Up] User ${userId}: Level ${oldLevel} -> ${newLevel}, Hearts already at max (${maxHearts})`);
+      }
+    }
+    
     await db.update(schema.studyProfiles)
       .set({ 
         totalXp: newTotalXp, 
         currentLevel: newLevel,
+        hearts: newHearts,
         updatedAt: new Date() 
       })
       .where(eq(schema.studyProfiles.userId, userId));

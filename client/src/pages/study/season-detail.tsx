@@ -116,7 +116,7 @@ function transformLessonToLessonData(lesson: Lesson, previousCompleted: boolean)
     status: lessonStatus,
     sectionsCompleted,
     totalSections,
-    xpReward: lesson.xpReward,
+    xpReward: 50,
     stages
   };
 }

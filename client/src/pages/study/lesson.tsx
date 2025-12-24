@@ -1060,7 +1060,7 @@ export default function LessonPage() {
   };
 
   const handleLessonCompletion = async () => {
-    const LESSON_COMPLETION_BONUS = 50;
+    const LESSON_COMPLETION_BONUS = lessonData?.seasonId ? 50 : 30;
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const isPerfect = mistakes === 0;
     
@@ -1098,7 +1098,7 @@ export default function LessonPage() {
   };
 
   if (isCompleted) {
-    const LESSON_COMPLETION_BONUS = 50;
+    const LESSON_COMPLETION_BONUS = lessonData?.seasonId ? 50 : 30;
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     const streakDays = finalProfile?.currentStreak ?? profileData?.currentStreak ?? 0;
     const isPerfect = mistakes === 0;

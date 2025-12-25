@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Trash2, X, Award, BookOpen, Flame, Trophy, Star, Heart, Zap, Calendar, Settings, MessageCircleHeart } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, X, Award, BookOpen, Flame, Trophy, Star, Heart, Zap, Calendar, Settings, MessageCircleHeart, BookMarked, CalendarDays, Users, HandHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,27 +34,49 @@ interface NotificationsResponse {
 
 const notificationIcons: Record<string, any> = {
   achievement: Award,
+  achievement_liked: Trophy,
   lesson_complete: BookOpen,
+  lesson_available: BookOpen,
   streak: Flame,
+  streak_reminder: Flame,
   level_up: Trophy,
   xp: Star,
   hearts: Heart,
   challenge: Zap,
   daily_mission: Calendar,
+  daily_verse: BookMarked,
+  new_devotional: BookMarked,
+  new_event: CalendarDays,
+  new_prayer_request: HandHeart,
+  prayer_approved: HandHeart,
+  season_published: Users,
+  season_ended: Users,
+  inactivity_reminder: Bell,
   system: Settings,
-  encouragement: Heart,
+  encouragement: MessageCircleHeart,
   default: Bell,
 };
 
 const notificationColors: Record<string, string> = {
   achievement: 'text-yellow-500',
+  achievement_liked: 'text-amber-500',
   lesson_complete: 'text-green-500',
+  lesson_available: 'text-emerald-500',
   streak: 'text-orange-500',
+  streak_reminder: 'text-orange-400',
   level_up: 'text-purple-500',
   xp: 'text-blue-500',
   hearts: 'text-red-500',
   challenge: 'text-cyan-500',
   daily_mission: 'text-indigo-500',
+  daily_verse: 'text-sky-500',
+  new_devotional: 'text-violet-500',
+  new_event: 'text-teal-500',
+  new_prayer_request: 'text-rose-500',
+  prayer_approved: 'text-rose-400',
+  season_published: 'text-lime-500',
+  season_ended: 'text-amber-600',
+  inactivity_reminder: 'text-gray-500',
   system: 'text-muted-foreground',
   encouragement: 'text-pink-500',
   default: 'text-muted-foreground',

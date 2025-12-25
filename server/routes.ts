@@ -7253,9 +7253,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const eventId = parseInt(req.params.eventId);
       const dayNumber = parseInt(req.params.dayNumber);
+      
+      // Get event to check startDate and unlock logic
+      const event = await storage.getStudyEventById(eventId);
+      if (!event) return res.status(404).json({ message: "Evento não encontrado" });
+      
+      // Calculate unlock time: startDate + (dayNumber - 1) days at 00:00
+      const unlockDate = new Date(event.startDate);
+      unlockDate.setDate(unlockDate.getDate() + (dayNumber - 1));
+      unlockDate.setHours(0, 0, 0, 0);
+      
+      const now = new Date();
+      if (now < unlockDate) {
+        return res.status(403).json({ 
+          message: "Esta lição ainda não foi desbloqueada",
+          unlockTime: unlockDate.toISOString()
+        });
+      }
+      
       const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
       if (!lesson) return res.status(404).json({ message: "Lição não encontrada" });
+      
       const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
+      
+      // If already completed, prevent re-access
+      if (progress?.completed) {
+        return res.status(403).json({ 
+          message: "Você já completou esta lição",
+          progress
+        });
+      }
+      
       res.json({ lesson, progress: progress || null });
     } catch (error) {
       console.error("Get study event lesson by day error:", error);

@@ -351,13 +351,21 @@ export default function EventDetailPage() {
         </Card>
 
         {(() => {
+          const now = new Date();
           const currentLesson = sortedLessons.find((lesson, index) => {
             const previousLesson = index > 0 ? sortedLessons[index - 1] : null;
             const previousCompleted = previousLesson 
               ? progressMap.get(previousLesson.id)?.completed || false 
               : true;
             const currentCompleted = progressMap.get(lesson.id)?.completed || false;
-            return previousCompleted && !currentCompleted;
+            
+            // Check if lesson is unlocked by date
+            const unlockDate = new Date(event.startDate);
+            unlockDate.setDate(unlockDate.getDate() + (lesson.dayNumber - 1));
+            unlockDate.setHours(0, 0, 0, 0);
+            const isUnlockedByDate = now >= unlockDate;
+            
+            return previousCompleted && !currentCompleted && isUnlockedByDate;
           });
           
           if (currentLesson && completedLessons < totalLessons) {
@@ -393,13 +401,21 @@ export default function EventDetailPage() {
           
           <div className="space-y-3">
             {sortedLessons.map((lesson, index) => {
+              const now = new Date();
               const previousLesson = index > 0 ? sortedLessons[index - 1] : null;
               const previousCompleted = previousLesson 
                 ? progressMap.get(previousLesson.id)?.completed || false 
                 : true;
               const currentCompleted = progressMap.get(lesson.id)?.completed || false;
-              const isLocked = !previousCompleted && !currentCompleted;
-              const isInProgress = previousCompleted && !currentCompleted;
+              
+              // Check if lesson is unlocked by date
+              const unlockDate = new Date(event.startDate);
+              unlockDate.setDate(unlockDate.getDate() + (lesson.dayNumber - 1));
+              unlockDate.setHours(0, 0, 0, 0);
+              const isUnlockedByDate = now >= unlockDate;
+              
+              const isLocked = !previousCompleted || !isUnlockedByDate;
+              const isInProgress = previousCompleted && !currentCompleted && isUnlockedByDate;
 
               return (
                 <LessonItem

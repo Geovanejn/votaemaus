@@ -536,15 +536,15 @@ Gere um JSON com a seguinte estrutura:
             // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
             // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
-            // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Inclua campo "options" com 4 alternativas semanticamente coerentes!
+            // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Inclua campo "options" com 4 alternativas semanticamente coerentes! O usuário verá as 4 opções e escolherá a correta.
             //   - Se a resposta é um VERBO, as alternativas devem ser VERBOS
             //   - Se a resposta é um SUBSTANTIVO, as alternativas devem ser SUBSTANTIVOS do mesmo tipo
             //   - Se a resposta é um ADJETIVO, as alternativas devem ser ADJETIVOS
             //   - Se a resposta é um NOME PRÓPRIO (pessoa), as alternativas devem ser NOMES PRÓPRIOS
-            //   As alternativas devem ser contextualmente coerentes de modo que a resposta não seja óbvia.
+            //   As alternativas devem ser contextualmente coerentes de modo que todas as 4 façam sentido gramatical e contextual na frase, mas apenas uma seja biblicamente correta.
             //   Exemplos:
-            //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "options": ["caminho", "destino", "propósito", "sentido"], "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6", "hint": "Pense em como chegamos a um lugar" }
-            //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Deus trabalha para nosso benefício!", "explanationIncorrect": "A resposta é 'bem'. Romanos 8:28 nos ensina sobre a providência divina.", "hint": "Deus trabalha para nosso..." }
+            //   - { "question": "Jesus morreu para ___ o pecador.", "correctAnswer": "salvar", "options": ["amar", "salvar", "destruir", "glorificar"], "explanationCorrect": "Jesus veio para buscar e salvar o que se havia perdido.", "explanationIncorrect": "A resposta correta é 'salvar'.", "hint": "O objetivo da vinda de Cristo" }
+            //   - { "question": "Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Romanos 8:28", "explanationIncorrect": "A resposta é 'bem'.", "hint": "Romanos 8:28" }
             //   - { "question": "O fruto do Espírito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciência", "options": ["paciência", "mansidão", "longanimidade", "temperança"], "explanationCorrect": "Gálatas 5:22 lista os frutos do Espírito", "explanationIncorrect": "A resposta é 'paciência'. Veja Gálatas 5:22.", "hint": "Um fruto que nos ajuda a esperar" }
           },
           "xpValue": 2-10

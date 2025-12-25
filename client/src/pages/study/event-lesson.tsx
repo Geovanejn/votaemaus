@@ -224,8 +224,23 @@ export default function EventLessonPage() {
     }
   };
 
-  const [currentStage, setCurrentStage] = useState<Stage>("estude");
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentStage, setCurrentStage] = useState<Stage>(() => {
+    const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_stage`);
+    return (saved as Stage) || "estude";
+  });
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
+    const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_questionIndex`);
+    return saved ? parseInt(saved) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`lesson_${eventId}_${dayNumber}_stage`, currentStage);
+  }, [currentStage, eventId, dayNumber]);
+
+  useEffect(() => {
+    localStorage.setItem(`lesson_${eventId}_${dayNumber}_questionIndex`, currentQuestionIndex.toString());
+  }, [currentQuestionIndex, eventId, dayNumber]);
+
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);

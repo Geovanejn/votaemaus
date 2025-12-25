@@ -335,10 +335,10 @@ export function RespondaScreen({
       userAnswer = trueFalseAnswer;
       isCorrect = trueFalseAnswer === currentQuestion.correctAnswer;
     } else if (currentQuestion.type === "fill_blank") {
-      if (!fillBlankAnswer.trim()) return;
-      userAnswer = fillBlankAnswer;
+      if (selectedAnswer === null) return;
+      userAnswer = fillBlankOptions[selectedAnswer];
       const correctAns = String(currentQuestion.correctAnswer || "").toLowerCase().trim();
-      const userAns = fillBlankAnswer.toLowerCase().trim();
+      const userAns = String(userAnswer || "").toLowerCase().trim();
       isCorrect = userAns === correctAns;
     }
     

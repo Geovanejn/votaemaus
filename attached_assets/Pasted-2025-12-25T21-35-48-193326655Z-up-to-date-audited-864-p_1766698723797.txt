@@ -1,0 +1,50 @@
+2025-12-25T21:35:48.193326655Z up to date, audited 864 packages in 2s
+2025-12-25T21:35:48.193330505Z 
+2025-12-25T21:35:48.193341315Z 187 packages are looking for funding
+2025-12-25T21:35:48.193348796Z   run `npm fund` for details
+2025-12-25T21:35:48.21456263Z 
+2025-12-25T21:35:48.21457519Z 10 vulnerabilities (3 low, 5 moderate, 2 high)
+2025-12-25T21:35:48.2145775Z 
+2025-12-25T21:35:48.21458021Z To address issues that do not require attention, run:
+2025-12-25T21:35:48.21458246Z   npm audit fix
+2025-12-25T21:35:48.21458463Z 
+2025-12-25T21:35:48.21458678Z To address all issues (including breaking changes), run:
+2025-12-25T21:35:48.21458958Z   npm audit fix --force
+2025-12-25T21:35:48.21459165Z 
+2025-12-25T21:35:48.2145957Z Run `npm audit` for details.
+2025-12-25T21:35:48.360273719Z 
+2025-12-25T21:35:48.360293539Z > rest-express@1.0.0 build
+2025-12-25T21:35:48.36029763Z > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-12-25T21:35:48.360301059Z 
+2025-12-25T21:35:48.537142178Z vite v5.4.20 building for production...
+2025-12-25T21:35:48.585957749Z transforming...
+2025-12-25T21:35:50.129356604Z 
+2025-12-25T21:35:50.129388394Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-12-25T21:35:52.026975805Z [plugin:vite:resolve] [plugin vite:resolve] Module "crypto" has been externalized for browser compatibility, imported by "/opt/render/project/src/shared/schema.ts". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+2025-12-25T21:35:52.980935507Z ✓ 2373 modules transformed.
+2025-12-25T21:35:52.981552318Z x Build failed in 4.42s
+2025-12-25T21:35:52.981810192Z error during build:
+2025-12-25T21:35:52.981822462Z [vite:esbuild] Transform failed with 1 error:
+2025-12-25T21:35:52.981826782Z /opt/render/project/src/client/src/components/study/EstudeScreen.tsx:329:8: ERROR: The symbol "sections" has already been declared
+2025-12-25T21:35:52.981831052Z file: /opt/render/project/src/client/src/components/study/EstudeScreen.tsx:329:8
+2025-12-25T21:35:52.981833112Z 
+2025-12-25T21:35:52.981835392Z The symbol "sections" has already been declared
+2025-12-25T21:35:52.981837603Z 327|    
+2025-12-25T21:35:52.981839792Z 328|    const totalSlides = 3; // Fixed 3 screens: Topic 1, Topic 2, Conclusion
+2025-12-25T21:35:52.981842023Z 329|    const sections = rawSections.length > 0 ? rawSections : [
+2025-12-25T21:35:52.981844163Z    |          ^
+2025-12-25T21:35:52.981847643Z 330|      { type: "topic" as const, title: lessonTitle, content: "Conteúdo não disponível." }
+2025-12-25T21:35:52.981867613Z 331|    ];
+2025-12-25T21:35:52.981870973Z 
+2025-12-25T21:35:52.981875993Z     at failureErrorWithLog (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+2025-12-25T21:35:52.981879953Z     at /opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+2025-12-25T21:35:52.981884953Z     at responseCallbacks.<computed> (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+2025-12-25T21:35:52.981888873Z     at handleIncomingPacket (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+2025-12-25T21:35:52.981892104Z     at Socket.readFromStdout (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+2025-12-25T21:35:52.981895593Z     at Socket.emit (node:events:518:28)
+2025-12-25T21:35:52.981900324Z     at addChunk (node:internal/streams/readable:561:12)
+2025-12-25T21:35:52.981903414Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-12-25T21:35:52.981906364Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-12-25T21:35:52.981909354Z     at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-12-25T21:35:53.078776922Z ==> Build failed 😞
+2025-12-25T21:35:53.078791392Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

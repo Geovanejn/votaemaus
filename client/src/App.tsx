@@ -58,6 +58,7 @@ const PracticePage = lazy(() => import("@/pages/study/practice"));
 const MemberProfilePage = lazy(() => import("@/pages/study/member-profile"));
 const EventsPage = lazy(() => import("@/pages/study/events"));
 const EventDetailPage = lazy(() => import("@/pages/study/event-detail"));
+const EventLessonPage = lazy(() => import("@/pages/study/event-lesson"));
 const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
@@ -187,6 +188,7 @@ function Router() {
           <Route path="/study/practice/:weekId" component={PracticePage} />
           <Route path="/study/practice" component={PracticePage} />
           <Route path="/study/events" component={EventsPage} />
+          <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
           <Route path="/study/events/:id" component={EventDetailPage} />
           <Route path="/study/cards" component={CardsCollectionPage} />
           {/* Site Institucional - Public Routes */}
@@ -233,6 +235,7 @@ function Router() {
         <Route path="/study/practice/:weekId" component={PracticePage} />
         <Route path="/study/practice" component={PracticePage} />
         <Route path="/study/events" component={EventsPage} />
+        <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
         <Route path="/study/events/:id" component={EventDetailPage} />
         <Route path="/study/cards" component={CardsCollectionPage} />
         {/* Secretaria Panels - Access controlled by backend */}

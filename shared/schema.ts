@@ -1665,3 +1665,98 @@ export type WeeklyPracticeStatus = {
   lessonsCompleted: number;
   totalLessons: number;
 };
+
+// ==================== MEMBER INTERACTION SYSTEM ====================
+
+// Status online dos membros
+export const userOnlineStatus = pgTable("user_online_status", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  isOnline: boolean("is_online").notNull().default(false),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertUserOnlineStatusSchema = createInsertSchema(userOnlineStatus).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertUserOnlineStatus = z.infer<typeof insertUserOnlineStatusSchema>;
+export type UserOnlineStatus = typeof userOnlineStatus.$inferSelect;
+
+// Curtidas em conquistas de outros membros
+export const achievementLikes = pgTable("achievement_likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  targetUserId: integer("target_user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievements.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueLike: unique().on(table.userId, table.targetUserId, table.achievementId),
+}));
+
+export const insertAchievementLikeSchema = createInsertSchema(achievementLikes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAchievementLike = z.infer<typeof insertAchievementLikeSchema>;
+export type AchievementLike = typeof achievementLikes.$inferSelect;
+
+// Mensagens de incentivo entre membros
+export const memberEncouragements = pgTable("member_encouragements", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  receiverId: integer("receiver_id").notNull().references(() => users.id),
+  messageKey: text("message_key").notNull(),
+  messageText: text("message_text").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMemberEncouragementSchema = createInsertSchema(memberEncouragements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMemberEncouragement = z.infer<typeof insertMemberEncouragementSchema>;
+export type MemberEncouragement = typeof memberEncouragements.$inferSelect;
+
+// Mensagens predefinidas de incentivo
+export const PREDEFINED_ENCOURAGEMENT_MESSAGES = [
+  { key: "lesson_reminder", text: "Já fez sua lição hoje?", icon: "book-open" },
+  { key: "prayer_reminder", text: "Não se esqueça de orar!", icon: "heart" },
+  { key: "streak_warning", text: "Cuidado pra não perder a ofensiva!", icon: "flame" },
+  { key: "gospel_fire", text: "Não deixe a chama do evangelho se apagar!", icon: "flame" },
+  { key: "keep_going", text: "Continue firme na fé!", icon: "trophy" },
+  { key: "god_bless", text: "Que Deus abençoe seus estudos!", icon: "star" },
+  { key: "encouragement", text: "Você está indo muito bem!", icon: "medal" },
+  { key: "bible_study", text: "A Palavra de Deus é lâmpada para nossos pés!", icon: "book" },
+  { key: "fellowship", text: "Estamos juntos nessa jornada!", icon: "heart" },
+  { key: "perseverance", text: "Persevere! O prêmio vale a pena!", icon: "crown" },
+] as const;
+
+export type EncouragementMessageKey = typeof PREDEFINED_ENCOURAGEMENT_MESSAGES[number]["key"];
+
+// Tipo para perfil público de membro
+export type PublicMemberProfile = {
+  userId: number;
+  username: string;
+  photoUrl: string | null;
+  level: number;
+  totalXp: number;
+  currentStreak: number;
+  rankingPosition: number | null;
+  achievements: Array<{
+    id: number;
+    name: string;
+    icon: string;
+    category: string;
+    xpReward: number;
+    unlockedAt: string;
+    likesCount: number;
+    isLikedByMe: boolean;
+  }>;
+  isOnline: boolean;
+  lastSeenAt: string | null;
+};

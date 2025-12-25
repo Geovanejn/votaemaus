@@ -7223,20 +7223,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Release/unlock lesson manually (ignoring date restrictions)
-  app.post("/api/admin/study/events/:eventId/lessons/:dayNumber/release", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-    try {
-      const eventId = parseInt(req.params.eventId);
-      const dayNumber = parseInt(req.params.dayNumber);
-      const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
-      if (!lesson) return res.status(404).json({ message: "Lição não encontrada" });
-      
-      const updated = await storage.updateStudyEventLesson(lesson.id, { status: "published" });
-      res.json({ success: true, lesson: updated, message: "Lição liberada manualmente com sucesso" });
-    } catch (error) {
-      res.status(400).json({ message: "Erro ao liberar lição manualmente" });
-    }
-  });
-
   return createServer(app);
 }

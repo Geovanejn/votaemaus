@@ -8,13 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { 
   ArrowLeft,
   Loader2,
@@ -24,9 +17,6 @@ import {
   ImageIcon,
   Eye,
   BookOpen,
-  Edit,
-  Unlock,
-  Lock,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -57,13 +47,6 @@ interface EventLesson {
   status: string | null;
 }
 
-interface EditingLesson {
-  id: number;
-  dayNumber: number;
-  title: string;
-  content: string;
-}
-
 export default function EventoEditorPage() {
   const [, setLocation] = useLocation();
   const { id } = useParams<{ id: string }>();
@@ -75,9 +58,6 @@ export default function EventoEditorPage() {
     theme: "",
     imageUrl: "",
   });
-
-  const [editingLesson, setEditingLesson] = useState<EditingLesson | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: event, isLoading } = useQuery<StudyEvent>({
     queryKey: ["/api/admin/study-events", id],
@@ -153,48 +133,6 @@ export default function EventoEditorPage() {
     }
     updateMutation.mutate(formData);
   };
-
-  const releaseLessonMutation = useMutation({
-    mutationFn: async (dayNumber: number) => {
-      return apiRequest("POST", `/api/admin/study/events/${id}/lessons/${dayNumber}/release`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id, "lessons"] });
-      toast({
-        title: "Lição liberada",
-        description: "A lição foi liberada manualmente com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Erro ao liberar lição.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const editLessonMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("PATCH", `/api/admin/study/events/${id}/lessons/${editingLesson?.dayNumber}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id, "lessons"] });
-      toast({
-        title: "Lição atualizada",
-        description: "As alterações foram salvas com sucesso.",
-      });
-      setDialogOpen(false);
-      setEditingLesson(null);
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar lição.",
-        variant: "destructive",
-      });
-    },
-  });
 
   if (isLoading) {
     return (
@@ -395,38 +333,9 @@ export default function EventoEditorPage() {
                       </div>
                       <span className="font-medium">{lesson.title}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={lesson.status === "published" ? "default" : "outline"}>
-                        {lesson.status === "published" ? "Publicada" : "Rascunho"}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingLesson({
-                            id: lesson.id,
-                            dayNumber: lesson.dayNumber,
-                            title: lesson.title,
-                            content: "",
-                          });
-                          setDialogOpen(true);
-                        }}
-                        data-testid={`button-edit-lesson-${lesson.dayNumber}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {lesson.status !== "published" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => releaseLessonMutation.mutate(lesson.dayNumber)}
-                          disabled={releaseLessonMutation.isPending}
-                          data-testid={`button-release-lesson-${lesson.dayNumber}`}
-                        >
-                          <Unlock className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                    <Badge variant={lesson.status === "published" ? "default" : "outline"}>
+                      {lesson.status === "published" ? "Publicada" : "Rascunho"}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -434,57 +343,6 @@ export default function EventoEditorPage() {
           </Card>
         )}
       </main>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Lição</DialogTitle>
-            <DialogDescription>
-              Dia {editingLesson?.dayNumber}: {editingLesson?.title}
-            </DialogDescription>
-          </DialogHeader>
-          {editingLesson && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="lesson-title">Título da Lição</Label>
-                <Input
-                  id="lesson-title"
-                  value={editingLesson.title}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, title: e.target.value })}
-                  placeholder="Título da lição"
-                  data-testid="input-lesson-title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lesson-content">Conteúdo</Label>
-                <Textarea
-                  id="lesson-content"
-                  value={editingLesson.content}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, content: e.target.value })}
-                  placeholder="Conteúdo da lição..."
-                  className="min-h-[200px]"
-                  data-testid="input-lesson-content"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button
-                  onClick={() => editLessonMutation.mutate({ title: editingLesson.title, content: editingLesson.content })}
-                  disabled={editLessonMutation.isPending}
-                  data-testid="button-save-lesson"
-                >
-                  {editLessonMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Salvar
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

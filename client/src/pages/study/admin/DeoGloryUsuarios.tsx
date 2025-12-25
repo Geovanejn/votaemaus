@@ -238,7 +238,11 @@ export default function DeoGloryUsuarios() {
 
   const broadcastMutation = useMutation({
     mutationFn: async (messageKey: string) => {
-      const response = await apiRequest("POST", "/api/study/admin/encouragement/broadcast", { messageKey });
+      const selectedMsg = encouragementMessages.find(m => m.key === messageKey);
+      const response = await apiRequest("POST", "/api/admin/study/encourage-all", { 
+        messageKey,
+        messageText: selectedMsg?.body || messageKey
+      });
       return response.json();
     },
     onSuccess: (data) => {

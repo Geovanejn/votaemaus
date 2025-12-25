@@ -156,6 +156,15 @@ export async function sendPushToAllMembers(
   return sendPushToUsers(userIds, payload);
 }
 
+export async function sendPushToAllMembersIncludingInactive(
+  payload: NotificationPayload
+): Promise<{ sent: number; failed: number }> {
+  const members = await storage.getAllMembers();
+  const userIds = members.map(m => m.id);
+
+  return sendPushToUsers(userIds, payload);
+}
+
 export async function sendAnonymousPushNotification(
   subscription: AnonymousPushSubscription,
   payload: NotificationPayload

@@ -2261,9 +2261,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send to all members
       const sentCount = await storage.sendEncouragementToAll(req.user.id, messageKey, messageText);
       
-      // Send push notification to all members
-      const { sendPushToAllMembers } = await import('./notifications');
-      await sendPushToAllMembers({
+      // Send push notification to ALL members (including inactive)
+      const { sendPushToAllMembersIncludingInactive } = await import('./notifications');
+      await sendPushToAllMembersIncludingInactive({
         title: "Mensagem da lideranca",
         body: messageText,
         url: "/study",

@@ -5713,7 +5713,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async sendEncouragementToAll(senderId: number, messageKey: string, messageText: string): Promise<number> {
-    const members = await this.getActiveMembers();
+    // Send to ALL members (including inactive)
+    const members = await this.getAllMembers();
     let count = 0;
     
     for (const member of members) {

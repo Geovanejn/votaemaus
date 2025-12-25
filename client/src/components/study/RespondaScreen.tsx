@@ -198,14 +198,16 @@ export function RespondaScreen({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSounds();
 
+  const totalQuestionsLength = rawQuestions.length;
+
   useEffect(() => {
     if (onQuestionChange) {
       onQuestionChange(currentIndex);
     }
     if (onProgressChange) {
-      onProgressChange(currentIndex + 1, totalQuestions);
+      onProgressChange(currentIndex + 1, totalQuestionsLength);
     }
-  }, [currentIndex, onQuestionChange, onProgressChange, totalQuestions]);
+  }, [currentIndex, onQuestionChange, onProgressChange, totalQuestionsLength]);
 
   const toggleFontSize = () => {
     setFontSize(prev => {

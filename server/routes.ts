@@ -3017,6 +3017,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/study/admin/events-stats", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
+    try {
+      const allEvents = await storage.getAllStudyEvents();
+      const now = new Date();
+      
+      const activeEvents = allEvents.filter(e => e.status === 'published' && new Date(e.startDate) <= now && new Date(e.endDate) >= now);
+      const upcomingEvents = allEvents.filter(e => e.status === 'published' && new Date(e.startDate) > now);
+      const completedEvents = allEvents.filter(e => e.status === 'completed');
+      
+      let totalParticipants = 0;
+      let totalCardsAwarded = 0;
+      
+      for (const event of allEvents) {
+        const lessons = await storage.getStudyEventLessons(event.id);
+        for (const lesson of lessons) {
+          const progress = await storage.getUserEventLessonProgress(0, lesson.id);
+        }
+      }
+      
+      const cards = await storage.getActiveCollectibleCards();
+      
+      res.json({
+        totalEvents: allEvents.length,
+        activeEvents: activeEvents.length,
+        upcomingEvents: upcomingEvents.length,
+        completedEvents: completedEvents.length,
+        recentEvents: allEvents.slice(0, 5).map(e => ({
+          id: e.id,
+          title: e.title,
+          theme: e.theme,
+          status: e.status,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          imageUrl: e.imageUrl
+        }))
+      });
+    } catch (error) {
+      console.error("Get events stats error:", error);
+      res.status(500).json({ message: "Erro ao buscar estatísticas de eventos" });
+    }
+  });
+
   // Admin: Get all users with study profiles - admin or espiritualidade
   app.get("/api/study/admin/users", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {

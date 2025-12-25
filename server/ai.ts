@@ -2178,8 +2178,13 @@ export async function generateEventContentFromText(
 Crie conteúdo envolvente, profundo teologicamente mas acessível para jovens.
 
 IMPORTANTE: Cada lição DEVE ter EXATAMENTE 3 seções principais:
-1. ESTUDE - Conteúdo teórico e bíblico (texto, versículos, contexto histórico)
-2. MEDITE - Reflexões, perguntas para meditação pessoal, aplicação prática
+1. ESTUDE - Conteúdo teórico com 2 TÓPICOS ESPECÍFICOS + 1 CONCLUSÃO
+   - Tópico 1: Primeiro tema principal
+   - Tópico 2: Segundo tema principal complementar
+   - Conclusão: Síntese dos aprendizados dos 2 tópicos
+2. MEDITE - Exatamente 2 PARTES: 1 MEDITAÇÃO + 1 APLICAÇÃO (nessa ordem)
+   - Meditação: Reflexão profunda sobre o versículo e o tema
+   - Aplicação: Como o aprendizado se aplica na vida diária do jovem
 3. RESPONDA - 5 questões de quiz (múltipla escolha, verdadeiro/falso, completar)`;
 
   const userPrompt = `Com base no texto/tema fornecido, crie um evento de estudo especial com EXATAMENTE 5 lições.
@@ -2188,15 +2193,28 @@ TEMA: ${theme}
 MÊS DO EVENTO: ${month}
 CONTEÚDO BASE: ${text}
 
-REGRAS IMPORTANTES:
+REGRAS MUITO IMPORTANTES - LEIA COM ATENÇÃO:
 1. Gere EXATAMENTE 5 lições, cada uma para um dia diferente
 2. Cada lição DEVE ter as 3 seções: ESTUDE, MEDITE, RESPONDA
-3. A seção ESTUDE deve ter conteúdo bíblico rico e aplicável (mínimo 3 parágrafos)
-4. A seção MEDITE deve ter reflexões profundas e perguntas para meditação
-5. A seção RESPONDA deve ter EXATAMENTE 5 questões variadas
-6. Use versículos bíblicos relevantes ao tema
-7. O título do evento deve ser criativo e refletir o tema
-8. As lições devem formar uma progressão lógica do tema
+
+ESTRUTURA DA SEÇÃO ESTUDE (3 TELAS):
+- TÓPICO 1: Primeiro ponto de aprendizado com pelo menos 2 parágrafos
+- TÓPICO 2: Segundo ponto de aprendizado complementar com pelo menos 2 parágrafos
+- CONCLUSÃO: Uma síntese conectando os 2 tópicos com reflexão final
+* Separe claramente cada tópico com <h3> tags para que cada tela mostre uma parte
+
+ESTRUTURA DA SEÇÃO MEDITE (2 TELAS):
+- MEDITAÇÃO: Uma reflexão profunda sobre o versículo estudado. Inclua questões contemplativas.
+- APLICAÇÃO: Como o jovem presbitério pode aplicar esse ensinamento na vida diária, em suas relações e fé.
+* Separe com <hr /> entre Meditação e Aplicação
+
+ESTRUTURA DA SEÇÃO RESPONDA:
+- EXATAMENTE 5 questões variadas (múltipla escolha, verdadeiro/falso, completar)
+- Cada questão com explicação clara
+
+3. Use versículos bíblicos relevantes ao tema
+4. O título do evento deve ser criativo e refletir o tema
+5. As lições devem formar uma progressão lógica do tema
 
 Formato JSON OBRIGATÓRIO:
 {
@@ -2206,15 +2224,14 @@ Formato JSON OBRIGATÓRIO:
     {
       "dayNumber": 1,
       "title": "Título da Lição 1",
-      "content": "<h2>Estude</h2><p>Conteúdo HTML rico da lição com pelo menos 3 parágrafos...</p><h2>Medite</h2><p>Reflexões e perguntas para meditação pessoal...</p>",
+      "content": "<h2>Estude</h2><h3>Tópico 1: [Nome do Primeiro Ponto]</h3><p>Primeiro parágrafo explicando o tópico 1...</p><p>Segundo parágrafo complementando o tópico 1...</p><h3>Tópico 2: [Nome do Segundo Ponto]</h3><p>Primeiro parágrafo explicando o tópico 2...</p><p>Segundo parágrafo complementando o tópico 2...</p><h3>Conclusão</h3><p>Síntese conectando os dois tópicos e reflexão final...</p><h2>Medite</h2><p>Reflexão profunda sobre o versículo e tema. O que você sente ao ler essas palavras? Como o Espírito Santo fala ao seu coração?</p><hr /><p>APLICAÇÃO: Como você pode viver esse ensinamento hoje? Que mudança prática você fará em sua vida a partir do que aprendeu?</p>",
       "verseReference": "João 3:16",
-      "verseText": "Porque Deus amou o mundo de tal maneira...",
-      "meditationContent": "Reflexões profundas sobre o texto estudado. Perguntas para autoavaliação e aplicação prática na vida diária.",
+      "verseText": "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.",
       "questions": [
         {
           "id": "q1",
           "type": "multiple_choice",
-          "question": "Pergunta sobre o conteúdo?",
+          "question": "Pergunta sobre o tópico 1?",
           "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
           "correctAnswer": 0,
           "explanation": "Explicação da resposta correta"
@@ -2222,15 +2239,15 @@ Formato JSON OBRIGATÓRIO:
         {
           "id": "q2",
           "type": "true_false",
-          "question": "Afirmação para verificar se é verdadeira ou falsa?",
+          "question": "Afirmação sobre o tópico 2 para verificar verdadeira ou falsa?",
           "correctAnswer": true,
           "explanation": "Explicação"
         },
         {
           "id": "q3",
           "type": "fill_blank",
-          "question": "Complete: O versículo diz que Deus amou o ____.",
-          "correctAnswer": "mundo",
+          "question": "Complete: ______ é essencial para crescimento espiritual.",
+          "correctAnswer": "A meditação",
           "explanation": "Explicação"
         }
       ],
@@ -2239,7 +2256,12 @@ Formato JSON OBRIGATÓRIO:
   ]
 }
 
-Gere TODAS as 5 lições completas com as 3 seções cada.`;
+ESTRUTURA RESUMIDA DE CADA LIÇÃO:
+- ESTUDE: 3 telas (2 tópicos + 1 conclusão) separadas por <h3> tags
+- MEDITE: 2 telas (Meditação + Aplicação) separadas por <hr />
+- RESPONDA: 5 questões com explicações
+
+Gere TODAS as 5 lições completas com ESSA ESTRUTURA EXATA.`;
 
   // If specific key is provided, try only that key first
   const keysToTry = keyNumber ? [parseInt(keyNumber)] : [1, 2, 3, 4, 5];

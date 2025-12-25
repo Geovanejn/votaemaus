@@ -6348,7 +6348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar novo devocional (admin/espiritualidade)
   app.post("/api/espiritualidade/devotionals", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, author, isPublished, isFeatured, scheduledAt } = req.body;
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, isPublished, isFeatured, scheduledAt } = req.body;
       
       if (!title || !verse || !verseReference || !content) {
         return res.status(400).json({ message: "Titulo, versiculo, referencia e conteudo sao obrigatorios" });
@@ -6363,6 +6363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary,
         prayer,
         imageUrl,
+        mobileCropData: mobileCropData ? JSON.stringify(mobileCropData) : null,
         author: author || req.user?.fullName || "Espiritualidade UMP",
         isPublished: isPublished || false,
         isFeatured: isFeatured || false,
@@ -6387,7 +6388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/espiritualidade/devotionals/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, author, isPublished, isFeatured, scheduledAt } = req.body;
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, isPublished, isFeatured, scheduledAt } = req.body;
       
       const devotional = await storage.updateDevotional(id, {
         title,
@@ -6398,6 +6399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary,
         prayer,
         imageUrl,
+        mobileCropData: mobileCropData ? JSON.stringify(mobileCropData) : null,
         author,
         isPublished,
         isFeatured,

@@ -372,6 +372,15 @@ export type ElectionAuditData = {
 
 // ==================== DEVOCIONAIS ====================
 
+export const mobileCropDataSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  width: z.number().min(0).max(100),
+  height: z.number().min(0).max(100),
+});
+
+export type MobileCropData = z.infer<typeof mobileCropDataSchema>;
+
 export const devotionals = pgTable("devotionals", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -382,6 +391,7 @@ export const devotionals = pgTable("devotionals", {
   summary: text("summary"),
   prayer: text("prayer"),
   imageUrl: text("image_url"),
+  mobileCropData: text("mobile_crop_data"),
   author: text("author"),
   publishedAt: timestamp("published_at").notNull().defaultNow(),
   scheduledAt: timestamp("scheduled_at"),

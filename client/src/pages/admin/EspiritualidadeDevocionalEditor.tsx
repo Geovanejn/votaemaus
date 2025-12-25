@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,11 +12,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, Save, Eye, Star } from "lucide-react";
+import { ArrowLeft, Save, Eye, Star, Smartphone, Check } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import type { Devotional } from "@shared/schema";
+import MobileCropSelector from "@/components/MobileCropSelector";
+import type { Devotional, MobileCropData } from "@shared/schema";
+
+const mobileCropDataSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  width: z.number().min(0).max(100),
+  height: z.number().min(0).max(100),
+}).nullable();
 
 const formSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -26,6 +35,7 @@ const formSchema = z.object({
   summary: z.string().optional(),
   prayer: z.string().optional(),
   imageUrl: z.string().optional(),
+  mobileCropData: mobileCropDataSchema.optional(),
   author: z.string().optional(),
   isPublished: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
@@ -45,6 +55,17 @@ export default function EspiritualidadeDevocionalEditor() {
     enabled: !!devotionalId,
   });
 
+  const [showMobileCrop, setShowMobileCrop] = useState(false);
+
+  const parseMobileCropData = (data: string | null | undefined): MobileCropData | null => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,6 +77,7 @@ export default function EspiritualidadeDevocionalEditor() {
       summary: "",
       prayer: "",
       imageUrl: "",
+      mobileCropData: null,
       author: "",
       isPublished: false,
       isFeatured: false,
@@ -69,6 +91,7 @@ export default function EspiritualidadeDevocionalEditor() {
       summary: devotional.summary || "",
       prayer: devotional.prayer || "",
       imageUrl: devotional.imageUrl || "",
+      mobileCropData: parseMobileCropData(devotional.mobileCropData),
       author: devotional.author || "",
       isPublished: devotional.isPublished || false,
       isFeatured: devotional.isFeatured || false,
@@ -335,7 +358,10 @@ export default function EspiritualidadeDevocionalEditor() {
                         <FormControl>
                           <ImageUpload
                             value={field.value}
-                            onChange={field.onChange}
+                            onChange={(url) => {
+                              field.onChange(url);
+                              form.setValue("mobileCropData", null);
+                            }}
                             aspectRatio={IMAGE_UPLOAD_CONFIGS.devotional.aspectRatio}
                             placeholder={IMAGE_UPLOAD_CONFIGS.devotional.placeholder}
                           />
@@ -346,6 +372,53 @@ export default function EspiritualidadeDevocionalEditor() {
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+
+                  {form.watch("imageUrl") && (
+                    <FormField
+                      control={form.control}
+                      name="mobileCropData"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center gap-2">
+                            <FormLabel>Recorte Mobile</FormLabel>
+                            {field.value && (
+                              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                <Check className="h-3 w-3" />
+                                Configurado
+                              </span>
+                            )}
+                          </div>
+                          <FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowMobileCrop(true)}
+                              className="gap-2"
+                              data-testid="button-configure-mobile-crop"
+                            >
+                              <Smartphone className="h-4 w-4" />
+                              {field.value ? "Editar Recorte Mobile" : "Configurar Recorte Mobile"}
+                            </Button>
+                          </FormControl>
+                          <FormDescription>
+                            Selecione a area da imagem que sera exibida em dispositivos moveis
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  <MobileCropSelector
+                    open={showMobileCrop}
+                    onOpenChange={setShowMobileCrop}
+                    imageSrc={form.watch("imageUrl") || ""}
+                    cropData={form.watch("mobileCropData")}
+                    onCropComplete={(data) => {
+                      form.setValue("mobileCropData", data);
+                      setShowMobileCrop(false);
+                    }}
                   />
 
                   <FormField

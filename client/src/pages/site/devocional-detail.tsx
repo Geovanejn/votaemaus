@@ -35,6 +35,13 @@ import DOMPurify from "dompurify";
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
+interface MobileCropData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface DevotionalData {
   id: number;
   title: string;
@@ -44,9 +51,28 @@ interface DevotionalData {
   contentHtml?: string;
   summary?: string;
   imageUrl?: string;
+  mobileCropData?: string | null;
   author?: string;
   publishedAt?: string;
   isRead?: boolean;
+}
+
+function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+function getMobileBackgroundStyle(cropData: MobileCropData | null): React.CSSProperties {
+  if (!cropData) {
+    return { backgroundPosition: 'center' };
+  }
+  const posX = cropData.x + (cropData.width / 2);
+  const posY = cropData.y + (cropData.height / 2);
+  return { backgroundPosition: `${posX}% ${posY}%` };
 }
 
 function formatDate(dateStr?: string): string {
@@ -323,6 +349,8 @@ export default function DevocionalDetailPage() {
   const imageUrl = devotional.imageUrl && !devotional.imageUrl.includes('placeholder') 
     ? devotional.imageUrl 
     : defaultDevImg;
+  const mobileCropData = parseMobileCropData(devotional.mobileCropData);
+  const mobileBackgroundStyle = getMobileBackgroundStyle(mobileCropData);
 
   const hasHtmlContent = devotional.contentHtml && devotional.contentHtml.trim().length > 0;
   const contentText = parseTipTapContent(devotional.content) || parseTipTapContent(devotional.summary) || '';
@@ -332,7 +360,18 @@ export default function DevocionalDetailPage() {
       <section className="relative overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${imageUrl})` }}
+          style={{ 
+            backgroundImage: `url(${imageUrl})`,
+            ...(mobileCropData ? {} : {})
+          }}
+        />
+        <div 
+          className="absolute inset-0 md:hidden"
+          style={mobileCropData ? { 
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: 'cover',
+            ...mobileBackgroundStyle
+          } : undefined}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/50" />
         <div className="relative text-white py-12">

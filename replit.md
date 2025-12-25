@@ -41,6 +41,7 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 ### Feature Specifications
 - **Public Site**: Home banner with highlighted Instagram posts, daily devotionals, event agenda, "Who We Are" page, and directory.
 - **Member Area**: User profiles, push notifications, event participation, and access to the DeoGlory study system.
+- **Devotional Mobile Crop**: Allows admin to select a specific area of devotional cover images optimized for mobile display. Uses `mobileCropData` field (JSON) storing x, y, width, height as percentages (0-100). The frontend applies responsive CSS `background-position` for mobile viewports when crop data exists.
 - **Admin Panel**:
     - **General**: User and event management, devotional creation, directory management.
     - **Marketing**: Instagram post synchronization and highlighting, location input for addresses.

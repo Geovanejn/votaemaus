@@ -19,6 +19,7 @@ import {
   Menu,
   ArrowLeft,
   Home,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +32,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin/study" },
-  { id: "licoes", label: "Gerenciar Licoes", icon: BookOpen, href: "/admin/study/licoes" },
+  { id: "licoes", label: "Gerenciar Lições", icon: BookOpen, href: "/admin/study/licoes" },
   { id: "estudos", label: "Gerar Estudos", icon: Lightbulb, href: "/admin/study/estudos" },
-  { id: "usuarios", label: "Usuarios", icon: Users, href: "/admin/study/usuarios" },
+  { id: "eventos", label: "Eventos Especiais", icon: Sparkles, href: "/admin/study/eventos" },
+  { id: "usuarios", label: "Usuários", icon: Users, href: "/admin/study/usuarios" },
   { id: "revistas", label: "Revistas", icon: FileText, href: "/admin/study/revistas" },
-  { id: "relatorios", label: "Relatorios", icon: GraduationCap, href: "/admin/study/relatorios" },
-  { id: "configuracoes", label: "Configuracoes", icon: Settings, href: "/admin/study/configuracoes" },
+  { id: "relatorios", label: "Relatórios", icon: GraduationCap, href: "/admin/study/relatorios" },
+  { id: "configuracoes", label: "Configurações", icon: Settings, href: "/admin/study/configuracoes" },
 ];
 
 interface DeoGloryAdminLayoutProps {

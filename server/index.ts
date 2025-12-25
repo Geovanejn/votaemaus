@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler } from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler } from "./scheduler";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
 import cors from "cors";
@@ -220,6 +220,7 @@ app.use((req, res, next) => {
       initInstagramScheduler();
       initDailyMissionsScheduler();
       initWeeklyGoalScheduler();
+      initEventScheduler();
       log("Database and schedulers initialized successfully");
     } catch (error: any) {
       console.error("[FATAL] Failed to initialize:", error.message);

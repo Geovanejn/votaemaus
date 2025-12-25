@@ -432,6 +432,9 @@ export interface IStorage {
   getUserCards(userId: number): Promise<UserCard[]>;
   getUserCard(userId: number, cardId: number): Promise<UserCard | null>;
   awardUserCard(data: InsertUserCard): Promise<UserCard>;
+  
+  // Event Completion Methods
+  getUsersWhoCompletedEvent(eventId: number, totalLessons: number): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5973,6 +5976,28 @@ export class DatabaseStorage implements IStorage {
       return existing!;
     }
     return card;
+  }
+  
+  async getUsersWhoCompletedEvent(eventId: number, totalLessons: number): Promise<number[]> {
+    const lessons = await this.getStudyEventLessons(eventId);
+    const lessonIds = lessons.map(l => l.id);
+    
+    if (lessonIds.length === 0 || totalLessons === 0) return [];
+    
+    const progress = await db.select({
+      userId: schema.userEventProgress.userId,
+      completedLessons: sql<number[]>`array_agg(DISTINCT ${schema.userEventProgress.lessonId}) FILTER (WHERE ${schema.userEventProgress.completed} = true)`
+    })
+      .from(schema.userEventProgress)
+      .where(inArray(schema.userEventProgress.lessonId, lessonIds))
+      .groupBy(schema.userEventProgress.userId);
+    
+    return progress
+      .filter(p => {
+        const completedIds = p.completedLessons || [];
+        return lessonIds.every(id => completedIds.includes(id));
+      })
+      .map(p => p.userId);
   }
 }
 

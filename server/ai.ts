@@ -2141,6 +2141,127 @@ Formato JSON:
   return FALLBACK_VERSE_MEMORY[randomIndex];
 }
 
+export interface GeneratedEventLesson {
+  dayNumber: number;
+  title: string;
+  content: string;
+  verseReference: string;
+  verseText: string;
+  questions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: number;
+    explanation: string;
+  }>;
+  xpReward: number;
+}
+
+export interface GeneratedEventContent {
+  title: string;
+  description: string;
+  lessons: GeneratedEventLesson[];
+}
+
+export async function generateEventContentFromText(
+  text: string,
+  theme: string,
+  month: string
+): Promise<GeneratedEventContent> {
+  if (!isAIConfigured()) {
+    throw new Error("IA não configurada. Configure GEMINI_API_KEY ou OPENAI_API_KEY.");
+  }
+
+  if (!isQuotaLikelyAvailable()) {
+    throw new Error("Quota de IA temporariamente esgotada. Tente novamente em alguns minutos.");
+  }
+
+  const systemPrompt = `Você é um educador cristão especializado em criar conteúdo de estudo bíblico para jovens presbiterianos.
+Crie conteúdo envolvente, profundo teologicamente mas acessível para jovens.`;
+
+  const userPrompt = `Com base no texto/tema fornecido, crie um evento de estudo especial com EXATAMENTE 5 lições.
+
+TEMA: ${theme}
+MÊS DO EVENTO: ${month}
+CONTEÚDO BASE: ${text}
+
+REGRAS IMPORTANTES:
+1. Gere EXATAMENTE 5 lições, cada uma para um dia diferente
+2. Cada lição deve ter conteúdo bíblico rico e aplicável
+3. Cada lição deve ter 4 perguntas de quiz (múltipla escolha)
+4. Use versículos bíblicos relevantes ao tema
+5. O título do evento deve ser criativo e refletir o tema
+6. As lições devem formar uma progressão lógica do tema
+
+Formato JSON OBRIGATÓRIO:
+{
+  "title": "Título criativo do evento",
+  "description": "Descrição em 2-3 frases do que os participantes vão aprender",
+  "lessons": [
+    {
+      "dayNumber": 1,
+      "title": "Título da Lição 1",
+      "content": "<p>Conteúdo HTML rico da lição com pelo menos 3 parágrafos</p>",
+      "verseReference": "João 3:16",
+      "verseText": "Porque Deus amou o mundo de tal maneira...",
+      "questions": [
+        {
+          "id": "q1",
+          "question": "Pergunta sobre o conteúdo?",
+          "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
+          "correctAnswer": 0,
+          "explanation": "Explicação da resposta correta"
+        }
+      ],
+      "xpReward": 50
+    }
+  ]
+}
+
+Gere TODAS as 5 lições completas.`;
+
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      const responseText = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as GeneratedEventContent;
+        
+        if (parsed.title && parsed.description && parsed.lessons && parsed.lessons.length === 5) {
+          console.log(`[Event Generation] Successfully generated with AI (key ${keyNum})`);
+          
+          parsed.lessons = parsed.lessons.map((lesson, idx) => ({
+            ...lesson,
+            dayNumber: idx + 1,
+            xpReward: lesson.xpReward || 50,
+            questions: (lesson.questions || []).map((q, qIdx) => ({
+              ...q,
+              id: q.id || `q${qIdx + 1}`,
+              correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
+              explanation: q.explanation || "Resposta correta!"
+            }))
+          }));
+          
+          return parsed;
+        }
+      }
+      
+      console.warn(`[Event Generation] Key ${keyNum} returned invalid format, trying next...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Event Generation] Key ${keyNum} quota exceeded, trying next...`);
+        continue;
+      } else {
+        console.error(`[Event Generation] Key ${keyNum} error:`, error?.message);
+      }
+    }
+  }
+  
+  markQuotaExhausted();
+  throw new Error("Não foi possível gerar o conteúdo. Todas as chaves de IA estão esgotadas.");
+}
+
 export async function generateTimedQuizWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }>> {
   if (isAIConfigured() && isQuotaLikelyAvailable()) {
     const dateStr = new Date().toISOString().split('T')[0];

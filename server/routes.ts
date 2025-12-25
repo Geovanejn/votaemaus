@@ -36,7 +36,8 @@ import {
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail } from "./email";
 import { 
-  generateStudyContentFromText, 
+  generateStudyContentFromText,
+  generateEventContentFromText, 
   generateStudyContentFromPDF,
   generateExercisesFromTopic, 
   generateReflectionQuestions,
@@ -6942,6 +6943,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete event lesson error:", error);
       res.status(500).json({ message: "Erro ao remover licao" });
+    }
+  });
+
+  // Gerar evento com IA (admin)
+  app.post("/api/admin/events/ai-generate", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { text, theme, year, month, startDay, endDay } = req.body;
+      
+      if (!text || !theme || !year || !month || !startDay || !endDay) {
+        return res.status(400).json({ message: "Campos obrigatórios: text, theme, year, month, startDay, endDay" });
+      }
+
+      const startDate = new Date(year, month - 1, startDay, 0, 0, 0);
+      const endDate = new Date(year, month - 1, endDay, 23, 59, 59);
+      
+      if (endDate <= startDate) {
+        return res.status(400).json({ message: "Data de término deve ser após a data de início" });
+      }
+
+      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
+                          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      const monthName = monthNames[month - 1];
+
+      console.log(`[Admin] Gerando evento com IA - Tema: ${theme}, Mês: ${monthName}`);
+      
+      const generatedContent = await generateEventContentFromText(text, theme, monthName);
+      
+      const event = await storage.createStudyEvent({
+        title: generatedContent.title,
+        description: generatedContent.description,
+        theme: theme.toLowerCase().replace(/\s+/g, '-'),
+        startDate: startDate,
+        endDate: endDate,
+        status: "draft",
+        lessonsCount: 5,
+        xpMultiplier: 1,
+        createdBy: req.user!.id,
+      });
+      
+      for (const lessonData of generatedContent.lessons) {
+        await storage.createStudyEventLesson({
+          eventId: event.id,
+          dayNumber: lessonData.dayNumber,
+          title: lessonData.title,
+          content: lessonData.content,
+          verseReference: lessonData.verseReference,
+          verseText: lessonData.verseText,
+          questions: lessonData.questions,
+          xpReward: lessonData.xpReward,
+          status: "draft",
+        });
+      }
+
+      await logAuditAction(req.user?.id, "create", "study_event", event.id, `Evento gerado por IA: ${event.title}`, req);
+      
+      res.status(201).json({
+        event,
+        lessonsCreated: generatedContent.lessons.length,
+        message: `Evento "${event.title}" criado com ${generatedContent.lessons.length} lições`
+      });
+    } catch (error: any) {
+      console.error("AI event generation error:", error);
+      res.status(500).json({ message: error.message || "Erro ao gerar evento com IA" });
     }
   });
 

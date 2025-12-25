@@ -584,4 +584,122 @@ export function initWeeklyGoalScheduler(): void {
   console.log('[Weekly Goal Scheduler] Initialized - will run every Sunday at 23:59 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards };
+async function processEventLessonsRelease(): Promise<void> {
+  console.log('[Event Scheduler] Checking for lessons to release at 00:00...');
+  
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const allEvents = await storage.getAllStudyEvents();
+    
+    for (const event of allEvents) {
+      if (event.status !== 'published') continue;
+      
+      const startDate = new Date(event.startDate);
+      const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endDate = new Date(event.endDate);
+      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      
+      if (today < startDateOnly || today > endDateOnly) continue;
+      
+      const daysSinceStart = Math.floor((today.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24));
+      const currentDay = daysSinceStart + 1;
+      
+      const lessons = await storage.getStudyEventLessons(event.id);
+      
+      for (const lesson of lessons) {
+        if (lesson.dayNumber <= currentDay && lesson.status !== 'published') {
+          await storage.updateStudyEventLesson(lesson.id, { status: 'published' });
+          console.log(`[Event Scheduler] Released lesson day ${lesson.dayNumber} for event "${event.title}"`);
+        }
+      }
+    }
+    
+    console.log('[Event Scheduler] Lesson release check completed');
+  } catch (error) {
+    console.error('[Event Scheduler] Error releasing lessons:', error);
+  }
+}
+
+async function processEventCardsDistribution(): Promise<void> {
+  console.log('[Event Scheduler] Checking for cards to distribute at 23:59...');
+  
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const allEvents = await storage.getAllStudyEvents();
+    
+    for (const event of allEvents) {
+      if (event.status === 'completed' || event.status === 'draft') continue;
+      
+      const endDate = new Date(event.endDate);
+      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      
+      if (endDateOnly.getTime() !== today.getTime()) continue;
+      
+      console.log(`[Event Scheduler] Processing card distribution for event "${event.title}"`);
+      
+      if (!event.cardId) {
+        console.log(`[Event Scheduler] Event "${event.title}" has no associated card, skipping`);
+        await storage.updateStudyEvent(event.id, { status: 'completed' });
+        continue;
+      }
+      
+      const lessons = await storage.getStudyEventLessons(event.id);
+      const totalLessons = lessons.length;
+      
+      if (totalLessons === 0) {
+        await storage.updateStudyEvent(event.id, { status: 'completed' });
+        continue;
+      }
+      
+      const completedUsers = await storage.getUsersWhoCompletedEvent(event.id, totalLessons);
+      
+      for (const userId of completedUsers) {
+        const progress = await storage.getUserEventProgress(userId, event.id);
+        const completedProgress = progress.filter(p => p.completed);
+        
+        const totalScore = completedProgress.reduce((sum, p) => sum + (p.score || 0), 0);
+        const avgScore = completedProgress.length > 0 ? totalScore / completedProgress.length : 0;
+        
+        let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
+        if (avgScore === 100) {
+          rarity = 'legendary';
+        } else if (avgScore >= 80) {
+          rarity = 'epic';
+        } else if (avgScore >= 60) {
+          rarity = 'rare';
+        }
+        
+        const existingCard = await storage.getUserCard(userId, event.cardId);
+        if (!existingCard) {
+          await storage.awardUserCard({ userId, cardId: event.cardId, rarity });
+          console.log(`[Event Scheduler] Awarded ${rarity} card (avg score: ${avgScore.toFixed(1)}%) to user ${userId} for event "${event.title}"`);
+        }
+      }
+      
+      await storage.updateStudyEvent(event.id, { status: 'completed' });
+      console.log(`[Event Scheduler] Event "${event.title}" marked as completed`);
+    }
+    
+    console.log('[Event Scheduler] Card distribution check completed');
+  } catch (error) {
+    console.error('[Event Scheduler] Error distributing cards:', error);
+  }
+}
+
+export function initEventScheduler(): void {
+  cron.schedule('0 0 * * *', processEventLessonsRelease, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)');
+  
+  cron.schedule('59 23 * * *', processEventCardsDistribution, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution };

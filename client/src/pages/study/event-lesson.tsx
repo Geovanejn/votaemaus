@@ -35,6 +35,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EstudeScreen } from "@/components/study/EstudeScreen";
+import { MediteScreen } from "@/components/study/MediteScreen";
+import { RespondaScreen } from "@/components/study/RespondaScreen";
 
 interface EventLesson {
   id: number;
@@ -265,9 +268,6 @@ export default function EventLessonPage() {
     localStorage.setItem(`lesson_${eventId}_${dayNumber}_mediteIndex`, mediteScreenIndex.toString());
   }, [mediteScreenIndex, eventId, dayNumber]);
 
-  const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
-  const [fillBlankAnswer, setFillBlankAnswer] = useState("");
-  const [showFeedback, setShowFeedback] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [accumulatedXp, setAccumulatedXp] = useState(0);
   const [showStageComplete, setShowStageComplete] = useState(false);
@@ -318,7 +318,6 @@ export default function EventLessonPage() {
   }, [lesson?.content]);
 
   const questions = lesson?.questions || [];
-  const currentQuestion = questions[currentQuestionIndex];
   const baseXp = lesson?.xpReward || 50;
   const xpPerStage = Math.floor(baseXp / 3);
 
@@ -328,11 +327,8 @@ export default function EventLessonPage() {
     const titles = (estudeContent.match(/<h3[^>]*>(.*?)<\/h3>/gi) || []).map(t => t.replace(/<[^>]*>/g, ''));
     
     const sections: any[] = [];
-    // Topic 1
     sections.push({ type: "topic", title: titles[0] || "Tópico 1", content: estudeParts[0] || "" });
-    // Topic 2
     sections.push({ type: "topic", title: titles[1] || "Tópico 2", content: estudeParts[1] || "" });
-    // Conclusion
     sections.push({ type: "conclusion", title: "Conclusão", content: estudeParts[2] || "Conclusão do estudo." });
     
     return sections;
@@ -343,15 +339,13 @@ export default function EventLessonPage() {
     const mediteParts = mediteContent.split(/<hr\s*\/?>/i).filter(Boolean);
     
     const sections: any[] = [];
-    // Meditation
     sections.push({ type: "meditation", title: "Meditação", content: mediteParts[0] || mediteContent });
-    // Application
     sections.push({ type: "reflection", title: "Aplicação", content: mediteParts[1] || "Como você pode aplicar isso hoje?" });
     
     return sections;
   }, [contentSections.medite]);
 
-  const handleEstudeContinue = () => {
+  const handleEstudeComplete = () => {
     playSound("modal");
     const xp = xpPerStage;
     setAccumulatedXp(prev => prev + xp);
@@ -363,7 +357,7 @@ export default function EventLessonPage() {
     setShowStageComplete(true);
   };
 
-  const handleMediteContinue = () => {
+  const handleMediteComplete = () => {
     playSound("modal");
     const xp = xpPerStage;
     setAccumulatedXp(prev => prev + xp);
@@ -375,73 +369,24 @@ export default function EventLessonPage() {
     setShowStageComplete(true);
   };
 
+  const handleEstudeIndexChange = (index: number) => {
+    setEstudeScreenIndex(index);
+  };
+
+  const handleMediteIndexChange = (index: number) => {
+    setMediteScreenIndex(index);
+  };
+
+  const handleQuestionIndexChange = (index: number) => {
+    setCurrentQuestionIndex(index);
+  };
+
   const handleStageModalClose = () => {
     setShowStageComplete(false);
     if (stageCompleteData?.nextStage) {
       setCurrentStage(stageCompleteData.nextStage);
     } else {
       setLocation(`/study/events/${eventId}`);
-    }
-  };
-
-  const checkAnswer = (question: Question, answer: string | number | boolean): boolean => {
-    if (question.type === "true_false") {
-      return answer === question.correctAnswer;
-    } else if (question.type === "fill_blank") {
-      const correct = String(question.correctAnswer).toLowerCase().trim();
-      const given = String(answer).toLowerCase().trim();
-      return correct === given;
-    } else {
-      return answer === question.correctAnswer;
-    }
-  };
-
-  const handleAnswerSelect = (answer: string | number | boolean) => {
-    if (showFeedback) return;
-    setSelectedAnswer(answer);
-    setShowFeedback(true);
-    
-    if (checkAnswer(currentQuestion, answer)) {
-      setCorrectAnswers(prev => prev + 1);
-    }
-  };
-
-  const handleFillBlankSubmit = () => {
-    if (showFeedback || !fillBlankAnswer.trim()) return;
-    handleAnswerSelect(fillBlankAnswer.trim());
-  };
-
-  const handleNextQuestion = () => {
-    setShowFeedback(false);
-    setSelectedAnswer(null);
-    setFillBlankAnswer("");
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      const total = questions.length;
-      const finalCorrect = correctAnswers;
-      const score = Math.round((finalCorrect / total) * 100);
-      const xp = xpPerStage + Math.floor((finalCorrect / total) * xpPerStage);
-      
-      setAccumulatedXp(prev => prev + xp);
-      setStageCompleteData({
-        xp,
-        stageType: "responda",
-        nextStage: null,
-        correctAnswers: finalCorrect,
-        totalQuestions: total
-      });
-      setShowStageComplete(true);
-
-      if (lessonId && !isCompleted) {
-        submitMutation.mutate({ 
-          correct: finalCorrect, 
-          total, 
-          score, 
-          lessonId 
-        });
-      }
     }
   };
 
@@ -474,11 +419,6 @@ export default function EventLessonPage() {
       </div>
     );
   }
-
-  const stageProgress = currentStage === "estude" ? 33 : currentStage === "medite" ? 66 : 100;
-  const questionProgress = questions.length > 0 
-    ? ((currentQuestionIndex + 1) / questions.length) * 100 
-    : 0;
 
   const stageLabels: Record<Stage, { label: string; icon: JSX.Element }> = {
     estude: { label: "Estude", icon: <BookOpen className="h-4 w-4" /> },
@@ -565,15 +505,10 @@ export default function EventLessonPage() {
               />
             ))}
           </div>
-          {currentStage === "responda" && questions.length > 0 && (
-            <p className="text-xs text-muted-foreground text-right">
-              Questao {currentQuestionIndex + 1}/{questions.length}
-            </p>
-          )}
         </div>
       </header>
 
-      <main className="flex-1 p-4 pb-24">
+      <main className="flex-1 relative">
         <AnimatePresence mode="wait">
           {currentStage === "estude" && (
             <motion.div
@@ -581,46 +516,16 @@ export default function EventLessonPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+              className="absolute inset-0 overflow-y-auto"
             >
-              {lesson.verseReference && (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-sm text-primary mb-1">
-                          {lesson.verseReference}
-                        </p>
-                        {lesson.verseText && (
-                          <p className="text-sm italic text-muted-foreground">
-                            "{lesson.verseText}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card>
-                <CardContent className="p-4">
-                  <div 
-                    className="prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: contentSections.estude }}
-                  />
-                </CardContent>
-              </Card>
-
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={handleEstudeContinue}
-                data-testid="button-estude-continue"
-              >
-                Continuar
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
+              <EstudeScreen
+                lessonTitle={lesson.title}
+                sections={estudeSections}
+                onComplete={handleEstudeComplete}
+                onClose={() => setLocation(`/study/events/${eventId}`)}
+                initialIndex={estudeScreenIndex}
+                onIndexChange={handleEstudeIndexChange}
+              />
             </motion.div>
           )}
 
@@ -630,240 +535,81 @@ export default function EventLessonPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+              className="absolute inset-0 overflow-y-auto"
             >
-              <Card className="border-pink-500/20 bg-pink-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Heart className="h-5 w-5 text-pink-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-sm text-pink-600 dark:text-pink-400 mb-2">
-                        Momento de Reflexão
-                      </p>
-                      <div 
-                        className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: contentSections.medite || "<p>Medite sobre o que você aprendeu na seção anterior. Ore e peça a Deus sabedoria para aplicar esses ensinamentos em sua vida.</p>" }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={handleMediteContinue}
-                data-testid="button-medite-continue"
-              >
-                Continuar
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
+              <MediteScreen
+                lessonTitle={lesson.title}
+                sections={mediteSections}
+                onComplete={handleMediteComplete}
+                onClose={() => setLocation(`/study/events/${eventId}`)}
+                initialIndex={mediteScreenIndex}
+                onIndexChange={handleMediteIndexChange}
+              />
             </motion.div>
           )}
 
-          {currentStage === "responda" && currentQuestion && (
+          {currentStage === "responda" && (
             <motion.div
-              key={`responda-${currentQuestionIndex}`}
+              key="responda"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+              className="absolute inset-0 overflow-y-auto"
             >
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-medium mb-4" data-testid={`text-question-${currentQuestionIndex}`}>
-                    {currentQuestion.question}
-                  </h3>
+              <RespondaScreen
+                lessonTitle={lesson.title}
+                questions={questions}
+                streak={0}
+                initialQuestionIndex={currentQuestionIndex}
+                onAnswer={(idx, ans, correct) => {
+                  if (correct) {
+                    setCorrectAnswers(prev => prev + 1);
+                    playSound("correct");
+                  } else {
+                    playSound("incorrect");
+                  }
+                }}
+                onComplete={(correct, total) => {
+                   const score = Math.round((correct / total) * 100);
+                   const xp = xpPerStage + Math.floor((correct / total) * xpPerStage);
+                   
+                   setAccumulatedXp(prev => prev + xp);
+                   setStageCompleteData({
+                     xp,
+                     stageType: "responda",
+                     nextStage: null,
+                     correctAnswers: correct,
+                     totalQuestions: total
+                   });
+                   setShowStageComplete(true);
+                   playSound("complete");
 
-                  {currentQuestion.type === "true_false" ? (
-                    <div className="space-y-3">
-                      {[
-                        { value: true, label: "Verdadeiro" },
-                        { value: false, label: "Falso" }
-                      ].map((option) => {
-                        const isSelected = selectedAnswer === option.value;
-                        const isCorrect = option.value === currentQuestion.correctAnswer;
-                        const showResult = showFeedback;
-
-                        return (
-                          <div
-                            key={option.label}
-                            className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors ${
-                              showResult
-                                ? isCorrect
-                                  ? "border-green-500 bg-green-500/10"
-                                  : isSelected
-                                    ? "border-red-500 bg-red-500/10"
-                                    : "border-border"
-                                : isSelected
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-primary/50"
-                            }`}
-                            onClick={() => handleAnswerSelect(option.value)}
-                            data-testid={`option-tf-${option.label.toLowerCase()}`}
-                          >
-                            <Checkbox checked={isSelected} />
-                            <span className="flex-1">{option.label}</span>
-                            {showResult && isCorrect && (
-                              <CheckCircle2 className="h-5 w-5 text-green-500" />
-                            )}
-                            {showResult && isSelected && !isCorrect && (
-                              <XCircle className="h-5 w-5 text-red-500" />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : currentQuestion.type === "fill_blank" ? (
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Input
-                          value={fillBlankAnswer}
-                          onChange={(e) => setFillBlankAnswer(e.target.value)}
-                          placeholder="Digite sua resposta..."
-                          disabled={showFeedback}
-                          className={showFeedback 
-                            ? checkAnswer(currentQuestion, fillBlankAnswer)
-                              ? "border-green-500"
-                              : "border-red-500"
-                            : ""
-                          }
-                          data-testid="input-fill-blank"
-                        />
-                        {!showFeedback && (
-                          <Button onClick={handleFillBlankSubmit} data-testid="button-submit-fill">
-                            Verificar
-                          </Button>
-                        )}
-                      </div>
-                      {showFeedback && (
-                        <div className={`p-3 rounded-md ${
-                          checkAnswer(currentQuestion, fillBlankAnswer)
-                            ? "bg-green-500/10 border border-green-500/30"
-                            : "bg-red-500/10 border border-red-500/30"
-                        }`}>
-                          <p className="text-sm">
-                            {checkAnswer(currentQuestion, fillBlankAnswer)
-                              ? "Correto!"
-                              : `Incorreto. A resposta correta e: ${currentQuestion.correctAnswer}`
-                            }
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <RadioGroup
-                      value={selectedAnswer?.toString()}
-                      className="space-y-3"
-                    >
-                      {(currentQuestion.options || []).map((option, idx) => {
-                        const isSelected = selectedAnswer === idx;
-                        const isCorrect = currentQuestion.correctAnswer === idx;
-                        const showResult = showFeedback;
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors ${
-                              showResult
-                                ? isCorrect
-                                  ? "border-green-500 bg-green-500/10"
-                                  : isSelected
-                                    ? "border-red-500 bg-red-500/10"
-                                    : "border-border"
-                                : isSelected
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-primary/50"
-                            }`}
-                            onClick={() => handleAnswerSelect(idx)}
-                            data-testid={`option-${currentQuestionIndex}-${idx}`}
-                          >
-                            <RadioGroupItem 
-                              value={idx.toString()} 
-                              id={`option-${idx}`}
-                              disabled={showFeedback}
-                            />
-                            <Label 
-                              htmlFor={`option-${idx}`} 
-                              className="flex-1 cursor-pointer"
-                            >
-                              {option}
-                            </Label>
-                            {showResult && isCorrect && (
-                              <CheckCircle2 className="h-5 w-5 text-green-500" />
-                            )}
-                            {showResult && isSelected && !isCorrect && (
-                              <XCircle className="h-5 w-5 text-red-500" />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </RadioGroup>
-                  )}
-
-                  {showFeedback && currentQuestion.explanation && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 p-3 bg-muted rounded-md"
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        {currentQuestion.explanation}
-                      </p>
-                    </motion.div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {showFeedback && (
-                <Button 
-                  className="w-full" 
-                  onClick={handleNextQuestion}
-                  data-testid="button-next-question"
-                >
-                  {currentQuestionIndex < questions.length - 1 ? (
-                    <>
-                      Proxima Pergunta
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </>
-                  ) : (
-                    "Ver Resultado"
-                  )}
-                </Button>
-              )}
-            </motion.div>
-          )}
-
-          {currentStage === "responda" && questions.length === 0 && (
-            <motion.div
-              key="no-questions"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-8"
-            >
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                Nao ha questões para esta licao.
-              </p>
-              <Button onClick={() => setLocation(`/study/events/${eventId}`)}>
-                Voltar ao Evento
-              </Button>
+                   if (lessonId && !isCompleted) {
+                     submitMutation.mutate({ 
+                       correct, 
+                       total, 
+                       score, 
+                       lessonId 
+                     });
+                   }
+                }}
+                onClose={() => setLocation(`/study/events/${eventId}`)}
+                onQuestionChange={handleQuestionIndexChange}
+              />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      {stageCompleteData && (
-        <StageCompleteModal
-          isOpen={showStageComplete}
-          onClose={handleStageModalClose}
-          xpEarned={stageCompleteData.xp}
-          stageType={stageCompleteData.stageType}
-          nextStage={stageCompleteData.nextStage}
-          correctAnswers={stageCompleteData.correctAnswers}
-          totalQuestions={stageCompleteData.totalQuestions}
-        />
-      )}
+      <StageCompleteModal
+        isOpen={showStageComplete}
+        onClose={handleStageModalClose}
+        xpEarned={stageCompleteData?.xp || 0}
+        stageType={stageCompleteData?.stageType || "estude"}
+        nextStage={stageCompleteData?.nextStage || null}
+        correctAnswers={stageCompleteData?.correctAnswers}
+        totalQuestions={stageCompleteData?.totalQuestions}
+      />
     </div>
   );
 }

@@ -109,7 +109,7 @@ export default function AdminEventosPage() {
     month: (new Date().getMonth() + 1).toString(),
     startDay: "1",
     endDay: "5",
-    keyNumber: "",
+    keyNumber: "auto",
   });
 
   const { data: events, isLoading } = useQuery<StudyEvent[]>({
@@ -126,7 +126,7 @@ export default function AdminEventosPage() {
         month: parseInt(data.month),
         startDay: parseInt(data.startDay),
         endDay: parseInt(data.endDay),
-        keyNumber: data.keyNumber || undefined,
+        keyNumber: data.keyNumber === "auto" ? undefined : data.keyNumber,
       });
     },
     onSuccess: async (response) => {
@@ -145,7 +145,7 @@ export default function AdminEventosPage() {
         month: (new Date().getMonth() + 1).toString(),
         startDay: "1",
         endDay: "5",
-        keyNumber: "",
+        keyNumber: "auto",
       });
     },
     onError: (error: Error) => {
@@ -469,7 +469,7 @@ export default function AdminEventosPage() {
                       <SelectValue placeholder="Automático (tenta todas)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Automático (tenta todas)</SelectItem>
+                      <SelectItem value="auto">Automático (tenta todas)</SelectItem>
                       <SelectItem value="1">Chave 1 (GEMINI_API_KEY_1)</SelectItem>
                       <SelectItem value="2">Chave 2 (GEMINI_API_KEY_2)</SelectItem>
                       <SelectItem value="3">Chave 3 (GEMINI_API_KEY_3)</SelectItem>

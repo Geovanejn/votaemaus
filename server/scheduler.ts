@@ -426,15 +426,25 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
     }
     
     // Import AI generation functions
-    const { generateDailyMissionsWithAI, generateQuizQuestionsWithAI, generateBibleFactWithAI } = await import('./ai');
+    const { 
+      generateDailyMissionsWithAI, 
+      generateQuizQuestionsWithAI, 
+      generateBibleFactWithAI,
+      generateBibleCharacterWithAI,
+      generateVerseMemoryWithAI,
+      generateTimedQuizWithAI
+    } = await import('./ai');
     
     // Generate all content (AI with fallback)
-    console.log('[Daily Missions Scheduler] Generating missions, quiz and facts...');
+    console.log('[Daily Missions Scheduler] Generating all mission content with AI...');
     
-    const [aiMissions, quizQuestions, bibleFact] = await Promise.all([
+    const [aiMissions, quizQuestions, bibleFact, bibleCharacter, verseMemory, timedQuizQuestions] = await Promise.all([
       generateDailyMissionsWithAI(),
       generateQuizQuestionsWithAI(10), // 10 questions for variety
-      generateBibleFactWithAI()
+      generateBibleFactWithAI(),
+      generateBibleCharacterWithAI(),
+      generateVerseMemoryWithAI(),
+      generateTimedQuizWithAI(5) // 5 quick questions for timed challenge
     ]);
     
     await storage.createDailyMissionContent({
@@ -442,12 +452,18 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
       aiGeneratedMissions: JSON.stringify(aiMissions || []),
       quizQuestions: JSON.stringify(quizQuestions || []),
       bibleFact: JSON.stringify(bibleFact || {}),
+      bibleCharacter: JSON.stringify(bibleCharacter || {}),
+      verseMemory: JSON.stringify(verseMemory || {}),
+      timedQuizQuestions: JSON.stringify(timedQuizQuestions || []),
     });
     
     console.log(`[Daily Missions Scheduler] Generated content for ${today}:`);
-    console.log(`  - Missions: ${aiMissions?.length || 0}`);
+    console.log(`  - AI Missions: ${aiMissions?.length || 0}`);
     console.log(`  - Quiz questions: ${quizQuestions?.length || 0}`);
     console.log(`  - Bible fact: ${bibleFact?.fact ? 'Yes' : 'No'}`);
+    console.log(`  - Bible character: ${bibleCharacter?.name || 'No'}`);
+    console.log(`  - Verse memory: ${verseMemory?.reference || 'No'}`);
+    console.log(`  - Timed quiz: ${timedQuizQuestions?.length || 0} questions`);
   } catch (error) {
     console.error('[Daily Missions Scheduler] Error refreshing missions:', error);
   }

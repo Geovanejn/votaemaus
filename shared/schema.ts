@@ -1377,6 +1377,7 @@ export const dailyMissionContent = pgTable("daily_mission_content", {
   timedQuizQuestions: text("timed_quiz_questions"),
   quizQuestions: text("quiz_questions"),
   aiGeneratedMissions: text("ai_generated_missions"),
+  verseMemory: text("verse_memory"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

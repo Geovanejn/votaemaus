@@ -1993,3 +1993,202 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
     throw new Error(`Falha ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
   }
 }
+
+// ==================== FUNÇÕES DE GERAÇÃO PARA MISSÕES DIÁRIAS ====================
+
+// Fallback data for Bible Characters
+const FALLBACK_BIBLE_CHARACTERS = [
+  { name: "Moisés", description: "Líder que guiou Israel para fora do Egito", verse: "Êxodo 3:10", fact: "Moisés passou 40 anos no deserto antes de ser chamado por Deus" },
+  { name: "Davi", description: "Pastor que se tornou o maior rei de Israel", verse: "1 Samuel 16:13", fact: "Davi escreveu aproximadamente 73 dos 150 Salmos" },
+  { name: "Abraão", description: "Pai da fé e ancestral do povo de Israel", verse: "Gênesis 12:1-3", fact: "Abraão tinha 75 anos quando Deus o chamou para deixar sua terra" },
+  { name: "José", description: "Jovem vendido como escravo que se tornou governador do Egito", verse: "Gênesis 50:20", fact: "José interpretou os sonhos do Faraó sobre 7 anos de fartura e 7 de fome" },
+  { name: "Rute", description: "Moabita fiel que se tornou ancestral de Jesus", verse: "Rute 1:16", fact: "Rute é uma das quatro mulheres mencionadas na genealogia de Jesus" },
+  { name: "Daniel", description: "Profeta fiel que foi lançado na cova dos leões", verse: "Daniel 6:10", fact: "Daniel orava três vezes ao dia mesmo quando isso foi proibido" },
+  { name: "Ester", description: "Rainha corajosa que salvou seu povo", verse: "Ester 4:14", fact: "Ester jejuou por três dias antes de se apresentar ao rei" },
+  { name: "Pedro", description: "Pescador que se tornou líder dos apóstolos", verse: "Mateus 16:18", fact: "Pedro negou Jesus três vezes, mas foi restaurado após a ressurreição" },
+  { name: "Paulo", description: "Perseguidor que se tornou o maior missionário cristão", verse: "Filipenses 3:14", fact: "Paulo escreveu 13 das 27 cartas do Novo Testamento" },
+  { name: "Maria Madalena", description: "Discípula fiel e primeira testemunha da ressurreição", verse: "João 20:16-18", fact: "Maria Madalena foi a primeira pessoa a ver Jesus ressuscitado" },
+];
+
+// Fallback data for Verse Memory
+const FALLBACK_VERSE_MEMORY = [
+  { reference: "João 3:16", fullVerse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", blanks: ["Deus", "Filho", "crê", "vida"] },
+  { reference: "Salmos 23:1", fullVerse: "O Senhor é o meu pastor; nada me faltará.", blanks: ["Senhor", "pastor", "nada", "faltará"] },
+  { reference: "Filipenses 4:13", fullVerse: "Posso todas as coisas naquele que me fortalece.", blanks: ["todas", "coisas", "fortalece"] },
+  { reference: "Provérbios 3:5", fullVerse: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.", blanks: ["Confia", "Senhor", "coração", "entendimento"] },
+  { reference: "Romanos 8:28", fullVerse: "Sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus.", blanks: ["todas", "cooperam", "bem", "amam"] },
+  { reference: "Isaías 41:10", fullVerse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.", blanks: ["temas", "contigo", "assombres", "Deus"] },
+  { reference: "Mateus 6:33", fullVerse: "Buscai primeiro o Reino de Deus e a sua justiça, e todas estas coisas vos serão acrescentadas.", blanks: ["Buscai", "Reino", "justiça", "acrescentadas"] },
+  { reference: "Jeremias 29:11", fullVerse: "Porque eu bem sei os pensamentos que tenho a vosso respeito, diz o Senhor; pensamentos de paz e não de mal, para vos dar o fim que esperais.", blanks: ["pensamentos", "paz", "mal", "esperais"] },
+];
+
+// Fallback data for Timed Quiz
+const FALLBACK_TIMED_QUIZ = [
+  { question: "Quantos livros tem a Bíblia?", options: ["66", "73", "39", "27"], correctIndex: 0 },
+  { question: "Quem construiu a arca?", options: ["Noé", "Moisés", "Abraão", "Davi"], correctIndex: 0 },
+  { question: "Em qual cidade Jesus nasceu?", options: ["Belém", "Nazaré", "Jerusalém", "Cafarnaum"], correctIndex: 0 },
+  { question: "Quantos apóstolos Jesus escolheu?", options: ["12", "7", "10", "14"], correctIndex: 0 },
+  { question: "Quem batizou Jesus?", options: ["João Batista", "Pedro", "Paulo", "Tiago"], correctIndex: 0 },
+  { question: "Qual é o maior mandamento?", options: ["Amar a Deus", "Não matar", "Honrar pai e mãe", "Não roubar"], correctIndex: 0 },
+  { question: "Quantos dias Deus usou para criar o mundo?", options: ["6", "7", "5", "3"], correctIndex: 0 },
+  { question: "Quem foi o primeiro rei de Israel?", options: ["Saul", "Davi", "Salomão", "Samuel"], correctIndex: 0 },
+  { question: "Qual era a profissão de Pedro?", options: ["Pescador", "Carpinteiro", "Cobrador de impostos", "Pastor"], correctIndex: 0 },
+  { question: "Quem escreveu a maioria dos Salmos?", options: ["Davi", "Salomão", "Moisés", "Asafe"], correctIndex: 0 },
+];
+
+export async function generateBibleCharacterWithAI(): Promise<{ name: string; description: string; verse: string; fact: string }> {
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const randomSeed = Math.floor(Math.random() * 1000);
+    
+    const systemPrompt = "Você é um estudioso bíblico especializado em personagens da Bíblia.";
+    const userPrompt = `Gere informações sobre UM personagem bíblico para estudo diário.
+
+REGRAS:
+- Escolha um personagem DIFERENTE a cada dia (use seed ${randomSeed}, data: ${dateStr})
+- Inclua personagens menos conhecidos às vezes (não apenas os famosos)
+- A descrição deve ser breve (1-2 frases)
+- O versículo deve ser a referência mais importante sobre esse personagem
+- O fato curioso deve ser algo interessante e educativo
+
+Formato JSON:
+{
+  "name": "Nome do personagem",
+  "description": "Breve descrição do personagem e sua importância",
+  "verse": "Referência bíblica (ex: Gênesis 12:1)",
+  "fact": "Um fato curioso ou interessante sobre o personagem"
+}`;
+    
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.name && parsed.description && parsed.verse && parsed.fact) {
+            console.log(`[Bible Character] Successfully generated with AI (key ${keyNum})`);
+            return parsed;
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Bible Character] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Bible Character] Key ${keyNum} error:`, error?.message);
+        }
+      }
+    }
+    
+    markQuotaExhausted();
+    console.log("[Bible Character] All keys exhausted, using local fallback");
+  }
+
+  // Fallback: select random character
+  const randomIndex = Math.floor(Math.random() * FALLBACK_BIBLE_CHARACTERS.length);
+  return FALLBACK_BIBLE_CHARACTERS[randomIndex];
+}
+
+export async function generateVerseMemoryWithAI(): Promise<{ reference: string; fullVerse: string; blanks: string[] }> {
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const randomSeed = Math.floor(Math.random() * 1000);
+    
+    const systemPrompt = "Você é um educador cristão especializado em memorização bíblica.";
+    const userPrompt = `Gere um versículo para memorização com palavras para preencher.
+
+REGRAS:
+- Escolha um versículo DIFERENTE a cada dia (use seed ${randomSeed}, data: ${dateStr})
+- Use versículos conhecidos e inspiradores
+- Selecione 3-5 palavras-chave importantes para serem as lacunas
+- As palavras devem ser significativas (substantivos, verbos, adjetivos importantes)
+- Use a versão ARA (Almeida Revista e Atualizada)
+
+Formato JSON:
+{
+  "reference": "Livro capítulo:versículo (ex: João 3:16)",
+  "fullVerse": "O versículo completo sem lacunas",
+  "blanks": ["palavra1", "palavra2", "palavra3", "palavra4"]
+}`;
+    
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.reference && parsed.fullVerse && parsed.blanks && parsed.blanks.length >= 3) {
+            console.log(`[Verse Memory] Successfully generated with AI (key ${keyNum})`);
+            return parsed;
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Verse Memory] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Verse Memory] Key ${keyNum} error:`, error?.message);
+        }
+      }
+    }
+    
+    markQuotaExhausted();
+    console.log("[Verse Memory] All keys exhausted, using local fallback");
+  }
+
+  // Fallback: select random verse
+  const randomIndex = Math.floor(Math.random() * FALLBACK_VERSE_MEMORY.length);
+  return FALLBACK_VERSE_MEMORY[randomIndex];
+}
+
+export async function generateTimedQuizWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }>> {
+  if (isAIConfigured() && isQuotaLikelyAvailable()) {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const randomSeed = Math.floor(Math.random() * 1000);
+    
+    const systemPrompt = "Você é um especialista em quizzes bíblicos rápidos.";
+    const userPrompt = `Gere ${count} perguntas RÁPIDAS e OBJETIVAS para um quiz cronometrado.
+
+REGRAS:
+- As perguntas devem ser SIMPLES e ter respostas DIRETAS
+- Foque em fatos básicos: números, nomes, lugares, eventos
+- Cada pergunta deve poder ser respondida em menos de 5 segundos
+- Use seed ${randomSeed} para variedade (data: ${dateStr})
+- Cada pergunta deve ter exatamente 4 opções curtas
+
+Formato JSON:
+{
+  "questions": [
+    {"question": "Pergunta curta e direta?", "options": ["opção1", "opção2", "opção3", "opção4"], "correctIndex": 0}
+  ]
+}`;
+    
+    for (let keyNum = 1; keyNum <= 5; keyNum++) {
+      try {
+        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.questions && parsed.questions.length >= count) {
+            console.log(`[Timed Quiz] Successfully generated with AI (key ${keyNum})`);
+            return parsed.questions.slice(0, count);
+          }
+        }
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log(`[Timed Quiz] Key ${keyNum} quota exceeded, trying next...`);
+          continue;
+        } else {
+          console.error(`[Timed Quiz] Key ${keyNum} error:`, error?.message);
+        }
+      }
+    }
+    
+    markQuotaExhausted();
+    console.log("[Timed Quiz] All keys exhausted, using local fallback");
+  }
+
+  // Fallback: select random questions
+  const shuffled = [...FALLBACK_TIMED_QUIZ].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}

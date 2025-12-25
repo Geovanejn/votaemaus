@@ -7032,7 +7032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gerar evento com IA (admin)
   app.post("/api/admin/events/ai-generate", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const { text, theme, year, month, startDay, endDay } = req.body;
+      const { text, theme, imageUrl, year, month, startDay, endDay } = req.body;
       
       if (!text || !theme || !year || !month || !startDay || !endDay) {
         return res.status(400).json({ message: "Campos obrigatórios: text, theme, year, month, startDay, endDay" });
@@ -7057,6 +7057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: generatedContent.title,
         description: generatedContent.description,
         theme: theme.toLowerCase().replace(/\s+/g, '-'),
+        imageUrl: imageUrl || null,
         startDate: startDate,
         endDate: endDate,
         status: "draft",

@@ -21,8 +21,10 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Wand2
+  Wand2,
+  ImageIcon
 } from "lucide-react";
+import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import { format, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -102,6 +104,7 @@ export default function AdminEventosPage() {
   const [formData, setFormData] = useState({
     text: "",
     theme: "",
+    imageUrl: "",
     year: new Date().getFullYear().toString(),
     month: (new Date().getMonth() + 1).toString(),
     startDay: "1",
@@ -117,6 +120,7 @@ export default function AdminEventosPage() {
       return apiRequest("POST", "/api/admin/events/ai-generate", {
         text: data.text,
         theme: data.theme,
+        imageUrl: data.imageUrl || null,
         year: parseInt(data.year),
         month: parseInt(data.month),
         startDay: parseInt(data.startDay),
@@ -134,6 +138,7 @@ export default function AdminEventosPage() {
       setFormData({
         text: "",
         theme: "",
+        imageUrl: "",
         year: new Date().getFullYear().toString(),
         month: (new Date().getMonth() + 1).toString(),
         startDay: "1",
@@ -347,6 +352,22 @@ export default function AdminEventosPage() {
                     value={formData.theme}
                     onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
                     data-testid="input-theme"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Imagem do Evento (opcional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Esta imagem aparecerá no card do evento e nos cards colecionáveis. Use formato 16:9 (paisagem).
+                  </p>
+                  <ImageUpload
+                    value={formData.imageUrl}
+                    onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                    aspectRatio={IMAGE_UPLOAD_CONFIGS.event.aspectRatio}
+                    placeholder={IMAGE_UPLOAD_CONFIGS.event.placeholder}
                   />
                 </div>
 

@@ -240,6 +240,15 @@ export default function EventLessonPage() {
     return saved ? parseInt(saved) : 0;
   });
 
+  const [estudeScreenIndex, setEstudeScreenIndex] = useState(() => {
+    const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_estudeIndex`);
+    return saved ? parseInt(saved) : 0;
+  });
+  const [mediteScreenIndex, setMediteScreenIndex] = useState(() => {
+    const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_mediteIndex`);
+    return saved ? parseInt(saved) : 0;
+  });
+
   useEffect(() => {
     localStorage.setItem(`lesson_${eventId}_${dayNumber}_stage`, currentStage);
   }, [currentStage, eventId, dayNumber]);
@@ -247,6 +256,14 @@ export default function EventLessonPage() {
   useEffect(() => {
     localStorage.setItem(`lesson_${eventId}_${dayNumber}_questionIndex`, currentQuestionIndex.toString());
   }, [currentQuestionIndex, eventId, dayNumber]);
+
+  useEffect(() => {
+    localStorage.setItem(`lesson_${eventId}_${dayNumber}_estudeIndex`, estudeScreenIndex.toString());
+  }, [estudeScreenIndex, eventId, dayNumber]);
+
+  useEffect(() => {
+    localStorage.setItem(`lesson_${eventId}_${dayNumber}_mediteIndex`, mediteScreenIndex.toString());
+  }, [mediteScreenIndex, eventId, dayNumber]);
 
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
@@ -305,7 +322,37 @@ export default function EventLessonPage() {
   const baseXp = lesson?.xpReward || 50;
   const xpPerStage = Math.floor(baseXp / 3);
 
+  const estudeSections = useMemo(() => {
+    const estudeContent = contentSections.estude;
+    const estudeParts = estudeContent.split(/<h3[^>]*>.*?<\/h3>/i).filter(Boolean);
+    const titles = (estudeContent.match(/<h3[^>]*>(.*?)<\/h3>/gi) || []).map(t => t.replace(/<[^>]*>/g, ''));
+    
+    const sections: any[] = [];
+    // Topic 1
+    sections.push({ type: "topic", title: titles[0] || "Tópico 1", content: estudeParts[0] || "" });
+    // Topic 2
+    sections.push({ type: "topic", title: titles[1] || "Tópico 2", content: estudeParts[1] || "" });
+    // Conclusion
+    sections.push({ type: "conclusion", title: "Conclusão", content: estudeParts[2] || "Conclusão do estudo." });
+    
+    return sections;
+  }, [contentSections.estude]);
+
+  const mediteSections = useMemo(() => {
+    const mediteContent = contentSections.medite;
+    const mediteParts = mediteContent.split(/<hr\s*\/?>/i).filter(Boolean);
+    
+    const sections: any[] = [];
+    // Meditation
+    sections.push({ type: "meditation", title: "Meditação", content: mediteParts[0] || mediteContent });
+    // Application
+    sections.push({ type: "reflection", title: "Aplicação", content: mediteParts[1] || "Como você pode aplicar isso hoje?" });
+    
+    return sections;
+  }, [contentSections.medite]);
+
   const handleEstudeContinue = () => {
+    playSound("modal");
     const xp = xpPerStage;
     setAccumulatedXp(prev => prev + xp);
     setStageCompleteData({
@@ -317,6 +364,7 @@ export default function EventLessonPage() {
   };
 
   const handleMediteContinue = () => {
+    playSound("modal");
     const xp = xpPerStage;
     setAccumulatedXp(prev => prev + xp);
     setStageCompleteData({

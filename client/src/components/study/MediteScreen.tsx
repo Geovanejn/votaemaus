@@ -85,6 +85,8 @@ interface MediteScreenProps {
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
+  initialIndex?: number;
+  onIndexChange?: (index: number) => void;
 }
 
 export function MediteScreen({ 
@@ -93,14 +95,22 @@ export function MediteScreen({
   onComplete, 
   onClose,
   onProgress,
-  onSwitchTab
+  onSwitchTab,
+  initialIndex = 0,
+  onIndexChange
 }: MediteScreenProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [fontSize, setFontSize] = useState(16);
   const [isReading, setIsReading] = useState(false);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (onIndexChange) {
+      onIndexChange(currentIndex);
+    }
+  }, [currentIndex, onIndexChange]);
 
   const toggleFontSize = () => {
     setFontSize(prev => {

@@ -537,31 +537,9 @@ Gere um JSON com a seguinte estrutura:
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
             // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
             // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Inclua campo "options" com 4 alternativas semanticamente coerentes! O usuário verá as 4 opções e escolherá a correta.
-            //   - Se a resposta é um VERBO, as alternativas devem ser VERBOS
-            //   - Se a resposta é um SUBSTANTIVO, as alternativas devem ser SUBSTANTIVOS do mesmo tipo
-            //   - Se a resposta é um ADJETIVO, as alternativas devem ser ADJETIVOS
-            //   - Se a resposta é um NOME PRÓPRIO (pessoa), as alternativas devem ser NOMES PRÓPRIOS
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-            //   As alternativas devem ser contextualmente coerentes de modo que todas as 4 façam sentido gramatical e contextual na frase, mas apenas uma seja biblicamente correta.
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
-=======
->>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+            //   As alternativas devem ser contextualmente coerentes de modo que todas as 4 façam sentido gramatical e contextual na frase, respeitando a concordância e a gramática da língua portuguesa, mas apenas uma seja biblicamente correta.
             //   Exemplos:
-            //   - { "question": "Jesus morreu para ___ o pecador.", "correctAnswer": "salvar", "options": ["amar", "salvar", "destruir", "glorificar"], "explanationCorrect": "Jesus veio para buscar e salvar o que se havia perdido.", "explanationIncorrect": "A resposta correta é 'salvar'.", "hint": "O objetivo da vinda de Cristo" }
+            //   - { "question": "Jesus morreu para ------- o pecador.", "correctAnswer": "salvar", "options": ["amar", "salvar", "destruir", "glorificar"], "explanationCorrect": "Jesus veio para buscar e salvar o que se havia perdido.", "explanationIncorrect": "A resposta correta é 'salvar'.", "hint": "O objetivo da vinda de Cristo" }
             //   - { "question": "Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Romanos 8:28", "explanationIncorrect": "A resposta é 'bem'.", "hint": "Romanos 8:28" }
             //   - { "question": "O fruto do Espírito inclui amor, alegria, paz, ___ e bondade.", "correctAnswer": "paciência", "options": ["paciência", "mansidão", "longanimidade", "temperança"], "explanationCorrect": "Gálatas 5:22 lista os frutos do Espírito", "explanationIncorrect": "A resposta é 'paciência'. Veja Gálatas 5:22.", "hint": "Um fruto que nos ajuda a esperar" }
           },

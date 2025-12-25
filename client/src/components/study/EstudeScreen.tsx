@@ -68,6 +68,8 @@ interface EstudeScreenProps {
   onClose: () => void;
   onProgress?: (current: number, total: number) => void;
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
+  initialIndex?: number;
+  onIndexChange?: (index: number) => void;
 }
 
 function VerseContent({ 
@@ -237,14 +239,22 @@ export function EstudeScreen({
   onComplete, 
   onClose,
   onProgress,
-  onSwitchTab
+  onSwitchTab,
+  initialIndex = 0,
+  onIndexChange
 }: EstudeScreenProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [highlightedVerses, setHighlightedVerses] = useState<Set<number>>(new Set());
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isReading, setIsReading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (onIndexChange) {
+      onIndexChange(currentIndex);
+    }
+  }, [currentIndex, onIndexChange]);
   
   const toggleFontSize = () => {
     setFontSize(prev => {

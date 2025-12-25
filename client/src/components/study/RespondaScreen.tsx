@@ -57,6 +57,7 @@ interface RespondaScreenProps {
   onSwitchTab?: (tab: "estude" | "medite" | "responda") => void;
   onXpChange?: (xp: number) => void;
   onQuestionChange?: (currentIndex: number) => void;
+  onProgressChange?: (current: number, total: number) => void;
 }
 
 function detectAnswerType(answer: string): string {
@@ -176,7 +177,8 @@ export function RespondaScreen({
   onProgress,
   onSwitchTab,
   onXpChange,
-  onQuestionChange
+  onQuestionChange,
+  onProgressChange
 }: RespondaScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -195,6 +197,15 @@ export function RespondaScreen({
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSounds();
+
+  useEffect(() => {
+    if (onQuestionChange) {
+      onQuestionChange(currentIndex);
+    }
+    if (onProgressChange) {
+      onProgressChange(currentIndex + 1, totalQuestions);
+    }
+  }, [currentIndex, onQuestionChange, onProgressChange, totalQuestions]);
 
   const toggleFontSize = () => {
     setFontSize(prev => {

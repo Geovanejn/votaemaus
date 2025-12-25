@@ -2330,7 +2330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send push notification to ALL members (including inactive)
       const { sendPushToAllMembersIncludingInactive } = await import('./notifications');
       await sendPushToAllMembersIncludingInactive({
-        title: "Mensagem da lideranca",
+        title: "Mensagem da UMP Emaús",
         body: messageText,
         url: "/study",
         tag: `admin-encouragement-${Date.now()}`,

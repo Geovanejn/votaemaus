@@ -7205,7 +7205,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       const event = await storage.getStudyEventById(id);
-      if (!event || (event.status !== "active" && event.status !== "completed")) {
+      // Accept active, published, or completed events
+      const validStatuses = ["active", "published", "completed"];
+      if (!event || !validStatuses.includes(event.status)) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
       const progress = await storage.getUserEventProgress(req.user!.id, id);

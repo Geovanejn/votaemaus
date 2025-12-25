@@ -7127,7 +7127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: imageUrl || null,
         startDate: startDate,
         endDate: endDate,
-        status: "draft",
+        status: "published",
         lessonsCount: 5,
         xpMultiplier: 1,
         createdBy: req.user!.id,
@@ -7143,7 +7143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           verseText: lessonData.verseText,
           questions: lessonData.questions,
           xpReward: lessonData.xpReward,
-          status: "draft",
+          status: "published",
         });
       }
 

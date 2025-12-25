@@ -13,11 +13,8 @@ import {
   Search,
   Bell,
   Plus,
-  Users,
-  Church,
-  Cross,
-  Star,
-  Globe
+  Calendar,
+  ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, isBefore, isAfter } from "date-fns";
@@ -56,8 +53,8 @@ function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
   return "active";
 }
 
-function getDefaultImage(theme: string): string {
-  const images: Record<string, string> = {
+function getGradient(theme: string): string {
+  const gradients: Record<string, string> = {
     reforma: "linear-gradient(135deg, #8B4513 0%, #D2691E 100%)",
     juventude: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
     pascoa: "linear-gradient(135deg, #EC4899 0%, #F472B6 100%)",
@@ -65,7 +62,7 @@ function getDefaultImage(theme: string): string {
     missoes: "linear-gradient(135deg, #059669 0%, #10B981 100%)",
     default: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)",
   };
-  return images[theme.toLowerCase()] || images.default;
+  return gradients[theme.toLowerCase()] || gradients.default;
 }
 
 function EventCard({ event }: { event: StudyEvent }) {
@@ -80,51 +77,71 @@ function EventCard({ event }: { event: StudyEvent }) {
     }
   };
 
+  const getThemeIcon = (theme: string) => {
+    const t = theme.toLowerCase();
+    if (t.includes('reforma')) return <div className="text-white text-4xl opacity-80">⛪</div>;
+    if (t.includes('jovem')) return <div className="text-white text-4xl opacity-80">👥</div>;
+    if (t.includes('pascoa')) return <div className="text-white text-4xl opacity-80">✝️</div>;
+    if (t.includes('natal')) return <div className="text-white text-4xl opacity-80">⭐</div>;
+    if (t.includes('missoes')) return <div className="text-white text-4xl opacity-80">🌍</div>;
+    return <Sparkles className="h-10 w-10 text-white/80" />;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
       transition={{ duration: 0.3 }}
+      onClick={handleClick}
+      className="cursor-pointer"
     >
       <Card 
-        className={`overflow-hidden border shadow-sm ${isLocked ? "opacity-60" : ""}`}
+        className={`overflow-hidden border-0 shadow-lg rounded-2xl bg-white dark:bg-card mb-4 ${isLocked ? "opacity-60" : ""}`}
         data-testid={`card-event-${event.id}`}
       >
         <div 
-          className="h-40 bg-cover bg-center"
+          className="h-44 relative flex items-center justify-center overflow-hidden"
           style={{ 
-            backgroundImage: event.imageUrl 
-              ? `url(${event.imageUrl})` 
-              : getDefaultImage(event.theme)
+            background: event.imageUrl 
+              ? `url(${event.imageUrl}) center/cover` 
+              : getGradient(event.theme)
           }}
-        />
+        >
+          {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
+          <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+             {getThemeIcon(event.theme)}
+          </div>
+        </div>
         
-        <CardContent className="p-4">
+        <CardContent className="p-5">
           <div className="flex items-start justify-between gap-3 mb-2">
-            <h3 className="text-lg font-bold text-foreground leading-tight" data-testid={`text-event-title-${event.id}`}>
+            <h3 className="text-xl font-bold text-foreground leading-tight" data-testid={`text-event-title-${event.id}`}>
               {event.title}
             </h3>
-            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 shrink-0">
+            <Badge className="bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-50 px-3 py-1 rounded-full font-medium shrink-0">
               {monthLabel}
             </Badge>
           </div>
 
           {event.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-4 leading-relaxed">
               {event.description}
             </p>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
+          <div className="flex items-center justify-between mt-auto">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground/70 font-medium">
+              <Clock className="h-4 w-4" />
               <span>{event.durationLabel || `${event.lessonsCount || 5} dias de estudo`}</span>
             </div>
 
             <Button 
-              className="bg-green-600 hover:bg-green-700 text-white"
-              size="sm"
-              onClick={handleClick}
+              className="bg-[#2D5A27] hover:bg-[#23471F] text-white rounded-xl px-6 font-bold shadow-md h-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
               disabled={isLocked}
               data-testid={`button-participate-${event.id}`}
             >
@@ -183,9 +200,9 @@ export default function EventsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
+      <div className="flex flex-col min-h-screen bg-[#F8F9FA]">
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#2D5A27]" />
         </div>
         <BottomNav />
       </div>
@@ -194,7 +211,7 @@ export default function EventsPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
+      <div className="flex flex-col min-h-screen bg-[#F8F9FA]">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Erro ao carregar eventos</p>
         </div>
@@ -209,114 +226,142 @@ export default function EventsPage() {
   const featuredEvents = [...activeEvents, ...upcomingEvents];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background border-b">
-        <div className="flex items-center justify-between p-4">
+    <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">
+      <header className="sticky top-0 z-50 bg-white dark:bg-background border-b shadow-sm">
+        <div className="flex items-center justify-between p-4 max-w-2xl mx-auto w-full">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setLocation("/study")}
+            className="hover:bg-slate-100 dark:hover:bg-slate-800"
             data-testid="button-back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6 text-slate-700 dark:text-slate-200" />
           </Button>
-          <h1 className="text-lg font-semibold">Eventos Especiais</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Eventos Especiais</h1>
           <Button 
             variant="ghost" 
             size="icon"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800"
             data-testid="button-search"
           >
-            <Search className="h-5 w-5" />
+            <Search className="h-6 w-6 text-slate-700 dark:text-slate-200" />
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 pb-24">
+      <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         <div 
-          className="relative py-10 px-6 text-center"
+          className="relative py-12 px-8 text-center overflow-hidden shadow-inner"
           style={{
-            background: 'linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%)'
+            background: 'linear-gradient(135deg, #7C3AED 0%, #DB2777 50%, #EA580C 100%)'
           }}
         >
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-white/80" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          {/* Subtle pattern overlay */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+          
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-20 h-20 mx-auto mb-5 rounded-[2rem] bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl"
+          >
+            <div className="text-3xl">❓</div>
+          </motion.div>
+          
+          <motion.h2 
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl font-black text-white mb-3 tracking-tight"
+          >
             Estudos Especiais
-          </h2>
-          <p className="text-white/80 text-sm max-w-xs mx-auto">
+          </motion.h2>
+          
+          <motion.p 
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-white/90 text-base font-medium max-w-xs mx-auto leading-relaxed"
+          >
             Explore nossos eventos temáticos e aprofunde sua jornada espiritual
-          </p>
+          </motion.p>
         </div>
 
-        <div className="p-4 space-y-6">
+        <div className="p-5 space-y-8">
           <div>
-            <h3 className="text-lg font-semibold mb-1">Eventos em Destaque</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-1 tracking-tight">Eventos em Destaque</h3>
+            <p className="text-base text-slate-500 font-medium">
               Toque nos cards para explorar
             </p>
           </div>
 
           {featuredEvents.length === 0 && endedEvents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="font-medium text-lg mb-1">Nenhum evento no momento</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+              <Sparkles className="h-16 w-16 text-slate-200 mb-6" />
+              <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 mb-2">Nenhum evento no momento</h3>
+              <p className="text-slate-500 max-w-xs mx-auto">
                 Fique atento! Novos eventos especiais serão anunciados em breve.
               </p>
             </div>
           ) : (
-            <>
-              {featuredEvents.length > 0 && (
-                <div className="space-y-4">
-                  {featuredEvents.map(event => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              )}
+            <div className="space-y-6">
+              {featuredEvents.map(event => (
+                <EventCard key={event.id} event={event} />
+              ))}
 
               {endedEvents.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                <div className="pt-4">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                    <div className="h-px bg-slate-200 flex-1" />
                     Eventos Anteriores
+                    <div className="h-px bg-slate-200 flex-1" />
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-6 opacity-80">
                     {endedEvents.map(event => (
                       <EventCard key={event.id} event={event} />
                     ))}
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
-          <Card className="border-0 shadow-none bg-green-600 dark:bg-green-700 mt-8">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-                <Plus className="h-6 w-6 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Não perca nenhum evento
-              </h3>
-              <p className="text-sm text-white/80 mb-4">
-                Ative as notificações para receber lembretes dos próximos estudos especiais
-              </p>
-              <Button 
-                variant="outline"
-                className="bg-transparent border-white text-white hover:bg-white/10"
-                onClick={handleEnableNotifications}
-                disabled={pushLoading}
-                data-testid="button-enable-notifications"
-              >
-                {pushLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Bell className="h-4 w-4 mr-2" />
-                )}
-                {isSubscribed ? "Notificações Ativas" : "Ativar Notificações"}
-              </Button>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-[#41793A] to-[#2D5A27] rounded-[2rem] overflow-hidden relative">
+              {/* Background Decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-10 -mb-10" />
+              
+              <CardContent className="p-8 text-center relative z-10">
+                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                  <Calendar className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">
+                  Não perca nenhum evento
+                </h3>
+                <p className="text-white/80 text-base mb-8 font-medium leading-relaxed">
+                  Ative as notificações para receber lembretes dos próximos estudos especiais
+                </p>
+                <Button 
+                  className="bg-white text-[#2D5A27] hover:bg-slate-50 rounded-2xl px-10 h-14 font-black text-lg shadow-xl w-full sm:w-auto"
+                  onClick={handleEnableNotifications}
+                  disabled={pushLoading}
+                  data-testid="button-enable-notifications"
+                >
+                  {pushLoading ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <Bell className="h-5 w-5 mr-2" />
+                  )}
+                  {isSubscribed ? "Notificações Ativas" : "Ativar Notificações"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </main>
 

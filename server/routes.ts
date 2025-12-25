@@ -5807,40 +5807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Obter evento de estudo específico por ID
-  app.get("/api/study/events/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const eventId = parseInt(req.params.id);
-      if (isNaN(eventId)) {
-        return res.status(400).json({ message: "ID inválido" });
-      }
-
-      const event = await storage.getStudyEventById(eventId);
-      if (!event) {
-        // Tenta buscar no site_events caso o usuário tenha criado lá por engano
-        const siteEvent = await storage.getSiteEventById(eventId);
-        if (siteEvent) {
-          return res.status(404).json({ 
-            message: "Evento encontrado no painel de Marketing, mas não no painel de Estudos. Por favor, crie o evento em Admin > Estudos > Eventos.",
-            isSiteEvent: true 
-          });
-        }
-        return res.status(404).json({ message: "Evento não encontrado" });
-      }
-
-      const lessons = await storage.getLessonsForEvent(eventId);
-      const progress = await storage.getUserEventProgress(req.user!.id, eventId);
-
-      res.json({
-        event,
-        lessons,
-        progress
-      });
-    } catch (error) {
-      console.error("Get study event detail error:", error);
-      res.status(500).json({ message: "Erro ao buscar detalhes do evento" });
-    }
-  });
+  // ==================== ADMINISTRAÇÃO DE TEMPORADAS ====================
 
   // Listar todas as temporadas (admin)
   app.get("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {

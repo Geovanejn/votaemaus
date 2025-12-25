@@ -252,27 +252,29 @@ export default function EventsPage() {
 
       <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         <div 
-          className="relative py-12 px-8 text-center overflow-hidden shadow-inner"
+          className="relative py-12 px-8 text-center overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #7C3AED 0%, #DB2777 50%, #EA580C 100%)'
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)'
           }}
         >
-          {/* Subtle pattern overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+          {/* Subtle diagonal line pattern overlay */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)' }} />
           
           <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-20 h-20 mx-auto mb-5 rounded-[2rem] bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl"
+            className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl"
           >
-            <div className="text-3xl">❓</div>
+            <div className="w-10 h-10 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">?</span>
+            </div>
           </motion.div>
           
           <motion.h2 
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl font-black text-white mb-3 tracking-tight"
+            className="text-4xl font-bold text-white mb-3 tracking-tight"
           >
             Estudos Especiais
           </motion.h2>
@@ -281,7 +283,7 @@ export default function EventsPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-white/90 text-base font-medium max-w-xs mx-auto leading-relaxed"
+            className="text-white/80 text-lg font-medium max-w-xs mx-auto leading-tight"
           >
             Explore nossos eventos temáticos e aprofunde sua jornada espiritual
           </motion.p>

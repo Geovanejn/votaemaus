@@ -372,7 +372,6 @@ export default function EventLessonPage() {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       const total = questions.length;
-      const correct = correctAnswers + (checkAnswer(currentQuestion, selectedAnswer!) ? 0 : 0);
       const finalCorrect = correctAnswers;
       const score = Math.round((finalCorrect / total) * 100);
       const xp = xpPerStage + Math.floor((finalCorrect / total) * xpPerStage);

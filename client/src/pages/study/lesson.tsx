@@ -881,7 +881,7 @@ export default function LessonPage() {
   }
 
   const handleAnswerSubmit = async (userAnswer: any) => {
-    if (waitingForAnswer) return;
+    if (waitingForAnswer || userAnswer === null || userAnswer === undefined) return;
     setWaitingForAnswer(true);
     heartsBeforeAnswer.current = currentHearts;
 

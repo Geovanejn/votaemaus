@@ -250,9 +250,9 @@ export async function notifyNewDevotional(
     icon: "/logo.png",
   };
 
-  const members = await storage.getActiveMembers();
+  const activeMembers = await storage.getActiveMembers();
   
-  for (const member of members) {
+  for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
@@ -261,15 +261,43 @@ export async function notifyNewDevotional(
       payload.body,
       { devotionalId, url: payload.url }
     );
+  }
+
+  // Send email to ALL members (active and inactive) - deduplicated by email
+  if (isEmailConfigured()) {
+    const allMembers = await storage.getAllMembers();
     
-    if (isEmailConfigured() && member.email) {
-      await sendNewDevotionalEmail(member.email, member.fullName, title, devotionalId, imageUrl || null);
+    // Deduplicate by email address
+    const emailMap = new Map<string, { email: string; fullName: string }>();
+    for (const member of allMembers) {
+      if (member.email && !emailMap.has(member.email.toLowerCase())) {
+        emailMap.set(member.email.toLowerCase(), { email: member.email, fullName: member.fullName });
+      }
     }
+    
+    const uniqueRecipients = Array.from(emailMap.values());
+    
+    // Send emails in parallel batches for better performance
+    const batchSize = 10;
+    let emailsSent = 0;
+    
+    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
+      const batch = uniqueRecipients.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(recipient => 
+          sendNewDevotionalEmail(recipient.email, recipient.fullName, title, devotionalId, imageUrl || null)
+        )
+      );
+      
+      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    }
+    
+    console.log(`[Notifications] Devotional email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
   }
 
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
-  console.log(`[Notifications] New devotional notification sent to ${members.length} members and ${anonymousResult.sent} anonymous visitors`);
+  console.log(`[Notifications] New devotional notification sent to ${activeMembers.length} active members and ${anonymousResult.sent} anonymous visitors`);
 }
 
 export async function notifyNewEvent(
@@ -326,27 +354,42 @@ export async function notifyNewPrayerRequest(
   const pushResult = await sendPushToAllMembers(payload);
   console.log(`[Notifications] Prayer request push notification: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 
+  // Send email to ALL members (active and inactive) - deduplicated by email
   if (isEmailConfigured() && category && requestText) {
-    const allMembers = await storage.getActiveMembers();
+    const allMembers = await storage.getAllMembers();
+    
+    // Deduplicate by email address
+    const emailMap = new Map<string, { email: string; fullName: string }>();
+    for (const member of allMembers) {
+      if (member.email && !emailMap.has(member.email.toLowerCase())) {
+        emailMap.set(member.email.toLowerCase(), { email: member.email, fullName: member.fullName });
+      }
+    }
+    
+    const uniqueRecipients = Array.from(emailMap.values());
+    
+    // Send emails in parallel batches for better performance
+    const batchSize = 10;
     let emailsSent = 0;
 
-    for (const member of allMembers) {
-      if (member.email) {
-        try {
-          await sendNewPrayerRequestEmail(
-            member.email,
-            member.fullName,
+    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
+      const batch = uniqueRecipients.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(recipient => 
+          sendNewPrayerRequestEmail(
+            recipient.email,
+            recipient.fullName,
             requesterName,
             category,
             requestText
-          );
-          emailsSent++;
-        } catch (error) {
-          console.error(`[Notifications] Failed to send prayer email to ${member.email}:`, error);
-        }
-      }
+          )
+        )
+      );
+      
+      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
     }
-    console.log(`[Notifications] Prayer request email sent to ${emailsSent} members`);
+    
+    console.log(`[Notifications] Prayer request email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
   }
 }
 

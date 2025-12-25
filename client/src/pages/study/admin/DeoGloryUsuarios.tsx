@@ -468,11 +468,8 @@ export default function DeoGloryUsuarios() {
                 </SelectTrigger>
                 <SelectContent>
                   {encouragementMessages.map((msg) => (
-                    <SelectItem key={msg.key} value={msg.key}>
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{msg.title}</span>
-                        <span className="text-xs text-muted-foreground">{msg.body}</span>
-                      </div>
+                    <SelectItem key={msg.key} value={msg.key} data-testid={`select-item-encouragement-${msg.key}`}>
+                      {msg.title}
                     </SelectItem>
                   ))}
                 </SelectContent>

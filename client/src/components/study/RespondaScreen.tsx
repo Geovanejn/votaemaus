@@ -379,7 +379,7 @@ export function RespondaScreen({
   const hasAnswer = () => {
     if (currentQuestion.type === "multiple_choice") return selectedAnswer !== null;
     if (currentQuestion.type === "true_false") return trueFalseAnswer !== null;
-    if (currentQuestion.type === "fill_blank") return fillBlankAnswer.trim().length > 0;
+    if (currentQuestion.type === "fill_blank") return selectedAnswer !== null;
     return false;
   };
   

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 import { BottomNav } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Trophy, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Season {
   id: number;
@@ -36,6 +38,27 @@ interface RankingUser {
   currentStreak: number;
   dailyXp?: number;
   isCurrentUser?: boolean;
+}
+
+function OnlineIndicator({ isOnline, size = "sm" }: { isOnline: boolean; size?: "sm" | "md" | "lg" }) {
+  if (!isOnline) return null;
+  
+  const sizeClasses = {
+    sm: "w-2.5 h-2.5",
+    md: "w-3 h-3",
+    lg: "w-3.5 h-3.5",
+  };
+  
+  return (
+    <div 
+      className={cn(
+        "absolute bottom-0 right-0 rounded-full bg-green-500 border-2 border-background",
+        sizeClasses[size]
+      )}
+      title="Online agora"
+      data-testid="indicator-online"
+    />
+  );
 }
 
 interface LeaderboardResponse {
@@ -69,10 +92,13 @@ function HeaderSection({ userXp }: { userXp: number }) {
   );
 }
 
-function TopThreePodium({ users }: { users: RankingUser[] }) {
+function TopThreePodium({ users, onlineUserIds, onMemberClick }: { 
+  users: RankingUser[]; 
+  onlineUserIds: number[];
+  onMemberClick: (userId: number) => void;
+}) {
   const top3 = users.slice(0, 3);
 
-  // Need at least 1 user to show the podium
   if (top3.length === 0) {
     return null;
   }
@@ -92,7 +118,8 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center cursor-pointer"
+            onClick={() => onMemberClick(second.userId)}
             data-testid="podium-second"
           >
             <div className="relative mb-2" data-testid={`avatar-user-${second.userId}`}>
@@ -102,10 +129,10 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
                   {second.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
+              <OnlineIndicator isOnline={onlineUserIds.includes(second.userId)} size="md" />
             </div>
             <p className="text-xs font-semibold text-center truncate max-w-[70px]" data-testid="text-podium-second-name">{second.username.split(" ")[0]}</p>
             <p className="text-xs text-muted-foreground" data-testid="text-podium-second-xp">{second.totalXp.toLocaleString()} XP</p>
-            {/* Podium Platform - Silver */}
             <div className="mt-2 w-20 h-16 bg-gradient-to-b from-gray-300 to-gray-400 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-silver">
               <Medal className="w-6 h-6 text-white drop-shadow-md" />
             </div>
@@ -118,7 +145,8 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0 }}
-            className="flex flex-col items-center -mt-4"
+            className="flex flex-col items-center -mt-4 cursor-pointer"
+            onClick={() => onMemberClick(first.userId)}
             data-testid="podium-first"
           >
             <div className="relative mb-2" data-testid={`avatar-user-${first.userId}`}>
@@ -128,10 +156,10 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
                   {first.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
+              <OnlineIndicator isOnline={onlineUserIds.includes(first.userId)} size="lg" />
             </div>
             <p className="text-sm font-bold text-center truncate max-w-[80px]" data-testid="text-podium-first-name">{first.username.split(" ")[0]}</p>
             <p className="text-xs font-semibold text-amber-500" data-testid="text-podium-first-xp">{first.totalXp.toLocaleString()} XP</p>
-            {/* Podium Platform - Gold */}
             <div className="mt-2 w-24 h-24 bg-gradient-to-b from-amber-400 to-amber-500 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-gold">
               <Trophy className="w-8 h-8 text-white drop-shadow-md" />
             </div>
@@ -144,7 +172,8 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center cursor-pointer"
+            onClick={() => onMemberClick(third.userId)}
             data-testid="podium-third"
           >
             <div className="relative mb-2" data-testid={`avatar-user-${third.userId}`}>
@@ -154,10 +183,10 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
                   {third.username.charAt(0)}
                 </AvatarFallback>
               </Avatar>
+              <OnlineIndicator isOnline={onlineUserIds.includes(third.userId)} size="sm" />
             </div>
             <p className="text-xs font-semibold text-center truncate max-w-[70px]" data-testid="text-podium-third-name">{third.username.split(" ")[0]}</p>
             <p className="text-xs text-muted-foreground" data-testid="text-podium-third-xp">{third.totalXp.toLocaleString()} XP</p>
-            {/* Podium Platform - Bronze */}
             <div className="mt-2 w-20 h-12 bg-gradient-to-b from-orange-400 to-orange-500 rounded-t-lg flex items-center justify-center shadow-inner" data-testid="podium-platform-bronze">
               <Medal className="w-5 h-5 text-white drop-shadow-md" />
             </div>
@@ -168,7 +197,12 @@ function TopThreePodium({ users }: { users: RankingUser[] }) {
   );
 }
 
-function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUserId?: number }) {
+function RankingList({ users, currentUserId, onlineUserIds, onMemberClick }: { 
+  users: RankingUser[]; 
+  currentUserId?: number;
+  onlineUserIds: number[];
+  onMemberClick: (userId: number) => void;
+}) {
   const getPositionColor = (position: number) => {
     if (position === 1) return "bg-amber-400 text-amber-900";
     if (position === 2) return "bg-gray-300 text-gray-700";
@@ -189,6 +223,7 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
         const position = index + 1;
         const isCurrentUser = user.userId === currentUserId;
         const dailyXp = user.dailyXp || 0;
+        const isOnline = onlineUserIds.includes(user.userId);
 
         return (
           <motion.div
@@ -197,11 +232,12 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.03 }}
             className={cn(
-              "flex items-center gap-3 p-3 rounded-xl",
+              "flex items-center gap-3 p-3 rounded-xl cursor-pointer",
               isCurrentUser 
                 ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white" 
-                : "bg-card border border-border"
+                : "bg-card border border-border hover-elevate"
             )}
+            onClick={() => onMemberClick(user.userId)}
             data-testid={`ranking-user-${user.userId}`}
           >
             <div className={cn(
@@ -211,27 +247,40 @@ function RankingList({ users, currentUserId }: { users: RankingUser[]; currentUs
               {position}
             </div>
 
-            <Avatar className={cn(
-              "h-11 w-11 border-2 flex-shrink-0",
-              isCurrentUser ? "border-white/30" : "border-border"
-            )}>
-              <AvatarImage src={user.photoUrl || ""} />
-              <AvatarFallback className={cn(
-                "font-semibold",
-                isCurrentUser ? "bg-white/20 text-white" : "bg-muted"
+            <div className="relative flex-shrink-0">
+              <Avatar className={cn(
+                "h-11 w-11 border-2",
+                isCurrentUser ? "border-white/30" : "border-border"
               )}>
-                {user.username.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+                <AvatarImage src={user.photoUrl || ""} />
+                <AvatarFallback className={cn(
+                  "font-semibold",
+                  isCurrentUser ? "bg-white/20 text-white" : "bg-muted"
+                )}>
+                  {user.username.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <OnlineIndicator isOnline={isOnline} size="sm" />
+            </div>
 
             <div className="flex-1 min-w-0">
-              <p className={cn(
-                "font-bold truncate",
-                isCurrentUser ? "text-white" : "text-foreground"
-              )}>
-                {user.username}
-                {isCurrentUser && " (Você)"}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className={cn(
+                  "font-bold truncate",
+                  isCurrentUser ? "text-white" : "text-foreground"
+                )}>
+                  {user.username}
+                  {isCurrentUser && " (Você)"}
+                </p>
+                {isOnline && (
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full",
+                    isCurrentUser ? "bg-white/20 text-white" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  )}>
+                    online
+                  </span>
+                )}
+              </div>
               <p className={cn(
                 "text-xs",
                 isCurrentUser ? "text-white/70" : "text-muted-foreground"
@@ -344,10 +393,58 @@ export default function RankingPage() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   
   // Generate available years (from 2024 to current year)
   const currentYear = new Date().getFullYear();
   const availableYears = Array.from({ length: currentYear - 2023 }, (_, i) => (2024 + i).toString());
+
+  // Fetch online users
+  const { data: onlineData } = useQuery<{ onlineUserIds: number[] }>({
+    queryKey: ["/api/study/online-users"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/online-users", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return { onlineUserIds: [] };
+      return res.json();
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const onlineUserIds = onlineData?.onlineUserIds || [];
+
+  // Send heartbeat to update online status
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const sendHeartbeat = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      
+      try {
+        await apiRequest("POST", "/api/study/online-status", {});
+      } catch (error) {
+        console.error("Error sending heartbeat:", error);
+      }
+    };
+    
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 60000); // Every 1 minute
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Navigate to member profile
+  const handleMemberClick = (userId: number) => {
+    if (userId === user?.id) {
+      navigate("/study/profile");
+    } else {
+      navigate(`/study/member/${userId}`);
+    }
+  };
 
   const { data: seasons = [] } = useQuery<Season[]>({
     queryKey: ["/api/study/seasons"],
@@ -445,7 +542,7 @@ export default function RankingPage() {
     <div className="min-h-screen bg-background pb-24" data-testid="ranking-page">
       <HeaderSection userXp={currentUserXp} />
       
-      <TopThreePodium users={entries} />
+      <TopThreePodium users={entries} onlineUserIds={onlineUserIds} onMemberClick={handleMemberClick} />
 
       <div className="px-4 mb-4 space-y-3">
         <Tabs value={period} onValueChange={setPeriod} className="w-full">
@@ -507,7 +604,12 @@ export default function RankingPage() {
       </div>
 
       {entries.length > 0 ? (
-        <RankingList users={entries} currentUserId={user?.id} />
+        <RankingList 
+          users={entries} 
+          currentUserId={user?.id} 
+          onlineUserIds={onlineUserIds}
+          onMemberClick={handleMemberClick}
+        />
       ) : (
         <EmptyState />
       )}

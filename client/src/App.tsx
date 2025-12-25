@@ -55,6 +55,7 @@ const SeasonRankingPage = lazy(() => import("@/pages/study/season-ranking"));
 const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 const PracticePage = lazy(() => import("@/pages/study/practice"));
+const MemberProfilePage = lazy(() => import("@/pages/study/member-profile"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
 const DeoGloryEstudos = lazy(() => import("@/pages/study/admin/DeoGloryEstudos"));
@@ -172,6 +173,7 @@ function Router() {
           <Route path="/study/verses" component={VersesPage} />
           <Route path="/study/profile" component={ProfilePage} />
           <Route path="/study/ranking" component={RankingPage} />
+          <Route path="/study/member/:userId" component={MemberProfilePage} />
           <Route path="/study/missions" component={MissionsPage} />
           <Route path="/study/missions/:missionId" component={MissionActivityPage} />
           <Route path="/study/achievements" component={AchievementsPage} />
@@ -214,6 +216,7 @@ function Router() {
         <Route path="/study/verses" component={VersesPage} />
         <Route path="/study/profile" component={ProfilePage} />
         <Route path="/study/ranking" component={RankingPage} />
+        <Route path="/study/member/:userId" component={MemberProfilePage} />
         <Route path="/study/missions" component={MissionsPage} />
         <Route path="/study/missions/:missionId" component={MissionActivityPage} />
         <Route path="/study/achievements" component={AchievementsPage} />

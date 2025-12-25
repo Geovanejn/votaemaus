@@ -325,25 +325,8 @@ export function EstudeScreen({
     { type: "topic" as const, title: lessonTitle, content: "Conteúdo não disponível." }
   ];
   
-  const totalSlides = 3; // Fixed 3 screens: Topic 1, Topic 2, Conclusion
-  const sections = rawSections.length > 0 ? rawSections : [
-    { type: "topic" as const, title: lessonTitle, content: "Conteúdo não disponível." }
-  ];
-  
-  // Ensure we only have 3 slides regardless of rawSections length
-  const displaySections = useMemo(() => {
-    const topics = sections.filter(s => s.type === "topic");
-    const conclusion = sections.find(s => s.type === "conclusion") || { type: "conclusion", title: "Conclusão", content: "Fim do estudo." };
-    
-    return [
-      topics[0] || sections[0],
-      topics[1] || topics[0] || sections[0],
-      conclusion
-    ];
-  }, [sections]);
-
-  const totalSections = totalSlides;
-  const currentSection = displaySections[currentIndex];
+  const totalSections = sections.length;
+  const currentSection = sections[currentIndex];
   const isLast = currentIndex === totalSections - 1;
   
   useEffect(() => {

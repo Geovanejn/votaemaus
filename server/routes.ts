@@ -5821,7 +5821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const siteEvent = await storage.getSiteEventById(eventId);
         if (siteEvent) {
           return res.status(404).json({ 
-            message: "Evento encontrado no painel de Marketing, mas não no painel de Estudos. Por favor, crie o evento em Admin > Estudos > Eventos.",
+            message: "Este ID pertence a um Evento de Marketing (Institucional). Eventos de Estudo (DeoGlory) devem ser criados especificamente no Painel de Estudos para conter lições e recompensas.",
             isSiteEvent: true 
           });
         }

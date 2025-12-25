@@ -227,13 +227,20 @@ export default function AdminEventosPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold">Eventos Especiais</h1>
-            <p className="text-sm text-muted-foreground">Gerenciar eventos do DeoGlory</p>
+            <h1 className="text-lg font-semibold text-purple-700 dark:text-purple-400">Eventos de Estudo (DeoGlory)</h1>
+            <p className="text-sm text-muted-foreground font-medium">Estes eventos possuem lições, XP e cards colecionáveis</p>
           </div>
         </div>
       </header>
 
       <main className="p-4 space-y-6">
+        <div className="bg-amber-50 border-amber-200 border p-3 rounded-md mb-4 flex items-start gap-2 text-amber-800 text-sm">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <p>
+            <strong>Atenção:</strong> Estes são eventos do sistema de estudo (com lições e gamificação). 
+            Para eventos institucionais (agenda do site), use o <strong>Painel de Marketing</strong>.
+          </p>
+        </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="list" data-testid="tab-list">

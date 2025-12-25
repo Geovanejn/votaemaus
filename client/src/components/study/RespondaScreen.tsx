@@ -346,7 +346,7 @@ export function RespondaScreen({
       userAnswer = trueFalseAnswer;
       isCorrect = trueFalseAnswer === currentQuestion.correctAnswer;
     } else if (currentQuestion.type === "fill_blank") {
-      userAnswer = selectedAnswer !== null ? fillBlankOptions[selectedAnswer] : fillBlankAnswer;
+      userAnswer = selectedAnswer !== null ? (currentQuestion.options ? currentQuestion.options[selectedAnswer] : fillBlankOptions[selectedAnswer]) : fillBlankAnswer;
       if (!userAnswer) return;
       const correctAns = String(currentQuestion.correctAnswer || "").toLowerCase().trim();
       const userAns = String(userAnswer || "").toLowerCase().trim();
@@ -591,6 +591,59 @@ export function RespondaScreen({
                             !showResult && "cursor-pointer"
                           )}
                           data-testid={`option-${optionLabels[idx]}`}
+                        >
+                          <span className={cn(
+                            "h-7 w-7 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5",
+                            showCorrect && "bg-green-500 text-white",
+                            showIncorrect && "bg-red-500 text-white",
+                            isSelected && !showResult && "bg-orange-500 text-white",
+                            !isSelected && !showResult && "bg-gray-200 dark:bg-gray-700 text-muted-foreground"
+                          )}>
+                            {showCorrect ? <CheckCircle className="h-4 w-4" /> : 
+                             showIncorrect ? <XCircle className="h-4 w-4" /> : 
+                             optionLabels[idx]}
+                          </span>
+                          <span className={cn(
+                            "flex-1",
+                            (showCorrect || (isSelected && !showResult)) && "font-medium"
+                          )} style={{ fontSize: `${fontSize}px` }}>
+                            {option}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    </div>
+                  </>
+                )}
+
+                {currentQuestion.type === "fill_blank" && (
+                  <>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 mb-4">
+                      <p className="text-foreground text-center font-bold" style={{ fontSize: `${fontSize}px` }}>
+                        {currentQuestion.question}
+                      </p>
+                    </div>
+                    <div className="space-y-2" style={{ fontSize: `${fontSize}px` }}>
+                    {(currentQuestion.options || fillBlankOptions).map((option, idx) => {
+                      const isSelected = selectedAnswer === idx;
+                      const isCorrect = option.toLowerCase().trim() === String(currentQuestion.correctAnswer || "").toLowerCase().trim();
+                      const showCorrect = showResult && isCorrect;
+                      const showIncorrect = showResult && isSelected && !isCorrect;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => !showResult && setSelectedAnswer(idx)}
+                          disabled={showResult}
+                          className={cn(
+                            "w-full flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left",
+                            showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/30",
+                            showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/30",
+                            isSelected && !showResult && "border-orange-500 bg-orange-50 dark:bg-orange-900/20",
+                            !isSelected && !showResult && "border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-900/10",
+                            !showResult && "cursor-pointer"
+                          )}
+                          data-testid={`fill-option-${idx}`}
                         >
                           <span className={cn(
                             "h-7 w-7 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 mt-0.5",

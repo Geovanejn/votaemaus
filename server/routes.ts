@@ -6999,24 +6999,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      
-      // Get the old event to check if status is changing
-      const oldEvent = await storage.getStudyEventById(id);
       const event = await storage.updateStudyEvent(id, req.body);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
-
-      // If status changed to "published", also publish all lessons
-      if (req.body.status === "published" && oldEvent && oldEvent.status !== "published") {
-        const lessons = await storage.getStudyEventLessons(id);
-        for (const lesson of lessons) {
-          if (lesson.status !== "published") {
-            await storage.updateStudyEventLesson(lesson.id, { status: "published" });
-          }
-        }
-      }
-
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
       res.json(event);
     } catch (error) {

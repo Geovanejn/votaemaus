@@ -30,7 +30,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 
 interface AchievementWithLikes {
@@ -628,9 +627,6 @@ export default function MemberProfilePage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Enviar mensagem de incentivo</DialogTitle>
-            <DialogDescription>
-              Selecione uma mensagem de incentivo para enviar a este membro.
-            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-2 max-h-[300px] overflow-y-auto">

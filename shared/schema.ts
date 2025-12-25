@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, integer, text, boolean, unique, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, unique, timestamp, real, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import crypto from "crypto";
@@ -1748,6 +1748,150 @@ export const PREDEFINED_ENCOURAGEMENT_MESSAGES = [
 ] as const;
 
 export type EncouragementMessageKey = typeof PREDEFINED_ENCOURAGEMENT_MESSAGES[number]["key"];
+
+// ==================== EVENTOS ESPECIAIS + CARDS COLECIONÁVEIS ====================
+
+export type EventStatus = "draft" | "scheduled" | "active" | "completed";
+export type CardRarity = "common" | "rare" | "epic" | "legendary";
+export type CardSourceType = "season" | "event";
+
+// Cards Colecionáveis (definido primeiro para permitir FK em studyEvents)
+export const collectibleCards = pgTable("collectible_cards", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  sourceType: text("source_type").notNull(),
+  sourceId: integer("source_id").notNull(),
+  availableRarities: text("available_rarities").array().default(["common", "rare", "epic", "legendary"]),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCollectibleCardSchema = createInsertSchema(collectibleCards).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCollectibleCard = z.infer<typeof insertCollectibleCardSchema>;
+export type CollectibleCard = typeof collectibleCards.$inferSelect;
+
+// Eventos Especiais DeoGlory
+export const studyEvents = pgTable("study_events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  theme: text("theme").notNull(),
+  imageUrl: text("image_url"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: text("status").notNull().default("draft"),
+  cardId: integer("card_id").references(() => collectibleCards.id),
+  lessonsCount: integer("lessons_count").default(7),
+  xpMultiplier: real("xp_multiplier").default(1.0),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertStudyEventSchema = createInsertSchema(studyEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStudyEvent = z.infer<typeof insertStudyEventSchema>;
+export type StudyEvent = typeof studyEvents.$inferSelect;
+
+// Lições de Eventos Especiais
+export const studyEventLessons = pgTable("study_event_lessons", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().references(() => studyEvents.id, { onDelete: "cascade" }),
+  dayNumber: integer("day_number").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  verseReference: text("verse_reference"),
+  verseText: text("verse_text"),
+  questions: jsonb("questions").notNull().default([]),
+  xpReward: integer("xp_reward").default(50),
+  status: text("status").default("draft"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueEventDay: unique().on(table.eventId, table.dayNumber),
+}));
+
+export const insertStudyEventLessonSchema = createInsertSchema(studyEventLessons).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStudyEventLesson = z.infer<typeof insertStudyEventLessonSchema>;
+export type StudyEventLesson = typeof studyEventLessons.$inferSelect;
+
+// Progresso do usuário em eventos
+export const userEventProgress = pgTable("user_event_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  eventId: integer("event_id").notNull().references(() => studyEvents.id, { onDelete: "cascade" }),
+  lessonId: integer("lesson_id").notNull().references(() => studyEventLessons.id, { onDelete: "cascade" }),
+  completed: boolean("completed").default(false),
+  score: integer("score").default(0),
+  totalQuestions: integer("total_questions").default(0),
+  correctAnswers: integer("correct_answers").default(0),
+  usedHints: boolean("used_hints").default(false),
+  xpEarned: integer("xp_earned").default(0),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  uniqueProgress: unique().on(table.userId, table.lessonId),
+}));
+
+export const insertUserEventProgressSchema = createInsertSchema(userEventProgress).omit({
+  id: true,
+});
+
+export type InsertUserEventProgress = z.infer<typeof insertUserEventProgressSchema>;
+export type UserEventProgress = typeof userEventProgress.$inferSelect;
+
+// Cards conquistados pelos usuários
+export const userCards = pgTable("user_cards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  cardId: integer("card_id").notNull().references(() => collectibleCards.id),
+  rarity: text("rarity").notNull(),
+  sourceType: text("source_type").notNull(),
+  sourceId: integer("source_id").notNull(),
+  performance: real("performance").default(0),
+  earnedAt: timestamp("earned_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserCard: unique().on(table.userId, table.cardId),
+}));
+
+export const insertUserCardSchema = createInsertSchema(userCards).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export type InsertUserCard = z.infer<typeof insertUserCardSchema>;
+export type UserCard = typeof userCards.$inferSelect;
+
+// Helper para calcular raridade baseada no desempenho
+export function calculateCardRarity(performance: number, usedHints: boolean): CardRarity {
+  if (performance >= 100 && !usedHints) return "legendary";
+  if (performance >= 95) return "epic";
+  if (performance >= 80) return "rare";
+  return "common";
+}
+
+// Tipos para exibição de cards com informações completas
+export type UserCardWithDetails = UserCard & {
+  card: CollectibleCard;
+};
+
+export type EventWithProgress = StudyEvent & {
+  lessonsCompleted: number;
+  totalLessons: number;
+  cardEarned: boolean;
+};
 
 // Tipo para perfil público de membro
 export type PublicMemberProfile = {

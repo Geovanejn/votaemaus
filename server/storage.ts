@@ -282,6 +282,7 @@ export interface IStorage {
   
   // Achievement Methods
   getAllAchievements(): Promise<any[]>;
+  getAchievementById(id: number): Promise<{ id: number; name: string; icon: string; category: string; xpReward: number } | null>;
   getUserAchievements(userId: number): Promise<any[]>;
   createAchievement(data: any): Promise<any>;
   unlockAchievement(userId: number, achievementId: number): Promise<any | null>;
@@ -3207,6 +3208,21 @@ export class DatabaseStorage implements IStorage {
   async getAllAchievements(): Promise<any[]> {
     return db.select().from(schema.achievements)
       .orderBy(asc(schema.achievements.id));
+  }
+
+  async getAchievementById(id: number): Promise<{ id: number; name: string; icon: string; category: string; xpReward: number } | null> {
+    const [achievement] = await db.select({
+      id: schema.achievements.id,
+      name: schema.achievements.name,
+      icon: schema.achievements.icon,
+      category: schema.achievements.category,
+      xpReward: schema.achievements.xpReward,
+    })
+      .from(schema.achievements)
+      .where(eq(schema.achievements.id, id))
+      .limit(1);
+    
+    return achievement || null;
   }
 
   async getUserAchievements(userId: number): Promise<any[]> {

@@ -2127,6 +2127,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const success = await storage.likeAchievement(req.user.id, targetUserId, achievementId);
+      
+      // Send notification to the target user
+      if (success) {
+        const liker = await storage.getUserById(req.user.id);
+        const achievement = await storage.getAchievementById(achievementId);
+        if (liker && achievement) {
+          const { notifyAchievementLiked } = await import('./notifications');
+          notifyAchievementLiked(targetUserId, liker.fullName, achievement.name).catch(err => 
+            console.error("[Notifications] Error notifying achievement liked:", err)
+          );
+        }
+      }
+      
       res.json({ success, liked: true });
     } catch (error) {
       console.error("Like achievement error:", error);

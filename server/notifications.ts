@@ -49,6 +49,8 @@ export type NotificationType =
   | "season_published"
   | "season_ended"
   | "achievement"
+  | "achievement_liked"
+  | "encouragement"
   | "inactivity_reminder"
   | "daily_verse"
   | "system";
@@ -712,6 +714,29 @@ export async function notifyAchievement(
     payload.title,
     payload.body,
     { achievementName, url: payload.url }
+  );
+}
+
+export async function notifyAchievementLiked(
+  userId: number,
+  likerName: string,
+  achievementName: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Conquista Curtida!",
+    body: `${likerName} curtiu sua conquista "${achievementName}"`,
+    url: "/study/profile",
+    tag: `achievement-like-${Date.now()}`,
+    icon: "/logo.png",
+  };
+
+  await sendPushToUser(userId, payload);
+  await createInAppNotification(
+    userId,
+    "achievement_liked",
+    payload.title,
+    payload.body,
+    { likerName, achievementName, url: payload.url }
   );
 }
 

@@ -14,3 +14,5 @@ scripts/reset-db.ts
 .env
 .env.local
 .env.production
+client/src/pages/study/event-lesson.tsx
+server/ai.ts

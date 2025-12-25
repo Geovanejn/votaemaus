@@ -541,7 +541,25 @@ Gere um JSON com a seguinte estrutura:
             //   - Se a resposta é um SUBSTANTIVO, as alternativas devem ser SUBSTANTIVOS do mesmo tipo
             //   - Se a resposta é um ADJETIVO, as alternativas devem ser ADJETIVOS
             //   - Se a resposta é um NOME PRÓPRIO (pessoa), as alternativas devem ser NOMES PRÓPRIOS
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
             //   As alternativas devem ser contextualmente coerentes de modo que todas as 4 façam sentido gramatical e contextual na frase, mas apenas uma seja biblicamente correta.
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
+=======
+>>>>>>> parent of d9580a9 (Add sound effects and improve event lesson navigation)
             //   Exemplos:
             //   - { "question": "Jesus morreu para ___ o pecador.", "correctAnswer": "salvar", "options": ["amar", "salvar", "destruir", "glorificar"], "explanationCorrect": "Jesus veio para buscar e salvar o que se havia perdido.", "explanationIncorrect": "A resposta correta é 'salvar'.", "hint": "O objetivo da vinda de Cristo" }
             //   - { "question": "Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Romanos 8:28", "explanationIncorrect": "A resposta é 'bem'.", "hint": "Romanos 8:28" }

@@ -126,7 +126,7 @@ function LessonItem({
                 </span>
                 {isCompleted && (
                   <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600">
-                    Concluido
+                    Concluído
                   </Badge>
                 )}
               </div>
@@ -193,7 +193,7 @@ export default function EventDetailPage() {
           </Button>
         </header>
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-muted-foreground">Evento nao encontrado</p>
+          <p className="text-muted-foreground">Evento não encontrado</p>
         </div>
         <BottomNav />
       </div>
@@ -291,7 +291,7 @@ export default function EventDetailPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Progresso</span>
-                <span className="font-medium">{completedLessons}/{totalLessons} licoes</span>
+                <span className="font-medium">{completedLessons}/{totalLessons} lições</span>
               </div>
               <Progress value={progressPercentage} className="h-2" />
             </div>
@@ -307,7 +307,7 @@ export default function EventDetailPage() {
         <section>
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
-            Licoes do Evento
+            Lições do Evento
           </h2>
           
           <div className="space-y-3">
@@ -337,9 +337,9 @@ export default function EventDetailPage() {
           <Card className="border-green-500/50 bg-green-500/5">
             <CardContent className="p-4 text-center">
               <Trophy className="h-10 w-10 text-amber-500 mx-auto mb-2" />
-              <h3 className="font-semibold text-lg">Parabens!</h3>
+              <h3 className="font-semibold text-lg">Parabéns!</h3>
               <p className="text-sm text-muted-foreground">
-                Voce completou todas as licoes deste evento!
+                Você completou todas as lições deste evento!
               </p>
               {event.cardId && (
                 <Button 

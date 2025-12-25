@@ -128,7 +128,7 @@ export default function EventLessonPage() {
           </Button>
         </header>
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-muted-foreground">Licao nao encontrada</p>
+          <p className="text-muted-foreground">Lição não encontrada</p>
         </div>
       </div>
     );
@@ -264,10 +264,10 @@ export default function EventLessonPage() {
                 <Card className="border-green-500/50 bg-green-500/5">
                   <CardContent className="p-4 text-center">
                     <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                    <p className="font-medium">Licao concluida!</p>
+                    <p className="font-medium">Lição concluída!</p>
                     {progress && (
                       <p className="text-sm text-muted-foreground">
-                        Voce acertou {progress.correctAnswers}/{progress.totalQuestions} questoes
+                        Você acertou {progress.correctAnswers}/{progress.totalQuestions} questões
                       </p>
                     )}
                   </CardContent>
@@ -360,7 +360,7 @@ export default function EventLessonPage() {
                 >
                   {currentQuestionIndex < questions.length - 1 ? (
                     <>
-                      Proxima Pergunta
+                      Próxima Pergunta
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </>
                   ) : (
@@ -399,7 +399,7 @@ export default function EventLessonPage() {
                   </h2>
 
                   <p className="text-muted-foreground mb-4">
-                    Voce acertou {quizResults.correct} de {quizResults.total} perguntas
+                    Você acertou {quizResults.correct} de {quizResults.total} perguntas
                   </p>
 
                   <div className="flex justify-center gap-4 mb-6">

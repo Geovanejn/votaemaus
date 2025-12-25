@@ -5828,6 +5828,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Evento não encontrado" });
       }
 
+      // Verifica se o evento está publicado (membros só podem acessar eventos publicados ou ativos)
+      if (event.status !== "published" && event.status !== "active") {
+        return res.status(404).json({ message: "Evento não encontrado" });
+      }
+
       const lessons = await storage.getLessonsForEvent(eventId);
       const progress = await storage.getUserEventProgress(req.user!.id, eventId);
 

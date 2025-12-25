@@ -1,5 +1,30 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useParams } from "wouter";
+...
+  const audioCorrect = useRef<HTMLAudioElement | null>(null);
+  const audioIncorrect = useRef<HTMLAudioElement | null>(null);
+  const audioComplete = useRef<HTMLAudioElement | null>(null);
+  const audioModal = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    audioCorrect.current = new Audio("/sounds/correct.mp3");
+    audioIncorrect.current = new Audio("/sounds/incorrect.mp3");
+    audioComplete.current = new Audio("/sounds/complete.mp3");
+    audioModal.current = new Audio("/sounds/modal.mp3");
+  }, []);
+
+  const playSound = (type: "correct" | "incorrect" | "complete" | "modal") => {
+    const audio = {
+      correct: audioCorrect.current,
+      incorrect: audioIncorrect.current,
+      complete: audioComplete.current,
+      modal: audioModal.current
+    }[type];
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+  };
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -109,69 +134,62 @@ function StageCompleteModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-none bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
         <DialogHeader>
-          <DialogTitle className="text-center sr-only">
-            {isLessonComplete ? "Lição Completa" : `${stageLabels[stageType]} Concluído`}
+          <DialogTitle className="text-center text-white font-bold text-2xl">
+            {isLessonComplete ? "Lição Concluída!" : `${stageLabels[stageType]} Concluído!`}
           </DialogTitle>
         </DialogHeader>
         
         <div className="text-center py-6">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.1 }}
-            className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${
-              isLessonComplete 
-                ? "bg-amber-500/20 text-amber-500" 
-                : "bg-primary/20 text-primary"
-            }`}
+            initial={{ scale: 0, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 10 }}
+            className="w-24 h-24 mx-auto mb-6 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30"
           >
             {isLessonComplete ? (
-              <Trophy className="h-10 w-10" />
+              <Trophy className="h-12 w-12 text-yellow-300" />
             ) : (
-              stageIcons[stageType]
+              <div className="text-white">
+                {stageIcons[stageType]}
+              </div>
             )}
           </motion.div>
-
-          <motion.h2 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-2xl font-bold mb-2"
-          >
-            {isLessonComplete ? "Lição Concluída!" : `${stageLabels[stageType]} Concluído!`}
-          </motion.h2>
 
           {isLessonComplete && correctAnswers !== undefined && totalQuestions !== undefined && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-muted-foreground mb-4"
+              className="text-white/90 mb-4 font-medium"
             >
-              Você acertou {correctAnswers} de {totalQuestions} questões
+              Você acertou {correctAnswers} de {totalQuestions} questões!
             </motion.p>
           )}
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center justify-center gap-2 mb-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center justify-center gap-2 mb-8"
           >
-            <Badge className="bg-amber-500/10 text-amber-600 text-lg px-4 py-2">
-              <Star className="h-5 w-5 mr-2 fill-amber-500" />
-              +{xpEarned} XP
-            </Badge>
+            <div className="bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/30 flex items-center gap-2">
+              <Star className="h-6 w-6 text-yellow-300 fill-yellow-300" />
+              <span className="text-2xl font-bold">+{xpEarned} XP</span>
+            </div>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.5 }}
           >
-            <Button onClick={onClose} className="w-full" size="lg" data-testid="button-stage-continue">
+            <Button 
+              onClick={onClose} 
+              className="w-full bg-[#2D5A27] hover:bg-[#2D5A27]/90 text-white border-none h-14 text-lg font-bold rounded-xl shadow-lg transition-all active:scale-95"
+              data-testid="button-stage-continue"
+            >
               {nextStage ? (
                 <>
                   Continuar para {stageLabels[nextStage]}
@@ -222,6 +240,23 @@ export default function EventLessonPage() {
     totalQuestions?: number;
   } | null>(null);
 
+  const [currentEstudeTopic, setCurrentEstudeTopic] = useState(0);
+  const [currentMediteScreen, setCurrentMediteScreen] = useState(0);
+
+  const estudeTopics = useMemo(() => {
+    if (!contentSections.estude) return [];
+    // Split by 📌 or <h3>/<h2> if formatted that way, or just divide roughly.
+    // The current parseContentSections returns HTML. Let's try to split by headers.
+    const topics = contentSections.estude.split(/<h[23][^>]*>/i).filter(t => t.trim().length > 0);
+    return topics.map(t => t.includes("</h") ? `<h3` + t : t);
+  }, [contentSections.estude]);
+
+  const mediteScreens = useMemo(() => {
+    if (!contentSections.medite) return [];
+    // Split by header or just divide in two: Meditação and Aplicação
+    const screens = contentSections.medite.split(/<h[23][^>]*>/i).filter(s => s.trim().length > 0);
+    return screens.map(s => s.includes("</h") ? `<h3` + s : s);
+  }, [contentSections.medite]);
   const { data, isLoading, error } = useQuery<LessonResponse>({
     queryKey: ["/api/study/events", eventId, "lessons", dayNumber],
     enabled: !!user && eventId > 0 && dayNumber > 0,
@@ -273,6 +308,7 @@ export default function EventLessonPage() {
       stageType: "estude",
       nextStage: contentSections.medite ? "medite" : (questions.length > 0 ? "responda" : null)
     });
+    playSound("modal");
     setShowStageComplete(true);
   };
 
@@ -284,6 +320,7 @@ export default function EventLessonPage() {
       stageType: "medite",
       nextStage: questions.length > 0 ? "responda" : null
     });
+    playSound("modal");
     setShowStageComplete(true);
   };
 
@@ -315,6 +352,9 @@ export default function EventLessonPage() {
     
     if (checkAnswer(currentQuestion, answer)) {
       setCorrectAnswers(prev => prev + 1);
+      playSound("correct");
+    } else {
+      playSound("incorrect");
     }
   };
 
@@ -345,6 +385,7 @@ export default function EventLessonPage() {
         correctAnswers: finalCorrect,
         totalQuestions: total
       });
+      playSound("complete");
       setShowStageComplete(true);
 
       if (lessonId && !isCompleted) {
@@ -488,15 +529,20 @@ export default function EventLessonPage() {
 
       <main className="flex-1 p-4 pb-24">
         <AnimatePresence mode="wait">
-          {currentStage === "estude" && (
+          {currentStage === "estude" && estudeTopics.length > 0 && (
             <motion.div
-              key="estude"
+              key={`estude-${currentEstudeTopic}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              {lesson.verseReference && (
+              <div className="flex items-center justify-between mb-2">
+                <Progress value={((currentEstudeTopic + 1) / estudeTopics.length) * 100} className="flex-1 mr-4" />
+                <span className="text-xs text-muted-foreground">{currentEstudeTopic + 1}/{estudeTopics.length}</span>
+              </div>
+
+              {currentEstudeTopic === 0 && lesson.verseReference && (
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -520,57 +566,96 @@ export default function EventLessonPage() {
                 <CardContent className="p-4">
                   <div 
                     className="prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: contentSections.estude }}
+                    dangerouslySetInnerHTML={{ __html: estudeTopics[currentEstudeTopic] }}
                   />
                 </CardContent>
               </Card>
 
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={handleEstudeContinue}
-                data-testid="button-estude-continue"
-              >
-                Continuar
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
+              <div className="flex gap-2">
+                {currentEstudeTopic > 0 && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setCurrentEstudeTopic(prev => prev - 1)}
+                  >
+                    Anterior
+                  </Button>
+                )}
+                <Button 
+                  className="flex-1" 
+                  size="lg"
+                  onClick={() => {
+                    if (currentEstudeTopic < estudeTopics.length - 1) {
+                      setCurrentEstudeTopic(prev => prev + 1);
+                    } else {
+                      handleEstudeContinue();
+                    }
+                  }}
+                  data-testid="button-estude-continue"
+                >
+                  {currentEstudeTopic < estudeTopics.length - 1 ? "Próximo" : "Concluir Estudo"}
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
             </motion.div>
           )}
 
-          {currentStage === "medite" && (
+          {currentStage === "medite" && mediteScreens.length > 0 && (
             <motion.div
-              key="medite"
+              key={`medite-${currentMediteScreen}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
+              <div className="flex items-center justify-between mb-2">
+                <Progress value={((currentMediteScreen + 1) / mediteScreens.length) * 100} className="flex-1 mr-4" />
+                <span className="text-xs text-muted-foreground">{currentMediteScreen + 1}/{mediteScreens.length}</span>
+              </div>
+
               <Card className="border-pink-500/20 bg-pink-500/5">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <Heart className="h-5 w-5 text-pink-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-sm text-pink-600 dark:text-pink-400 mb-2">
-                        Momento de Reflexão
+                        {currentMediteScreen === 0 ? "Meditação" : "Aplicação Prática"}
                       </p>
                       <div 
                         className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: contentSections.medite || "<p>Medite sobre o que você aprendeu na seção anterior. Ore e peça a Deus sabedoria para aplicar esses ensinamentos em sua vida.</p>" }}
+                        dangerouslySetInnerHTML={{ __html: mediteScreens[currentMediteScreen] }}
                       />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={handleMediteContinue}
-                data-testid="button-medite-continue"
-              >
-                Continuar
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
+              <div className="flex gap-2">
+                {currentMediteScreen > 0 && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setCurrentMediteScreen(prev => prev - 1)}
+                  >
+                    Anterior
+                  </Button>
+                )}
+                <Button 
+                  className="flex-1" 
+                  size="lg"
+                  onClick={() => {
+                    if (currentMediteScreen < mediteScreens.length - 1) {
+                      setCurrentMediteScreen(prev => prev + 1);
+                    } else {
+                      handleMediteContinue();
+                    }
+                  }}
+                  data-testid="button-medite-continue"
+                >
+                  {currentMediteScreen < mediteScreens.length - 1 ? "Próximo" : "Concluir Meditação"}
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
             </motion.div>
           )}
 
@@ -617,6 +702,42 @@ export default function EventLessonPage() {
                           >
                             <Checkbox checked={isSelected} />
                             <span className="flex-1">{option.label}</span>
+                            {showResult && isCorrect && (
+                              <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            )}
+                            {showResult && isSelected && !isCorrect && (
+                              <XCircle className="h-5 w-5 text-red-500" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : currentQuestion.type === "fill_blank" && currentQuestion.options ? (
+                    <div className="space-y-3">
+                      {currentQuestion.options.map((option, idx) => {
+                        const isSelected = selectedAnswer === option;
+                        const isCorrect = option === currentQuestion.correctAnswer;
+                        const showResult = showFeedback;
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors ${
+                              showResult
+                                ? isCorrect
+                                  ? "border-green-500 bg-green-500/10"
+                                  : isSelected
+                                    ? "border-red-500 bg-red-500/10"
+                                    : "border-border"
+                                : isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => handleAnswerSelect(option)}
+                            data-testid={`option-fill-${idx}`}
+                          >
+                            <Checkbox checked={isSelected} />
+                            <span className="flex-1">{option}</span>
                             {showResult && isCorrect && (
                               <CheckCircle2 className="h-5 w-5 text-green-500" />
                             )}

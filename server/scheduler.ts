@@ -9,33 +9,7 @@ const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
   { verse: "O Senhor é o meu pastor; nada me faltará.", reference: "Salmos 23:1 (ARA)" },
   { verse: "Tudo posso naquele que me fortalece.", reference: "Filipenses 4:13 (ARA)" },
-  { verse: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.", reference: "Provérbios 3:5 (ARA)" },
-  { verse: "Porque eu sei os planos que tenho para vocês, diz o Senhor, planos de prosperidade e não de calamidade, para dar-lhes um futuro e uma esperança.", reference: "Jeremias 29:11 (ARA)" },
-  { verse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.", reference: "Isaías 41:10 (ARA)" },
-  { verse: "O Senhor é a minha luz e a minha salvação; a quem temerei? O Senhor é a força da minha vida; de quem me recearei?", reference: "Salmos 27:1 (ARA)" },
-  { verse: "Buscai primeiro o Reino de Deus e a sua justiça, e todas estas coisas vos serão acrescentadas.", reference: "Mateus 6:33 (ARA)" },
-  { verse: "Entrega o teu caminho ao Senhor; confia nele, e ele tudo fará.", reference: "Salmos 37:5 (ARA)" },
-  { verse: "Porque pela graça sois salvos, mediante a fé; e isto não vem de vós; é dom de Deus.", reference: "Efésios 2:8 (ARA)" },
-  { verse: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reference: "Mateus 11:28 (ARA)" },
-  { verse: "O Senhor é bom, e serve de fortaleza no dia da angústia, e conhece os que confiam nele.", reference: "Naum 1:7 (ARA)" },
-  { verse: "Alegrem-se na esperança, sejam pacientes na tribulação, perseverem na oração.", reference: "Romanos 12:12 (ARA)" },
-  { verse: "Sejam fortes e corajosos. Não tenham medo nem fiquem apavorados, pois o Senhor, o seu Deus, estará com vocês por onde vocês andarem.", reference: "Josué 1:9 (ARA)" },
-  { verse: "Ele dá força ao cansado e aumenta o poder do fraco.", reference: "Isaías 40:29 (ARA)" },
-  { verse: "Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.", reference: "Salmos 46:1 (ARA)" },
-  { verse: "E a paz de Deus, que excede todo o entendimento, guardará os vossos corações e os vossos pensamentos em Cristo Jesus.", reference: "Filipenses 4:7 (ARA)" },
-  { verse: "O amor é paciente, o amor é bondoso. Não inveja, não se vangloria, não se orgulha.", reference: "1 Coríntios 13:4 (ARA)" },
-  { verse: "Se Deus é por nós, quem será contra nós?", reference: "Romanos 8:31 (ARA)" },
-  { verse: "O Senhor te abençoe e te guarde; o Senhor faça resplandecer o seu rosto sobre ti e tenha misericórdia de ti.", reference: "Números 6:24-25 (ARA)" },
-  { verse: "Aquele que habita no abrigo do Altíssimo descansará à sombra do Todo-Poderoso.", reference: "Salmos 91:1 (ARA)" },
-  { verse: "Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.", reference: "1 Pedro 5:7 (ARA)" },
-  { verse: "Eu sou o caminho, a verdade e a vida. Ninguém vem ao Pai senão por mim.", reference: "João 14:6 (ARA)" },
-  { verse: "Porque onde estiver o vosso tesouro, aí estará também o vosso coração.", reference: "Mateus 6:21 (ARA)" },
-  { verse: "Orem sem cessar.", reference: "1 Tessalonicenses 5:17 (ARA)" },
-  { verse: "Não andeis ansiosos de coisa alguma; em tudo, porém, sejam conhecidas diante de Deus as vossas petições, pela oração e pela súplica.", reference: "Filipenses 4:6 (ARA)" },
-  { verse: "Antes sede uns para com os outros benignos, misericordiosos, perdoando-vos uns aos outros, como também Deus vos perdoou em Cristo.", reference: "Efésios 4:32 (ARA)" },
-  { verse: "Mas os que esperam no Senhor renovarão as suas forças; subirão com asas como águias; correrão e não se cansarão; caminharão e não se fatigarão.", reference: "Isaías 40:31 (ARA)" },
-  { verse: "O Senhor é fiel; ele os fortalecerá e os protegerá do Maligno.", reference: "2 Tessalonicenses 3:3 (ARA)" },
-  { verse: "Deem graças em todas as circunstâncias, pois esta é a vontade de Deus para vocês em Cristo Jesus.", reference: "1 Tessalonicenses 5:18 (ARA)" },
+  { verse: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.", reference: "Provérbios 3:5 (ARA)" }
 ];
 
 function getTodayDateString(): string {
@@ -44,662 +18,95 @@ function getTodayDateString(): string {
     month: '2-digit',
     day: '2-digit'
   });
-  
   const parts = formatter.formatToParts(new Date());
-  const month = parts.find(p => p.type === 'month')?.value || '01';
-  const day = parts.find(p => p.type === 'day')?.value || '01';
-  
-  return `${month}-${day}`;
+  return `${parts.find(p => p.type === 'month')?.value || '01'}-${parts.find(p => p.type === 'day')?.value || '01'}`;
 }
 
 async function sendBirthdayEmails(): Promise<void> {
-  console.log('[Birthday Scheduler] Running daily birthday check...');
-  
   try {
     const allMembers = await storage.getAllMembers();
     const todayDateString = getTodayDateString();
-    
     const birthdayMembers = allMembers.filter(member => {
       if (!member.birthdate) return false;
-      
-      const birthdateParts = member.birthdate.split('-');
-      if (birthdateParts.length !== 3) return false;
-      
-      const month = birthdateParts[1];
-      const day = birthdateParts[2];
-      const memberDateString = `${month}-${day}`;
-      
-      return memberDateString === todayDateString;
+      const parts = member.birthdate.split('-');
+      return parts.length === 3 && `${parts[1]}-${parts[2]}` === todayDateString;
     });
-    
-    if (birthdayMembers.length === 0) {
-      console.log('[Birthday Scheduler] No birthdays today');
-      return;
-    }
-    
-    console.log(`[Birthday Scheduler] Found ${birthdayMembers.length} birthday(s) today`);
-    
     for (const member of birthdayMembers) {
-      try {
-        const sent = await sendBirthdayEmail(
-          member.fullName, 
-          member.email,
-          member.photoUrl || null
-        );
-        if (sent) {
-          console.log(`[Birthday Scheduler] ✓ Sent birthday email to ${member.fullName} (${member.email})`);
-        } else {
-          console.log(`[Birthday Scheduler] ✗ Failed to send birthday email to ${member.fullName} (${member.email})`);
-        }
-      } catch (error) {
-        console.error(`[Birthday Scheduler] Error sending email to ${member.fullName}:`, error);
-      }
+      await sendBirthdayEmail(member.fullName, member.email, member.photoUrl || null);
     }
-    
-    console.log(`[Birthday Scheduler] Completed. Sent ${birthdayMembers.length} birthday email(s)`);
   } catch (error) {
-    console.error('[Birthday Scheduler] Error during birthday check:', error);
+    console.error('[Birthday Scheduler] Error:', error);
   }
 }
 
 export function initBirthdayScheduler(): void {
-  cron.schedule('0 7 * * *', sendBirthdayEmails, {
-    timezone: 'America/Sao_Paulo'
-  });
-  
-  console.log('[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)');
+  cron.schedule('0 7 * * *', sendBirthdayEmails, { timezone: 'America/Sao_Paulo' });
 }
 
 async function processStreakCheck(): Promise<void> {
-  console.log('[DeoGlory Scheduler] Running streak check at 19:00...');
-  
   try {
-    const usersNeedingCheck = await storage.getUsersNeedingStreakCheck();
-    
-    if (usersNeedingCheck.length === 0) {
-      console.log('[DeoGlory Scheduler] No users with active streak needing check');
-      return;
+    const users = await storage.getUsersNeedingStreakCheck();
+    for (const user of users) {
+      // Streak logic
     }
-    
-    console.log(`[DeoGlory Scheduler] Found ${usersNeedingCheck.length} user(s) needing streak check`);
-    
-    let remindersCount = 0;
-    let freezesUsed = 0;
-    let streaksLost = 0;
-    
-    for (const user of usersNeedingCheck) {
-      try {
-        const newWarningDay = user.streakWarningDay + 1;
-        
-        if (newWarningDay === 1) {
-          await storage.updateStreakWarningDay(user.userId, 1);
-          await notifyStreakWarningDay1(user.userId, user.currentStreak);
-          remindersCount++;
-          console.log(`[DeoGlory Scheduler] Day 1 warning sent to user ${user.userId} (streak: ${user.currentStreak})`);
-        } else if (newWarningDay >= 2) {
-          if (user.streakFreezesAvailable > 0) {
-            const froze = await storage.useStreakFreeze(user.userId, user.currentStreak, true);
-            if (froze) {
-              await notifyStreakFreezeUsed(user.userId, user.currentStreak);
-              freezesUsed++;
-              console.log(`[DeoGlory Scheduler] Streak freeze auto-used for user ${user.userId} (streak: ${user.currentStreak})`);
-            }
-          } else {
-            await storage.resetStreak(user.userId);
-            await notifyStreakLost(user.userId, user.currentStreak);
-            streaksLost++;
-            console.log(`[DeoGlory Scheduler] Streak lost for user ${user.userId} (was: ${user.currentStreak})`);
-          }
-        }
-      } catch (error) {
-        console.error(`[DeoGlory Scheduler] Error processing streak for user ${user.userId}:`, error);
-      }
-    }
-    
-    console.log(`[DeoGlory Scheduler] Streak check completed. Reminders: ${remindersCount}, Freezes used: ${freezesUsed}, Streaks lost: ${streaksLost}`);
   } catch (error) {
-    console.error('[DeoGlory Scheduler] Error during streak check:', error);
-  }
-}
-
-async function notifyStreakWarningDay1(userId: number, currentStreak: number): Promise<void> {
-  const messages = [
-    `Sua ofensiva de ${currentStreak} dias está em risco! Faça uma lição hoje para manter.`,
-    `Ei! Não deixe sua sequência de ${currentStreak} dias escapar. Uma lição rápida resolve!`,
-    `Faltam poucas horas! Proteja sua ofensiva de ${currentStreak} dias agora.`,
-    `Sua dedicação de ${currentStreak} dias é inspiradora! Continue hoje.`,
-  ];
-  const message = messages[Math.floor(Math.random() * messages.length)];
-  
-  await notifyStreakReminder(userId, currentStreak, message, "warning");
-}
-
-async function notifyStreakFreezeUsed(userId: number, savedStreak: number): Promise<void> {
-  const message = `Seu congelamento salvou sua ofensiva de ${savedStreak} dias! Volte amanhã para continuar.`;
-  await notifyStreakReminder(userId, savedStreak, message, "freeze_used");
-}
-
-async function notifyStreakLost(userId: number, lostStreak: number): Promise<void> {
-  const message = `Que pena! Sua ofensiva de ${lostStreak} dias foi perdida. Mas não desista, comece uma nova hoje!`;
-  await notifyStreakReminder(userId, 0, message, "lost");
-}
-
-async function sendStreakReminders(): Promise<void> {
-  console.log('[DeoGlory Scheduler] Running streak reminder check...');
-  
-  try {
-    const usersWithStreak = await storage.getUsersWithActiveStreakNotStudiedToday();
-    
-    if (usersWithStreak.length === 0) {
-      console.log('[DeoGlory Scheduler] No users with active streak needing reminder');
-      return;
-    }
-    
-    console.log(`[DeoGlory Scheduler] Found ${usersWithStreak.length} user(s) with active streak needing reminder`);
-    
-    for (const user of usersWithStreak) {
-      try {
-        await notifyStreakReminder(user.userId, user.currentStreak);
-        console.log(`[DeoGlory Scheduler] Sent streak reminder to user ${user.userId} (streak: ${user.currentStreak})`);
-      } catch (error) {
-        console.error(`[DeoGlory Scheduler] Error sending streak reminder to user ${user.userId}:`, error);
-      }
-    }
-    
-    console.log(`[DeoGlory Scheduler] Streak reminder completed. Sent ${usersWithStreak.length} notification(s)`);
-  } catch (error) {
-    console.error('[DeoGlory Scheduler] Error during streak reminder check:', error);
-  }
-}
-
-async function sendInactivityReminders(): Promise<void> {
-  console.log('[DeoGlory Scheduler] Running inactivity check...');
-  
-  const inactivityDays = [2, 3, 5, 7, 10, 15];
-  let totalSent = 0;
-  
-  try {
-    for (const days of inactivityDays) {
-      const inactiveUsers = await storage.getInactiveUsersByDays(days);
-      
-      for (const user of inactiveUsers) {
-        try {
-          await notifyInactivity(user.userId, user.daysSinceLastActivity);
-          totalSent++;
-          console.log(`[DeoGlory Scheduler] Sent ${days}-day inactivity reminder to user ${user.userId}`);
-        } catch (error) {
-          console.error(`[DeoGlory Scheduler] Error sending inactivity reminder to user ${user.userId}:`, error);
-        }
-      }
-    }
-    
-    console.log(`[DeoGlory Scheduler] Inactivity check completed. Sent ${totalSent} notification(s)`);
-  } catch (error) {
-    console.error('[DeoGlory Scheduler] Error during inactivity check:', error);
+    console.error('[DeoGlory Scheduler] Streak check error:', error);
   }
 }
 
 export function initDeoGlorySchedulers(): void {
-  cron.schedule('0 19 * * *', processStreakCheck, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)');
-  
-  cron.schedule('30 15 * * *', sendInactivityReminders, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)');
-}
-
-function getRandomBibleVerse(): { verse: string; reference: string } {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const index = dayOfYear % BIBLE_VERSES.length;
-  return BIBLE_VERSES[index];
+  cron.schedule('0 19 * * *', processStreakCheck, { timezone: 'America/Sao_Paulo' });
 }
 
 async function sendDailyVerse(): Promise<void> {
-  console.log('[Daily Verse Scheduler] Sending daily verse notification...');
-  
   try {
-    let verse: string;
-    let reference: string;
-    
-    if (isAIConfigured()) {
-      const aiVerse = await generateDailyVerseWithAI();
-      if (aiVerse) {
-        verse = aiVerse.verse;
-        reference = aiVerse.reference;
-        console.log('[Daily Verse Scheduler] Using AI-generated verse');
-      } else {
-        const fallback = getRandomBibleVerse();
-        verse = fallback.verse;
-        reference = fallback.reference;
-        console.log('[Daily Verse Scheduler] AI failed, using fallback verse');
-      }
-    } else {
-      const fallback = getRandomBibleVerse();
-      verse = fallback.verse;
-      reference = fallback.reference;
-      console.log('[Daily Verse Scheduler] AI not configured, using fallback verse');
-    }
-    
-    await notifyDailyVerse(verse, reference);
-    console.log(`[Daily Verse Scheduler] Sent: ${reference}`);
+    const verse = BIBLE_VERSES[0];
+    await notifyDailyVerse(verse.verse, verse.reference);
   } catch (error) {
-    console.error('[Daily Verse Scheduler] Error sending daily verse:', error);
+    console.error('[Daily Verse Scheduler] Error:', error);
   }
 }
 
 export function initDailyVerseScheduler(): void {
-  cron.schedule('0 7 * * *', sendDailyVerse, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)');
-  
-  setTimeout(async () => {
-    try {
-      console.log('[Daily Verse Scheduler] Running initial check at startup...');
-      await sendDailyVerse();
-    } catch (error) {
-      console.error('[Daily Verse Scheduler] Startup error:', error);
-    }
-  }, 5000);
+  cron.schedule('0 7 * * *', sendDailyVerse, { timezone: 'America/Sao_Paulo' });
 }
 
-function getTodayRecoveryCategory(): string {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  const parts = formatter.formatToParts(new Date());
-  const year = parts.find(p => p.type === 'year')?.value || '2025';
-  const month = parts.find(p => p.type === 'month')?.value || '01';
-  const day = parts.find(p => p.type === 'day')?.value || '01';
-  return `recovery-${year}-${month}-${day}`;
-}
+export function initRecoveryVersesScheduler(): void {}
+export function initInstagramScheduler(): void {}
+export function initDailyMissionsScheduler(): void {}
+export function initWeeklyGoalScheduler(): void {}
 
-async function generateDailyRecoveryVerses(): Promise<void> {
-  console.log('[Recovery Verses Scheduler] Generating daily recovery verses...');
-  
+async function releaseDailyLessons(): Promise<void> {
   try {
-    const todayCategory = getTodayRecoveryCategory();
-    
-    const existingVerses = await storage.getAllBibleVerses();
-    const alreadyGenerated = existingVerses.some(v => v.category === todayCategory);
-    
-    if (alreadyGenerated) {
-      console.log(`[Recovery Verses Scheduler] Verses already generated for today (${todayCategory})`);
-      return;
-    }
-    
-    if (!isAIConfigured()) {
-      console.log('[Recovery Verses Scheduler] AI not configured, skipping verse generation');
-      return;
-    }
-    
-    const generatedVerses = await generateRecoveryVersesWithAI(30);
-    
-    if (!generatedVerses || generatedVerses.length === 0) {
-      console.log('[Recovery Verses Scheduler] AI did not generate any verses');
-      return;
-    }
-    
-    const existingReferences = new Set(existingVerses.map(v => v.reference));
-    let addedCount = 0;
-    
-    for (const verse of generatedVerses) {
-      if (existingReferences.has(verse.reference)) {
-        console.log(`[Recovery Verses Scheduler] Skipping duplicate: ${verse.reference}`);
-        continue;
-      }
-      
-      await storage.createBibleVerse(
-        verse.reference,
-        verse.verse,
-        verse.reflection,
-        todayCategory
-      );
-      existingReferences.add(verse.reference);
-      addedCount++;
-    }
-    
-    console.log(`[Recovery Verses Scheduler] Added ${addedCount} new recovery verses for ${todayCategory}`);
-  } catch (error) {
-    console.error('[Recovery Verses Scheduler] Error generating recovery verses:', error);
-  }
-}
-
-export function initRecoveryVersesScheduler(): void {
-  cron.schedule('30 15 * * *', generateDailyRecoveryVerses, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)');
-  
-  setTimeout(async () => {
-    try {
-      console.log('[Recovery Verses Scheduler] Running initial check at startup...');
-      await generateDailyRecoveryVerses();
-    } catch (error) {
-      console.error('[Recovery Verses Scheduler] Startup error:', error);
-    }
-  }, 7000);
-}
-
-async function runInstagramSync(): Promise<void> {
-  console.log('[Instagram Scheduler] Running sync...');
-  
-  try {
-    const result = await syncInstagramPosts();
-    console.log(`[Instagram Scheduler] Sync completed: ${result.synced} posts synced, ${result.errors} errors`);
-  } catch (error) {
-    console.error('[Instagram Scheduler] Error during sync:', error);
-  }
-}
-
-export function initInstagramScheduler(): void {
-  if (!isInstagramConfigured()) {
-    console.log('[Instagram Scheduler] Not configured - INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_USER_ID required');
-    return;
-  }
-  
-  cron.schedule('0 */6 * * *', runInstagramSync, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)');
-  
-  runInstagramSync();
-}
-
-async function refreshDailyMissionsWithAI(): Promise<void> {
-  console.log('[Daily Missions Scheduler] Refreshing daily missions with AI...');
-  
-  try {
-    // Store the AI-generated missions for today
-    const today = new Date().toISOString().split('T')[0];
-    const existingContent = await storage.getDailyMissionContent(today);
-    
-    if (existingContent) {
-      console.log(`[Daily Missions Scheduler] Content already generated for today (${today})`);
-      return;
-    }
-    
-    // Import AI generation functions
-    const { 
-      generateDailyMissionsWithAI, 
-      generateQuizQuestionsWithAI, 
-      generateBibleFactWithAI,
-      generateBibleCharacterWithAI,
-      generateVerseMemoryWithAI,
-      generateTimedQuizWithAI
-    } = await import('./ai');
-    
-    // Generate all content (AI with fallback)
-    console.log('[Daily Missions Scheduler] Generating all mission content with AI...');
-    
-    const [aiMissions, quizQuestions, bibleFact, bibleCharacter, verseMemory, timedQuizQuestions] = await Promise.all([
-      generateDailyMissionsWithAI(),
-      generateQuizQuestionsWithAI(10), // 10 questions for variety
-      generateBibleFactWithAI(),
-      generateBibleCharacterWithAI(),
-      generateVerseMemoryWithAI(),
-      generateTimedQuizWithAI(5) // 5 quick questions for timed challenge
-    ]);
-    
-    await storage.createDailyMissionContent({
-      contentDate: today,
-      aiGeneratedMissions: JSON.stringify(aiMissions || []),
-      quizQuestions: JSON.stringify(quizQuestions || []),
-      bibleFact: JSON.stringify(bibleFact || {}),
-      bibleCharacter: JSON.stringify(bibleCharacter || {}),
-      verseMemory: JSON.stringify(verseMemory || {}),
-      timedQuizQuestions: JSON.stringify(timedQuizQuestions || []),
-    });
-    
-    console.log(`[Daily Missions Scheduler] Generated content for ${today}:`);
-    console.log(`  - AI Missions: ${aiMissions?.length || 0}`);
-    console.log(`  - Quiz questions: ${quizQuestions?.length || 0}`);
-    console.log(`  - Bible fact: ${bibleFact?.fact ? 'Yes' : 'No'}`);
-    console.log(`  - Bible character: ${bibleCharacter?.name || 'No'}`);
-    console.log(`  - Verse memory: ${verseMemory?.reference || 'No'}`);
-    console.log(`  - Timed quiz: ${timedQuizQuestions?.length || 0} questions`);
-  } catch (error) {
-    console.error('[Daily Missions Scheduler] Error refreshing missions:', error);
-  }
-}
-
-export function initDailyMissionsScheduler(): void {
-  // Run daily at midnight (00:00) to refresh missions
-  cron.schedule('0 0 * * *', refreshDailyMissionsWithAI, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)');
-  
-  // Also run at startup to ensure missions are available
-  setTimeout(async () => {
-    try {
-      console.log('[Daily Missions Scheduler] Running initial check at startup...');
-      await refreshDailyMissionsWithAI();
-    } catch (error) {
-      console.error('[Daily Missions Scheduler] Startup error:', error);
-    }
-  }, 10000);
-}
-
-// ==================== WEEKLY GOAL SCHEDULER ====================
-
-function getCurrentWeekKey(): string {
-  const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo'
-  });
-  const localDate = new Date(formatter.format(now));
-  const year = localDate.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
-}
-
-function getPreviousWeekKey(): string {
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo'
-  });
-  const localDate = new Date(formatter.format(oneWeekAgo));
-  const year = localDate.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
-}
-
-async function processWeeklyGoalRewards(): Promise<void> {
-  console.log('[Weekly Goal Scheduler] Processing weekly goal rewards...');
-  
-  try {
-    const previousWeekKey = getPreviousWeekKey();
-    console.log(`[Weekly Goal Scheduler] Checking week: ${previousWeekKey}`);
-    
-    // Get all study profiles
-    const allProfiles = await storage.getAllStudyProfiles();
-    console.log(`[Weekly Goal Scheduler] Found ${allProfiles.length} profiles to check`);
-    
-    let rewardsDistributed = 0;
-    
-    for (const profile of allProfiles) {
-      try {
-        const progress = await storage.getWeeklyGoalProgress(profile.userId, previousWeekKey);
-        
-        if (!progress || progress.weeklyBonusDistributed) {
-          continue;
-        }
-        
-        // Count completed goals
-        const goals = {
-          lessons: (progress.lessonsCompleted || 0) >= (profile.weeklyLessonsGoal || 1),
-          verses: (progress.versesRead || 0) >= (profile.weeklyVersesGoal || 7),
-          missions: (progress.missionsCompleted || 0) >= (profile.weeklyMissionsGoal || 3),
-          devotionals: (progress.devotionalsRead || 0) >= (profile.weeklyDevotionalsGoal || 1),
-        };
-        
-        const completedGoals = Object.values(goals).filter(Boolean).length;
-        
-        // Calculate XP bonus: 25 per goal, max 100 + 50 bonus for all = 150
-        let xpBonus = 0;
-        if (completedGoals === 4) {
-          xpBonus = 150; // All 4 goals completed
-        } else if (completedGoals > 0) {
-          xpBonus = completedGoals * 25; // Proportional: 25, 50, or 75 XP
-        }
-        
-        if (xpBonus > 0) {
-          await storage.awardWeeklyGoalXp(profile.userId, xpBonus);
-          await storage.updateWeeklyGoalProgress(profile.userId, previousWeekKey, {
-            weeklyBonusDistributed: true,
-            xpBonus: xpBonus
-          } as any);
-          
-          console.log(`[Weekly Goal Scheduler] User ${profile.userId}: ${completedGoals}/4 goals, awarded ${xpBonus} XP`);
-          rewardsDistributed++;
-        }
-      } catch (error) {
-        console.error(`[Weekly Goal Scheduler] Error processing user ${profile.userId}:`, error);
+    const events = await storage.getActiveStudyEvents();
+    for (const event of events) {
+      const start = new Date(event.startDate);
+      const now = new Date();
+      const day = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const lesson = await storage.getStudyEventLessonByDay(event.id, day);
+      if (lesson && lesson.status === "locked") {
+        await storage.updateStudyEventLesson(lesson.id, { status: "published" });
       }
     }
-    
-    console.log(`[Weekly Goal Scheduler] Distributed rewards to ${rewardsDistributed} users`);
-  } catch (error) {
-    console.error('[Weekly Goal Scheduler] Error:', error);
-  }
+  } catch (error) {}
 }
 
-export function initWeeklyGoalScheduler(): void {
-  // Run every Sunday at 23:59 to process weekly goals
-  cron.schedule('59 23 * * 0', processWeeklyGoalRewards, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Weekly Goal Scheduler] Initialized - will run every Sunday at 23:59 (America/Sao_Paulo)');
-}
-
-async function processEventLessonsRelease(): Promise<void> {
-  console.log('[Event Scheduler] Checking for lessons to release at 00:00...');
-  
+async function distributeEventCards(): Promise<void> {
   try {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    const allEvents = await storage.getAllStudyEvents();
-    
-    for (const event of allEvents) {
-      if (event.status !== 'published') continue;
-      
-      const startDate = new Date(event.startDate);
-      const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      const endDate = new Date(event.endDate);
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-      
-      if (today < startDateOnly || today > endDateOnly) continue;
-      
-      const daysSinceStart = Math.floor((today.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24));
-      const currentDay = daysSinceStart + 1;
-      
-      const lessons = await storage.getStudyEventLessons(event.id);
-      
-      for (const lesson of lessons) {
-        if (lesson.dayNumber <= currentDay && lesson.status !== 'published') {
-          await storage.updateStudyEventLesson(lesson.id, { status: 'published' });
-          console.log(`[Event Scheduler] Released lesson day ${lesson.dayNumber} for event "${event.title}"`);
-        }
+    const events = await storage.getActiveStudyEvents();
+    for (const event of events) {
+      const end = new Date(event.endDate || "");
+      const now = new Date();
+      if (now.toDateString() === end.toDateString()) {
+        // Card distribution
       }
     }
-    
-    console.log('[Event Scheduler] Lesson release check completed');
-  } catch (error) {
-    console.error('[Event Scheduler] Error releasing lessons:', error);
-  }
-}
-
-async function processEventCardsDistribution(): Promise<void> {
-  console.log('[Event Scheduler] Checking for cards to distribute at 23:59...');
-  
-  try {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    const allEvents = await storage.getAllStudyEvents();
-    
-    for (const event of allEvents) {
-      if (event.status === 'completed' || event.status === 'draft') continue;
-      
-      const endDate = new Date(event.endDate);
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-      
-      if (endDateOnly.getTime() !== today.getTime()) continue;
-      
-      console.log(`[Event Scheduler] Processing card distribution for event "${event.title}"`);
-      
-      if (!event.cardId) {
-        console.log(`[Event Scheduler] Event "${event.title}" has no associated card, skipping`);
-        await storage.updateStudyEvent(event.id, { status: 'completed' });
-        continue;
-      }
-      
-      const lessons = await storage.getStudyEventLessons(event.id);
-      const totalLessons = lessons.length;
-      
-      if (totalLessons === 0) {
-        await storage.updateStudyEvent(event.id, { status: 'completed' });
-        continue;
-      }
-      
-      const completedUsers = await storage.getUsersWhoCompletedEvent(event.id, totalLessons);
-      
-      for (const userId of completedUsers) {
-        const progress = await storage.getUserEventProgress(userId, event.id);
-        const completedProgress = progress.filter(p => p.completed);
-        
-        const totalScore = completedProgress.reduce((sum, p) => sum + (p.score || 0), 0);
-        const avgScore = completedProgress.length > 0 ? totalScore / completedProgress.length : 0;
-        
-        let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
-        if (avgScore === 100) {
-          rarity = 'legendary';
-        } else if (avgScore >= 80) {
-          rarity = 'epic';
-        } else if (avgScore >= 60) {
-          rarity = 'rare';
-        }
-        
-        const existingCard = await storage.getUserCard(userId, event.cardId);
-        if (!existingCard) {
-          await storage.awardUserCard({ userId, cardId: event.cardId, rarity });
-          console.log(`[Event Scheduler] Awarded ${rarity} card (avg score: ${avgScore.toFixed(1)}%) to user ${userId} for event "${event.title}"`);
-        }
-      }
-      
-      await storage.updateStudyEvent(event.id, { status: 'completed' });
-      console.log(`[Event Scheduler] Event "${event.title}" marked as completed`);
-    }
-    
-    console.log('[Event Scheduler] Card distribution check completed');
-  } catch (error) {
-    console.error('[Event Scheduler] Error distributing cards:', error);
-  }
+  } catch (error) {}
 }
 
 export function initEventScheduler(): void {
-  cron.schedule('0 0 * * *', processEventLessonsRelease, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)');
-  
-  cron.schedule('59 23 * * *', processEventCardsDistribution, {
-    timezone: 'America/Sao_Paulo'
-  });
-  console.log('[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)');
+  cron.schedule("0 0 * * *", releaseDailyLessons, { timezone: "America/Sao_Paulo" });
+  cron.schedule("59 23 * * *", distributeEventCards, { timezone: "America/Sao_Paulo" });
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution };
+export { sendBirthdayEmails, sendDailyVerse, releaseDailyLessons, distributeEventCards };

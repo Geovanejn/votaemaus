@@ -541,6 +541,7 @@ Gere um JSON com a seguinte estrutura:
             //   - Se a resposta é um SUBSTANTIVO, as alternativas devem ser SUBSTANTIVOS do mesmo tipo
             //   - Se a resposta é um ADJETIVO, as alternativas devem ser ADJETIVOS
             //   - Se a resposta é um NOME PRÓPRIO (pessoa), as alternativas devem ser NOMES PRÓPRIOS
+            //   As alternativas devem ser contextualmente coerentes de modo que a resposta não seja óbvia.
             //   Exemplos:
             //   - { "question": "Jesus disse: Eu sou o ___, a verdade e a vida.", "correctAnswer": "caminho", "options": ["caminho", "destino", "propósito", "sentido"], "explanationCorrect": "João 14:6 - Jesus se apresenta como o único caminho ao Pai", "explanationIncorrect": "A resposta correta é 'caminho'. Releia João 14:6", "hint": "Pense em como chegamos a um lugar" }
             //   - { "question": "Segundo Romanos 8:28, Deus coopera em todas as coisas para o ___ daqueles que O amam.", "correctAnswer": "bem", "options": ["bem", "proveito", "benefício", "crescimento"], "explanationCorrect": "Deus trabalha para nosso benefício!", "explanationIncorrect": "A resposta é 'bem'. Romanos 8:28 nos ensina sobre a providência divina.", "hint": "Deus trabalha para nosso..." }

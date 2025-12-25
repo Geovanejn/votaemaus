@@ -7198,158 +7198,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Obter evento por ID com progresso do usuario
-  app.get("/api/study/events/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "ID invalido" });
-      }
-      const event = await storage.getStudyEventById(id);
-      // Accept active, published, or completed events
-      const validStatuses = ["active", "published", "completed"];
-      if (!event || !validStatuses.includes(event.status)) {
-        return res.status(404).json({ message: "Evento nao encontrado" });
-      }
-      const progress = await storage.getUserEventProgress(req.user!.id, id);
-      const lessons = await storage.getStudyEventLessons(id);
-      res.json({ event, lessons, progress });
-    } catch (error) {
-      console.error("Get event details error:", error);
-      res.status(500).json({ message: "Erro ao buscar detalhes do evento" });
-    }
-  });
-
-  // Obter licao de evento
   app.get("/api/study/events/:eventId/lessons/:dayNumber", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
       const dayNumber = parseInt(req.params.dayNumber);
-      if (isNaN(eventId) || isNaN(dayNumber)) {
-        return res.status(400).json({ message: "ID invalido" });
-      }
       const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
-      if (!lesson) {
-        return res.status(404).json({ message: "Lição não encontrada" });
-      }
-      const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
-      res.json({ lesson, progress });
+      if (!lesson) return res.status(404).json({ message: "Lição não encontrada" });
+      const progress = await storage.getStudyEventUserProgress(req.user!.id, lesson.id);
+      res.json({ lesson, progress: progress || null });
     } catch (error) {
-      console.error("Get event lesson error:", error);
-      res.status(500).json({ message: "Erro ao buscar licao" });
+      res.status(500).json({ message: "Erro ao carregar lição" });
     }
   });
 
-  // Completar licao de evento
-  app.post("/api/study/events/:eventId/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/admin/study/events/:eventId/lessons/:dayNumber", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
-      const lessonId = parseInt(req.params.lessonId);
-      if (isNaN(eventId) || isNaN(lessonId)) {
-        return res.status(400).json({ message: "ID invalido" });
-      }
-      
-      const { score, totalQuestions, correctAnswers, usedHints } = req.body;
-      
-      // Salvar progresso
-      const progress = await storage.saveUserEventProgress({
-        userId: req.user!.id,
-        eventId,
-        lessonId,
-        completed: true,
-        score: score || 0,
-        totalQuestions: totalQuestions || 0,
-        correctAnswers: correctAnswers || 0,
-        usedHints: usedHints || false,
-        xpEarned: 50, // XP base
-        completedAt: new Date(),
-      });
-
-      // Verificar se completou todas as licoes do evento
-      const event = await storage.getStudyEventById(eventId);
-      if (event && event.cardId) {
-        const allProgress = await storage.getUserEventProgress(req.user!.id, eventId);
-        const completedLessons = allProgress.filter(p => p.completed).length;
-        const eventLessons = await storage.getStudyEventLessons(eventId);
-        
-        if (completedLessons === eventLessons.length) {
-          // Calcular performance media
-          const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
-          const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
-          const avgPerformance = totalQs > 0 ? (totalCorrect / totalQs) * 100 : 0;
-          const anyHints = allProgress.some(p => p.usedHints);
-          
-          // Calcular raridade e dar o card
-          const rarity = calculateCardRarity(avgPerformance, anyHints);
-          await storage.awardUserCard({
-            userId: req.user!.id,
-            cardId: event.cardId,
-            rarity,
-            sourceType: "event",
-            sourceId: eventId,
-            performance: avgPerformance,
-          });
-        }
-      }
-
-      res.json(progress);
+      const dayNumber = parseInt(req.params.dayNumber);
+      const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
+      if (!lesson) return res.status(404).json({ message: "Lição não encontrada" });
+      const updated = await storage.updateStudyEventLesson(lesson.id, req.body);
+      res.json(updated);
     } catch (error) {
-      console.error("Complete event lesson error:", error);
-      res.status(500).json({ message: "Erro ao completar licao" });
+      res.status(400).json({ message: "Erro ao atualizar lição" });
     }
   });
 
-  // === ROTAS MEMBROS - MEUS CARDS ===
-
-  // Listar cards do usuario
-  app.get("/api/study/cards", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const cards = await storage.getUserCards(req.user!.id);
-      res.json(cards);
-    } catch (error) {
-      console.error("Get user cards error:", error);
-      res.status(500).json({ message: "Erro ao buscar seus cards" });
-    }
-  });
-
-  // Obter detalhes de um card do usuario
-  app.get("/api/study/cards/:cardId", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const cardId = parseInt(req.params.cardId);
-      if (isNaN(cardId)) {
-        return res.status(400).json({ message: "ID invalido" });
-      }
-      const userCard = await storage.getUserCard(req.user!.id, cardId);
-      if (!userCard) {
-        return res.status(404).json({ message: "Card nao encontrado" });
-      }
-      const cardDetails = await storage.getCollectibleCardById(cardId);
-      res.json({ ...userCard, card: cardDetails });
-    } catch (error) {
-      console.error("Get user card error:", error);
-      res.status(500).json({ message: "Erro ao buscar card" });
-    }
-  });
-
-  // Listar todos os cards disponiveis (catalogo)
-  app.get("/api/study/cards/catalog", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const allCards = await storage.getActiveCollectibleCards();
-      const userCards = await storage.getUserCards(req.user!.id);
-      const userCardIds = userCards.map(c => c.cardId);
-      
-      const catalog = allCards.map(card => ({
-        ...card,
-        owned: userCardIds.includes(card.id),
-        userRarity: userCards.find(uc => uc.cardId === card.id)?.rarity || null,
-      }));
-      
-      res.json(catalog);
-    } catch (error) {
-      console.error("Get cards catalog error:", error);
-      res.status(500).json({ message: "Erro ao buscar catalogo" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }

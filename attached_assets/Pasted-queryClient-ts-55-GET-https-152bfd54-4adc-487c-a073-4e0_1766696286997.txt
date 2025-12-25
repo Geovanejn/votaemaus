@@ -1,0 +1,49 @@
+queryClient.ts:55  GET https://152bfd54-4adc-487c-a073-4e0266fb0755-00-iqxopcswfcm7.kirk.replit.dev/api/study/events/1 500 (Internal Server Error)
+(anonymous) @ queryClient.ts:55
+fetchFn @ @tanstack_react-query.js?v=6b182438:840
+run @ @tanstack_react-query.js?v=6b182438:494
+start @ @tanstack_react-query.js?v=6b182438:536
+fetch @ @tanstack_react-query.js?v=6b182438:926
+executeFetch_fn @ @tanstack_react-query.js?v=6b182438:2211
+onSubscribe @ @tanstack_react-query.js?v=6b182438:1898
+subscribe @ @tanstack_react-query.js?v=6b182438:24
+(anonymous) @ @tanstack_react-query.js?v=6b182438:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=6b182438:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=6b182438:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=6b182438:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=6b182438:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=6b182438:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=6b182438:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=6b182438:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=6b182438:19447
+(anonymous) @ chunk-RPCDYKBN.js?v=6b182438:19328
+workLoop @ chunk-RPCDYKBN.js?v=6b182438:197
+flushWork @ chunk-RPCDYKBN.js?v=6b182438:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=6b182438:384Understand this error
+queryClient.ts:55  GET https://152bfd54-4adc-487c-a073-4e0266fb0755-00-iqxopcswfcm7.kirk.replit.dev/api/study/events/1 500 (Internal Server Error)
+(anonymous) @ queryClient.ts:55
+fetchFn @ @tanstack_react-query.js?v=6b182438:840
+run @ @tanstack_react-query.js?v=6b182438:494
+(anonymous) @ @tanstack_react-query.js?v=6b182438:519
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=6b182438:515
+Promise.catch
+run @ @tanstack_react-query.js?v=6b182438:498
+start @ @tanstack_react-query.js?v=6b182438:536
+fetch @ @tanstack_react-query.js?v=6b182438:926
+executeFetch_fn @ @tanstack_react-query.js?v=6b182438:2211
+onSubscribe @ @tanstack_react-query.js?v=6b182438:1898
+subscribe @ @tanstack_react-query.js?v=6b182438:24
+(anonymous) @ @tanstack_react-query.js?v=6b182438:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=6b182438:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=6b182438:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=6b182438:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=6b182438:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=6b182438:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=6b182438:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=6b182438:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=6b182438:19447
+(anonymous) @ chunk-RPCDYKBN.js?v=6b182438:19328
+workLoop @ chunk-RPCDYKBN.js?v=6b182438:197
+flushWork @ chunk-RPCDYKBN.js?v=6b182438:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=6b182438:384Understand this error

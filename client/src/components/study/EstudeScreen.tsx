@@ -326,9 +326,6 @@ export function EstudeScreen({
   ];
   
   const totalSlides = 3; // Fixed 3 screens: Topic 1, Topic 2, Conclusion
-  const sections = rawSections.length > 0 ? rawSections : [
-    { type: "topic" as const, title: lessonTitle, content: "Conteúdo não disponível." }
-  ];
   
   // Ensure we only have 3 slides regardless of rawSections length
   const displaySections = useMemo(() => {

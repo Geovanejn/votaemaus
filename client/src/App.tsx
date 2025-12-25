@@ -56,6 +56,9 @@ const StudyPreviewPage = lazy(() => import("@/pages/study/preview"));
 const StudyAdminPage = lazy(() => import("@/pages/study/admin/index"));
 const PracticePage = lazy(() => import("@/pages/study/practice"));
 const MemberProfilePage = lazy(() => import("@/pages/study/member-profile"));
+const EventsPage = lazy(() => import("@/pages/study/events"));
+const EventDetailPage = lazy(() => import("@/pages/study/event-detail"));
+const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
 const DeoGloryEstudos = lazy(() => import("@/pages/study/admin/DeoGloryEstudos"));
@@ -183,6 +186,9 @@ function Router() {
           <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
           <Route path="/study/practice/:weekId" component={PracticePage} />
           <Route path="/study/practice" component={PracticePage} />
+          <Route path="/study/events" component={EventsPage} />
+          <Route path="/study/events/:id" component={EventDetailPage} />
+          <Route path="/study/cards" component={CardsCollectionPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -226,6 +232,9 @@ function Router() {
         <Route path="/study/season/:id/ranking" component={SeasonRankingPage} />
         <Route path="/study/practice/:weekId" component={PracticePage} />
         <Route path="/study/practice" component={PracticePage} />
+        <Route path="/study/events" component={EventsPage} />
+        <Route path="/study/events/:id" component={EventDetailPage} />
+        <Route path="/study/cards" component={CardsCollectionPage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
         <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />

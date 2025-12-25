@@ -369,3 +369,95 @@ body {
     inset: -1px;
   }
 }
+
+/* Collectible Card Rarity Animations */
+@keyframes shimmer-gold {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes shimmer-purple {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+  }
+}
+
+.card-legendary {
+  position: relative;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.card-legendary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(251, 191, 36, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-gold 3s linear infinite;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-epic {
+  position: relative;
+}
+
+.card-epic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(168, 85, 247, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-purple 4s linear infinite;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-rare {
+  position: relative;
+}
+
+.card-rare::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-purple 5s linear infinite;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}

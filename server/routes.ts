@@ -28,6 +28,10 @@ import {
   loginPasswordSchema,
   getGravatarUrl,
   generatePdfVerificationHash,
+  insertStudyEventSchema,
+  insertStudyEventLessonSchema,
+  insertCollectibleCardSchema,
+  calculateCardRarity,
 } from "@shared/schema";
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail } from "./email";
@@ -6785,6 +6789,384 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete comment error:", error);
       res.status(500).json({ message: "Erro ao remover comentario" });
+    }
+  });
+
+  // ==================== EVENTOS ESPECIAIS + CARDS COLECIONÁVEIS ====================
+
+  // === ROTAS ADMIN - EVENTOS ESPECIAIS ===
+
+  // Listar todos os eventos (admin)
+  app.get("/api/admin/events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const events = await storage.getAllStudyEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Get events error:", error);
+      res.status(500).json({ message: "Erro ao buscar eventos" });
+    }
+  });
+
+  // Criar novo evento (admin)
+  app.post("/api/admin/events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertStudyEventSchema.parse({
+        ...req.body,
+        createdBy: req.user!.id,
+      });
+      const event = await storage.createStudyEvent(validatedData);
+      await logAuditAction(req.user?.id, "create", "study_event", event.id, `Evento criado: ${event.title}`, req);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Create event error:", error);
+      res.status(500).json({ message: "Erro ao criar evento" });
+    }
+  });
+
+  // Obter evento por ID (admin)
+  app.get("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const event = await storage.getStudyEventById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Get event error:", error);
+      res.status(500).json({ message: "Erro ao buscar evento" });
+    }
+  });
+
+  // Atualizar evento (admin)
+  app.patch("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const event = await storage.updateStudyEvent(id, req.body);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
+      res.json(event);
+    } catch (error) {
+      console.error("Update event error:", error);
+      res.status(500).json({ message: "Erro ao atualizar evento" });
+    }
+  });
+
+  // Deletar evento (admin)
+  app.delete("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      await logAuditAction(req.user?.id, "delete", "study_event", id, "Evento removido", req);
+      await storage.deleteStudyEvent(id);
+      res.json({ message: "Evento removido com sucesso" });
+    } catch (error) {
+      console.error("Delete event error:", error);
+      res.status(500).json({ message: "Erro ao remover evento" });
+    }
+  });
+
+  // === ROTAS ADMIN - LIÇÕES DE EVENTOS ===
+
+  // Listar licoes de um evento (admin)
+  app.get("/api/admin/events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const lessons = await storage.getStudyEventLessons(eventId);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Get event lessons error:", error);
+      res.status(500).json({ message: "Erro ao buscar licoes" });
+    }
+  });
+
+  // Criar licao de evento (admin)
+  app.post("/api/admin/events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const validatedData = insertStudyEventLessonSchema.parse({
+        ...req.body,
+        eventId,
+      });
+      const lesson = await storage.createStudyEventLesson(validatedData);
+      res.status(201).json(lesson);
+    } catch (error) {
+      console.error("Create event lesson error:", error);
+      res.status(500).json({ message: "Erro ao criar licao" });
+    }
+  });
+
+  // Atualizar licao de evento (admin)
+  app.patch("/api/admin/events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const lesson = await storage.updateStudyEventLesson(lessonId, req.body);
+      if (!lesson) {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Update event lesson error:", error);
+      res.status(500).json({ message: "Erro ao atualizar licao" });
+    }
+  });
+
+  // Deletar licao de evento (admin)
+  app.delete("/api/admin/events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      await storage.deleteStudyEventLesson(lessonId);
+      res.json({ message: "Licao removida com sucesso" });
+    } catch (error) {
+      console.error("Delete event lesson error:", error);
+      res.status(500).json({ message: "Erro ao remover licao" });
+    }
+  });
+
+  // === ROTAS ADMIN - CARDS COLECIONÁVEIS ===
+
+  // Listar todos os cards (admin)
+  app.get("/api/admin/cards", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const cards = await storage.getAllCollectibleCards();
+      res.json(cards);
+    } catch (error) {
+      console.error("Get cards error:", error);
+      res.status(500).json({ message: "Erro ao buscar cards" });
+    }
+  });
+
+  // Criar novo card (admin)
+  app.post("/api/admin/cards", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertCollectibleCardSchema.parse(req.body);
+      const card = await storage.createCollectibleCard(validatedData);
+      await logAuditAction(req.user?.id, "create", "collectible_card", card.id, `Card criado: ${card.name}`, req);
+      res.status(201).json(card);
+    } catch (error) {
+      console.error("Create card error:", error);
+      res.status(500).json({ message: "Erro ao criar card" });
+    }
+  });
+
+  // Atualizar card (admin)
+  app.patch("/api/admin/cards/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const card = await storage.updateCollectibleCard(id, req.body);
+      if (!card) {
+        return res.status(404).json({ message: "Card nao encontrado" });
+      }
+      await logAuditAction(req.user?.id, "update", "collectible_card", id, `Card atualizado: ${card.name}`, req);
+      res.json(card);
+    } catch (error) {
+      console.error("Update card error:", error);
+      res.status(500).json({ message: "Erro ao atualizar card" });
+    }
+  });
+
+  // Deletar card (admin)
+  app.delete("/api/admin/cards/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      await logAuditAction(req.user?.id, "delete", "collectible_card", id, "Card removido", req);
+      await storage.deleteCollectibleCard(id);
+      res.json({ message: "Card removido com sucesso" });
+    } catch (error) {
+      console.error("Delete card error:", error);
+      res.status(500).json({ message: "Erro ao remover card" });
+    }
+  });
+
+  // === ROTAS MEMBROS - EVENTOS ESPECIAIS ===
+
+  // Listar eventos ativos para membros
+  app.get("/api/study/events", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const events = await storage.getActiveStudyEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Get active events error:", error);
+      res.status(500).json({ message: "Erro ao buscar eventos" });
+    }
+  });
+
+  // Obter evento por ID com progresso do usuario
+  app.get("/api/study/events/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const event = await storage.getStudyEventById(id);
+      if (!event || (event.status !== "active" && event.status !== "completed")) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      const progress = await storage.getUserEventProgress(req.user!.id, id);
+      const lessons = await storage.getStudyEventLessons(id);
+      res.json({ event, lessons, progress });
+    } catch (error) {
+      console.error("Get event details error:", error);
+      res.status(500).json({ message: "Erro ao buscar detalhes do evento" });
+    }
+  });
+
+  // Obter licao de evento
+  app.get("/api/study/events/:eventId/lessons/:dayNumber", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const dayNumber = parseInt(req.params.dayNumber);
+      if (isNaN(eventId) || isNaN(dayNumber)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
+      if (!lesson || lesson.status !== "published") {
+        return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+      const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
+      res.json({ lesson, progress });
+    } catch (error) {
+      console.error("Get event lesson error:", error);
+      res.status(500).json({ message: "Erro ao buscar licao" });
+    }
+  });
+
+  // Completar licao de evento
+  app.post("/api/study/events/:eventId/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(eventId) || isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const { score, totalQuestions, correctAnswers, usedHints } = req.body;
+      
+      // Salvar progresso
+      const progress = await storage.saveUserEventProgress({
+        userId: req.user!.id,
+        eventId,
+        lessonId,
+        completed: true,
+        score: score || 0,
+        totalQuestions: totalQuestions || 0,
+        correctAnswers: correctAnswers || 0,
+        usedHints: usedHints || false,
+        xpEarned: 50, // XP base
+        completedAt: new Date(),
+      });
+
+      // Verificar se completou todas as licoes do evento
+      const event = await storage.getStudyEventById(eventId);
+      if (event && event.cardId) {
+        const allProgress = await storage.getUserEventProgress(req.user!.id, eventId);
+        const completedLessons = allProgress.filter(p => p.completed).length;
+        const eventLessons = await storage.getStudyEventLessons(eventId);
+        
+        if (completedLessons === eventLessons.length) {
+          // Calcular performance media
+          const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
+          const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
+          const avgPerformance = totalQs > 0 ? (totalCorrect / totalQs) * 100 : 0;
+          const anyHints = allProgress.some(p => p.usedHints);
+          
+          // Calcular raridade e dar o card
+          const rarity = calculateCardRarity(avgPerformance, anyHints);
+          await storage.awardUserCard({
+            userId: req.user!.id,
+            cardId: event.cardId,
+            rarity,
+            sourceType: "event",
+            sourceId: eventId,
+            performance: avgPerformance,
+          });
+        }
+      }
+
+      res.json(progress);
+    } catch (error) {
+      console.error("Complete event lesson error:", error);
+      res.status(500).json({ message: "Erro ao completar licao" });
+    }
+  });
+
+  // === ROTAS MEMBROS - MEUS CARDS ===
+
+  // Listar cards do usuario
+  app.get("/api/study/cards", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const cards = await storage.getUserCards(req.user!.id);
+      res.json(cards);
+    } catch (error) {
+      console.error("Get user cards error:", error);
+      res.status(500).json({ message: "Erro ao buscar seus cards" });
+    }
+  });
+
+  // Obter detalhes de um card do usuario
+  app.get("/api/study/cards/:cardId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      if (isNaN(cardId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      const userCard = await storage.getUserCard(req.user!.id, cardId);
+      if (!userCard) {
+        return res.status(404).json({ message: "Card nao encontrado" });
+      }
+      const cardDetails = await storage.getCollectibleCardById(cardId);
+      res.json({ ...userCard, card: cardDetails });
+    } catch (error) {
+      console.error("Get user card error:", error);
+      res.status(500).json({ message: "Erro ao buscar card" });
+    }
+  });
+
+  // Listar todos os cards disponiveis (catalogo)
+  app.get("/api/study/cards/catalog", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const allCards = await storage.getActiveCollectibleCards();
+      const userCards = await storage.getUserCards(req.user!.id);
+      const userCardIds = userCards.map(c => c.cardId);
+      
+      const catalog = allCards.map(card => ({
+        ...card,
+        owned: userCardIds.includes(card.id),
+        userRarity: userCards.find(uc => uc.cardId === card.id)?.rarity || null,
+      }));
+      
+      res.json(catalog);
+    } catch (error) {
+      console.error("Get cards catalog error:", error);
+      res.status(500).json({ message: "Erro ao buscar catalogo" });
     }
   });
 

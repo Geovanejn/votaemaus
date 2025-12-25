@@ -50,6 +50,16 @@ import type {
   InsertAuditLog,
   DevotionalComment,
   InsertDevotionalComment,
+  StudyEvent,
+  InsertStudyEvent,
+  StudyEventLesson,
+  InsertStudyEventLesson,
+  UserEventProgress,
+  InsertUserEventProgress,
+  CollectibleCard,
+  InsertCollectibleCard,
+  UserCard,
+  InsertUserCard,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -389,6 +399,39 @@ export interface IStorage {
   sendEncouragement(senderId: number, receiverId: number, messageKey: string, messageText: string): Promise<schema.MemberEncouragement>;
   getReceivedEncouragements(userId: number, limit?: number): Promise<schema.MemberEncouragement[]>;
   sendEncouragementToAll(senderId: number, messageKey: string, messageText: string): Promise<number>;
+  
+  // Study Events Methods
+  getAllStudyEvents(): Promise<StudyEvent[]>;
+  getActiveStudyEvents(): Promise<StudyEvent[]>;
+  getStudyEventById(id: number): Promise<StudyEvent | null>;
+  createStudyEvent(data: InsertStudyEvent): Promise<StudyEvent>;
+  updateStudyEvent(id: number, data: Partial<InsertStudyEvent>): Promise<StudyEvent | null>;
+  deleteStudyEvent(id: number): Promise<void>;
+  
+  // Study Event Lessons Methods
+  getStudyEventLessons(eventId: number): Promise<StudyEventLesson[]>;
+  getStudyEventLessonByDay(eventId: number, dayNumber: number): Promise<StudyEventLesson | null>;
+  createStudyEventLesson(data: InsertStudyEventLesson): Promise<StudyEventLesson>;
+  updateStudyEventLesson(id: number, data: Partial<InsertStudyEventLesson>): Promise<StudyEventLesson | null>;
+  deleteStudyEventLesson(id: number): Promise<void>;
+  
+  // User Event Progress Methods
+  getUserEventProgress(userId: number, eventId: number): Promise<UserEventProgress[]>;
+  getUserEventLessonProgress(userId: number, lessonId: number): Promise<UserEventProgress | null>;
+  saveUserEventProgress(data: InsertUserEventProgress): Promise<UserEventProgress>;
+  
+  // Collectible Cards Methods
+  getAllCollectibleCards(): Promise<CollectibleCard[]>;
+  getActiveCollectibleCards(): Promise<CollectibleCard[]>;
+  getCollectibleCardById(id: number): Promise<CollectibleCard | null>;
+  createCollectibleCard(data: InsertCollectibleCard): Promise<CollectibleCard>;
+  updateCollectibleCard(id: number, data: Partial<InsertCollectibleCard>): Promise<CollectibleCard | null>;
+  deleteCollectibleCard(id: number): Promise<void>;
+  
+  // User Cards Methods
+  getUserCards(userId: number): Promise<UserCard[]>;
+  getUserCard(userId: number, cardId: number): Promise<UserCard | null>;
+  awardUserCard(data: InsertUserCard): Promise<UserCard>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5725,6 +5768,211 @@ export class DatabaseStorage implements IStorage {
     }
     
     return count;
+  }
+
+  // ==================== STUDY EVENTS METHODS ====================
+
+  async getAllStudyEvents(): Promise<StudyEvent[]> {
+    return db.select()
+      .from(schema.studyEvents)
+      .orderBy(desc(schema.studyEvents.createdAt));
+  }
+
+  async getActiveStudyEvents(): Promise<StudyEvent[]> {
+    const now = new Date();
+    return db.select()
+      .from(schema.studyEvents)
+      .where(and(
+        eq(schema.studyEvents.status, "active"),
+        lte(schema.studyEvents.startDate, now),
+        gte(schema.studyEvents.endDate, now)
+      ))
+      .orderBy(asc(schema.studyEvents.startDate));
+  }
+
+  async getStudyEventById(id: number): Promise<StudyEvent | null> {
+    const [event] = await db.select()
+      .from(schema.studyEvents)
+      .where(eq(schema.studyEvents.id, id))
+      .limit(1);
+    return event || null;
+  }
+
+  async createStudyEvent(data: InsertStudyEvent): Promise<StudyEvent> {
+    const [event] = await db.insert(schema.studyEvents)
+      .values(data)
+      .returning();
+    return event;
+  }
+
+  async updateStudyEvent(id: number, data: Partial<InsertStudyEvent>): Promise<StudyEvent | null> {
+    const [event] = await db.update(schema.studyEvents)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.studyEvents.id, id))
+      .returning();
+    return event || null;
+  }
+
+  async deleteStudyEvent(id: number): Promise<void> {
+    await db.delete(schema.studyEvents)
+      .where(eq(schema.studyEvents.id, id));
+  }
+
+  // ==================== STUDY EVENT LESSONS METHODS ====================
+
+  async getStudyEventLessons(eventId: number): Promise<StudyEventLesson[]> {
+    return db.select()
+      .from(schema.studyEventLessons)
+      .where(eq(schema.studyEventLessons.eventId, eventId))
+      .orderBy(asc(schema.studyEventLessons.dayNumber));
+  }
+
+  async getStudyEventLessonByDay(eventId: number, dayNumber: number): Promise<StudyEventLesson | null> {
+    const [lesson] = await db.select()
+      .from(schema.studyEventLessons)
+      .where(and(
+        eq(schema.studyEventLessons.eventId, eventId),
+        eq(schema.studyEventLessons.dayNumber, dayNumber)
+      ))
+      .limit(1);
+    return lesson || null;
+  }
+
+  async createStudyEventLesson(data: InsertStudyEventLesson): Promise<StudyEventLesson> {
+    const [lesson] = await db.insert(schema.studyEventLessons)
+      .values(data)
+      .returning();
+    return lesson;
+  }
+
+  async updateStudyEventLesson(id: number, data: Partial<InsertStudyEventLesson>): Promise<StudyEventLesson | null> {
+    const [lesson] = await db.update(schema.studyEventLessons)
+      .set(data)
+      .where(eq(schema.studyEventLessons.id, id))
+      .returning();
+    return lesson || null;
+  }
+
+  async deleteStudyEventLesson(id: number): Promise<void> {
+    await db.delete(schema.studyEventLessons)
+      .where(eq(schema.studyEventLessons.id, id));
+  }
+
+  // ==================== USER EVENT PROGRESS METHODS ====================
+
+  async getUserEventProgress(userId: number, eventId: number): Promise<UserEventProgress[]> {
+    return db.select()
+      .from(schema.userEventProgress)
+      .where(and(
+        eq(schema.userEventProgress.userId, userId),
+        eq(schema.userEventProgress.eventId, eventId)
+      ));
+  }
+
+  async getUserEventLessonProgress(userId: number, lessonId: number): Promise<UserEventProgress | null> {
+    const [progress] = await db.select()
+      .from(schema.userEventProgress)
+      .where(and(
+        eq(schema.userEventProgress.userId, userId),
+        eq(schema.userEventProgress.lessonId, lessonId)
+      ))
+      .limit(1);
+    return progress || null;
+  }
+
+  async saveUserEventProgress(data: InsertUserEventProgress): Promise<UserEventProgress> {
+    const [progress] = await db.insert(schema.userEventProgress)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [schema.userEventProgress.userId, schema.userEventProgress.lessonId],
+        set: {
+          completed: data.completed,
+          score: data.score,
+          totalQuestions: data.totalQuestions,
+          correctAnswers: data.correctAnswers,
+          usedHints: data.usedHints,
+          xpEarned: data.xpEarned,
+          completedAt: data.completedAt,
+        }
+      })
+      .returning();
+    return progress;
+  }
+
+  // ==================== COLLECTIBLE CARDS METHODS ====================
+
+  async getAllCollectibleCards(): Promise<CollectibleCard[]> {
+    return db.select()
+      .from(schema.collectibleCards)
+      .orderBy(desc(schema.collectibleCards.createdAt));
+  }
+
+  async getActiveCollectibleCards(): Promise<CollectibleCard[]> {
+    return db.select()
+      .from(schema.collectibleCards)
+      .where(eq(schema.collectibleCards.isActive, true))
+      .orderBy(asc(schema.collectibleCards.name));
+  }
+
+  async getCollectibleCardById(id: number): Promise<CollectibleCard | null> {
+    const [card] = await db.select()
+      .from(schema.collectibleCards)
+      .where(eq(schema.collectibleCards.id, id))
+      .limit(1);
+    return card || null;
+  }
+
+  async createCollectibleCard(data: InsertCollectibleCard): Promise<CollectibleCard> {
+    const [card] = await db.insert(schema.collectibleCards)
+      .values(data)
+      .returning();
+    return card;
+  }
+
+  async updateCollectibleCard(id: number, data: Partial<InsertCollectibleCard>): Promise<CollectibleCard | null> {
+    const [card] = await db.update(schema.collectibleCards)
+      .set(data)
+      .where(eq(schema.collectibleCards.id, id))
+      .returning();
+    return card || null;
+  }
+
+  async deleteCollectibleCard(id: number): Promise<void> {
+    await db.delete(schema.collectibleCards)
+      .where(eq(schema.collectibleCards.id, id));
+  }
+
+  // ==================== USER CARDS METHODS ====================
+
+  async getUserCards(userId: number): Promise<UserCard[]> {
+    return db.select()
+      .from(schema.userCards)
+      .where(eq(schema.userCards.userId, userId))
+      .orderBy(desc(schema.userCards.earnedAt));
+  }
+
+  async getUserCard(userId: number, cardId: number): Promise<UserCard | null> {
+    const [card] = await db.select()
+      .from(schema.userCards)
+      .where(and(
+        eq(schema.userCards.userId, userId),
+        eq(schema.userCards.cardId, cardId)
+      ))
+      .limit(1);
+    return card || null;
+  }
+
+  async awardUserCard(data: InsertUserCard): Promise<UserCard> {
+    const [card] = await db.insert(schema.userCards)
+      .values(data)
+      .onConflictDoNothing()
+      .returning();
+    
+    if (!card) {
+      const existing = await this.getUserCard(data.userId, data.cardId);
+      return existing!;
+    }
+    return card;
   }
 }
 

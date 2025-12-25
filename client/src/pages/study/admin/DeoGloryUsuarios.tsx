@@ -39,6 +39,8 @@ import {
   GraduationCap,
   Target,
   RefreshCw,
+  Send,
+  MessageSquare,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -208,6 +210,12 @@ function UserDetailDialog({ user, open, onOpenChange }: UserDetailDialogProps) {
   );
 }
 
+interface EncouragementMessage {
+  key: string;
+  title: string;
+  body: string;
+}
+
 export default function DeoGloryUsuarios() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -217,10 +225,36 @@ export default function DeoGloryUsuarios() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<StudyUser | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<string>("");
   const { toast } = useToast();
 
   const { data: users = [], isLoading, isError } = useQuery<StudyUser[]>({
     queryKey: ['/api/study/admin/users'],
+  });
+
+  const { data: encouragementMessages = [] } = useQuery<EncouragementMessage[]>({
+    queryKey: ['/api/study/encouragement-messages'],
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: async (messageKey: string) => {
+      const response = await apiRequest("POST", "/api/study/admin/encouragement/broadcast", { messageKey });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Mensagem enviada!",
+        description: `Notificacao enviada para ${data.sentCount} membros.`,
+      });
+      setSelectedMessage("");
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Nao foi possivel enviar a mensagem.",
+        variant: "destructive",
+      });
+    },
   });
 
   const recalculateLevelsMutation = useMutation({
@@ -354,6 +388,46 @@ export default function DeoGloryUsuarios() {
             isLoading={isLoading}
           />
         </div>
+
+        <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-violet-600" />
+              <CardTitle className="text-base font-semibold">Enviar Mensagem para Todos</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Envie uma mensagem de incentivo para todos os membros ativos via notificacao push
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={selectedMessage} onValueChange={setSelectedMessage}>
+                <SelectTrigger className="flex-1" data-testid="select-broadcast-message">
+                  <SelectValue placeholder="Selecione uma mensagem..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {encouragementMessages.map((msg) => (
+                    <SelectItem key={msg.key} value={msg.key}>
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">{msg.title}</span>
+                        <span className="text-xs text-muted-foreground">{msg.body}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                className="gap-2 bg-violet-600 hover:bg-violet-700"
+                disabled={!selectedMessage || broadcastMutation.isPending}
+                onClick={() => selectedMessage && broadcastMutation.mutate(selectedMessage)}
+                data-testid="button-broadcast"
+              >
+                <Send className="h-4 w-4" />
+                {broadcastMutation.isPending ? "Enviando..." : "Enviar para Todos"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardHeader className="border-b border-gray-100 dark:border-gray-700 pb-4 px-4 sm:px-6">

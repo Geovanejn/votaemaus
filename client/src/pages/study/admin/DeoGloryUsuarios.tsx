@@ -41,6 +41,8 @@ import {
   RefreshCw,
   Send,
   MessageSquare,
+  Sparkles,
+  Calendar,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -216,6 +218,21 @@ interface EncouragementMessage {
   body: string;
 }
 
+interface EventStats {
+  totalEvents: number;
+  activeEvents: number;
+  upcomingEvents: number;
+  completedEvents: number;
+  recentEvents: {
+    id: number;
+    title: string;
+    theme: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }[];
+}
+
 export default function DeoGloryUsuarios() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -236,6 +253,10 @@ export default function DeoGloryUsuarios() {
     queryKey: ['/api/study/encouragement-messages'],
   });
   const encouragementMessages = encouragementMessagesData?.messages || [];
+
+  const { data: eventStats } = useQuery<EventStats>({
+    queryKey: ['/api/study/admin/events-stats'],
+  });
 
   const broadcastMutation = useMutation({
     mutationFn: async (messageKey: string) => {
@@ -393,6 +414,41 @@ export default function DeoGloryUsuarios() {
             isLoading={isLoading}
           />
         </div>
+
+        {eventStats && (eventStats.activeEvents > 0 || eventStats.upcomingEvents > 0) && (
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-500 border-0 shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-xl bg-white/20">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">Eventos Especiais</h3>
+                  <p className="text-sm text-white/80">Engajamento dos usuarios em eventos</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/10 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-white">{eventStats.activeEvents}</p>
+                  <p className="text-xs text-white/80">Eventos Ativos</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3">
+                  <p className="text-2xl font-bold text-yellow-300">{eventStats.upcomingEvents}</p>
+                  <p className="text-xs text-white/80">Proximos Eventos</p>
+                </div>
+              </div>
+              {eventStats.recentEvents.filter(e => e.status === 'published').slice(0, 2).map((event) => (
+                <div key={event.id} className="flex items-center gap-3 bg-white/10 rounded-lg p-2 mt-3">
+                  <Calendar className="h-4 w-4 text-white" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{event.title}</p>
+                    <p className="text-xs text-white/70">{event.theme}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardHeader className="pb-3">

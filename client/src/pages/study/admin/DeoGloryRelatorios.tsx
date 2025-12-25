@@ -26,6 +26,8 @@ import {
   GraduationCap,
   FileText,
   Filter,
+  Sparkles,
+  Calendar,
 } from "lucide-react";
 import {
   BarChart,
@@ -60,6 +62,21 @@ interface StudyUser {
   lessonsCompleted: number;
   status: string;
   crystals: number;
+}
+
+interface EventStats {
+  totalEvents: number;
+  activeEvents: number;
+  upcomingEvents: number;
+  completedEvents: number;
+  recentEvents: {
+    id: number;
+    title: string;
+    theme: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+  }[];
 }
 
 interface StatCardProps {
@@ -128,6 +145,10 @@ export default function DeoGloryRelatorios() {
 
   const { data: users = [], isLoading: usersLoading } = useQuery<StudyUser[]>({
     queryKey: ["/api/study/admin/users"],
+  });
+
+  const { data: eventStats } = useQuery<EventStats>({
+    queryKey: ["/api/study/admin/events-stats"],
   });
 
   const isLoading = statsLoading || usersLoading;
@@ -571,6 +592,65 @@ export default function DeoGloryRelatorios() {
             isLoading={statsLoading}
           />
         </div>
+
+        {eventStats && eventStats.totalEvents > 0 && (
+          <Card className="bg-gradient-to-r from-purple-600 to-pink-500 border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 px-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 sm:p-3 rounded-xl bg-white/20">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-white">
+                    Eventos Especiais
+                  </CardTitle>
+                  <p className="text-xs sm:text-sm text-white/80">Metricas dos eventos do sistema</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white/10 rounded-xl p-3 sm:p-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-white">{eventStats.totalEvents}</p>
+                  <p className="text-xs sm:text-sm text-white/80">Total de Eventos</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 sm:p-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-green-300">{eventStats.activeEvents}</p>
+                  <p className="text-xs sm:text-sm text-white/80">Ativos</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 sm:p-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-yellow-300">{eventStats.upcomingEvents}</p>
+                  <p className="text-xs sm:text-sm text-white/80">Proximos</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 sm:p-4">
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-300">{eventStats.completedEvents}</p>
+                  <p className="text-xs sm:text-sm text-white/80">Concluidos</p>
+                </div>
+              </div>
+              {eventStats.recentEvents && eventStats.recentEvents.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium text-white/90">Historico de Eventos</p>
+                  {eventStats.recentEvents.slice(0, 4).map((event) => (
+                    <div key={event.id} className="flex items-center gap-3 bg-white/10 rounded-lg p-2 sm:p-3">
+                      <Calendar className="h-4 w-4 text-white shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{event.title}</p>
+                        <p className="text-xs text-white/70">{event.theme}</p>
+                      </div>
+                      <Badge className={`shrink-0 border-0 text-xs ${
+                        event.status === 'published' ? 'bg-green-400/20 text-green-200' :
+                        event.status === 'completed' ? 'bg-blue-400/20 text-blue-200' :
+                        'bg-yellow-400/20 text-yellow-200'
+                      }`}>
+                        {event.status === 'published' ? 'Ativo' : event.status === 'completed' ? 'Concluido' : 'Rascunho'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">

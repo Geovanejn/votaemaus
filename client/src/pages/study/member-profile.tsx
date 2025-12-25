@@ -22,7 +22,7 @@ import {
   Share2,
   X
 } from "lucide-react";
-import { SiTwitter, SiFacebook, SiWhatsapp } from "react-icons/si";
+import { SiX, SiFacebook, SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -603,7 +603,7 @@ export default function MemberProfilePage() {
                       className="bg-black text-white border-0"
                       data-testid="button-share-twitter"
                     >
-                      <SiTwitter className="h-5 w-5" />
+                      <SiX className="h-5 w-5" />
                     </Button>
                     <Button
                       variant="outline"

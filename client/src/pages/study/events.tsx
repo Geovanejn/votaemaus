@@ -79,12 +79,13 @@ function EventCard({ event }: { event: StudyEvent }) {
 
   const getThemeIcon = (theme: string) => {
     const t = theme.toLowerCase();
-    if (t.includes('reforma')) return <div className="text-white text-4xl opacity-80">⛪</div>;
-    if (t.includes('jovem')) return <div className="text-white text-4xl opacity-80">👥</div>;
-    if (t.includes('pascoa')) return <div className="text-white text-4xl opacity-80">✝️</div>;
-    if (t.includes('natal')) return <div className="text-white text-4xl opacity-80">⭐</div>;
-    if (t.includes('missoes')) return <div className="text-white text-4xl opacity-80">🌍</div>;
-    return <Sparkles className="h-10 w-10 text-white/80" />;
+    const iconClass = "h-10 w-10 text-white opacity-80 stroke-[1.5]";
+    if (t.includes('reforma')) return <div className={`${iconClass}`}>⛪</div>;
+    if (t.includes('jovem')) return <div className="h-10 w-10 text-white/80 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><path d="M12 2c-2.5 0-4.5 2-4.5 4.5S9.5 11 12 11s4.5-2 4.5-4.5S14.5 2 12 2M12 13c-3 0-9 1.5-9 4.5V22h18v-4.5c0-3-6-4.5-9-4.5Z"/></svg></div>;
+    if (t.includes('pascoa')) return <div className={`${iconClass}`}>✝</div>;
+    if (t.includes('natal')) return <div className={`${iconClass}`}>✦</div>;
+    if (t.includes('missoes')) return <div className="h-10 w-10 text-white/80 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-full h-full"><circle cx="12" cy="10" r="3"/><circle cx="12" cy="10" r="8"/><path d="M2 12h4M18 12h4M12 2v4M12 18v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M19.78 4.22l-2.83 2.83M7.05 16.95l-2.83 2.83"/></svg></div>;
+    return <Sparkles className="h-10 w-10 text-white opacity-80" />;
   };
 
   return (

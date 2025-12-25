@@ -60,9 +60,9 @@ export default function EventoEditorPage() {
   });
 
   const { data: event, isLoading } = useQuery<StudyEvent>({
-    queryKey: ["/api/admin/events", id],
+    queryKey: ["/api/admin/study-events", id],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/events/${id}`, {
+      const response = await fetch(`/api/admin/study-events/${id}`, {
         credentials: "include",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -75,9 +75,9 @@ export default function EventoEditorPage() {
   });
 
   const { data: lessons } = useQuery<EventLesson[]>({
-    queryKey: ["/api/admin/events", id, "lessons"],
+    queryKey: ["/api/admin/study-events", id, "lessons"],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/events/${id}/lessons`, {
+      const response = await fetch(`/api/admin/study-events/${id}/lessons`, {
         credentials: "include",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -103,11 +103,11 @@ export default function EventoEditorPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("PATCH", `/api/admin/events/${id}`, data);
+      return apiRequest("PATCH", `/api/admin/study-events/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id] });
       toast({
         title: "Evento atualizado",
         description: "As alterações foram salvas com sucesso.",

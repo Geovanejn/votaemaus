@@ -2166,7 +2166,8 @@ export interface GeneratedEventContent {
 export async function generateEventContentFromText(
   text: string,
   theme: string,
-  month: string
+  month: string,
+  keyNumber?: string
 ): Promise<GeneratedEventContent> {
   if (!isAIConfigured()) {
     throw new Error("IA não configurada. Configure GEMINI_API_KEY ou OPENAI_API_KEY.");
@@ -2177,7 +2178,12 @@ export async function generateEventContentFromText(
   }
 
   const systemPrompt = `Você é um educador cristão especializado em criar conteúdo de estudo bíblico para jovens presbiterianos.
-Crie conteúdo envolvente, profundo teologicamente mas acessível para jovens.`;
+Crie conteúdo envolvente, profundo teologicamente mas acessível para jovens.
+
+IMPORTANTE: Cada lição DEVE ter EXATAMENTE 3 seções principais:
+1. ESTUDE - Conteúdo teórico e bíblico (texto, versículos, contexto histórico)
+2. MEDITE - Reflexões, perguntas para meditação pessoal, aplicação prática
+3. RESPONDA - 5 questões de quiz (múltipla escolha, verdadeiro/falso, completar)`;
 
   const userPrompt = `Com base no texto/tema fornecido, crie um evento de estudo especial com EXATAMENTE 5 lições.
 
@@ -2187,11 +2193,13 @@ CONTEÚDO BASE: ${text}
 
 REGRAS IMPORTANTES:
 1. Gere EXATAMENTE 5 lições, cada uma para um dia diferente
-2. Cada lição deve ter conteúdo bíblico rico e aplicável
-3. Cada lição deve ter 4 perguntas de quiz (múltipla escolha)
-4. Use versículos bíblicos relevantes ao tema
-5. O título do evento deve ser criativo e refletir o tema
-6. As lições devem formar uma progressão lógica do tema
+2. Cada lição DEVE ter as 3 seções: ESTUDE, MEDITE, RESPONDA
+3. A seção ESTUDE deve ter conteúdo bíblico rico e aplicável (mínimo 3 parágrafos)
+4. A seção MEDITE deve ter reflexões profundas e perguntas para meditação
+5. A seção RESPONDA deve ter EXATAMENTE 5 questões variadas
+6. Use versículos bíblicos relevantes ao tema
+7. O título do evento deve ser criativo e refletir o tema
+8. As lições devem formar uma progressão lógica do tema
 
 Formato JSON OBRIGATÓRIO:
 {
@@ -2201,16 +2209,32 @@ Formato JSON OBRIGATÓRIO:
     {
       "dayNumber": 1,
       "title": "Título da Lição 1",
-      "content": "<p>Conteúdo HTML rico da lição com pelo menos 3 parágrafos</p>",
+      "content": "<h2>Estude</h2><p>Conteúdo HTML rico da lição com pelo menos 3 parágrafos...</p><h2>Medite</h2><p>Reflexões e perguntas para meditação pessoal...</p>",
       "verseReference": "João 3:16",
       "verseText": "Porque Deus amou o mundo de tal maneira...",
+      "meditationContent": "Reflexões profundas sobre o texto estudado. Perguntas para autoavaliação e aplicação prática na vida diária.",
       "questions": [
         {
           "id": "q1",
+          "type": "multiple_choice",
           "question": "Pergunta sobre o conteúdo?",
           "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
           "correctAnswer": 0,
           "explanation": "Explicação da resposta correta"
+        },
+        {
+          "id": "q2",
+          "type": "true_false",
+          "question": "Afirmação para verificar se é verdadeira ou falsa?",
+          "correctAnswer": true,
+          "explanation": "Explicação"
+        },
+        {
+          "id": "q3",
+          "type": "fill_blank",
+          "question": "Complete: O versículo diz que Deus amou o ____.",
+          "correctAnswer": "mundo",
+          "explanation": "Explicação"
         }
       ],
       "xpReward": 50
@@ -2218,9 +2242,12 @@ Formato JSON OBRIGATÓRIO:
   ]
 }
 
-Gere TODAS as 5 lições completas.`;
+Gere TODAS as 5 lições completas com as 3 seções cada.`;
 
-  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+  // If specific key is provided, try only that key first
+  const keysToTry = keyNumber ? [parseInt(keyNumber)] : [1, 2, 3, 4, 5];
+  
+  for (const keyNum of keysToTry) {
     try {
       const responseText = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -2235,10 +2262,11 @@ Gere TODAS as 5 lições completas.`;
             ...lesson,
             dayNumber: idx + 1,
             xpReward: lesson.xpReward || 50,
-            questions: (lesson.questions || []).map((q, qIdx) => ({
+            questions: (lesson.questions || []).map((q: any, qIdx: number) => ({
               ...q,
               id: q.id || `q${qIdx + 1}`,
-              correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
+              type: q.type || 'multiple_choice',
+              correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
               explanation: q.explanation || "Resposta correta!"
             }))
           }));

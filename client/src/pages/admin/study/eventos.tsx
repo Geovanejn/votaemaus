@@ -109,15 +109,16 @@ export default function AdminEventosPage() {
     month: (new Date().getMonth() + 1).toString(),
     startDay: "1",
     endDay: "5",
+    keyNumber: "",
   });
 
   const { data: events, isLoading } = useQuery<StudyEvent[]>({
-    queryKey: ["/api/admin/events"],
+    queryKey: ["/api/admin/study-events"],
   });
 
   const generateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("POST", "/api/admin/events/ai-generate", {
+      return apiRequest("POST", "/api/admin/study-events/ai-generate", {
         text: data.text,
         theme: data.theme,
         imageUrl: data.imageUrl || null,
@@ -125,11 +126,12 @@ export default function AdminEventosPage() {
         month: parseInt(data.month),
         startDay: parseInt(data.startDay),
         endDay: parseInt(data.endDay),
+        keyNumber: data.keyNumber || undefined,
       });
     },
     onSuccess: async (response) => {
       const result = await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Evento criado com sucesso",
         description: result.message,
@@ -143,6 +145,7 @@ export default function AdminEventosPage() {
         month: (new Date().getMonth() + 1).toString(),
         startDay: "1",
         endDay: "5",
+        keyNumber: "",
       });
     },
     onError: (error: Error) => {
@@ -156,12 +159,12 @@ export default function AdminEventosPage() {
 
   const publishMutation = useMutation({
     mutationFn: async (eventId: number) => {
-      return apiRequest("PATCH", `/api/admin/events/${eventId}`, {
+      return apiRequest("PATCH", `/api/admin/study-events/${eventId}`, {
         status: "published",
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Evento publicado",
         description: "O evento agora está visível para os membros.",
@@ -171,10 +174,10 @@ export default function AdminEventosPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (eventId: number) => {
-      return apiRequest("DELETE", `/api/admin/events/${eventId}`);
+      return apiRequest("DELETE", `/api/admin/study-events/${eventId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Evento removido",
       });
@@ -453,6 +456,29 @@ export default function AdminEventosPage() {
                   <p className="text-sm text-muted-foreground">
                     As 5 lições serão liberadas uma por dia às 00:00, começando no dia {formData.startDay}/{formData.month}/{formData.year}.
                     Os cards serão distribuídos às 23:59 do dia {formData.endDay}/{formData.month}/{formData.year}.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Chave API Gemini</Label>
+                  <Select
+                    value={formData.keyNumber}
+                    onValueChange={(value) => setFormData({ ...formData, keyNumber: value })}
+                  >
+                    <SelectTrigger data-testid="select-api-key">
+                      <SelectValue placeholder="Automático (tenta todas)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Automático (tenta todas)</SelectItem>
+                      <SelectItem value="1">Chave 1 (GEMINI_API_KEY_1)</SelectItem>
+                      <SelectItem value="2">Chave 2 (GEMINI_API_KEY_2)</SelectItem>
+                      <SelectItem value="3">Chave 3 (GEMINI_API_KEY_3)</SelectItem>
+                      <SelectItem value="4">Chave 4 (GEMINI_API_KEY_4)</SelectItem>
+                      <SelectItem value="5">Chave 5 (GEMINI_API_KEY_5)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione uma chave específica ou deixe no automático para tentar todas as disponíveis.
                   </p>
                 </div>
 

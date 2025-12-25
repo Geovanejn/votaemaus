@@ -1881,7 +1881,8 @@ export class DatabaseStorage implements IStorage {
   
   // SINGLE SOURCE OF TRUTH: Calculate real total XP for a user
   // This is the ONLY function that should be used to get XP (used by profile, ranking, etc.)
-  async getUserTotalXp(userId: number): Promise<{ totalXp: number; lessonXp: number; bonusXp: number; achievementXp: number; missionXp: number }> {
+  // NOTE: Event XP counts for general and annual ranking but NOT for magazine/season ranking
+  async getUserTotalXp(userId: number): Promise<{ totalXp: number; lessonXp: number; bonusXp: number; achievementXp: number; missionXp: number; eventXp: number }> {
     // Sum ALL completed lesson XP
     const [lessonXpResult] = await db.select({
       totalXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
@@ -1913,17 +1914,29 @@ export class DatabaseStorage implements IStorage {
       .from(schema.dailyMissionXp)
       .where(eq(schema.dailyMissionXp.userId, userId));
     
+    // Sum ALL completed event lesson XP (counts for general/annual ranking, NOT magazine ranking)
+    const [eventXpResult] = await db.select({
+      totalEventXp: sql<number>`COALESCE(SUM(${schema.userEventProgress.xpEarned}), 0)`
+    })
+      .from(schema.userEventProgress)
+      .where(and(
+        eq(schema.userEventProgress.userId, userId),
+        eq(schema.userEventProgress.completed, true)
+      ));
+    
     const lessonXp = Number(lessonXpResult?.totalXp || 0);
     const bonusXp = Number(bonusResult?.totalBonus || 0);
     const achievementXp = Number(achievementResult?.totalAchievementXp || 0);
     const missionXp = Number(dailyMissionResult?.totalDailyMissionXp || 0);
+    const eventXp = Number(eventXpResult?.totalEventXp || 0);
     
     return {
-      totalXp: lessonXp + bonusXp + achievementXp + missionXp,
+      totalXp: lessonXp + bonusXp + achievementXp + missionXp + eventXp,
       lessonXp,
       bonusXp,
       achievementXp,
       missionXp,
+      eventXp,
     };
   }
   
@@ -3514,6 +3527,17 @@ export class DatabaseStorage implements IStorage {
           sql`EXTRACT(YEAR FROM ${schema.dailyMissionXp.earnedAt}) = ${year}`
         ));
       
+      // Get event XP earned during that year (events count for annual ranking)
+      const [eventXpResult] = await db.select({
+        yearlyEventXp: sql<number>`COALESCE(SUM(${schema.userEventProgress.xpEarned}), 0)`
+      })
+        .from(schema.userEventProgress)
+        .where(and(
+          eq(schema.userEventProgress.userId, user.userId),
+          eq(schema.userEventProgress.completed, true),
+          sql`EXTRACT(YEAR FROM ${schema.userEventProgress.completedAt}) = ${year}`
+        ));
+      
       // Get profile for streak and level
       const [profile] = await db.select({
         currentStreak: schema.studyProfiles.currentStreak,
@@ -3527,7 +3551,8 @@ export class DatabaseStorage implements IStorage {
       const totalBonusXp = Number(bonusResult?.yearlyBonus || 0);
       const totalAchievementXp = Number(achievementResult?.yearlyAchievementXp || 0);
       const totalDailyMissionXp = Number(dailyMissionResult?.yearlyDailyMissionXp || 0);
-      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp;
+      const totalEventXp = Number(eventXpResult?.yearlyEventXp || 0);
+      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp + totalEventXp;
       
       return {
         ...user,

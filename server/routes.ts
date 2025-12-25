@@ -6878,21 +6878,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== EVENTOS ESPECIAIS + CARDS COLECIONÁVEIS ====================
 
-  // === ROTAS ADMIN - EVENTOS ESPECIAIS ===
+  // === ROTAS ADMIN - EVENTOS ESPECIAIS DE ESTUDO ===
 
-  // Listar todos os eventos (admin)
-  app.get("/api/admin/events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Listar todos os eventos de estudo (admin)
+  app.get("/api/admin/study-events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getAllStudyEvents();
       res.json(events);
     } catch (error) {
-      console.error("Get events error:", error);
+      console.error("Get study events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });
     }
   });
 
-  // Criar novo evento (admin)
-  app.post("/api/admin/events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Criar novo evento de estudo (admin)
+  app.post("/api/admin/study-events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertStudyEventSchema.parse({
         ...req.body,
@@ -6902,13 +6902,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "create", "study_event", event.id, `Evento criado: ${event.title}`, req);
       res.status(201).json(event);
     } catch (error) {
-      console.error("Create event error:", error);
+      console.error("Create study event error:", error);
       res.status(500).json({ message: "Erro ao criar evento" });
     }
   });
 
-  // Obter evento por ID (admin)
-  app.get("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Obter evento de estudo por ID (admin)
+  app.get("/api/admin/study-events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -6920,13 +6920,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(event);
     } catch (error) {
-      console.error("Get event error:", error);
+      console.error("Get study event error:", error);
       res.status(500).json({ message: "Erro ao buscar evento" });
     }
   });
 
-  // Atualizar evento (admin)
-  app.patch("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Atualizar evento de estudo (admin)
+  app.patch("/api/admin/study-events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -6939,13 +6939,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
       res.json(event);
     } catch (error) {
-      console.error("Update event error:", error);
+      console.error("Update study event error:", error);
       res.status(500).json({ message: "Erro ao atualizar evento" });
     }
   });
 
-  // Deletar evento (admin)
-  app.delete("/api/admin/events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  // Deletar evento de estudo (admin)
+  app.delete("/api/admin/study-events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -6955,7 +6955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteStudyEvent(id);
       res.json({ message: "Evento removido com sucesso" });
     } catch (error) {
-      console.error("Delete event error:", error);
+      console.error("Delete study event error:", error);
       res.status(500).json({ message: "Erro ao remover evento" });
     }
   });
@@ -6963,7 +6963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === ROTAS ADMIN - LIÇÕES DE EVENTOS ===
 
   // Listar licoes de um evento (admin)
-  app.get("/api/admin/events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.get("/api/admin/study-events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {
@@ -6978,7 +6978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Criar licao de evento (admin)
-  app.post("/api/admin/events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/study-events/:eventId/lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {
@@ -6997,7 +6997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Atualizar licao de evento (admin)
-  app.patch("/api/admin/events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.patch("/api/admin/study-events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       if (isNaN(lessonId)) {
@@ -7015,7 +7015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Deletar licao de evento (admin)
-  app.delete("/api/admin/events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.delete("/api/admin/study-events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
       if (isNaN(lessonId)) {
@@ -7030,9 +7030,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gerar evento com IA (admin)
-  app.post("/api/admin/events/ai-generate", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/study-events/ai-generate", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const { text, theme, imageUrl, year, month, startDay, endDay } = req.body;
+      const { text, theme, imageUrl, year, month, startDay, endDay, keyNumber } = req.body;
       
       if (!text || !theme || !year || !month || !startDay || !endDay) {
         return res.status(400).json({ message: "Campos obrigatórios: text, theme, year, month, startDay, endDay" });
@@ -7049,9 +7049,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
       const monthName = monthNames[month - 1];
 
-      console.log(`[Admin] Gerando evento com IA - Tema: ${theme}, Mês: ${monthName}`);
+      console.log(`[Admin] Gerando evento com IA - Tema: ${theme}, Mês: ${monthName}, Chave: ${keyNumber || 'auto'}`);
       
-      const generatedContent = await generateEventContentFromText(text, theme, monthName);
+      const generatedContent = await generateEventContentFromText(text, theme, monthName, keyNumber);
       
       const event = await storage.createStudyEvent({
         title: generatedContent.title,

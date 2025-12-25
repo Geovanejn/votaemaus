@@ -1,30 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useParams } from "wouter";
-...
-  const audioCorrect = useRef<HTMLAudioElement | null>(null);
-  const audioIncorrect = useRef<HTMLAudioElement | null>(null);
-  const audioComplete = useRef<HTMLAudioElement | null>(null);
-  const audioModal = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    audioCorrect.current = new Audio("/sounds/correct.mp3");
-    audioIncorrect.current = new Audio("/sounds/incorrect.mp3");
-    audioComplete.current = new Audio("/sounds/complete.mp3");
-    audioModal.current = new Audio("/sounds/modal.mp3");
-  }, []);
-
-  const playSound = (type: "correct" | "incorrect" | "complete" | "modal") => {
-    const audio = {
-      correct: audioCorrect.current,
-      incorrect: audioIncorrect.current,
-      complete: audioComplete.current,
-      modal: audioModal.current
-    }[type];
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-    }
-  };
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -224,6 +199,31 @@ export default function EventLessonPage() {
   const dayNumber = parseInt(params.dayNumber || "0");
   const { toast } = useToast();
 
+  const audioCorrect = useRef<HTMLAudioElement | null>(null);
+  const audioIncorrect = useRef<HTMLAudioElement | null>(null);
+  const audioComplete = useRef<HTMLAudioElement | null>(null);
+  const audioModal = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    audioCorrect.current = new Audio("/sounds/correct.mp3");
+    audioIncorrect.current = new Audio("/sounds/incorrect.mp3");
+    audioComplete.current = new Audio("/sounds/complete.mp3");
+    audioModal.current = new Audio("/sounds/modal.mp3");
+  }, []);
+
+  const playSound = (type: "correct" | "incorrect" | "complete" | "modal") => {
+    const audio = {
+      correct: audioCorrect.current,
+      incorrect: audioIncorrect.current,
+      complete: audioComplete.current,
+      modal: audioModal.current
+    }[type];
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+  };
+
   const [currentStage, setCurrentStage] = useState<Stage>("estude");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
@@ -243,20 +243,6 @@ export default function EventLessonPage() {
   const [currentEstudeTopic, setCurrentEstudeTopic] = useState(0);
   const [currentMediteScreen, setCurrentMediteScreen] = useState(0);
 
-  const estudeTopics = useMemo(() => {
-    if (!contentSections.estude) return [];
-    // Split by 📌 or <h3>/<h2> if formatted that way, or just divide roughly.
-    // The current parseContentSections returns HTML. Let's try to split by headers.
-    const topics = contentSections.estude.split(/<h[23][^>]*>/i).filter(t => t.trim().length > 0);
-    return topics.map(t => t.includes("</h") ? `<h3` + t : t);
-  }, [contentSections.estude]);
-
-  const mediteScreens = useMemo(() => {
-    if (!contentSections.medite) return [];
-    // Split by header or just divide in two: Meditação and Aplicação
-    const screens = contentSections.medite.split(/<h[23][^>]*>/i).filter(s => s.trim().length > 0);
-    return screens.map(s => s.includes("</h") ? `<h3` + s : s);
-  }, [contentSections.medite]);
   const { data, isLoading, error } = useQuery<LessonResponse>({
     queryKey: ["/api/study/events", eventId, "lessons", dayNumber],
     enabled: !!user && eventId > 0 && dayNumber > 0,
@@ -294,6 +280,18 @@ export default function EventLessonPage() {
     if (!lesson?.content) return { estude: "", medite: "" };
     return parseContentSections(lesson.content);
   }, [lesson?.content]);
+
+  const estudeTopics = useMemo(() => {
+    if (!contentSections.estude) return [];
+    const topics = contentSections.estude.split(/<h[23][^>]*>/i).filter(t => t.trim().length > 0);
+    return topics.map(t => t.includes("</h") ? `<h3` + t : t);
+  }, [contentSections.estude]);
+
+  const mediteScreens = useMemo(() => {
+    if (!contentSections.medite) return [];
+    const screens = contentSections.medite.split(/<h[23][^>]*>/i).filter(s => s.trim().length > 0);
+    return screens.map(s => s.includes("</h") ? `<h3` + s : s);
+  }, [contentSections.medite]);
 
   const questions = lesson?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];

@@ -1,0 +1,57 @@
+2025-12-25T19:12:45.117506675Z ==> Downloading cache...
+2025-12-25T19:12:45.155428571Z ==> Cloning from https://github.com/Geovanejn/votaemaus
+2025-12-25T19:12:50.407837879Z ==> Checking out commit 01975af8c0601edf62924028702ba8015533903e in branch main
+2025-12-25T19:13:14.425695175Z ==> Downloaded 556MB in 6s. Extraction took 23s.
+2025-12-25T19:13:19.554673422Z ==> Using Node.js version 22.16.0 (default)
+2025-12-25T19:13:19.578615469Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-12-25T19:13:19.701888955Z ==> Running build command 'npm install --include=dev && npm run build && npm run db:push'...
+2025-12-25T19:13:22.018466472Z 
+2025-12-25T19:13:22.018502565Z up to date, audited 864 packages in 2s
+2025-12-25T19:13:22.018517656Z 
+2025-12-25T19:13:22.018522707Z 187 packages are looking for funding
+2025-12-25T19:13:22.018527627Z   run `npm fund` for details
+2025-12-25T19:13:22.041567471Z 
+2025-12-25T19:13:22.041589653Z 10 vulnerabilities (3 low, 5 moderate, 2 high)
+2025-12-25T19:13:22.041594944Z 
+2025-12-25T19:13:22.041600724Z To address issues that do not require attention, run:
+2025-12-25T19:13:22.041605724Z   npm audit fix
+2025-12-25T19:13:22.041609925Z 
+2025-12-25T19:13:22.041614145Z To address all issues (including breaking changes), run:
+2025-12-25T19:13:22.041618845Z   npm audit fix --force
+2025-12-25T19:13:22.041623146Z 
+2025-12-25T19:13:22.041628706Z Run `npm audit` for details.
+2025-12-25T19:13:22.362375448Z 
+2025-12-25T19:13:22.36240095Z > rest-express@1.0.0 build
+2025-12-25T19:13:22.362406781Z > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-12-25T19:13:22.362411941Z 
+2025-12-25T19:13:22.558623326Z vite v5.4.20 building for production...
+2025-12-25T19:13:22.611042112Z transforming...
+2025-12-25T19:13:24.450945346Z 
+2025-12-25T19:13:24.461010872Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-12-25T19:13:25.193334586Z ✓ 70 modules transformed.
+2025-12-25T19:13:25.194227558Z x Build failed in 2.62s
+2025-12-25T19:13:25.200809105Z error during build:
+2025-12-25T19:13:25.200818405Z [vite:esbuild] Transform failed with 1 error:
+2025-12-25T19:13:25.200824376Z /opt/render/project/src/client/src/pages/study/event-lesson.tsx:3:0: ERROR: Unexpected "..."
+2025-12-25T19:13:25.200830296Z file: /opt/render/project/src/client/src/pages/study/event-lesson.tsx:3:0
+2025-12-25T19:13:25.200835247Z 
+2025-12-25T19:13:25.200840087Z Unexpected "..."
+2025-12-25T19:13:25.200845428Z 1  |  import { useState, useEffect, useMemo, useRef } from "react";
+2025-12-25T19:13:25.200851098Z 2  |  import { useLocation, useParams } from "wouter";
+2025-12-25T19:13:25.200856298Z 3  |  ...
+2025-12-25T19:13:25.200861359Z    |  ^
+2025-12-25T19:13:25.200894011Z 4  |    const audioCorrect = useRef<HTMLAudioElement | null>(null);
+2025-12-25T19:13:25.200902032Z 5  |    const audioIncorrect = useRef<HTMLAudioElement | null>(null);
+2025-12-25T19:13:25.200906822Z 
+2025-12-25T19:13:25.200912403Z     at failureErrorWithLog (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+2025-12-25T19:13:25.200917513Z     at /opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+2025-12-25T19:13:25.200989609Z     at responseCallbacks.<computed> (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+2025-12-25T19:13:25.200993469Z     at handleIncomingPacket (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+2025-12-25T19:13:25.200996509Z     at Socket.readFromStdout (/opt/render/project/src/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+2025-12-25T19:13:25.20099957Z     at Socket.emit (node:events:518:28)
+2025-12-25T19:13:25.20100273Z     at addChunk (node:internal/streams/readable:561:12)
+2025-12-25T19:13:25.20100601Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-12-25T19:13:25.20100937Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-12-25T19:13:25.201012781Z     at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-12-25T19:13:25.442735558Z ==> Build failed 😞
+2025-12-25T19:13:25.44275406Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

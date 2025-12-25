@@ -423,22 +423,6 @@ export default function EventLessonPage() {
   }
 
   if (error || !data || !lesson) {
-    const errorResponse = (error as any)?.response?.data;
-    const statusCode = (error as any)?.response?.status;
-    const errorMessage = errorResponse?.message || "Lição não encontrada";
-    
-    let displayMessage = errorMessage;
-    let displayTitle = "Acesso Negado";
-    
-    if (statusCode === 403) {
-      displayTitle = errorResponse?.message?.includes("completou") ? "Lição Completada" : "Lição Bloqueada";
-      if (errorResponse?.unlockTime) {
-        const unlockDate = new Date(errorResponse.unlockTime);
-        const formattedTime = unlockDate.toLocaleString('pt-BR');
-        displayMessage = `Esta lição será desbloqueada em ${formattedTime}`;
-      }
-    }
-    
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background border-b p-4">
@@ -452,16 +436,7 @@ export default function EventLessonPage() {
           </Button>
         </header>
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center max-w-md space-y-3">
-            <h2 className="text-lg font-semibold">{displayTitle}</h2>
-            <p className="text-muted-foreground">{displayMessage}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation(`/study/events/${eventId}`)}
-            >
-              Voltar para o Evento
-            </Button>
-          </div>
+          <p className="text-muted-foreground">Lição não encontrada</p>
         </div>
       </div>
     );

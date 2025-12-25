@@ -87,7 +87,7 @@ function LessonItem({
   const isCompleted = progress?.completed || false;
 
   const handleClick = () => {
-    if (!isLocked && lesson.status === "published") {
+    if (!isLocked) {
       setLocation(`/study/events/${eventId}/lessons/${lesson.dayNumber}`);
     }
   };
@@ -343,7 +343,7 @@ export default function EventDetailPage() {
               ? progressMap.get(previousLesson.id)?.completed || false 
               : true;
             const currentCompleted = progressMap.get(lesson.id)?.completed || false;
-            return previousCompleted && !currentCompleted && lesson.status === "published";
+            return previousCompleted && !currentCompleted;
           });
           
           if (currentLesson && completedLessons < totalLessons) {
@@ -385,7 +385,7 @@ export default function EventDetailPage() {
                 : true;
               const currentCompleted = progressMap.get(lesson.id)?.completed || false;
               const isLocked = !previousCompleted && !currentCompleted;
-              const isInProgress = previousCompleted && !currentCompleted && lesson.status === "published";
+              const isInProgress = previousCompleted && !currentCompleted;
 
               return (
                 <LessonItem

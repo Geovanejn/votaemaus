@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Trash2, X, Award, BookOpen, Flame, Trophy, Star, Heart, Zap, Calendar, Settings } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, X, Award, BookOpen, Flame, Trophy, Star, Heart, Zap, Calendar, Settings, MessageCircleHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +42,7 @@ const notificationIcons: Record<string, any> = {
   challenge: Zap,
   daily_mission: Calendar,
   system: Settings,
+  encouragement: Heart,
   default: Bell,
 };
 
@@ -55,6 +56,7 @@ const notificationColors: Record<string, string> = {
   challenge: 'text-cyan-500',
   daily_mission: 'text-indigo-500',
   system: 'text-muted-foreground',
+  encouragement: 'text-pink-500',
   default: 'text-muted-foreground',
 };
 

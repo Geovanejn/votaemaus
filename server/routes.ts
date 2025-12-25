@@ -2209,7 +2209,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { PREDEFINED_ENCOURAGEMENT_MESSAGES } = await import('@shared/schema');
-      res.json({ messages: PREDEFINED_ENCOURAGEMENT_MESSAGES });
+      // Map to expected format: key, title, body
+      const messages = PREDEFINED_ENCOURAGEMENT_MESSAGES.map(msg => ({
+        key: msg.key,
+        title: msg.text,
+        body: msg.text,
+        icon: msg.icon,
+      }));
+      res.json({ messages });
     } catch (error) {
       console.error("Get encouragement messages error:", error);
       res.status(500).json({ message: "Erro ao buscar mensagens" });

@@ -232,9 +232,10 @@ export default function DeoGloryUsuarios() {
     queryKey: ['/api/study/admin/users'],
   });
 
-  const { data: encouragementMessages = [] } = useQuery<EncouragementMessage[]>({
+  const { data: encouragementMessagesData } = useQuery<{ messages: EncouragementMessage[] }>({
     queryKey: ['/api/study/encouragement-messages'],
   });
+  const encouragementMessages = encouragementMessagesData?.messages || [];
 
   const broadcastMutation = useMutation({
     mutationFn: async (messageKey: string) => {

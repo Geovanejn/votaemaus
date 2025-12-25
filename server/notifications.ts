@@ -577,6 +577,34 @@ export async function notifyLessonAvailable(
   );
 }
 
+export async function notifyNewLessonToAll(
+  lessonTitle: string,
+  seasonTitle: string
+): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Nova Unidade de Estudo!",
+    body: `"${lessonTitle}" de "${seasonTitle}" foi liberada. Estude agora!`,
+    url: "/study",
+    tag: "new-lesson",
+    icon: "/logo.png",
+  };
+
+  const activeMembers = await storage.getActiveMembers();
+  
+  for (const member of activeMembers) {
+    await sendPushToUser(member.id, payload);
+    await createInAppNotification(
+      member.id,
+      "lesson_available",
+      payload.title,
+      payload.body,
+      { url: payload.url }
+    );
+  }
+
+  console.log(`[Notifications] New lesson notification sent to ${activeMembers.length} active members`);
+}
+
 export async function notifyStreakReminder(
   userId: number,
   currentStreak: number,

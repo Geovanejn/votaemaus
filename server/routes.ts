@@ -51,7 +51,8 @@ import {
   notifyNewPrayerRequest, 
   notifyPrayerApproved,
   notifyNewComment,
-  notifySeasonPublished
+  notifySeasonPublished,
+  notifyNewLessonToAll
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
@@ -3601,6 +3602,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!lesson) {
         return res.status(404).json({ message: "Licao nao encontrada" });
+      }
+
+      // Get week title for notification
+      const week = await storage.getStudyWeekById(lesson.studyWeekId);
+      if (week) {
+        notifyNewLessonToAll(lesson.title, week.title).catch(err => 
+          console.error("[Notifications] Error notifying new lesson:", err)
+        );
       }
 
       res.json({ message: "Licao liberada com sucesso", lesson });

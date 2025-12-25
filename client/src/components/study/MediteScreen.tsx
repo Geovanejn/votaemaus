@@ -193,6 +193,15 @@ export function MediteScreen({
   ];
   
   const totalSlides = 2; // Fixed 2 screens: Meditation + Reflection
+  const sections = rawSections.length > 0 ? rawSections : [
+    { 
+      type: "reflection" as const, 
+      title: "O Amor Transformador", 
+      content: "Pause por um momento e reflita sobre a profundidade desse amor incondicional. Como essa verdade transforma sua vida hoje?",
+      verseReference: "João 3:16",
+      verseText: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna."
+    }
+  ];
 
   // Ensure we only have 2 slides regardless of rawSections length
   const displaySections = useMemo(() => {

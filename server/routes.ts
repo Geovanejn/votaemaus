@@ -7255,9 +7255,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dayNumber = parseInt(req.params.dayNumber);
       const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
       if (!lesson) return res.status(404).json({ message: "Lição não encontrada" });
-      const progress = await storage.getStudyEventUserProgress(req.user!.id, lesson.id);
+      const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
       res.json({ lesson, progress: progress || null });
     } catch (error) {
+      console.error("Get study event lesson by day error:", error);
       res.status(500).json({ message: "Erro ao carregar lição" });
     }
   });

@@ -251,8 +251,8 @@ export default function EventoEditorPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-purple-700 dark:text-purple-400">Editar Evento de Estudo</h1>
-            <p className="text-sm text-muted-foreground font-medium">Atualizar detalhes e lições do evento DeoGlory</p>
+            <h1 className="text-lg font-semibold">Editar Evento</h1>
+            <p className="text-sm text-muted-foreground">Atualizar detalhes do evento especial</p>
           </div>
           <Button 
             onClick={handleSave}

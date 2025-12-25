@@ -11,12 +11,12 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: "", icon: Home, label: "Início", activeColor: "#1CB0F6" },
-  { path: "/estudos", icon: BookOpen, label: "Estudos", activeColor: "#1CB0F6" },
+  { path: "", icon: Home, label: "Início", activeColor: "#A855F7" },
+  { path: "/estudos", icon: BookOpen, label: "Estudos", activeColor: "#A855F7" },
   { path: "/events", icon: Sparkles, label: "Eventos", activeColor: "#A855F7" },
-  { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#1CB0F6" },
+  { path: "/explore", icon: Compass, label: "Explorar", activeColor: "#A855F7" },
   { path: "/ranking", icon: Trophy, label: "Ranking", activeColor: "#F97316" },
-  { path: "/profile", icon: User, label: "Perfil", activeColor: "#1CB0F6" },
+  { path: "/profile", icon: User, label: "Perfil", activeColor: "#A855F7" },
 ];
 
 export function BottomNav() {

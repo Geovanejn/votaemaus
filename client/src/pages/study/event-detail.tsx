@@ -1,6 +1,7 @@
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { useEffect, useRef } from "react";
 import { BottomNav } from "@/components/study";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,8 @@ import {
   CheckCircle2,
   Lock,
   Play,
-  BookOpen
+  BookOpen,
+  ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, differenceInDays, isBefore, isAfter } from "date-fns";
@@ -70,12 +72,14 @@ function LessonItem({
   lesson, 
   progress, 
   isLocked, 
+  isInProgress,
   dayNumber,
   eventId 
 }: { 
   lesson: EventLesson; 
   progress?: UserProgress; 
   isLocked: boolean;
+  isInProgress: boolean;
   dayNumber: number;
   eventId: number;
 }) {
@@ -90,13 +94,14 @@ function LessonItem({
 
   return (
     <motion.div
+      id={`event-lesson-${lesson.id}`}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2, delay: dayNumber * 0.05 }}
     >
       <Card 
         className={`transition-all ${
-          isLocked ? "opacity-50" : isCompleted ? "border-green-500/50" : "hover-elevate cursor-pointer"
+          isLocked ? "opacity-50" : isCompleted ? "border-green-500/50" : isInProgress ? "border-primary ring-2 ring-primary/20 hover-elevate cursor-pointer" : "hover-elevate cursor-pointer"
         }`}
         onClick={handleClick}
         data-testid={`card-lesson-day-${dayNumber}`}
@@ -163,11 +168,38 @@ export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
   const eventId = parseInt(params.id || "0");
   const { toast } = useToast();
+  const scrolledRef = useRef(false);
 
   const { data, isLoading, error } = useQuery<EventDetailResponse>({
     queryKey: ["/api/study/events", eventId],
     enabled: !!user && eventId > 0,
   });
+
+  useEffect(() => {
+    if (data?.lessons && data?.progress && !scrolledRef.current) {
+      const sortedLessons = [...data.lessons].sort((a, b) => a.dayNumber - b.dayNumber);
+      const progressMap = new Map(data.progress.map(p => [p.lessonId, p]));
+      
+      const firstInProgress = sortedLessons.find((lesson, index) => {
+        const previousLesson = index > 0 ? sortedLessons[index - 1] : null;
+        const previousCompleted = previousLesson 
+          ? progressMap.get(previousLesson.id)?.completed || false 
+          : true;
+        const currentCompleted = progressMap.get(lesson.id)?.completed || false;
+        return previousCompleted && !currentCompleted && lesson.status === "published";
+      });
+      
+      if (firstInProgress) {
+        scrolledRef.current = true;
+        setTimeout(() => {
+          const element = document.getElementById(`event-lesson-${firstInProgress.id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      }
+    }
+  }, [data?.lessons, data?.progress]);
 
   if (isLoading) {
     return (
@@ -304,6 +336,41 @@ export default function EventDetailPage() {
           </CardContent>
         </Card>
 
+        {(() => {
+          const currentLesson = sortedLessons.find((lesson, index) => {
+            const previousLesson = index > 0 ? sortedLessons[index - 1] : null;
+            const previousCompleted = previousLesson 
+              ? progressMap.get(previousLesson.id)?.completed || false 
+              : true;
+            const currentCompleted = progressMap.get(lesson.id)?.completed || false;
+            return previousCompleted && !currentCompleted && lesson.status === "published";
+          });
+          
+          if (currentLesson && completedLessons < totalLessons) {
+            return (
+              <Card 
+                className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 hover-elevate cursor-pointer"
+                onClick={() => setLocation(`/study/events/${eventId}/lessons/${currentLesson.dayNumber}`)}
+                data-testid="card-continue-studying"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                      <Play className="h-5 w-5 text-white fill-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground font-medium">Continuar estudando</p>
+                      <h4 className="font-semibold truncate">Dia {currentLesson.dayNumber}: {currentLesson.title}</h4>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+          return null;
+        })()}
+
         <section>
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
@@ -318,6 +385,7 @@ export default function EventDetailPage() {
                 : true;
               const currentCompleted = progressMap.get(lesson.id)?.completed || false;
               const isLocked = !previousCompleted && !currentCompleted;
+              const isInProgress = previousCompleted && !currentCompleted && lesson.status === "published";
 
               return (
                 <LessonItem
@@ -325,6 +393,7 @@ export default function EventDetailPage() {
                   lesson={lesson}
                   progress={progressMap.get(lesson.id)}
                   isLocked={isLocked}
+                  isInProgress={isInProgress}
                   dayNumber={lesson.dayNumber}
                   eventId={eventId}
                 />

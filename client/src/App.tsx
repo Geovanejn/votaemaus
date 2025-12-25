@@ -70,6 +70,7 @@ const DeoGloryConfiguracoes = lazy(() => import("@/pages/study/admin/DeoGloryCon
 const DeoGloryRevistaDetail = lazy(() => import("@/pages/study/admin/DeoGloryRevistaDetail"));
 const DeoGloryLicaoDetail = lazy(() => import("@/pages/study/admin/DeoGloryLicaoDetail"));
 const AdminStudyEventos = lazy(() => import("@/pages/admin/study/eventos"));
+const AdminStudyEventoEditor = lazy(() => import("@/pages/admin/study/evento-editor"));
 
 function PageLoader() {
   return (
@@ -158,6 +159,7 @@ function Router() {
           <Route path="/admin/study/revista/:id" component={DeoGloryRevistaDetail} />
           <Route path="/admin/study/licao/:id" component={DeoGloryLicaoDetail} />
           <Route path="/admin/study/eventos" component={AdminStudyEventos} />
+          <Route path="/admin/study/eventos/:id" component={AdminStudyEventoEditor} />
           <Route path="/admin/study/old" component={StudyAdminPage} />
           <Route path="/admin/site" component={AdminSitePage} />
           <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

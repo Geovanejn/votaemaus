@@ -52,6 +52,12 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - **Marketing**: Instagram post synchronization and highlighting, location input for addresses.
     - **DeoGlory Admin**: Full lesson management (AI generation or PDF upload), status tracking (Draft/Published), and control over lesson availability.
     - **Multi-Panel Dashboard**: Admins have a selection page to access different administrative panels (Emaus Vota, Espiritualidade, Marketing, DeoGlory, Site Institucional).
+- **Special Events System**:
+    - Events with 5 AI-generated lessons and collectible cards with 4 rarity levels.
+    - Event image upload via `/admin/study/eventos/:id` with ImageUpload component (16:9 aspect ratio).
+    - Images stored as base64 in database (Neon PostgreSQL) for production compatibility.
+    - Event statistics displayed in Dashboard, Users, and Reports admin screens.
+    - Cards displayed in member profiles with animated modal and social sharing (WhatsApp, Twitter/X, Facebook).
 
 ### System Design Choices
 - **Modular Project Structure**: Clear separation of client, server, and shared codebases.

@@ -213,6 +213,9 @@ export default function EventDetailPage() {
   }
 
   if (error || !data) {
+    const errorMessage = (error as any)?.response?.data?.message || "Evento não encontrado";
+    const isSiteEvent = (error as any)?.response?.data?.isSiteEvent;
+
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background border-b p-4">
@@ -224,8 +227,19 @@ export default function EventDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </header>
-        <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-muted-foreground">Evento não encontrado</p>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="max-w-md space-y-4">
+            <p className="text-muted-foreground">{errorMessage}</p>
+            {isSiteEvent && (
+              <p className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                Nota: Existem dois tipos de eventos no sistema. Eventos institucionais (Marketing) e eventos de estudo (DeoGlory). 
+                Parece que este evento foi criado apenas como institucional.
+              </p>
+            )}
+            <Button onClick={() => setLocation("/study/events")}>
+              Voltar para Eventos
+            </Button>
+          </div>
         </div>
         <BottomNav />
       </div>

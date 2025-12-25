@@ -2046,6 +2046,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== MEMBER INTERACTION ENDPOINTS ====================
+
+  // Update online status (heartbeat)
+  app.post("/api/study/online-status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      await storage.updateUserOnlineStatus(req.user.id, true);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update online status error:", error);
+      res.status(500).json({ message: "Erro ao atualizar status" });
+    }
+  });
+
+  // Get online users
+  app.get("/api/study/online-users", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const onlineUserIds = await storage.getOnlineUserIds();
+      res.json({ onlineUserIds });
+    } catch (error) {
+      console.error("Get online users error:", error);
+      res.status(500).json({ message: "Erro ao buscar usuarios online" });
+    }
+  });
+
+  // Get public member profile
+  app.get("/api/study/member/:userId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const targetUserId = parseInt(req.params.userId);
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ message: "ID de usuario invalido" });
+      }
+      
+      const profile = await storage.getPublicMemberProfile(targetUserId, req.user.id);
+      if (!profile) {
+        return res.status(404).json({ message: "Membro nao encontrado" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Get member profile error:", error);
+      res.status(500).json({ message: "Erro ao buscar perfil do membro" });
+    }
+  });
+
+  // Like achievement
+  app.post("/api/study/member/:userId/achievement/:achievementId/like", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const targetUserId = parseInt(req.params.userId);
+      const achievementId = parseInt(req.params.achievementId);
+      
+      if (isNaN(targetUserId) || isNaN(achievementId)) {
+        return res.status(400).json({ message: "IDs invalidos" });
+      }
+      
+      if (targetUserId === req.user.id) {
+        return res.status(400).json({ message: "Voce nao pode curtir suas proprias conquistas" });
+      }
+      
+      const success = await storage.likeAchievement(req.user.id, targetUserId, achievementId);
+      res.json({ success, liked: true });
+    } catch (error) {
+      console.error("Like achievement error:", error);
+      res.status(500).json({ message: "Erro ao curtir conquista" });
+    }
+  });
+
+  // Unlike achievement
+  app.delete("/api/study/member/:userId/achievement/:achievementId/like", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const targetUserId = parseInt(req.params.userId);
+      const achievementId = parseInt(req.params.achievementId);
+      
+      if (isNaN(targetUserId) || isNaN(achievementId)) {
+        return res.status(400).json({ message: "IDs invalidos" });
+      }
+      
+      const success = await storage.unlikeAchievement(req.user.id, targetUserId, achievementId);
+      res.json({ success, liked: false });
+    } catch (error) {
+      console.error("Unlike achievement error:", error);
+      res.status(500).json({ message: "Erro ao remover curtida" });
+    }
+  });
+
+  // Send encouragement message
+  app.post("/api/study/member/:userId/encourage", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const receiverId = parseInt(req.params.userId);
+      const { messageKey, messageText } = req.body;
+      
+      if (isNaN(receiverId)) {
+        return res.status(400).json({ message: "ID de usuario invalido" });
+      }
+      
+      if (receiverId === req.user.id) {
+        return res.status(400).json({ message: "Voce nao pode enviar mensagem para si mesmo" });
+      }
+      
+      if (!messageKey || !messageText) {
+        return res.status(400).json({ message: "Mensagem invalida" });
+      }
+      
+      // Save encouragement
+      const encouragement = await storage.sendEncouragement(req.user.id, receiverId, messageKey, messageText);
+      
+      // Create in-app notification
+      const sender = await storage.getUserById(req.user.id);
+      await storage.createNotification({
+        userId: receiverId,
+        type: "encouragement",
+        title: "Mensagem de incentivo",
+        body: `${sender?.fullName || 'Um membro'} te enviou: "${messageText}"`,
+        data: JSON.stringify({ senderId: req.user.id, messageKey }),
+      });
+      
+      // Send push notification
+      const { sendPushToUser } = await import('./notifications');
+      await sendPushToUser(receiverId, {
+        title: "Mensagem de incentivo",
+        body: `${sender?.fullName || 'Um membro'}: ${messageText}`,
+        url: "/study",
+        tag: `encouragement-${encouragement.id}`,
+      });
+      
+      res.json({ success: true, encouragement });
+    } catch (error) {
+      console.error("Send encouragement error:", error);
+      res.status(500).json({ message: "Erro ao enviar mensagem" });
+    }
+  });
+
+  // Get predefined encouragement messages
+  app.get("/api/study/encouragement-messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const { PREDEFINED_ENCOURAGEMENT_MESSAGES } = await import('@shared/schema');
+      res.json({ messages: PREDEFINED_ENCOURAGEMENT_MESSAGES });
+    } catch (error) {
+      console.error("Get encouragement messages error:", error);
+      res.status(500).json({ message: "Erro ao buscar mensagens" });
+    }
+  });
+
+  // Get received encouragements (for notifications)
+  app.get("/api/study/encouragements", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 20;
+      const encouragements = await storage.getReceivedEncouragements(req.user.id, limit);
+      
+      // Get sender info for each encouragement
+      const encouragementsWithSender = await Promise.all(
+        encouragements.map(async (e) => {
+          const sender = await storage.getUserById(e.senderId);
+          return {
+            ...e,
+            senderName: sender?.fullName || 'Membro',
+            senderPhotoUrl: sender?.photoUrl || null,
+          };
+        })
+      );
+      
+      res.json({ encouragements: encouragementsWithSender });
+    } catch (error) {
+      console.error("Get encouragements error:", error);
+      res.status(500).json({ message: "Erro ao buscar mensagens" });
+    }
+  });
+
+  // Admin: Send encouragement to all members
+  app.post("/api/admin/study/encourage-all", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const { messageKey, messageText } = req.body;
+      
+      if (!messageKey || !messageText) {
+        return res.status(400).json({ message: "Mensagem invalida" });
+      }
+      
+      // Send to all members
+      const sentCount = await storage.sendEncouragementToAll(req.user.id, messageKey, messageText);
+      
+      // Send push notification to all members
+      const { sendPushToAllMembers } = await import('./notifications');
+      await sendPushToAllMembers({
+        title: "Mensagem da lideranca",
+        body: messageText,
+        url: "/study",
+        tag: `admin-encouragement-${Date.now()}`,
+      });
+      
+      res.json({ success: true, sentCount });
+    } catch (error) {
+      console.error("Encourage all error:", error);
+      res.status(500).json({ message: "Erro ao enviar mensagens" });
+    }
+  });
+
   // ==================== CRYSTAL AND STREAK FREEZE ENDPOINTS ====================
 
   app.get("/api/study/crystals", authenticateToken, async (req: AuthRequest, res) => {

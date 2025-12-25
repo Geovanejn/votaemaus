@@ -372,6 +372,23 @@ export interface IStorage {
   autoApproveDevotionalComment(id: number): Promise<DevotionalComment | null>;
   highlightDevotionalComment(id: number, isHighlighted: boolean): Promise<DevotionalComment | null>;
   deleteDevotionalComment(id: number): Promise<void>;
+  
+  // Member Interaction Methods
+  updateUserOnlineStatus(userId: number, isOnline: boolean): Promise<void>;
+  getUserOnlineStatus(userId: number): Promise<{ isOnline: boolean; lastSeenAt: Date } | null>;
+  getOnlineUserIds(): Promise<number[]>;
+  getPublicMemberProfile(targetUserId: number, requesterId: number): Promise<schema.PublicMemberProfile | null>;
+  
+  // Achievement Like Methods
+  likeAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean>;
+  unlikeAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean>;
+  getAchievementLikesCount(targetUserId: number, achievementId: number): Promise<number>;
+  hasLikedAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean>;
+  
+  // Member Encouragement Methods
+  sendEncouragement(senderId: number, receiverId: number, messageKey: string, messageText: string): Promise<schema.MemberEncouragement>;
+  getReceivedEncouragements(userId: number, limit?: number): Promise<schema.MemberEncouragement[]>;
+  sendEncouragementToAll(senderId: number, messageKey: string, messageText: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5494,6 +5511,219 @@ export class DatabaseStorage implements IStorage {
     }
     
     return practice;
+  }
+
+  // ==================== MEMBER INTERACTION METHODS ====================
+
+  async updateUserOnlineStatus(userId: number, isOnline: boolean): Promise<void> {
+    const now = new Date();
+    await db.insert(schema.userOnlineStatus)
+      .values({
+        userId,
+        isOnline,
+        lastSeenAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.userOnlineStatus.userId,
+        set: {
+          isOnline,
+          lastSeenAt: now,
+          updatedAt: now,
+        },
+      });
+  }
+
+  async getUserOnlineStatus(userId: number): Promise<{ isOnline: boolean; lastSeenAt: Date } | null> {
+    const [status] = await db.select()
+      .from(schema.userOnlineStatus)
+      .where(eq(schema.userOnlineStatus.userId, userId))
+      .limit(1);
+    
+    if (!status) return null;
+    
+    // Consider user offline if not seen in last 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const isOnline = status.isOnline && status.lastSeenAt > fiveMinutesAgo;
+    
+    return { isOnline, lastSeenAt: status.lastSeenAt };
+  }
+
+  async getOnlineUserIds(): Promise<number[]> {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    const results = await db.select({ userId: schema.userOnlineStatus.userId })
+      .from(schema.userOnlineStatus)
+      .where(and(
+        eq(schema.userOnlineStatus.isOnline, true),
+        sql`${schema.userOnlineStatus.lastSeenAt} > ${fiveMinutesAgo}`
+      ));
+    
+    return results.map(r => r.userId);
+  }
+
+  async getPublicMemberProfile(targetUserId: number, requesterId: number): Promise<schema.PublicMemberProfile | null> {
+    const [user] = await db.select({
+      id: schema.users.id,
+      fullName: schema.users.fullName,
+      photoUrl: schema.users.photoUrl,
+    })
+      .from(schema.users)
+      .where(and(
+        eq(schema.users.id, targetUserId),
+        eq(schema.users.isMember, true),
+        eq(schema.users.isAdmin, false)
+      ))
+      .limit(1);
+    
+    if (!user) return null;
+
+    const profile = await this.getStudyProfile(targetUserId);
+    if (!profile) return null;
+
+    const xpData = await this.getUserTotalXp(targetUserId);
+    const stats = await this.getUserProfileStats(targetUserId);
+
+    // Get user achievements with likes
+    const userAchievements = await db.select({
+      id: schema.userAchievements.achievementId,
+      unlockedAt: schema.userAchievements.unlockedAt,
+      name: schema.achievements.name,
+      icon: schema.achievements.icon,
+      category: schema.achievements.category,
+      xpReward: schema.achievements.xpReward,
+    })
+      .from(schema.userAchievements)
+      .innerJoin(schema.achievements, eq(schema.userAchievements.achievementId, schema.achievements.id))
+      .where(eq(schema.userAchievements.userId, targetUserId))
+      .orderBy(desc(schema.userAchievements.unlockedAt));
+
+    // Get likes for each achievement
+    const achievementsWithLikes = await Promise.all(userAchievements.map(async (a) => {
+      const likesCount = await this.getAchievementLikesCount(targetUserId, a.id);
+      const isLikedByMe = await this.hasLikedAchievement(requesterId, targetUserId, a.id);
+      
+      return {
+        id: a.id,
+        name: a.name,
+        icon: a.icon,
+        category: a.category,
+        xpReward: a.xpReward,
+        unlockedAt: a.unlockedAt?.toISOString() || '',
+        likesCount,
+        isLikedByMe,
+      };
+    }));
+
+    // Get online status
+    const onlineStatus = await this.getUserOnlineStatus(targetUserId);
+
+    return {
+      userId: user.id,
+      username: user.fullName,
+      photoUrl: user.photoUrl,
+      level: profile.currentLevel,
+      totalXp: xpData.totalXp,
+      currentStreak: profile.currentStreak,
+      rankingPosition: stats.rankingPosition,
+      achievements: achievementsWithLikes,
+      isOnline: onlineStatus?.isOnline || false,
+      lastSeenAt: onlineStatus?.lastSeenAt?.toISOString() || null,
+    };
+  }
+
+  // ==================== ACHIEVEMENT LIKE METHODS ====================
+
+  async likeAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean> {
+    try {
+      await db.insert(schema.achievementLikes)
+        .values({
+          userId,
+          targetUserId,
+          achievementId,
+        })
+        .onConflictDoNothing();
+      return true;
+    } catch (error) {
+      console.error("[Achievement Like] Error:", error);
+      return false;
+    }
+  }
+
+  async unlikeAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean> {
+    try {
+      await db.delete(schema.achievementLikes)
+        .where(and(
+          eq(schema.achievementLikes.userId, userId),
+          eq(schema.achievementLikes.targetUserId, targetUserId),
+          eq(schema.achievementLikes.achievementId, achievementId)
+        ));
+      return true;
+    } catch (error) {
+      console.error("[Achievement Unlike] Error:", error);
+      return false;
+    }
+  }
+
+  async getAchievementLikesCount(targetUserId: number, achievementId: number): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.achievementLikes)
+      .where(and(
+        eq(schema.achievementLikes.targetUserId, targetUserId),
+        eq(schema.achievementLikes.achievementId, achievementId)
+      ));
+    
+    return Number(result?.count || 0);
+  }
+
+  async hasLikedAchievement(userId: number, targetUserId: number, achievementId: number): Promise<boolean> {
+    const [like] = await db.select()
+      .from(schema.achievementLikes)
+      .where(and(
+        eq(schema.achievementLikes.userId, userId),
+        eq(schema.achievementLikes.targetUserId, targetUserId),
+        eq(schema.achievementLikes.achievementId, achievementId)
+      ))
+      .limit(1);
+    
+    return !!like;
+  }
+
+  // ==================== MEMBER ENCOURAGEMENT METHODS ====================
+
+  async sendEncouragement(senderId: number, receiverId: number, messageKey: string, messageText: string): Promise<schema.MemberEncouragement> {
+    const [encouragement] = await db.insert(schema.memberEncouragements)
+      .values({
+        senderId,
+        receiverId,
+        messageKey,
+        messageText,
+      })
+      .returning();
+    
+    return encouragement;
+  }
+
+  async getReceivedEncouragements(userId: number, limit: number = 20): Promise<schema.MemberEncouragement[]> {
+    return db.select()
+      .from(schema.memberEncouragements)
+      .where(eq(schema.memberEncouragements.receiverId, userId))
+      .orderBy(desc(schema.memberEncouragements.createdAt))
+      .limit(limit);
+  }
+
+  async sendEncouragementToAll(senderId: number, messageKey: string, messageText: string): Promise<number> {
+    const members = await this.getActiveMembers();
+    let count = 0;
+    
+    for (const member of members) {
+      if (member.id !== senderId) {
+        await this.sendEncouragement(senderId, member.id, messageKey, messageText);
+        count++;
+      }
+    }
+    
+    return count;
   }
 }
 

@@ -4871,9 +4871,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      
+      // Check if event is being published (was not published, now is)
+      const existingEvent = await storage.getSiteEventById(id);
+      const wasPublished = existingEvent?.isPublished;
+      
       const updated = await storage.updateSiteEvent(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      // Send notification if event is being published for the first time
+      if (!wasPublished && updated.isPublished) {
+        notifyNewEvent(updated.id, updated.title, updated.startDate, updated.location, updated.imageUrl).catch(err => 
+          console.error("[Notifications] Error notifying new event:", err)
+        );
       }
       
       // Audit log
@@ -6553,6 +6565,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
+      
+      // Send push notification when devotional is published
+      notifyNewDevotional(devotional.id, devotional.title, devotional.imageUrl).catch(err => 
+        console.error("[Notifications] Error notifying new devotional:", err)
+      );
       
       res.json(devotional);
     } catch (error) {

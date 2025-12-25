@@ -3276,6 +3276,14 @@ export class DatabaseStorage implements IStorage {
         await this.addXp(userId, achievement.xpReward, 'achievement', achievementId);
       }
 
+      // Send push notification for unlocked achievement
+      try {
+        const { notifyAchievement } = await import('./notifications');
+        await notifyAchievement(userId, achievement.name, achievement.description);
+      } catch (err) {
+        console.error("[Achievement] Error sending notification:", err);
+      }
+
       return { userAchievement, achievement };
     } catch (error) {
       console.error("[Achievement] Error unlocking:", error);

@@ -107,11 +107,21 @@ export async function sendPushToUser(
   payload: NotificationPayload
 ): Promise<number> {
   const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+  
+  if (subscriptions.length === 0) {
+    console.log(`[Push] No subscriptions found for user ${userId} - user needs to enable notifications`);
+    return 0;
+  }
+  
+  console.log(`[Push] Sending "${payload.title}" to user ${userId} (${subscriptions.length} subscription(s))`);
   let successCount = 0;
 
   for (const subscription of subscriptions) {
     const success = await sendPushNotification(subscription, payload);
-    if (success) successCount++;
+    if (success) {
+      successCount++;
+      console.log(`[Push] Successfully sent to user ${userId}`);
+    }
   }
 
   return successCount;
@@ -253,15 +263,17 @@ export async function notifyNewDevotional(
   title: string,
   imageUrl?: string | null
 ): Promise<void> {
+  console.log(`[Notifications] notifyNewDevotional STARTED for devotional ${devotionalId}: "${title}"`);
+  
   const payload: NotificationPayload = {
     title: "Novo Devocional",
     body: `"${title}" foi publicado. Leia agora!`,
     url: `/devocionais/${devotionalId}`,
     tag: `devotional-${devotionalId}`,
-    icon: "/logo.png",
   };
 
   const activeMembers = await storage.getActiveMembers();
+  console.log(`[Notifications] Sending devotional notification to ${activeMembers.length} active members`);
   
   for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
@@ -318,15 +330,17 @@ export async function notifyNewEvent(
   eventLocation?: string | null,
   imageUrl?: string | null
 ): Promise<void> {
+  console.log(`[Notifications] notifyNewEvent STARTED for event ${eventId}: "${title}"`);
+  
   const payload: NotificationPayload = {
     title: "Novo Evento",
     body: `"${title}" foi adicionado a agenda. Confira!`,
     url: `/agenda/${eventId}`,
     tag: `event-${eventId}`,
-    icon: "/logo.png",
   };
 
   const activeMembers = await storage.getActiveMembers();
+  console.log(`[Notifications] Sending event notification to ${activeMembers.length} active members`);
   
   for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
@@ -382,16 +396,17 @@ export async function notifyNewPrayerRequest(
   category?: string,
   requestText?: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyNewPrayerRequest STARTED for request ${requestId} from "${requesterName}"`);
+  
   const payload: NotificationPayload = {
     title: "Novo Pedido de Oracao",
     body: `${requesterName} enviou um pedido de oracao.`,
     url: "/oracao",
     tag: `prayer-${requestId}`,
-    icon: "/logo.png",
   };
 
   const pushResult = await sendPushToAllMembers(payload);
-  console.log(`[Notifications] Prayer request push notification: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  console.log(`[Notifications] Prayer request push complete: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 
   // Send email to ALL members (active and inactive) - deduplicated by email
   if (isEmailConfigured() && category && requestText) {
@@ -436,15 +451,17 @@ export async function notifyPrayerApproved(
   userId: number,
   prayerRequestId: number
 ): Promise<void> {
+  console.log(`[Notifications] notifyPrayerApproved STARTED for user ${userId}, request ${prayerRequestId}`);
+  
   const payload: NotificationPayload = {
     title: "Pedido de Oracao Aprovado",
     body: "Seu pedido de oracao foi aprovado e esta no Mural da Oracao!",
     url: "/oracao",
     tag: `prayer-approved-${prayerRequestId}`,
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Prayer approved push to user ${userId}: ${result ? 'success' : 'failed'}`);
   await createInAppNotification(
     userId,
     "prayer_approved",
@@ -460,12 +477,13 @@ export async function notifyNewComment(
   commenterName: string,
   commentText?: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyNewComment STARTED for devotional ${devotionalId} from "${commenterName}"`);
+  
   const payload: NotificationPayload = {
     title: "Novo Comentario",
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: "/admin/espiritualidade/comentarios",
     tag: `comment-${devotionalId}`,
-    icon: "/logo.png",
   };
 
   const result = await sendPushToSecretaria("espiritualidade", payload);
@@ -500,15 +518,17 @@ export async function notifySeasonPublished(
   seasonDescription?: string | null,
   coverImageUrl?: string | null
 ): Promise<void> {
+  console.log(`[Notifications] notifySeasonPublished STARTED for season ${seasonId}: "${seasonTitle}"`);
+  
   const payload: NotificationPayload = {
     title: "Nova Revista DeoGlory!",
     body: `"${seasonTitle}" está disponível. Comece a estudar agora!`,
     url: "/study",
     tag: `season-${seasonId}`,
-    icon: "/logo.png",
   };
 
   const activeMembers = await storage.getActiveMembers();
+  console.log(`[Notifications] Sending season notification to ${activeMembers.length} active members`);
   
   for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
@@ -561,15 +581,17 @@ export async function notifyLessonAvailable(
   lessonTitle: string,
   seasonTitle: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyLessonAvailable STARTED for user ${userId}: "${lessonTitle}"`);
+  
   const payload: NotificationPayload = {
     title: "Nova Licao Disponivel!",
     body: `"${lessonTitle}" de "${seasonTitle}" esta liberada.`,
     url: "/study",
     tag: "lesson-available",
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Lesson available push to user ${userId}: ${result ? 'success' : 'failed'}`);
   await createInAppNotification(
     userId,
     "lesson_available",
@@ -583,15 +605,17 @@ export async function notifyNewLessonToAll(
   lessonTitle: string,
   seasonTitle: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyNewLessonToAll STARTED: "${lessonTitle}" from "${seasonTitle}"`);
+  
   const payload: NotificationPayload = {
     title: "Nova Unidade de Estudo!",
     body: `"${lessonTitle}" de "${seasonTitle}" foi liberada. Estude agora!`,
     url: "/study",
     tag: "new-lesson",
-    icon: "/logo.png",
   };
 
   const activeMembers = await storage.getActiveMembers();
+  console.log(`[Notifications] Sending new lesson notification to ${activeMembers.length} active members`);
   
   for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
@@ -646,10 +670,11 @@ export async function notifyStreakReminder(
     body: message,
     url: "/study",
     tag: "streak-reminder",
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  console.log(`[Notifications] notifyStreakReminder for user ${userId}, streak ${currentStreak}, type: ${type || 'default'}`);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Streak reminder push to user ${userId}: ${result ? 'success' : 'failed'}`);
   
   await createInAppNotification(
     userId,
@@ -681,10 +706,12 @@ export async function notifyInactivity(
     body: message,
     url: "/study",
     tag: "inactivity-reminder",
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  console.log(`[Notifications] notifyInactivity for user ${userId}, days: ${daysSinceLastAccess}`);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Inactivity reminder push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  
   await createInAppNotification(
     userId,
     "inactivity_reminder",
@@ -699,15 +726,17 @@ export async function notifyAchievement(
   achievementName: string,
   achievementDescription: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyAchievement STARTED for user ${userId}: "${achievementName}"`);
+  
   const payload: NotificationPayload = {
     title: "Nova Conquista Desbloqueada!",
     body: `${achievementName}: ${achievementDescription}`,
     url: "/study/achievements",
     tag: `achievement-${achievementName}`,
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Achievement push to user ${userId}: ${result ? 'success' : 'failed'}`);
   await createInAppNotification(
     userId,
     "achievement",
@@ -722,15 +751,17 @@ export async function notifyAchievementLiked(
   likerName: string,
   achievementName: string
 ): Promise<void> {
+  console.log(`[Notifications] notifyAchievementLiked STARTED for user ${userId} from "${likerName}"`);
+  
   const payload: NotificationPayload = {
     title: "Conquista Curtida!",
     body: `${likerName} curtiu sua conquista "${achievementName}"`,
     url: "/study/profile",
     tag: `achievement-like-${Date.now()}`,
-    icon: "/logo.png",
   };
 
-  await sendPushToUser(userId, payload);
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Achievement liked push to user ${userId}: ${result ? 'success' : 'failed'}`);
   await createInAppNotification(
     userId,
     "achievement_liked",

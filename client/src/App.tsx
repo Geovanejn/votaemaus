@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { VisitorNotificationPrompt } from "@/components/visitor-notification-prompt";
+import { MemberNotificationPrompt } from "@/components/member-notification-prompt";
 
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
@@ -211,16 +212,18 @@ function Router() {
             <Redirect to="/" />
           </Route>
         </Switch>
+        <MemberNotificationPrompt />
       </Suspense>
     );
   }
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/verificar/:hash" component={VerifyPage} />
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/vote" component={VotePage} />
+    <>
+      <Suspense fallback={<PageLoader />}>
+        <Switch>
+          <Route path="/verificar/:hash" component={VerifyPage} />
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/vote" component={VotePage} />
         <Route path="/results" component={ResultsPage} />
         <Route path="/study" component={StudyHomePage} />
         <Route path="/study/lesson/:id" component={LessonPage} />
@@ -271,7 +274,9 @@ function Router() {
         </Route>
       </Switch>
     </Suspense>
-  );
+    <MemberNotificationPrompt />
+  </>
+);
 }
 
 function App() {

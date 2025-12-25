@@ -324,9 +324,9 @@ export async function notifyNewEvent(
     icon: "/logo.png",
   };
 
-  const members = await storage.getActiveMembers();
+  const activeMembers = await storage.getActiveMembers();
   
-  for (const member of members) {
+  for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
@@ -335,15 +335,43 @@ export async function notifyNewEvent(
       payload.body,
       { eventId, url: payload.url }
     );
+  }
+
+  // Send email to ALL members (active and inactive) - deduplicated by email
+  if (isEmailConfigured() && eventDate) {
+    const allMembers = await storage.getAllMembers();
     
-    if (isEmailConfigured() && member.email && eventDate) {
-      await sendNewEventEmail(member.email, member.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null);
+    // Deduplicate by email address
+    const emailMap = new Map<string, { email: string; fullName: string }>();
+    for (const member of allMembers) {
+      if (member.email && !emailMap.has(member.email.toLowerCase())) {
+        emailMap.set(member.email.toLowerCase(), { email: member.email, fullName: member.fullName });
+      }
     }
+    
+    const uniqueRecipients = Array.from(emailMap.values());
+    
+    // Send emails in parallel batches for better performance
+    const batchSize = 10;
+    let emailsSent = 0;
+    
+    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
+      const batch = uniqueRecipients.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(recipient => 
+          sendNewEventEmail(recipient.email, recipient.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null)
+        )
+      );
+      
+      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    }
+    
+    console.log(`[Notifications] Event email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
   }
 
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
-  console.log(`[Notifications] New event notification sent to ${members.length} members and ${anonymousResult.sent} anonymous visitors`);
+  console.log(`[Notifications] New event notification sent to ${activeMembers.length} active members and ${anonymousResult.sent} anonymous visitors`);
 }
 
 export async function notifyNewPrayerRequest(
@@ -478,9 +506,9 @@ export async function notifySeasonPublished(
     icon: "/logo.png",
   };
 
-  const members = await storage.getActiveMembers();
+  const activeMembers = await storage.getActiveMembers();
   
-  for (const member of members) {
+  for (const member of activeMembers) {
     await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
@@ -489,13 +517,41 @@ export async function notifySeasonPublished(
       payload.body,
       { seasonId, url: payload.url }
     );
-    
-    if (isEmailConfigured() && member.email) {
-      await sendSeasonPublishedEmail(member.email, member.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null);
-    }
   }
 
-  console.log(`[Notifications] Season published notification sent to ${members.length} members`);
+  // Send email to ALL members (active and inactive) - deduplicated by email
+  if (isEmailConfigured()) {
+    const allMembers = await storage.getAllMembers();
+    
+    // Deduplicate by email address
+    const emailMap = new Map<string, { email: string; fullName: string }>();
+    for (const member of allMembers) {
+      if (member.email && !emailMap.has(member.email.toLowerCase())) {
+        emailMap.set(member.email.toLowerCase(), { email: member.email, fullName: member.fullName });
+      }
+    }
+    
+    const uniqueRecipients = Array.from(emailMap.values());
+    
+    // Send emails in parallel batches for better performance
+    const batchSize = 10;
+    let emailsSent = 0;
+    
+    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
+      const batch = uniqueRecipients.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(recipient => 
+          sendSeasonPublishedEmail(recipient.email, recipient.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null)
+        )
+      );
+      
+      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    }
+    
+    console.log(`[Notifications] Season email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
+  }
+
+  console.log(`[Notifications] Season published notification sent to ${activeMembers.length} active members`);
 }
 
 export async function notifyLessonAvailable(

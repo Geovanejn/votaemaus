@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -206,8 +206,6 @@ export default function EventLessonPage() {
   const dayNumber = parseInt(params.dayNumber || "0");
   const { toast } = useToast();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   const audioCorrect = useRef<HTMLAudioElement | null>(null);
   const audioIncorrect = useRef<HTMLAudioElement | null>(null);
   const audioComplete = useRef<HTMLAudioElement | null>(null);
@@ -250,12 +248,6 @@ export default function EventLessonPage() {
     localStorage.setItem(`lesson_${eventId}_${dayNumber}_questionIndex`, currentQuestionIndex.toString());
   }, [currentQuestionIndex, eventId, dayNumber]);
 
-=======
-=======
->>>>>>> parent of 08eacfb (Organize lesson page audio functionality and content structure)
-  const [currentStage, setCurrentStage] = useState<Stage>("estude");
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
->>>>>>> parent of 08eacfb (Organize lesson page audio functionality and content structure)
   const [selectedAnswer, setSelectedAnswer] = useState<string | number | boolean | null>(null);
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);

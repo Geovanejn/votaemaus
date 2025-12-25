@@ -140,15 +140,9 @@ function UserProfileHeader({
             </div>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
-            onClick={() => setLocation('/study/profile')}
-            data-testid="button-notifications"
-          >
-            <Bell className="h-5 w-5 text-white" />
-          </motion.button>
+          <div className="[&_button]:bg-white/20 [&_button]:text-white [&_button]:rounded-full [&_button]:w-10 [&_button]:h-10 [&_svg]:h-5 [&_svg]:w-5">
+            <NotificationCenter />
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg">

@@ -112,7 +112,7 @@ function StageCompleteModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center sr-only">
-            {isLessonComplete ? "Licao Completa" : `${stageLabels[stageType]} Concluido`}
+            {isLessonComplete ? "Lição Completa" : `${stageLabels[stageType]} Concluído`}
           </DialogTitle>
         </DialogHeader>
         
@@ -140,7 +140,7 @@ function StageCompleteModal({
             transition={{ delay: 0.2 }}
             className="text-2xl font-bold mb-2"
           >
-            {isLessonComplete ? "Licao Concluida!" : `${stageLabels[stageType]} Concluido!`}
+            {isLessonComplete ? "Lição Concluída!" : `${stageLabels[stageType]} Concluído!`}
           </motion.h2>
 
           {isLessonComplete && correctAnswers !== undefined && totalQuestions !== undefined && (
@@ -150,7 +150,7 @@ function StageCompleteModal({
               transition={{ delay: 0.3 }}
               className="text-muted-foreground mb-4"
             >
-              Voce acertou {correctAnswers} de {totalQuestions} questoes
+              Você acertou {correctAnswers} de {totalQuestions} questões
             </motion.p>
           )}
 
@@ -382,7 +382,7 @@ export default function EventLessonPage() {
           </Button>
         </header>
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-muted-foreground">Licao nao encontrada</p>
+          <p className="text-muted-foreground">Lição não encontrada</p>
         </div>
       </div>
     );
@@ -422,10 +422,10 @@ export default function EventLessonPage() {
           <Card className="max-w-md w-full text-center border-green-500/50 bg-green-500/5">
             <CardContent className="p-6">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Licao Concluida!</h2>
+              <h2 className="text-xl font-bold mb-2">Lição Concluída!</h2>
               {progress && (
                 <p className="text-muted-foreground mb-4">
-                  Voce acertou {progress.correctAnswers}/{progress.totalQuestions} questoes
+                  Você acertou {progress.correctAnswers}/{progress.totalQuestions} questões
                 </p>
               )}
               <Button 
@@ -551,11 +551,11 @@ export default function EventLessonPage() {
                     <Heart className="h-5 w-5 text-pink-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-sm text-pink-600 dark:text-pink-400 mb-2">
-                        Momento de Reflexao
+                        Momento de Reflexão
                       </p>
                       <div 
                         className="prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: contentSections.medite || "<p>Medite sobre o que voce aprendeu na secao anterior. Ore e peca a Deus sabedoria para aplicar esses ensinamentos em sua vida.</p>" }}
+                        dangerouslySetInnerHTML={{ __html: contentSections.medite || "<p>Medite sobre o que você aprendeu na seção anterior. Ore e peça a Deus sabedoria para aplicar esses ensinamentos em sua vida.</p>" }}
                       />
                     </div>
                   </div>
@@ -756,7 +756,7 @@ export default function EventLessonPage() {
             >
               <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">
-                Nao ha questoes para esta licao.
+                Nao ha questões para esta licao.
               </p>
               <Button onClick={() => setLocation(`/study/events/${eventId}`)}>
                 Voltar ao Evento

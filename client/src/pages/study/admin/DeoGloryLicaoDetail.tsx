@@ -59,7 +59,7 @@ const UNIT_TYPES = [
   { value: "reflection", label: "Reflexão" },
 ];
 
-export default function DeoGloryLicaoDetail() {
+export default function DeoGloryLiçãoDetail() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const params = useParams<{ id: string }>();

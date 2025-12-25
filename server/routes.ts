@@ -1618,7 +1618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekId = parseInt(req.params.weekId);
       const week = await storage.getStudyWeekById(weekId);
       if (!week) {
-        return res.status(404).json({ message: "Semana de estudo nao encontrada" });
+        return res.status(404).json({ message: "Semana de estudo não encontrada" });
       }
       const lessons = await storage.getLessonsWithProgress(req.user.id, weekId);
       res.json({ ...week, lessons });
@@ -1637,7 +1637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessonId = parseInt(req.params.lessonId);
       const lesson = await storage.getLessonById(lessonId);
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
       const units = await storage.getUnitsByLessonId(lessonId);
       const unitsWithParsedContent = units.map((unit: any) => ({
@@ -3180,7 +3180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekId = parseInt(req.params.weekId);
       const week = await storage.publishStudyWeek(weekId);
       if (!week) {
-        return res.status(404).json({ message: "Semana nao encontrada" });
+        return res.status(404).json({ message: "Semana não encontrada" });
       }
       res.json(week);
     } catch (error) {
@@ -3601,7 +3601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
 
       res.json(lesson);
@@ -3618,10 +3618,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deleted = await storage.deleteStudyLesson(lessonId);
 
       if (!deleted) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
 
-      res.json({ message: "Licao excluida com sucesso" });
+      res.json({ message: "Lição excluida com sucesso" });
     } catch (error) {
       console.error("Delete lesson error:", error);
       res.status(500).json({ message: "Erro ao excluir licao" });
@@ -3662,14 +3662,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : await storage.unlockLesson(lessonId);
         
         if (!lesson) {
-          return res.status(404).json({ message: "Licao nao encontrada" });
+          return res.status(404).json({ message: "Lição não encontrada" });
         }
         return res.json(lesson);
       }
 
       const lesson = await storage.updateStudyLesson(lessonId, { title, description });
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
       res.json(lesson);
     } catch (error) {
@@ -3685,10 +3685,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lesson = await storage.lockLesson(lessonId);
 
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
 
-      res.json({ message: "Licao bloqueada com sucesso", lesson });
+      res.json({ message: "Lição bloqueada com sucesso", lesson });
     } catch (error) {
       console.error("Lock lesson error:", error);
       res.status(500).json({ message: "Erro ao bloquear licao" });
@@ -3702,7 +3702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lesson = await storage.unlockLesson(lessonId);
 
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
 
       // Get week title for notification
@@ -3713,7 +3713,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
-      res.json({ message: "Licao liberada com sucesso", lesson });
+      res.json({ message: "Lição liberada com sucesso", lesson });
     } catch (error) {
       console.error("Unlock lesson error:", error);
       res.status(500).json({ message: "Erro ao liberar licao" });
@@ -3729,7 +3729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lesson = await storage.setLessonUnlockDate(lessonId, unlockDate || null);
 
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
 
       res.json({ message: unlockDate ? "Data de liberacao agendada" : "Agendamento removido", lesson });
@@ -3886,7 +3886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deleted = await storage.deleteStudyWeek(weekId);
 
       if (!deleted) {
-        return res.status(404).json({ message: "Semana nao encontrada" });
+        return res.status(404).json({ message: "Semana não encontrada" });
       }
 
       res.json({ message: "Semana excluida com sucesso" });
@@ -3911,7 +3911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!week) {
-        return res.status(404).json({ message: "Semana nao encontrada" });
+        return res.status(404).json({ message: "Semana não encontrada" });
       }
 
       res.json(week);
@@ -4028,7 +4028,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mission = await storage.getUserMissionById(userId, missionId, today);
       
       if (!mission) {
-        return res.status(404).json({ message: "Missao nao encontrada" });
+        return res.status(404).json({ message: "Missao não encontrada" });
       }
       
       const rawContent = await storage.getDailyMissionContent(today);
@@ -4084,7 +4084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.completeMission(userId, missionId, today);
       
       if (!result) {
-        return res.status(404).json({ message: "Missao nao encontrada ou ja concluida" });
+        return res.status(404).json({ message: "Missao não encontrada ou ja concluida" });
       }
       
       // Check if ALL daily missions are now completed (this was the last one)
@@ -7035,7 +7035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const lesson = await storage.updateStudyEventLesson(lessonId, req.body);
       if (!lesson) {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
       res.json(lesson);
     } catch (error) {
@@ -7052,7 +7052,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       await storage.deleteStudyEventLesson(lessonId);
-      res.json({ message: "Licao removida com sucesso" });
+      res.json({ message: "Lição removida com sucesso" });
     } catch (error) {
       console.error("Delete event lesson error:", error);
       res.status(500).json({ message: "Erro ao remover licao" });
@@ -7228,8 +7228,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       const lesson = await storage.getStudyEventLessonByDay(eventId, dayNumber);
-      if (!lesson || lesson.status !== "published") {
-        return res.status(404).json({ message: "Licao nao encontrada" });
+      if (!lesson) {
+        return res.status(404).json({ message: "Lição não encontrada" });
       }
       const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
       res.json({ lesson, progress });

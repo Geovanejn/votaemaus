@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Trophy, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { apiRequest } from "@/lib/queryClient";
+import { usePresence } from "@/hooks/use-websocket";
 
 interface Season {
   id: number;
@@ -399,43 +399,12 @@ export default function RankingPage() {
   const currentYear = new Date().getFullYear();
   const availableYears = Array.from({ length: currentYear - 2023 }, (_, i) => (2024 + i).toString());
 
-  // Fetch online users
-  const { data: onlineData } = useQuery<{ onlineUserIds: number[] }>({
-    queryKey: ["/api/study/online-users"],
-    queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/study/online-users", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) return { onlineUserIds: [] };
-      return res.json();
-    },
-    enabled: isAuthenticated,
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-
-  const onlineUserIds = onlineData?.onlineUserIds || [];
-
-  // Send heartbeat to update online status
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    const sendHeartbeat = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      
-      try {
-        await apiRequest("POST", "/api/study/online-status", {});
-      } catch (error) {
-        console.error("Error sending heartbeat:", error);
-      }
-    };
-    
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 60000); // Every 1 minute
-    
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  // Real-time presence via WebSocket
+  const { onlineUserIds } = usePresence(
+    user?.id || null,
+    user?.fullName,
+    user?.photoUrl || undefined
+  );
 
   // Navigate to member profile
   const handleMemberClick = (userId: number) => {

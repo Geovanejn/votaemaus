@@ -272,3 +272,56 @@ export function useStudyUpdates(userId: number | null) {
 
   return { notifications, clearNotifications, isConnected };
 }
+
+interface OnlineUser {
+  userId: number;
+  userName?: string;
+  photoUrl?: string;
+  joinedAt: string;
+}
+
+interface PresenceUpdate {
+  type: "join" | "leave";
+  userId: number;
+  userName?: string;
+  photoUrl?: string;
+  onlineUsers: OnlineUser[];
+  timestamp: string;
+}
+
+export function usePresence(userId: number | null, userName?: string, photoUrl?: string) {
+  const { on, emit, isConnected } = useWebSocket();
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!userId || !isConnected) return;
+
+    emit("join:presence", { userId, userName, photoUrl });
+
+    const handlePresenceUpdate = (data: PresenceUpdate) => {
+      console.log("[Presence] Update received:", data.type, "user:", data.userId);
+      setOnlineUsers(data.onlineUsers);
+      setOnlineUserIds(data.onlineUsers.map(u => u.userId));
+    };
+
+    const unsub = on("presence:update", handlePresenceUpdate as (data: unknown) => void);
+
+    return () => {
+      emit("leave:presence", { userId });
+      unsub();
+    };
+  }, [userId, userName, photoUrl, isConnected, on, emit]);
+
+  const isUserOnline = useCallback((checkUserId: number) => {
+    return onlineUserIds.includes(checkUserId);
+  }, [onlineUserIds]);
+
+  return { 
+    onlineUsers, 
+    onlineUserIds, 
+    isUserOnline, 
+    isConnected,
+    onlineCount: onlineUsers.length 
+  };
+}

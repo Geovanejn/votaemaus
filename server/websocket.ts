@@ -29,6 +29,7 @@ interface DecodedToken {
 const electionRooms = new Map<number, ElectionRoom>();
 const studyRooms = new Map<number, StudyRoom>();
 const authenticatedSockets = new Map<string, { userId: number; isAdmin: boolean; isMember: boolean }>();
+const onlineUsers = new Map<number, { socketId: string; joinedAt: Date; userName?: string; photoUrl?: string }>();
 
 export function initializeWebSocket(server: HTTPServer): SocketIOServer {
   io = new SocketIOServer(server, {
@@ -150,6 +151,54 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
       console.log(`[WebSocket] Client ${socket.id} left study room for user ${userId}`);
     });
 
+    socket.on("join:presence", ({ userId, userName, photoUrl }: { userId: number; userName?: string; photoUrl?: string }) => {
+      if (!socket.userId || socket.userId !== userId) {
+        socket.emit("error", { message: "You can only join presence with your own user ID" });
+        console.log(`[WebSocket] Unauthorized join:presence attempt from ${socket.id} for user ${userId}`);
+        return;
+      }
+
+      socket.join("presence:study");
+      onlineUsers.set(userId, { socketId: socket.id, joinedAt: new Date(), userName, photoUrl });
+      
+      io?.to("presence:study").emit("presence:update", {
+        type: "join",
+        userId,
+        userName,
+        photoUrl,
+        onlineUsers: Array.from(onlineUsers.entries()).map(([id, data]) => ({
+          userId: id,
+          userName: data.userName,
+          photoUrl: data.photoUrl,
+          joinedAt: data.joinedAt.toISOString(),
+        })),
+        timestamp: new Date().toISOString(),
+      });
+      
+      console.log(`[WebSocket] User ${userId} (${userName}) joined presence room. Online: ${onlineUsers.size}`);
+    });
+
+    socket.on("leave:presence", ({ userId }: { userId: number }) => {
+      socket.leave("presence:study");
+      const userData = onlineUsers.get(userId);
+      onlineUsers.delete(userId);
+      
+      io?.to("presence:study").emit("presence:update", {
+        type: "leave",
+        userId,
+        userName: userData?.userName,
+        onlineUsers: Array.from(onlineUsers.entries()).map(([id, data]) => ({
+          userId: id,
+          userName: data.userName,
+          photoUrl: data.photoUrl,
+          joinedAt: data.joinedAt.toISOString(),
+        })),
+        timestamp: new Date().toISOString(),
+      });
+      
+      console.log(`[WebSocket] User ${userId} left presence room. Online: ${onlineUsers.size}`);
+    });
+
     socket.on("disconnect", (reason) => {
       console.log(`[WebSocket] Client disconnected: ${socket.id}, reason: ${reason}`);
       
@@ -165,6 +214,25 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
       studyRooms.forEach((room, userId) => {
         if (room.socketId === socket.id) {
           studyRooms.delete(userId);
+        }
+      });
+
+      onlineUsers.forEach((data, userId) => {
+        if (data.socketId === socket.id) {
+          onlineUsers.delete(userId);
+          io?.to("presence:study").emit("presence:update", {
+            type: "leave",
+            userId,
+            userName: data.userName,
+            onlineUsers: Array.from(onlineUsers.entries()).map(([id, d]) => ({
+              userId: id,
+              userName: d.userName,
+              photoUrl: d.photoUrl,
+              joinedAt: d.joinedAt.toISOString(),
+            })),
+            timestamp: new Date().toISOString(),
+          });
+          console.log(`[WebSocket] User ${userId} disconnected from presence. Online: ${onlineUsers.size}`);
         }
       });
     });
@@ -264,4 +332,17 @@ export function getConnectedClients(): { elections: number; study: number; total
     study: studyClients,
     total: io ? io.engine.clientsCount : 0,
   };
+}
+
+export function getOnlineUsers(): Array<{ userId: number; userName?: string; photoUrl?: string; joinedAt: string }> {
+  return Array.from(onlineUsers.entries()).map(([userId, data]) => ({
+    userId,
+    userName: data.userName,
+    photoUrl: data.photoUrl,
+    joinedAt: data.joinedAt.toISOString(),
+  }));
+}
+
+export function isUserOnline(userId: number): boolean {
+  return onlineUsers.has(userId);
 }

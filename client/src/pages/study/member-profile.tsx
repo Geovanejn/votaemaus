@@ -17,8 +17,12 @@ import {
   Loader2,
   Medal,
   BookOpen,
-  Target
+  Target,
+  Sparkles,
+  Share2,
+  X
 } from "lucide-react";
+import { SiTwitter, SiFacebook, SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -57,6 +61,58 @@ interface EncouragementMessage {
   text: string;
   icon: string;
 }
+
+interface UserCardWithDetails {
+  id: number;
+  cardId: number;
+  rarity: string;
+  score: number;
+  earnedAt: string;
+  card: {
+    name: string;
+    imageUrl: string | null;
+    description: string | null;
+  };
+  event: {
+    id: number;
+    title: string;
+    theme: string;
+  } | null;
+}
+
+const rarityColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  legendary: { 
+    bg: "bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500", 
+    border: "border-yellow-400",
+    text: "text-yellow-400",
+    glow: "shadow-yellow-500/50"
+  },
+  epic: { 
+    bg: "bg-gradient-to-br from-purple-500 via-violet-500 to-fuchsia-500", 
+    border: "border-purple-400",
+    text: "text-purple-400",
+    glow: "shadow-purple-500/50"
+  },
+  rare: { 
+    bg: "bg-gradient-to-br from-blue-400 via-cyan-500 to-teal-500", 
+    border: "border-blue-400",
+    text: "text-blue-400",
+    glow: "shadow-blue-500/50"
+  },
+  common: { 
+    bg: "bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600", 
+    border: "border-gray-400",
+    text: "text-gray-400",
+    glow: "shadow-gray-500/50"
+  },
+};
+
+const rarityLabels: Record<string, string> = {
+  legendary: "Lendario",
+  epic: "Epico",
+  rare: "Raro",
+  common: "Comum",
+};
 
 const iconMap: Record<string, typeof Star> = {
   flame: Flame,
@@ -108,6 +164,9 @@ export default function MemberProfilePage() {
   const { toast } = useToast();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<EncouragementMessage | null>(null);
+  const [selectedCard, setSelectedCard] = useState<UserCardWithDetails | null>(null);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [cardAnimating, setCardAnimating] = useState(false);
   
   const { data: profile, isLoading } = useQuery<PublicMemberProfile>({
     queryKey: ["/api/study/member", userId],
@@ -133,6 +192,19 @@ export default function MemberProfilePage() {
       return res.json();
     },
     enabled: showMessageDialog,
+  });
+
+  const { data: userCards = [] } = useQuery<UserCardWithDetails[]>({
+    queryKey: ["/api/study/member", userId, "cards"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/study/member/${userId}/cards`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!userId,
   });
 
   const likeMutation = useMutation({
@@ -186,6 +258,37 @@ export default function MemberProfilePage() {
   };
 
   const getIcon = (iconName: string) => iconMap[iconName?.toLowerCase()] || Star;
+
+  const handleOpenCard = (card: UserCardWithDetails) => {
+    setSelectedCard(card);
+    setShowCardModal(true);
+    setCardAnimating(true);
+    setTimeout(() => setCardAnimating(false), 1000);
+  };
+
+  const handleShareCard = (platform: string) => {
+    if (!selectedCard) return;
+    
+    const text = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
+    const url = window.location.href;
+    
+    let shareUrl = "";
+    switch (platform) {
+      case "twitter":
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        break;
+      case "facebook":
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+        break;
+      case "whatsapp":
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+        break;
+    }
+    
+    if (shareUrl) {
+      window.open(shareUrl, "_blank", "width=600,height=400");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -359,6 +462,165 @@ export default function MemberProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Collectible Cards Section */}
+      {userCards.length > 0 && (
+        <div className="px-4 mt-6">
+          <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-500" />
+            Cards Colecionaveis ({userCards.length})
+          </h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {userCards.map((userCard) => {
+              const colors = rarityColors[userCard.rarity] || rarityColors.common;
+              
+              return (
+                <div
+                  key={userCard.id}
+                  className={cn(
+                    "relative rounded-xl p-1 cursor-pointer transition-all duration-300 hover:scale-105",
+                    colors.bg,
+                    "shadow-lg",
+                    colors.glow
+                  )}
+                  onClick={() => handleOpenCard(userCard)}
+                  data-testid={`card-collectible-${userCard.id}`}
+                >
+                  <div className="bg-background rounded-lg p-3">
+                    <div className="aspect-square relative mb-2 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                      {userCard.card.imageUrl ? (
+                        <img 
+                          src={userCard.card.imageUrl} 
+                          alt={userCard.card.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Sparkles className={cn("h-12 w-12", colors.text)} />
+                      )}
+                    </div>
+                    <p className="font-semibold text-sm truncate">{userCard.card.name}</p>
+                    <Badge className={cn("mt-1 text-xs", colors.bg, "text-white border-0")}>
+                      {rarityLabels[userCard.rarity]}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Card Modal */}
+      <Dialog open={showCardModal} onOpenChange={setShowCardModal}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden bg-transparent border-0">
+          {selectedCard && (
+            <div className={cn(
+              "relative p-6",
+              cardAnimating && "animate-pulse"
+            )}>
+              <div className={cn(
+                "absolute inset-0 rounded-2xl",
+                rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg,
+                "opacity-20"
+              )} />
+              
+              <div className="relative bg-card rounded-xl p-4 shadow-2xl">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => setShowCardModal(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                
+                <div className={cn(
+                  "aspect-square relative mb-4 rounded-xl overflow-hidden",
+                  "border-4",
+                  rarityColors[selectedCard.rarity]?.border || rarityColors.common.border,
+                  cardAnimating && "animate-bounce"
+                )}>
+                  {selectedCard.card.imageUrl ? (
+                    <img 
+                      src={selectedCard.card.imageUrl} 
+                      alt={selectedCard.card.name}
+                      className={cn(
+                        "w-full h-full object-cover",
+                        cardAnimating && "scale-110 transition-transform duration-500"
+                      )}
+                    />
+                  ) : (
+                    <div className={cn(
+                      "w-full h-full flex items-center justify-center",
+                      rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg
+                    )}>
+                      <Sparkles className="h-24 w-24 text-white" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-bold mb-1">{selectedCard.card.name}</h3>
+                  <Badge className={cn(
+                    "text-sm",
+                    rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg,
+                    "text-white border-0"
+                  )}>
+                    {rarityLabels[selectedCard.rarity]}
+                  </Badge>
+                  {selectedCard.card.description && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {selectedCard.card.description}
+                    </p>
+                  )}
+                  {selectedCard.event && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Evento: {selectedCard.event.title}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pontuacao: {selectedCard.score}%
+                  </p>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <p className="text-sm text-center text-muted-foreground mb-3">Compartilhar</p>
+                  <div className="flex justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleShareCard("whatsapp")}
+                      className="bg-green-500 text-white border-0"
+                      data-testid="button-share-whatsapp"
+                    >
+                      <SiWhatsapp className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleShareCard("twitter")}
+                      className="bg-black text-white border-0"
+                      data-testid="button-share-twitter"
+                    >
+                      <SiTwitter className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleShareCard("facebook")}
+                      className="bg-blue-600 text-white border-0"
+                      data-testid="button-share-facebook"
+                    >
+                      <SiFacebook className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Message Dialog */}
       <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>

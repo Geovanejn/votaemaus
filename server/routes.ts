@@ -2156,6 +2156,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get member's collectible cards
+  app.get("/api/study/member/:userId/cards", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const targetUserId = parseInt(req.params.userId);
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ message: "ID de usuario invalido" });
+      }
+      
+      const userCards = await storage.getUserCards(targetUserId);
+      const cardsWithDetails = await Promise.all(
+        userCards.map(async (uc) => {
+          const card = await storage.getCollectibleCard(uc.cardId);
+          if (!card) return null;
+          const event = await storage.getStudyEvent(card.eventId);
+          return {
+            id: uc.id,
+            cardId: card.id,
+            rarity: uc.rarity,
+            score: uc.score,
+            earnedAt: uc.earnedAt,
+            card: {
+              name: card.name,
+              imageUrl: card.imageUrl,
+              description: card.description,
+            },
+            event: event ? {
+              id: event.id,
+              title: event.title,
+              theme: event.theme,
+            } : null,
+          };
+        })
+      );
+      
+      res.json(cardsWithDetails.filter(Boolean));
+    } catch (error) {
+      console.error("Get member cards error:", error);
+      res.status(500).json({ message: "Erro ao buscar cards do membro" });
+    }
+  });
+
   // Send encouragement message
   app.post("/api/study/member/:userId/encourage", authenticateToken, async (req: AuthRequest, res) => {
     try {

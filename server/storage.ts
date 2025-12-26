@@ -5854,7 +5854,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveStudyEvents(): Promise<StudyEvent[]> {
-    // Return all events for display: draft (upcoming), published, active, ended
+    // Return all events for display: draft (upcoming/future), published, active, ended
+    // Draft events are shown as "upcoming" to users until their start date
     return db.select()
       .from(schema.studyEvents)
       .where(

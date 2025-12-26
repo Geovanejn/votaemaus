@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { getTodayBrazilDate } from "./utils/date";
+import { getTodayBrazilDate, createBrazilDate } from "./utils/date";
 import { 
   generateToken, 
   hashPassword, 
@@ -7343,8 +7343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Campos obrigatórios: text, theme, year, month, startDay, endDay" });
       }
 
-      const startDate = new Date(year, month - 1, startDay, 0, 0, 0);
-      const endDate = new Date(year, month - 1, endDay, 23, 59, 59);
+      // Create dates with São Paulo timezone (UTC-3) to avoid date shifting
+      const startDate = createBrazilDate(year, month, startDay, 0, 0, 0);
+      const endDate = createBrazilDate(year, month, endDay, 23, 59, 59);
       
       if (endDate <= startDate) {
         return res.status(400).json({ message: "Data de término deve ser após a data de início" });

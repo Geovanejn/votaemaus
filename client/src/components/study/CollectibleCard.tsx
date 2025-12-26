@@ -189,6 +189,23 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     if (!cardRef.current) return null;
     
     try {
+      // Pre-load image at full resolution if available
+      const imageContainer = cardRef.current.querySelector('.collectible-card-image') as HTMLElement;
+      let originalBgImage = '';
+      
+      if (imageContainer && card.imageUrl) {
+        originalBgImage = imageContainer.style.backgroundImage;
+        
+        // Create a high-res image and wait for it to load
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = card.imageUrl!;
+        });
+      }
+      
       // Pause animations and position shine for capture
       const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
       shineBeams.forEach((beam) => {
@@ -199,17 +216,26 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       });
       
       // Wait for styles to apply
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // 3x quality improvement from previous scale (was 3, now 9)
-      const scale = 9;
+      // High quality capture - scale 3 is optimal balance between quality and performance
+      const scale = 3;
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
         useCORS: true,
         logging: false,
         allowTaint: true,
-        imageTimeout: 0,
+        imageTimeout: 15000,
+        onclone: (clonedDoc, clonedElement) => {
+          // Ensure cloned element has the image loaded
+          const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
+          if (clonedImageContainer && card.imageUrl) {
+            clonedImageContainer.style.backgroundImage = `url(${card.imageUrl})`;
+            clonedImageContainer.style.backgroundSize = 'cover';
+            clonedImageContainer.style.backgroundPosition = 'center';
+          }
+        },
       });
       
       // Restore animations
@@ -227,7 +253,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       console.error('Error generating card image:', error);
       return null;
     }
-  }, []);
+  }, [card.imageUrl]);
 
   const prepareAndShare = useCallback(async (platform: 'whatsapp' | 'instagram' | 'facebook' | 'x') => {
     if (typeof window === "undefined") return;

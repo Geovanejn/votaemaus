@@ -565,8 +565,8 @@ export default function ProfilePage() {
         </motion.div>
 
         {(() => {
-          const eventCards = userCards.filter(c => c.card.type === 'event');
-          const seasonCards = userCards.filter(c => c.card.type === 'season');
+          const eventCards = userCards.filter(c => c.card?.sourceType === 'event');
+          const seasonCards = userCards.filter(c => c.card?.sourceType === 'season');
           
           return (
             <>

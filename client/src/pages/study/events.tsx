@@ -326,7 +326,7 @@ export default function EventsPage() {
 
       <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         <div 
-          className="relative py-12 px-8 text-center overflow-hidden"
+          className="relative py-5 px-4 text-center overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)'
           }}
@@ -337,10 +337,10 @@ export default function EventsPage() {
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl"
+            className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg"
           >
-            <div className="w-10 h-10 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
-              <span className="text-white text-2xl font-bold">?</span>
+            <div className="w-6 h-6 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
+              <span className="text-white text-base font-bold">?</span>
             </div>
           </motion.div>
           
@@ -348,7 +348,7 @@ export default function EventsPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl font-bold text-white mb-3 tracking-tight"
+            className="text-2xl font-bold text-white mb-1.5 tracking-tight"
           >
             Estudos Especiais
           </motion.h2>
@@ -357,7 +357,7 @@ export default function EventsPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-white/80 text-lg font-medium max-w-xs mx-auto leading-tight"
+            className="text-white/80 text-sm font-medium max-w-xs mx-auto leading-tight"
           >
             Explore nossos eventos temáticos e aprofunde sua jornada espiritual
           </motion.p>
@@ -407,31 +407,31 @@ export default function EventsPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
           >
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-[#41793A] to-[#2D5A27] rounded-[2rem] overflow-hidden relative">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-[#41793A] to-[#2D5A27] rounded-xl overflow-hidden relative">
               {/* Background Decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-10 -mb-10" />
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -mr-6 -mt-6" />
+              <div className="absolute bottom-0 left-0 w-14 h-14 bg-black/5 rounded-full -ml-6 -mb-6" />
               
-              <CardContent className="p-8 text-center relative z-10">
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                  <Calendar className="h-8 w-8 text-white" />
+              <CardContent className="p-4 text-center relative z-10">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow">
+                  <Calendar className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">
+                <h3 className="text-base font-bold text-white mb-1 tracking-tight">
                   Não perca nenhum evento
                 </h3>
-                <p className="text-white/80 text-base mb-8 font-medium leading-relaxed">
+                <p className="text-white/80 text-xs mb-3 font-medium leading-relaxed">
                   Ative as notificações para receber lembretes dos próximos estudos especiais
                 </p>
                 <Button 
-                  className="bg-white text-[#2D5A27] hover:bg-slate-50 rounded-2xl px-10 h-14 font-black text-lg shadow-xl w-full sm:w-auto"
+                  className="bg-white text-[#2D5A27] hover:bg-slate-50 rounded-xl px-4 h-9 font-bold text-sm shadow-lg"
                   onClick={handleEnableNotifications}
                   disabled={pushLoading}
                   data-testid="button-enable-notifications"
                 >
                   {pushLoading ? (
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
                   ) : (
-                    <Bell className="h-5 w-5 mr-2" />
+                    <Bell className="h-4 w-4 mr-1.5" />
                   )}
                   {isSubscribed ? "Notificações Ativas" : "Ativar Notificações"}
                 </Button>

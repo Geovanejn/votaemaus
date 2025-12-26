@@ -399,11 +399,11 @@ export default function StudyPreviewPage() {
             Preview do Sistema de Estudos
           </h1>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="map" className="text-xs">Mapa</TabsTrigger>
-              <TabsTrigger value="exercise" className="text-xs">Exercício</TabsTrigger>
-              <TabsTrigger value="verses" className="text-xs">Versículos</TabsTrigger>
-              <TabsTrigger value="complete" className="text-xs">Conclusão</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 h-auto">
+              <TabsTrigger value="map" className="text-[10px] sm:text-xs px-1 py-2">Mapa</TabsTrigger>
+              <TabsTrigger value="exercise" className="text-[10px] sm:text-xs px-1 py-2">Exerc.</TabsTrigger>
+              <TabsTrigger value="verses" className="text-[10px] sm:text-xs px-1 py-2">Vers.</TabsTrigger>
+              <TabsTrigger value="complete" className="text-[10px] sm:text-xs px-1 py-2">Concl.</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

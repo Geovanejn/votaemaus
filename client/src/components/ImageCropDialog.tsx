@@ -140,7 +140,7 @@ export default function ImageCropDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[95vw] max-w-2xl">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
@@ -148,7 +148,7 @@ export default function ImageCropDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="relative w-full h-96 bg-muted rounded-md overflow-hidden">
+          <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-96 bg-muted rounded-md overflow-hidden">
             <Cropper
               image={imageSrc}
               crop={crop}

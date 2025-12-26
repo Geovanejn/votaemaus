@@ -296,7 +296,7 @@ function CategorySection({
           </p>
         </div>
       </div>
-      <div className="p-3 grid grid-cols-3 gap-2">
+      <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
         {sortedAchievements.map((achievement) => (
           <AchievementGridCard
             key={achievement.id}

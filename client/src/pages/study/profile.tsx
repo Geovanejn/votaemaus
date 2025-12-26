@@ -485,7 +485,7 @@ export default function ProfilePage() {
             </Button>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {displayAchievements.map((achievement) => {
               const IconComponent = getIconComponent(achievement.icon);
               const categoryStyle = categoryColorMap[achievement.category] || { bgColor: "#1CB0F6" };

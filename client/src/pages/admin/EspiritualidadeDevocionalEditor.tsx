@@ -161,19 +161,19 @@ export default function EspiritualidadeDevocionalEditor() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Link href="/admin/espiritualidade/devocionais">
           <Button variant="ghost" size="icon" data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">
+          <h1 className="text-xl sm:text-3xl font-bold" data-testid="text-page-title">
             {isEditing ? "Editar Devocional" : "Novo Devocional"}
           </h1>
-          <p className="text-muted-foreground">
-            {isEditing ? "Atualize as informações do devocional" : "Crie um novo devocional para a UMP"}
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {isEditing ? "Atualize as informacoes do devocional" : "Crie um novo devocional para a UMP"}
           </p>
         </div>
       </div>

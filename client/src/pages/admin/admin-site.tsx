@@ -1065,24 +1065,24 @@ export default function AdminSitePage() {
       </div>
 
       <Tabs defaultValue="board" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4" data-testid="tabs-admin-site">
-          <TabsTrigger value="board" data-testid="tab-board">
-            <Users className="h-4 w-4 mr-2" />
-            Diretoria
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4" data-testid="tabs-admin-site">
+          <TabsTrigger value="board" data-testid="tab-board" className="text-xs sm:text-sm">
+            <Users className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Diretoria</span>
           </TabsTrigger>
-          <TabsTrigger value="prayers" data-testid="tab-prayers">
-            <Heart className="h-4 w-4 mr-2" />
-            Oracoes
+          <TabsTrigger value="prayers" data-testid="tab-prayers" className="text-xs sm:text-sm">
+            <Heart className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Oracoes</span>
           </TabsTrigger>
-          <TabsTrigger value="banners" data-testid="tab-banners">
-            <Image className="h-4 w-4 mr-2" />
-            Banners
+          <TabsTrigger value="banners" data-testid="tab-banners" className="text-xs sm:text-sm">
+            <Image className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Banners</span>
           </TabsTrigger>
-          <TabsTrigger value="instagram" data-testid="tab-instagram">
-            <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <TabsTrigger value="instagram" data-testid="tab-instagram" className="text-xs sm:text-sm">
+            <svg className="h-4 w-4 sm:mr-2" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
             </svg>
-            Instagram
+            <span className="hidden sm:inline">Instagram</span>
           </TabsTrigger>
         </TabsList>
 

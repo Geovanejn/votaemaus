@@ -355,7 +355,7 @@ export default function MemberProfilePage() {
             <OnlineStatus isOnline={profile.isOnline} lastSeenAt={profile.lastSeenAt} />
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 w-full mt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-6">
               <div className="flex flex-col items-center">
                 <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-1">
                   <Star className="h-5 w-5 text-amber-600" />

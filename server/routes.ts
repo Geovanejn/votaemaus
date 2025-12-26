@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { getTodayBrazilDate, createBrazilDate } from "./utils/date";
+import { getTodayBrazilDate, createBrazilDate, getEventCurrentDay } from "./utils/date";
 import { 
   generateToken, 
   hashPassword, 
@@ -7012,6 +7012,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to release event lessons based on current day
+  // Called when: 1) Event is manually published, 2) User completes a lesson
+  async function releaseEventLessonsForCurrentDay(eventId: number): Promise<number> {
+    const event = await storage.getStudyEventById(eventId);
+    if (!event || event.status !== 'published') return 0;
+    
+    const currentDay = getEventCurrentDay(new Date(event.startDate), new Date(event.endDate));
+    if (currentDay <= 0) return 0; // Event hasn't started or already ended
+    
+    const lessons = await storage.getStudyEventLessons(eventId);
+    let releasedCount = 0;
+    
+    for (const lesson of lessons) {
+      // Release lessons up to and including the current day
+      if (lesson.dayNumber <= currentDay && lesson.status !== 'published') {
+        await storage.updateStudyEventLesson(lesson.id, { status: 'published' });
+        console.log(`[Event Release] Released lesson day ${lesson.dayNumber} for event "${event.title}"`);
+        releasedCount++;
+      }
+    }
+    
+    return releasedCount;
+  }
+
   // Atualizar evento de estudo (admin)
   app.patch("/api/admin/study-events/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
@@ -7019,10 +7043,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      
+      // Check if status is being changed to 'published'
+      const previousEvent = await storage.getStudyEventById(id);
+      const isBeingPublished = previousEvent && 
+        previousEvent.status !== 'published' && 
+        req.body.status === 'published';
+      
       const event = await storage.updateStudyEvent(id, req.body);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
+      
+      // If event was just published, release lessons based on current date
+      if (isBeingPublished) {
+        const releasedCount = await releaseEventLessonsForCurrentDay(id);
+        console.log(`[Event Publish] Event "${event.title}" published. Released ${releasedCount} lessons.`);
+      }
+      
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
       res.json(event);
     } catch (error) {
@@ -7671,6 +7709,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add event XP to user profile (counts for general and annual ranking, NOT revista/season)
       // addEventXp is idempotent - it won't add XP if already awarded for this lesson
       await storage.addEventXp(req.user!.id, totalXpEarned, eventId, lessonId);
+      
+      // After completing a lesson, check if subsequent days should be unlocked
+      // This handles the case where past days weren't unlocked yet (e.g., user started late)
+      await releaseEventLessonsForCurrentDay(eventId);
 
       // Verificar se completou todas as licoes do evento
       let cardEarned = null;

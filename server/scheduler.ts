@@ -4,6 +4,7 @@ import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
+import { getEventCurrentDay, getEventTotalDays } from "./utils/date";
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
@@ -613,20 +614,18 @@ async function processEventLessonsRelease(): Promise<void> {
   console.log('[Event Scheduler] Checking for events and lessons to release at 00:00...');
   
   try {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
     const allEvents = await storage.getAllStudyEvents();
     
     for (const event of allEvents) {
       const startDate = new Date(event.startDate);
-      const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
       const endDate = new Date(event.endDate);
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
       
-      // Auto-publish event on start date
+      // Use Brazil timezone-aware function to get current day
+      const currentDay = getEventCurrentDay(startDate, endDate);
+      
+      // Auto-publish event on start date (currentDay === 1 means it's day 1)
       let eventStatus = event.status;
-      if (eventStatus === 'draft' && today.getTime() === startDateOnly.getTime()) {
+      if (eventStatus === 'draft' && currentDay === 1) {
         await storage.updateStudyEvent(event.id, { status: 'published' });
         eventStatus = 'published'; // Update local status to continue processing
         console.log(`[Event Scheduler] Auto-published event "${event.title}" on start date`);
@@ -661,12 +660,9 @@ async function processEventLessonsRelease(): Promise<void> {
         }
       }
       
-      // Only process lessons for published events
+      // Only process lessons for published events within event date range
       if (eventStatus !== 'published') continue;
-      if (today < startDateOnly || today > endDateOnly) continue;
-      
-      const daysSinceStart = Math.floor((today.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24));
-      const currentDay = daysSinceStart + 1;
+      if (currentDay <= 0) continue; // Event hasn't started or already ended
       
       const lessons = await storage.getStudyEventLessons(event.id);
       
@@ -688,18 +684,22 @@ async function processEventCardsDistribution(): Promise<void> {
   console.log('[Event Scheduler] Checking for cards to distribute at 23:59...');
   
   try {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
     const allEvents = await storage.getAllStudyEvents();
     
     for (const event of allEvents) {
       if (event.status === 'completed' || event.status === 'draft') continue;
       
+      const startDate = new Date(event.startDate);
       const endDate = new Date(event.endDate);
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
       
-      if (endDateOnly.getTime() !== today.getTime()) continue;
+      // Use Brazil timezone-aware functions for consistent calendar day handling
+      const currentDay = getEventCurrentDay(startDate, endDate);
+      const totalDays = getEventTotalDays(startDate, endDate);
+      
+      // Only distribute cards on the last day of the event (when currentDay equals total days)
+      // Since this runs at 23:59, we check if we're on the final day
+      if (currentDay <= 0) continue; // Event hasn't started or already processed
+      if (currentDay !== totalDays) continue; // Only process on the last day
       
       console.log(`[Event Scheduler] Processing card distribution for event "${event.title}"`);
       

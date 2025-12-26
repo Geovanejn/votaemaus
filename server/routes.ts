@@ -7236,30 +7236,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process questions to ensure correctIndex is properly set and typed
       if (lesson.questions && Array.isArray(lesson.questions)) {
         const processedQuestions = lesson.questions.map((q: any) => {
-          // Ensure correctIndex is always a number
           if (q.type === "multiple_choice" && q.options && Array.isArray(q.options)) {
-            // First ensure correctIndex is a number
-            q.correctIndex = Number(q.correctIndex ?? 0);
+            // Convert correctAnswer to correctIndex if needed
+            if (q.correctAnswer !== undefined && q.correctIndex === undefined) {
+              q.correctIndex = Number(q.correctAnswer);
+            } else if (q.correctIndex === undefined) {
+              q.correctIndex = 0;
+            }
+            q.correctIndex = Number(q.correctIndex);
+            
             const correctAnswerText = q.options[q.correctIndex];
+            console.log(`[DEBUG] Before randomize - Q: "${q.question?.substring(0, 40)}..." correctIndex: ${q.correctIndex}, correctAnswer: "${correctAnswerText}"`);
             
             // Then randomize
             const processed = randomizeMultipleChoiceAnswer(q);
-            
-            // Ensure correctIndex stays a number
             processed.correctIndex = Number(processed.correctIndex);
             
-            console.log(`[DEBUG EVENT LESSON] Question:`, {
-              question: q.question?.substring(0, 50) + "...",
-              beforeCorrectIndex: q.correctIndex,
-              beforeCorrectAnswer: correctAnswerText,
-              afterCorrectIndex: processed.correctIndex,
-              afterCorrectAnswer: processed.options[processed.correctIndex],
-              correctIndexType: typeof processed.correctIndex
-            });
+            console.log(`[DEBUG] After randomize - correctIndex: ${processed.correctIndex}, correctAnswer: "${processed.options[processed.correctIndex]}"`);
             
             return processed;
           }
-          // Ensure correctIndex is a number for all types
+          // Handle other types
+          if (q.correctAnswer !== undefined && q.correctIndex === undefined) {
+            q.correctIndex = Number(q.correctAnswer);
+          }
           if (q.correctIndex !== undefined) {
             q.correctIndex = Number(q.correctIndex);
           }

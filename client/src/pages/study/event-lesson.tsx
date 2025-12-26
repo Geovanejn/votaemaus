@@ -126,17 +126,13 @@ function StageCompleteModal({
     ? { gradient: "from-amber-400 to-yellow-500", glow: "shadow-amber-500/50", text: "text-amber-500" }
     : stageColors[stageType];
 
-  // Prevent closing by clicking outside for lesson complete modal
-  const handleOpenChange = (open: boolean) => {
-    if (!open && !isLessonComplete) {
-      onClose();
-    }
-    // For lesson complete, only close via button click
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30 flex flex-col items-center">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isLessonComplete && onClose()}>
+      <DialogContent 
+        className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30 flex flex-col items-center"
+        onInteractOutside={(e) => isLessonComplete && e.preventDefault()}
+        onEscapeKeyDown={(e) => isLessonComplete && e.preventDefault()}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>
             {isLessonComplete ? "Lição Completa" : `${stageLabels[stageType]} Concluído`}

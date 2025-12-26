@@ -624,15 +624,51 @@ REGRAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Evite alternativas obviamente erradas ou absurdas
 - VARIE a posição da resposta correta (0, 1, 2, ou 3)
 
-REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
-- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
-- COERÊNCIA SEMÂNTICA: Todas as alternativas DEVEM fazer sentido gramatical e contextual na frase
-- Se a lacuna requer VERBO, todas alternativas devem ser VERBOS no mesmo tempo/modo
-- Se a lacuna requer SUBSTANTIVO, todas alternativas devem ser SUBSTANTIVOS
-- Se a lacuna requer NOME PRÓPRIO, todas alternativas devem ser NOMES DE PESSOAS
-- TESTE: Leia a frase com cada alternativa - TODAS devem formar frases corretas gramaticalmente
-- Exemplo BOM: "Jesus morreu para ___ o pecador." → ["salvar", "amar", "libertar", "redimir"]
-- Exemplo RUIM: "Jesus morreu para ___ o pecador." → ["salvar", "amor", "cruz", "fé"] (mistura classes)`;
+REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS) COM VALIDAÇÃO PRÉ-GERAÇÃO:
+
+PASSO 1 - IDENTIFICAR CLASSE GRAMATICAL DA LACUNA:
+- Analise a frase e identifique EXATAMENTE qual classe gramatical a lacuna exige
+- VERBO: infinitivo (amar, salvar), gerúndio (amando), particípio (amado), conjugado (amou, ama)
+- SUBSTANTIVO: abstrato (amor, fé) ou concreto (cruz, pão)
+- ADJETIVO: qualificador (santo, fiel, justo)
+- NOME PRÓPRIO: pessoa (Jesus, Paulo), lugar (Jerusalém)
+
+PASSO 2 - GERAR CANDIDATOS (6-8 palavras):
+- Liste 6-8 palavras candidatas da MESMA classe gramatical identificada
+
+PASSO 3 - VALIDAÇÃO INDIVIDUAL (OBRIGATÓRIO antes de finalizar):
+Para CADA candidato, faça este teste mental:
+1. Insira a palavra na lacuna formando a frase completa
+2. Verifique: A frase está gramaticalmente CORRETA? (concordância verbal, nominal, regência)
+3. Verifique: A frase faz sentido SEMÂNTICO? (mesmo que a afirmação seja falsa biblicamente)
+4. Se AMBOS forem SIM → candidato VÁLIDO
+5. Se qualquer um for NÃO → candidato INVÁLIDO (descarte)
+
+PASSO 4 - SELECIONAR 4 ALTERNATIVAS VÁLIDAS:
+- Escolha apenas candidatos que passaram na validação
+- 1 deve ser a resposta CORRETA
+- 3 devem ser alternativas plausíveis mas INCORRETAS
+
+EXEMPLOS DE VALIDAÇÃO:
+Frase: "Jesus morreu para ___ o pecador."
+✅ "salvar" → "Jesus morreu para salvar o pecador." (gramatical OK, semântico OK)
+✅ "amar" → "Jesus morreu para amar o pecador." (gramatical OK, semântico OK)
+✅ "redimir" → "Jesus morreu para redimir o pecador." (gramatical OK, semântico OK)
+❌ "amor" → "Jesus morreu para amor o pecador." (gramatical ERRADO - substantivo após "para" + verbo)
+❌ "cruz" → "Jesus morreu para cruz o pecador." (gramatical ERRADO)
+❌ "fé" → "Jesus morreu para fé o pecador." (gramatical ERRADO)
+
+Frase: "O fruto do Espírito é ___."
+✅ "amor" → "O fruto do Espírito é amor." (gramatical OK)
+✅ "paz" → "O fruto do Espírito é paz." (gramatical OK)
+❌ "amar" → "O fruto do Espírito é amar." (semântico ESTRANHO - verbo como predicativo)
+❌ "santo" → "O fruto do Espírito é santo." (altera significado - adjetivo vs substantivo)
+
+Frase: "Devemos ___ uns aos outros."
+✅ "amar" → "Devemos amar uns aos outros." (verbo infinitivo OK)
+✅ "perdoar" → "Devemos perdoar uns aos outros." (verbo infinitivo OK)
+❌ "amor" → "Devemos amor uns aos outros." (substantivo após modal - ERRADO)
+❌ "amando" → "Devemos amando uns aos outros." (gerúndio após modal - ERRADO)`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -739,18 +775,48 @@ REGRAS CRITICAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Exemplo BOM: Pergunta sobre amor de Deus - alternativas falam de amor condicional, incondicional, merecido, seletivo
 - Exemplo RUIM: Alternativas como "Não sei", "Nenhuma das anteriores", ou respostas absurdas
 
-REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
-- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
-- COERÊNCIA SEMÂNTICA OBRIGATÓRIA: Todas as alternativas DEVEM fazer sentido gramatical e contextual na frase
-  * Se a lacuna requer um VERBO no infinitivo (glorificar, amar), TODAS alternativas devem ser VERBOS NO INFINITIVO
-  * Se a lacuna requer um SUBSTANTIVO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS da mesma categoria
-  * Se a lacuna requer um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
-  * Se a lacuna requer um NOME PRÓPRIO (Jesus, Paulo, Davi), alternativas devem ser NOMES DE PESSOAS
-- TESTE MENTAL: Leia a frase substituindo cada alternativa - TODAS devem formar frases gramaticalmente corretas
-- Exemplo BOM: "Jesus morreu para ___ o pecador." → options: ["salvar", "amar", "libertar", "redimir"] (todos verbos)
-- Exemplo RUIM: "Jesus morreu para ___ o pecador." → options: ["salvar", "amor", "cruz", "vida"] (classes gramaticais misturadas)
-- Exemplo BOM: "O fruto do Espírito é ___." → options: ["amor", "paz", "alegria", "bondade"] (todos substantivos)
-- NUNCA misture classes gramaticais diferentes nas alternativas!`;
+REGRAS CRÍTICAS PARA FILL_BLANK COM VALIDAÇÃO PRÉ-GERAÇÃO OBRIGATÓRIA:
+
+⚠️ PROCESSO DE 4 PASSOS - EXECUTE TODOS ANTES DE GERAR O JSON ⚠️
+
+PASSO 1 - IDENTIFICAR CLASSE GRAMATICAL:
+Analise a estrutura sintática da frase e identifique:
+- VERBO INFINITIVO: após "para", "deve", "precisa", "quer" (ex: amar, salvar)
+- VERBO CONJUGADO: como núcleo do predicado (ex: amou, salvou)
+- SUBSTANTIVO: como sujeito, objeto ou predicativo (ex: amor, fé, graça)
+- ADJETIVO: modificando substantivo (ex: santo, fiel)
+- NOME PRÓPRIO: referindo pessoa ou lugar bíblico
+
+PASSO 2 - LISTAR 6-8 CANDIDATOS:
+Gere 6-8 palavras da MESMA classe gramatical identificada
+
+PASSO 3 - VALIDAÇÃO INDIVIDUAL (CRÍTICO):
+Para CADA candidato:
+1. Substitua ___ pela palavra formando frase completa
+2. Pergunte: "Esta frase está gramaticalmente CORRETA em português?"
+3. Pergunte: "Esta frase faz sentido como afirmação (verdadeira ou falsa)?"
+4. APENAS inclua candidatos onde AMBAS respostas são SIM
+
+PASSO 4 - SELECIONAR 4 FINAIS:
+- 1 resposta CORRETA + 3 distratores VÁLIDOS
+
+EXEMPLOS DE VALIDAÇÃO CORRETA:
+Frase: "Jesus morreu para ___ o pecador."
+Classe identificada: VERBO INFINITIVO (após "para")
+✅ salvar → "...para salvar o pecador" (correto)
+✅ amar → "...para amar o pecador" (correto)
+✅ redimir → "...para redimir o pecador" (correto)
+❌ amor → "...para amor o pecador" (INVÁLIDO - substantivo após "para" + verbo)
+❌ salvação → "...para salvação o pecador" (INVÁLIDO - falta artigo)
+
+Frase: "O maior mandamento é ___ a Deus."
+Classe identificada: VERBO INFINITIVO (predicativo verbal)
+✅ amar → "...é amar a Deus" (correto)
+✅ servir → "...é servir a Deus" (correto)
+❌ amor → "...é amor a Deus" (INVÁLIDO - muda estrutura)
+❌ amando → "...é amando a Deus" (INVÁLIDO - gerúndio inadequado)
+
+NUNCA GERE ALTERNATIVAS SEM EXECUTAR ESTA VALIDAÇÃO!`;
 
   const existingQuestionsText = existingQuestions.length > 0 
     ? `\n\nPERGUNTAS JA EXISTENTES (NAO repita estas, crie perguntas NOVAS e DIFERENTES):\n${existingQuestions.join('\n')}`
@@ -1871,23 +1937,78 @@ REGRAS PARA DICAS (HINTS):
 - A dica deve manter o grau de dificuldade da pergunta
 - O usuário perde XP ao usar a dica, então ela deve valer a pena mas não ser fácil demais
 
-REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
-- A frase DEVE ter contexto completo para o usuário entender o que preencher
-- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
-- COERÊNCIA SEMÂNTICA OBRIGATÓRIA: As alternativas DEVEM fazer sentido gramatical na frase:
-  * Se a lacuna requer um VERBO no infinitivo (glorificar, amar), TODAS alternativas devem ser VERBOS NO INFINITIVO
-  * Se a lacuna requer um VERBO conjugado (amou, morreu), TODAS alternativas devem ser VERBOS NO MESMO TEMPO/PESSOA
-  * Se a lacuna requer um SUBSTANTIVO ABSTRATO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS ABSTRATOS
-  * Se a lacuna requer um SUBSTANTIVO CONCRETO (cruz, pão, água), alternativas devem ser SUBSTANTIVOS CONCRETOS
-  * Se a lacuna requer um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
-  * Se a lacuna requer um NOME PRÓPRIO/PESSOA (Jesus, Paulo, Davi), alternativas devem ser NOMES DE PESSOAS
-  * Se a lacuna requer um LUGAR (Jerusalém, Egito), alternativas devem ser LUGARES
-- TESTE MENTAL: Leia a frase substituindo cada alternativa - TODAS devem formar frases gramaticalmente corretas
-- Exemplo BOM: "Nós devemos viver para ___ a Deus" → ["glorificar", "amar", "servir", "honrar"] (todos verbos no infinitivo)
-- Exemplo RUIM: "Nós devemos viver para ___ a Deus" → ["glorificar", "amor", "fé", "vida"] (classes mistas)
-- Exemplo BOM: "Foi ___ que morreu na Cruz" → ["Jesus", "Pedro", "Paulo", "João"] (todos nomes de pessoas)
-- Exemplo RUIM: "Foi ___ que morreu na Cruz" → ["Jesus", "amor", "fé", "mundo"] (classes mistas)
-- NUNCA misture classes gramaticais diferentes nas alternativas
+REGRAS CRÍTICAS PARA FILL_BLANK COM VALIDAÇÃO PRÉ-GERAÇÃO (4 PASSOS OBRIGATÓRIOS):
+
+A frase DEVE ter contexto completo para o usuário entender o que preencher.
+OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas VALIDADAS.
+
+⚠️ EXECUTE ESTES 4 PASSOS PARA CADA QUESTÃO FILL_BLANK ANTES DE GERAR O JSON ⚠️
+
+PASSO 1 - ANÁLISE SINTÁTICA DA LACUNA:
+Identifique a função sintática e classe gramatical exata que a lacuna exige:
+- VERBO INFINITIVO: aparece após "para", "deve", "precisa", "quer", "é" (como predicativo)
+- VERBO CONJUGADO: funciona como núcleo do predicado com sujeito definido
+- SUBSTANTIVO ABSTRATO: conceitos (amor, fé, graça, salvação)
+- SUBSTANTIVO CONCRETO: coisas físicas (cruz, pão, água, pedra)
+- ADJETIVO: modifica um substantivo na frase
+- NOME PRÓPRIO: pessoas (Jesus, Paulo) ou lugares (Jerusalém)
+
+PASSO 2 - GERAÇÃO DE CANDIDATOS (6-8):
+Liste 6-8 palavras da MESMA classe gramatical identificada no Passo 1
+
+PASSO 3 - VALIDAÇÃO RIGOROSA (CRÍTICO - NÃO PULE):
+Para CADA candidato, execute este teste:
+1. Forme a frase completa inserindo o candidato na lacuna
+2. TESTE GRAMATICAL: A frase está correta gramaticalmente? (concordância, regência, sintaxe)
+3. TESTE SEMÂNTICO: A frase faz sentido como afirmação, mesmo que biblicamente incorreta?
+4. APENAS candidatos que passam em AMBOS os testes são VÁLIDOS
+5. Descarte imediatamente qualquer candidato que falhe em qualquer teste
+
+PASSO 4 - SELEÇÃO FINAL:
+- Escolha 1 resposta CORRETA entre os candidatos válidos
+- Escolha 3 distratores entre os candidatos válidos (que formam frases corretas mas são respostas erradas)
+
+EXEMPLOS DETALHADOS DE VALIDAÇÃO:
+
+Frase: "Nós devemos viver para ___ a Deus."
+Análise: lacuna após "para" exige VERBO INFINITIVO
+Candidatos: glorificar, amar, servir, honrar, amor, glória, fé
+Validação:
+✅ glorificar → "...para glorificar a Deus" (gramatical OK, semântico OK)
+✅ amar → "...para amar a Deus" (gramatical OK, semântico OK)
+✅ servir → "...para servir a Deus" (gramatical OK, semântico OK)
+✅ honrar → "...para honrar a Deus" (gramatical OK, semântico OK)
+❌ amor → "...para amor a Deus" (INVÁLIDO - substantivo após "para" + verbo requer infinitivo)
+❌ glória → "...para glória a Deus" (INVÁLIDO - estrutura incorreta)
+❌ fé → "...para fé a Deus" (INVÁLIDO - estrutura incorreta)
+Seleção final: ["glorificar", "amar", "servir", "honrar"] ✓
+
+Frase: "Foi ___ que morreu na Cruz."
+Análise: lacuna como sujeito, estrutura de clivagem exige NOME PRÓPRIO DE PESSOA
+Candidatos: Jesus, Pedro, Paulo, João, amor, fé, salvação
+Validação:
+✅ Jesus → "Foi Jesus que morreu na Cruz." (gramatical OK, semântico OK)
+✅ Pedro → "Foi Pedro que morreu na Cruz." (gramatical OK, semântico OK - falso mas faz sentido)
+✅ Paulo → "Foi Paulo que morreu na Cruz." (gramatical OK, semântico OK)
+✅ João → "Foi João que morreu na Cruz." (gramatical OK, semântico OK)
+❌ amor → "Foi amor que morreu na Cruz." (INVÁLIDO - substantivo abstrato requer artigo "o amor")
+❌ fé → "Foi fé que morreu na Cruz." (INVÁLIDO - substantivo abstrato requer artigo)
+❌ salvação → "Foi salvação que morreu na Cruz." (INVÁLIDO - não pode "morrer")
+Seleção final: ["Jesus", "Pedro", "Paulo", "João"] ✓
+
+Frase: "A ___ de Deus nos salva."
+Análise: lacuna como núcleo do sujeito exige SUBSTANTIVO FEMININO
+Candidatos: graça, fé, misericórdia, bondade, amor, Salvador
+Validação:
+✅ graça → "A graça de Deus nos salva." (gramatical OK)
+✅ fé → "A fé de Deus nos salva." (gramatical OK)
+✅ misericórdia → "A misericórdia de Deus nos salva." (gramatical OK)
+✅ bondade → "A bondade de Deus nos salva." (gramatical OK)
+❌ amor → "A amor de Deus nos salva." (INVÁLIDO - masculino com artigo feminino)
+❌ Salvador → "A Salvador de Deus nos salva." (INVÁLIDO - masculino com artigo feminino)
+Seleção final: ["graça", "fé", "misericórdia", "bondade"] ✓
+
+NUNCA GERE ALTERNATIVAS SEM EXECUTAR TODOS OS 4 PASSOS DE VALIDAÇÃO!
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 

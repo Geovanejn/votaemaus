@@ -1,6 +1,8 @@
-import { Star, Gem, Crown, Sparkles, Share2 } from "lucide-react";
+import { Star, Gem, Crown, Sparkles, Share2, Loader2, Download, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { SiWhatsapp, SiX, SiFacebook } from "react-icons/si";
+import { useRef, useState, useCallback } from "react";
+import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -163,6 +165,119 @@ interface CollectibleCardModalProps {
 }
 
 export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardModalProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
+  const { toast } = useToast();
+  
+  const generateImage = useCallback(async (): Promise<Blob | null> => {
+    if (!cardRef.current) return null;
+    
+    try {
+      const scale = Math.max(3, window.devicePixelRatio || 2);
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#1a1a2e',
+        scale: scale,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        imageTimeout: 0,
+      });
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+      });
+    } catch (error) {
+      console.error('Error generating card image:', error);
+      return null;
+    }
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateImage();
+      const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
+      
+      if (imageBlob && navigator.share) {
+        const file = new File([imageBlob], `card-${card.name.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+        const shareData: ShareData = {
+          title: `Card: ${card.name}`,
+          text: shareText,
+          files: [file],
+        };
+        
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          setShareSuccess(true);
+          toast({
+            title: "Compartilhado!",
+            description: "Seu card foi compartilhado com sucesso.",
+          });
+          setTimeout(() => setShareSuccess(false), 2000);
+          setIsGenerating(false);
+          return;
+        }
+      }
+      
+      // Fallback: copy text and suggest download
+      const shareUrl = window.location.origin + "/study/cards";
+      try {
+        await navigator.clipboard.writeText(shareText + " " + shareUrl);
+        toast({
+          title: "Texto copiado!",
+          description: "Baixe a imagem e compartilhe nas redes sociais.",
+        });
+      } catch {
+        toast({
+          title: "Compartilhar",
+          description: "Baixe a imagem e compartilhe manualmente.",
+        });
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao compartilhar",
+        description: "Tente baixar a imagem e compartilhar manualmente.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [card.name, card.rarity, generateImage, toast]);
+
+  const handleDownload = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const imageBlob = await generateImage();
+      if (imageBlob) {
+        const url = URL.createObjectURL(imageBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `card-${card.name.replace(/\s+/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({
+          title: "Download concluido!",
+          description: "Agora voce pode compartilhar a imagem.",
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro no download",
+        description: "Nao foi possivel baixar a imagem.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [card.name, generateImage, toast]);
+
   if (!isOpen) return null;
 
   const orientation = card.sourceType === "event" ? "landscape" : "portrait";
@@ -184,13 +299,18 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         className="flex flex-col items-center gap-6 max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <CollectibleCard
-          name={card.name}
-          imageUrl={card.imageUrl}
-          rarity={card.rarity}
-          orientation={orientation}
-          size="lg"
-        />
+        <div ref={cardRef} className="p-4 rounded-xl" style={{ backgroundColor: '#1a1a2e' }}>
+          <CollectibleCard
+            name={card.name}
+            imageUrl={card.imageUrl}
+            rarity={card.rarity}
+            orientation={orientation}
+            size="lg"
+          />
+          <p className="text-center text-white/70 text-xs mt-3 font-medium">
+            DeoGlory - UMP Emaus
+          </p>
+        </div>
 
         <div className="text-center space-y-2 text-white">
           {card.description && (
@@ -218,48 +338,36 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/60 mr-2">
-            <Share2 className="w-4 h-4 inline mr-1" />
-            Compartilhar:
-          </span>
+        <div className="flex items-center gap-3">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (typeof window === "undefined") return;
-              const text = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
-              const url = window.location.origin + "/study/cards";
-              window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, "_blank");
+              handleShare();
             }}
-            className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-colors"
-            data-testid="button-share-whatsapp"
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium transition-all disabled:opacity-50"
+            data-testid="button-share-card"
           >
-            <SiWhatsapp className="w-5 h-5" />
+            {isGenerating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : shareSuccess ? (
+              <Check className="w-5 h-5" />
+            ) : (
+              <Share2 className="w-5 h-5" />
+            )}
+            {shareSuccess ? "Compartilhado!" : "Compartilhar"}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (typeof window === "undefined") return;
-              const text = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! #UMPEmaus #DeoGlory`;
-              const url = window.location.origin + "/study/cards";
-              window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
+              handleDownload();
             }}
-            className="w-10 h-10 rounded-full bg-black hover:bg-gray-800 flex items-center justify-center text-white transition-colors"
-            data-testid="button-share-twitter"
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium transition-colors disabled:opacity-50"
+            data-testid="button-download-card"
           >
-            <SiX className="w-5 h-5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (typeof window === "undefined") return;
-              const url = window.location.origin + "/study/cards";
-              window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
-            }}
-            className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors"
-            data-testid="button-share-facebook"
-          >
-            <SiFacebook className="w-5 h-5" />
+            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            Baixar
           </button>
         </div>
 

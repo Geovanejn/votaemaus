@@ -200,7 +200,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     setIsGenerating(true);
     try {
       const imageBlob = await generateImage();
-      const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
+      const shareUrl = window.location.origin + "/study";
+      const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.\n\n${shareUrl}`;
       
       if (imageBlob && navigator.share) {
         const file = new File([imageBlob], `card-${card.name.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
@@ -224,9 +225,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       }
       
       // Fallback: copy text and suggest download
-      const shareUrl = window.location.origin + "/study/cards";
       try {
-        await navigator.clipboard.writeText(shareText + " " + shareUrl);
+        await navigator.clipboard.writeText(shareText);
         toast({
           title: "Texto copiado!",
           description: "Baixe a imagem e compartilhe nas redes sociais.",

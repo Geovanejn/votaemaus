@@ -39,6 +39,7 @@ interface StudyEvent {
   startDate: string;
   endDate: string;
   status: string;
+  forceUnlock: boolean | null;
   cardId: number | null;
   lessonsCount: number | null;
   xpMultiplier: number | null;
@@ -161,16 +162,19 @@ export default function AdminEventosPage() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: async (eventId: number) => {
+    mutationFn: async ({ eventId, forceUnlock }: { eventId: number; forceUnlock: boolean }) => {
       return apiRequest("PATCH", `/api/admin/study-events/${eventId}`, {
         status: "published",
+        forceUnlock,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Evento publicado",
-        description: "O evento agora está visível para os membros.",
+        description: variables.forceUnlock 
+          ? "O evento está disponível imediatamente para os membros."
+          : "O evento ficará disponível na data de início.",
       });
     },
   });
@@ -300,7 +304,22 @@ export default function AdminEventosPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => publishMutation.mutate(event.id)}
+                                onClick={() => {
+                                  const now = new Date();
+                                  const startDate = new Date(event.startDate);
+                                  const isFuture = now < startDate;
+                                  
+                                  if (isFuture) {
+                                    const choice = confirm(
+                                      "O evento tem data futura. Deseja liberar IMEDIATAMENTE para os membros?\n\n" +
+                                      "OK = Liberar agora (acesso imediato)\n" +
+                                      "Cancelar = Aguardar data de início (bloqueado até a data)"
+                                    );
+                                    publishMutation.mutate({ eventId: event.id, forceUnlock: choice });
+                                  } else {
+                                    publishMutation.mutate({ eventId: event.id, forceUnlock: false });
+                                  }
+                                }}
                                 disabled={publishMutation.isPending}
                                 data-testid={`button-publish-${event.id}`}
                               >

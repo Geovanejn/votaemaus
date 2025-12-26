@@ -1790,6 +1790,7 @@ export const studyEvents = pgTable("study_events", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   status: text("status").notNull().default("draft"),
+  forceUnlock: boolean("force_unlock").default(false), // Admin can force immediate access even before start date
   cardId: integer("card_id").references(() => collectibleCards.id),
   lessonsCount: integer("lessons_count").default(7),
   xpMultiplier: real("xp_multiplier").default(1.0),

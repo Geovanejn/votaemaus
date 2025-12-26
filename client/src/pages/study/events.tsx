@@ -115,6 +115,7 @@ interface StudyEvent {
   startDate: string;
   endDate: string;
   status: string;
+  forceUnlock: boolean | null; // Admin can force immediate access
   cardId: number | null;
   lessonsCount: number | null;
   xpMultiplier: number | null;
@@ -156,13 +157,21 @@ function EventCard({ event }: { event: StudyEvent }) {
   const [, setLocation] = useLocation();
   const monthLabel = getMonthLabel(event.startDate);
   const eventStatus = getEventStatus(event);
-  // Event is accessible if published (regardless of date) - admin decision overrides dates
-  const isLocked = false; // Published events are always accessible
-  const isEnded = eventStatus === "ended";
-  const isActive = event.status === "published";
   
+  // Two flows for availability:
+  // 1. Automatic: event becomes available when startDate arrives
+  // 2. Manual: admin forces immediate access with forceUnlock=true
   const now = new Date();
   const startDate = new Date(event.startDate);
+  const isDateReached = now >= startDate;
+  const isForceUnlocked = event.forceUnlock === true;
+  
+  // Event is accessible if: (published AND date reached) OR (published AND force unlocked)
+  const isAccessible = event.status === "published" && (isDateReached || isForceUnlocked);
+  const isLocked = !isAccessible && eventStatus === "upcoming";
+  const isEnded = eventStatus === "ended";
+  const isActive = isAccessible && !isEnded;
+  
   const endDate = new Date(event.endDate);
   
   // Use Brazil timezone-aware calendar day calculation
@@ -386,9 +395,26 @@ export default function EventsPage() {
     );
   }
 
-  // All published events are accessible - categorize by date for display only
-  const activeEvents = events?.filter(e => e.status === "published") || [];
-  const upcomingEvents: StudyEvent[] = []; // No more locked upcoming events
+  // Categorize events properly supporting both flows
+  const activeEvents = events?.filter(e => {
+    if (e.status !== "published") return false;
+    const now = new Date();
+    const startDate = new Date(e.startDate);
+    const isDateReached = now >= startDate;
+    const isForceUnlocked = e.forceUnlock === true;
+    return isDateReached || isForceUnlocked;
+  }) || [];
+  
+  const upcomingEvents = events?.filter(e => {
+    if (e.status !== "published") return false;
+    const now = new Date();
+    const startDate = new Date(e.startDate);
+    const isDateReached = now >= startDate;
+    const isForceUnlocked = e.forceUnlock === true;
+    // Upcoming = published but date not reached AND not force unlocked
+    return !isDateReached && !isForceUnlocked;
+  }) || [];
+  
   const endedEvents = events?.filter(e => e.status === "ended" || getEventStatus(e) === "ended") || [];
 
   return (

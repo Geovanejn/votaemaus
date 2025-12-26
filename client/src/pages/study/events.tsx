@@ -30,6 +30,48 @@ import { format, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+
+function CountdownTimer({ targetDate }: { targetDate: Date }) {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const diff = targetDate.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        return { hours: 0, minutes: 0, seconds: 0 };
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      return { hours, minutes, seconds };
+    };
+    
+    setTimeLeft(calculateTimeLeft());
+    
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [targetDate]);
+  
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  
+  return (
+    <div className="flex items-center gap-1 font-mono text-sm">
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{pad(timeLeft.hours)}</span>
+      <span>:</span>
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{pad(timeLeft.minutes)}</span>
+      <span>:</span>
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{pad(timeLeft.seconds)}</span>
+    </div>
+  );
+}
 
 /**
  * Get date parts in Brazil timezone (America/Sao_Paulo)
@@ -152,18 +194,18 @@ function EventCard({ event }: { event: StudyEvent }) {
       );
     }
     if (isLocked) {
-      let startLabel = "";
-      if (daysUntilStart <= 0) {
-        startLabel = "Inicia hoje";
-      } else if (daysUntilStart === 1) {
-        startLabel = "Inicia amanha";
-      } else {
-        startLabel = `Em ${daysUntilStart} dias`;
+      if (daysUntilStart <= 1) {
+        return (
+          <Badge className="bg-amber-500 text-white border-amber-600 px-2 py-1 rounded-full font-medium shrink-0">
+            <Timer className="h-3 w-3 mr-1" />
+            <CountdownTimer targetDate={startDate} />
+          </Badge>
+        );
       }
       return (
         <Badge className="bg-slate-400 text-white border-slate-500 px-3 py-1 rounded-full font-medium shrink-0">
           <Lock className="h-3 w-3 mr-1" />
-          {startLabel}
+          Em {daysUntilStart} dias
         </Badge>
       );
     }
@@ -224,9 +266,16 @@ function EventCard({ event }: { event: StudyEvent }) {
               <div className="text-center text-white">
                 <Lock className="h-12 w-12 mx-auto mb-2 opacity-80" />
                 <p className="font-bold text-lg">Bloqueado</p>
-                <p className="text-sm opacity-80">
-                  {daysUntilStart === 0 ? "Inicia hoje" : `Inicia em ${daysUntilStart} ${daysUntilStart === 1 ? "dia" : "dias"}`}
-                </p>
+                {daysUntilStart <= 1 ? (
+                  <div className="mt-2">
+                    <p className="text-xs opacity-70 mb-1">Inicia em</p>
+                    <CountdownTimer targetDate={startDate} />
+                  </div>
+                ) : (
+                  <p className="text-sm opacity-80">
+                    Inicia em {daysUntilStart} dias
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -136,6 +136,7 @@ export function RespondaScreen({
           correctBool = rawCorrect === 1;
         }
         
+        // Verifica se a resposta do usuário é igual à resposta correta tratada
         isCorrect = trueFalseAnswer === correctBool;
         
         // Detailed debug logging with visual separation for the browser console

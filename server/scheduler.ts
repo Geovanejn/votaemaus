@@ -79,8 +79,18 @@ async function sendBirthdayEmails(): Promise<void> {
     
     console.log(`[Birthday Scheduler] Found ${birthdayMembers.length} birthday(s) today`);
     
+    // Send personal push to each birthday member
     for (const member of birthdayMembers) {
       try {
+        await sendPushToUser(member.id, {
+          title: 'Feliz Aniversario!',
+          body: `Parabens, ${member.fullName.split(' ')[0]}! A UMP Emaus deseja um dia muito especial para voce!`,
+          url: '/study/profile',
+          tag: `birthday-${member.id}`,
+        });
+        console.log(`[Birthday Scheduler] ✓ Sent birthday push to ${member.fullName}`);
+        
+        // Send email to the birthday member
         const sent = await sendBirthdayEmail(
           member.fullName, 
           member.email,
@@ -92,11 +102,26 @@ async function sendBirthdayEmails(): Promise<void> {
           console.log(`[Birthday Scheduler] ✗ Failed to send birthday email to ${member.fullName} (${member.email})`);
         }
       } catch (error) {
-        console.error(`[Birthday Scheduler] Error sending email to ${member.fullName}:`, error);
+        console.error(`[Birthday Scheduler] Error sending to ${member.fullName}:`, error);
       }
     }
     
-    console.log(`[Birthday Scheduler] Completed. Sent ${birthdayMembers.length} birthday email(s)`);
+    // Send ONE consolidated announcement to all members about today's birthdays
+    const birthdayNames = birthdayMembers.map(m => m.fullName.split(' ')[0]).join(', ');
+    const announcementBody = birthdayMembers.length === 1
+      ? `Hoje e aniversario de ${birthdayMembers[0].fullName}! Envie uma mensagem de parabens!`
+      : `Hoje temos ${birthdayMembers.length} aniversariantes: ${birthdayNames}! Envie mensagens de parabens!`;
+    
+    const birthdayPayload = {
+      title: birthdayMembers.length === 1 ? 'Aniversario de Membro!' : 'Aniversariantes do Dia!',
+      body: announcementBody,
+      url: '/diretoria',
+      tag: `birthday-announcement-${todayDateString}`,
+    };
+    const pushResult = await sendPushToAllMembers(birthdayPayload);
+    console.log(`[Birthday Scheduler] Birthday announcement push: ${pushResult.sent} success, ${pushResult.failed} failed`);
+    
+    console.log(`[Birthday Scheduler] Completed. Processed ${birthdayMembers.length} birthday(s)`);
   } catch (error) {
     console.error('[Birthday Scheduler] Error during birthday check:', error);
   }

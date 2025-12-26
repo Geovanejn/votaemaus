@@ -564,49 +564,92 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {userCards.length > 0 && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.42 }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-500" />
-                Minha Colecao
-              </h3>
-              <Button 
-                variant="ghost" 
-                className="text-sm px-2"
-                style={{ color: "#8B5CF6" }}
-                onClick={() => setLocation("/study/cards")}
-                data-testid="button-view-all-cards"
-              >
-                Ver todas
-              </Button>
-            </div>
-            
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-              {userCards.slice(0, 4).map((userCard) => (
-                <div key={userCard.id} className="flex-shrink-0">
-                  <CollectibleCard
-                    card={{
-                      id: userCard.card.id,
-                      name: userCard.card.name,
-                      description: userCard.card.description,
-                      imageUrl: userCard.card.imageUrl,
-                      type: userCard.card.type as "season" | "event",
-                      rarity: userCard.rarity as "common" | "rare" | "epic" | "legendary",
-                    }}
-                    size="sm"
-                    showName
-                    data-testid={`card-profile-${userCard.id}`}
-                  />
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {(() => {
+          const eventCards = userCards.filter(c => c.card.type === 'event');
+          const seasonCards = userCards.filter(c => c.card.type === 'season');
+          
+          return (
+            <>
+              {eventCards.length > 0 && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.42 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-orange-500" />
+                      Cards de Eventos
+                    </h3>
+                    <Button 
+                      variant="ghost" 
+                      className="text-sm px-2"
+                      style={{ color: "#8B5CF6" }}
+                      onClick={() => setLocation("/study/cards")}
+                      data-testid="button-view-event-cards"
+                    >
+                      Ver todos
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                    {eventCards.slice(0, 4).map((userCard) => (
+                      <div key={userCard.id} className="flex-shrink-0" data-testid={`card-event-${userCard.id}`}>
+                        <CollectibleCard
+                          name={userCard.card.name}
+                          imageUrl={userCard.card.imageUrl}
+                          rarity={userCard.rarity as "common" | "rare" | "epic" | "legendary"}
+                          sourceType="event"
+                          size="sm"
+                          showLabel
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {seasonCards.length > 0 && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.44 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-purple-500" />
+                      Cards de Revistas
+                    </h3>
+                    <Button 
+                      variant="ghost" 
+                      className="text-sm px-2"
+                      style={{ color: "#8B5CF6" }}
+                      onClick={() => setLocation("/study/cards")}
+                      data-testid="button-view-season-cards"
+                    >
+                      Ver todos
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                    {seasonCards.slice(0, 4).map((userCard) => (
+                      <div key={userCard.id} className="flex-shrink-0" data-testid={`card-season-${userCard.id}`}>
+                        <CollectibleCard
+                          name={userCard.card.name}
+                          imageUrl={userCard.card.imageUrl}
+                          rarity={userCard.rarity as "common" | "rare" | "epic" | "legendary"}
+                          sourceType="season"
+                          size="sm"
+                          showLabel
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </>
+          );
+        })()}
 
         <motion.div
           initial={{ y: 20, opacity: 0 }}

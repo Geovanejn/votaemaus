@@ -44,7 +44,8 @@ import {
   summarizeText,
   isAIConfigured,
   generateLessonFromPDFExact,
-  AIProvider
+  AIProvider,
+  randomizeMultipleChoiceAnswer
 } from "./ai";
 import multer from "multer";
 import sharp from "sharp";
@@ -7231,6 +7232,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!lesson) {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
+      
+      // Process questions to ensure correctIndex is properly set
+      if (lesson.questions && Array.isArray(lesson.questions)) {
+        const processedQuestions = lesson.questions.map((q: any) => {
+          if (q.type === "multiple_choice" && q.options && Array.isArray(q.options)) {
+            const before = { ...q };
+            const processed = randomizeMultipleChoiceAnswer(q);
+            console.log(`[DEBUG] Question ${q.id || 'unknown'}:`, {
+              beforeOptions: before.options,
+              beforeCorrectIndex: before.correctIndex,
+              afterOptions: processed.options,
+              afterCorrectIndex: processed.correctIndex,
+              correctAnswer: before.options[before.correctIndex]
+            });
+            return processed;
+          }
+          return q;
+        });
+        lesson.questions = processedQuestions;
+      }
+      
       const progress = await storage.getUserEventLessonProgress(req.user!.id, lesson.id);
       res.json({ lesson, progress });
     } catch (error) {

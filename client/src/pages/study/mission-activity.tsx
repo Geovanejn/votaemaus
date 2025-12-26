@@ -159,7 +159,7 @@ function QuizActivity({
   missionType: string;
   onComplete: () => void;
 }) {
-  const { sounds } = useSounds();
+  const { sounds, vibrateError } = useSounds();
   
   // Quiz Rápido: 5 perguntas em 30 segundos, precisa acertar TODAS
   // Timed Challenge: 5 perguntas em 30 segundos, precisa acertar TODAS
@@ -248,6 +248,7 @@ function QuizActivity({
       sounds.practiceCorrect();
     } else {
       sounds.practiceError();
+      vibrateError();
       // Para quick_quiz e timed_challenge: errou uma = falhou imediatamente
       if (needsAllCorrect) {
         setTimeout(() => {

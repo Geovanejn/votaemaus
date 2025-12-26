@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss' | 'crystal' | 'star' | 'mastery' | 'practiceCorrect' | 'practiceError' | 'medal' | 'goldenTransform';
+type SoundType = 'success' | 'error' | 'click' | 'achievement' | 'levelUp' | 'xp' | 'streak' | 'heartLoss' | 'crystal' | 'star' | 'mastery' | 'practiceCorrect' | 'practiceError' | 'medal' | 'goldenTransform' | 'modalOpen' | 'stageComplete' | 'lessonComplete';
 
 const SOUND_ENABLED_KEY = 'emaus-vota-sounds-enabled';
 
@@ -19,7 +19,10 @@ const frequencies: Record<SoundType, number[]> = {
   practiceCorrect: [523.25, 783.99, 1046.50],
   practiceError: [392, 293.66],
   medal: [659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98],
-  goldenTransform: [392, 523.25, 659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98]
+  goldenTransform: [392, 523.25, 659.25, 783.99, 987.77, 1174.66, 1318.51, 1567.98],
+  modalOpen: [440, 554.37, 698.46],
+  stageComplete: [523.25, 659.25, 783.99, 880],
+  lessonComplete: [392, 523.25, 659.25, 783.99, 987.77, 1174.66]
 };
 
 const durations: Record<SoundType, number> = {
@@ -37,8 +40,25 @@ const durations: Record<SoundType, number> = {
   practiceCorrect: 0.12,
   practiceError: 0.18,
   medal: 0.3,
-  goldenTransform: 0.35
+  goldenTransform: 0.35,
+  modalOpen: 0.12,
+  stageComplete: 0.18,
+  lessonComplete: 0.25
 };
+
+export function vibrate(pattern: number | number[] = 50): void {
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  } catch (error) {
+    console.log('[Vibration] Unable to vibrate:', error);
+  }
+}
+
+export function vibrateError(): void {
+  vibrate([100, 50, 100]);
+}
 
 export function useSounds() {
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -129,8 +149,13 @@ export function useSounds() {
       practiceCorrect: () => playSound('practiceCorrect'),
       practiceError: () => playSound('practiceError'),
       medal: () => playSound('medal'),
-      goldenTransform: () => playSound('goldenTransform')
-    }
+      goldenTransform: () => playSound('goldenTransform'),
+      modalOpen: () => playSound('modalOpen'),
+      stageComplete: () => playSound('stageComplete'),
+      lessonComplete: () => playSound('lessonComplete')
+    },
+    vibrate,
+    vibrateError
   };
 }
 

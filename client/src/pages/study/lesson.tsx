@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { MedalAchievementAnimation } from "@/components/study/MedalAchievementAnimation";
 import { shuffleArrayWithSeed } from "@/lib/utils";
+import { useSounds } from "@/hooks/use-sounds";
 
 interface UnitContent {
   title?: string;
@@ -209,6 +210,7 @@ export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { vibrateError } = useSounds();
   const lessonId = parseInt(id || "0");
   const stageParam = useQueryParam('stage');
   
@@ -1270,6 +1272,7 @@ export default function LessonPage() {
     // This is critical for the "Perfeito" achievement to work correctly
     if (!isCorrect) {
       setMistakes(prev => prev + 1);
+      vibrateError();
     } else {
       // Track correct answers for the stage complete modal
       setRespondaCorrectAnswers(prev => prev + 1);

@@ -56,7 +56,7 @@ export default function PracticePage() {
   const paramWeekId = parseInt(params.weekId || "0");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { sounds } = useSounds();
+  const { sounds, vibrateError } = useSounds();
   
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -168,8 +168,9 @@ export default function PracticePage() {
       sounds.practiceCorrect();
     } else {
       sounds.practiceError();
+      vibrateError();
     }
-  }, [sounds]);
+  }, [sounds, vibrateError]);
 
   const handleContinue = useCallback(() => {
     setShowFeedback(false);

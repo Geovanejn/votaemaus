@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSounds } from "@/hooks/use-sounds";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -293,31 +294,7 @@ export default function EventLessonPage() {
   const eventId = parseInt(params.eventId || "0");
   const dayNumber = parseInt(params.dayNumber || "0");
   const { toast } = useToast();
-
-  const audioCorrect = useRef<HTMLAudioElement | null>(null);
-  const audioIncorrect = useRef<HTMLAudioElement | null>(null);
-  const audioComplete = useRef<HTMLAudioElement | null>(null);
-  const audioModal = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    audioCorrect.current = new Audio("/sounds/correct.mp3");
-    audioIncorrect.current = new Audio("/sounds/incorrect.mp3");
-    audioComplete.current = new Audio("/sounds/complete.mp3");
-    audioModal.current = new Audio("/sounds/modal.mp3");
-  }, []);
-
-  const playSound = (type: "correct" | "incorrect" | "complete" | "modal") => {
-    const audio = {
-      correct: audioCorrect.current,
-      incorrect: audioIncorrect.current,
-      complete: audioComplete.current,
-      modal: audioModal.current
-    }[type];
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-    }
-  };
+  const { sounds, vibrateError } = useSounds();
 
   const [currentStage, setCurrentStage] = useState<Stage>(() => {
     const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_stage`);
@@ -523,7 +500,7 @@ export default function EventLessonPage() {
   }, [contentSections.medite]);
 
   const handleEstudeComplete = () => {
-    playSound("modal");
+    sounds.stageComplete();
     setAccumulatedXp(prev => prev + XP_ESTUDE);
     setStageCompleteData({
       xp: XP_ESTUDE,
@@ -534,7 +511,7 @@ export default function EventLessonPage() {
   };
 
   const handleMediteComplete = () => {
-    playSound("modal");
+    sounds.stageComplete();
     setAccumulatedXp(prev => prev + XP_MEDITE);
     setStageCompleteData({
       xp: XP_MEDITE,
@@ -739,9 +716,10 @@ export default function EventLessonPage() {
                 onAnswer={(idx, ans, correct) => {
                   if (correct) {
                     setCorrectAnswers(prev => prev + 1);
-                    playSound("correct");
+                    sounds.practiceCorrect();
                   } else {
-                    playSound("incorrect");
+                    sounds.practiceError();
+                    vibrateError();
                   }
                 }}
                 onComplete={(correct, total) => {
@@ -758,7 +736,7 @@ export default function EventLessonPage() {
                      totalQuestions: total
                    });
                    setShowStageComplete(true);
-                   playSound("complete");
+                   sounds.lessonComplete();
 
                    if (lessonId && !isCompleted) {
                      submitMutation.mutate({ 

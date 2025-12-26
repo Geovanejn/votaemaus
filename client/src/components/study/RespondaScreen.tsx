@@ -103,53 +103,20 @@ export function RespondaScreen({
     switch (currentQuestion.type) {
       case "multiple_choice": {
         answer = selectedAnswer;
-        // Ensure both are numbers for comparison
         const correctIdx = Number(currentQuestion.correctIndex);
         const selectedIdx = Number(selectedAnswer);
         isCorrect = selectedIdx === correctIdx;
-        
-        // Debug logging
-        console.log(`[RespondaScreen Check] Answer check for: "${currentQuestion.question?.substring(0, 40)}..."`, {
-          selectedAnswer: selectedIdx,
-          selectedAnswerType: typeof selectedIdx,
-          correctIdx,
-          correctIdxType: typeof correctIdx,
-          isCorrect,
-          correctOption: currentQuestion.options?.[correctIdx],
-          selectedOption: currentQuestion.options?.[selectedIdx]
-        });
         break;
       }
       case "true_false": {
         answer = trueFalseAnswer;
-        
+        // Use EXATAMENTE a mesma lógica do TrueFalseExercise
         const rawCorrect = currentQuestion.correctAnswer;
+        const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
+                      (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
+                      !!rawCorrect);
         
-        // Normalização robusta baseada estritamente no correctAnswer
-        let correctBool = false;
-        if (typeof rawCorrect === 'boolean') {
-          correctBool = rawCorrect;
-        } else if (typeof rawCorrect === 'string') {
-          const lower = rawCorrect.toLowerCase().trim();
-          correctBool = lower === 'true' || lower === 'verdadeiro' || lower === 'v' || lower === 'sim' || lower === 'yes';
-        } else if (typeof rawCorrect === 'number') {
-          correctBool = rawCorrect === 1;
-        }
-        
-        // Verifica se a resposta do usuário é igual à resposta correta tratada
-        isCorrect = trueFalseAnswer === correctBool;
-        
-        // Detailed debug logging with visual separation for the browser console
-        console.group("%c[RespondaScreen DEBUG: Verdadeiro/Falso]", "color: #f59e0b; font-weight: bold; font-size: 12px;");
-        console.log("%cPergunta:", "font-weight: bold;", currentQuestion.question);
-        console.log("%cDados do Banco (correctAnswer):", "font-weight: bold;", rawCorrect);
-        console.log("%cProcessamento:", "font-weight: bold;", {
-          "Resolvido como Correto": correctBool,
-          "Resposta do Usuário": trueFalseAnswer,
-          "Resultado Final": isCorrect ? "CORRETO ✅" : "ERRADO ❌"
-        });
-        console.groupEnd();
-        
+        isCorrect = trueFalseAnswer === isTrue;
         break;
       }
       case "fill_blank": {
@@ -171,7 +138,6 @@ export function RespondaScreen({
     if (!isLastQuestion) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // correctCount already includes this answer, no need to add again
       onComplete(correctCount, totalQuestions);
     }
   };
@@ -191,16 +157,10 @@ export function RespondaScreen({
       }
       case "true_false": {
         const rawCorrect = currentQuestion.correctAnswer;
-        let correctBool = false;
-        if (typeof rawCorrect === 'boolean') {
-          correctBool = rawCorrect;
-        } else if (typeof rawCorrect === 'string') {
-          const lower = rawCorrect.toLowerCase().trim();
-          correctBool = lower === 'true' || lower === 'verdadeiro' || lower === 'v' || lower === 'sim' || lower === 'yes';
-        } else if (typeof rawCorrect === 'number') {
-          correctBool = rawCorrect === 1;
-        }
-        return trueFalseAnswer === correctBool;
+        const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
+                      (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
+                      !!rawCorrect);
+        return trueFalseAnswer === isTrue;
       }
       case "fill_blank":
         return fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim();
@@ -301,18 +261,11 @@ export function RespondaScreen({
                     <div className="flex gap-3">
                       {[true, false].map((value) => {
                         const isSelected = trueFalseAnswer === value;
-                        // Convert correctAnswer to boolean safely
                         const rawCorrect = currentQuestion.correctAnswer;
-                        let correctBool = false;
-                        if (typeof rawCorrect === 'boolean') {
-                          correctBool = rawCorrect;
-                        } else if (typeof rawCorrect === 'string') {
-                          const lower = rawCorrect.toLowerCase().trim();
-                          correctBool = lower === 'true' || lower === 'verdadeiro' || lower === 'v' || lower === 'sim' || lower === 'yes';
-                        } else if (typeof rawCorrect === 'number') {
-                          correctBool = rawCorrect === 1;
-                        }
-                        const isCorrect = value === correctBool;
+                        const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
+                                      (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
+                                      !!rawCorrect);
+                        const isCorrect = value === isTrue;
                         const showCorrect = showResult && isCorrect;
                         const showIncorrect = showResult && isSelected && !isCorrect;
 

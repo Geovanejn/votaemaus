@@ -17,7 +17,13 @@ import {
   ChevronRight,
   Lock,
   CheckCircle2,
-  Timer
+  Timer,
+  Gift,
+  Heart,
+  Users,
+  Globe,
+  BookOpen,
+  Star
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, isBefore, isAfter, differenceInDays } from "date-fns";
@@ -94,12 +100,12 @@ function EventCard({ event }: { event: StudyEvent }) {
 
   const getThemeIcon = (theme: string) => {
     const t = theme.toLowerCase();
-    if (t.includes('reforma')) return <Sparkles className="h-10 w-10 text-white/80" />;
-    if (t.includes('jovem')) return <Sparkles className="h-10 w-10 text-white/80" />;
-    if (t.includes('pascoa')) return <Sparkles className="h-10 w-10 text-white/80" />;
-    if (t.includes('natal')) return <Sparkles className="h-10 w-10 text-white/80" />;
-    if (t.includes('missoes')) return <Sparkles className="h-10 w-10 text-white/80" />;
-    return <Sparkles className="h-10 w-10 text-white/80" />;
+    if (t.includes('natal')) return <Gift className="h-10 w-10 text-white/80" />;
+    if (t.includes('pascoa')) return <Heart className="h-10 w-10 text-white/80" />;
+    if (t.includes('juventude') || t.includes('jovem')) return <Users className="h-10 w-10 text-white/80" />;
+    if (t.includes('missoes') || t.includes('missão')) return <Globe className="h-10 w-10 text-white/80" />;
+    if (t.includes('reforma')) return <BookOpen className="h-10 w-10 text-white/80" />;
+    return <Star className="h-10 w-10 text-white/80" />;
   };
 
   const getStatusBadge = () => {
@@ -300,7 +306,6 @@ export default function EventsPage() {
   const activeEvents = events?.filter(e => getEventStatus(e) === "active") || [];
   const upcomingEvents = events?.filter(e => getEventStatus(e) === "upcoming") || [];
   const endedEvents = events?.filter(e => getEventStatus(e) === "ended") || [];
-  const featuredEvents = [...activeEvents, ...upcomingEvents];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">
@@ -372,9 +377,9 @@ export default function EventsPage() {
             </p>
           </div>
 
-          {featuredEvents.length === 0 && endedEvents.length === 0 ? (
+          {activeEvents.length === 0 && upcomingEvents.length === 0 && endedEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <Sparkles className="h-16 w-16 text-slate-200 mb-6" />
+              <Star className="h-16 w-16 text-slate-200 mb-6" />
               <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 mb-2">Nenhum evento no momento</h3>
               <p className="text-slate-500 max-w-xs mx-auto">
                 Fique atento! Novos eventos especiais serão anunciados em breve.
@@ -382,18 +387,47 @@ export default function EventsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {featuredEvents.map(event => (
-                <EventCard key={event.id} event={event} />
-              ))}
+              {/* Eventos em Andamento - no topo */}
+              {activeEvents.length > 0 && (
+                <>
+                  <h3 className="text-sm font-bold text-green-600 uppercase tracking-[0.2em] flex items-center gap-3">
+                    <Timer className="h-4 w-4" />
+                    Em Andamento
+                    <div className="h-px bg-green-200 flex-1" />
+                  </h3>
+                  <div className="space-y-4">
+                    {activeEvents.map(event => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                </>
+              )}
 
-              {endedEvents.length > 0 && (
-                <div className="pt-4">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+              {/* Próximos Eventos - no meio */}
+              {upcomingEvents.length > 0 && (
+                <div className={activeEvents.length > 0 ? "pt-4" : ""}>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+                    <Calendar className="h-4 w-4" />
+                    Próximos Eventos
                     <div className="h-px bg-slate-200 flex-1" />
+                  </h3>
+                  <div className="space-y-4">
+                    {upcomingEvents.map(event => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Eventos Encerrados - no final */}
+              {endedEvents.length > 0 && (
+                <div className={activeEvents.length > 0 || upcomingEvents.length > 0 ? "pt-4" : ""}>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4" />
                     Eventos Anteriores
                     <div className="h-px bg-slate-200 flex-1" />
                   </h3>
-                  <div className="space-y-6 opacity-80">
+                  <div className="space-y-4 opacity-80">
                     {endedEvents.map(event => (
                       <EventCard key={event.id} event={event} />
                     ))}

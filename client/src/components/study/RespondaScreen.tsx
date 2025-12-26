@@ -122,28 +122,22 @@ export function RespondaScreen({
       }
       case "true_false": {
         answer = trueFalseAnswer;
-        // Convert correctAnswer to boolean in case it comes as string or number
-        let correctBool = false;
-        const rawCorrect = currentQuestion.correctAnswer;
-        
-        if (typeof rawCorrect === 'boolean') {
-          correctBool = rawCorrect;
-        } else {
-          const val = String(rawCorrect).toLowerCase().trim();
-          // Map of values that should be considered true
-          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
-          correctBool = trueValues.includes(val);
-        }
+        // In study/estudos (TrueFalseExercise), isTrue is used.
+        // Let's normalize the logic to match that.
+        const correctBool = currentQuestion.correctAnswer === true || 
+                          currentQuestion.correctAnswer === "true" || 
+                          currentQuestion.correctAnswer === "Verdadeiro" ||
+                          currentQuestion.correctAnswer === 1 ||
+                          (currentQuestion as any).isTrue === true;
         
         isCorrect = trueFalseAnswer === correctBool;
         
-        // Detailed debug logging for True/False
         console.log(`[RespondaScreen TF Check]`, {
           question: currentQuestion.question?.substring(0, 50),
-          rawCorrectValue: rawCorrect,
-          rawCorrectType: typeof rawCorrect,
-          resolvedCorrectBool: correctBool,
-          userSelected: trueFalseAnswer,
+          correctAnswer: currentQuestion.correctAnswer,
+          isTrue: (currentQuestion as any).isTrue,
+          resolvedCorrect: correctBool,
+          userAnswer: trueFalseAnswer,
           isCorrect
         });
         break;
@@ -186,15 +180,11 @@ export function RespondaScreen({
         return selectedIdx === correctIdx;
       }
       case "true_false": {
-        let correctBool = false;
-        const rawCorrect = currentQuestion.correctAnswer;
-        if (typeof rawCorrect === 'boolean') {
-          correctBool = rawCorrect;
-        } else {
-          const val = String(rawCorrect).toLowerCase().trim();
-          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
-          correctBool = trueValues.includes(val);
-        }
+        const correctBool = currentQuestion.correctAnswer === true || 
+                          currentQuestion.correctAnswer === "true" || 
+                          currentQuestion.correctAnswer === "Verdadeiro" ||
+                          currentQuestion.correctAnswer === 1 ||
+                          (currentQuestion as any).isTrue === true;
         return trueFalseAnswer === correctBool;
       }
       case "fill_blank":
@@ -297,15 +287,11 @@ export function RespondaScreen({
                       {[true, false].map((value) => {
                         const isSelected = trueFalseAnswer === value;
                         // Convert correctAnswer to boolean safely
-                        let correctBool = false;
-                        const rawCorrect = currentQuestion.correctAnswer;
-                        if (typeof rawCorrect === 'boolean') {
-                          correctBool = rawCorrect;
-                        } else {
-                          const val = String(rawCorrect).toLowerCase().trim();
-                          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
-                          correctBool = trueValues.includes(val);
-                        }
+                        const correctBool = currentQuestion.correctAnswer === true || 
+                                          currentQuestion.correctAnswer === "true" || 
+                                          currentQuestion.correctAnswer === "Verdadeiro" ||
+                                          currentQuestion.correctAnswer === 1 ||
+                                          (currentQuestion as any).isTrue === true;
                         const isCorrect = value === correctBool;
                         const showCorrect = showResult && isCorrect;
                         const showIncorrect = showResult && isSelected && !isCorrect;

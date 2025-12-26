@@ -84,13 +84,16 @@ function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
 }
 
 function StatusBadge({ status, eventStatus }: { status: string; eventStatus: string }) {
+  if (status === "ended") {
+    return <Badge variant="secondary">Encerrado</Badge>;
+  }
   if (status === "published") {
     if (eventStatus === "active") {
       return <Badge className="bg-green-500">Ativo</Badge>;
     } else if (eventStatus === "ended") {
       return <Badge variant="secondary">Encerrado</Badge>;
     } else {
-      return <Badge className="bg-blue-500">Agendado</Badge>;
+      return <Badge className="bg-blue-500">Publicado</Badge>;
     }
   }
   return <Badge variant="outline">Rascunho</Badge>;

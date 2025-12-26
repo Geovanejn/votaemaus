@@ -142,7 +142,9 @@ export function TrueFalseExercise({
   const handleVerify = () => {
     if (selected === null) return;
     setIsAnswered(true);
-    onAnswer(selected === isTrue, selected);
+    // The comparison should be direct boolean comparison
+    const isCorrect = selected === isTrue;
+    onAnswer(isCorrect, selected);
   };
 
   const showTrueCorrect = isAnswered && isTrue;

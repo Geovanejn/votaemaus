@@ -241,7 +241,10 @@ function QuizActivity({
     const isCorrect = index === questions[currentQuestion].correctIndex;
     
     if (isCorrect) {
-      setCorrectAnswers(prev => prev + 1);
+      setCorrectAnswers(prev => {
+        const newValue = prev + 1;
+        return newValue;
+      });
       sounds.practiceCorrect();
     } else {
       sounds.practiceError();
@@ -315,7 +318,7 @@ function QuizActivity({
         <div>
           <h3 className="text-xl font-bold text-foreground mb-2">Parabéns!</h3>
           <p className="text-muted-foreground">
-            Você acertou todas as {questions.length} perguntas!
+            Você acertou {correctAnswers} de {questions.length} perguntas!
           </p>
         </div>
 

@@ -194,12 +194,7 @@ function EventCard({ event }: { event: StudyEvent }) {
       );
     }
     if (isLocked) {
-      return (
-        <Badge className="bg-slate-400 text-white border-slate-500 px-3 py-1 rounded-full font-medium shrink-0">
-          <Lock className="h-3 w-3 mr-1" />
-          Bloqueado
-        </Badge>
-      );
+      return null;
     }
     if (isEnded) {
       return (
@@ -253,13 +248,18 @@ function EventCard({ event }: { event: StudyEvent }) {
           }}
         >
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
-          {isLocked && (
-            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-20">
-              <Lock className="absolute top-3 right-3 h-8 w-8 text-white/80" />
-              <div className="text-center text-white">
+          {isLocked ? (
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center z-20">
+              <Lock className="absolute top-4 right-4 h-7 w-7 text-white/80" />
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+                  {getThemeIcon(event.theme)}
+                </div>
+              </div>
+              <div className="text-center text-white pb-4">
                 {daysUntilStart <= 1 ? (
                   <div>
-                    <p className="text-sm opacity-90 mb-2">Inicia em</p>
+                    <p className="text-sm opacity-90 mb-1">Inicia em</p>
                     <CountdownTimer targetDate={startDate} />
                   </div>
                 ) : (
@@ -269,10 +269,11 @@ function EventCard({ event }: { event: StudyEvent }) {
                 )}
               </div>
             </div>
+          ) : (
+            <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+              {getThemeIcon(event.theme)}
+            </div>
           )}
-          <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
-             {getThemeIcon(event.theme)}
-          </div>
         </div>
         
         <CardContent className="p-5">

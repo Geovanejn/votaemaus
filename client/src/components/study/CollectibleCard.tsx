@@ -55,11 +55,11 @@ export function CollectibleCard({
     lg: orientation === "portrait" ? "w-[240px] h-[336px]" : "w-[336px] h-[240px]",
   };
 
-  const imageHeightClasses = {
-    compact: "h-[60px]",
-    sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
-    md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
-    lg: orientation === "portrait" ? "h-[200px]" : "h-[140px]",
+  const imageContainerClasses = {
+    compact: "min-h-[60px]",
+    sm: "min-h-[80px]",
+    md: "min-h-[100px] sm:min-h-[120px]",
+    lg: "min-h-[140px]",
   };
 
   const badgeSizeClasses = {
@@ -132,7 +132,7 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className={`collectible-card-image ${imageHeightClasses[size]} mt-2`}>
+        <div className={`collectible-card-image ${imageContainerClasses[size]} mt-2 flex-1 relative overflow-hidden`}>
           {imageUrl ? (
             <img 
               src={imageUrl} 
@@ -144,6 +144,13 @@ export function CollectibleCard({
               <IconComponent className="w-8 h-8 text-white/50" />
             </div>
           )}
+          <div 
+            className="card-shine-beam absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 45%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.4) 55%, transparent 60%)',
+              transform: 'translateX(-100%)',
+            }}
+          />
         </div>
       </div>
     </motion.div>
@@ -179,6 +186,18 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     if (!cardRef.current) return null;
     
     try {
+      // Pause animations and position shine for capture
+      const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
+      shineBeams.forEach((beam) => {
+        const el = beam as HTMLElement;
+        el.style.animation = 'none';
+        el.style.transform = 'translateX(0%)';
+        el.style.opacity = '1';
+      });
+      
+      // Wait for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // 3x quality improvement from previous scale (was 3, now 9)
       const scale = 9;
       const canvas = await html2canvas(cardRef.current, {
@@ -188,6 +207,14 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         logging: false,
         allowTaint: true,
         imageTimeout: 0,
+      });
+      
+      // Restore animations
+      shineBeams.forEach((beam) => {
+        const el = beam as HTMLElement;
+        el.style.animation = '';
+        el.style.transform = '';
+        el.style.opacity = '';
       });
       
       return new Promise((resolve) => {
@@ -241,12 +268,38 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
           shareLink = `https://api.whatsapp.com/send?text=${encodedText}`;
           break;
         case 'instagram':
-          // Instagram doesn't support direct sharing - copy text and inform user
+          // Instagram doesn't support direct web sharing - download image + copy text + try deep link
+          if (imageBlob) {
+            // Download the image
+            const url = URL.createObjectURL(imageBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `card-${card.name.replace(/\s+/g, '-')}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }
+          // Copy caption
           await navigator.clipboard.writeText(fullShareText);
-          toast({
-            title: "Texto copiado!",
-            description: "Baixe a imagem e compartilhe no Instagram Stories ou Feed.",
-          });
+          // Try to open Instagram
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          if (isMobile) {
+            // Try deep link to Instagram story camera
+            window.location.href = 'instagram://story-camera';
+            setTimeout(() => {
+              // If deep link didn't work, show instructions
+              toast({
+                title: "Imagem baixada e texto copiado!",
+                description: "Selecione a imagem da galeria e cole a legenda no Instagram.",
+              });
+            }, 1500);
+          } else {
+            toast({
+              title: "Imagem baixada e texto copiado!",
+              description: "Abra o Instagram e poste a imagem com a legenda copiada.",
+            });
+          }
           return;
         case 'facebook':
           shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;

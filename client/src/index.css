@@ -659,7 +659,25 @@ body {
 .collectible-card-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+/* Shine beam animation for cards */
+.card-shine-beam {
+  animation: shine-sweep 3s ease-in-out infinite;
+}
+
+@keyframes shine-sweep {
+  0%, 100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  40%, 60% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(100%);
+  }
 }
 
 /* Card badge/icon area */

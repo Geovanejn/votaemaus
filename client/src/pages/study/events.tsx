@@ -250,9 +250,8 @@ function EventCard({ event }: { event: StudyEvent }) {
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
           {isLocked ? (
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center z-20">
-              <Lock className="absolute top-4 right-4 h-7 w-7 text-white/80" />
               <div className="flex-1 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
                   {getThemeIcon(event.theme)}
                 </div>
               </div>

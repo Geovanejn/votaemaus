@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, Save, Eye, Star, Smartphone, Check } from "lucide-react";
+import { ArrowLeft, Save, Eye, Star, Smartphone, Check, Youtube, Instagram, Music, Upload, Loader2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -37,6 +37,9 @@ const formSchema = z.object({
   imageUrl: z.string().optional(),
   mobileCropData: mobileCropDataSchema.optional(),
   author: z.string().optional(),
+  youtubeUrl: z.string().optional(),
+  instagramUrl: z.string().optional(),
+  audioUrl: z.string().optional(),
   isPublished: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
 });
@@ -66,6 +69,8 @@ export default function EspiritualidadeDevocionalEditor() {
     }
   };
 
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -79,6 +84,9 @@ export default function EspiritualidadeDevocionalEditor() {
       imageUrl: "",
       mobileCropData: null,
       author: "",
+      youtubeUrl: "",
+      instagramUrl: "",
+      audioUrl: "",
       isPublished: false,
       isFeatured: false,
     },
@@ -93,6 +101,9 @@ export default function EspiritualidadeDevocionalEditor() {
       imageUrl: devotional.imageUrl || "",
       mobileCropData: parseMobileCropData(devotional.mobileCropData),
       author: devotional.author || "",
+      youtubeUrl: devotional.youtubeUrl || "",
+      instagramUrl: devotional.instagramUrl || "",
+      audioUrl: devotional.audioUrl || "",
       isPublished: devotional.isPublished || false,
       isFeatured: devotional.isFeatured || false,
     } : undefined,
@@ -262,6 +273,159 @@ export default function EspiritualidadeDevocionalEditor() {
                             data-testid="input-prayer" 
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Music className="h-5 w-5" />
+                    Mídia
+                  </CardTitle>
+                  <CardDescription>YouTube, Instagram e Áudio</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="youtubeUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Youtube className="h-4 w-4 text-red-500" />
+                          Vídeo do YouTube (opcional)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            {...field} 
+                            data-testid="input-youtube" 
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Cole a URL do vídeo do YouTube para incorporar
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="instagramUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Instagram className="h-4 w-4 text-pink-500" />
+                          Post/Reel do Instagram (opcional)
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://www.instagram.com/p/..." 
+                            {...field} 
+                            data-testid="input-instagram" 
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Cole a URL do post ou reel do Instagram
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="audioUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Music className="h-4 w-4 text-purple-500" />
+                          Áudio (opcional)
+                        </FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            {field.value ? (
+                              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                                <audio controls className="flex-1 h-10" src={field.value}>
+                                  Seu navegador não suporta o elemento de áudio.
+                                </audio>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => field.onChange("")}
+                                  data-testid="button-remove-audio"
+                                >
+                                  <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="file"
+                                  accept="audio/*"
+                                  className="hidden"
+                                  id="audio-upload"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    
+                                    setIsUploadingAudio(true);
+                                    try {
+                                      const formData = new FormData();
+                                      formData.append("file", file);
+                                      
+                                      const token = localStorage.getItem("token");
+                                      const response = await fetch("/api/upload/audio", {
+                                        method: "POST",
+                                        body: formData,
+                                        headers: {
+                                          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                        },
+                                      });
+                                      
+                                      if (!response.ok) throw new Error("Upload failed");
+                                      
+                                      const data = await response.json();
+                                      field.onChange(data.url);
+                                      toast({ title: "Áudio enviado com sucesso!" });
+                                    } catch (error) {
+                                      toast({ 
+                                        title: "Erro ao enviar áudio", 
+                                        variant: "destructive" 
+                                      });
+                                    } finally {
+                                      setIsUploadingAudio(false);
+                                    }
+                                  }}
+                                  data-testid="input-audio-file"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => document.getElementById("audio-upload")?.click()}
+                                  disabled={isUploadingAudio}
+                                  className="w-full gap-2"
+                                  data-testid="button-upload-audio"
+                                >
+                                  {isUploadingAudio ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Upload className="h-4 w-4" />
+                                  )}
+                                  {isUploadingAudio ? "Enviando..." : "Selecionar Áudio"}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Formato aceito: MP3, WAV, OGG (máximo 10MB)
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

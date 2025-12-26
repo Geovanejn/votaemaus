@@ -393,6 +393,10 @@ export const devotionals = pgTable("devotionals", {
   imageUrl: text("image_url"),
   mobileCropData: text("mobile_crop_data"),
   author: text("author"),
+  // Media fields
+  youtubeUrl: text("youtube_url"),
+  instagramUrl: text("instagram_url"),
+  audioUrl: text("audio_url"),
   publishedAt: timestamp("published_at").notNull().defaultNow(),
   scheduledAt: timestamp("scheduled_at"),
   isPublished: boolean("is_published").notNull().default(true),

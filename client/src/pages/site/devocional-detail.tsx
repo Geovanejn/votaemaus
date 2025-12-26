@@ -33,6 +33,23 @@ import { useAuth } from "@/lib/auth";
 import { parseTipTapContent } from "@/lib/utils";
 import DOMPurify from "dompurify";
 
+// Configure DOMPurify to allow YouTube iframes
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (data.tagName === 'iframe') {
+    const element = node as Element;
+    const src = element.getAttribute?.('src') || '';
+    if (src.startsWith('https://www.youtube.com/') || src.startsWith('https://youtube.com/')) {
+      return; // Allow YouTube iframes
+    }
+  }
+});
+
+const sanitizeConfig = {
+  ADD_TAGS: ['iframe'],
+  ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'src', 'width', 'height'],
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+};
+
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 
 interface MobileCropData {
@@ -55,6 +72,9 @@ interface DevotionalData {
   author?: string;
   publishedAt?: string;
   isRead?: boolean;
+  youtubeUrl?: string;
+  instagramUrl?: string;
+  audioUrl?: string;
 }
 
 function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
@@ -79,6 +99,28 @@ function formatDate(dateStr?: string): string {
   if (!dateStr) return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
   const date = new Date(dateStr);
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function getYoutubeEmbedUrl(url: string): string {
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+  }
+  
+  // Return as-is if already an embed URL or unrecognized format
+  if (url.includes('/embed/')) {
+    return url;
+  }
+  
+  return url;
 }
 
 function getCategory(title: string): string {
@@ -358,21 +400,33 @@ export default function DevocionalDetailPage() {
   return (
     <SiteLayout>
       <section className="relative overflow-hidden">
+        {/* Desktop background - hidden on mobile when crop is defined */}
         <div 
-          className="absolute inset-0 bg-cover bg-center"
+          className={`absolute inset-0 bg-cover bg-center ${mobileCropData ? 'hidden md:block' : ''}`}
           style={{ 
             backgroundImage: `url(${imageUrl})`,
-            ...(mobileCropData ? {} : {})
           }}
         />
-        <div 
-          className="absolute inset-0 md:hidden"
-          style={mobileCropData ? { 
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            ...mobileBackgroundStyle
-          } : undefined}
-        />
+        {/* Mobile background with crop - only shown on mobile when crop is defined */}
+        {mobileCropData && (
+          <div 
+            className="absolute inset-0 md:hidden bg-cover"
+            style={{ 
+              backgroundImage: `url(${imageUrl})`,
+              backgroundSize: 'cover',
+              ...mobileBackgroundStyle
+            }}
+          />
+        )}
+        {/* Fallback for mobile when no crop is defined */}
+        {!mobileCropData && (
+          <div 
+            className="absolute inset-0 md:hidden bg-cover bg-center"
+            style={{ 
+              backgroundImage: `url(${imageUrl})`,
+            }}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/50" />
         <div className="relative text-white py-12">
           <div className="container mx-auto px-4">
@@ -434,8 +488,8 @@ export default function DevocionalDetailPage() {
                   <div className="prose prose-lg dark:prose-invert max-w-none">
                     {hasHtmlContent ? (
                       <div 
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(devotional.contentHtml!) }}
-                        className="devotional-content [&_p]:text-muted-foreground [&_p]:leading-relaxed [&_p]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_blockquote]:border-l-4 [&_blockquote]:border-primary/50 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(devotional.contentHtml!, sanitizeConfig) }}
+                        className="devotional-content [&_p]:text-muted-foreground [&_p]:leading-relaxed [&_p]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_blockquote]:border-l-4 [&_blockquote]:border-primary/50 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4 [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-lg [&_iframe]:my-4 [&_a]:text-primary [&_a]:underline"
                       />
                     ) : (
                       contentText.split('\n\n').map((paragraph, index) => {
@@ -464,6 +518,65 @@ export default function DevocionalDetailPage() {
                       })
                     )}
                   </div>
+
+                  {/* Media Section */}
+                  {(devotional.youtubeUrl || devotional.instagramUrl || devotional.audioUrl) && (
+                    <div className="space-y-6 mt-8 pt-6 border-t">
+                      {devotional.youtubeUrl && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <span className="text-red-500">YouTube</span>
+                          </h4>
+                          <div className="aspect-video rounded-lg overflow-hidden">
+                            <iframe
+                              src={getYoutubeEmbedUrl(devotional.youtubeUrl)}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title="Video do YouTube"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {devotional.instagramUrl && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <span className="text-pink-500">Instagram</span>
+                          </h4>
+                          <div className="rounded-lg overflow-hidden bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 p-[1px]">
+                            <a 
+                              href={devotional.instagramUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block bg-card rounded-lg p-4 text-center hover:bg-muted transition-colors"
+                            >
+                              <p className="text-sm text-muted-foreground mb-2">Ver no Instagram</p>
+                              <p className="text-xs text-muted-foreground truncate max-w-xs mx-auto">
+                                {devotional.instagramUrl}
+                              </p>
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {devotional.audioUrl && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <span className="text-purple-500">Audio</span>
+                          </h4>
+                          <audio 
+                            controls 
+                            className="w-full rounded-lg" 
+                            src={devotional.audioUrl}
+                            data-testid="audio-player"
+                          >
+                            Seu navegador nao suporta o elemento de audio.
+                          </audio>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between flex-wrap gap-4 mt-8 pt-6 border-t">
                     <div className="flex items-center gap-3">

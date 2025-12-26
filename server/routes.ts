@@ -182,6 +182,22 @@ const imageUpload = multer({
   }
 });
 
+// Configure multer for audio uploads (10MB limit)
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for audio
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/x-wav'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos MP3, WAV ou OGG são permitidos'));
+    }
+  }
+});
+
 // Image compression settings
 const MAX_IMAGE_WIDTH = 1920;
 const MAX_IMAGE_HEIGHT = 1080;
@@ -310,6 +326,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("[Upload] Error:", error);
       res.status(500).json({ message: "Erro ao fazer upload do arquivo" });
+    }
+  });
+
+  // ==================== AUDIO UPLOAD API ====================
+  // Audio files are stored as Base64 data URLs in the database
+  app.post("/api/upload/audio", authenticateToken, audioUpload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+
+      const fileSizeKB = req.file.size / 1024;
+      const fileSizeMB = fileSizeKB / 1024;
+      
+      // Check if audio is too large (max 10MB)
+      if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ 
+          message: `Arquivo de áudio muito grande (${fileSizeMB.toFixed(1)}MB). Máximo permitido: 10MB.` 
+        });
+      }
+
+      // Convert to Base64 data URL
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype || 'audio/mpeg';
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      console.log(`[Upload] Audio converted to Base64: ${fileSizeKB.toFixed(1)}KB`);
+
+      res.json({ url: dataUrl, fileName: `audio_${Date.now()}.${mimeType.split('/')[1]}` });
+    } catch (error) {
+      console.error("[Upload Audio] Error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload do arquivo de áudio" });
     }
   });
 
@@ -6471,7 +6519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar novo devocional (admin/espiritualidade)
   app.post("/api/espiritualidade/devotionals", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, isPublished, isFeatured, scheduledAt } = req.body;
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, youtubeUrl, instagramUrl, audioUrl, isPublished, isFeatured, scheduledAt } = req.body;
       
       if (!title || !verse || !verseReference || !content) {
         return res.status(400).json({ message: "Titulo, versiculo, referencia e conteudo sao obrigatorios" });
@@ -6488,11 +6536,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl,
         mobileCropData: mobileCropData ? JSON.stringify(mobileCropData) : null,
         author: author || req.user?.fullName || "Espiritualidade UMP",
+        youtubeUrl,
+        instagramUrl,
+        audioUrl,
         isPublished: isPublished || false,
         isFeatured: isFeatured || false,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         createdBy: req.user?.id
-      });
+      } as any);
       
       if (isPublished) {
         notifyNewDevotional(devotional.id, title, imageUrl).catch(err => 
@@ -6511,7 +6562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/espiritualidade/devotionals/:id", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, isPublished, isFeatured, scheduledAt } = req.body;
+      const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, youtubeUrl, instagramUrl, audioUrl, isPublished, isFeatured, scheduledAt } = req.body;
       
       const devotional = await storage.updateDevotional(id, {
         title,
@@ -6524,10 +6575,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl,
         mobileCropData: mobileCropData ? JSON.stringify(mobileCropData) : null,
         author,
+        youtubeUrl,
+        instagramUrl,
+        audioUrl,
         isPublished,
         isFeatured,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null
-      });
+      } as any);
       
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });

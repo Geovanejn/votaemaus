@@ -535,7 +535,16 @@ Gere um JSON com a seguinte estrutura:
             // Para "meditation" (stage: "medite"): { "title": "Meditação na Palavra", "body": "Guia de meditação CRISTÃ focado na Palavra de Deus, oração e aplicação prática. SEM técnicas de respiração.", "meditationDuration": 60 }
             // Para "reflection" (stage: "medite"): { "title": "Aplicação Prática", "body": "Como aplicar este ensino na vida diária", "reflectionPrompt": "Pergunta para reflexão pessoal" }
             // Para "multiple_choice" (stage: "responda"): { "question": "Pergunta clara sobre o conteúdo", "options": ["Alternativa plausível A", "Alternativa plausível B", "Alternativa plausível C", "Alternativa plausível D"], "correctIndex": 0-3 (varie a posição!), "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar", "hint": "Dica opcional" } - IMPORTANTE: Todas as alternativas devem ser plausíveis e ter tamanhos similares!
-            // Para "true_false" (stage: "responda"): { "statement": "Afirmação para julgar verdadeiro ou falso", "isTrue": true, "explanationCorrect": "Explicação quando acertar", "explanationIncorrect": "Explicação quando errar" }
+            // Para "true_false" (stage: "responda"): 
+            // { 
+            //   "analysis": "Breve raciocínio teológico sobre a afirmação (Chain of Thought)",
+            //   "statement": "Afirmação para julgar verdadeiro ou falso", 
+            //   "correctAnswer": true, 
+            //   "explanationCorrect": "Explicação quando acertar", 
+            //   "explanationIncorrect": "Explicação quando errar" 
+            // }
+            // CRITICAL: O campo "correctAnswer" DEVE ser um booleano que corresponda EXATAMENTE à verdade teológica da afirmação.
+            // Se a explicação diz que é correto, o boolean DEVE ser true. Pense bem antes de definir o boolean.
             // Para "fill_blank" (stage: "responda"): IMPORTANTE - A frase DEVE ter contexto completo! Inclua obrigatoriamente um campo "options" com exatamente 4 alternativas semanticamente coerentes e gramaticalmente corretas! O usuário verá as 4 opções e escolherá a correta.
             //   As alternativas devem ser contextualmente coerentes de modo que todas as 4 façam sentido gramatical e contextual na frase, respeitando a concordância e a gramática da língua portuguesa, mas apenas uma seja biblicamente correta.
             //   Exemplos:

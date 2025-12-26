@@ -194,18 +194,10 @@ function EventCard({ event }: { event: StudyEvent }) {
       );
     }
     if (isLocked) {
-      if (daysUntilStart <= 1) {
-        return (
-          <Badge className="bg-amber-500 text-white border-amber-600 px-2 py-1 rounded-full font-medium shrink-0">
-            <Timer className="h-3 w-3 mr-1" />
-            <CountdownTimer targetDate={startDate} />
-          </Badge>
-        );
-      }
       return (
         <Badge className="bg-slate-400 text-white border-slate-500 px-3 py-1 rounded-full font-medium shrink-0">
           <Lock className="h-3 w-3 mr-1" />
-          Em {daysUntilStart} dias
+          Bloqueado
         </Badge>
       );
     }
@@ -262,13 +254,12 @@ function EventCard({ event }: { event: StudyEvent }) {
         >
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
           {isLocked && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-20">
+              <Lock className="absolute top-3 right-3 h-8 w-8 text-white/80" />
               <div className="text-center text-white">
-                <Lock className="h-12 w-12 mx-auto mb-2 opacity-80" />
-                <p className="font-bold text-lg">Bloqueado</p>
                 {daysUntilStart <= 1 ? (
-                  <div className="mt-2">
-                    <p className="text-xs opacity-70 mb-1">Inicia em</p>
+                  <div>
+                    <p className="text-sm opacity-90 mb-2">Inicia em</p>
                     <CountdownTimer targetDate={startDate} />
                   </div>
                 ) : (

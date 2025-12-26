@@ -55,11 +55,11 @@ export function CollectibleCard({
     lg: orientation === "portrait" ? "w-[240px] h-[336px]" : "w-[336px] h-[240px]",
   };
 
-  const imageContainerClasses = {
-    compact: "min-h-[60px]",
-    sm: "min-h-[80px]",
-    md: "min-h-[100px] sm:min-h-[120px]",
-    lg: "min-h-[140px]",
+  const imageHeightClasses = {
+    compact: "h-[60px]",
+    sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
+    md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
+    lg: orientation === "portrait" ? "h-[200px]" : "h-[140px]",
   };
 
   const badgeSizeClasses = {
@@ -132,12 +132,12 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className={`collectible-card-image ${imageContainerClasses[size]} mt-2 flex-1 relative overflow-hidden`}>
+        <div className={`collectible-card-image ${imageHeightClasses[size]} mt-2 relative`}>
           {imageUrl ? (
             <img 
               src={imageUrl} 
               alt={name}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">

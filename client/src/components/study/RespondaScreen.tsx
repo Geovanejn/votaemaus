@@ -117,6 +117,17 @@ export function RespondaScreen({
                       !!rawCorrect);
         
         isCorrect = trueFalseAnswer === isTrue;
+
+        // Logs de debug detalhados para monitorar a validação
+        console.group("%c[DEBUG RespondaScreen] Validação Verdadeiro/Falso", "color: #ff9800; font-weight: bold;");
+        console.log("Pergunta:", currentQuestion.question);
+        console.log("Resposta do Banco (raw):", rawCorrect);
+        console.log("Tipo do dado do Banco:", typeof rawCorrect);
+        console.log("Interpretado como (isTrue):", isTrue);
+        console.log("Resposta do Usuário:", trueFalseAnswer);
+        console.log("Resultado da Validação (isCorrect):", isCorrect ? "CORRETO ✅" : "ERRADO ❌");
+        console.groupEnd();
+
         break;
       }
       case "fill_blank": {

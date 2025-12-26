@@ -1,4 +1,5 @@
-import { Star, Gem, Crown, Sparkles, Share2, Loader2, Download, Check } from "lucide-react";
+import { Star, Gem, Crown, Sparkles, Loader2, Download } from "lucide-react";
+import { SiWhatsapp, SiInstagram, SiFacebook, SiX } from "react-icons/si";
 import { motion } from "framer-motion";
 import { useRef, useState, useCallback } from "react";
 import html2canvas from "html2canvas";
@@ -136,7 +137,7 @@ export function CollectibleCard({
             <img 
               src={imageUrl} 
               alt={name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">
@@ -167,8 +168,12 @@ interface CollectibleCardModalProps {
 export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const shareUrl = typeof window !== "undefined" ? window.location.origin + "/study" : "";
+  const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
+  const fullShareText = `${shareText}\n\n${shareUrl}`;
   
   const generateImage = useCallback(async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
@@ -194,49 +199,67 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     }
   }, []);
 
-  const handleShare = useCallback(async () => {
+  const prepareAndShare = useCallback(async (platform: 'whatsapp' | 'instagram' | 'facebook' | 'x') => {
     if (typeof window === "undefined") return;
     
     setIsGenerating(true);
     try {
       const imageBlob = await generateImage();
-      const shareUrl = window.location.origin + "/study";
-      const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.\n\n${shareUrl}`;
       
-      if (imageBlob && navigator.share) {
-        const file = new File([imageBlob], `card-${card.name.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
-        const shareData: ShareData = {
-          title: `Card: ${card.name}`,
-          text: shareText,
-          files: [file],
-        };
+      if (imageBlob) {
+        // Create object URL for the generated image
+        const imageUrl = URL.createObjectURL(imageBlob);
+        setGeneratedImageUrl(imageUrl);
         
-        if (navigator.canShare && navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          setShareSuccess(true);
-          toast({
-            title: "Compartilhado!",
-            description: "Seu card foi compartilhado com sucesso.",
-          });
-          setTimeout(() => setShareSuccess(false), 2000);
-          setIsGenerating(false);
-          return;
+        // Try native share with image first (works best on mobile)
+        if (navigator.share && platform === 'whatsapp') {
+          const file = new File([imageBlob], `card-${card.name.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+          const shareData: ShareData = {
+            title: `Card: ${card.name}`,
+            text: fullShareText,
+            files: [file],
+          };
+          
+          if (navigator.canShare && navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+            toast({
+              title: "Compartilhado!",
+              description: "Seu card foi compartilhado com sucesso.",
+            });
+            return;
+          }
         }
       }
       
-      // Fallback: copy text and suggest download
-      try {
-        await navigator.clipboard.writeText(shareText);
-        toast({
-          title: "Texto copiado!",
-          description: "Baixe a imagem e compartilhe nas redes sociais.",
-        });
-      } catch {
-        toast({
-          title: "Compartilhar",
-          description: "Baixe a imagem e compartilhe manualmente.",
-        });
+      // Open share URL for each platform with text
+      const encodedText = encodeURIComponent(fullShareText);
+      const encodedUrl = encodeURIComponent(shareUrl);
+      
+      let shareLink = '';
+      switch (platform) {
+        case 'whatsapp':
+          shareLink = `https://api.whatsapp.com/send?text=${encodedText}`;
+          break;
+        case 'instagram':
+          // Instagram doesn't support direct sharing - copy text and inform user
+          await navigator.clipboard.writeText(fullShareText);
+          toast({
+            title: "Texto copiado!",
+            description: "Baixe a imagem e compartilhe no Instagram Stories ou Feed.",
+          });
+          return;
+        case 'facebook':
+          shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+          break;
+        case 'x':
+          shareLink = `https://twitter.com/intent/tweet?text=${encodedText}`;
+          break;
       }
+      
+      if (shareLink) {
+        window.open(shareLink, '_blank', 'width=600,height=400');
+      }
+      
     } catch (error) {
       console.error('Share error:', error);
       toast({
@@ -247,7 +270,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     } finally {
       setIsGenerating(false);
     }
-  }, [card.name, card.rarity, generateImage, toast]);
+  }, [card.name, fullShareText, shareUrl, generateImage, toast]);
 
   const handleDownload = useCallback(async () => {
     setIsGenerating(true);
@@ -363,36 +386,69 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShare();
-            }}
-            disabled={isGenerating}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium transition-all disabled:opacity-50"
-            data-testid="button-share-card"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : shareSuccess ? (
-              <Check className="w-5 h-5" />
-            ) : (
-              <Share2 className="w-5 h-5" />
-            )}
-            {shareSuccess ? "Compartilhado!" : "Compartilhar"}
-          </button>
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-white/60 text-xs">Compartilhar em:</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prepareAndShare('whatsapp');
+              }}
+              disabled={isGenerating}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-[#25D366] hover:bg-[#20BD5A] text-white transition-all disabled:opacity-50"
+              data-testid="button-share-whatsapp"
+              title="WhatsApp"
+            >
+              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <SiWhatsapp className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prepareAndShare('instagram');
+              }}
+              disabled={isGenerating}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:opacity-90 text-white transition-all disabled:opacity-50"
+              data-testid="button-share-instagram"
+              title="Instagram"
+            >
+              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <SiInstagram className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prepareAndShare('facebook');
+              }}
+              disabled={isGenerating}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-[#1877F2] hover:bg-[#166FE5] text-white transition-all disabled:opacity-50"
+              data-testid="button-share-facebook"
+              title="Facebook"
+            >
+              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <SiFacebook className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prepareAndShare('x');
+              }}
+              disabled={isGenerating}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-black hover:bg-gray-900 text-white transition-all disabled:opacity-50"
+              data-testid="button-share-x"
+              title="X (Twitter)"
+            >
+              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <SiX className="w-5 h-5" />}
+            </button>
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleDownload();
             }}
             disabled={isGenerating}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium transition-colors disabled:opacity-50 mt-1"
             data-testid="button-download-card"
           >
             {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-            Baixar
+            Baixar Imagem
           </button>
         </div>
 

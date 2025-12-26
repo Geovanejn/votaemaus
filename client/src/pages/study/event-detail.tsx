@@ -343,7 +343,8 @@ export default function EventDetailPage() {
               ? progressMap.get(previousLesson.id)?.completed || false 
               : true;
             const currentCompleted = progressMap.get(lesson.id)?.completed || false;
-            return previousCompleted && !currentCompleted;
+            const isPublished = lesson.status === 'published';
+            return isPublished && previousCompleted && !currentCompleted;
           });
           
           if (currentLesson && completedLessons < totalLessons) {
@@ -384,8 +385,9 @@ export default function EventDetailPage() {
                 ? progressMap.get(previousLesson.id)?.completed || false 
                 : true;
               const currentCompleted = progressMap.get(lesson.id)?.completed || false;
-              const isLocked = !previousCompleted && !currentCompleted;
-              const isInProgress = previousCompleted && !currentCompleted;
+              const isPublished = lesson.status === 'published';
+              const isLocked = !isPublished || (!previousCompleted && !currentCompleted);
+              const isInProgress = isPublished && previousCompleted && !currentCompleted;
 
               return (
                 <LessonItem

@@ -7068,10 +7068,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Distribute cards to users who completed
       const lessons = await storage.getStudyEventLessons(id);
-      if (event.cardId && lessons.length > 0) {
+      if (lessons.length > 0) {
+        // Create card automatically if event doesn't have one
+        let cardId = event.cardId;
+        if (!cardId) {
+          const newCard = await storage.createCollectibleCard({
+            name: `Card ${event.title}`,
+            description: `Card exclusivo do evento "${event.title}"`,
+            imageUrl: event.imageUrl || null,
+            sourceType: "event",
+            sourceId: id,
+            availableRarities: ["common", "rare", "epic", "legendary"],
+            isActive: true,
+          });
+          cardId = newCard.id;
+          await storage.updateStudyEvent(id, { cardId });
+          console.log(`[Admin Event End] Created card ${cardId} for event ${id}`);
+        }
+        
         const completedUserIds = await storage.getUsersWhoCompletedEvent(id, lessons.length);
+        let cardsDistributed = 0;
         
         for (const userId of completedUserIds) {
+          // Check if user already has this card
+          const existingCard = await storage.getUserCard(userId, cardId);
+          if (existingCard) continue;
+          
           const allProgress = await storage.getUserEventProgress(userId, id);
           const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
           const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
@@ -7081,15 +7103,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const rarity = calculateCardRarity(avgPerformance, anyHints);
           await storage.awardUserCard({
             userId,
-            cardId: event.cardId,
+            cardId,
             rarity,
             sourceType: "event",
             sourceId: id,
             performance: avgPerformance,
           });
+          cardsDistributed++;
         }
         
-        console.log(`[Admin Event End] Distributed ${completedUserIds.length} cards for event ${id}`);
+        console.log(`[Admin Event End] Distributed ${cardsDistributed} cards for event ${id}`);
       }
       
       await logAuditAction(req.user?.id, "update", "study_event", id, "Evento encerrado manualmente", req);
@@ -7126,13 +7149,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       
-      const event = await storage.getStudyEventById(id);
+      let event = await storage.getStudyEventById(id);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
       
-      if (!event.cardId) {
-        return res.status(400).json({ message: "Evento nao possui card configurado" });
+      // Create card automatically if event doesn't have one
+      let cardId = event.cardId;
+      if (!cardId) {
+        const newCard = await storage.createCollectibleCard({
+          name: `Card ${event.title}`,
+          description: `Card exclusivo do evento "${event.title}"`,
+          imageUrl: event.imageUrl || null,
+          sourceType: "event",
+          sourceId: id,
+          availableRarities: ["common", "rare", "epic", "legendary"],
+          isActive: true,
+        });
+        cardId = newCard.id;
+        await storage.updateStudyEvent(id, { cardId });
+        console.log(`[Admin Card Distribution] Created card ${cardId} for event ${id}`);
       }
       
       const lessons = await storage.getStudyEventLessons(id);
@@ -7145,7 +7181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const userId of completedUserIds) {
         // Check if user already has this card
-        const existingCard = await storage.getUserCard(userId, event.cardId);
+        const existingCard = await storage.getUserCard(userId, cardId);
         if (existingCard) continue;
         
         const allProgress = await storage.getUserEventProgress(userId, id);
@@ -7157,7 +7193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const rarity = calculateCardRarity(avgPerformance, anyHints);
         await storage.awardUserCard({
           userId,
-          cardId: event.cardId,
+          cardId,
           rarity,
           sourceType: "event",
           sourceId: id,

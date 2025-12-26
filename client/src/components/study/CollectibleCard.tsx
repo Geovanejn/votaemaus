@@ -189,28 +189,22 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     if (!cardRef.current) return null;
     
     try {
-      // Pre-load image at full resolution if available
       const imageContainer = cardRef.current.querySelector('.collectible-card-image') as HTMLElement;
-      let originalBgImage = '';
+      const scale = 4;
       
-      if (imageContainer && card.imageUrl) {
-        originalBgImage = imageContainer.style.backgroundImage;
-        
-        // Create a high-res image and wait for it to load
-        await new Promise<void>((resolve) => {
+      // Load the high-resolution image first
+      let highResImage: HTMLImageElement | null = null;
+      if (card.imageUrl) {
+        highResImage = await new Promise<HTMLImageElement | null>((resolve) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
           img.src = card.imageUrl!;
         });
       }
       
-      // Wait for styles to apply
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // High quality capture
-      const scale = 6;
+      // Capture card with image area hidden (will draw manually)
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
@@ -219,15 +213,14 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         allowTaint: true,
         imageTimeout: 15000,
         onclone: (clonedDoc, clonedElement) => {
-          // Ensure cloned element has the image loaded
+          // Hide image background - we'll draw it manually at high res
           const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
-          if (clonedImageContainer && card.imageUrl) {
-            clonedImageContainer.style.backgroundImage = `url(${card.imageUrl})`;
-            clonedImageContainer.style.backgroundSize = 'cover';
-            clonedImageContainer.style.backgroundPosition = 'center';
+          if (clonedImageContainer) {
+            clonedImageContainer.style.backgroundImage = 'none';
+            clonedImageContainer.style.backgroundColor = 'transparent';
           }
           
-          // Position shine beam for capture (left side of card, visible)
+          // Position shine beam for capture
           const clonedShineBeams = clonedElement.querySelectorAll('.card-shine-beam');
           clonedShineBeams.forEach((beam) => {
             const el = beam as HTMLElement;
@@ -238,6 +231,47 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         },
       });
       
+      // Now draw the high-res image onto the canvas in the correct position
+      if (highResImage && imageContainer) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Get the position of the image container relative to the card
+          const cardRect = cardRef.current.getBoundingClientRect();
+          const imageRect = imageContainer.getBoundingClientRect();
+          
+          const destX = (imageRect.left - cardRect.left) * scale;
+          const destY = (imageRect.top - cardRect.top) * scale;
+          const destW = imageRect.width * scale;
+          const destH = imageRect.height * scale;
+          
+          // Calculate cover-style crop (center crop)
+          const imgRatio = highResImage.width / highResImage.height;
+          const containerRatio = destW / destH;
+          
+          let srcX = 0, srcY = 0, srcW = highResImage.width, srcH = highResImage.height;
+          
+          if (imgRatio > containerRatio) {
+            // Image is wider - crop horizontally
+            srcW = highResImage.height * containerRatio;
+            srcX = (highResImage.width - srcW) / 2;
+          } else {
+            // Image is taller - crop vertically
+            srcH = highResImage.width / containerRatio;
+            srcY = (highResImage.height - srcH) / 2;
+          }
+          
+          // Apply rounded corners clipping
+          const borderRadius = 8 * scale;
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(destX, destY, destW, destH, borderRadius);
+          ctx.clip();
+          
+          // Draw the high-resolution image
+          ctx.drawImage(highResImage, srcX, srcY, srcW, srcH, destX, destY, destW, destH);
+          ctx.restore();
+        }
+      }
       
       return new Promise((resolve) => {
         canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);

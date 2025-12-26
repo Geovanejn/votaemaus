@@ -295,15 +295,32 @@ function parseContentSections(content: string): { estude: string; medite: string
   return { estude: estudeContent, medite: mediteContent };
 }
 
+// Wrapper component to ensure params are ready before rendering
 export default function EventLessonPage() {
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
   const params = useParams<{ eventId: string; dayNumber: string }>();
   const eventId = parseInt(params.eventId || "0");
   const dayNumber = parseInt(params.dayNumber || "0");
+  
+  // Don't render until params are valid
+  if (eventId === 0 || dayNumber === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+  
+  // Key forces remount when params change, ensuring useState initializers run with correct values
+  return <EventLessonContent key={`${eventId}-${dayNumber}`} eventId={eventId} dayNumber={dayNumber} />;
+}
+
+function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber: number }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { sounds, vibrateError } = useSounds();
 
+  // Now eventId and dayNumber are guaranteed to be valid when useState runs
   const [currentStage, setCurrentStage] = useState<Stage>(() => {
     const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_stage`);
     return (saved as Stage) || "estude";
@@ -338,8 +355,32 @@ export default function EventLessonPage() {
     localStorage.setItem(`lesson_${eventId}_${dayNumber}_mediteIndex`, mediteScreenIndex.toString());
   }, [mediteScreenIndex, eventId, dayNumber]);
 
-  const [correctAnswers, setCorrectAnswers] = useState(0);
+  // Track if lesson is fully complete to clear saved progress
+  const [progressCleared, setProgressCleared] = useState(false);
+
+  const [correctAnswers, setCorrectAnswers] = useState(() => {
+    const saved = localStorage.getItem(`lesson_${eventId}_${dayNumber}_correctAnswers`);
+    return saved ? parseInt(saved) : 0;
+  });
   const [accumulatedXp, setAccumulatedXp] = useState(0);
+
+  // Save correct answers as user progresses
+  useEffect(() => {
+    if (!progressCleared) {
+      localStorage.setItem(`lesson_${eventId}_${dayNumber}_correctAnswers`, correctAnswers.toString());
+    }
+  }, [correctAnswers, eventId, dayNumber, progressCleared]);
+
+  // Clear saved progress when lesson is completed
+  const clearLessonProgress = () => {
+    localStorage.removeItem(`lesson_${eventId}_${dayNumber}_stage`);
+    localStorage.removeItem(`lesson_${eventId}_${dayNumber}_questionIndex`);
+    localStorage.removeItem(`lesson_${eventId}_${dayNumber}_estudeIndex`);
+    localStorage.removeItem(`lesson_${eventId}_${dayNumber}_mediteIndex`);
+    localStorage.removeItem(`lesson_${eventId}_${dayNumber}_correctAnswers`);
+    setProgressCleared(true);
+  };
+
   const [showStageComplete, setShowStageComplete] = useState(false);
   const [stageCompleteData, setStageCompleteData] = useState<{
     xp: number;
@@ -721,8 +762,9 @@ export default function EventLessonPage() {
                 questions={questions}
                 streak={0}
                 initialQuestionIndex={currentQuestionIndex}
-                onAnswer={(idx, ans, correct) => {
-                  if (correct) {
+                initialCorrectCount={correctAnswers}
+                onAnswer={(idx, ans, isCorrect) => {
+                  if (isCorrect) {
                     setCorrectAnswers(prev => prev + 1);
                     sounds.practiceCorrect();
                   } else {
@@ -730,25 +772,28 @@ export default function EventLessonPage() {
                     vibrateError();
                   }
                 }}
-                onComplete={(correct, total) => {
-                   const score = Math.round((correct / total) * 100);
-                   // 10 XP per correct answer, max 50 XP for 5 questions
-                   const xp = correct * XP_PER_CORRECT_ANSWER;
+                onComplete={(finalCorrect, total) => {
+                   // finalCorrect now comes from RespondaScreen's internal correctCount 
+                   // which was initialized with correctAnswers from localStorage
+                   const score = Math.round((finalCorrect / total) * 100);
+                   const xp = finalCorrect * XP_PER_CORRECT_ANSWER;
                    
-                   setAccumulatedXp(prev => prev + xp);
                    setStageCompleteData({
                      xp,
                      stageType: "responda",
                      nextStage: null,
-                     correctAnswers: correct,
+                     correctAnswers: finalCorrect,
                      totalQuestions: total
                    });
                    setShowStageComplete(true);
                    sounds.lessonComplete();
 
+                   // Clear saved progress since lesson is complete
+                   clearLessonProgress();
+
                    if (lessonId && !isCompleted) {
                      submitMutation.mutate({ 
-                       correct, 
+                       correct: finalCorrect, 
                        total, 
                        score, 
                        lessonId 

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface QuizQuestion {
@@ -20,6 +20,7 @@ interface RespondaScreenProps {
   questions: QuizQuestion[];
   streak: number;
   initialQuestionIndex?: number;
+  initialCorrectCount?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
   onComplete: (correctCount: number, totalQuestions: number) => void;
   onClose: () => void;
@@ -69,6 +70,7 @@ export function RespondaScreen({
   questions,
   streak,
   initialQuestionIndex = 0,
+  initialCorrectCount = 0,
   onAnswer,
   onComplete,
   onClose,
@@ -80,7 +82,8 @@ export function RespondaScreen({
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
   const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
+  // Initialize correctCount from persisted value (for resumed sessions)
+  const [correctCount, setCorrectCount] = useState(initialCorrectCount);
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
@@ -186,12 +189,6 @@ export function RespondaScreen({
       setCurrentIndex(prev => prev + 1);
     } else {
       onComplete(correctCount, totalQuestions);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
     }
   };
 
@@ -406,26 +403,16 @@ export function RespondaScreen({
           </motion.div>
         </AnimatePresence>
 
-        {/* Navegação */}
-        <div className="flex gap-3 mt-4 items-center justify-between">
-          <Button
-            variant="outline"
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            size="icon"
-            data-testid="button-prev-question"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-
-          <div className="flex gap-2">
+        {/* Navegação - apenas indicador de progresso e botão próxima (sem voltar) */}
+        <div className="flex gap-3 mt-4 items-center justify-center">
+          {/* Progress dots (apenas indicativo, não clicável) */}
+          <div className="flex gap-2 flex-1 justify-center">
             {Array.from({ length: totalQuestions }).map((_, i) => (
-              <button
+              <div
                 key={i}
-                onClick={() => setCurrentIndex(i)}
                 className={cn(
                   "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-primary" : "w-2 bg-muted"
+                  i === currentIndex ? "w-6 bg-primary" : i < currentIndex ? "w-2 bg-primary/50" : "w-2 bg-muted"
                 )}
                 data-testid={`dot-${i}`}
               />
@@ -437,7 +424,6 @@ export function RespondaScreen({
               <Button
                 onClick={handleNext}
                 data-testid="button-responda-complete"
-                className="flex-1 ml-2"
               >
                 Completar
                 <ChevronRight className="h-5 w-5 ml-2" />
@@ -447,7 +433,7 @@ export function RespondaScreen({
                 onClick={handleNext}
                 data-testid="button-next-question"
               >
-                Próxima
+                Proxima
                 <ChevronRight className="h-5 w-5 ml-2" />
               </Button>
             )

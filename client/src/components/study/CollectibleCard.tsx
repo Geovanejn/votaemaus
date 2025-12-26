@@ -204,7 +204,10 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         });
       }
       
-      // Capture card with image area hidden (will draw manually)
+      // Store whether we have high-res image for onclone
+      const hasHighRes = highResImage !== null;
+      
+      // Capture card
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
@@ -213,25 +216,27 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         allowTaint: true,
         imageTimeout: 15000,
         onclone: (clonedDoc, clonedElement) => {
-          // Hide image background - we'll draw it manually at high res
-          const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
-          if (clonedImageContainer) {
-            clonedImageContainer.style.backgroundImage = 'none';
-            clonedImageContainer.style.backgroundColor = 'transparent';
+          // Only hide image if we have high-res version to draw manually
+          if (hasHighRes) {
+            const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
+            if (clonedImageContainer) {
+              clonedImageContainer.style.backgroundImage = 'none';
+              clonedImageContainer.style.backgroundColor = 'transparent';
+            }
           }
           
-          // Position shine beam for capture
+          // Position shine beam for capture (center of card)
           const clonedShineBeams = clonedElement.querySelectorAll('.card-shine-beam');
           clonedShineBeams.forEach((beam) => {
             const el = beam as HTMLElement;
             el.style.animation = 'none';
-            el.style.transform = 'translateX(-30%)';
+            el.style.transform = 'translateX(0%)';
             el.style.opacity = '1';
           });
         },
       });
       
-      // Now draw the high-res image onto the canvas in the correct position
+      // Draw the high-res image BEHIND existing content (preserves shine beam)
       if (highResImage && imageContainer) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
@@ -260,9 +265,12 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             srcY = (highResImage.height - srcH) / 2;
           }
           
+          // Draw BEHIND existing content using destination-over
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-over';
+          
           // Apply rounded corners clipping
           const borderRadius = 8 * scale;
-          ctx.save();
           ctx.beginPath();
           ctx.roundRect(destX, destY, destW, destH, borderRadius);
           ctx.clip();

@@ -7209,6 +7209,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gerar licoes com IA para evento existente (admin)
+  app.post("/api/admin/study-events/:eventId/generate-lessons", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const event = await storage.getStudyEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      const existingLessons = await storage.getStudyEventLessons(eventId);
+      if (existingLessons.length > 0) {
+        return res.status(400).json({ message: "Evento ja possui licoes. Remova as licoes existentes primeiro." });
+      }
+      
+      const { text, theme, month, keyNumber } = req.body;
+      const contentText = text || event.description || `Estudo sobre ${event.theme}`;
+      const contentTheme = theme || event.theme || event.title;
+      const monthName = month || new Date(event.startDate).toLocaleString("pt-BR", { month: "long" });
+      
+      console.log(`[Admin] Gerando licoes com IA para evento ${eventId} - Tema: ${contentTheme}`);
+      
+      const generatedContent = await generateEventContentFromText(contentText, contentTheme, monthName, keyNumber);
+      
+      for (const lessonData of generatedContent.lessons) {
+        await storage.createStudyEventLesson({
+          eventId,
+          dayNumber: lessonData.dayNumber,
+          title: lessonData.title,
+          content: lessonData.content,
+          verseReference: lessonData.verseReference,
+          verseText: lessonData.verseText,
+          questions: lessonData.questions,
+          xpReward: lessonData.xpReward,
+          status: "draft",
+        });
+      }
+      
+      await logAuditAction(req.user?.id, "update", "study_event", eventId, `${generatedContent.lessons.length} licoes geradas por IA`, req);
+      
+      res.json({
+        eventId,
+        lessonsCreated: generatedContent.lessons.length,
+        message: `${generatedContent.lessons.length} licoes geradas com sucesso`
+      });
+    } catch (error: any) {
+      console.error("Generate lessons error:", error);
+      res.status(500).json({ message: error.message || "Erro ao gerar licoes com IA" });
+    }
+  });
+
   // Atualizar licao de evento (admin)
   app.patch("/api/admin/study-events/:eventId/lessons/:lessonId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

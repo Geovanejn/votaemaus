@@ -23,6 +23,7 @@ import {
   Unlock,
   AlertTriangle,
   Trophy,
+  Wand2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -177,11 +178,11 @@ export default function EventoEditorPage() {
   });
 
   const distributeCardsMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ cardsDistributed?: number; totalEligible?: number; message?: string }> => {
       const response = await apiRequest("POST", `/api/admin/study-events/${id}/distribute-cards`);
       return response.json();
     },
-    onSuccess: (result: { cardsDistributed?: number; totalEligible?: number }) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Cards distribuidos",
@@ -191,6 +192,32 @@ export default function EventoEditorPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao distribuir cards",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateLessonsMutation = useMutation({
+    mutationFn: async (): Promise<{ eventId: number; lessonsCreated: number; message?: string }> => {
+      const response = await apiRequest("POST", `/api/admin/study-events/${id}/generate-lessons`, {
+        text: formData.description || "",
+        theme: formData.theme || formData.title,
+        month: format(parseISO(event?.startDate || new Date().toISOString()), "MMMM", { locale: ptBR }),
+      });
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id, "lessons"] });
+      toast({
+        title: "Licoes geradas com sucesso",
+        description: `${result.lessonsCreated || 5} licoes foram criadas pela IA.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao gerar licoes",
         description: error.message,
         variant: "destructive",
       });
@@ -450,18 +477,54 @@ export default function EventoEditorPage() {
           </CardContent>
         </Card>
 
-        {lessons && lessons.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BookOpen className="h-4 w-4" />
-                Licoes do Evento
-              </CardTitle>
-              <CardDescription>
-                {lessons.length} licoes criadas para este evento
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpen className="h-4 w-4" />
+              Licoes do Evento
+            </CardTitle>
+            <CardDescription>
+              {lessons && lessons.length > 0 
+                ? `${lessons.length} licoes criadas para este evento`
+                : "Nenhuma licao criada ainda. Use a IA para gerar as 5 licoes automaticamente."
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(!lessons || lessons.length === 0) ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+                  <Wand2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="font-medium mb-2">Gerar Licoes com IA</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  A inteligencia artificial ira criar 5 licoes completas baseadas no tema e descricao do evento,
+                  cada uma com conteudo de estudo, meditacao e quiz interativo.
+                </p>
+                <Button
+                  onClick={() => {
+                    if (confirm("Gerar 5 licoes com IA? Isso pode levar alguns segundos.")) {
+                      generateLessonsMutation.mutate();
+                    }
+                  }}
+                  disabled={generateLessonsMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-generate-lessons"
+                >
+                  {generateLessonsMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Gerando licoes...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Gerar 5 Licoes com IA
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
               <div className="space-y-2">
                 {lessons.sort((a, b) => a.dayNumber - b.dayNumber).map((lesson) => (
                   <div 
@@ -497,9 +560,9 @@ export default function EventoEditorPage() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

@@ -26,10 +26,43 @@ import {
   Star
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { format, isBefore, isAfter, differenceInDays } from "date-fns";
+import { format, isBefore, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useToast } from "@/hooks/use-toast";
+
+/**
+ * Get date parts in Brazil timezone (America/Sao_Paulo)
+ */
+function getBrazilDateParts(date: Date): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+  const parts = formatter.formatToParts(date);
+  return {
+    year: parseInt(parts.find(p => p.type === 'year')?.value || '0'),
+    month: parseInt(parts.find(p => p.type === 'month')?.value || '0'),
+    day: parseInt(parts.find(p => p.type === 'day')?.value || '0'),
+  };
+}
+
+/**
+ * Calculate difference in calendar days using Brazil timezone
+ * Returns positive if target is in the future, negative if in the past
+ */
+function differenceInCalendarDaysBrazil(targetDate: Date, baseDate: Date): number {
+  const target = getBrazilDateParts(targetDate);
+  const base = getBrazilDateParts(baseDate);
+  
+  // Create UTC dates at midnight for accurate day counting
+  const targetMidnight = Date.UTC(target.year, target.month - 1, target.day);
+  const baseMidnight = Date.UTC(base.year, base.month - 1, base.day);
+  
+  return Math.round((targetMidnight - baseMidnight) / (1000 * 60 * 60 * 24));
+}
 
 interface StudyEvent {
   id: number;
@@ -89,8 +122,9 @@ function EventCard({ event }: { event: StudyEvent }) {
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   
-  const daysUntilStart = differenceInDays(startDate, now);
-  const daysUntilEnd = differenceInDays(endDate, now);
+  // Use Brazil timezone-aware calendar day calculation
+  const daysUntilStart = differenceInCalendarDaysBrazil(startDate, now);
+  const daysUntilEnd = differenceInCalendarDaysBrazil(endDate, now);
 
   const handleClick = () => {
     if (!isLocked) {
@@ -118,10 +152,18 @@ function EventCard({ event }: { event: StudyEvent }) {
       );
     }
     if (isLocked) {
+      let startLabel = "";
+      if (daysUntilStart <= 0) {
+        startLabel = "Inicia hoje";
+      } else if (daysUntilStart === 1) {
+        startLabel = "Inicia amanha";
+      } else {
+        startLabel = `Em ${daysUntilStart} dias`;
+      }
       return (
         <Badge className="bg-slate-400 text-white border-slate-500 px-3 py-1 rounded-full font-medium shrink-0">
           <Lock className="h-3 w-3 mr-1" />
-          {daysUntilStart === 0 ? "Inicia hoje" : `Em ${daysUntilStart} ${daysUntilStart === 1 ? "dia" : "dias"}`}
+          {startLabel}
         </Badge>
       );
     }

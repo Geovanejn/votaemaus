@@ -124,13 +124,28 @@ export function RespondaScreen({
         answer = trueFalseAnswer;
         // Convert correctAnswer to boolean in case it comes as string or number
         let correctBool = false;
-        if (typeof currentQuestion.correctAnswer === 'boolean') {
-          correctBool = currentQuestion.correctAnswer;
+        const rawCorrect = currentQuestion.correctAnswer;
+        
+        if (typeof rawCorrect === 'boolean') {
+          correctBool = rawCorrect;
         } else {
-          const val = String(currentQuestion.correctAnswer).toLowerCase();
-          correctBool = val === "true" || val === "verdadeiro" || val === "1";
+          const val = String(rawCorrect).toLowerCase().trim();
+          // Map of values that should be considered true
+          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
+          correctBool = trueValues.includes(val);
         }
+        
         isCorrect = trueFalseAnswer === correctBool;
+        
+        // Detailed debug logging for True/False
+        console.log(`[RespondaScreen TF Check]`, {
+          question: currentQuestion.question?.substring(0, 50),
+          rawCorrectValue: rawCorrect,
+          rawCorrectType: typeof rawCorrect,
+          resolvedCorrectBool: correctBool,
+          userSelected: trueFalseAnswer,
+          isCorrect
+        });
         break;
       }
       case "fill_blank": {
@@ -172,11 +187,13 @@ export function RespondaScreen({
       }
       case "true_false": {
         let correctBool = false;
-        if (typeof currentQuestion.correctAnswer === 'boolean') {
-          correctBool = currentQuestion.correctAnswer;
+        const rawCorrect = currentQuestion.correctAnswer;
+        if (typeof rawCorrect === 'boolean') {
+          correctBool = rawCorrect;
         } else {
-          const val = String(currentQuestion.correctAnswer).toLowerCase();
-          correctBool = val === "true" || val === "verdadeiro" || val === "1";
+          const val = String(rawCorrect).toLowerCase().trim();
+          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
+          correctBool = trueValues.includes(val);
         }
         return trueFalseAnswer === correctBool;
       }
@@ -281,11 +298,13 @@ export function RespondaScreen({
                         const isSelected = trueFalseAnswer === value;
                         // Convert correctAnswer to boolean safely
                         let correctBool = false;
-                        if (typeof currentQuestion.correctAnswer === 'boolean') {
-                          correctBool = currentQuestion.correctAnswer;
+                        const rawCorrect = currentQuestion.correctAnswer;
+                        if (typeof rawCorrect === 'boolean') {
+                          correctBool = rawCorrect;
                         } else {
-                          const val = String(currentQuestion.correctAnswer).toLowerCase();
-                          correctBool = val === "true" || val === "verdadeiro" || val === "1";
+                          const val = String(rawCorrect).toLowerCase().trim();
+                          const trueValues = ["true", "verdadeiro", "1", "yes", "sim", "v"];
+                          correctBool = trueValues.includes(val);
                         }
                         const isCorrect = value === correctBool;
                         const showCorrect = showResult && isCorrect;

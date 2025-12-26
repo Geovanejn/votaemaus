@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 
@@ -606,16 +606,28 @@ async function processEventLessonsRelease(): Promise<void> {
         eventStatus = 'published'; // Update local status to continue processing
         console.log(`[Event Scheduler] Auto-published event "${event.title}" on start date`);
         
-        // Send notifications for new event
+        // Send push notifications for new event
         try {
+          const pushPayload = {
+            title: 'Novo Evento Especial!',
+            body: `O evento "${event.title}" comecou! Participe e ganhe cards exclusivos.`,
+            url: `/study/events/${event.id}`,
+            tag: `event-${event.id}-start`,
+          };
+          
+          // Send real push notification to all members
+          const pushResult = await sendPushToAllMembers(pushPayload);
+          console.log(`[Event Scheduler] Push notifications sent: ${pushResult.sent} success, ${pushResult.failed} failed`);
+          
+          // Also save in-app notifications for history
           const activeMembers = await storage.getActiveMembers();
           for (const member of activeMembers) {
             await storage.createNotification({
               userId: member.id,
               type: 'new_event',
-              title: 'Novo Evento Especial!',
-              body: `O evento "${event.title}" comecou! Participe e ganhe cards exclusivos.`,
-              data: JSON.stringify({ link: `/study/events/${event.id}` }),
+              title: pushPayload.title,
+              body: pushPayload.body,
+              data: JSON.stringify({ link: pushPayload.url }),
             });
           }
           console.log(`[Event Scheduler] Sent notifications for event "${event.title}"`);
@@ -713,8 +725,30 @@ async function processEventCardsDistribution(): Promise<void> {
       await storage.updateStudyEvent(event.id, { status: 'completed' });
       console.log(`[Event Scheduler] Event "${event.title}" marked as completed`);
       
-      // Send notifications for event completion and card distribution
+      // Send push notifications for event completion and card distribution
       try {
+        // First, send push to all members announcing event completion
+        const generalPayload = {
+          title: 'Evento Encerrado',
+          body: `O evento "${event.title}" foi encerrado!`,
+          url: `/study/events`,
+          tag: `event-${event.id}-end`,
+        };
+        const pushResult = await sendPushToAllMembers(generalPayload);
+        console.log(`[Event Scheduler] Event completion push: ${pushResult.sent} success, ${pushResult.failed} failed`);
+        
+        // Send personalized push to card winners
+        for (const { userId, rarity } of cardsAwarded) {
+          const rarityLabel = rarity === 'legendary' ? 'Lendario' : rarity === 'epic' ? 'Epico' : rarity === 'rare' ? 'Raro' : 'Comum';
+          await sendPushToUser(userId, {
+            title: 'Parabens! Voce ganhou um card!',
+            body: `Voce completou o evento "${event.title}" e ganhou um card ${rarityLabel}!`,
+            url: `/study/profile`,
+            tag: `card-${event.id}-${userId}`,
+          });
+        }
+        
+        // Save in-app notifications for history
         const activeMembers = await storage.getActiveMembers();
         for (const member of activeMembers) {
           const cardInfo = cardsAwarded.find(c => c.userId === member.id);

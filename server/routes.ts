@@ -135,7 +135,7 @@ async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
   try {
     const result = await parser.getText();
     textResult = result.text || "";
-    console.log("[PDF Parser] Extraction result - pages:", result.numpages, "text length:", textResult.length);
+    console.log("[PDF Parser] Extraction result - pages:", (result as any).numpages, "text length:", textResult.length);
     
     if (textResult.trim().length < 100) {
       console.log("[PDF Parser] Insufficient text extracted. PDF must contain selectable text (not scanned images).");
@@ -2229,14 +2229,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userCards = await storage.getUserCards(targetUserId);
       const cardsWithDetails = await Promise.all(
         userCards.map(async (uc) => {
-          const card = await storage.getCollectibleCard(uc.cardId);
+          const card = await storage.getCollectibleCardById(uc.cardId);
           if (!card) return null;
-          const event = await storage.getStudyEvent(card.eventId);
+          const event = card.sourceType === 'event' 
+            ? await storage.getStudyEventById(card.sourceId) 
+            : null;
           return {
             id: uc.id,
             cardId: card.id,
             rarity: uc.rarity,
-            score: uc.score,
+            performance: uc.performance,
             earnedAt: uc.earnedAt,
             card: {
               name: card.name,
@@ -5020,7 +5022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       
-      const event = await storage.getSiteEvent(id);
+      const event = await storage.getSiteEventById(id);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
@@ -5076,7 +5078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       
-      const event = await storage.getSiteEvent(id);
+      const event = await storage.getSiteEventById(id);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
@@ -5707,8 +5709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check and unlock achievements after completing practice
       const unlockedAchievements = await storage.checkAndUnlockAchievements(req.user!.id, { 
         event: 'practice_complete', 
-        value: practice.isMastered ? 1 : 0,
-        starsEarned: practice.starsEarned
+        value: practice.isMastered ? 1 : 0
       });
       
       res.json({
@@ -6698,8 +6699,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pedido nao encontrado" });
       }
       
-      if (prayer.userId) {
-        notifyPrayerApproved(prayer.userId, prayer.id).catch(err => 
+      // Prayer requests don't have a userId field in this schema
+      if ((prayer as any).userId) {
+        notifyPrayerApproved((prayer as any).userId, prayer.id).catch(err => 
           console.error("[Notifications] Error notifying prayer approved:", err)
         );
       }

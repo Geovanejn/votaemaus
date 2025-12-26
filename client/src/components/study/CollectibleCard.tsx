@@ -206,15 +206,6 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         });
       }
       
-      // Pause animations and position shine for capture (left side of card)
-      const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
-      shineBeams.forEach((beam) => {
-        const el = beam as HTMLElement;
-        el.style.animation = 'none';
-        el.style.transform = 'translateX(-40%)';
-        el.style.opacity = '1';
-      });
-      
       // Wait for styles to apply
       await new Promise(resolve => setTimeout(resolve, 100));
       
@@ -235,16 +226,18 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedImageContainer.style.backgroundSize = 'cover';
             clonedImageContainer.style.backgroundPosition = 'center';
           }
+          
+          // Position shine beam for capture (left side of card, visible)
+          const clonedShineBeams = clonedElement.querySelectorAll('.card-shine-beam');
+          clonedShineBeams.forEach((beam) => {
+            const el = beam as HTMLElement;
+            el.style.animation = 'none';
+            el.style.transform = 'translateX(-30%)';
+            el.style.opacity = '1';
+          });
         },
       });
       
-      // Restore animations
-      shineBeams.forEach((beam) => {
-        const el = beam as HTMLElement;
-        el.style.animation = '';
-        el.style.transform = '';
-        el.style.opacity = '';
-      });
       
       return new Promise((resolve) => {
         canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);

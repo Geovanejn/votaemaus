@@ -109,9 +109,8 @@ export function CollectibleCard({
       <div 
         className="card-shine-beam absolute inset-0 pointer-events-none z-20 rounded-[16px]"
         style={{
-          background: 'linear-gradient(105deg, transparent 10%, rgba(255,255,255,0.05) 20%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.12) 65%, rgba(255,255,255,0.05) 80%, transparent 90%)',
+          background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.25) 23%, rgba(255,255,255,0.5) 25%, rgba(255,255,255,0.25) 27%, transparent 30%)',
           transform: 'translateX(-100%)',
-          filter: 'blur(2px)',
         }}
       />
 
@@ -190,109 +189,65 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
     if (!cardRef.current) return null;
     
     try {
+      // Pre-load image at full resolution if available
       const imageContainer = cardRef.current.querySelector('.collectible-card-image') as HTMLElement;
-      const scale = 4;
+      let originalBgImage = '';
       
-      // Load the high-resolution image first
-      let highResImage: HTMLImageElement | null = null;
-      if (card.imageUrl) {
-        highResImage = await new Promise<HTMLImageElement | null>((resolve) => {
+      if (imageContainer && card.imageUrl) {
+        originalBgImage = imageContainer.style.backgroundImage;
+        
+        // Create a high-res image and wait for it to load
+        await new Promise<void>((resolve) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = () => resolve(null);
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
           img.src = card.imageUrl!;
         });
       }
       
-      // Store whether we have high-res image for onclone
-      const hasHighRes = highResImage !== null;
+      // Pause animations and position shine for capture (left side of card)
+      const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
+      shineBeams.forEach((beam) => {
+        const el = beam as HTMLElement;
+        el.style.animation = 'none';
+        el.style.transform = 'translateX(-40%)';
+        el.style.opacity = '1';
+      });
       
-      // Capture card (with transparent image area if we have high-res)
-      const cardCanvas = await html2canvas(cardRef.current, {
-        backgroundColor: null, // Transparent background for compositing
+      // Wait for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // High quality capture
+      const scale = 6;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: '#1a1a2e',
         scale: scale,
         useCORS: true,
         logging: false,
         allowTaint: true,
         imageTimeout: 15000,
         onclone: (clonedDoc, clonedElement) => {
-          // Make image area transparent if we have high-res version
-          if (hasHighRes) {
-            const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
-            if (clonedImageContainer) {
-              clonedImageContainer.style.backgroundImage = 'none';
-              clonedImageContainer.style.backgroundColor = 'transparent';
-            }
+          // Ensure cloned element has the image loaded
+          const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
+          if (clonedImageContainer && card.imageUrl) {
+            clonedImageContainer.style.backgroundImage = `url(${card.imageUrl})`;
+            clonedImageContainer.style.backgroundSize = 'cover';
+            clonedImageContainer.style.backgroundPosition = 'center';
           }
-          
-          // Position shine beam for capture
-          const clonedShineBeams = clonedElement.querySelectorAll('.card-shine-beam');
-          clonedShineBeams.forEach((beam) => {
-            const el = beam as HTMLElement;
-            el.style.animation = 'none';
-            el.style.transform = 'translateX(0%)';
-            el.style.opacity = '1';
-            el.style.filter = 'blur(3px)';
-          });
         },
       });
       
-      // Create final canvas and composite layers
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = cardCanvas.width;
-      finalCanvas.height = cardCanvas.height;
-      const ctx = finalCanvas.getContext('2d');
-      
-      if (!ctx) {
-        return new Promise((resolve) => {
-          cardCanvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
-        });
-      }
-      
-      // 1. Draw background
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-      
-      // 2. Draw high-res image in the correct position
-      if (highResImage && imageContainer) {
-        const cardRect = cardRef.current.getBoundingClientRect();
-        const imageRect = imageContainer.getBoundingClientRect();
-        
-        const destX = (imageRect.left - cardRect.left) * scale;
-        const destY = (imageRect.top - cardRect.top) * scale;
-        const destW = imageRect.width * scale;
-        const destH = imageRect.height * scale;
-        
-        // Calculate cover-style crop (center crop)
-        const imgRatio = highResImage.width / highResImage.height;
-        const containerRatio = destW / destH;
-        
-        let srcX = 0, srcY = 0, srcW = highResImage.width, srcH = highResImage.height;
-        
-        if (imgRatio > containerRatio) {
-          srcW = highResImage.height * containerRatio;
-          srcX = (highResImage.width - srcW) / 2;
-        } else {
-          srcH = highResImage.width / containerRatio;
-          srcY = (highResImage.height - srcH) / 2;
-        }
-        
-        // Apply rounded corners clipping
-        const borderRadius = 8 * scale;
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(destX, destY, destW, destH, borderRadius);
-        ctx.clip();
-        ctx.drawImage(highResImage, srcX, srcY, srcW, srcH, destX, destY, destW, destH);
-        ctx.restore();
-      }
-      
-      // 3. Draw card overlay on top
-      ctx.drawImage(cardCanvas, 0, 0);
+      // Restore animations
+      shineBeams.forEach((beam) => {
+        const el = beam as HTMLElement;
+        el.style.animation = '';
+        el.style.transform = '';
+        el.style.opacity = '';
+      });
       
       return new Promise((resolve) => {
-        finalCanvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+        canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
       });
     } catch (error) {
       console.error('Error generating card image:', error);

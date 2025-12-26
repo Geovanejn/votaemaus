@@ -273,13 +273,25 @@ export default function MemberProfilePage() {
   const generateCardImage = async (): Promise<Blob | null> => {
     if (!shareableCardRef.current) return null;
     
+    const element = shareableCardRef.current;
+    const originalStyle = element.style.cssText;
+    
     try {
-      const canvas = await html2canvas(shareableCardRef.current, {
-        backgroundColor: null,
+      element.style.position = "fixed";
+      element.style.left = "0";
+      element.style.top = "0";
+      element.style.zIndex = "99999";
+      
+      await new Promise(r => setTimeout(r, 100));
+      
+      const canvas = await html2canvas(element, {
+        backgroundColor: "#1a1a2e",
         scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
+        width: 320,
+        height: element.scrollHeight,
       });
       
       return new Promise((resolve) => {
@@ -290,6 +302,8 @@ export default function MemberProfilePage() {
     } catch (error) {
       console.error("Error generating card image:", error);
       return null;
+    } finally {
+      element.style.cssText = originalStyle;
     }
   };
 
@@ -612,12 +626,17 @@ export default function MemberProfilePage() {
         </div>
       )}
 
-      {/* Hidden Shareable Card for html2canvas capture */}
+      {/* Hidden Shareable Card for html2canvas capture - must be fully opaque for capture */}
       {selectedCard && (
         <div 
           ref={shareableCardRef}
-          className="fixed -left-[9999px] -top-[9999px]"
-          style={{ width: "320px" }}
+          style={{ 
+            position: "absolute",
+            left: "-9999px",
+            top: 0,
+            width: "320px",
+            pointerEvents: "none",
+          }}
         >
           <div 
             style={{

@@ -5854,13 +5854,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveStudyEvents(): Promise<StudyEvent[]> {
-    // Return events that are published/active and within date range
+    // Return events that are published/active/ended (for display purposes)
     return db.select()
       .from(schema.studyEvents)
       .where(
         or(
           eq(schema.studyEvents.status, "active"),
-          eq(schema.studyEvents.status, "published")
+          eq(schema.studyEvents.status, "published"),
+          eq(schema.studyEvents.status, "ended")
         )
       )
       .orderBy(asc(schema.studyEvents.startDate));

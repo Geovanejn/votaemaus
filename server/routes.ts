@@ -7073,7 +7073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let cardId = event.cardId;
         if (!cardId) {
           const newCard = await storage.createCollectibleCard({
-            name: `Card ${event.title}`,
+            name: event.title,
             description: `Card exclusivo do evento "${event.title}"`,
             imageUrl: event.imageUrl || null,
             sourceType: "event",
@@ -7158,7 +7158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let cardId = event.cardId;
       if (!cardId) {
         const newCard = await storage.createCollectibleCard({
-          name: `Card ${event.title}`,
+          name: event.title,
           description: `Card exclusivo do evento "${event.title}"`,
           imageUrl: event.imageUrl || null,
           sourceType: "event",
@@ -7480,8 +7480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       const event = await storage.getStudyEventById(id);
-      // Accept active, published, or completed events
-      const validStatuses = ["active", "published", "completed"];
+      // Accept active, published, completed, or ended events
+      const validStatuses = ["active", "published", "completed", "ended"];
       if (!event || !validStatuses.includes(event.status)) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }

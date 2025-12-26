@@ -2254,8 +2254,28 @@ ESTRUTURA DA SEÇÃO MEDITE (2 TELAS):
 * Separe com <hr /> entre Meditação e Aplicação
 
 ESTRUTURA DA SEÇÃO RESPONDA:
-- EXATAMENTE 5 questões variadas (múltipla escolha, verdadeiro/falso, completar)
+- EXATAMENTE 5 questões variadas: 3 múltipla escolha, 1 verdadeiro/falso, 1 completar lacuna
 - Cada questão com explicação clara
+
+REGRAS CRÍTICAS PARA AS QUESTÕES:
+
+1. MÚLTIPLA ESCOLHA:
+   - VARIE a posição da resposta correta (correctAnswer): use 0, 1, 2 ou 3 em questões diferentes
+   - Todas as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
+   - Use distratores inteligentes: respostas que poderiam parecer certas mas têm diferença sutil
+   - NUNCA use alternativas absurdas como "Não sei" ou "Nenhuma das anteriores"
+
+2. VERDADEIRO/FALSO:
+   - A afirmação deve ser clara e baseada no conteúdo da lição
+   - Varie entre afirmações verdadeiras e falsas nas diferentes lições
+
+3. COMPLETAR LACUNA (fill_blank):
+   - OBRIGATÓRIO: inclua campo "options" com EXATAMENTE 4 alternativas
+   - COERÊNCIA SEMÂNTICA: todas as alternativas devem fazer sentido gramatical na frase
+   - Se a lacuna requer VERBO (salvar, amar), todas alternativas devem ser VERBOS
+   - Se a lacuna requer SUBSTANTIVO (amor, fé), todas alternativas devem ser SUBSTANTIVOS
+   - Exemplo BOM: "Jesus veio para ___ o pecador." → options: ["salvar", "redimir", "libertar", "amar"]
+   - Exemplo RUIM: options: ["salvar", "amor", "cruz", "vida"] (classes gramaticais misturadas)
 
 3. Use versículos bíblicos relevantes ao tema
 4. O título do evento deve ser criativo e refletir o tema
@@ -2277,22 +2297,39 @@ Formato JSON OBRIGATÓRIO:
           "id": "q1",
           "type": "multiple_choice",
           "question": "Pergunta sobre o tópico 1?",
-          "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
-          "correctAnswer": 0,
+          "options": ["Opção A", "Opção B (correta)", "Opção C", "Opção D"],
+          "correctAnswer": 1,
           "explanation": "Explicação da resposta correta"
         },
         {
           "id": "q2",
+          "type": "multiple_choice",
+          "question": "Pergunta sobre o tópico 2?",
+          "options": ["Opção A", "Opção B", "Opção C (correta)", "Opção D"],
+          "correctAnswer": 2,
+          "explanation": "Explicação da resposta correta"
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "Pergunta sobre a conclusão?",
+          "options": ["Opção A (correta)", "Opção B", "Opção C", "Opção D"],
+          "correctAnswer": 0,
+          "explanation": "Explicação da resposta correta"
+        },
+        {
+          "id": "q4",
           "type": "true_false",
           "question": "Afirmação sobre o tópico 2 para verificar verdadeira ou falsa?",
           "correctAnswer": true,
           "explanation": "Explicação"
         },
         {
-          "id": "q3",
+          "id": "q5",
           "type": "fill_blank",
-          "question": "Complete: ______ é essencial para crescimento espiritual.",
-          "correctAnswer": "A meditação",
+          "question": "Jesus veio para ___ o pecador.",
+          "correctAnswer": "salvar",
+          "options": ["salvar", "redimir", "libertar", "amar"],
           "explanation": "Explicação"
         }
       ],

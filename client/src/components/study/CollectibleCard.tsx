@@ -59,7 +59,7 @@ export function CollectibleCard({
     compact: "h-[60px]",
     sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
     md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
-    lg: orientation === "portrait" ? "h-[200px]" : "h-[140px]",
+    lg: orientation === "portrait" ? "h-[200px]" : "aspect-video",
   };
 
   const badgeSizeClasses = {
@@ -106,6 +106,14 @@ export function CollectibleCard({
         <div key={i} className="card-diamond-effect" />
       ))}
 
+      <div 
+        className="card-shine-beam absolute inset-0 pointer-events-none z-20 rounded-[16px]"
+        style={{
+          background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 55%, transparent 60%)',
+          transform: 'translateX(-100%)',
+        }}
+      />
+
       <div className="collectible-card-inner">
         <div className={`collectible-card-badge collectible-card-badge-${rarity} ${badgeSizeClasses[size]}`}>
           <IconComponent className="w-1/2 h-1/2 text-gray-700" />
@@ -133,7 +141,7 @@ export function CollectibleCard({
         </div>
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 relative`}
+          className={`collectible-card-image ${imageHeightClasses[size]} mt-2`}
           style={imageUrl ? {
             backgroundImage: `url(${imageUrl})`,
             backgroundSize: 'cover',
@@ -146,13 +154,6 @@ export function CollectibleCard({
               <IconComponent className="w-8 h-8 text-white/50" />
             </div>
           )}
-          <div 
-            className="card-shine-beam absolute inset-0 pointer-events-none"
-            style={{
-              background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 45%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.4) 55%, transparent 60%)',
-              transform: 'translateX(-100%)',
-            }}
-          />
         </div>
       </div>
     </motion.div>

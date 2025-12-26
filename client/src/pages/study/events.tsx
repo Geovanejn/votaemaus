@@ -14,10 +14,13 @@ import {
   Bell,
   Plus,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  Lock,
+  CheckCircle2,
+  Timer
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { format, isBefore, isAfter } from "date-fns";
+import { format, isBefore, isAfter, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useToast } from "@/hooks/use-toast";
@@ -69,22 +72,78 @@ function EventCard({ event }: { event: StudyEvent }) {
   const [, setLocation] = useLocation();
   const monthLabel = getMonthLabel(event.startDate);
   const eventStatus = getEventStatus(event);
-  const isLocked = eventStatus === "ended";
+  const isLocked = eventStatus === "upcoming";
+  const isEnded = eventStatus === "ended";
+  const isActive = eventStatus === "active";
+  
+  const now = new Date();
+  const startDate = new Date(event.startDate);
+  const endDate = new Date(event.endDate);
+  
+  const daysUntilStart = differenceInDays(startDate, now);
+  const daysUntilEnd = differenceInDays(endDate, now);
 
   const handleClick = () => {
-    if (!isLocked) {
+    if (!isLocked && !isEnded) {
       setLocation(`/study/events/${event.id}`);
     }
   };
 
   const getThemeIcon = (theme: string) => {
     const t = theme.toLowerCase();
-    if (t.includes('reforma')) return <div className="text-white text-4xl opacity-80">⛪</div>;
-    if (t.includes('jovem')) return <div className="text-white text-4xl opacity-80">👥</div>;
-    if (t.includes('pascoa')) return <div className="text-white text-4xl opacity-80">✝️</div>;
-    if (t.includes('natal')) return <div className="text-white text-4xl opacity-80">⭐</div>;
-    if (t.includes('missoes')) return <div className="text-white text-4xl opacity-80">🌍</div>;
+    if (t.includes('reforma')) return <Sparkles className="h-10 w-10 text-white/80" />;
+    if (t.includes('jovem')) return <Sparkles className="h-10 w-10 text-white/80" />;
+    if (t.includes('pascoa')) return <Sparkles className="h-10 w-10 text-white/80" />;
+    if (t.includes('natal')) return <Sparkles className="h-10 w-10 text-white/80" />;
+    if (t.includes('missoes')) return <Sparkles className="h-10 w-10 text-white/80" />;
     return <Sparkles className="h-10 w-10 text-white/80" />;
+  };
+
+  const getStatusBadge = () => {
+    if (isActive) {
+      return (
+        <Badge className="bg-green-500 text-white border-green-600 px-3 py-1 rounded-full font-medium shrink-0">
+          <Timer className="h-3 w-3 mr-1" />
+          {daysUntilEnd === 0 ? "Ultimo dia!" : `${daysUntilEnd} ${daysUntilEnd === 1 ? "dia restante" : "dias restantes"}`}
+        </Badge>
+      );
+    }
+    if (isLocked) {
+      return (
+        <Badge className="bg-slate-400 text-white border-slate-500 px-3 py-1 rounded-full font-medium shrink-0">
+          <Lock className="h-3 w-3 mr-1" />
+          {daysUntilStart === 0 ? "Inicia hoje" : `Em ${daysUntilStart} ${daysUntilStart === 1 ? "dia" : "dias"}`}
+        </Badge>
+      );
+    }
+    if (isEnded) {
+      return (
+        <Badge className="bg-slate-300 text-slate-600 border-slate-400 px-3 py-1 rounded-full font-medium shrink-0">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Encerrado
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-amber-50 text-amber-600 border-amber-100 px-3 py-1 rounded-full font-medium shrink-0">
+        {monthLabel}
+      </Badge>
+    );
+  };
+
+  const getButtonContent = () => {
+    if (isActive) {
+      return "Participar";
+    }
+    if (isLocked) {
+      return (
+        <>
+          <Lock className="h-4 w-4 mr-1" />
+          Bloqueado
+        </>
+      );
+    }
+    return "Encerrado";
   };
 
   return (
@@ -94,10 +153,10 @@ function EventCard({ event }: { event: StudyEvent }) {
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
       onClick={handleClick}
-      className="cursor-pointer"
+      className={`cursor-pointer ${isLocked || isEnded ? "" : ""}`}
     >
       <Card 
-        className={`overflow-hidden border-0 shadow-lg rounded-2xl bg-white dark:bg-card mb-4 ${isLocked ? "opacity-60" : ""}`}
+        className={`overflow-hidden border-0 shadow-lg rounded-2xl bg-white dark:bg-card mb-4 ${isEnded ? "opacity-60" : ""} ${isLocked ? "opacity-80" : ""}`}
         data-testid={`card-event-${event.id}`}
       >
         <div 
@@ -109,6 +168,17 @@ function EventCard({ event }: { event: StudyEvent }) {
           }}
         >
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
+          {isLocked && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+              <div className="text-center text-white">
+                <Lock className="h-12 w-12 mx-auto mb-2 opacity-80" />
+                <p className="font-bold text-lg">Bloqueado</p>
+                <p className="text-sm opacity-80">
+                  {daysUntilStart === 0 ? "Inicia hoje" : `Inicia em ${daysUntilStart} ${daysUntilStart === 1 ? "dia" : "dias"}`}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
              {getThemeIcon(event.theme)}
           </div>
@@ -119,9 +189,7 @@ function EventCard({ event }: { event: StudyEvent }) {
             <h3 className="text-xl font-bold text-foreground leading-tight" data-testid={`text-event-title-${event.id}`}>
               {event.title}
             </h3>
-            <Badge className="bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-50 px-3 py-1 rounded-full font-medium shrink-0">
-              {monthLabel}
-            </Badge>
+            {getStatusBadge()}
           </div>
 
           {event.description && (
@@ -130,22 +198,28 @@ function EventCard({ event }: { event: StudyEvent }) {
             </p>
           )}
 
-          <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center justify-between mt-auto gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground/70 font-medium">
               <Clock className="h-4 w-4" />
               <span>{event.durationLabel || `${event.lessonsCount || 5} dias de estudo`}</span>
             </div>
 
             <Button 
-              className="bg-[#2D5A27] hover:bg-[#23471F] text-white rounded-xl px-6 font-bold shadow-md h-10"
+              className={`rounded-xl px-6 font-bold shadow-md h-10 ${
+                isActive 
+                  ? "bg-[#2D5A27] hover:bg-[#23471F] text-white" 
+                  : isLocked 
+                    ? "bg-slate-400 hover:bg-slate-500 text-white" 
+                    : "bg-slate-300 text-slate-600"
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleClick();
               }}
-              disabled={isLocked}
+              disabled={isLocked || isEnded}
               data-testid={`button-participate-${event.id}`}
             >
-              {isLocked ? "Encerrado" : "Participar"}
+              {getButtonContent()}
             </Button>
           </div>
         </CardContent>

@@ -311,7 +311,6 @@ export default function MemberProfilePage() {
     if (!selectedCard) return;
     
     const shareText = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
-    const shareUrl = window.location.href;
     
     setIsSharing(true);
     
@@ -334,36 +333,58 @@ export default function MemberProfilePage() {
             title: "Compartilhado!",
             description: "Card compartilhado com sucesso.",
           });
+          setIsSharing(false);
           return;
         }
       }
       
-      fallbackShare(platform, shareText, shareUrl);
+      if (imageBlob) {
+        const url = URL.createObjectURL(imageBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Imagem salva!",
+          description: "Anexe a imagem do card na rede social para compartilhar.",
+        });
+        
+        setTimeout(() => {
+          openSocialPlatform(platform, shareText);
+        }, 500);
+      } else {
+        openSocialPlatform(platform, shareText);
+      }
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
-        fallbackShare(platform, shareText, shareUrl);
+        openSocialPlatform(platform, shareText);
       }
     } finally {
       setIsSharing(false);
     }
   };
 
-  const fallbackShare = (platform: string, text: string, url: string) => {
-    let shareUrl = "";
+  const openSocialPlatform = (platform: string, text: string) => {
+    const shareUrl = window.location.href;
+    let platformUrl = "";
     switch (platform) {
       case "twitter":
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        platformUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text + " (imagem anexada)")}&url=${encodeURIComponent(shareUrl)}`;
         break;
       case "facebook":
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+        platformUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(text + " (imagem anexada)")}`;
         break;
       case "whatsapp":
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+        platformUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`;
         break;
     }
     
-    if (shareUrl) {
-      window.open(shareUrl, "_blank", "width=600,height=400");
+    if (platformUrl) {
+      window.open(platformUrl, "_blank", "width=600,height=400");
     }
   };
 

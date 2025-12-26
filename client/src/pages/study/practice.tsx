@@ -594,6 +594,7 @@ export default function PracticePage() {
                   key={`fb-${currentIndex}-${currentQuestion.id}`}
                   question={currentQuestion.content.question || ""}
                   correctAnswer={currentQuestion.content.correctAnswer || ""}
+                  options={currentQuestion.content.options}
                   onAnswer={handleAnswer}
                 />
               )}

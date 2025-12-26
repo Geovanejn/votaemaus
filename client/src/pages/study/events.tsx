@@ -311,13 +311,12 @@ export default function EventsPage() {
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">
       <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         <div 
-          className="relative py-5 px-4 text-center overflow-hidden"
+          className="relative py-4 px-4 text-center overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)'
           }}
         >
-          {/* Navigation icons inside the purple card */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20">
+          <div className="absolute top-2.5 left-3 right-3 flex items-center justify-between z-20">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -337,24 +336,21 @@ export default function EventsPage() {
             </Button>
           </div>
           
-          {/* Subtle diagonal line pattern overlay */}
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)' }} />
           
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-14 h-14 mx-auto mb-3 mt-8 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg"
+            className="w-11 h-11 mx-auto mb-2 mt-6 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg"
           >
-            <div className="w-6 h-6 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
-              <span className="text-white text-base font-bold">?</span>
-            </div>
+            <Sparkles className="h-5 w-5 text-white/80" />
           </motion.div>
           
           <motion.h2 
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-2xl font-bold text-white mb-1.5 tracking-tight"
+            className="text-xl font-bold text-white mb-1 tracking-tight"
           >
             Estudos Especiais
           </motion.h2>
@@ -363,19 +359,13 @@ export default function EventsPage() {
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-white/80 text-sm font-medium max-w-xs mx-auto leading-tight"
+            className="text-white/80 text-xs font-medium max-w-xs mx-auto leading-tight"
           >
-            Explore nossos eventos temáticos e aprofunde sua jornada espiritual
+            Eventos temáticos para aprofundar sua jornada espiritual
           </motion.p>
         </div>
 
-        <div className="p-5 space-y-8">
-          <div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-1 tracking-tight">Eventos em Destaque</h3>
-            <p className="text-base text-slate-500 font-medium">
-              Toque nos cards para explorar
-            </p>
-          </div>
+        <div className="p-4 space-y-6">
 
           {activeEvents.length === 0 && upcomingEvents.length === 0 && endedEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
@@ -442,33 +432,33 @@ export default function EventsPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
           >
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-[#41793A] to-[#2D5A27] rounded-xl overflow-hidden relative">
-              {/* Background Decoration */}
-              <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -mr-6 -mt-6" />
-              <div className="absolute bottom-0 left-0 w-14 h-14 bg-black/5 rounded-full -ml-6 -mb-6" />
+            <Card className="border-0 shadow-md bg-gradient-to-br from-[#41793A] to-[#2D5A27] rounded-lg overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-14 h-14 bg-white/5 rounded-full -mr-4 -mt-4" />
+              <div className="absolute bottom-0 left-0 w-10 h-10 bg-black/5 rounded-full -ml-4 -mb-4" />
               
-              <CardContent className="p-4 text-center relative z-10">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow">
-                  <Calendar className="h-5 w-5 text-white" />
+              <CardContent className="p-3 text-center relative z-10">
+                <div className="w-8 h-8 mx-auto mb-1.5 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                  <Bell className="h-4 w-4 text-white" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-1 tracking-tight">
-                  Não perca nenhum evento
+                <h3 className="text-sm font-bold text-white mb-0.5 tracking-tight">
+                  Fique por dentro
                 </h3>
-                <p className="text-white/80 text-xs mb-3 font-medium leading-relaxed">
-                  Ative as notificações para receber lembretes dos próximos estudos especiais
+                <p className="text-white/80 text-xs mb-2 font-medium leading-snug">
+                  Receba lembretes dos próximos estudos
                 </p>
                 <Button 
-                  className="bg-white text-[#2D5A27] hover:bg-slate-50 rounded-xl px-4 h-9 font-bold text-sm shadow-lg"
+                  size="sm"
+                  className="bg-white text-[#2D5A27] hover:bg-slate-50 rounded-lg px-3 h-7 font-semibold text-xs shadow"
                   onClick={handleEnableNotifications}
                   disabled={pushLoading}
                   data-testid="button-enable-notifications"
                 >
                   {pushLoading ? (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                   ) : (
-                    <Bell className="h-4 w-4 mr-1.5" />
+                    <Bell className="h-3 w-3 mr-1" />
                   )}
-                  {isSubscribed ? "Notificações Ativas" : "Ativar Notificações"}
+                  {isSubscribed ? "Lembrete Ativo" : "Receber Lembrete"}
                 </Button>
               </CardContent>
             </Card>

@@ -1444,6 +1444,7 @@ export default function LessonPage() {
                 key={`fb-${currentUnitIndex}-${currentUnit.id}`}
                 question={currentUnit.content.question || currentUnit.content.sentence || ""}
                 correctAnswer={currentUnit.content.correctAnswer || ""}
+                options={currentUnit.content.options}
                 onAnswer={handleFillBlankAnswer}
               />
             )}

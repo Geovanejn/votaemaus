@@ -301,29 +301,6 @@ export default function EventsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">
-      <header className="sticky top-0 z-50 bg-white dark:bg-background border-b shadow-sm">
-        <div className="flex items-center justify-between p-4 max-w-2xl mx-auto w-full">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setLocation("/study")}
-            className="hover:bg-slate-100 dark:hover:bg-slate-800"
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-6 w-6 text-slate-700 dark:text-slate-200" />
-          </Button>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Eventos Especiais</h1>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="hover:bg-slate-100 dark:hover:bg-slate-800"
-            data-testid="button-search"
-          >
-            <Search className="h-6 w-6 text-slate-700 dark:text-slate-200" />
-          </Button>
-        </div>
-      </header>
-
       <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         <div 
           className="relative py-5 px-4 text-center overflow-hidden"
@@ -331,13 +308,34 @@ export default function EventsPage() {
             background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)'
           }}
         >
+          {/* Navigation icons inside the purple card */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/study")}
+              className="bg-white/20 hover:bg-white/30 text-white"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="bg-white/20 hover:bg-white/30 text-white"
+              data-testid="button-search"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+          
           {/* Subtle diagonal line pattern overlay */}
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)' }} />
           
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg"
+            className="w-14 h-14 mx-auto mb-3 mt-8 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg"
           >
             <div className="w-6 h-6 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
               <span className="text-white text-base font-bold">?</span>

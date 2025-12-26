@@ -102,7 +102,9 @@ export function RespondaScreen({
       }
       case "true_false": {
         answer = trueFalseAnswer;
-        isCorrect = trueFalseAnswer === currentQuestion.correctAnswer;
+        // Convert correctAnswer to boolean in case it comes as string
+        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+        isCorrect = trueFalseAnswer === correctBool;
         break;
       }
       case "fill_blank": {
@@ -138,8 +140,10 @@ export function RespondaScreen({
     switch (currentQuestion?.type) {
       case "multiple_choice":
         return selectedAnswer === currentQuestion.correctIndex;
-      case "true_false":
-        return trueFalseAnswer === currentQuestion.correctAnswer;
+      case "true_false": {
+        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+        return trueFalseAnswer === correctBool;
+      }
       case "fill_blank":
         return fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim();
       default:
@@ -313,10 +317,10 @@ export function RespondaScreen({
                 </div>
 
                 {/* Explicação */}
-                {showResult && currentQuestion.explanation && (
+                {showResult && (
                   <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
                     <p className="text-sm text-blue-700 dark:text-blue-400">
-                      <strong>Explicação:</strong> {currentQuestion.explanation}
+                      <strong>Explicação:</strong> {currentQuestion.explanation || "Resposta enviada para análise."}
                     </p>
                   </div>
                 )}

@@ -214,6 +214,7 @@ export interface IStorage {
   markUnitAsCompleted(userId: number, unitId: number): Promise<any>;
   completeLesson(userId: number, lessonId: number, xpEarned: number, mistakes: number, timeSpent: number, perfectScore: boolean): Promise<any>;
   addStageXp(userId: number, amount: number, stage: string, lessonId: number): Promise<void>;
+  addEventXp(userId: number, amount: number, eventId: number, lessonId: number): Promise<void>;
   getStudyStats(): Promise<any>;
   getStudyDashboardStats(): Promise<any>;
   getMonthlyProgressData(): Promise<any[]>;
@@ -2373,6 +2374,28 @@ export class DatabaseStorage implements IStorage {
     // If already awarded, skip
     if (existing.length > 0) {
       console.log(`Stage XP already awarded for user ${userId}, stage ${stage}, lesson ${lessonId}`);
+      return;
+    }
+    
+    await this.addXp(userId, amount, source, lessonId);
+  }
+
+  async addEventXp(userId: number, amount: number, eventId: number, lessonId: number): Promise<void> {
+    // Make this idempotent - check if XP for this event lesson was already awarded
+    // Event XP counts for general and annual ranking but NOT for magazine/season ranking
+    const source = `event_${eventId}`;
+    const existing = await db.select()
+      .from(schema.xpTransactions)
+      .where(and(
+        eq(schema.xpTransactions.userId, userId),
+        eq(schema.xpTransactions.source, source),
+        eq(schema.xpTransactions.sourceId, lessonId)
+      ))
+      .limit(1);
+    
+    // If already awarded, skip
+    if (existing.length > 0) {
+      console.log(`Event XP already awarded for user ${userId}, event ${eventId}, lesson ${lessonId}`);
       return;
     }
     

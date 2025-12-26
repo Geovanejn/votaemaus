@@ -24,6 +24,7 @@ import type { StudySection, MeditationSection, QuizQuestion } from "@/components
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { MedalAchievementAnimation } from "@/components/study/MedalAchievementAnimation";
+import { shuffleArrayWithSeed } from "@/lib/utils";
 
 interface UnitContent {
   title?: string;
@@ -841,7 +842,7 @@ export default function LessonPage() {
     return false;
   });
   
-  const respondaQuestions: QuizQuestion[] = respondaUnits.map((unit) => {
+  const respondaQuestionsRaw: QuizQuestion[] = respondaUnits.map((unit) => {
     // Handle nested content structure: some questions have content.content.question
     const innerContent = (unit.content as any).content || unit.content;
     const questionType = (unit.content as any).type || unit.type;
@@ -856,6 +857,11 @@ export default function LessonPage() {
       explanation: innerContent.explanation || innerContent.explanationCorrect || innerContent.explanationIncorrect
     };
   });
+  
+  // Shuffle questions using lesson ID as seed for deterministic but varied order
+  const respondaQuestions = lessonId > 0 && respondaQuestionsRaw.length > 0 
+    ? shuffleArrayWithSeed(respondaQuestionsRaw, lessonId) 
+    : respondaQuestionsRaw;
   
   // FIXED: Move derived content flags here (before useEffect at line 252 that uses them)
   // These must be defined after their dependencies (studyUnits, mediteUnits, respondaUnits)

@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { shuffleArrayWithSeed } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -113,38 +114,106 @@ function StageCompleteModal({
 
   const isLessonComplete = stageType === "responda" && !nextStage;
 
+  // Get stage-specific colors for the glowing effect
+  const stageColors = {
+    estude: { gradient: "from-blue-500 to-indigo-600", glow: "shadow-blue-500/50", text: "text-blue-500" },
+    medite: { gradient: "from-rose-500 to-pink-600", glow: "shadow-rose-500/50", text: "text-rose-500" },
+    responda: { gradient: "from-purple-500 to-violet-600", glow: "shadow-purple-500/50", text: "text-purple-500" }
+  };
+  
+  const colors = isLessonComplete 
+    ? { gradient: "from-amber-400 to-yellow-500", glow: "shadow-amber-500/50", text: "text-amber-500" }
+    : stageColors[stageType];
+
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30">
         <DialogHeader>
           <DialogTitle className="text-center sr-only">
             {isLessonComplete ? "Lição Completa" : `${stageLabels[stageType]} Concluído`}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="text-center py-6">
+        {/* Animated background glow */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.15 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+          className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} blur-3xl`}
+        />
+
+        {/* Shimmer effect */}
+        <motion.div
+          initial={{ x: "-100%" }}
+          animate={{ x: "200%" }}
+          transition={{ delay: 0.3, duration: 1.5, ease: "easeInOut" }}
+          className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+        />
+        
+        <div className="text-center py-6 relative z-10">
+          {/* Icon with glowing ring */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.1 }}
-            className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${
-              isLessonComplete 
-                ? "bg-amber-500/20 text-amber-500" 
-                : "bg-primary/20 text-primary"
-            }`}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", delay: 0.1, stiffness: 200 }}
+            className="relative mx-auto mb-6"
           >
-            {isLessonComplete ? (
-              <Trophy className="h-10 w-10" />
-            ) : (
-              stageIcons[stageType]
-            )}
+            {/* Outer glowing ring */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className={`absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br ${colors.gradient} blur-md opacity-60`}
+              style={{ transform: "translate(-8px, -8px)" }}
+            />
+            
+            {/* Pulsing ring animation */}
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.2, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className={`absolute inset-0 w-24 h-24 rounded-full border-2 border-current ${colors.text}`}
+              style={{ transform: "translate(-8px, -8px)" }}
+            />
+            
+            {/* Icon container */}
+            <div className={`relative w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.glow}`}>
+              <div className="text-white drop-shadow-lg">
+                {isLessonComplete ? (
+                  <Trophy className="h-10 w-10" />
+                ) : (
+                  stageIcons[stageType]
+                )}
+              </div>
+            </div>
+            
+            {/* Sparkle particles */}
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ 
+                  scale: [0, 1, 0], 
+                  opacity: [0, 1, 0],
+                  x: [0, (i % 2 === 0 ? 20 : -20) * Math.sin(i * 60 * Math.PI / 180)],
+                  y: [0, -20 * Math.cos(i * 60 * Math.PI / 180) - 10]
+                }}
+                transition={{ delay: 0.4 + i * 0.1, duration: 0.8 }}
+                className={`absolute ${colors.text}`}
+                style={{ 
+                  left: `calc(50% + ${Math.sin(i * 60 * Math.PI / 180) * 40}px)`,
+                  top: `calc(50% + ${Math.cos(i * 60 * Math.PI / 180) * 40}px)`
+                }}
+              >
+                <Sparkles className="h-3 w-3" />
+              </motion.div>
+            ))}
           </motion.div>
 
           <motion.h2 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-2xl font-bold mb-2"
+            transition={{ delay: 0.25 }}
+            className={`text-2xl font-bold mb-2 ${isLessonComplete ? "bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent" : ""}`}
           >
             {isLessonComplete ? "Lição Concluída!" : `${stageLabels[stageType]} Concluído!`}
           </motion.h2>
@@ -153,7 +222,7 @@ function StageCompleteModal({
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.35 }}
               className="text-muted-foreground mb-4"
             >
               Você acertou {correctAnswers} de {totalQuestions} questões
@@ -163,21 +232,34 @@ function StageCompleteModal({
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4, type: "spring" }}
             className="flex items-center justify-center gap-2 mb-6"
           >
-            <Badge className="bg-amber-500/10 text-amber-600 text-lg px-4 py-2">
-              <Star className="h-5 w-5 mr-2 fill-amber-500" />
-              +{xpEarned} XP
-            </Badge>
+            <div className="relative">
+              {/* XP Badge glow */}
+              <motion.div
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute inset-0 bg-amber-500 blur-lg rounded-full"
+              />
+              <Badge className="relative bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-lg px-5 py-2.5 border-0 shadow-lg shadow-amber-500/30">
+                <Star className="h-5 w-5 mr-2 fill-white" />
+                +{xpEarned} XP
+              </Badge>
+            </div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
           >
-            <Button onClick={onClose} className="w-full" size="lg" data-testid="button-stage-continue">
+            <Button 
+              onClick={onClose} 
+              className={`w-full bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white shadow-lg ${colors.glow} border-0`}
+              size="lg" 
+              data-testid="button-stage-continue"
+            >
               {nextStage ? (
                 <>
                   Continuar para {stageLabels[nextStage]}
@@ -404,9 +486,17 @@ export default function EventLessonPage() {
     });
   }, [lesson?.questions]);
 
-  const questions = convertedQuestions;
-  const baseXp = lesson?.xpReward || 50;
-  const xpPerStage = Math.floor(baseXp / 3);
+  // Shuffle questions using lesson ID as seed for deterministic but varied order
+  const questions = useMemo(() => {
+    if (!lessonId || convertedQuestions.length === 0) return convertedQuestions;
+    return shuffleArrayWithSeed(convertedQuestions, lessonId);
+  }, [convertedQuestions, lessonId]);
+  
+  // Fixed XP rewards for event lessons:
+  // Estude: 30 XP, Medite: 30 XP, Responda: 10 XP per correct answer (max 50 XP for 5 questions)
+  const XP_ESTUDE = 30;
+  const XP_MEDITE = 30;
+  const XP_PER_CORRECT_ANSWER = 10;
 
   const estudeSections = useMemo(() => {
     const estudeContent = contentSections.estude;
@@ -434,10 +524,9 @@ export default function EventLessonPage() {
 
   const handleEstudeComplete = () => {
     playSound("modal");
-    const xp = xpPerStage;
-    setAccumulatedXp(prev => prev + xp);
+    setAccumulatedXp(prev => prev + XP_ESTUDE);
     setStageCompleteData({
-      xp,
+      xp: XP_ESTUDE,
       stageType: "estude",
       nextStage: contentSections.medite ? "medite" : (questions.length > 0 ? "responda" : null)
     });
@@ -446,10 +535,9 @@ export default function EventLessonPage() {
 
   const handleMediteComplete = () => {
     playSound("modal");
-    const xp = xpPerStage;
-    setAccumulatedXp(prev => prev + xp);
+    setAccumulatedXp(prev => prev + XP_MEDITE);
     setStageCompleteData({
-      xp,
+      xp: XP_MEDITE,
       stageType: "medite",
       nextStage: questions.length > 0 ? "responda" : null
     });
@@ -658,7 +746,8 @@ export default function EventLessonPage() {
                 }}
                 onComplete={(correct, total) => {
                    const score = Math.round((correct / total) * 100);
-                   const xp = xpPerStage + Math.floor((correct / total) * xpPerStage);
+                   // 10 XP per correct answer, max 50 XP for 5 questions
+                   const xp = correct * XP_PER_CORRECT_ANSWER;
                    
                    setAccumulatedXp(prev => prev + xp);
                    setStageCompleteData({

@@ -7364,6 +7364,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { score, totalQuestions, correctAnswers, usedHints } = req.body;
       
+      // Check if lesson was already completed (prevent duplicate XP)
+      const existingProgress = await storage.getUserEventLessonProgress(req.user!.id, lessonId);
+      if (existingProgress?.completed) {
+        return res.json(existingProgress);
+      }
+      
+      // Event lesson XP: Estude (30) + Medite (30) + Responda (10 per correct, max 50)
+      // Total max = 30 + 30 + 50 = 110 XP per lesson
+      const XP_ESTUDE = 30;
+      const XP_MEDITE = 30;
+      const XP_PER_CORRECT = 10;
+      const MAX_RESPONDA_XP = 50;
+      const respondaXp = Math.min((correctAnswers || 0) * XP_PER_CORRECT, MAX_RESPONDA_XP);
+      const totalXpEarned = XP_ESTUDE + XP_MEDITE + respondaXp;
+      
       // Salvar progresso
       const progress = await storage.saveUserEventProgress({
         userId: req.user!.id,
@@ -7374,9 +7389,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalQuestions: totalQuestions || 0,
         correctAnswers: correctAnswers || 0,
         usedHints: usedHints || false,
-        xpEarned: 50, // XP base
+        xpEarned: totalXpEarned,
         completedAt: new Date(),
       });
+      
+      // Add event XP to user profile (counts for general and annual ranking, NOT revista/season)
+      // addEventXp is idempotent - it won't add XP if already awarded for this lesson
+      await storage.addEventXp(req.user!.id, totalXpEarned, eventId, lessonId);
 
       // Verificar se completou todas as licoes do evento
       const event = await storage.getStudyEventById(eventId);

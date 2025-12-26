@@ -622,7 +622,17 @@ REGRAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Crie 4 alternativas PLAUSÍVEIS que parecem corretas à primeira vista
 - Use distratores inteligentes relacionados ao tema
 - Evite alternativas obviamente erradas ou absurdas
-- VARIE a posição da resposta correta (0, 1, 2, ou 3)`;
+- VARIE a posição da resposta correta (0, 1, 2, ou 3)
+
+REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
+- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
+- COERÊNCIA SEMÂNTICA: Todas as alternativas DEVEM fazer sentido gramatical e contextual na frase
+- Se a lacuna requer VERBO, todas alternativas devem ser VERBOS no mesmo tempo/modo
+- Se a lacuna requer SUBSTANTIVO, todas alternativas devem ser SUBSTANTIVOS
+- Se a lacuna requer NOME PRÓPRIO, todas alternativas devem ser NOMES DE PESSOAS
+- TESTE: Leia a frase com cada alternativa - TODAS devem formar frases corretas gramaticalmente
+- Exemplo BOM: "Jesus morreu para ___ o pecador." → ["salvar", "amar", "libertar", "redimir"]
+- Exemplo RUIM: "Jesus morreu para ___ o pecador." → ["salvar", "amor", "cruz", "fé"] (mistura classes)`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -642,8 +652,10 @@ Retorne um JSON com a estrutura:
   ]
 }
 
-IMPORTANTE: Para múltipla escolha, todas as alternativas devem parecer razoáveis e relacionadas ao tema.
-Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.
+IMPORTANTE: 
+- Para múltipla escolha, todas as alternativas devem parecer razoáveis e relacionadas ao tema.
+- Para fill_blank, INCLUA "options" com 4 alternativas da MESMA classe gramatical que fazem sentido na frase!
+- Varie os tipos de exercicios e mantenha as perguntas educativas e engajantes.
 Retorne APENAS o JSON, sem explicacoes adicionais.`;
 
   try {
@@ -725,7 +737,20 @@ REGRAS CRITICAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Evite alternativas obviamente erradas ou absurdas
 - As alternativas incorretas devem estar relacionadas ao tema e parecer razoáveis
 - Exemplo BOM: Pergunta sobre amor de Deus - alternativas falam de amor condicional, incondicional, merecido, seletivo
-- Exemplo RUIM: Alternativas como "Não sei", "Nenhuma das anteriores", ou respostas absurdas`;
+- Exemplo RUIM: Alternativas como "Não sei", "Nenhuma das anteriores", ou respostas absurdas
+
+REGRAS CRÍTICAS PARA FILL_BLANK (PREENCHER LACUNAS):
+- OBRIGATÓRIO: Inclua campo "options" com EXATAMENTE 4 alternativas
+- COERÊNCIA SEMÂNTICA OBRIGATÓRIA: Todas as alternativas DEVEM fazer sentido gramatical e contextual na frase
+  * Se a lacuna requer um VERBO no infinitivo (glorificar, amar), TODAS alternativas devem ser VERBOS NO INFINITIVO
+  * Se a lacuna requer um SUBSTANTIVO (amor, fé, graça), alternativas devem ser SUBSTANTIVOS da mesma categoria
+  * Se a lacuna requer um ADJETIVO (santo, justo, fiel), alternativas devem ser ADJETIVOS
+  * Se a lacuna requer um NOME PRÓPRIO (Jesus, Paulo, Davi), alternativas devem ser NOMES DE PESSOAS
+- TESTE MENTAL: Leia a frase substituindo cada alternativa - TODAS devem formar frases gramaticalmente corretas
+- Exemplo BOM: "Jesus morreu para ___ o pecador." → options: ["salvar", "amar", "libertar", "redimir"] (todos verbos)
+- Exemplo RUIM: "Jesus morreu para ___ o pecador." → options: ["salvar", "amor", "cruz", "vida"] (classes gramaticais misturadas)
+- Exemplo BOM: "O fruto do Espírito é ___." → options: ["amor", "paz", "alegria", "bondade"] (todos substantivos)
+- NUNCA misture classes gramaticais diferentes nas alternativas!`;
 
   const existingQuestionsText = existingQuestions.length > 0 
     ? `\n\nPERGUNTAS JA EXISTENTES (NAO repita estas, crie perguntas NOVAS e DIFERENTES):\n${existingQuestions.join('\n')}`
@@ -760,8 +785,9 @@ Retorne um JSON com a estrutura:
     {
       "type": "fill_blank",
       "content": {
-        "question": "Frase com ___ para completar",
-        "correctAnswer": "palavra",
+        "question": "Jesus morreu para ___ o pecador.",
+        "correctAnswer": "salvar",
+        "options": ["salvar", "amar", "libertar", "redimir"],
         "explanationCorrect": "Explicacao",
         "explanationIncorrect": "Explicacao"
       }
@@ -775,6 +801,7 @@ REGRAS:
 3. Para multiple_choice: DISTRIBUA as respostas corretas entre A, B, C e D (nao coloque todas como B!)
 4. As perguntas devem ser DIFERENTES das ja existentes
 5. Foque no conteudo do tema: ${weekTitle}
+6. Para fill_blank: INCLUA campo "options" com 4 alternativas da mesma classe gramatical que fazem sentido na frase!
 
 Retorne APENAS o JSON, sem explicacoes adicionais.`;
 

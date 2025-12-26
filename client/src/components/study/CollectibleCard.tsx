@@ -55,11 +55,11 @@ export function CollectibleCard({
     lg: orientation === "portrait" ? "w-[240px] h-[336px]" : "w-[336px] h-[240px]",
   };
 
-  const imageHeightClasses = {
-    compact: "h-[60px]",
-    sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
-    md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
-    lg: orientation === "portrait" ? "h-[200px]" : "h-[140px]",
+  const imageAspectClasses = {
+    compact: orientation === "portrait" ? "aspect-[4/3]" : "aspect-[16/9]",
+    sm: orientation === "portrait" ? "aspect-[4/3]" : "aspect-[16/9]",
+    md: orientation === "portrait" ? "aspect-[4/3]" : "aspect-[16/9]",
+    lg: orientation === "portrait" ? "aspect-[4/3]" : "aspect-[16/9]",
   };
 
   const badgeSizeClasses = {
@@ -132,26 +132,26 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className={`collectible-card-image ${imageHeightClasses[size]} mt-2 relative`}>
+        <div className={`collectible-card-image ${imageAspectClasses[size]} w-full mt-2`}>
           {imageUrl ? (
             <img 
               src={imageUrl} 
               alt={name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">
               <IconComponent className="w-8 h-8 text-white/50" />
             </div>
           )}
-          <div 
-            className="card-shine-beam absolute inset-0 pointer-events-none"
-            style={{
-              background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 45%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.4) 55%, transparent 60%)',
-              transform: 'translateX(-100%)',
-            }}
-          />
         </div>
+        <div 
+          className="card-shine-beam absolute inset-0 pointer-events-none z-10"
+          style={{
+            background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 55%, transparent 60%)',
+            transform: 'translateX(-100%)',
+          }}
+        />
       </div>
     </motion.div>
   );

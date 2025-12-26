@@ -7236,14 +7236,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process questions to ensure correctIndex is properly set and typed
       if (lesson.questions && Array.isArray(lesson.questions)) {
         const processedQuestions = lesson.questions.map((q: any) => {
-          if (q.type === "multiple_choice" && q.options && Array.isArray(q.options)) {
+          // Handle nested content structure (like study units)
+          const content = q.content || q;
+          
+          if (q.type === "multiple_choice" && (q.options || content.options)) {
+            const options = q.options || content.options;
             // Convert correctAnswer to correctIndex if needed
             if (q.correctAnswer !== undefined && q.correctIndex === undefined) {
               q.correctIndex = Number(q.correctAnswer);
+            } else if (content.correctIndex !== undefined && q.correctIndex === undefined) {
+              q.correctIndex = Number(content.correctIndex);
             } else if (q.correctIndex === undefined) {
               q.correctIndex = 0;
             }
             q.correctIndex = Number(q.correctIndex);
+            q.options = options;
+            q.question = q.question || q.statement || content.question || content.statement || "";
+            q.explanation = q.explanation || content.explanation || "";
             
             const correctAnswerText = q.options[q.correctIndex];
             console.log(`[DEBUG] Before randomize - Q: "${q.question?.substring(0, 40)}..." correctIndex: ${q.correctIndex}, correctAnswer: "${correctAnswerText}"`);
@@ -7256,7 +7265,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             return processed;
           }
-          // Handle other types
+          
+          // Handle true_false type
+          if (q.type === "true_false") {
+            // Helper function to parse boolean from various formats
+            // Must explicitly handle both true AND false encodings
+            const parseBoolean = (value: any): boolean | null => {
+              if (typeof value === 'boolean') return value;
+              if (value === 1 || value === "1") return true;
+              if (value === 0 || value === "0") return false;
+              if (typeof value === 'string') {
+                const lower = value.toLowerCase().trim();
+                if (lower === 'true' || lower === 'verdadeiro') return true;
+                if (lower === 'false' || lower === 'falso') return false;
+              }
+              return null;
+            };
+            
+            // Normalize the isTrue value from multiple possible locations
+            let isTrue: boolean | null = null;
+            
+            // Check q.isTrue first
+            isTrue = parseBoolean(q.isTrue);
+            
+            // Then check content.isTrue
+            if (isTrue === null) {
+              isTrue = parseBoolean(content.isTrue);
+            }
+            
+            // Check correctAnswer as fallback
+            if (isTrue === null) {
+              isTrue = parseBoolean(q.correctAnswer);
+            }
+            if (isTrue === null) {
+              isTrue = parseBoolean(content.correctAnswer);
+            }
+            
+            // Default to false if nothing found
+            if (isTrue === null) {
+              isTrue = false;
+            }
+            
+            // Normalize the question structure
+            const processed = {
+              ...q,
+              type: "true_false",
+              question: q.question || q.statement || content.question || content.statement || "",
+              statement: q.statement || content.statement || q.question || content.question || "",
+              isTrue: isTrue,
+              correctAnswer: isTrue, // Provide both for compatibility
+              explanation: q.explanation || content.explanation || ""
+            };
+            
+            console.log(`[DEBUG] True/False - Q: "${processed.question?.substring(0, 40)}..." isTrue: ${isTrue}`);
+            
+            return processed;
+          }
+          
+          // Handle fill_blank type
+          if (q.type === "fill_blank") {
+            return {
+              ...q,
+              type: "fill_blank",
+              question: q.question || q.sentence || content.question || content.sentence || "",
+              correctAnswer: q.correctAnswer || content.correctAnswer || "",
+              explanation: q.explanation || content.explanation || ""
+            };
+          }
+          
+          // Handle other types - keep original
           if (q.correctAnswer !== undefined && q.correctIndex === undefined) {
             q.correctIndex = Number(q.correctAnswer);
           }

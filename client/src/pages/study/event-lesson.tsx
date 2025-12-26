@@ -323,36 +323,81 @@ export default function EventLessonPage() {
   // Convert questions to RespondaScreen format
   const convertedQuestions = useMemo(() => {
     return (lesson?.questions || []).map((q: any) => {
+      // Handle both flattened and nested (content) structures
+      const content = q.content || q;
+      
       const converted: any = {
-        type: q.type || "multiple_choice",
-        question: q.question || q.statement || "",
-        explanation: q.explanation || ""
+        type: q.type || content.type || "multiple_choice",
+        question: q.question || q.statement || content.question || content.statement || "",
+        explanation: q.explanation || content.explanation || content.explanationCorrect || ""
       };
 
-      if (q.type === "multiple_choice" && q.options) {
-        converted.options = q.options;
-        // Ensure correctIndex is ALWAYS a number
-        converted.correctIndex = Number(q.correctIndex ?? 0);
-        
-        // Debug logging
-        console.log(`[Event Lesson Debug] Question: "${q.question?.substring(0, 40)}..."`, {
-          correctIndexValue: q.correctIndex,
-          correctIndexType: typeof q.correctIndex,
-          convertedCorrectIndex: converted.correctIndex,
-          convertedCorrectIndexType: typeof converted.correctIndex,
-          options: q.options,
-          correctAnswer: q.options[converted.correctIndex]
-        });
-      } else if (q.type === "true_false") {
-        let correctBool = false;
-        if (typeof q.isTrue === 'boolean') {
-          correctBool = q.isTrue;
-        } else if (q.isTrue === "true" || q.isTrue === "Verdadeiro" || q.isTrue === 1) {
-          correctBool = true;
+      if (converted.type === "multiple_choice") {
+        const options = q.options || content.options;
+        if (options) {
+          converted.options = options;
+          // Ensure correctIndex is ALWAYS a number
+          converted.correctIndex = Number(q.correctIndex ?? content.correctIndex ?? 0);
+          
+          // Debug logging
+          console.log(`[Event Lesson Debug] Multiple Choice: "${converted.question?.substring(0, 40)}..."`, {
+            correctIndex: converted.correctIndex,
+            options: converted.options,
+            correctAnswer: converted.options[converted.correctIndex]
+          });
         }
+      } else if (converted.type === "true_false") {
+        // Check multiple possible locations for isTrue value
+        // Priority: q.isTrue > q.content.isTrue > q.correctAnswer > content.correctAnswer
+        // Must explicitly handle both true AND false encodings
+        let correctBool: boolean | null = null;
+        
+        // Helper function to parse boolean from various formats
+        const parseBoolean = (value: any): boolean | null => {
+          if (typeof value === 'boolean') return value;
+          if (value === 1 || value === "1") return true;
+          if (value === 0 || value === "0") return false;
+          if (typeof value === 'string') {
+            const lower = value.toLowerCase().trim();
+            if (lower === 'true' || lower === 'verdadeiro') return true;
+            if (lower === 'false' || lower === 'falso') return false;
+          }
+          return null;
+        };
+        
+        // First check direct isTrue property
+        correctBool = parseBoolean(q.isTrue);
+        
+        // Then check content.isTrue
+        if (correctBool === null) {
+          correctBool = parseBoolean(content.isTrue);
+        }
+        
+        // Check correctAnswer as fallback
+        if (correctBool === null) {
+          correctBool = parseBoolean(q.correctAnswer);
+        }
+        if (correctBool === null) {
+          correctBool = parseBoolean(content.correctAnswer);
+        }
+        
+        // Default to false if nothing found
+        if (correctBool === null) {
+          correctBool = false;
+        }
+        
         converted.correctAnswer = correctBool;
-      } else if (q.type === "fill_blank") {
-        converted.correctAnswer = q.correctAnswer || "";
+        
+        // Debug logging for true/false
+        console.log(`[Event Lesson Debug] True/False: "${converted.question?.substring(0, 40)}..."`, {
+          qIsTrue: q.isTrue,
+          contentIsTrue: content.isTrue,
+          qCorrectAnswer: q.correctAnswer,
+          contentCorrectAnswer: content.correctAnswer,
+          finalCorrectAnswer: correctBool
+        });
+      } else if (converted.type === "fill_blank") {
+        converted.correctAnswer = q.correctAnswer || content.correctAnswer || "";
       }
 
       return converted;

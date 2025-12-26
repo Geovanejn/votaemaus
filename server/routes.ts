@@ -7233,20 +7233,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
       
-      // Process questions to ensure correctIndex is properly set
+      // Process questions to ensure correctIndex is properly set and typed
       if (lesson.questions && Array.isArray(lesson.questions)) {
         const processedQuestions = lesson.questions.map((q: any) => {
+          // Ensure correctIndex is always a number
           if (q.type === "multiple_choice" && q.options && Array.isArray(q.options)) {
-            const before = { ...q };
+            // First ensure correctIndex is a number
+            q.correctIndex = Number(q.correctIndex ?? 0);
+            const correctAnswerText = q.options[q.correctIndex];
+            
+            // Then randomize
             const processed = randomizeMultipleChoiceAnswer(q);
-            console.log(`[DEBUG] Question ${q.id || 'unknown'}:`, {
-              beforeOptions: before.options,
-              beforeCorrectIndex: before.correctIndex,
-              afterOptions: processed.options,
+            
+            // Ensure correctIndex stays a number
+            processed.correctIndex = Number(processed.correctIndex);
+            
+            console.log(`[DEBUG EVENT LESSON] Question:`, {
+              question: q.question?.substring(0, 50) + "...",
+              beforeCorrectIndex: q.correctIndex,
+              beforeCorrectAnswer: correctAnswerText,
               afterCorrectIndex: processed.correctIndex,
-              correctAnswer: before.options[before.correctIndex]
+              afterCorrectAnswer: processed.options[processed.correctIndex],
+              correctIndexType: typeof processed.correctIndex
             });
+            
             return processed;
+          }
+          // Ensure correctIndex is a number for all types
+          if (q.correctIndex !== undefined) {
+            q.correctIndex = Number(q.correctIndex);
           }
           return q;
         });

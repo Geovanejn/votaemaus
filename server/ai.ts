@@ -681,8 +681,17 @@ export function randomizeMultipleChoiceAnswer(content: any): any {
     return content;
   }
   
-  const correctIndex = content.correctIndex || 0;
+  // Ensure correctIndex is a number
+  const correctIndex = Number(content.correctIndex ?? 0);
   const correctAnswer = content.options[correctIndex];
+  
+  if (!correctAnswer) {
+    console.warn(`[randomizeMultipleChoiceAnswer] Warning: correctIndex ${correctIndex} is out of bounds for options of length ${content.options.length}`);
+    return {
+      ...content,
+      correctIndex: Number(0)
+    };
+  }
   
   // Create shuffled options
   const shuffledOptions = shuffleArray(content.options);
@@ -691,7 +700,7 @@ export function randomizeMultipleChoiceAnswer(content: any): any {
   return {
     ...content,
     options: shuffledOptions,
-    correctIndex: newCorrectIndex
+    correctIndex: Number(newCorrectIndex)
   };
 }
 

@@ -106,6 +106,17 @@ export function RespondaScreen({
         // Ensure correctIndex is a number
         const correctIdx = Number(currentQuestion.correctIndex);
         isCorrect = selectedAnswer === correctIdx;
+        
+        // Debug logging
+        console.log(`[RespondaScreen Check] Answer check for: "${currentQuestion.question?.substring(0, 40)}..."`, {
+          selectedAnswer,
+          selectedAnswerType: typeof selectedAnswer,
+          correctIdx,
+          correctIdxType: typeof correctIdx,
+          isCorrect,
+          correctOption: currentQuestion.options?.[correctIdx],
+          selectedOption: currentQuestion.options?.[selectedAnswer]
+        });
         break;
       }
       case "true_false": {

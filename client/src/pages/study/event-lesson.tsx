@@ -331,7 +331,18 @@ export default function EventLessonPage() {
 
       if (q.type === "multiple_choice" && q.options) {
         converted.options = q.options;
+        // Ensure correctIndex is ALWAYS a number
         converted.correctIndex = Number(q.correctIndex ?? 0);
+        
+        // Debug logging
+        console.log(`[Event Lesson Debug] Question: "${q.question?.substring(0, 40)}..."`, {
+          correctIndexValue: q.correctIndex,
+          correctIndexType: typeof q.correctIndex,
+          convertedCorrectIndex: converted.correctIndex,
+          convertedCorrectIndexType: typeof converted.correctIndex,
+          options: q.options,
+          correctAnswer: q.options[converted.correctIndex]
+        });
       } else if (q.type === "true_false") {
         let correctBool = false;
         if (typeof q.isTrue === 'boolean') {

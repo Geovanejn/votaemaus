@@ -109,7 +109,7 @@ export function CollectibleCard({
       <div 
         className="card-shine-beam absolute inset-0 pointer-events-none z-20 rounded-[16px]"
         style={{
-          background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 55%, transparent 60%)',
+          background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.25) 23%, rgba(255,255,255,0.5) 25%, rgba(255,255,255,0.25) 27%, transparent 30%)',
           transform: 'translateX(-100%)',
         }}
       />
@@ -206,20 +206,20 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         });
       }
       
-      // Pause animations and position shine for capture
+      // Pause animations and position shine for capture (left side of card)
       const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
       shineBeams.forEach((beam) => {
         const el = beam as HTMLElement;
         el.style.animation = 'none';
-        el.style.transform = 'translateX(0%)';
+        el.style.transform = 'translateX(-40%)';
         el.style.opacity = '1';
       });
       
       // Wait for styles to apply
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // High quality capture - scale 3 is optimal balance between quality and performance
-      const scale = 3;
+      // High quality capture
+      const scale = 6;
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,

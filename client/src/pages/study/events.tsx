@@ -156,9 +156,10 @@ function EventCard({ event }: { event: StudyEvent }) {
   const [, setLocation] = useLocation();
   const monthLabel = getMonthLabel(event.startDate);
   const eventStatus = getEventStatus(event);
-  const isLocked = eventStatus === "upcoming";
+  // Event is accessible if published (regardless of date) - admin decision overrides dates
+  const isLocked = false; // Published events are always accessible
   const isEnded = eventStatus === "ended";
-  const isActive = eventStatus === "active";
+  const isActive = event.status === "published";
   
   const now = new Date();
   const startDate = new Date(event.startDate);
@@ -385,9 +386,10 @@ export default function EventsPage() {
     );
   }
 
-  const activeEvents = events?.filter(e => getEventStatus(e) === "active") || [];
-  const upcomingEvents = events?.filter(e => getEventStatus(e) === "upcoming") || [];
-  const endedEvents = events?.filter(e => getEventStatus(e) === "ended") || [];
+  // All published events are accessible - categorize by date for display only
+  const activeEvents = events?.filter(e => e.status === "published") || [];
+  const upcomingEvents: StudyEvent[] = []; // No more locked upcoming events
+  const endedEvents = events?.filter(e => e.status === "ended" || getEventStatus(e) === "ended") || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">

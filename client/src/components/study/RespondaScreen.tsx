@@ -103,30 +103,32 @@ export function RespondaScreen({
     switch (currentQuestion.type) {
       case "multiple_choice": {
         answer = selectedAnswer;
-        // Ensure correctIndex is a number
+        // Ensure both are numbers for comparison
         const correctIdx = Number(currentQuestion.correctIndex);
-        isCorrect = selectedAnswer === correctIdx;
+        const selectedIdx = Number(selectedAnswer);
+        isCorrect = selectedIdx === correctIdx;
         
         // Debug logging
         console.log(`[RespondaScreen Check] Answer check for: "${currentQuestion.question?.substring(0, 40)}..."`, {
-          selectedAnswer,
-          selectedAnswerType: typeof selectedAnswer,
+          selectedAnswer: selectedIdx,
+          selectedAnswerType: typeof selectedIdx,
           correctIdx,
           correctIdxType: typeof correctIdx,
           isCorrect,
           correctOption: currentQuestion.options?.[correctIdx],
-          selectedOption: currentQuestion.options?.[selectedAnswer]
+          selectedOption: currentQuestion.options?.[selectedIdx]
         });
         break;
       }
       case "true_false": {
         answer = trueFalseAnswer;
-        // Convert correctAnswer to boolean in case it comes as string
+        // Convert correctAnswer to boolean in case it comes as string or number
         let correctBool = false;
         if (typeof currentQuestion.correctAnswer === 'boolean') {
           correctBool = currentQuestion.correctAnswer;
-        } else if (currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro" || currentQuestion.correctAnswer === 1) {
-          correctBool = true;
+        } else {
+          const val = String(currentQuestion.correctAnswer).toLowerCase();
+          correctBool = val === "true" || val === "verdadeiro" || val === "1";
         }
         isCorrect = trueFalseAnswer === correctBool;
         break;
@@ -163,10 +165,19 @@ export function RespondaScreen({
 
   const isAnswerCorrect = (): boolean => {
     switch (currentQuestion?.type) {
-      case "multiple_choice":
-        return selectedAnswer === currentQuestion.correctIndex;
+      case "multiple_choice": {
+        const correctIdx = Number(currentQuestion.correctIndex);
+        const selectedIdx = Number(selectedAnswer);
+        return selectedIdx === correctIdx;
+      }
       case "true_false": {
-        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+        let correctBool = false;
+        if (typeof currentQuestion.correctAnswer === 'boolean') {
+          correctBool = currentQuestion.correctAnswer;
+        } else {
+          const val = String(currentQuestion.correctAnswer).toLowerCase();
+          correctBool = val === "true" || val === "verdadeiro" || val === "1";
+        }
         return trueFalseAnswer === correctBool;
       }
       case "fill_blank":
@@ -269,7 +280,13 @@ export function RespondaScreen({
                       {[true, false].map((value) => {
                         const isSelected = trueFalseAnswer === value;
                         // Convert correctAnswer to boolean safely
-                        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+                        let correctBool = false;
+                        if (typeof currentQuestion.correctAnswer === 'boolean') {
+                          correctBool = currentQuestion.correctAnswer;
+                        } else {
+                          const val = String(currentQuestion.correctAnswer).toLowerCase();
+                          correctBool = val === "true" || val === "verdadeiro" || val === "1";
+                        }
                         const isCorrect = value === correctBool;
                         const showCorrect = showResult && isCorrect;
                         const showIncorrect = showResult && isSelected && !isCorrect;

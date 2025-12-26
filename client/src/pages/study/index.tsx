@@ -112,12 +112,34 @@ function UserProfileHeader({
   
   return (
     <div 
-      className="px-4 pt-6 pb-5"
+      className="px-4 pt-3 pb-5"
       style={{
         background: 'linear-gradient(180deg, #8B5CF6 0%, #7C3AED 50%, #6D28D9 100%)',
       }}
     >
       <div className="max-w-lg mx-auto">
+        {/* Navigation buttons inside the purple card */}
+        <div className="flex items-center justify-between mb-3">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setLocation('/membro')}
+            data-testid="button-panels"
+            className="bg-white/20 hover:bg-white/30 text-white"
+          >
+            <LayoutGrid className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setLocation('/')}
+            data-testid="button-home"
+            className="bg-white/20 hover:bg-white/30 text-white"
+          >
+            <Home className="h-5 w-5" />
+          </Button>
+        </div>
+        
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <Avatar className="h-14 w-14 border-[3px] border-white/30 shadow-lg">
@@ -632,31 +654,6 @@ export default function StudyHomePage() {
   return (
     <div className="min-h-screen bg-background pb-20" data-testid="study-home">
       <CelebrationComponent />
-      
-      <div className="bg-background border-b px-4 py-2">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setLocation('/membro')}
-            data-testid="button-panels"
-            className="gap-1"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            <span className="hidden sm:inline">Painéis</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setLocation('/')}
-            data-testid="button-home"
-            className="gap-1"
-          >
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Home</span>
-          </Button>
-        </div>
-      </div>
       
       <UserProfileHeader 
         userName={user.fullName} 

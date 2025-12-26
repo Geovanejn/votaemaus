@@ -178,10 +178,11 @@ export default function EventoEditorPage() {
 
   const distributeCardsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/admin/study-events/${id}/distribute-cards`);
+      const response = await apiRequest("POST", `/api/admin/study-events/${id}/distribute-cards`);
+      return response.json();
     },
-    onSuccess: async (response) => {
-      const result = await response.json();
+    onSuccess: (result: { cardsDistributed?: number; totalEligible?: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
       toast({
         title: "Cards distribuidos",
         description: `${result.cardsDistributed || 0} cards foram distribuidos.`,

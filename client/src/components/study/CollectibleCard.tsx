@@ -1,5 +1,6 @@
-import { Star, Gem, Crown, Sparkles } from "lucide-react";
+import { Star, Gem, Crown, Sparkles, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { SiWhatsapp, SiX, SiFacebook } from "react-icons/si";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -210,6 +211,51 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
               Desempenho: {Math.round(card.performance)}%
             </p>
           )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/60 mr-2">
+            <Share2 className="w-4 h-4 inline mr-1" />
+            Compartilhar:
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof window === "undefined") return;
+              const text = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
+              const url = window.location.origin + "/study/cards";
+              window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, "_blank");
+            }}
+            className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center text-white transition-colors"
+            data-testid="button-share-whatsapp"
+          >
+            <SiWhatsapp className="w-5 h-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof window === "undefined") return;
+              const text = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! #UMPEmaus #DeoGlory`;
+              const url = window.location.origin + "/study/cards";
+              window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
+            }}
+            className="w-10 h-10 rounded-full bg-black hover:bg-gray-800 flex items-center justify-center text-white transition-colors"
+            data-testid="button-share-twitter"
+          >
+            <SiX className="w-5 h-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof window === "undefined") return;
+              const url = window.location.origin + "/study/cards";
+              window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
+            }}
+            className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors"
+            data-testid="button-share-facebook"
+          >
+            <SiFacebook className="w-5 h-5" />
+          </button>
         </div>
 
         <button

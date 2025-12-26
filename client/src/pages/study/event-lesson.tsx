@@ -151,29 +151,27 @@ function StageCompleteModal({
           className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
         />
         
-        <div className="text-center py-6 relative z-10">
+        <div className="text-center py-6 relative z-10 flex flex-col items-center">
           {/* Icon with glowing ring */}
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", delay: 0.1, stiffness: 200 }}
-            className="relative mx-auto mb-6"
+            className="relative mb-6 w-20 h-20"
           >
             {/* Outer glowing ring */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className={`absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br ${colors.gradient} blur-md opacity-60`}
-              style={{ transform: "translate(-8px, -8px)" }}
+              className={`absolute -inset-2 rounded-full bg-gradient-to-br ${colors.gradient} blur-md opacity-60`}
             />
             
             {/* Pulsing ring animation */}
             <motion.div
               animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.2, 0.5] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className={`absolute inset-0 w-24 h-24 rounded-full border-2 border-current ${colors.text}`}
-              style={{ transform: "translate(-8px, -8px)" }}
+              className={`absolute -inset-2 rounded-full border-2 border-current ${colors.text}`}
             />
             
             {/* Icon container */}
@@ -636,9 +634,9 @@ export default function EventLessonPage() {
             <span className="text-xs text-muted-foreground">Dia {dayNumber}</span>
             <h1 className="text-lg font-semibold truncate">{lesson.title}</h1>
           </div>
-          <Badge variant="outline" className="flex items-center gap-1">
+          <Badge variant="outline" className="flex items-center gap-1 shrink-0">
             {stageLabels[currentStage].icon}
-            {stageLabels[currentStage].label}
+            <span className="hidden sm:inline">{stageLabels[currentStage].label}</span>
           </Badge>
         </div>
         <div className="px-4 pb-3">

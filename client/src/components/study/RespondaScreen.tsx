@@ -191,9 +191,6 @@ export function RespondaScreen({
   return (
     <div className="flex flex-col min-h-screen p-4">
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
-        {/* Título */}
-        <h2 className="text-2xl font-bold mb-2">{lessonTitle}</h2>
-
         {/* Barra de progresso */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">

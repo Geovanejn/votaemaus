@@ -56,9 +56,12 @@ interface Question {
   id: string;
   type?: "multiple_choice" | "true_false" | "fill_blank";
   question: string;
+  statement?: string;
   options?: string[];
-  correctAnswer: number | boolean | string;
+  correctIndex?: number;
+  correctAnswer?: string | boolean;
   explanation?: string;
+  isTrue?: boolean;
 }
 
 interface UserProgress {
@@ -317,7 +320,29 @@ export default function EventLessonPage() {
     return parseContentSections(lesson.content);
   }, [lesson?.content]);
 
-  const questions = lesson?.questions || [];
+  // Convert questions to RespondaScreen format
+  const convertedQuestions = useMemo(() => {
+    return (lesson?.questions || []).map((q: any) => {
+      const converted: any = {
+        type: q.type || "multiple_choice",
+        question: q.question || q.statement || "",
+        explanation: q.explanation || ""
+      };
+
+      if (q.type === "multiple_choice" && q.options) {
+        converted.options = q.options;
+        converted.correctIndex = q.correctIndex ?? 0;
+      } else if (q.type === "true_false") {
+        converted.correctAnswer = q.isTrue !== undefined ? q.isTrue : (q.correctAnswer === true || q.correctAnswer === "true");
+      } else if (q.type === "fill_blank") {
+        converted.correctAnswer = q.correctAnswer || "";
+      }
+
+      return converted;
+    });
+  }, [lesson?.questions]);
+
+  const questions = convertedQuestions;
   const baseXp = lesson?.xpReward || 50;
   const xpPerStage = Math.floor(baseXp / 3);
 

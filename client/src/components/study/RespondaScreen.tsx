@@ -103,13 +103,20 @@ export function RespondaScreen({
     switch (currentQuestion.type) {
       case "multiple_choice": {
         answer = selectedAnswer;
-        isCorrect = selectedAnswer === currentQuestion.correctIndex;
+        // Ensure correctIndex is a number
+        const correctIdx = Number(currentQuestion.correctIndex);
+        isCorrect = selectedAnswer === correctIdx;
         break;
       }
       case "true_false": {
         answer = trueFalseAnswer;
         // Convert correctAnswer to boolean in case it comes as string
-        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+        let correctBool = false;
+        if (typeof currentQuestion.correctAnswer === 'boolean') {
+          correctBool = currentQuestion.correctAnswer;
+        } else if (currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro" || currentQuestion.correctAnswer === 1) {
+          correctBool = true;
+        }
         isCorrect = trueFalseAnswer === correctBool;
         break;
       }

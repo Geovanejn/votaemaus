@@ -331,9 +331,15 @@ export default function EventLessonPage() {
 
       if (q.type === "multiple_choice" && q.options) {
         converted.options = q.options;
-        converted.correctIndex = q.correctIndex ?? 0;
+        converted.correctIndex = Number(q.correctIndex ?? 0);
       } else if (q.type === "true_false") {
-        converted.correctAnswer = q.isTrue !== undefined ? q.isTrue : (q.correctAnswer === true || q.correctAnswer === "true");
+        let correctBool = false;
+        if (typeof q.isTrue === 'boolean') {
+          correctBool = q.isTrue;
+        } else if (q.isTrue === "true" || q.isTrue === "Verdadeiro" || q.isTrue === 1) {
+          correctBool = true;
+        }
+        converted.correctAnswer = correctBool;
       } else if (q.type === "fill_blank") {
         converted.correctAnswer = q.correctAnswer || "";
       }

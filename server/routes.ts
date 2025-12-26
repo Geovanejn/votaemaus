@@ -7452,6 +7452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.addEventXp(req.user!.id, totalXpEarned, eventId, lessonId);
 
       // Verificar se completou todas as licoes do evento
+      let cardEarned = null;
       const event = await storage.getStudyEventById(eventId);
       if (event && event.cardId) {
         const allProgress = await storage.getUserEventProgress(req.user!.id, eventId);
@@ -7467,7 +7468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Calcular raridade e dar o card
           const rarity = calculateCardRarity(avgPerformance, anyHints);
-          await storage.awardUserCard({
+          const userCard = await storage.awardUserCard({
             userId: req.user!.id,
             cardId: event.cardId,
             rarity,
@@ -7475,10 +7476,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sourceId: eventId,
             performance: avgPerformance,
           });
+          
+          // Get full card details to return to client
+          if (userCard) {
+            const cardDetails = await storage.getCollectibleCardById(event.cardId);
+            cardEarned = {
+              ...userCard,
+              card: cardDetails,
+              rarity,
+            };
+          }
         }
       }
 
-      res.json(progress);
+      res.json({ 
+        ...progress, 
+        cardEarned,
+        xpEarned: totalXpEarned,
+        correctAnswers: correctAnswers || 0,
+        totalQuestions: totalQuestions || 0,
+      });
     } catch (error) {
       console.error("Complete event lesson error:", error);
       res.status(500).json({ message: "Erro ao completar licao" });
@@ -7487,11 +7504,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === ROTAS MEMBROS - MEUS CARDS ===
 
-  // Listar cards do usuario
+  // Listar cards do usuario com detalhes
   app.get("/api/study/cards", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const cards = await storage.getUserCards(req.user!.id);
-      res.json(cards);
+      const userCards = await storage.getUserCards(req.user!.id);
+      
+      // Get full card details for each user card
+      const cardsWithDetails = await Promise.all(
+        userCards.map(async (userCard) => {
+          const cardDetails = await storage.getCollectibleCardById(userCard.cardId);
+          return {
+            ...userCard,
+            card: cardDetails,
+          };
+        })
+      );
+      
+      res.json(cardsWithDetails);
     } catch (error) {
       console.error("Get user cards error:", error);
       res.status(500).json({ message: "Erro ao buscar seus cards" });

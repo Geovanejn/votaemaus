@@ -1,23 +1,24 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { BottomNav } from "@/components/study";
-import { Card, CardContent } from "@/components/ui/card";
+import { BottomNav, CollectibleCard, CollectibleCardModal } from "@/components/study";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft,
   Loader2,
   Sparkles,
   Trophy,
   Star,
-  Crown
+  Crown,
+  Calendar,
+  BookOpen
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
-interface CollectibleCard {
+interface CollectibleCardData {
   id: number;
   name: string;
   description: string | null;
@@ -35,111 +36,13 @@ interface UserCard {
   sourceId: number;
   performance: number | null;
   earnedAt: string;
-  card?: CollectibleCard;
-}
-
-const rarityConfig = {
-  common: {
-    label: "Comum",
-    color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-    borderColor: "border-gray-300 dark:border-gray-600",
-    icon: null,
-    gradient: "from-gray-200 to-gray-400",
-  },
-  rare: {
-    label: "Raro",
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-    borderColor: "border-blue-400 dark:border-blue-500",
-    icon: Star,
-    gradient: "from-blue-400 to-blue-600",
-  },
-  epic: {
-    label: "Epico",
-    color: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-    borderColor: "border-purple-400 dark:border-purple-500",
-    icon: Sparkles,
-    gradient: "from-purple-400 to-purple-600",
-  },
-  legendary: {
-    label: "Lendario",
-    color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-    borderColor: "border-amber-400 dark:border-amber-500",
-    icon: Crown,
-    gradient: "from-amber-400 to-amber-600",
-  },
-};
-
-function CollectibleCardItem({ userCard }: { userCard: UserCard }) {
-  const config = rarityConfig[userCard.rarity];
-  const IconComponent = config.icon;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      whileHover={{ scale: 1.02 }}
-      className="relative"
-    >
-      <Card 
-        className={`overflow-hidden border-2 ${config.borderColor} ${
-          userCard.rarity === "legendary" ? "card-legendary" : 
-          userCard.rarity === "epic" ? "card-epic" : 
-          userCard.rarity === "rare" ? "card-rare" : ""
-        }`}
-        data-testid={`card-collectible-${userCard.id}`}
-      >
-        <div className={`h-2 bg-gradient-to-r ${config.gradient}`} />
-        
-        {userCard.card?.imageUrl ? (
-          <div className="relative h-32 overflow-hidden">
-            <img 
-              src={userCard.card.imageUrl} 
-              alt={userCard.card.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-          </div>
-        ) : (
-          <div className={`h-32 bg-gradient-to-br ${config.gradient} opacity-30`} />
-        )}
-        
-        <CardContent className="p-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-semibold text-sm line-clamp-1" data-testid={`text-card-name-${userCard.id}`}>
-              {userCard.card?.name || "Card Desconhecido"}
-            </h3>
-            {IconComponent && (
-              <IconComponent className={`h-4 w-4 flex-shrink-0 ${
-                userCard.rarity === "legendary" ? "text-amber-500" :
-                userCard.rarity === "epic" ? "text-purple-500" :
-                "text-blue-500"
-              }`} />
-            )}
-          </div>
-
-          <Badge className={`text-xs ${config.color}`}>
-            {config.label}
-          </Badge>
-
-          {userCard.performance !== null && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              Desempenho: {Math.round(userCard.performance)}%
-            </div>
-          )}
-
-          <div className="mt-2 text-xs text-muted-foreground">
-            {format(new Date(userCard.earnedAt), "d MMM yyyy", { locale: ptBR })}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+  card?: CollectibleCardData;
 }
 
 export default function CardsCollectionPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [selectedCard, setSelectedCard] = useState<UserCard | null>(null);
 
   const { data: userCards, isLoading, error } = useQuery<UserCard[]>({
     queryKey: ["/api/study/cards"],
@@ -174,6 +77,9 @@ export default function CardsCollectionPage() {
     rare: userCards?.filter(c => c.rarity === "rare") || [],
     common: userCards?.filter(c => c.rarity === "common") || [],
   };
+
+  const eventCards = userCards?.filter(c => c.sourceType === "event") || [];
+  const seasonCards = userCards?.filter(c => c.sourceType === "season") || [];
 
   const totalCards = userCards?.length || 0;
 
@@ -233,14 +139,134 @@ export default function CardsCollectionPage() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {userCards?.map(card => (
-                <CollectibleCardItem key={card.id} userCard={card} />
-              ))}
-            </div>
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="all" data-testid="tab-all">
+                  Todos ({totalCards})
+                </TabsTrigger>
+                <TabsTrigger value="events" data-testid="tab-events">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Eventos ({eventCards.length})
+                </TabsTrigger>
+                <TabsTrigger value="seasons" data-testid="tab-seasons">
+                  <BookOpen className="h-4 w-4 mr-1" />
+                  Revistas ({seasonCards.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all" className="mt-4">
+                <div className="flex flex-wrap justify-center gap-4">
+                  {userCards?.map(card => (
+                    <motion.div
+                      key={card.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <CollectibleCard
+                        name={card.card?.name || "Card"}
+                        imageUrl={card.card?.imageUrl}
+                        rarity={card.rarity}
+                        orientation={card.sourceType === "event" ? "landscape" : "portrait"}
+                        onClick={() => setSelectedCard(card)}
+                        size="md"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="events" className="mt-4">
+                {eventCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum card de evento conquistado</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => setLocation("/study/events")}
+                    >
+                      Ver eventos disponiveis
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {eventCards.map(card => (
+                      <motion.div
+                        key={card.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <CollectibleCard
+                          name={card.card?.name || "Card"}
+                          imageUrl={card.card?.imageUrl}
+                          rarity={card.rarity}
+                          orientation="landscape"
+                          onClick={() => setSelectedCard(card)}
+                          size="md"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="seasons" className="mt-4">
+                {seasonCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum card de revista conquistado</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => setLocation("/study")}
+                    >
+                      Ver revistas disponiveis
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {seasonCards.map(card => (
+                      <motion.div
+                        key={card.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <CollectibleCard
+                          name={card.card?.name || "Card"}
+                          imageUrl={card.card?.imageUrl}
+                          rarity={card.rarity}
+                          orientation="portrait"
+                          onClick={() => setSelectedCard(card)}
+                          size="md"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </main>
+
+      {selectedCard && (
+        <CollectibleCardModal
+          isOpen={!!selectedCard}
+          onClose={() => setSelectedCard(null)}
+          card={{
+            name: selectedCard.card?.name || "Card",
+            description: selectedCard.card?.description,
+            imageUrl: selectedCard.card?.imageUrl,
+            rarity: selectedCard.rarity,
+            sourceType: selectedCard.sourceType as "season" | "event",
+            earnedAt: selectedCard.earnedAt,
+            performance: selectedCard.performance,
+          }}
+        />
+      )}
 
       <BottomNav />
     </div>

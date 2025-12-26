@@ -34,8 +34,10 @@ export { AchievementNotification, useAchievementNotification } from "./Achieveme
 export { SoundSettings } from "./SoundSettings";
 export { NotificationSettings } from "./NotificationSettings";
 export { WeeklyGoalsWidget } from "./weekly-goals-widget";
+export { CollectibleCard, CollectibleCardModal, CollectibleCardGrid } from "./CollectibleCard";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
+export type { CardRarity, CardOrientation } from "./CollectibleCard";
 export type { UnitStatus } from "./UnitCard";
 export type { LessonItem, StageType, StageItem, QuestionResult, PracticeStatus } from "./LearningPath";
 export type { StudySection } from "./StudyContent";

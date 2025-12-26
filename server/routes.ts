@@ -7045,6 +7045,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Encerrar evento manualmente e distribuir cards
+  app.post("/api/admin/study-events/:id/end", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const event = await storage.getStudyEventById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      // Update event end date to now
+      await storage.updateStudyEvent(id, {
+        endDate: new Date(),
+        status: "ended",
+      });
+      
+      // Distribute cards to users who completed
+      const lessons = await storage.getStudyEventLessons(id);
+      if (event.cardId && lessons.length > 0) {
+        const completedUserIds = await storage.getUsersWhoCompletedEvent(id, lessons.length);
+        
+        for (const userId of completedUserIds) {
+          const allProgress = await storage.getUserEventProgress(userId, id);
+          const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
+          const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
+          const avgPerformance = totalQs > 0 ? (totalCorrect / totalQs) * 100 : 0;
+          const anyHints = allProgress.some(p => p.usedHints);
+          
+          const rarity = calculateCardRarity(avgPerformance, anyHints);
+          await storage.awardUserCard({
+            userId,
+            cardId: event.cardId,
+            rarity,
+            sourceType: "event",
+            sourceId: id,
+            performance: avgPerformance,
+          });
+        }
+        
+        console.log(`[Admin Event End] Distributed ${completedUserIds.length} cards for event ${id}`);
+      }
+      
+      await logAuditAction(req.user?.id, "update", "study_event", id, "Evento encerrado manualmente", req);
+      res.json({ message: "Evento encerrado com sucesso" });
+    } catch (error) {
+      console.error("End study event error:", error);
+      res.status(500).json({ message: "Erro ao encerrar evento" });
+    }
+  });
+
+  // Liberar licao de evento manualmente
+  app.post("/api/admin/study-events/:eventId/lessons/:lessonId/unlock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const lessonId = parseInt(req.params.lessonId);
+      if (isNaN(eventId) || isNaN(lessonId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      await storage.updateStudyEventLesson(lessonId, { status: "published" });
+      await logAuditAction(req.user?.id, "update", "study_event_lesson", lessonId, "Licao liberada manualmente", req);
+      res.json({ message: "Licao liberada com sucesso" });
+    } catch (error) {
+      console.error("Unlock lesson error:", error);
+      res.status(500).json({ message: "Erro ao liberar licao" });
+    }
+  });
+
+  // Distribuir cards manualmente
+  app.post("/api/admin/study-events/:id/distribute-cards", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const event = await storage.getStudyEventById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      if (!event.cardId) {
+        return res.status(400).json({ message: "Evento nao possui card configurado" });
+      }
+      
+      const lessons = await storage.getStudyEventLessons(id);
+      if (lessons.length === 0) {
+        return res.status(400).json({ message: "Evento nao possui licoes" });
+      }
+      
+      const completedUserIds = await storage.getUsersWhoCompletedEvent(id, lessons.length);
+      let cardsDistributed = 0;
+      
+      for (const userId of completedUserIds) {
+        // Check if user already has this card
+        const existingCard = await storage.getUserCard(userId, event.cardId);
+        if (existingCard) continue;
+        
+        const allProgress = await storage.getUserEventProgress(userId, id);
+        const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
+        const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
+        const avgPerformance = totalQs > 0 ? (totalCorrect / totalQs) * 100 : 0;
+        const anyHints = allProgress.some(p => p.usedHints);
+        
+        const rarity = calculateCardRarity(avgPerformance, anyHints);
+        await storage.awardUserCard({
+          userId,
+          cardId: event.cardId,
+          rarity,
+          sourceType: "event",
+          sourceId: id,
+          performance: avgPerformance,
+        });
+        cardsDistributed++;
+      }
+      
+      console.log(`[Admin Card Distribution] Distributed ${cardsDistributed} cards for event ${id}`);
+      await logAuditAction(req.user?.id, "create", "user_cards", id, `${cardsDistributed} cards distribuidos`, req);
+      res.json({ message: "Cards distribuidos com sucesso", cardsDistributed, totalEligible: completedUserIds.length });
+    } catch (error) {
+      console.error("Distribute cards error:", error);
+      res.status(500).json({ message: "Erro ao distribuir cards" });
+    }
+  });
+
   // === ROTAS ADMIN - LIÇÕES DE EVENTOS ===
 
   // Listar licoes de um evento (admin)

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { CollectibleCard } from "@/components/study/CollectibleCard";
 import { 
   Trophy, 
   Flame, 
@@ -20,7 +21,8 @@ import {
   Calendar,
   CheckCircle,
   Loader2,
-  Lock
+  Lock,
+  Sparkles
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -170,6 +172,30 @@ export default function ProfilePage() {
 
   const { data: recentActivities = [] } = useQuery<RecentActivity[]>({
     queryKey: ['/api/study/profile/activities'],
+    enabled: isAuthenticated,
+  });
+
+  interface UserCardData {
+    id: number;
+    cardId: number;
+    rarity: string;
+    earnedAt: string;
+    performance: number | null;
+    card: {
+      id: number;
+      name: string;
+      description: string | null;
+      imageUrl: string | null;
+      type: string;
+    };
+    source?: {
+      type: string;
+      name: string;
+    };
+  }
+
+  const { data: userCards = [] } = useQuery<UserCardData[]>({
+    queryKey: ['/api/study/cards'],
     enabled: isAuthenticated,
   });
 
@@ -538,13 +564,57 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
+        {userCards.length > 0 && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.42 }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Minha Colecao
+              </h3>
+              <Button 
+                variant="ghost" 
+                className="text-sm px-2"
+                style={{ color: "#8B5CF6" }}
+                onClick={() => setLocation("/study/cards")}
+                data-testid="button-view-all-cards"
+              >
+                Ver todas
+              </Button>
+            </div>
+            
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+              {userCards.slice(0, 4).map((userCard) => (
+                <div key={userCard.id} className="flex-shrink-0">
+                  <CollectibleCard
+                    card={{
+                      id: userCard.card.id,
+                      name: userCard.card.name,
+                      description: userCard.card.description,
+                      imageUrl: userCard.card.imageUrl,
+                      type: userCard.card.type as "season" | "event",
+                      rarity: userCard.rarity as "common" | "rare" | "epic" | "legendary",
+                    }}
+                    size="sm"
+                    showName
+                    data-testid={`card-profile-${userCard.id}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.45 }}
         >
           <Card className="p-4">
-            <h3 className="text-lg font-bold text-foreground mb-4">Estatísticas</h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Estatisticas</h3>
             <div className="grid grid-cols-2 gap-3">
               <div 
                 className="p-4 rounded-xl text-center"

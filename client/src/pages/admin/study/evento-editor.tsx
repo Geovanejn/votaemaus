@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { 
   ArrowLeft,
   Loader2,
@@ -17,6 +18,11 @@ import {
   ImageIcon,
   Eye,
   BookOpen,
+  Play,
+  Square,
+  Unlock,
+  AlertTriangle,
+  Trophy,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -110,12 +116,80 @@ export default function EventoEditorPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id] });
       toast({
         title: "Evento atualizado",
-        description: "As alterações foram salvas com sucesso.",
+        description: "As alteracoes foram salvas com sucesso.",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", `/api/admin/study-events/${id}`, { status: "published" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id] });
+      toast({
+        title: "Evento publicado",
+        description: "O evento agora esta visivel para os membros.",
+      });
+    },
+  });
+
+  const endEventMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/admin/study-events/${id}/end`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id] });
+      toast({
+        title: "Evento encerrado",
+        description: "O evento foi encerrado e os cards foram distribuidos.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao encerrar evento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unlockLessonMutation = useMutation({
+    mutationFn: async (lessonId: number) => {
+      return apiRequest("POST", `/api/admin/study-events/${id}/lessons/${lessonId}/unlock`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events", id, "lessons"] });
+      toast({
+        title: "Licao liberada",
+        description: "A licao foi liberada para os membros.",
+      });
+    },
+  });
+
+  const distributeCardsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/admin/study-events/${id}/distribute-cards`);
+    },
+    onSuccess: async (response) => {
+      const result = await response.json();
+      toast({
+        title: "Cards distribuidos",
+        description: `${result.cardsDistributed || 0} cards foram distribuidos.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao distribuir cards",
         description: error.message,
         variant: "destructive",
       });
@@ -306,15 +380,84 @@ export default function EventoEditorPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4" />
+              Controles Manuais
+            </CardTitle>
+            <CardDescription>
+              Acoes manuais para gerenciamento do evento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {event.status === "draft" && (
+                <Button
+                  onClick={() => publishMutation.mutate()}
+                  disabled={publishMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                  data-testid="button-publish-event"
+                >
+                  {publishMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Publicar Evento
+                </Button>
+              )}
+              
+              {event.status === "published" && (
+                <Button
+                  onClick={() => {
+                    if (confirm("Tem certeza que deseja encerrar o evento? Os cards serao distribuidos para quem completou.")) {
+                      endEventMutation.mutate();
+                    }
+                  }}
+                  disabled={endEventMutation.isPending}
+                  variant="destructive"
+                  data-testid="button-end-event"
+                >
+                  {endEventMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Square className="h-4 w-4 mr-2" />
+                  )}
+                  Encerrar Evento
+                </Button>
+              )}
+              
+              <Button
+                onClick={() => {
+                  if (confirm("Distribuir cards para todos que completaram o evento?")) {
+                    distributeCardsMutation.mutate();
+                  }
+                }}
+                disabled={distributeCardsMutation.isPending}
+                variant="outline"
+                data-testid="button-distribute-cards"
+              >
+                {distributeCardsMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trophy className="h-4 w-4 mr-2" />
+                )}
+                Distribuir Cards Manualmente
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {lessons && lessons.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <BookOpen className="h-4 w-4" />
-                Lições do Evento
+                Licoes do Evento
               </CardTitle>
               <CardDescription>
-                {lessons.length} lições criadas para este evento
+                {lessons.length} licoes criadas para este evento
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -333,9 +476,23 @@ export default function EventoEditorPage() {
                       </div>
                       <span className="font-medium">{lesson.title}</span>
                     </div>
-                    <Badge variant={lesson.status === "published" ? "default" : "outline"}>
-                      {lesson.status === "published" ? "Publicada" : "Rascunho"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {lesson.status !== "published" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => unlockLessonMutation.mutate(lesson.id)}
+                          disabled={unlockLessonMutation.isPending}
+                          data-testid={`button-unlock-lesson-${lesson.id}`}
+                        >
+                          <Unlock className="h-3 w-3 mr-1" />
+                          Liberar
+                        </Button>
+                      )}
+                      <Badge variant={lesson.status === "published" ? "default" : "outline"}>
+                        {lesson.status === "published" ? "Publicada" : "Rascunho"}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>

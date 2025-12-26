@@ -72,10 +72,16 @@ export function RespondaScreen({
     setShowResult(false);
 
     // Generate fill blank options if needed
-    if (currentQuestion?.type === "fill_blank" && currentQuestion.correctAnswer) {
-      setFillBlankOptions(generateFillBlankOptions(String(currentQuestion.correctAnswer)));
+    if (currentQuestion?.type === "fill_blank") {
+      const answer = String(currentQuestion.correctAnswer || "");
+      if (answer && answer !== "undefined" && answer !== "") {
+        setFillBlankOptions(generateFillBlankOptions(answer));
+      } else {
+        // Fallback: generate empty options array
+        setFillBlankOptions([]);
+      }
     }
-  }, [currentIndex, currentQuestion, onQuestionChange]);
+  }, [currentIndex]);
 
   const hasAnswer = useMemo(() => {
     switch (currentQuestion?.type) {
@@ -243,7 +249,9 @@ export function RespondaScreen({
                     <div className="flex gap-3">
                       {[true, false].map((value) => {
                         const isSelected = trueFalseAnswer === value;
-                        const isCorrect = value === currentQuestion.correctAnswer;
+                        // Convert correctAnswer to boolean safely
+                        const correctBool = currentQuestion.correctAnswer === true || currentQuestion.correctAnswer === "true" || currentQuestion.correctAnswer === "Verdadeiro";
+                        const isCorrect = value === correctBool;
                         const showCorrect = showResult && isCorrect;
                         const showIncorrect = showResult && isSelected && !isCorrect;
 

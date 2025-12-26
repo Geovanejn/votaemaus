@@ -150,7 +150,8 @@ export function RespondaScreen({
     if (!isLastQuestion) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onComplete(correctCount + (showResult && isAnswerCorrect() ? 1 : 0), totalQuestions);
+      // correctCount already includes this answer, no need to add again
+      onComplete(correctCount, totalQuestions);
     }
   };
 

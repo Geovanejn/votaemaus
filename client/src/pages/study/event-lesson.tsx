@@ -126,11 +126,19 @@ function StageCompleteModal({
     ? { gradient: "from-amber-400 to-yellow-500", glow: "shadow-amber-500/50", text: "text-amber-500" }
     : stageColors[stageType];
 
+  // Prevent closing by clicking outside for lesson complete modal
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !isLessonComplete) {
+      onClose();
+    }
+    // For lesson complete, only close via button click
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30">
-        <DialogHeader>
-          <DialogTitle className="text-center sr-only">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30 flex flex-col items-center">
+        <DialogHeader className="sr-only">
+          <DialogTitle>
             {isLessonComplete ? "Lição Completa" : `${stageLabels[stageType]} Concluído`}
           </DialogTitle>
         </DialogHeader>
@@ -140,7 +148,7 @@ function StageCompleteModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.15 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} blur-3xl`}
+          className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} blur-3xl pointer-events-none`}
         />
 
         {/* Shimmer effect */}
@@ -148,34 +156,37 @@ function StageCompleteModal({
           initial={{ x: "-100%" }}
           animate={{ x: "200%" }}
           transition={{ delay: 0.3, duration: 1.5, ease: "easeInOut" }}
-          className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+          className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
         />
         
-        <div className="text-center py-6 relative z-10 flex flex-col items-center">
+        <div className="text-center py-6 relative z-10 w-full flex flex-col items-center">
           {/* Icon with glowing ring */}
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", delay: 0.1, stiffness: 200 }}
-            className="relative mb-6 w-20 h-20"
+            className="relative mb-6 flex items-center justify-center"
+            style={{ width: 80, height: 80 }}
           >
             {/* Outer glowing ring */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className={`absolute -inset-2 rounded-full bg-gradient-to-br ${colors.gradient} blur-md opacity-60`}
+              className={`absolute inset-0 rounded-full bg-gradient-to-br ${colors.gradient} blur-md opacity-60`}
+              style={{ margin: -8 }}
             />
             
             {/* Pulsing ring animation */}
             <motion.div
               animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.2, 0.5] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className={`absolute -inset-2 rounded-full border-2 border-current ${colors.text}`}
+              className={`absolute inset-0 rounded-full border-2 border-current ${colors.text}`}
+              style={{ margin: -8 }}
             />
             
             {/* Icon container */}
-            <div className={`relative w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.glow}`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.glow}`}>
               <div className="text-white drop-shadow-lg">
                 {isLessonComplete ? (
                   <Trophy className="h-10 w-10" />
@@ -199,8 +210,9 @@ function StageCompleteModal({
                 transition={{ delay: 0.4 + i * 0.1, duration: 0.8 }}
                 className={`absolute ${colors.text}`}
                 style={{ 
-                  left: `calc(50% + ${Math.sin(i * 60 * Math.PI / 180) * 40}px)`,
-                  top: `calc(50% + ${Math.cos(i * 60 * Math.PI / 180) * 40}px)`
+                  left: 40 + Math.sin(i * 60 * Math.PI / 180) * 40,
+                  top: 40 + Math.cos(i * 60 * Math.PI / 180) * 40,
+                  transform: 'translate(-50%, -50%)'
                 }}
               >
                 <Sparkles className="h-3 w-3" />

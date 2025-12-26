@@ -132,14 +132,16 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className={`collectible-card-image ${imageHeightClasses[size]} mt-2 relative`}>
-          {imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
+        <div 
+          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 relative`}
+          style={imageUrl ? {
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          } : undefined}
+        >
+          {!imageUrl && (
             <div className="w-full h-full flex items-center justify-center bg-black/20">
               <IconComponent className="w-8 h-8 text-white/50" />
             </div>

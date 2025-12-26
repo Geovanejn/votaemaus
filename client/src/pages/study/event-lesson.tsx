@@ -126,12 +126,14 @@ function StageCompleteModal({
     ? { gradient: "from-amber-400 to-yellow-500", glow: "shadow-amber-500/50", text: "text-amber-500" }
     : stageColors[stageType];
 
+  const shouldBlockClose = stageType === "responda";
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isLessonComplete && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !shouldBlockClose && onClose()}>
       <DialogContent 
         className="sm:max-w-md overflow-hidden border-0 bg-gradient-to-br from-background via-background to-muted/30 flex flex-col items-center"
-        onInteractOutside={(e) => isLessonComplete && e.preventDefault()}
-        onEscapeKeyDown={(e) => isLessonComplete && e.preventDefault()}
+        onInteractOutside={(e) => shouldBlockClose && e.preventDefault()}
+        onEscapeKeyDown={(e) => shouldBlockClose && e.preventDefault()}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>

@@ -59,8 +59,8 @@ export function MediteScreen({
   }
 
   return (
-    <div className="flex flex-col min-h-screen p-4">
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
+    <div className="flex flex-col p-4">
+      <div className="max-w-2xl mx-auto w-full flex flex-col">
         {/* Título */}
         <h2 className="text-2xl font-bold mb-2">{lessonTitle}</h2>
 
@@ -90,9 +90,8 @@ export function MediteScreen({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex-1"
           >
-            <Card className="p-6 h-full">
+            <Card className="p-6">
               <div className="space-y-4">
                 {currentSection.title && (
                   <h3 className="text-xl font-semibold">{currentSection.title}</h3>
@@ -109,7 +108,7 @@ export function MediteScreen({
         </AnimatePresence>
 
         {/* Navegação */}
-        <div className="flex gap-3 mt-6 items-center justify-between">
+        <div className="flex gap-3 mt-4 items-center justify-between">
           <Button
             variant="outline"
             onClick={goPrev}

@@ -26,18 +26,41 @@ interface RespondaScreenProps {
   onQuestionChange?: (currentIndex: number) => void;
 }
 
-function generateFillBlankOptions(correctAnswer: string): string[] {
-  const optionsByType: Record<string, string[]> = {
-    noun: ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória"],
-    person: ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel"],
-    place: ["céu", "terra", "Jerusalém", "Israel", "Egito", "Babilônia", "Galileia", "Judeia", "Samaria", "Éden"]
-  };
-
-  const distractors = (optionsByType.noun || [])
-    .filter(d => d.toLowerCase() !== correctAnswer.toLowerCase())
-    .sort(() => Math.random() - 0.5);
-
-  const options = [correctAnswer, ...distractors.slice(0, 3)];
+function generateFillBlankOptions(correctAnswer: string, question?: string): string[] {
+  const verbosInfinitivo = ["amar", "salvar", "redimir", "perdoar", "libertar", "servir", "glorificar", "adorar", "orar", "crer", "seguir", "obedecer", "santificar", "curar", "buscar", "viver"];
+  const substantivosAbstratos = ["amor", "fé", "esperança", "graça", "paz", "alegria", "salvação", "vida", "verdade", "luz", "caminho", "palavra", "oração", "louvor", "glória", "justiça", "misericórdia", "bem"];
+  const pessoas = ["Cristo", "Jesus", "Deus", "Moisés", "Abraão", "Davi", "Paulo", "Pedro", "João", "Maria", "Salomão", "Elias", "Isaías", "Daniel"];
+  const adjetivos = ["santo", "fiel", "justo", "eterno", "perfeito", "bom", "grande", "verdadeiro", "digno", "forte", "sábio"];
+  
+  const answerLower = correctAnswer.toLowerCase().trim();
+  let candidates: string[] = [];
+  
+  const hasVerbContext = question && (
+    question.includes("para ___") || 
+    question.includes("devemos ___") || 
+    question.includes("podemos ___") ||
+    question.match(/\b(deve|pode|quer|precisa|vai)\s+___/)
+  );
+  
+  const hasAdjectiveContext = question && (
+    question.includes("é ___") || 
+    question.includes("foi ___") ||
+    question.includes("será ___") ||
+    question.match(/\b(são|eram|serão)\s+___/)
+  );
+  
+  if (hasVerbContext || verbosInfinitivo.some(v => v.toLowerCase() === answerLower)) {
+    candidates = verbosInfinitivo.filter(v => v.toLowerCase() !== answerLower);
+  } else if (hasAdjectiveContext || adjetivos.some(a => a.toLowerCase() === answerLower)) {
+    candidates = adjetivos.filter(a => a.toLowerCase() !== answerLower);
+  } else if (pessoas.some(p => p.toLowerCase() === answerLower)) {
+    candidates = pessoas.filter(p => p.toLowerCase() !== answerLower);
+  } else {
+    candidates = substantivosAbstratos.filter(s => s.toLowerCase() !== answerLower);
+  }
+  
+  const shuffled = candidates.sort(() => Math.random() - 0.5);
+  const options = [correctAnswer, ...shuffled.slice(0, 3)];
   return options.sort(() => Math.random() - 0.5);
 }
 
@@ -71,14 +94,27 @@ export function RespondaScreen({
     setFillBlankAnswer("");
     setShowResult(false);
 
-    // Generate fill blank options if needed
     if (currentQuestion?.type === "fill_blank") {
-      const answer = String(currentQuestion.correctAnswer || "");
-      if (answer && answer !== "undefined" && answer !== "") {
-        setFillBlankOptions(generateFillBlankOptions(answer));
+      const hasAIOptions = currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0;
+      
+      if (hasAIOptions && currentQuestion.options!.length >= 4) {
+        setFillBlankOptions([...currentQuestion.options!].sort(() => Math.random() - 0.5));
+      } else if (hasAIOptions && currentQuestion.options!.length >= 2) {
+        console.warn(`[fill_blank] Question has ${currentQuestion.options!.length} options, expected 4. Using available options.`);
+        const existing = currentQuestion.options!.slice();
+        const answer = String(currentQuestion.correctAnswer || existing[0] || "");
+        const generated = generateFillBlankOptions(answer, currentQuestion.question);
+        const merged = Array.from(new Set([...existing, ...generated])).slice(0, 4);
+        setFillBlankOptions(merged.sort(() => Math.random() - 0.5));
       } else {
-        // Fallback: generate empty options array
-        setFillBlankOptions([]);
+        const answer = String(currentQuestion.correctAnswer || "");
+        if (answer && answer !== "undefined" && answer !== "") {
+          console.warn(`[fill_blank] No AI options provided, generating fallback for: "${answer}"`);
+          setFillBlankOptions(generateFillBlankOptions(answer, currentQuestion.question));
+        } else {
+          console.error(`[fill_blank] Invalid question: no options and no correctAnswer`);
+          setFillBlankOptions([]);
+        }
       }
     }
   }, [currentIndex]);
@@ -189,8 +225,8 @@ export function RespondaScreen({
   }
 
   return (
-    <div className="flex flex-col min-h-screen p-4">
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
+    <div className="flex flex-col p-4">
+      <div className="max-w-2xl mx-auto w-full flex flex-col">
         {/* Barra de progresso */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -217,11 +253,10 @@ export function RespondaScreen({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="flex-1"
           >
-            <Card className="p-6 h-full flex flex-col">
+            <Card className="p-6 flex flex-col">
               {/* Texto da questão */}
-              <div className="mb-6 flex-1">
+              <div className="mb-4">
                 <p className="text-lg font-semibold mb-4">
                   {currentQuestion.question}
                 </p>
@@ -372,7 +407,7 @@ export function RespondaScreen({
         </AnimatePresence>
 
         {/* Navegação */}
-        <div className="flex gap-3 mt-6 items-center justify-between">
+        <div className="flex gap-3 mt-4 items-center justify-between">
           <Button
             variant="outline"
             onClick={handlePrev}

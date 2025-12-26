@@ -310,23 +310,22 @@ export default function MemberProfilePage() {
   const handleShareCard = async (platform: string) => {
     if (!selectedCard) return;
     
-    const text = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
-    const url = window.location.href;
+    const shareText = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
+    const shareUrl = window.location.href;
     
     setIsSharing(true);
     
     try {
       const imageBlob = await generateCardImage();
       
-      if (imageBlob && navigator.share && navigator.canShare) {
+      if (imageBlob && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
         const imageFile = new File([imageBlob], `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`, { 
           type: "image/png" 
         });
         
         const shareData = {
           files: [imageFile],
-          text: text,
-          url: url,
+          text: shareText,
         };
         
         if (navigator.canShare(shareData)) {
@@ -335,16 +334,14 @@ export default function MemberProfilePage() {
             title: "Compartilhado!",
             description: "Card compartilhado com sucesso.",
           });
-          setIsSharing(false);
           return;
         }
       }
       
-      fallbackShare(platform, text, url);
+      fallbackShare(platform, shareText, shareUrl);
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
-        console.error("Share error:", error);
-        fallbackShare(platform, text, url);
+        fallbackShare(platform, shareText, shareUrl);
       }
     } finally {
       setIsSharing(false);

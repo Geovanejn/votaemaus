@@ -15,6 +15,7 @@ interface StageCompleteModalProps {
   nextStage?: StageType | null;
   respondaCorrectAnswers?: number;
   totalRespondaQuestions?: number;
+  preventBackdropClose?: boolean;
 }
 
 const stageConfig = {
@@ -54,7 +55,8 @@ export function StageCompleteModal({
   stageType,
   nextStage,
   respondaCorrectAnswers = 0,
-  totalRespondaQuestions = 0
+  totalRespondaQuestions = 0,
+  preventBackdropClose = false
 }: StageCompleteModalProps) {
   const config = stageConfig[stageType];
   const Icon = config.icon;
@@ -84,7 +86,7 @@ export function StageCompleteModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/40"
-            onClick={onClose}
+            onClick={stageType === "responda" || preventBackdropClose ? undefined : onClose}
           />
           
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">

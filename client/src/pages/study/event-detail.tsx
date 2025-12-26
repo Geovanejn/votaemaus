@@ -87,7 +87,7 @@ function LessonItem({
   const isCompleted = progress?.completed || false;
 
   const handleClick = () => {
-    if (!isLocked) {
+    if (!isLocked && !isCompleted) {
       setLocation(`/study/events/${eventId}/lessons/${lesson.dayNumber}`);
     }
   };
@@ -101,7 +101,7 @@ function LessonItem({
     >
       <Card 
         className={`transition-all ${
-          isLocked ? "opacity-50" : isCompleted ? "border-green-500/50" : isInProgress ? "border-primary ring-2 ring-primary/20 hover-elevate cursor-pointer" : "hover-elevate cursor-pointer"
+          isLocked ? "opacity-50 cursor-not-allowed" : isCompleted ? "border-green-500/50 cursor-default" : isInProgress ? "border-primary ring-2 ring-primary/20 hover-elevate cursor-pointer" : "hover-elevate cursor-pointer"
         }`}
         onClick={handleClick}
         data-testid={`card-lesson-day-${dayNumber}`}

@@ -146,7 +146,7 @@ function UserProfileHeader({
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-lg">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-4 gap-2">
             <motion.div
               whileHover={{ scale: 1.03 }}
               className="flex flex-col items-center"

@@ -186,7 +186,8 @@ export default function ProfilePage() {
       name: string;
       description: string | null;
       imageUrl: string | null;
-      type: string;
+      sourceType: string;
+      sourceId: number;
     };
     source?: {
       type: string;
@@ -600,7 +601,7 @@ export default function ProfilePage() {
                           imageUrl={userCard.card.imageUrl}
                           rarity={userCard.rarity as "common" | "rare" | "epic" | "legendary"}
                           sourceType="event"
-                          size="sm"
+                          size="compact"
                           showLabel
                         />
                       </div>
@@ -639,7 +640,7 @@ export default function ProfilePage() {
                           imageUrl={userCard.card.imageUrl}
                           rarity={userCard.rarity as "common" | "rare" | "epic" | "legendary"}
                           sourceType="season"
-                          size="sm"
+                          size="compact"
                           showLabel
                         />
                       </div>

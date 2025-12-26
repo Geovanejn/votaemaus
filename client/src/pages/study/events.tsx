@@ -47,6 +47,9 @@ function getMonthLabel(startDate: string): string {
 }
 
 function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
+  // Check if manually ended by admin
+  if (event.status === "ended") return "ended";
+
   const now = new Date();
   const start = new Date(event.startDate);
   const end = new Date(event.endDate);
@@ -84,7 +87,7 @@ function EventCard({ event }: { event: StudyEvent }) {
   const daysUntilEnd = differenceInDays(endDate, now);
 
   const handleClick = () => {
-    if (!isLocked && !isEnded) {
+    if (!isLocked) {
       setLocation(`/study/events/${event.id}`);
     }
   };
@@ -216,7 +219,7 @@ function EventCard({ event }: { event: StudyEvent }) {
                 e.stopPropagation();
                 handleClick();
               }}
-              disabled={isLocked || isEnded}
+              disabled={isLocked}
               data-testid={`button-participate-${event.id}`}
             >
               {getButtonContent()}

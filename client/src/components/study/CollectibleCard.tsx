@@ -14,7 +14,7 @@ interface CollectibleCardProps {
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "compact";
 }
 
 const rarityLabels: Record<CardRarity, string> = {
@@ -46,30 +46,35 @@ export function CollectibleCard({
   const label = rarityLabels[rarity];
   
   const sizeClasses = {
+    compact: "w-[100px] h-[140px]",
     sm: orientation === "portrait" ? "w-[120px] h-[168px]" : "w-[168px] h-[120px]",
     md: orientation === "portrait" ? "w-[160px] h-[224px] sm:w-[200px] sm:h-[280px]" : "w-[224px] h-[160px] sm:w-[280px] sm:h-[200px]",
     lg: orientation === "portrait" ? "w-[240px] h-[336px]" : "w-[336px] h-[240px]",
   };
 
   const imageHeightClasses = {
+    compact: "h-[60px]",
     sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
     md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
     lg: orientation === "portrait" ? "h-[200px]" : "h-[140px]",
   };
 
   const badgeSizeClasses = {
+    compact: "w-7 h-7",
     sm: "w-8 h-8",
     md: "w-10 h-10 sm:w-12 sm:h-12",
     lg: "w-14 h-14",
   };
 
   const titleSizeClasses = {
+    compact: "text-[10px] leading-tight line-clamp-2 px-1",
     sm: "text-xs",
     md: "text-sm sm:text-base",
     lg: "text-lg",
   };
 
   const subtitleSizeClasses = {
+    compact: "text-[8px]",
     sm: "text-[10px]",
     md: "text-[10px] sm:text-xs",
     lg: "text-sm",

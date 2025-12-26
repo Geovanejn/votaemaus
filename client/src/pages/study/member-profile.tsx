@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -20,7 +20,8 @@ import {
   Target,
   Sparkles,
   Share2,
-  X
+  X,
+  Download
 } from "lucide-react";
 import { SiX, SiFacebook, SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import html2canvas from "html2canvas";
 
 interface AchievementWithLikes {
   id: number;
@@ -167,6 +169,8 @@ export default function MemberProfilePage() {
   const [selectedCard, setSelectedCard] = useState<UserCardWithDetails | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [cardAnimating, setCardAnimating] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const shareableCardRef = useRef<HTMLDivElement>(null);
   
   const { data: profile, isLoading } = useQuery<PublicMemberProfile>({
     queryKey: ["/api/study/member", userId],
@@ -266,12 +270,74 @@ export default function MemberProfilePage() {
     setTimeout(() => setCardAnimating(false), 1000);
   };
 
-  const handleShareCard = (platform: string) => {
+  const generateCardImage = async (): Promise<Blob | null> => {
+    if (!shareableCardRef.current) return null;
+    
+    try {
+      const canvas = await html2canvas(shareableCardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, "image/png", 1.0);
+      });
+    } catch (error) {
+      console.error("Error generating card image:", error);
+      return null;
+    }
+  };
+
+  const handleShareCard = async (platform: string) => {
     if (!selectedCard) return;
     
     const text = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
     const url = window.location.href;
     
+    setIsSharing(true);
+    
+    try {
+      const imageBlob = await generateCardImage();
+      
+      if (imageBlob && navigator.share && navigator.canShare) {
+        const imageFile = new File([imageBlob], `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`, { 
+          type: "image/png" 
+        });
+        
+        const shareData = {
+          files: [imageFile],
+          text: text,
+          url: url,
+        };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          toast({
+            title: "Compartilhado!",
+            description: "Card compartilhado com sucesso.",
+          });
+          setIsSharing(false);
+          return;
+        }
+      }
+      
+      fallbackShare(platform, text, url);
+    } catch (error) {
+      if ((error as Error).name !== "AbortError") {
+        console.error("Share error:", error);
+        fallbackShare(platform, text, url);
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const fallbackShare = (platform: string, text: string, url: string) => {
     let shareUrl = "";
     switch (platform) {
       case "twitter":
@@ -287,6 +353,41 @@ export default function MemberProfilePage() {
     
     if (shareUrl) {
       window.open(shareUrl, "_blank", "width=600,height=400");
+    }
+  };
+
+  const handleDownloadCard = async () => {
+    if (!selectedCard) return;
+    
+    setIsSharing(true);
+    
+    try {
+      const imageBlob = await generateCardImage();
+      
+      if (imageBlob) {
+        const url = URL.createObjectURL(imageBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Download concluido!",
+          description: "A imagem do card foi salva.",
+        });
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Erro",
+        description: "Nao foi possivel baixar a imagem.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -511,6 +612,137 @@ export default function MemberProfilePage() {
         </div>
       )}
 
+      {/* Hidden Shareable Card for html2canvas capture */}
+      {selectedCard && (
+        <div 
+          ref={shareableCardRef}
+          className="fixed -left-[9999px] -top-[9999px]"
+          style={{ width: "320px" }}
+        >
+          <div 
+            style={{
+              position: 'relative',
+              width: '320px',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
+              padding: '24px',
+            }}
+          >
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '8px',
+                background: selectedCard.rarity === 'legendary' 
+                  ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                  : selectedCard.rarity === 'epic'
+                  ? 'linear-gradient(90deg, #a855f7, #9333ea)'
+                  : selectedCard.rarity === 'rare'
+                  ? 'linear-gradient(90deg, #3b82f6, #2563eb)'
+                  : 'linear-gradient(90deg, #6b7280, #4b5563)',
+              }}
+            />
+            
+            <div style={{ 
+              width: '100%', 
+              aspectRatio: '1', 
+              borderRadius: '12px', 
+              overflow: 'hidden', 
+              marginBottom: '16px',
+              border: `4px solid ${
+                selectedCard.rarity === 'legendary' ? '#fbbf24'
+                : selectedCard.rarity === 'epic' ? '#a855f7'
+                : selectedCard.rarity === 'rare' ? '#3b82f6'
+                : '#6b7280'
+              }`,
+            }}>
+              {selectedCard.card.imageUrl ? (
+                <img 
+                  src={selectedCard.card.imageUrl} 
+                  alt={selectedCard.card.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: selectedCard.rarity === 'legendary' 
+                    ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+                    : selectedCard.rarity === 'epic'
+                    ? 'linear-gradient(135deg, #a855f7, #9333ea)'
+                    : selectedCard.rarity === 'rare'
+                    ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                    : 'linear-gradient(135deg, #6b7280, #4b5563)',
+                }}>
+                  <Sparkles style={{ width: '64px', height: '64px', color: '#fff' }} />
+                </div>
+              )}
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                color: '#fff',
+                marginBottom: '8px',
+              }}>
+                {selectedCard.card.name}
+              </h3>
+              
+              <div style={{
+                display: 'inline-block',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#fff',
+                background: selectedCard.rarity === 'legendary' 
+                  ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+                  : selectedCard.rarity === 'epic'
+                  ? 'linear-gradient(135deg, #a855f7, #9333ea)'
+                  : selectedCard.rarity === 'rare'
+                  ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                  : 'linear-gradient(135deg, #6b7280, #4b5563)',
+              }}>
+                {rarityLabels[selectedCard.rarity]}
+              </div>
+              
+              {selectedCard.event && (
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '12px' }}>
+                  Evento: {selectedCard.event.title}
+                </p>
+              )}
+              
+              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                Pontuacao: {selectedCard.score}%
+              </p>
+              
+              <div style={{
+                marginTop: '16px',
+                paddingTop: '16px',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}>
+                <Trophy style={{ width: '16px', height: '16px', color: '#a855f7' }} />
+                <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: 600 }}>
+                  DeoGlory
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Card Modal */}
       <Dialog open={showCardModal} onOpenChange={setShowCardModal}>
         <DialogContent className="max-w-sm p-0 overflow-hidden bg-transparent border-0">
@@ -531,6 +763,7 @@ export default function MemberProfilePage() {
                   size="icon"
                   className="absolute top-2 right-2"
                   onClick={() => setShowCardModal(false)}
+                  disabled={isSharing}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -585,34 +818,65 @@ export default function MemberProfilePage() {
                 </div>
                 
                 <div className="border-t pt-4">
-                  <p className="text-sm text-center text-muted-foreground mb-3">Compartilhar</p>
+                  <p className="text-sm text-center text-muted-foreground mb-3">
+                    {isSharing ? "Gerando imagem..." : "Compartilhar"}
+                  </p>
                   <div className="flex justify-center gap-3">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleShareCard("whatsapp")}
                       className="bg-green-500 text-white border-0"
+                      disabled={isSharing}
                       data-testid="button-share-whatsapp"
                     >
-                      <SiWhatsapp className="h-5 w-5" />
+                      {isSharing ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <SiWhatsapp className="h-5 w-5" />
+                      )}
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleShareCard("twitter")}
                       className="bg-black text-white border-0"
+                      disabled={isSharing}
                       data-testid="button-share-twitter"
                     >
-                      <SiX className="h-5 w-5" />
+                      {isSharing ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <SiX className="h-5 w-5" />
+                      )}
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleShareCard("facebook")}
                       className="bg-blue-600 text-white border-0"
+                      disabled={isSharing}
                       data-testid="button-share-facebook"
                     >
-                      <SiFacebook className="h-5 w-5" />
+                      {isSharing ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <SiFacebook className="h-5 w-5" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleDownloadCard}
+                      className="bg-gray-600 text-white border-0"
+                      disabled={isSharing}
+                      data-testid="button-download-card"
+                    >
+                      {isSharing ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Download className="h-5 w-5" />
+                      )}
                     </Button>
                   </div>
                 </div>

@@ -79,6 +79,12 @@ function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
   const start = new Date(event.startDate);
   const end = new Date(event.endDate);
   
+  // If event is force unlocked, it's active even if date hasn't started
+  if (event.forceUnlock && event.status === "published") {
+    if (isAfter(now, end)) return "ended";
+    return "active";
+  }
+  
   if (isBefore(now, start)) return "upcoming";
   if (isAfter(now, end)) return "ended";
   return "active";

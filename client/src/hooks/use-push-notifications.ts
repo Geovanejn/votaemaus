@@ -39,7 +39,7 @@ export function usePushNotifications() {
   });
 
   useEffect(() => {
-    const checkSupport = async () => {
+    const checkSupportAndSync = async () => {
       const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
       
       if (!isSupported) {
@@ -54,6 +54,31 @@ export function usePushNotifications() {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         isSubscribed = subscription !== null;
+        
+        if (subscription && permission === 'granted') {
+          const subscriptionJson = subscription.toJSON();
+          const token = localStorage.getItem('auth_token');
+          
+          if (token && subscriptionJson.keys?.p256dh && subscriptionJson.keys?.auth) {
+            try {
+              await fetch('/api/notifications/subscribe', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  endpoint: subscription.endpoint,
+                  p256dh: subscriptionJson.keys.p256dh,
+                  auth: subscriptionJson.keys.auth,
+                }),
+              });
+              console.log('[Push] Subscription synced with server');
+            } catch (syncError) {
+              console.log('[Push] Error syncing subscription:', syncError);
+            }
+          }
+        }
       } catch (error) {
         console.log('[Push] Error checking subscription:', error);
       }
@@ -66,7 +91,7 @@ export function usePushNotifications() {
       }));
     };
 
-    checkSupport();
+    checkSupportAndSync();
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {

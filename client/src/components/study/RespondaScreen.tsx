@@ -324,7 +324,7 @@ export function RespondaScreen({
                             data-testid={`button-option-${idx}`}
                           >
                             <div className="flex items-center justify-between">
-                              <span>{option}</span>
+                              <span><strong className="mr-2">{String.fromCharCode(65 + idx)})</strong>{option}</span>
                               {showResult && (
                                 <>
                                   {isCorrect && <CheckCircle2 className="h-5 w-5 text-green-500" />}

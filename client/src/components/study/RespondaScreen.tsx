@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, CircleHelp, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccessibilityToolbar } from "./AccessibilityToolbar";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
@@ -47,6 +47,8 @@ interface RespondaScreenProps {
   lessonTitle: string;
   questions: QuizQuestion[];
   streak: number;
+  hearts?: number;
+  maxHearts?: number;
   initialQuestionIndex?: number;
   initialCorrectCount?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
@@ -93,10 +95,30 @@ function generateFillBlankOptions(correctAnswer: string, question?: string): str
   return options.sort(() => Math.random() - 0.5);
 }
 
+function HeartsDisplay({ hearts, maxHearts }: { hearts: number; maxHearts: number }) {
+  return (
+    <div className="flex items-center gap-0.5" data-testid="hearts-display">
+      {Array.from({ length: maxHearts }).map((_, i) => (
+        <Heart
+          key={i}
+          className={cn(
+            "h-5 w-5 transition-all",
+            i < hearts 
+              ? "text-red-500 fill-red-500" 
+              : "text-muted-foreground/30"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function RespondaScreen({
   lessonTitle,
   questions,
   streak,
+  hearts = 5,
+  maxHearts = 5,
   initialQuestionIndex = 0,
   initialCorrectCount = 0,
   onAnswer,
@@ -110,7 +132,6 @@ export function RespondaScreen({
   const [fillBlankAnswer, setFillBlankAnswer] = useState("");
   const [fillBlankOptions, setFillBlankOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
-  // Initialize correctCount from persisted value (for resumed sessions)
   const [correctCount, setCorrectCount] = useState(initialCorrectCount);
 
   const { playCorrect, playWrong } = useSoundEffects();
@@ -121,7 +142,6 @@ export function RespondaScreen({
 
   useEffect(() => {
     onQuestionChange?.(currentIndex);
-    // Reset state for new question
     setSelectedAnswer(null);
     setTrueFalseAnswer(null);
     setFillBlankAnswer("");
@@ -179,7 +199,6 @@ export function RespondaScreen({
       }
       case "true_false": {
         answer = trueFalseAnswer;
-        // Use EXATAMENTE a mesma lógica do TrueFalseExercise
         const rawCorrect = currentQuestion.correctAnswer;
         const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
                       (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
@@ -187,14 +206,13 @@ export function RespondaScreen({
         
         isCorrect = trueFalseAnswer === isTrue;
 
-        // Logs de debug detalhados para monitorar a validação
         console.group("%c[DEBUG RespondaScreen] Validação Verdadeiro/Falso", "color: #ff9800; font-weight: bold;");
         console.log("Pergunta:", currentQuestion.question);
         console.log("Resposta do Banco (raw):", rawCorrect);
         console.log("Tipo do dado do Banco:", typeof rawCorrect);
         console.log("Interpretado como (isTrue):", isTrue);
         console.log("Resposta do Usuário:", trueFalseAnswer);
-        console.log("Resultado da Validação (isCorrect):", isCorrect ? "CORRETO ✅" : "ERRADO ❌");
+        console.log("Resultado da Validação (isCorrect):", isCorrect ? "CORRETO" : "ERRADO");
         console.groupEnd();
 
         break;
@@ -257,8 +275,16 @@ export function RespondaScreen({
   return (
     <div className="flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Header com acessibilidade */}
-        <div className="flex items-center justify-end gap-2 mb-4">
+        {/* Cabeçalho da sessão com corações */}
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10">
+            <CircleHelp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400" data-testid="session-title-responda">Responda</h3>
+            <p className="text-sm text-muted-foreground">{lessonTitle}</p>
+          </div>
+          <HeartsDisplay hearts={hearts} maxHearts={maxHearts} />
           <AccessibilityToolbar textContent={buildFullTextForSpeech(currentQuestion, fillBlankOptions)} />
         </div>
 
@@ -274,7 +300,7 @@ export function RespondaScreen({
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full bg-orange-500 transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / totalQuestions) * 100}%` }}
             />
           </div>
@@ -442,7 +468,7 @@ export function RespondaScreen({
                 <Button
                   onClick={checkAnswer}
                   disabled={!hasAnswer}
-                  className="w-full"
+                  className="w-full bg-orange-600 hover:bg-orange-700"
                   data-testid="button-confirm"
                 >
                   Confirmar
@@ -452,16 +478,15 @@ export function RespondaScreen({
           </motion.div>
         </AnimatePresence>
 
-        {/* Navegação - apenas indicador de progresso e botão próxima (sem voltar) */}
+        {/* Navegação */}
         <div className="flex gap-3 mt-4 items-center justify-center">
-          {/* Progress dots (apenas indicativo, não clicável) */}
           <div className="flex gap-2 flex-1 justify-center">
             {Array.from({ length: totalQuestions }).map((_, i) => (
               <div
                 key={i}
                 className={cn(
                   "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-primary" : i < currentIndex ? "w-2 bg-primary/50" : "w-2 bg-muted"
+                  i === currentIndex ? "w-6 bg-orange-500" : i < currentIndex ? "w-2 bg-orange-500/50" : "w-2 bg-muted"
                 )}
                 data-testid={`dot-${i}`}
               />
@@ -473,6 +498,7 @@ export function RespondaScreen({
               <Button
                 onClick={handleNext}
                 data-testid="button-responda-complete"
+                className="bg-orange-600 hover:bg-orange-700"
               >
                 Completar
                 <ChevronRight className="h-5 w-5 ml-2" />
@@ -481,6 +507,7 @@ export function RespondaScreen({
               <Button
                 onClick={handleNext}
                 data-testid="button-next-question"
+                className="bg-orange-600 hover:bg-orange-700"
               >
                 Proxima
                 <ChevronRight className="h-5 w-5 ml-2" />

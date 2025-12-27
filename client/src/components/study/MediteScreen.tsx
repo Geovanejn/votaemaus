@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccessibilityToolbar } from "./AccessibilityToolbar";
 
@@ -67,9 +67,15 @@ export function MediteScreen({
   return (
     <div className="flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Título e Acessibilidade */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <h2 className="text-2xl font-bold">{lessonTitle}</h2>
+        {/* Cabeçalho da sessão */}
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500/10">
+            <Heart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400" data-testid="session-title-medite">Medite</h3>
+            <p className="text-sm text-muted-foreground">{lessonTitle}</p>
+          </div>
           <AccessibilityToolbar textContent={textContent} />
         </div>
 
@@ -85,7 +91,7 @@ export function MediteScreen({
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full bg-purple-500 transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
             />
           </div>
@@ -136,7 +142,7 @@ export function MediteScreen({
                 onClick={() => setCurrentIndex(i)}
                 className={cn(
                   "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-primary" : "w-2 bg-muted"
+                  i === currentIndex ? "w-6 bg-purple-500" : "w-2 bg-muted"
                 )}
                 data-testid={`dot-${i}`}
               />
@@ -147,7 +153,7 @@ export function MediteScreen({
             <Button
               onClick={onComplete}
               data-testid="button-medite-complete"
-              className="flex-1 ml-2"
+              className="flex-1 ml-2 bg-purple-600 hover:bg-purple-700"
             >
               Continuar
               <ChevronRight className="h-5 w-5 ml-2" />

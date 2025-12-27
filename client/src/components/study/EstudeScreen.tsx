@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccessibilityToolbar } from "./AccessibilityToolbar";
 
@@ -10,11 +10,13 @@ interface StudySection {
   type: "verse" | "topic" | "conclusion";
   title?: string;
   content: string;
+  reference?: string;
 }
 
 interface EstudeScreenProps {
   lessonTitle: string;
   sections: StudySection[];
+  verseReference?: string;
   onComplete: () => void;
   onClose: () => void;
   initialIndex?: number;
@@ -24,6 +26,7 @@ interface EstudeScreenProps {
 export function EstudeScreen({
   lessonTitle,
   sections,
+  verseReference,
   onComplete,
   onClose,
   initialIndex = 0,
@@ -67,11 +70,29 @@ export function EstudeScreen({
   return (
     <div className="flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Título e Acessibilidade */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <h2 className="text-2xl font-bold">{lessonTitle}</h2>
+        {/* Cabeçalho da sessão */}
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/10">
+            <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400" data-testid="session-title-estude">Estude</h3>
+            <p className="text-sm text-muted-foreground">{lessonTitle}</p>
+          </div>
           <AccessibilityToolbar textContent={textContent} />
         </div>
+        
+        {/* Versículo base */}
+        {verseReference && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-amber-700 dark:text-amber-300" data-testid="verse-reference">
+                Texto base: {verseReference}
+              </span>
+            </div>
+          </div>
+        )}
         
         {/* Barra de progresso */}
         <div className="mb-6">
@@ -85,7 +106,7 @@ export function EstudeScreen({
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full bg-emerald-500 transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
             />
           </div>
@@ -136,7 +157,7 @@ export function EstudeScreen({
                 onClick={() => setCurrentIndex(i)}
                 className={cn(
                   "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-primary" : "w-2 bg-muted"
+                  i === currentIndex ? "w-6 bg-emerald-500" : "w-2 bg-muted"
                 )}
                 data-testid={`dot-${i}`}
               />
@@ -147,7 +168,7 @@ export function EstudeScreen({
             <Button
               onClick={onComplete}
               data-testid="button-estude-complete"
-              className="flex-1 ml-2"
+              className="flex-1 ml-2 bg-emerald-600 hover:bg-emerald-700"
             >
               Continuar
               <ChevronRight className="h-5 w-5 ml-2" />

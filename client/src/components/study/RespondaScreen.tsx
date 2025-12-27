@@ -16,6 +16,22 @@ function formatQuestionWithBlank(question: string): string {
   return escaped.replace(/_{3,}/g, '<span class="inline-block w-20 h-6 mx-1 border-2 border-dashed border-primary rounded align-middle"></span>');
 }
 
+function buildFullTextForSpeech(question: QuizQuestion, fillBlankOptions?: string[]): string {
+  let text = question.question.replace(/_{3,}/g, "lacuna");
+  
+  if (question.type === "multiple_choice" && question.options) {
+    text += ". Alternativas: ";
+    text += question.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt}`).join(". ");
+  } else if (question.type === "true_false") {
+    text += ". Alternativas: Verdadeiro ou Falso.";
+  } else if (question.type === "fill_blank" && fillBlankOptions) {
+    text += ". Opções para preencher: ";
+    text += fillBlankOptions.join(", ");
+  }
+  
+  return text;
+}
+
 interface QuizQuestion {
   type: "multiple_choice" | "true_false" | "fill_blank";
   question: string;
@@ -237,7 +253,7 @@ export function RespondaScreen({
       <div className="max-w-2xl mx-auto w-full flex flex-col">
         {/* Header com acessibilidade */}
         <div className="flex items-center justify-end gap-2 mb-4">
-          <AccessibilityToolbar textContent={currentQuestion?.question || ""} />
+          <AccessibilityToolbar textContent={buildFullTextForSpeech(currentQuestion, fillBlankOptions)} />
         </div>
 
         {/* Barra de progresso */}
@@ -304,6 +320,7 @@ export function RespondaScreen({
                               showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
                               showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
                             )}
+                            style={{ fontSize: 'var(--study-font-size, 16px)' }}
                             data-testid={`button-option-${idx}`}
                           >
                             <div className="flex items-center justify-between">
@@ -345,6 +362,7 @@ export function RespondaScreen({
                               showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
                               showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
                             )}
+                            style={{ fontSize: 'var(--study-font-size, 16px)' }}
                             data-testid={`button-${value}`}
                           >
                             <div className="flex items-center justify-between">
@@ -377,12 +395,13 @@ export function RespondaScreen({
                               onClick={() => !showResult && setFillBlankAnswer(option)}
                               disabled={showResult}
                               className={cn(
-                                "p-3 rounded-lg font-medium transition-all border-2 text-sm",
+                                "p-3 rounded-lg font-medium transition-all border-2",
                                 !showResult && isSelected && "border-primary bg-primary/10",
                                 !showResult && !isSelected && "border-muted hover:border-primary/50",
                                 showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
                                 showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
                               )}
+                              style={{ fontSize: 'var(--study-font-size, 16px)' }}
                               data-testid={`button-fill-option-${idx}`}
                             >
                               <div className="flex items-center justify-center gap-2">

@@ -105,12 +105,12 @@ export function AccessibilityToolbar({ textContent, className }: AccessibilityTo
   }, [textContent, isSpeaking]);
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-1 bg-blue-500/20 dark:bg-blue-600/30 rounded-lg p-1", className)}>
       <Button
         variant="ghost"
         size="icon"
         onClick={cycleFontSize}
-        className="h-8 w-8"
+        className="h-8 w-8 text-blue-700 dark:text-blue-300"
         data-testid="button-font-size"
         title={`Tamanho: ${fontSize}px (clique para aumentar)`}
       >
@@ -122,7 +122,7 @@ export function AccessibilityToolbar({ textContent, className }: AccessibilityTo
           variant="ghost"
           size="icon"
           onClick={toggleSpeech}
-          className={cn("h-8 w-8", isSpeaking && "text-primary")}
+          className={cn("h-8 w-8 text-blue-700 dark:text-blue-300", isSpeaking && "text-blue-900 dark:text-blue-100")}
           data-testid="button-text-to-speech"
           title={isSpeaking ? "Parar leitura" : "Ler em voz alta"}
         >

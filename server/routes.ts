@@ -4188,6 +4188,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.savePushSubscription(userId, endpoint, p256dh, auth);
       
+      try {
+        await storage.removeAnonymousPushSubscription(endpoint);
+        console.log(`[Push] Migrated subscription from anonymous to user ${userId}`);
+      } catch (e) {
+      }
+      
+      console.log(`[Push] Subscription saved for user ${userId}`);
       res.json({ message: "Inscrito para notificacoes com sucesso" });
     } catch (error) {
       console.error("Subscribe push error:", error);

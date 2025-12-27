@@ -23,7 +23,39 @@ import {
   Users,
   Globe,
   BookOpen,
-  Star
+  Star,
+  // Additional icons for event themes
+  Church,
+  Cross,
+  Flame,
+  Crown,
+  Scroll,
+  Music,
+  Sun,
+  Moon,
+  Wheat,
+  TreePine,
+  Snowflake,
+  Compass,
+  Map,
+  Mountain,
+  Leaf,
+  Flower2,
+  HandHeart,
+  Handshake,
+  Target,
+  Lightbulb,
+  Zap,
+  Award,
+  Trophy,
+  Megaphone,
+  PartyPopper,
+  Drumstick,
+  Flag,
+  Bookmark,
+  GraduationCap,
+  Baby,
+  Home
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, isBefore, isAfter } from "date-fns";
@@ -186,12 +218,156 @@ function EventCard({ event }: { event: StudyEvent }) {
 
   const getThemeIcon = (theme: string) => {
     const t = theme.toLowerCase();
-    if (t.includes('natal')) return <Gift className="h-10 w-10 text-white/80" />;
-    if (t.includes('pascoa')) return <Heart className="h-10 w-10 text-white/80" />;
-    if (t.includes('juventude') || t.includes('jovem')) return <Users className="h-10 w-10 text-white/80" />;
-    if (t.includes('missoes') || t.includes('missão')) return <Globe className="h-10 w-10 text-white/80" />;
-    if (t.includes('reforma')) return <BookOpen className="h-10 w-10 text-white/80" />;
-    return <Star className="h-10 w-10 text-white/80" />;
+    const iconClass = "h-10 w-10 text-white/80";
+    
+    // Natal / Christmas - variety of festive icons
+    if (t.includes('natal') || t.includes('christmas') || t.includes('advento')) {
+      const natalIcons = [
+        <Star key="star" className={iconClass} />,
+        <Gift key="gift" className={iconClass} />,
+        <TreePine key="tree" className={iconClass} />,
+        <Snowflake key="snow" className={iconClass} />,
+        <Baby key="baby" className={iconClass} />,
+        <Bell key="bell" className={iconClass} />,
+      ];
+      return natalIcons[event.id % natalIcons.length];
+    }
+    
+    // Páscoa / Easter
+    if (t.includes('pascoa') || t.includes('páscoa') || t.includes('easter') || t.includes('ressurrei')) {
+      const pascoaIcons = [
+        <Cross key="cross" className={iconClass} />,
+        <Sun key="sun" className={iconClass} />,
+        <Heart key="heart" className={iconClass} />,
+        <Flower2 key="flower" className={iconClass} />,
+        <Crown key="crown" className={iconClass} />,
+      ];
+      return pascoaIcons[event.id % pascoaIcons.length];
+    }
+    
+    // Reforma Protestante
+    if (t.includes('reforma') || t.includes('protestant') || t.includes('lutero') || t.includes('calvino')) {
+      const reformaIcons = [
+        <BookOpen key="book" className={iconClass} />,
+        <Scroll key="scroll" className={iconClass} />,
+        <Church key="church" className={iconClass} />,
+        <Flame key="flame" className={iconClass} />,
+        <Lightbulb key="light" className={iconClass} />,
+        <Bookmark key="bookmark" className={iconClass} />,
+      ];
+      return reformaIcons[event.id % reformaIcons.length];
+    }
+    
+    // Missões / Missions
+    if (t.includes('missoes') || t.includes('missões') || t.includes('missão') || t.includes('mission') || t.includes('evangel')) {
+      const missoesIcons = [
+        <Globe key="globe" className={iconClass} />,
+        <Compass key="compass" className={iconClass} />,
+        <Map key="map" className={iconClass} />,
+        <Megaphone key="mega" className={iconClass} />,
+        <Flag key="flag" className={iconClass} />,
+        <Target key="target" className={iconClass} />,
+      ];
+      return missoesIcons[event.id % missoesIcons.length];
+    }
+    
+    // Dia do Jovem Presbiteriano / Youth
+    if (t.includes('jovem') || t.includes('juventude') || t.includes('ump') || t.includes('presbiter')) {
+      const jovemIcons = [
+        <Users key="users" className={iconClass} />,
+        <Flame key="flame" className={iconClass} />,
+        <Crown key="crown" className={iconClass} />,
+        <Trophy key="trophy" className={iconClass} />,
+        <Zap key="zap" className={iconClass} />,
+        <Award key="award" className={iconClass} />,
+        <GraduationCap key="grad" className={iconClass} />,
+      ];
+      return jovemIcons[event.id % jovemIcons.length];
+    }
+    
+    // Ação de Graças / Thanksgiving
+    if (t.includes('graças') || t.includes('gratidão') || t.includes('thanksgiving') || t.includes('colheita')) {
+      const gracasIcons = [
+        <Heart key="heart" className={iconClass} />,
+        <Wheat key="wheat" className={iconClass} />,
+        <Sun key="sun" className={iconClass} />,
+        <HandHeart key="handheart" className={iconClass} />,
+        <Leaf key="leaf" className={iconClass} />,
+        <Home key="home" className={iconClass} />,
+      ];
+      return gracasIcons[event.id % gracasIcons.length];
+    }
+    
+    // Semana de Oração / Prayer Week
+    if (t.includes('oração') || t.includes('oracao') || t.includes('prayer') || t.includes('intercess')) {
+      const oracaoIcons = [
+        <HandHeart key="handheart" className={iconClass} />,
+        <BookOpen key="book" className={iconClass} />,
+        <Heart key="heart" className={iconClass} />,
+        <Moon key="moon" className={iconClass} />,
+        <Church key="church" className={iconClass} />,
+      ];
+      return oracaoIcons[event.id % oracaoIcons.length];
+    }
+    
+    // Festa Junina / June Festival
+    if (t.includes('junina') || t.includes('junho') || t.includes('são joão') || t.includes('arraial') || t.includes('festa') || t.includes('tradição')) {
+      const juninaIcons = [
+        <Flame key="flame" className={iconClass} />,
+        <Music key="music" className={iconClass} />,
+        <PartyPopper key="party" className={iconClass} />,
+        <Drumstick key="drum" className={iconClass} />,
+        <Star key="star" className={iconClass} />,
+        <Wheat key="wheat" className={iconClass} />,
+      ];
+      return juninaIcons[event.id % juninaIcons.length];
+    }
+    
+    // Família / Family
+    if (t.includes('família') || t.includes('familia') || t.includes('family') || t.includes('lar') || t.includes('casamento')) {
+      const familiaIcons = [
+        <Home key="home" className={iconClass} />,
+        <Heart key="heart" className={iconClass} />,
+        <Users key="users" className={iconClass} />,
+        <Handshake key="handshake" className={iconClass} />,
+      ];
+      return familiaIcons[event.id % familiaIcons.length];
+    }
+    
+    // Estudo Bíblico / Bible Study
+    if (t.includes('bíblia') || t.includes('biblia') || t.includes('estudo') || t.includes('palavra') || t.includes('escritura')) {
+      const estudoIcons = [
+        <BookOpen key="book" className={iconClass} />,
+        <Scroll key="scroll" className={iconClass} />,
+        <Bookmark key="bookmark" className={iconClass} />,
+        <Lightbulb key="light" className={iconClass} />,
+        <GraduationCap key="grad" className={iconClass} />,
+      ];
+      return estudoIcons[event.id % estudoIcons.length];
+    }
+    
+    // Natureza / Creation
+    if (t.includes('criação') || t.includes('natureza') || t.includes('meio ambiente') || t.includes('creation')) {
+      const naturezaIcons = [
+        <Leaf key="leaf" className={iconClass} />,
+        <Mountain key="mountain" className={iconClass} />,
+        <Sun key="sun" className={iconClass} />,
+        <Flower2 key="flower" className={iconClass} />,
+        <TreePine key="tree" className={iconClass} />,
+      ];
+      return naturezaIcons[event.id % naturezaIcons.length];
+    }
+    
+    // Default - variety of general spiritual icons
+    const defaultIcons = [
+      <Star key="star" className={iconClass} />,
+      <Sparkles key="sparkles" className={iconClass} />,
+      <Crown key="crown" className={iconClass} />,
+      <Heart key="heart" className={iconClass} />,
+      <BookOpen key="book" className={iconClass} />,
+      <Flame key="flame" className={iconClass} />,
+    ];
+    return defaultIcons[event.id % defaultIcons.length];
   };
 
   const getStatusBadge = () => {

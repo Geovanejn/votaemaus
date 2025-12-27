@@ -57,6 +57,7 @@ import {
   notifyNewPrayerRequest, 
   notifyPrayerApproved,
   notifyNewComment,
+  notifyDevotionalComment,
   notifySeasonPublished,
   notifyNewLessonToAll
 } from "./notifications";
@@ -6872,6 +6873,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notifyNewComment(devotionalId, devotional.title, name.trim(), content.trim()).catch(err => 
           console.error("[Notifications] Error notifying new comment:", err)
         );
+        
+        // Notify devotional author if exists
+        if (devotional.createdBy) {
+          notifyDevotionalComment(devotional.createdBy, name.trim(), devotional.title, devotionalId).catch(err =>
+            console.error("[Notifications] Error notifying devotional author:", err)
+          );
+        }
       }
       
       const message = shouldAutoApprove 

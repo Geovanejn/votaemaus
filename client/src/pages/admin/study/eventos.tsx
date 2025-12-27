@@ -310,12 +310,20 @@ export default function AdminEventosPage() {
                                   const isFuture = now < startDate;
                                   
                                   if (isFuture) {
-                                    const choice = confirm(
-                                      "O evento tem data futura. Deseja liberar IMEDIATAMENTE para os membros?\n\n" +
-                                      "OK = Liberar agora (acesso imediato)\n" +
-                                      "Cancelar = Aguardar data de início (bloqueado até a data)"
+                                    // First confirm publication
+                                    if (!confirm("Publicar este evento agora?")) {
+                                      return; // User cancelled publication
+                                    }
+                                    // Then ask about immediate access - default YES for liberation
+                                    const wantToSchedule = confirm(
+                                      "O evento começa em uma data futura.\n\n" +
+                                      "Deseja AGENDAR para a data de início?\n\n" +
+                                      "OK = Agendar (bloqueado até " + format(startDate, "dd/MM") + ")\n" +
+                                      "Cancelar = Liberar AGORA (acesso imediato)"
                                     );
-                                    publishMutation.mutate({ eventId: event.id, forceUnlock: choice });
+                                    // If user wants to schedule (OK), forceUnlock = false
+                                    // If user cancels (wants immediate), forceUnlock = true
+                                    publishMutation.mutate({ eventId: event.id, forceUnlock: !wantToSchedule });
                                   } else {
                                     publishMutation.mutate({ eventId: event.id, forceUnlock: false });
                                   }

@@ -94,11 +94,16 @@ export async function sendPushNotification(
     await storage.updatePushSubscriptionLastUsed(subscription.id);
     return true;
   } catch (error: any) {
-    console.error("[Push] Error sending notification:", error.message || error);
+    const statusCode = error.statusCode || error.status;
+    console.error(`[Push] Error sending notification (status ${statusCode}):`, error.message || error);
     
-    if (error.statusCode === 410 || error.statusCode === 404) {
-      console.log(`[Push] Subscription expired/invalid, removing: ${subscription.endpoint.substring(0, 50)}...`);
-      await storage.deletePushSubscription(subscription.userId, subscription.endpoint);
+    if (statusCode === 410 || statusCode === 404 || statusCode === 401) {
+      console.log(`[Push] Subscription expired/invalid (${statusCode}), removing: ${subscription.endpoint.substring(0, 50)}...`);
+      try {
+        await storage.deletePushSubscription(subscription.userId, subscription.endpoint);
+      } catch (e) {
+        console.error("[Push] Failed to delete invalid subscription:", e);
+      }
     }
     
     return false;

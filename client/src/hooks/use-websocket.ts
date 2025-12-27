@@ -15,6 +15,13 @@ const stateListeners = new Set<(connected: boolean, connecting: boolean) => void
 
 function getAuthToken(): string | null {
   try {
+    // First, try to get token directly (main auth storage)
+    const token = localStorage.getItem("token");
+    if (token) {
+      return token;
+    }
+    
+    // Fallback: try "auth" object format
     const authData = localStorage.getItem("auth");
     if (authData) {
       const parsed = JSON.parse(authData);

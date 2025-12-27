@@ -32,11 +32,42 @@ const authenticatedSockets = new Map<string, { userId: number; isAdmin: boolean;
 const onlineUsers = new Map<number, { socketId: string; joinedAt: Date; userName?: string; photoUrl?: string }>();
 
 export function initializeWebSocket(server: HTTPServer): SocketIOServer {
+  // Build allowed origins for CORS
+  const getAllowedOrigins = (): string | string[] => {
+    if (process.env.NODE_ENV !== "production") {
+      return "*";
+    }
+    
+    const origins: string[] = [];
+    
+    // Render production URL
+    if (process.env.RENDER_EXTERNAL_URL) {
+      origins.push(process.env.RENDER_EXTERNAL_URL);
+    }
+    
+    // Custom domain if configured
+    if (process.env.APP_URL) {
+      origins.push(process.env.APP_URL);
+    }
+    
+    // Replit URLs (for Replit deployment)
+    if (process.env.REPLIT_DEV_DOMAIN) {
+      origins.push(process.env.REPLIT_DEV_DOMAIN);
+    }
+    if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+      origins.push(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+    }
+    
+    // Common production domains
+    origins.push("https://emausump.onrender.com");
+    
+    // Filter empty strings
+    return origins.filter(o => o.length > 0);
+  };
+
   io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.NODE_ENV === "production" 
-        ? [process.env.REPLIT_DEV_DOMAIN || "", process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : ""]
-        : "*",
+      origin: getAllowedOrigins(),
       methods: ["GET", "POST"],
       credentials: true,
     },

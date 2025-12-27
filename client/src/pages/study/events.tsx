@@ -459,12 +459,18 @@ function EventCard({ event }: { event: StudyEvent }) {
               <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
                 {getThemeIcon(event.theme)}
               </div>
-              {isActive && daysUntilEnd <= 1 && (
-                <div className="absolute bottom-2 right-2 z-20 bg-gradient-to-r from-orange-500/90 to-red-500/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20 shadow-lg">
-                  <p className="text-xs text-white/90 mb-0.5 font-medium">Encerra em</p>
-                  <CountdownTimer targetDate={new Date(endDate.getTime() + 24*60*60*1000 - 1)} />
-                </div>
-              )}
+              {isActive && daysUntilEnd <= 1 && (() => {
+                const eventEndTime = new Date(endDate);
+                eventEndTime.setHours(23, 59, 59, 999);
+                const hasEnded = new Date() >= eventEndTime;
+                if (hasEnded) return null;
+                return (
+                  <div className="absolute bottom-2 right-2 z-20 bg-gradient-to-r from-orange-500/90 to-red-500/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20 shadow-lg pointer-events-none">
+                    <p className="text-xs text-white/90 mb-0.5 font-medium">Encerra em</p>
+                    <CountdownTimer targetDate={eventEndTime} />
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>

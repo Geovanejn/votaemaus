@@ -27,7 +27,9 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - Push notifications and in-app notifications for all active members.
     - Email notifications sent to ALL members (active and inactive) for: new devotionals, new events, new prayer requests, new seasons/magazines.
     - NotificationCenter component integrated in study page header for viewing notification history.
-    - Notifications for: new lessons unlocked, encouragement messages, achievements, streak reminders, inactivity reminders.
+    - Notifications for: new lessons unlocked, encouragement messages, achievements, streak reminders, inactivity reminders, birthday announcements, devotional comments.
+    - **Event Deadline Notifications**: Scheduler runs hourly, sends notifications at 24h/5h/1h before event ends. Uses cache system with lowerBound thresholds to prevent duplicate notifications.
+    - **Devotional Comment Notifications**: When someone comments on a devotional, the author (createdBy) is notified.
     - **Architecture Pattern**: All notification functions use `sendPushToAllMembers()` for batch processing. Push notifications are sent first, then in-app notifications in a separate loop. Each iteration has its own error handling to prevent one failure from blocking others.
     - **Payload Standard**: All notifications include `icon: "/logo.png"` explicitly in the payload for consistent display across devices.
 - **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality. Includes quota tracking with 5-minute cooldown to preserve quota for high-priority operations (PDF study generation) when low-priority schedulers hit rate limits.
@@ -60,6 +62,7 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - Images stored as base64 in database (Neon PostgreSQL) for production compatibility.
     - Event statistics displayed in Dashboard, Users, and Reports admin screens.
     - Cards displayed in member profiles with animated modal and social sharing (WhatsApp, Twitter/X, Facebook).
+    - **Countdown Timers**: "Inicia em" countdown for events starting within 1 day, "Encerra em" countdown for active events ending within 1 day (displays in corner of event card).
 
 ### System Design Choices
 - **Modular Project Structure**: Clear separation of client, server, and shared codebases.

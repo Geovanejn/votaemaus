@@ -824,7 +824,10 @@ export function initEventScheduler(): void {
 // Cache to track which deadline notifications have been sent (eventId-threshold)
 const sentDeadlineNotifications = new Map<string, number>();
 
-// Clean old entries from cache every hour (keep entries for 48 hours max)
+// Reference to cleanup interval to prevent duplicates on hot reloads
+let deadlineCacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+// Clean old entries from cache (keep entries for 48 hours max)
 function cleanDeadlineNotificationsCache(): void {
   const now = Date.now();
   const maxAge = 48 * 60 * 60 * 1000; // 48 hours in ms
@@ -835,72 +838,75 @@ function cleanDeadlineNotificationsCache(): void {
   }
 }
 
+// Start cache cleanup interval (call once at init, clears previous interval)
+function startDeadlineCacheCleanup(): void {
+  if (deadlineCacheCleanupInterval) {
+    clearInterval(deadlineCacheCleanupInterval);
+  }
+  // Clean cache every hour
+  deadlineCacheCleanupInterval = setInterval(cleanDeadlineNotificationsCache, 60 * 60 * 1000);
+}
+
 async function processEventDeadlineNotifications(): Promise<void> {
   console.log('[Event Deadline Scheduler] Checking for events approaching deadline...');
   
   try {
-    // Clean old cache entries
+    // Clean old cache entries at the start of each check
     cleanDeadlineNotificationsCache();
     
     const allEvents = await storage.getAllStudyEvents();
     const now = new Date();
     
-    // Get current time in Brazil timezone
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-    const brazilNow = new Date(formatter.format(now));
-    
     let notificationsSent = 0;
     
     for (const event of allEvents) {
-      // Only check published events
-      if (event.status !== 'published') continue;
-      
-      const endDate = new Date(event.endDate);
-      // Set end time to 23:59:59 of end date
-      endDate.setHours(23, 59, 59, 999);
-      
-      // Skip events that have already ended
-      if (endDate <= now) continue;
-      
-      const msRemaining = endDate.getTime() - now.getTime();
-      const hoursRemaining = msRemaining / (1000 * 60 * 60);
-      
-      // Define notification thresholds (in hours)
-      const thresholds = [
-        { hours: 24, label: '1 dia' },
-        { hours: 5, label: '5 horas' },
-        { hours: 1, label: '1 hora' },
-      ];
-      
-      for (const threshold of thresholds) {
-        const cacheKey = `${event.id}-${threshold.hours}h`;
+      // Wrap each event processing in try/catch to continue on individual failures
+      try {
+        // Only check published events
+        if (event.status !== 'published') continue;
         
-        // Check if we should send this notification:
-        // - Time remaining is within threshold range
-        // - Haven't sent this notification before
-        const shouldNotify = 
-          hoursRemaining <= threshold.hours && 
-          hoursRemaining > (threshold.hours === 24 ? 5 : threshold.hours === 5 ? 1 : 0) &&
-          !sentDeadlineNotifications.has(cacheKey);
+        const endDate = new Date(event.endDate);
+        // Set end time to 23:59:59 of end date
+        endDate.setHours(23, 59, 59, 999);
         
-        if (shouldNotify) {
-          try {
-            await notifyEventDeadline(event.id, event.title, threshold.label);
-            sentDeadlineNotifications.set(cacheKey, Date.now());
-            notificationsSent++;
-            console.log(`[Event Deadline Scheduler] Sent ${threshold.label} deadline notification for event "${event.title}"`);
-          } catch (error) {
-            console.error(`[Event Deadline Scheduler] Error sending notification for event ${event.id}:`, error);
+        // Skip events that have already ended
+        if (endDate <= now) continue;
+        
+        const msRemaining = endDate.getTime() - now.getTime();
+        const hoursRemaining = msRemaining / (1000 * 60 * 60);
+        
+        // Define notification thresholds (in hours) with explicit lower bounds
+        // Thresholds are ordered from largest to smallest
+        // Each threshold has a lower bound to prevent duplicate notifications
+        const thresholds = [
+          { hours: 24, lowerBound: 5, label: '1 dia' },   // 24h > remaining > 5h
+          { hours: 5, lowerBound: 1, label: '5 horas' },  // 5h > remaining > 1h
+          { hours: 1, lowerBound: 0, label: '1 hora' },   // 1h > remaining > 0h
+        ];
+        
+        for (const threshold of thresholds) {
+          const cacheKey = `${event.id}-${threshold.hours}h`;
+          
+          // Check if we should send this notification:
+          // - Time remaining is within threshold range (crossed upper limit but above lower bound)
+          // - Haven't sent this notification before
+          const isInRange = hoursRemaining <= threshold.hours && hoursRemaining > threshold.lowerBound;
+          const alreadySent = sentDeadlineNotifications.has(cacheKey);
+          
+          if (isInRange && !alreadySent) {
+            try {
+              await notifyEventDeadline(event.id, event.title, threshold.label);
+              sentDeadlineNotifications.set(cacheKey, Date.now());
+              notificationsSent++;
+              console.log(`[Event Deadline Scheduler] Sent ${threshold.label} deadline notification for event "${event.title}" (${hoursRemaining.toFixed(1)}h remaining)`);
+            } catch (notifyError) {
+              console.error(`[Event Deadline Scheduler] Error sending notification for event ${event.id}:`, notifyError);
+            }
           }
         }
+      } catch (eventError) {
+        console.error(`[Event Deadline Scheduler] Error processing event ${event.id}:`, eventError);
+        // Continue processing other events
       }
     }
     
@@ -911,6 +917,9 @@ async function processEventDeadlineNotifications(): Promise<void> {
 }
 
 export function initEventDeadlineScheduler(): void {
+  // Start the cache cleanup interval (prevents duplicates on hot reloads)
+  startDeadlineCacheCleanup();
+  
   cron.schedule('0 * * * *', processEventDeadlineNotifications, {
     timezone: 'America/Sao_Paulo'
   });

@@ -115,7 +115,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     stateListeners.add(handleStateChange);
     connectionCount++;
 
-    if (autoConnect && connectionCount === 1) {
+    // Always try to connect if autoConnect is enabled and socket doesn't exist or isn't connected
+    if (autoConnect && (!sharedSocket || !sharedSocket.connected)) {
       getOrCreateSocket(socketOptions);
     }
 
@@ -127,6 +128,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       stateListeners.delete(handleStateChange);
       connectionCount--;
 
+      // Only disconnect if no more listeners and we're not in production
+      // In production, keep the connection alive for better UX
       if (connectionCount === 0 && sharedSocket) {
         console.log("[WebSocket] No more listeners, disconnecting...");
         sharedSocket.disconnect();
@@ -302,8 +305,14 @@ export function usePresence(userId: number | null, userName?: string, photoUrl?:
   const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (!userId || !isConnected) return;
+    console.log("[Presence] Hook called - userId:", userId, "isConnected:", isConnected);
+    
+    if (!userId || !isConnected) {
+      console.log("[Presence] Skipping - userId:", userId, "isConnected:", isConnected);
+      return;
+    }
 
+    console.log("[Presence] Joining presence room for user:", userId);
     emit("join:presence", { userId, userName, photoUrl });
 
     const handlePresenceUpdate = (data: PresenceUpdate) => {

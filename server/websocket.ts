@@ -22,7 +22,8 @@ interface AuthenticatedSocket extends Socket {
 }
 
 interface DecodedToken {
-  userId: number;
+  id: number;         // JWT uses "id" not "userId"
+  userId?: number;    // Fallback for compatibility
   isAdmin?: boolean;
   isMember?: boolean;
 }
@@ -100,17 +101,21 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
     try {
       const secret = jwtSecret || "dev-only-secret-not-for-production";
       const decoded = jwt.verify(token, secret) as DecodedToken;
-      socket.userId = decoded.userId;
+      // JWT uses "id" field, not "userId" - support both for compatibility
+      const userId = decoded.id || decoded.userId;
+      socket.userId = userId;
       socket.isAdmin = decoded.isAdmin || false;
       socket.isMember = decoded.isMember || false;
       
-      authenticatedSockets.set(socket.id, {
-        userId: decoded.userId,
-        isAdmin: socket.isAdmin,
-        isMember: socket.isMember,
-      });
+      if (userId) {
+        authenticatedSockets.set(socket.id, {
+          userId: userId,
+          isAdmin: socket.isAdmin,
+          isMember: socket.isMember,
+        });
+      }
       
-      console.log(`[WebSocket] Authenticated connection: ${socket.id}, userId: ${decoded.userId}`);
+      console.log(`[WebSocket] Authenticated connection: ${socket.id}, userId: ${userId}`);
       next();
     } catch (error) {
       if (isProduction) {

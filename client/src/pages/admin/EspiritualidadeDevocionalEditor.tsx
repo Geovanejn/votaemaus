@@ -179,15 +179,15 @@ export default function EspiritualidadeDevocionalEditor() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
               <Card>
-                <CardHeader>
-                  <CardTitle>Informações Principais</CardTitle>
-                  <CardDescription>Título, versículo e conteúdo do devocional</CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Informacoes Principais</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Titulo, versiculo e conteudo do devocional</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
                   <FormField
                     control={form.control}
                     name="title"
@@ -281,14 +281,14 @@ export default function EspiritualidadeDevocionalEditor() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Music className="h-5 w-5" />
-                    Mídia
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Music className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Midia
                   </CardTitle>
-                  <CardDescription>YouTube, Instagram e Áudio</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">YouTube, Instagram e Audio</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
                   <FormField
                     control={form.control}
                     name="youtubeUrl"
@@ -434,13 +434,13 @@ export default function EspiritualidadeDevocionalEditor() {
               </Card>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
               <Card>
-                <CardHeader>
-                  <CardTitle>Publicação</CardTitle>
-                  <CardDescription>Controle de visibilidade</CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Publicacao</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Controle de visibilidade</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
                   <FormField
                     control={form.control}
                     name="isPublished"
@@ -494,11 +494,11 @@ export default function EspiritualidadeDevocionalEditor() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Detalhes</CardTitle>
-                  <CardDescription>Informações adicionais</CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Detalhes</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Informacoes adicionais</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
                   <FormField
                     control={form.control}
                     name="author"

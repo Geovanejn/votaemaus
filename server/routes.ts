@@ -6564,7 +6564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { title, verse, verseReference, content, contentHtml, summary, prayer, imageUrl, mobileCropData, author, youtubeUrl, instagramUrl, audioUrl, isPublished, isFeatured, scheduledAt } = req.body;
       
-      const devotional = await storage.updateDevotional(id, {
+      const updateData: any = {
         title,
         verse,
         verseReference,
@@ -6573,7 +6573,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary,
         prayer,
         imageUrl,
-        mobileCropData: mobileCropData ? JSON.stringify(mobileCropData) : null,
         author,
         youtubeUrl,
         instagramUrl,
@@ -6581,7 +6580,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublished,
         isFeatured,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null
-      } as any);
+      };
+      
+      if (mobileCropData !== undefined) {
+        updateData.mobileCropData = mobileCropData ? JSON.stringify(mobileCropData) : null;
+      }
+      
+      const devotional = await storage.updateDevotional(id, updateData);
       
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });

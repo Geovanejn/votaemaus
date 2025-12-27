@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
 import jwt from "jsonwebtoken";
+import { storage } from "./storage";
 
 let io: SocketIOServer | null = null;
 
@@ -182,7 +183,7 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
       console.log(`[WebSocket] Client ${socket.id} left study room for user ${userId}`);
     });
 
-    socket.on("join:presence", ({ userId, userName, photoUrl }: { userId: number; userName?: string; photoUrl?: string }) => {
+    socket.on("join:presence", async ({ userId, userName, photoUrl }: { userId: number; userName?: string; photoUrl?: string }) => {
       if (!socket.userId || socket.userId !== userId) {
         socket.emit("error", { message: "You can only join presence with your own user ID" });
         console.log(`[WebSocket] Unauthorized join:presence attempt from ${socket.id} for user ${userId}`);
@@ -191,6 +192,14 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
 
       socket.join("presence:study");
       onlineUsers.set(userId, { socketId: socket.id, joinedAt: new Date(), userName, photoUrl });
+      
+      // Update database with online status
+      try {
+        await storage.updateUserOnlineStatus(userId, true);
+        console.log(`[WebSocket] Updated DB: User ${userId} is now online`);
+      } catch (err) {
+        console.error(`[WebSocket] Failed to update online status in DB for user ${userId}:`, err);
+      }
       
       io?.to("presence:study").emit("presence:update", {
         type: "join",
@@ -209,10 +218,18 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
       console.log(`[WebSocket] User ${userId} (${userName}) joined presence room. Online: ${onlineUsers.size}`);
     });
 
-    socket.on("leave:presence", ({ userId }: { userId: number }) => {
+    socket.on("leave:presence", async ({ userId }: { userId: number }) => {
       socket.leave("presence:study");
       const userData = onlineUsers.get(userId);
       onlineUsers.delete(userId);
+      
+      // Update database with offline status
+      try {
+        await storage.updateUserOnlineStatus(userId, false);
+        console.log(`[WebSocket] Updated DB: User ${userId} is now offline`);
+      } catch (err) {
+        console.error(`[WebSocket] Failed to update offline status in DB for user ${userId}:`, err);
+      }
       
       io?.to("presence:study").emit("presence:update", {
         type: "leave",
@@ -230,7 +247,7 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
       console.log(`[WebSocket] User ${userId} left presence room. Online: ${onlineUsers.size}`);
     });
 
-    socket.on("disconnect", (reason) => {
+    socket.on("disconnect", async (reason) => {
       console.log(`[WebSocket] Client disconnected: ${socket.id}, reason: ${reason}`);
       
       authenticatedSockets.delete(socket.id);
@@ -248,9 +265,19 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
         }
       });
 
-      onlineUsers.forEach((data, userId) => {
+      // Handle presence disconnection and update database
+      for (const [userId, data] of onlineUsers.entries()) {
         if (data.socketId === socket.id) {
           onlineUsers.delete(userId);
+          
+          // Update database with offline status
+          try {
+            await storage.updateUserOnlineStatus(userId, false);
+            console.log(`[WebSocket] Updated DB: User ${userId} is now offline (disconnect)`);
+          } catch (err) {
+            console.error(`[WebSocket] Failed to update offline status in DB for user ${userId}:`, err);
+          }
+          
           io?.to("presence:study").emit("presence:update", {
             type: "leave",
             userId,
@@ -265,7 +292,7 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
           });
           console.log(`[WebSocket] User ${userId} disconnected from presence. Online: ${onlineUsers.size}`);
         }
-      });
+      }
     });
   });
 

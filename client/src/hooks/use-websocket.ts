@@ -41,16 +41,21 @@ function getOrCreateSocket(options: {
   reconnectionAttempts: number;
   reconnectionDelay: number;
 }): Socket {
+  console.log("[WebSocket] getOrCreateSocket called, existing socket:", !!sharedSocket, "connected:", sharedSocket?.connected);
+  
   if (sharedSocket && sharedSocket.connected) {
+    console.log("[WebSocket] Reusing existing connected socket");
     return sharedSocket;
   }
 
   if (sharedSocket) {
+    console.log("[WebSocket] Disconnecting existing socket");
     sharedSocket.disconnect();
     sharedSocket = null;
   }
 
   const token = getAuthToken();
+  console.log("[WebSocket] Creating new socket, has token:", !!token);
 
   sharedSocket = io({
     path: "/socket.io",
@@ -62,7 +67,7 @@ function getOrCreateSocket(options: {
   });
 
   sharedSocket.on("connect", () => {
-    console.log("[WebSocket] Connected:", sharedSocket?.id);
+    console.log("[WebSocket] Connected successfully:", sharedSocket?.id);
     notifyStateListeners(true, false);
   });
 

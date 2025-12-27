@@ -2268,25 +2268,47 @@ export class DatabaseStorage implements IStorage {
     if (questionType === 'multiple_choice') {
       const correctIndex = data.correctIndex;
       if (correctIndex !== undefined) {
-        return correctIndex === answer;
+        // Compare as numbers to ensure consistent comparison
+        return Number(correctIndex) === Number(answer);
       }
       return data.correctAnswer === answer;
     }
     if (questionType === 'true_false') {
-      const isTrue = data.isTrue;
-      if (isTrue !== undefined) {
-        return isTrue === answer;
+      // Normalize the correct answer using same logic as client
+      // This handles: boolean true/false, string 'true'/'false', 'verdadeiro'/'falso'
+      const rawCorrect = data.isTrue ?? data.correctAnswer;
+      let expectedAnswer: boolean;
+      
+      if (typeof rawCorrect === 'boolean') {
+        expectedAnswer = rawCorrect;
+      } else if (typeof rawCorrect === 'string') {
+        const normalized = rawCorrect.toLowerCase().trim();
+        expectedAnswer = normalized === 'true' || normalized === 'verdadeiro';
+      } else {
+        expectedAnswer = !!rawCorrect;
       }
-      return data.correctAnswer === answer;
+      
+      // Also normalize the user's answer in case it's a string
+      let userAnswer: boolean;
+      if (typeof answer === 'boolean') {
+        userAnswer = answer;
+      } else if (typeof answer === 'string') {
+        const normalized = answer.toLowerCase().trim();
+        userAnswer = normalized === 'true' || normalized === 'verdadeiro';
+      } else {
+        userAnswer = !!answer;
+      }
+      
+      return expectedAnswer === userAnswer;
     }
     if (questionType === 'fill_blank') {
       const correctAnswer = data.correctAnswer;
       if (correctAnswer) {
-        return correctAnswer.toLowerCase().trim() === String(answer).toLowerCase().trim();
+        return String(correctAnswer).toLowerCase().trim() === String(answer).toLowerCase().trim();
       }
       const correctAnswers = data.correctAnswers || [];
       return correctAnswers.some((a: string) => 
-        a.toLowerCase().trim() === String(answer).toLowerCase().trim()
+        String(a).toLowerCase().trim() === String(answer).toLowerCase().trim()
       );
     }
     return false;

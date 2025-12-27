@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AccessibilityToolbar } from "./AccessibilityToolbar";
 
 interface StudySection {
   type: "verse" | "topic" | "conclusion";
@@ -38,6 +39,11 @@ export function EstudeScreen({
   const isLastSlide = currentIndex === sections.length - 1;
   const totalSlides = sections.length;
 
+  const textContent = useMemo(() => {
+    if (!currentSection) return "";
+    return `${currentSection.title || ""} ${currentSection.content}`.replace(/<[^>]*>/g, " ").trim();
+  }, [currentSection]);
+
   const goNext = () => {
     if (!isLastSlide) {
       setCurrentIndex(prev => prev + 1);
@@ -61,8 +67,11 @@ export function EstudeScreen({
   return (
     <div className="flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Título */}
-        <h2 className="text-2xl font-bold mb-2">{lessonTitle}</h2>
+        {/* Título e Acessibilidade */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h2 className="text-2xl font-bold">{lessonTitle}</h2>
+          <AccessibilityToolbar textContent={textContent} />
+        </div>
         
         {/* Barra de progresso */}
         <div className="mb-6">
@@ -98,6 +107,7 @@ export function EstudeScreen({
                 )}
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none"
+                  style={{ fontSize: 'var(--study-font-size, 16px)' }}
                   dangerouslySetInnerHTML={{
                     __html: currentSection.content
                   }}

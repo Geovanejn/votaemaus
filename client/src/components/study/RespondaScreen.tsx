@@ -4,6 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AccessibilityToolbar } from "./AccessibilityToolbar";
+
+function formatQuestionWithBlank(question: string): string {
+  const escaped = question
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  return escaped.replace(/_{3,}/g, '<span class="inline-block w-20 h-6 mx-1 border-2 border-dashed border-primary rounded align-middle"></span>');
+}
 
 interface QuizQuestion {
   type: "multiple_choice" | "true_false" | "fill_blank";
@@ -224,6 +235,11 @@ export function RespondaScreen({
   return (
     <div className="flex flex-col p-4">
       <div className="max-w-2xl mx-auto w-full flex flex-col">
+        {/* Header com acessibilidade */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <AccessibilityToolbar textContent={currentQuestion?.question || ""} />
+        </div>
+
         {/* Barra de progresso */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -254,9 +270,17 @@ export function RespondaScreen({
             <Card className="p-6 flex flex-col">
               {/* Texto da questão */}
               <div className="mb-4">
-                <p className="text-lg font-semibold mb-4">
-                  {currentQuestion.question}
-                </p>
+                {currentQuestion.type === "fill_blank" ? (
+                  <p 
+                    className="text-lg font-semibold mb-4"
+                    style={{ fontSize: 'var(--study-font-size, 16px)' }}
+                    dangerouslySetInnerHTML={{ __html: formatQuestionWithBlank(currentQuestion.question) }}
+                  />
+                ) : (
+                  <p className="text-lg font-semibold mb-4" style={{ fontSize: 'var(--study-font-size, 16px)' }}>
+                    {currentQuestion.question}
+                  </p>
+                )}
 
                 {/* Opções */}
                 <div className="space-y-3">

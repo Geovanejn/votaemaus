@@ -35,6 +35,7 @@ export { SoundSettings } from "./SoundSettings";
 export { NotificationSettings } from "./NotificationSettings";
 export { WeeklyGoalsWidget } from "./weekly-goals-widget";
 export { CollectibleCard, CollectibleCardModal, CollectibleCardGrid } from "./CollectibleCard";
+export { AccessibilityToolbar, useStudyFontSize } from "./AccessibilityToolbar";
 
 export type { LessonStatus, LessonType } from "./LessonNode";
 export type { CardRarity, CardOrientation } from "./CollectibleCard";

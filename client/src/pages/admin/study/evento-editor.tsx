@@ -130,8 +130,8 @@ export default function EventoEditorPage() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("PATCH", `/api/admin/study-events/${id}`, { status: "published" });
+    mutationFn: async (forceUnlock: boolean = false) => {
+      return apiRequest("PATCH", `/api/admin/study-events/${id}`, { status: "published", forceUnlock });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/study-events"] });
@@ -422,7 +422,25 @@ export default function EventoEditorPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {event.status === "draft" && (
                 <Button
-                  onClick={() => publishMutation.mutate()}
+                  onClick={() => {
+                    const now = new Date();
+                    const isFuture = now < startDate;
+                    
+                    if (isFuture) {
+                      if (!confirm("Publicar este evento agora?")) {
+                        return;
+                      }
+                      const wantToSchedule = confirm(
+                        "O evento começa em uma data futura.\n\n" +
+                        "Deseja AGENDAR para a data de início?\n\n" +
+                        "OK = Agendar (bloqueado até " + format(startDate, "dd/MM") + ")\n" +
+                        "Cancelar = Liberar AGORA (acesso imediato)"
+                      );
+                      publishMutation.mutate(!wantToSchedule);
+                    } else {
+                      publishMutation.mutate(false);
+                    }
+                  }}
                   disabled={publishMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                   data-testid="button-publish-event"

@@ -88,3 +88,12 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 - **Drizzle ORM**: For database interaction.
 - **React Markdown**: For rendering Markdown content.
 - **Google Maps (indirect)**: Location links open in Google Maps, but direct integration has been removed.
+
+## Future Plans
+
+### Native App-Like Navigation
+A detailed plan for transforming the site navigation to feel like a native mobile app is documented in `docs/NATIVE_APP_PLAN.md`. This includes:
+- Bottom tab navigation for mobile
+- Page transitions with Framer Motion
+- PWA configuration
+- APK generation methods (PWABuilder, Bubblewrap, Capacitor)

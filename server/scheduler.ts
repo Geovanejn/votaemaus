@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, sendPushToAllMembers, sendPushToUser } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays } from "./utils/date";
@@ -88,6 +88,7 @@ async function sendBirthdayEmails(): Promise<void> {
           body: `Parabens, ${member.fullName.split(' ')[0]}! A UMP Emaus deseja um dia muito especial para voce!`,
           url: '/study/profile',
           tag: `birthday-${member.id}`,
+          icon: "/logo.png",
         });
         console.log(`[Birthday Scheduler] ✓ Sent birthday push to ${member.fullName}`);
         
@@ -118,6 +119,7 @@ async function sendBirthdayEmails(): Promise<void> {
       body: announcementBody,
       url: '/diretoria',
       tag: `birthday-announcement-${todayDateString}`,
+      icon: "/logo.png",
     };
     const pushResult = await sendPushToAllMembers(birthdayPayload);
     console.log(`[Birthday Scheduler] Birthday announcement push: ${pushResult.sent} success, ${pushResult.failed} failed`);
@@ -637,6 +639,7 @@ async function processEventLessonsRelease(): Promise<void> {
             body: `O evento "${event.title}" comecou! Participe e ganhe cards exclusivos.`,
             url: `/study/events/${event.id}`,
             tag: `event-${event.id}-start`,
+            icon: "/logo.png",
           };
           
           // Send real push notification to all members
@@ -758,6 +761,7 @@ async function processEventCardsDistribution(): Promise<void> {
           body: `O evento "${event.title}" foi encerrado!`,
           url: `/study/events`,
           tag: `event-${event.id}-end`,
+          icon: "/logo.png",
         };
         const pushResult = await sendPushToAllMembers(generalPayload);
         console.log(`[Event Scheduler] Event completion push: ${pushResult.sent} success, ${pushResult.failed} failed`);
@@ -770,6 +774,7 @@ async function processEventCardsDistribution(): Promise<void> {
             body: `Voce completou o evento "${event.title}" e ganhou um card ${rarityLabel}!`,
             url: `/study/profile`,
             tag: `card-${event.id}-${userId}`,
+            icon: "/logo.png",
           });
         }
         
@@ -814,4 +819,102 @@ export function initEventScheduler(): void {
   console.log('[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution };
+// ==================== EVENT DEADLINE NOTIFICATION SCHEDULER ====================
+
+// Cache to track which deadline notifications have been sent (eventId-threshold)
+const sentDeadlineNotifications = new Map<string, number>();
+
+// Clean old entries from cache every hour (keep entries for 48 hours max)
+function cleanDeadlineNotificationsCache(): void {
+  const now = Date.now();
+  const maxAge = 48 * 60 * 60 * 1000; // 48 hours in ms
+  for (const [key, timestamp] of sentDeadlineNotifications.entries()) {
+    if (now - timestamp > maxAge) {
+      sentDeadlineNotifications.delete(key);
+    }
+  }
+}
+
+async function processEventDeadlineNotifications(): Promise<void> {
+  console.log('[Event Deadline Scheduler] Checking for events approaching deadline...');
+  
+  try {
+    // Clean old cache entries
+    cleanDeadlineNotificationsCache();
+    
+    const allEvents = await storage.getAllStudyEvents();
+    const now = new Date();
+    
+    // Get current time in Brazil timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    const brazilNow = new Date(formatter.format(now));
+    
+    let notificationsSent = 0;
+    
+    for (const event of allEvents) {
+      // Only check published events
+      if (event.status !== 'published') continue;
+      
+      const endDate = new Date(event.endDate);
+      // Set end time to 23:59:59 of end date
+      endDate.setHours(23, 59, 59, 999);
+      
+      // Skip events that have already ended
+      if (endDate <= now) continue;
+      
+      const msRemaining = endDate.getTime() - now.getTime();
+      const hoursRemaining = msRemaining / (1000 * 60 * 60);
+      
+      // Define notification thresholds (in hours)
+      const thresholds = [
+        { hours: 24, label: '1 dia' },
+        { hours: 5, label: '5 horas' },
+        { hours: 1, label: '1 hora' },
+      ];
+      
+      for (const threshold of thresholds) {
+        const cacheKey = `${event.id}-${threshold.hours}h`;
+        
+        // Check if we should send this notification:
+        // - Time remaining is within threshold range
+        // - Haven't sent this notification before
+        const shouldNotify = 
+          hoursRemaining <= threshold.hours && 
+          hoursRemaining > (threshold.hours === 24 ? 5 : threshold.hours === 5 ? 1 : 0) &&
+          !sentDeadlineNotifications.has(cacheKey);
+        
+        if (shouldNotify) {
+          try {
+            await notifyEventDeadline(event.id, event.title, threshold.label);
+            sentDeadlineNotifications.set(cacheKey, Date.now());
+            notificationsSent++;
+            console.log(`[Event Deadline Scheduler] Sent ${threshold.label} deadline notification for event "${event.title}"`);
+          } catch (error) {
+            console.error(`[Event Deadline Scheduler] Error sending notification for event ${event.id}:`, error);
+          }
+        }
+      }
+    }
+    
+    console.log(`[Event Deadline Scheduler] Check completed. Sent ${notificationsSent} notification(s)`);
+  } catch (error) {
+    console.error('[Event Deadline Scheduler] Error:', error);
+  }
+}
+
+export function initEventDeadlineScheduler(): void {
+  cron.schedule('0 * * * *', processEventDeadlineNotifications, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications };

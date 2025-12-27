@@ -627,7 +627,9 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
     responda: { label: "Responda", icon: <Brain className="h-4 w-4" /> }
   };
 
-  if (isCompleted) {
+  // Only show completed screen if not currently showing the stage complete modal
+  // This prevents the modal from being replaced by the completed screen prematurely
+  if (isCompleted && !showStageComplete) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <header className="sticky top-0 z-50 bg-background border-b">

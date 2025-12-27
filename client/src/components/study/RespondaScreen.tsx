@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccessibilityToolbar } from "./AccessibilityToolbar";
+import { useSoundEffects } from "@/hooks/use-sound-effects";
 
 function formatQuestionWithBlank(question: string): string {
   const escaped = question
@@ -112,6 +113,8 @@ export function RespondaScreen({
   // Initialize correctCount from persisted value (for resumed sessions)
   const [correctCount, setCorrectCount] = useState(initialCorrectCount);
 
+  const { playCorrect, playWrong } = useSoundEffects();
+
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
   const totalQuestions = questions.length;
@@ -205,6 +208,9 @@ export function RespondaScreen({
 
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
+      playCorrect();
+    } else {
+      playWrong();
     }
 
     onAnswer(currentIndex, answer, isCorrect);

@@ -53,6 +53,9 @@ export type NotificationType =
   | "encouragement"
   | "inactivity_reminder"
   | "daily_verse"
+  | "prayer_liked"
+  | "devotional_comment"
+  | "event_deadline"
   | "system";
 
 export async function sendPushNotification(
@@ -91,10 +94,10 @@ export async function sendPushNotification(
     await storage.updatePushSubscriptionLastUsed(subscription.id);
     return true;
   } catch (error: any) {
-    console.error("[Push] Error sending notification:", error);
+    console.error("[Push] Error sending notification:", error.message || error);
     
     if (error.statusCode === 410 || error.statusCode === 404) {
-      console.log(`[Push] Subscription expired/invalid, removing: ${subscription.endpoint}`);
+      console.log(`[Push] Subscription expired/invalid, removing: ${subscription.endpoint.substring(0, 50)}...`);
       await storage.deletePushSubscription(subscription.userId, subscription.endpoint);
     }
     
@@ -106,25 +109,34 @@ export async function sendPushToUser(
   userId: number,
   payload: NotificationPayload
 ): Promise<number> {
-  const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
-  
-  if (subscriptions.length === 0) {
-    console.log(`[Push] No subscriptions found for user ${userId} - user needs to enable notifications`);
+  try {
+    const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+    
+    if (subscriptions.length === 0) {
+      return 0;
+    }
+    
+    let successCount = 0;
+
+    for (const subscription of subscriptions) {
+      try {
+        const success = await sendPushNotification(subscription, payload);
+        if (success) {
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`[Push] Error sending to subscription for user ${userId}:`, error);
+      }
+    }
+
+    if (successCount > 0) {
+      console.log(`[Push] Sent "${payload.title}" to user ${userId} (${successCount}/${subscriptions.length} success)`);
+    }
+    return successCount;
+  } catch (error) {
+    console.error(`[Push] Error in sendPushToUser for user ${userId}:`, error);
     return 0;
   }
-  
-  console.log(`[Push] Sending "${payload.title}" to user ${userId} (${subscriptions.length} subscription(s))`);
-  let successCount = 0;
-
-  for (const subscription of subscriptions) {
-    const success = await sendPushNotification(subscription, payload);
-    if (success) {
-      successCount++;
-      console.log(`[Push] Successfully sent to user ${userId}`);
-    }
-  }
-
-  return successCount;
 }
 
 export async function sendPushToUsers(
@@ -135,10 +147,15 @@ export async function sendPushToUsers(
   let failed = 0;
 
   for (const userId of userIds) {
-    const count = await sendPushToUser(userId, payload);
-    if (count > 0) {
-      sent++;
-    } else {
+    try {
+      const count = await sendPushToUser(userId, payload);
+      if (count > 0) {
+        sent++;
+      } else {
+        failed++;
+      }
+    } catch (error) {
+      console.error(`[Push] Error sending to user ${userId}:`, error);
       failed++;
     }
   }
@@ -165,6 +182,7 @@ export async function sendPushToAllMembers(
   const members = await storage.getActiveMembers();
   const userIds = members.map(m => m.id);
 
+  console.log(`[Push] Sending "${payload.title}" to ${userIds.length} active members`);
   return sendPushToUsers(userIds, payload);
 }
 
@@ -174,6 +192,7 @@ export async function sendPushToAllMembersIncludingInactive(
   const members = await storage.getAllMembers();
   const userIds = members.map(m => m.id);
 
+  console.log(`[Push] Sending "${payload.title}" to ${userIds.length} members (including inactive)`);
   return sendPushToUsers(userIds, payload);
 }
 
@@ -212,13 +231,9 @@ export async function sendAnonymousPushNotification(
     await storage.updateAnonymousPushSubscriptionLastUsed(subscription.id);
     return true;
   } catch (error: any) {
-    console.error("[Push] Error sending anonymous notification:", error);
-    
     if (error.statusCode === 410 || error.statusCode === 404) {
-      console.log(`[Push] Anonymous subscription expired/invalid, removing: ${subscription.endpoint}`);
       await storage.deleteAnonymousPushSubscriptionByEndpoint(subscription.endpoint);
     }
-    
     return false;
   }
 }
@@ -231,10 +246,14 @@ export async function sendPushToAllAnonymousVisitors(
   let failed = 0;
 
   for (const subscription of subscriptions) {
-    const success = await sendAnonymousPushNotification(subscription, payload);
-    if (success) {
-      sent++;
-    } else {
+    try {
+      const success = await sendAnonymousPushNotification(subscription, payload);
+      if (success) {
+        sent++;
+      } else {
+        failed++;
+      }
+    } catch (error) {
       failed++;
     }
   }
@@ -249,13 +268,17 @@ export async function createInAppNotification(
   body: string,
   data?: Record<string, any>
 ): Promise<void> {
-  await storage.createNotification({
-    userId,
-    type,
-    title,
-    body,
-    data: data ? JSON.stringify(data) : null,
-  });
+  try {
+    await storage.createNotification({
+      userId,
+      type,
+      title,
+      body,
+      data: data ? JSON.stringify(data) : null,
+    });
+  } catch (error) {
+    console.error(`[Notifications] Failed to create in-app notification for user ${userId}:`, error);
+  }
 }
 
 export async function notifyNewDevotional(
@@ -270,13 +293,16 @@ export async function notifyNewDevotional(
     body: `"${title}" foi publicado. Leia agora!`,
     url: `/devocionais/${devotionalId}`,
     tag: `devotional-${devotionalId}`,
+    icon: "/logo.png",
   };
 
+  // Send push notifications to all active members
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Devotional push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications (separate loop to not block push)
   const activeMembers = await storage.getActiveMembers();
-  console.log(`[Notifications] Sending devotional notification to ${activeMembers.length} active members`);
-  
   for (const member of activeMembers) {
-    await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
       "new_devotional",
@@ -289,8 +315,6 @@ export async function notifyNewDevotional(
   // Send email to ALL members (active and inactive) - deduplicated by email
   if (isEmailConfigured()) {
     const allMembers = await storage.getAllMembers();
-    
-    // Deduplicate by email address
     const emailMap = new Map<string, { email: string; fullName: string }>();
     for (const member of allMembers) {
       if (member.email && !emailMap.has(member.email.toLowerCase())) {
@@ -299,8 +323,6 @@ export async function notifyNewDevotional(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    
-    // Send emails in parallel batches for better performance
     const batchSize = 10;
     let emailsSent = 0;
     
@@ -311,16 +333,14 @@ export async function notifyNewDevotional(
           sendNewDevotionalEmail(recipient.email, recipient.fullName, title, devotionalId, imageUrl || null)
         )
       );
-      
       emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
     }
-    
-    console.log(`[Notifications] Devotional email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
+    console.log(`[Notifications] Devotional email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
 
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
-  console.log(`[Notifications] New devotional notification sent to ${activeMembers.length} active members and ${anonymousResult.sent} anonymous visitors`);
+  console.log(`[Notifications] Devotional anonymous push: ${anonymousResult.sent} sent`);
 }
 
 export async function notifyNewEvent(
@@ -337,13 +357,16 @@ export async function notifyNewEvent(
     body: `"${title}" foi adicionado a agenda. Confira!`,
     url: `/agenda/${eventId}`,
     tag: `event-${eventId}`,
+    icon: "/logo.png",
   };
 
+  // Send push notifications to all active members
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Event push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications
   const activeMembers = await storage.getActiveMembers();
-  console.log(`[Notifications] Sending event notification to ${activeMembers.length} active members`);
-  
   for (const member of activeMembers) {
-    await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
       "new_event",
@@ -353,11 +376,9 @@ export async function notifyNewEvent(
     );
   }
 
-  // Send email to ALL members (active and inactive) - deduplicated by email
+  // Send email to ALL members
   if (isEmailConfigured() && eventDate) {
     const allMembers = await storage.getAllMembers();
-    
-    // Deduplicate by email address
     const emailMap = new Map<string, { email: string; fullName: string }>();
     for (const member of allMembers) {
       if (member.email && !emailMap.has(member.email.toLowerCase())) {
@@ -366,8 +387,6 @@ export async function notifyNewEvent(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    
-    // Send emails in parallel batches for better performance
     const batchSize = 10;
     let emailsSent = 0;
     
@@ -378,16 +397,14 @@ export async function notifyNewEvent(
           sendNewEventEmail(recipient.email, recipient.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null)
         )
       );
-      
       emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
     }
-    
-    console.log(`[Notifications] Event email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
+    console.log(`[Notifications] Event email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
 
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
-  console.log(`[Notifications] New event notification sent to ${activeMembers.length} active members and ${anonymousResult.sent} anonymous visitors`);
+  console.log(`[Notifications] Event anonymous push: ${anonymousResult.sent} sent`);
 }
 
 export async function notifyNewPrayerRequest(
@@ -403,16 +420,15 @@ export async function notifyNewPrayerRequest(
     body: `${requesterName} enviou um pedido de oracao.`,
     url: "/oracao",
     tag: `prayer-${requestId}`,
+    icon: "/logo.png",
   };
 
   const pushResult = await sendPushToAllMembers(payload);
-  console.log(`[Notifications] Prayer request push complete: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  console.log(`[Notifications] Prayer request push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 
-  // Send email to ALL members (active and inactive) - deduplicated by email
+  // Send email to ALL members
   if (isEmailConfigured() && category && requestText) {
     const allMembers = await storage.getAllMembers();
-    
-    // Deduplicate by email address
     const emailMap = new Map<string, { email: string; fullName: string }>();
     for (const member of allMembers) {
       if (member.email && !emailMap.has(member.email.toLowerCase())) {
@@ -421,8 +437,6 @@ export async function notifyNewPrayerRequest(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    
-    // Send emails in parallel batches for better performance
     const batchSize = 10;
     let emailsSent = 0;
 
@@ -430,20 +444,12 @@ export async function notifyNewPrayerRequest(
       const batch = uniqueRecipients.slice(i, i + batchSize);
       const results = await Promise.allSettled(
         batch.map(recipient => 
-          sendNewPrayerRequestEmail(
-            recipient.email,
-            recipient.fullName,
-            requesterName,
-            category,
-            requestText
-          )
+          sendNewPrayerRequestEmail(recipient.email, recipient.fullName, requesterName, category, requestText)
         )
       );
-      
       emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
     }
-    
-    console.log(`[Notifications] Prayer request email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
+    console.log(`[Notifications] Prayer request email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
 }
 
@@ -458,16 +464,73 @@ export async function notifyPrayerApproved(
     body: "Seu pedido de oracao foi aprovado e esta no Mural da Oracao!",
     url: "/oracao",
     tag: `prayer-approved-${prayerRequestId}`,
+    icon: "/logo.png",
   };
 
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Prayer approved push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Prayer approved push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
   await createInAppNotification(
     userId,
     "prayer_approved",
     payload.title,
     payload.body,
     { prayerRequestId, url: payload.url }
+  );
+}
+
+export async function notifyPrayerLiked(
+  userId: number,
+  likerName: string,
+  prayerRequestId: number
+): Promise<void> {
+  console.log(`[Notifications] notifyPrayerLiked STARTED for user ${userId} from "${likerName}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Curtida no seu Pedido",
+    body: `${likerName} curtiu seu pedido de oracao`,
+    url: "/oracao",
+    tag: `prayer-like-${Date.now()}`,
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Prayer liked push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
+  await createInAppNotification(
+    userId,
+    "prayer_liked",
+    payload.title,
+    payload.body,
+    { likerName, prayerRequestId, url: payload.url }
+  );
+}
+
+export async function notifyDevotionalComment(
+  authorUserId: number,
+  commenterName: string,
+  devotionalTitle: string,
+  devotionalId: number
+): Promise<void> {
+  console.log(`[Notifications] notifyDevotionalComment for user ${authorUserId} from "${commenterName}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Novo Comentario",
+    body: `${commenterName} comentou em "${devotionalTitle}"`,
+    url: `/devocionais/${devotionalId}`,
+    tag: `devotional-comment-${Date.now()}`,
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToUser(authorUserId, payload);
+  console.log(`[Notifications] Devotional comment push to user ${authorUserId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
+  await createInAppNotification(
+    authorUserId,
+    "devotional_comment",
+    payload.title,
+    payload.body,
+    { commenterName, devotionalId, url: payload.url }
   );
 }
 
@@ -484,6 +547,7 @@ export async function notifyNewComment(
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: "/admin/espiritualidade/comentarios",
     tag: `comment-${devotionalId}`,
+    icon: "/logo.png",
   };
 
   const result = await sendPushToSecretaria("espiritualidade", payload);
@@ -499,13 +563,11 @@ export async function notifyNewComment(
 
     for (const user of uniqueUsers) {
       if (user.email) {
-        await sendNewCommentEmail(
-          user.email,
-          user.fullName,
-          commenterName,
-          devotionalTitle,
-          commentText
-        );
+        try {
+          await sendNewCommentEmail(user.email, user.fullName, commenterName, devotionalTitle, commentText);
+        } catch (error) {
+          console.error(`[Notifications] Failed to send comment email to ${user.email}`);
+        }
       }
     }
     console.log(`[Notifications] Comment email sent to ${uniqueUsers.length} espiritualidade members`);
@@ -522,16 +584,19 @@ export async function notifySeasonPublished(
   
   const payload: NotificationPayload = {
     title: "Nova Revista DeoGlory!",
-    body: `"${seasonTitle}" está disponível. Comece a estudar agora!`,
+    body: `"${seasonTitle}" esta disponivel. Comece a estudar agora!`,
     url: "/study",
     tag: `season-${seasonId}`,
+    icon: "/logo.png",
   };
 
+  // Send push notifications to all active members
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Season push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications
   const activeMembers = await storage.getActiveMembers();
-  console.log(`[Notifications] Sending season notification to ${activeMembers.length} active members`);
-  
   for (const member of activeMembers) {
-    await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
       "season_published",
@@ -541,11 +606,9 @@ export async function notifySeasonPublished(
     );
   }
 
-  // Send email to ALL members (active and inactive) - deduplicated by email
+  // Send email to ALL members
   if (isEmailConfigured()) {
     const allMembers = await storage.getAllMembers();
-    
-    // Deduplicate by email address
     const emailMap = new Map<string, { email: string; fullName: string }>();
     for (const member of allMembers) {
       if (member.email && !emailMap.has(member.email.toLowerCase())) {
@@ -554,8 +617,6 @@ export async function notifySeasonPublished(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    
-    // Send emails in parallel batches for better performance
     const batchSize = 10;
     let emailsSent = 0;
     
@@ -566,14 +627,12 @@ export async function notifySeasonPublished(
           sendSeasonPublishedEmail(recipient.email, recipient.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null)
         )
       );
-      
       emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
     }
-    
-    console.log(`[Notifications] Season email sent to ${emailsSent}/${uniqueRecipients.length} members (all active and inactive)`);
+    console.log(`[Notifications] Season email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
 
-  console.log(`[Notifications] Season published notification sent to ${activeMembers.length} active members`);
+  console.log(`[Notifications] Season published notification complete`);
 }
 
 export async function notifyLessonAvailable(
@@ -588,10 +647,12 @@ export async function notifyLessonAvailable(
     body: `"${lessonTitle}" de "${seasonTitle}" esta liberada.`,
     url: "/study",
     tag: "lesson-available",
+    icon: "/logo.png",
   };
 
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Lesson available push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Lesson available push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
   await createInAppNotification(
     userId,
     "lesson_available",
@@ -612,13 +673,16 @@ export async function notifyNewLessonToAll(
     body: `"${lessonTitle}" de "${seasonTitle}" foi liberada. Estude agora!`,
     url: "/study",
     tag: "new-lesson",
+    icon: "/logo.png",
   };
 
+  // Send push notifications
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] New lesson push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications
   const activeMembers = await storage.getActiveMembers();
-  console.log(`[Notifications] Sending new lesson notification to ${activeMembers.length} active members`);
-  
   for (const member of activeMembers) {
-    await sendPushToUser(member.id, payload);
     await createInAppNotification(
       member.id,
       "lesson_available",
@@ -670,11 +734,12 @@ export async function notifyStreakReminder(
     body: message,
     url: "/study",
     tag: "streak-reminder",
+    icon: "/logo.png",
   };
 
   console.log(`[Notifications] notifyStreakReminder for user ${userId}, streak ${currentStreak}, type: ${type || 'default'}`);
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Streak reminder push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Streak reminder push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
   
   await createInAppNotification(
     userId,
@@ -706,11 +771,12 @@ export async function notifyInactivity(
     body: message,
     url: "/study",
     tag: "inactivity-reminder",
+    icon: "/logo.png",
   };
 
   console.log(`[Notifications] notifyInactivity for user ${userId}, days: ${daysSinceLastAccess}`);
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Inactivity reminder push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Inactivity reminder push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
   
   await createInAppNotification(
     userId,
@@ -733,10 +799,12 @@ export async function notifyAchievement(
     body: `${achievementName}: ${achievementDescription}`,
     url: "/study/achievements",
     tag: `achievement-${achievementName}`,
+    icon: "/logo.png",
   };
 
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Achievement push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Achievement push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
   await createInAppNotification(
     userId,
     "achievement",
@@ -758,10 +826,12 @@ export async function notifyAchievementLiked(
     body: `${likerName} curtiu sua conquista "${achievementName}"`,
     url: "/study/profile",
     tag: `achievement-like-${Date.now()}`,
+    icon: "/logo.png",
   };
 
   const result = await sendPushToUser(userId, payload);
-  console.log(`[Notifications] Achievement liked push to user ${userId}: ${result ? 'success' : 'failed'}`);
+  console.log(`[Notifications] Achievement liked push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
   await createInAppNotification(
     userId,
     "achievement_liked",
@@ -769,6 +839,71 @@ export async function notifyAchievementLiked(
     payload.body,
     { likerName, achievementName, url: payload.url }
   );
+}
+
+export async function notifyEncouragement(
+  userId: number,
+  senderName: string,
+  messageText: string,
+  encouragementId: number
+): Promise<void> {
+  console.log(`[Notifications] notifyEncouragement STARTED for user ${userId} from "${senderName}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Mensagem de Incentivo",
+    body: `${senderName}: ${messageText}`,
+    url: "/study",
+    tag: `encouragement-${encouragementId}`,
+    icon: "/logo.png",
+  };
+
+  const result = await sendPushToUser(userId, payload);
+  console.log(`[Notifications] Encouragement push to user ${userId}: ${result > 0 ? 'success' : 'no subscriptions'}`);
+  
+  await createInAppNotification(
+    userId,
+    "encouragement",
+    payload.title,
+    payload.body,
+    { senderName, url: payload.url }
+  );
+}
+
+export async function notifyEventDeadline(
+  eventId: number,
+  eventTitle: string,
+  timeRemaining: string
+): Promise<void> {
+  console.log(`[Notifications] notifyEventDeadline STARTED for event ${eventId}: "${eventTitle}" - ${timeRemaining}`);
+  
+  const payload: NotificationPayload = {
+    title: "Evento Terminando!",
+    body: `"${eventTitle}" termina em ${timeRemaining}. Nao perca!`,
+    url: `/study/eventos/${eventId}`,
+    tag: `event-deadline-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Event deadline push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+}
+
+export async function notifyEventEnded(
+  eventId: number,
+  eventTitle: string
+): Promise<void> {
+  console.log(`[Notifications] notifyEventEnded STARTED for event ${eventId}: "${eventTitle}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Evento Encerrado",
+    body: `"${eventTitle}" chegou ao fim. Veja suas conquistas!`,
+    url: `/study/eventos/${eventId}`,
+    tag: `event-ended-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Event ended push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 }
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {

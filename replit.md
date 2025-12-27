@@ -28,6 +28,8 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - Email notifications sent to ALL members (active and inactive) for: new devotionals, new events, new prayer requests, new seasons/magazines.
     - NotificationCenter component integrated in study page header for viewing notification history.
     - Notifications for: new lessons unlocked, encouragement messages, achievements, streak reminders, inactivity reminders.
+    - **Architecture Pattern**: All notification functions use `sendPushToAllMembers()` for batch processing. Push notifications are sent first, then in-app notifications in a separate loop. Each iteration has its own error handling to prevent one failure from blocking others.
+    - **Payload Standard**: All notifications include `icon: "/logo.png"` explicitly in the payload for consistent display across devices.
 - **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality. Includes quota tracking with 5-minute cooldown to preserve quota for high-priority operations (PDF study generation) when low-priority schedulers hit rate limits.
   - **Models**: Prioritizes gemini-2.5-flash and gemini-2.5-flash-lite for all AI operations.
   - **Quota Management**: Schedulers (daily missions, recovery verses) use local fallback data when quota is exhausted, ensuring manual study generation has available quota.

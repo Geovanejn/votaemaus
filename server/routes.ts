@@ -2286,24 +2286,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save encouragement
       const encouragement = await storage.sendEncouragement(req.user.id, receiverId, messageKey, messageText);
       
-      // Create in-app notification
+      // Send push notification and create in-app notification
       const sender = await storage.getUserById(req.user.id);
-      await storage.createNotification({
-        userId: receiverId,
-        type: "encouragement",
-        title: "Mensagem de incentivo",
-        body: `${sender?.fullName || 'Um membro'} te enviou: "${messageText}"`,
-        data: JSON.stringify({ senderId: req.user.id, messageKey }),
-      });
-      
-      // Send push notification
-      const { sendPushToUser } = await import('./notifications');
-      await sendPushToUser(receiverId, {
-        title: "Mensagem de incentivo",
-        body: `${sender?.fullName || 'Um membro'}: ${messageText}`,
-        url: "/study",
-        tag: `encouragement-${encouragement.id}`,
-      });
+      const { notifyEncouragement } = await import('./notifications');
+      notifyEncouragement(receiverId, sender?.fullName || 'Um membro', messageText, encouragement.id).catch(err =>
+        console.error("[Notifications] Error sending encouragement notification:", err)
+      );
       
       res.json({ success: true, encouragement });
     } catch (error) {
@@ -2380,12 +2368,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send push notification to ALL members (including inactive)
       const { sendPushToAllMembersIncludingInactive } = await import('./notifications');
-      await sendPushToAllMembersIncludingInactive({
-        title: "Mensagem da UMP Emaús",
+      const pushResult = await sendPushToAllMembersIncludingInactive({
+        title: "Mensagem da UMP Emaus",
         body: messageText,
         url: "/study",
         tag: `admin-encouragement-${Date.now()}`,
+        icon: "/logo.png",
       });
+      console.log(`[Admin] Encouragement push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
       
       res.json({ success: true, sentCount });
     } catch (error) {

@@ -627,48 +627,11 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
     responda: { label: "Responda", icon: <Brain className="h-4 w-4" /> }
   };
 
-  // Only show completed screen if not currently showing the stage complete modal
-  // This prevents the modal from being replaced by the completed screen prematurely
+  // If lesson is already completed, redirect back to event page immediately
+  // No intermediate "completed" screen - user goes directly to event
   if (isCompleted && !showStageComplete) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background border-b">
-          <div className="flex items-center gap-3 p-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setLocation(`/study/events/${eventId}`)}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <span className="text-xs text-muted-foreground">Dia {dayNumber}</span>
-              <h1 className="text-lg font-semibold truncate">{lesson.title}</h1>
-            </div>
-          </div>
-        </header>
-        <main className="flex-1 p-4 flex items-center justify-center">
-          <Card className="max-w-md w-full text-center border-green-500/50 bg-green-500/5">
-            <CardContent className="p-6">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Lição Concluída!</h2>
-              {progress && (
-                <p className="text-muted-foreground mb-4">
-                  Você acertou {progress.correctAnswers}/{progress.totalQuestions} questões
-                </p>
-              )}
-              <Button 
-                onClick={() => setLocation(`/study/events/${eventId}`)}
-                data-testid="button-back-to-event"
-              >
-                Voltar ao Evento
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
+    setLocation(`/study/events/${eventId}`);
+    return null;
   }
 
   return (

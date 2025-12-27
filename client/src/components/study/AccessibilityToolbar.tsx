@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Type, Volume2, VolumeX, Minus, Plus } from "lucide-react";
+import { Type, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AccessibilityToolbarProps {
@@ -58,7 +58,6 @@ function normalizeTextForSpeech(text: string): string {
 export function AccessibilityToolbar({ textContent, className }: AccessibilityToolbarProps) {
   const [fontSize, setFontSize] = useState(getStoredFontSize);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [showFontControls, setShowFontControls] = useState(false);
 
   useEffect(() => {
     if (isBrowser) {
@@ -78,12 +77,11 @@ export function AccessibilityToolbar({ textContent, className }: AccessibilityTo
     };
   }, []);
 
-  const increaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.min(prev + FONT_SIZE_STEP, MAX_FONT_SIZE));
-  }, []);
-
-  const decreaseFontSize = useCallback(() => {
-    setFontSize(prev => Math.max(prev - FONT_SIZE_STEP, MIN_FONT_SIZE));
+  const cycleFontSize = useCallback(() => {
+    setFontSize(prev => {
+      const next = prev + FONT_SIZE_STEP;
+      return next > MAX_FONT_SIZE ? MIN_FONT_SIZE : next;
+    });
   }, []);
 
   const toggleSpeech = useCallback(() => {
@@ -108,46 +106,16 @@ export function AccessibilityToolbar({ textContent, className }: AccessibilityTo
 
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowFontControls(!showFontControls)}
-          className="h-8 w-8"
-          data-testid="button-font-size"
-          title="Ajustar tamanho do texto"
-        >
-          <Type className="h-4 w-4" />
-        </Button>
-        
-        {showFontControls && (
-          <div className="absolute top-full right-0 mt-1 bg-card border rounded-lg shadow-lg p-2 flex items-center gap-1 z-50">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={decreaseFontSize}
-              disabled={fontSize <= MIN_FONT_SIZE}
-              className="h-7 w-7"
-              data-testid="button-font-decrease"
-              title="Diminuir texto"
-            >
-              <Minus className="h-3 w-3" />
-            </Button>
-            <span className="text-xs w-8 text-center font-medium">{fontSize}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={increaseFontSize}
-              disabled={fontSize >= MAX_FONT_SIZE}
-              className="h-7 w-7"
-              data-testid="button-font-increase"
-              title="Aumentar texto"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={cycleFontSize}
+        className="h-8 w-8"
+        data-testid="button-font-size"
+        title={`Tamanho: ${fontSize}px (clique para aumentar)`}
+      >
+        <Type className="h-4 w-4" />
+      </Button>
 
       {hasSpeechSynthesis && (
         <Button

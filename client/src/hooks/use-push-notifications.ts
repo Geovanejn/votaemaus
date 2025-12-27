@@ -7,11 +7,14 @@ interface PushNotificationState {
   isSupported: boolean;
   permission: PermissionState;
   isSubscribed: boolean;
+  isSubscribedOnServer: boolean;
   isLoading: boolean;
   error: string | null;
 }
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+const VISITOR_SUBSCRIBED_KEY = 'visitor_notification_subscribed';
+const VISITOR_DISMISSED_KEY = 'visitor_notification_dismissed';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -34,6 +37,7 @@ export function usePushNotifications() {
     isSupported: false,
     permission: 'default',
     isSubscribed: false,
+    isSubscribedOnServer: false,
     isLoading: false,
     error: null,
   });
@@ -48,20 +52,27 @@ export function usePushNotifications() {
       }
 
       const permission = Notification.permission as PermissionState;
+      const token = localStorage.getItem('auth_token');
+      
+      if (token) {
+        localStorage.removeItem(VISITOR_SUBSCRIBED_KEY);
+        localStorage.removeItem(VISITOR_DISMISSED_KEY);
+      }
       
       let isSubscribed = false;
+      let isSubscribedOnServer = false;
+      
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         isSubscribed = subscription !== null;
         
-        if (subscription && permission === 'granted') {
+        if (subscription && permission === 'granted' && token) {
           const subscriptionJson = subscription.toJSON();
-          const token = localStorage.getItem('auth_token');
           
-          if (token && subscriptionJson.keys?.p256dh && subscriptionJson.keys?.auth) {
+          if (subscriptionJson.keys?.p256dh && subscriptionJson.keys?.auth) {
             try {
-              await fetch('/api/notifications/subscribe', {
+              const response = await fetch('/api/notifications/subscribe', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -73,7 +84,13 @@ export function usePushNotifications() {
                   auth: subscriptionJson.keys.auth,
                 }),
               });
-              console.log('[Push] Subscription synced with server');
+              
+              if (response.ok) {
+                isSubscribedOnServer = true;
+                console.log('[Push] Subscription synced with server');
+              } else {
+                console.log('[Push] Server sync failed:', response.status);
+              }
             } catch (syncError) {
               console.log('[Push] Error syncing subscription:', syncError);
             }
@@ -87,7 +104,8 @@ export function usePushNotifications() {
         ...prev,
         isSupported: true,
         permission,
-        isSubscribed,
+        isSubscribed: isSubscribedOnServer || (isSubscribed && !token),
+        isSubscribedOnServer,
       }));
     };
 
@@ -174,6 +192,7 @@ export function usePushNotifications() {
       setState(prev => ({ 
         ...prev, 
         isSubscribed: true, 
+        isSubscribedOnServer: true,
         isLoading: false,
         error: null 
       }));
@@ -212,6 +231,7 @@ export function usePushNotifications() {
       setState(prev => ({ 
         ...prev, 
         isSubscribed: false, 
+        isSubscribedOnServer: false,
         isLoading: false,
         error: null 
       }));

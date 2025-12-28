@@ -1062,30 +1062,6 @@ export default function AdminPage() {
                     <ChartBar className="w-4 h-4 mr-2" />
                     Ver Resultados
                   </Button>
-                  <Button
-                    className="w-full justify-start bg-gradient-to-r from-[#FFA500] to-[#FFB733] text-white hover:from-[#FF8C00] hover:to-[#FFA500]"
-                    onClick={() => setLocation("/admin/study")}
-                    data-testid="button-study-admin"
-                  >
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Sistema de Estudos
-                  </Button>
-                  <Button
-                    className="w-full justify-start bg-gradient-to-r from-[#9333ea] to-[#a855f7] text-white hover:from-[#7e22ce] hover:to-[#9333ea]"
-                    onClick={() => setLocation("/admin/espiritualidade")}
-                    data-testid="button-espiritualidade-admin"
-                  >
-                    <Heart className="w-4 h-4 mr-2" />
-                    Painel Espiritualidade
-                  </Button>
-                  <Button
-                    className="w-full justify-start bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] text-white hover:from-[#0284c7] hover:to-[#0ea5e9]"
-                    onClick={() => setLocation("/admin/marketing")}
-                    data-testid="button-marketing-admin"
-                  >
-                    <ChartBar className="w-4 h-4 mr-2" />
-                    Painel Marketing
-                  </Button>
                 </CardContent>
               </Card>
             </div>

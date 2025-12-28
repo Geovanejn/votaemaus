@@ -825,3 +825,85 @@ body {
   position: relative;
   animation: rare-pulse 3s ease-in-out infinite;
 }
+
+/* Metallic Textures with Embossing Effects */
+.metallic-silver {
+  background: linear-gradient(135deg, #f5f5f5 0%, #d9d9d9 20%, #f0f0f0 40%, #c0c0c0 60%, #e0e0e0 80%, #c0c0c0 100%);
+  position: relative;
+  box-shadow: 
+    inset 2px 2px 4px rgba(255,255,255,0.8),
+    inset -2px -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.2);
+}
+
+.metallic-blue {
+  background: linear-gradient(135deg, #4a9eff 0%, #2a6dcc 20%, #5faeff 40%, #1a4db3 60%, #3a7dd9 80%, #1a4db3 100%);
+  position: relative;
+  box-shadow: 
+    inset 2px 2px 4px rgba(255,255,255,0.5),
+    inset -2px -2px 4px rgba(0,0,0,0.4),
+    0 4px 8px rgba(0,0,0,0.3);
+}
+
+.metallic-purple {
+  background: linear-gradient(135deg, #c97dd9 0%, #9d3fa3 20%, #d99ee5 40%, #7a2d7a 60%, #b366cc 80%, #7a2d7a 100%);
+  position: relative;
+  box-shadow: 
+    inset 2px 2px 4px rgba(255,255,255,0.4),
+    inset -2px -2px 4px rgba(0,0,0,0.5),
+    0 4px 8px rgba(0,0,0,0.3);
+}
+
+.metallic-gold {
+  background: linear-gradient(135deg, #ffd700 0%, #d4a500 20%, #ffed4e 40%, #b8860b 60%, #daa520 80%, #b8860b 100%);
+  position: relative;
+  box-shadow: 
+    inset 2px 2px 4px rgba(255,255,255,0.6),
+    inset -2px -2px 4px rgba(0,0,0,0.4),
+    0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Embossed text effect for visibility on metallic backgrounds */
+.embossed-text {
+  text-shadow:
+    1px 1px 2px rgba(255,255,255,0.8),
+    -1px -1px 2px rgba(0,0,0,0.5),
+    2px 2px 4px rgba(0,0,0,0.2);
+  font-weight: bold;
+}
+
+/* Embossed icon effect */
+.embossed-icon {
+  filter: drop-shadow(1px 1px 2px rgba(255,255,255,0.8)) drop-shadow(-1px -1px 2px rgba(0,0,0,0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+/* Event card metal effect container */
+.event-card-metal {
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card-metal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.1) 2px,
+      rgba(255,255,255,0.1) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.1) 2px,
+      rgba(0,0,0,0.1) 4px
+    );
+  pointer-events: none;
+}

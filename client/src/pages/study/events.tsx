@@ -173,6 +173,11 @@ function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
   return "active";
 }
 
+function getMetallicClass(theme: string, eventId: number): string {
+  const metallicClasses = ["metallic-silver", "metallic-blue", "metallic-purple", "metallic-gold"];
+  return metallicClasses[eventId % metallicClasses.length];
+}
+
 function getGradient(theme: string): string {
   const gradients: Record<string, string> = {
     reforma: "linear-gradient(135deg, #8B4513 0%, #D2691E 100%)",
@@ -426,11 +431,11 @@ function EventCard({ event }: { event: StudyEvent }) {
         data-testid={`card-event-${event.id}`}
       >
         <div 
-          className="h-44 relative flex items-center justify-center overflow-hidden"
+          className={`h-44 relative flex items-center justify-center overflow-hidden event-card-metal ${getMetallicClass(event.theme, event.id)}`}
           style={{ 
             background: event.imageUrl 
               ? `url(${event.imageUrl}) center/cover` 
-              : getGradient(event.theme)
+              : undefined
           }}
         >
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}
@@ -457,7 +462,9 @@ function EventCard({ event }: { event: StudyEvent }) {
           ) : (
             <>
               <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
-                {getThemeIcon(event.theme)}
+                <div className="embossed-icon">
+                  {getThemeIcon(event.theme)}
+                </div>
               </div>
               {isActive && daysUntilEnd <= 1 && (() => {
                 const eventEndTime = new Date(endDate);

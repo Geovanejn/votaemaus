@@ -256,8 +256,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       // Wait for styles to apply
       await new Promise(resolve => setTimeout(resolve, 150));
       
-      // High quality capture
-      const scale = 8;
+      // High quality capture - scale 3x for good quality without distorting shadows/borders
+      const scale = 3;
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
@@ -265,7 +265,6 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         logging: false,
         allowTaint: true,
         imageTimeout: 30000,
-        imageSmoothingEnabled: false,
         onclone: (clonedDoc, clonedElement) => {
           // Apply inline styles to the cloned card element for html2canvas compatibility
           const clonedCard = clonedElement.querySelector('.collectible-card') as HTMLElement;
@@ -291,7 +290,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedInner.style.gap = '6px';
           }
 
-          // Style the medallion
+          // Style the medallion - subtle inset effect
           const clonedMedallion = clonedElement.querySelector('.collectible-card-medallion') as HTMLElement;
           if (clonedMedallion) {
             clonedMedallion.style.position = 'relative';
@@ -305,7 +304,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedMedallion.style.justifyContent = 'center';
             clonedMedallion.style.zIndex = '6';
             clonedMedallion.style.background = medallionStyles[rarity];
-            clonedMedallion.style.boxShadow = 'inset 2px 2px 3px rgba(0, 0, 0, 0.6), inset -1px -1px 2px rgba(255, 255, 255, 0.12), 0 0 4px rgba(255, 255, 255, 0.18)';
+            // Subtle inset shadow for negative relief
+            clonedMedallion.style.boxShadow = 'inset 1px 1px 2px rgba(0, 0, 0, 0.5), inset -1px -1px 1px rgba(255, 255, 255, 0.1)';
           }
 
           // Style medallion SVG
@@ -314,13 +314,14 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             medallionSvg.style.opacity = '0.70';
           }
 
-          // Style the text plate
+          // Style the text plate - subtle inset
           const clonedTextPlate = clonedElement.querySelector('.collectible-card-text-plate') as HTMLElement;
           if (clonedTextPlate) {
             clonedTextPlate.style.background = 'rgba(0, 0, 0, 0.15)';
-            clonedTextPlate.style.borderRadius = '10px';
+            clonedTextPlate.style.borderRadius = '8px';
             clonedTextPlate.style.padding = '4px 10px';
-            clonedTextPlate.style.boxShadow = 'inset 1px 1px 1px rgba(0, 0, 0, 0.55), inset -1px -1px 1px rgba(255, 255, 255, 0.14), 0 0 2px rgba(255, 255, 255, 0.12)';
+            // Subtle inset shadow
+            clonedTextPlate.style.boxShadow = 'inset 1px 1px 1px rgba(0, 0, 0, 0.4), inset -1px -1px 1px rgba(255, 255, 255, 0.08)';
           }
 
           // Style the title
@@ -332,17 +333,18 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedTitle.style.textAlign = 'center';
             clonedTitle.style.lineHeight = '1.2';
             clonedTitle.style.color = 'rgba(230, 230, 230, 0.92)';
-            clonedTitle.style.textShadow = '0 0 3px rgba(255, 255, 255, 0.15), 1px 1px 0px rgba(0, 0, 0, 0.45)';
+            clonedTitle.style.textShadow = '0 0 2px rgba(255, 255, 255, 0.12), 1px 1px 0px rgba(0, 0, 0, 0.35)';
           }
 
-          // Style the image container
+          // Style the image container - subtle inset frame
           const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
           if (clonedImageContainer) {
             clonedImageContainer.style.position = 'relative';
             clonedImageContainer.style.borderRadius = '6px';
             clonedImageContainer.style.overflow = 'hidden';
-            clonedImageContainer.style.background = 'rgba(0, 0, 0, 0.4)';
-            clonedImageContainer.style.boxShadow = 'inset 0 3px 6px rgba(0, 0, 0, 0.7), inset 0 -2px 4px rgba(255, 255, 255, 0.15), inset 3px 0 5px rgba(0, 0, 0, 0.5), inset -3px 0 5px rgba(0, 0, 0, 0.5)';
+            clonedImageContainer.style.background = 'rgba(0, 0, 0, 0.3)';
+            // Subtle inset shadow for engraved effect
+            clonedImageContainer.style.boxShadow = 'inset 0 2px 3px rgba(0, 0, 0, 0.5), inset 0 -1px 2px rgba(255, 255, 255, 0.1), inset 2px 0 3px rgba(0, 0, 0, 0.35), inset -2px 0 3px rgba(0, 0, 0, 0.35)';
           }
 
           // Ensure cloned element has the image loaded properly

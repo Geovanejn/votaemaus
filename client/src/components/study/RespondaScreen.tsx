@@ -133,7 +133,13 @@ export function RespondaScreen({
       isCorrect = false;
     }
     
-    onAnswer(currentIndex, selectedAnswer, isCorrect, currentQuestion.unitId);
+    // For fill_blank, send the text of the selected option instead of the index
+    // This allows the server to compare text properly
+    const answerToSend = currentQuestion.type === 'fill_blank' && selectedAnswer !== null
+      ? currentOptions[selectedAnswer]
+      : selectedAnswer;
+    
+    onAnswer(currentIndex, answerToSend, isCorrect, currentQuestion.unitId);
     
     const nextIndex = currentIndex + 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;

@@ -236,7 +236,43 @@ export default function EventDetailPage() {
   const now = new Date();
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
-  const isActive = !isBefore(now, startDate) && !isAfter(now, endDate);
+  
+  // Check if event is accessible (considering forceUnlock for upcoming events)
+  const isDateReached = now >= startDate;
+  const isForceUnlocked = (event as any).forceUnlock === true;
+  const isEnded = event.status === "ended" || isAfter(now, endDate);
+  const isUpcoming = isBefore(now, startDate) && !isForceUnlocked;
+  
+  // Block access to ended or upcoming events
+  if (isEnded || isUpcoming) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="sticky top-0 z-50 bg-background border-b p-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setLocation("/study/events")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
+          <Lock className="h-12 w-12 text-muted-foreground" />
+          <p className="text-muted-foreground text-center">
+            {isEnded 
+              ? "Este evento já foi encerrado e não pode mais ser acessado."
+              : "Este evento ainda não começou. Aguarde a data de início."}
+          </p>
+          <Button onClick={() => setLocation("/study/events")}>
+            Voltar para Eventos
+          </Button>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+  
+  const isActive = (isDateReached || isForceUnlocked) && !isEnded;
   const daysRemaining = Math.max(0, differenceInDays(endDate, now));
 
   const completedLessons = progress.filter(p => p.completed).length;

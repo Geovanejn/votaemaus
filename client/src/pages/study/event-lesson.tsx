@@ -438,6 +438,12 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
     queryKey: ["/api/study/events", eventId, "lessons", dayNumber],
     enabled: !!user && eventId > 0 && dayNumber > 0,
   });
+  
+  // Also fetch event data to check if event is accessible
+  const { data: eventData } = useQuery<{ event: any }>({
+    queryKey: ["/api/study/events", eventId],
+    enabled: !!user && eventId > 0,
+  });
 
   const submitMutation = useMutation({
     mutationFn: async (results: { correct: number; total: number; score: number; lessonId: number }) => {
@@ -707,6 +713,48 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
         </div>
       </div>
     );
+  }
+
+  // Check if event is accessible (not ended and not upcoming)
+  if (eventData?.event) {
+    const now = new Date();
+    const startDate = new Date(eventData.event.startDate);
+    const endDate = new Date(eventData.event.endDate);
+    const isForceUnlocked = eventData.event.forceUnlock === true;
+    const isEnded = eventData.event.status === "ended" || now > endDate;
+    const isUpcoming = now < startDate && !isForceUnlocked;
+    
+    if (isEnded || isUpcoming) {
+      return (
+        <div className="flex flex-col min-h-screen bg-background">
+          <header className="sticky top-0 z-50 bg-background border-b p-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/study/events")}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </header>
+          <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
+            <div className="h-12 w-12 text-muted-foreground">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <p className="text-muted-foreground text-center">
+              {isEnded 
+                ? "Este evento já foi encerrado e não pode mais ser acessado."
+                : "Este evento ainda não começou. Aguarde a data de início."}
+            </p>
+            <Button onClick={() => setLocation("/study/events")}>
+              Voltar para Eventos
+            </Button>
+          </div>
+        </div>
+      );
+    }
   }
 
   const stageLabels: Record<Stage, { label: string; icon: JSX.Element }> = {

@@ -55,7 +55,7 @@ export function RespondaScreen({
     onQuestionChange?.(currentIndex);
     setSelectedAnswer(null);
     setShowResult(false);
-  }, [currentIndex]);
+  }, [currentIndex, onQuestionChange]);
 
   const checkAnswer = () => {
     let isCorrect = false;

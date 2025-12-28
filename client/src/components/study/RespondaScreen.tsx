@@ -94,14 +94,23 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-    // Unified logic: For true/false, prioritize correctIndex when defined
-    const isCorrect = currentQuestion.type === "multiple_choice" 
-      ? selectedAnswer === currentQuestion.correctIndex
-      : currentQuestion.type === "true_false"
-        ? (currentQuestion.correctIndex !== undefined
-            ? selectedAnswer === currentQuestion.correctIndex
-            : (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true))
+    // Unified logic: Prioritize correctIndex when defined for all question types
+    let isCorrect: boolean;
+    
+    if (currentQuestion.type === "multiple_choice") {
+      isCorrect = selectedAnswer === currentQuestion.correctIndex;
+    } else if (currentQuestion.type === "true_false") {
+      isCorrect = currentQuestion.correctIndex !== undefined
+        ? selectedAnswer === currentQuestion.correctIndex
+        : (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true);
+    } else if (currentQuestion.type === "fill_blank") {
+      // For fill_blank: use correctIndex if available, otherwise string comparison
+      isCorrect = currentQuestion.correctIndex !== undefined
+        ? selectedAnswer === currentQuestion.correctIndex
         : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+    } else {
+      isCorrect = false;
+    }
     
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
@@ -258,15 +267,22 @@ export function RespondaScreen({
         )}>
           {currentOptions.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
-            // Fix: For true/false, prioritize correctIndex when defined (used by event lessons)
-            // Otherwise fall back to correctAnswer boolean/string comparison
-            const isThisOptionCorrect = currentQuestion.type === "multiple_choice" 
-              ? idx === currentQuestion.correctIndex
-              : currentQuestion.type === "true_false"
-                ? (currentQuestion.correctIndex !== undefined 
-                    ? idx === currentQuestion.correctIndex
-                    : (idx === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true))
+            // Fix: Prioritize correctIndex when defined for all question types
+            let isThisOptionCorrect: boolean;
+            if (currentQuestion.type === "multiple_choice") {
+              isThisOptionCorrect = idx === currentQuestion.correctIndex;
+            } else if (currentQuestion.type === "true_false") {
+              isThisOptionCorrect = currentQuestion.correctIndex !== undefined 
+                ? idx === currentQuestion.correctIndex
+                : (idx === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true);
+            } else if (currentQuestion.type === "fill_blank") {
+              // For fill_blank: use correctIndex if available, otherwise string comparison
+              isThisOptionCorrect = currentQuestion.correctIndex !== undefined
+                ? idx === currentQuestion.correctIndex
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+            } else {
+              isThisOptionCorrect = false;
+            }
             
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;

@@ -41,6 +41,50 @@ import { EstudeScreen } from "@/components/study/EstudeScreen";
 import { MediteScreen } from "@/components/study/MediteScreen";
 import { RespondaScreen } from "@/components/study/RespondaScreen";
 
+// Generate contextual distractors for fill_blank questions when AI doesn't provide them
+function generateSmartDistractors(correctAnswer: string, questionId: number = 1): string[] {
+  const answer = correctAnswer.toLowerCase().trim();
+  
+  // Biblical/spiritual word banks by category - extended lists to ensure we always have enough
+  const virtueWords = ["amor", "fé", "esperança", "paz", "alegria", "paciência", "bondade", "mansidão", "domínio próprio", "humildade", "gratidão", "perdão", "misericórdia", "verdade", "sabedoria"];
+  const actionWords = ["orar", "louvar", "adorar", "servir", "amar", "perdoar", "confiar", "crer", "buscar", "seguir", "obedecer", "honrar", "santificar", "glorificar", "evangelizar"];
+  const nounWords = ["Deus", "Cristo", "Espírito", "Igreja", "Reino", "Palavra", "Verdade", "Vida", "Caminho", "Luz", "Graça", "Salvação", "Fé", "Esperança", "Amor"];
+  const verbWords = ["abstenhais", "santificai", "glorificai", "permanecei", "vigiai", "perseverai", "alegrai", "orai", "buscai", "amais", "confiai", "louvai", "adorai", "servi", "honrai"];
+  
+  // Detect answer type based on suffix/pattern
+  let pool: string[] = [];
+  
+  if (answer.endsWith("ais") || answer.endsWith("eis") || answer.endsWith("is")) {
+    pool = verbWords;
+  } else if (answer.endsWith("ar") || answer.endsWith("er") || answer.endsWith("ir")) {
+    pool = actionWords;
+  } else if (answer.endsWith("ão") || answer.endsWith("ade") || answer.endsWith("eza") || answer.endsWith("ança")) {
+    pool = virtueWords;
+  } else {
+    pool = nounWords;
+  }
+  
+  // Filter out the correct answer (case-insensitive)
+  const filtered = pool.filter(w => w.toLowerCase() !== answer);
+  
+  // Use deterministic shuffle based on questionId for consistent ordering
+  const shuffled = shuffleArrayWithSeed(filtered, questionId);
+  
+  // Return exactly 3 distractors, padding with fallback if necessary
+  const result = shuffled.slice(0, 3);
+  const fallbacks = ["Renovar", "Seguir", "Praticar"];
+  while (result.length < 3) {
+    const fallback = fallbacks[result.length] || `Opção ${result.length + 1}`;
+    if (!result.includes(fallback) && fallback.toLowerCase() !== answer) {
+      result.push(fallback);
+    } else {
+      result.push(`Alternativa ${result.length + 1}`);
+    }
+  }
+  
+  return result;
+}
+
 interface EventLesson {
   id: number;
   eventId: number;
@@ -499,6 +543,37 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
         });
       } else if (converted.type === "fill_blank") {
         converted.correctAnswer = q.correctAnswer || content.correctAnswer || "";
+        
+        // Check if AI generated distractors for fill_blank
+        const correctAns = String(converted.correctAnswer);
+        const questionIdNum = typeof q.id === 'number' ? q.id : (parseInt(String(q.id), 10) || 1);
+        
+        const distractors = q.distractors || content.distractors || q.options || content.options;
+        let finalDistractors: string[] = [];
+        
+        if (distractors && Array.isArray(distractors) && distractors.length > 0) {
+          // Filter out correct answer and duplicates from AI distractors
+          finalDistractors = distractors
+            .filter((d: string) => d.toLowerCase() !== correctAns.toLowerCase())
+            .filter((d: string, i: number, arr: string[]) => arr.indexOf(d) === i) // remove duplicates
+            .slice(0, 3);
+        }
+        
+        // If we don't have 3 distractors, pad with generated ones
+        if (finalDistractors.length < 3) {
+          const generatedDistractors = generateSmartDistractors(correctAns, questionIdNum);
+          // Add generated distractors that aren't already in our list
+          for (const gd of generatedDistractors) {
+            if (finalDistractors.length >= 3) break;
+            if (!finalDistractors.some(fd => fd.toLowerCase() === gd.toLowerCase()) && gd.toLowerCase() !== correctAns.toLowerCase()) {
+              finalDistractors.push(gd);
+            }
+          }
+        }
+        
+        const allOptions = [correctAns, ...finalDistractors.slice(0, 3)];
+        converted.options = shuffleArrayWithSeed(allOptions, questionIdNum + 999);
+        converted.correctIndex = converted.options.indexOf(correctAns);
       }
 
       return converted;

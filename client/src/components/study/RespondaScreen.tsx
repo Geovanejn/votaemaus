@@ -136,24 +136,32 @@ export function RespondaScreen({
     }
     
     console.log('[DEBUG checkAnswer] Final isCorrect:', isCorrect);
+    console.log('[DEBUG] BEFORE update - correctCount state:', correctCount, 'ref:', correctCountRef.current);
     
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
     // Capture values before any state updates
     const nextIndex = currentIndex + 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;
-    const savedCorrectCount = correctCountRef.current;
+    
+    // Calculate new correct count
+    let newCorrectCount = correctCountRef.current;
+    if (isCorrect) {
+      newCorrectCount = correctCountRef.current + 1;
+      correctCountRef.current = newCorrectCount;
+      console.log('[DEBUG] Incremented correctCountRef to:', correctCountRef.current);
+    }
     
     // Use flushSync to force immediate re-render with feedback visible
+    console.log('[DEBUG] Calling flushSync to update showResult=true');
     flushSync(() => {
       setShowResult(true);
       if (isCorrect) {
-        correctCountRef.current = savedCorrectCount + 1;
-        setCorrectCount(savedCorrectCount + 1);
+        setCorrectCount(newCorrectCount);
       }
     });
     
-    console.log('[DEBUG] Feedback should now be visible. isCorrect:', isCorrect);
+    console.log('[DEBUG] AFTER flushSync - showResult should be true, correctCount:', newCorrectCount);
     
     // Play sound after visual update
     if (isCorrect) {
@@ -163,11 +171,16 @@ export function RespondaScreen({
     }
     
     // Auto-advance after delay so user can see feedback
+    const finalCorrectCount = correctCountRef.current;
+    console.log('[DEBUG] Scheduling auto-advance. finalCorrectCount:', finalCorrectCount, 'isLastQuestion:', isLastQuestion);
+    
     window.setTimeout(() => {
-      console.log('[DEBUG] Auto-advance executing now!');
+      console.log('[DEBUG] Auto-advance executing! correctCountRef.current:', correctCountRef.current);
       if (isLastQuestion) {
+        console.log('[DEBUG] Calling onComplete with:', correctCountRef.current, 'of', totalQuestions);
         onComplete(correctCountRef.current, totalQuestions);
       } else {
+        console.log('[DEBUG] Moving to question', nextIndex);
         setCurrentIndex(nextIndex);
       }
     }, 1500);
@@ -334,6 +347,11 @@ export function RespondaScreen({
             
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
+            
+            // DEBUG: Log render state for each option
+            if (idx === 0 || isSelected || isThisOptionCorrect) {
+              console.log(`[RENDER] Option ${idx}: showResult=${showResult}, isSelected=${isSelected}, isThisOptionCorrect=${isThisOptionCorrect}, showCorrect=${showCorrect}, showIncorrect=${showIncorrect}`);
+            }
             
             // Critical fix: Ensure feedback classes are applied consistently for ALL types
             const feedbackClasses = showCorrect 

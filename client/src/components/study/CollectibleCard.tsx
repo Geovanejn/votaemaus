@@ -50,16 +50,16 @@ export function CollectibleCard({
   
   const sizeClasses = {
     compact: "w-[100px] h-[140px]",
-    sm: "w-[120px] h-[180px]",
-    md: "w-[160px] h-[260px] sm:w-[200px] sm:h-[320px]",
-    lg: "w-[240px] h-[380px]",
+    sm: "w-[140px] h-[180px]",
+    md: "w-[180px] h-[240px] sm:w-[220px] sm:h-[280px]",
+    lg: "w-[280px] h-[360px]",
   };
 
   const imageHeightClasses = {
-    compact: "h-[80px]",
-    sm: "h-[100px]",
-    md: "h-[140px] sm:h-[180px]",
-    lg: "h-[240px]",
+    compact: "h-[56px]",
+    sm: "h-[79px]",
+    md: "h-[101px] sm:h-[124px]",
+    lg: "h-[157px]",
   };
 
   const badgeSizeClasses = {

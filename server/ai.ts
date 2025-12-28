@@ -145,90 +145,6 @@ export interface GeneratedWeekContent {
   lessons: GeneratedLesson[];
 }
 
-// ============================================================================
-// SHARED QUESTION VALIDATION HELPER
-// Used by all AI generation functions to ensure proper options for questions
-// ============================================================================
-interface QuestionValidationResult {
-  isValid: boolean;
-  errors: string[];
-}
-
-function validateQuestionOptions(
-  questionType: string,
-  options: any,
-  correctAnswer: any,
-  questionIndex: number,
-  lessonIndex: number
-): QuestionValidationResult {
-  const errors: string[] = [];
-  const prefix = `Question ${questionIndex + 1} in lesson ${lessonIndex + 1}`;
-
-  // true_false doesn't need options
-  if (questionType === 'true_false') {
-    return { isValid: true, errors: [] };
-  }
-
-  // multiple_choice and fill_blank need exactly 4 options
-  if (!options || !Array.isArray(options)) {
-    errors.push(`${prefix}: options must be an array`);
-    return { isValid: false, errors };
-  }
-
-  if (options.length !== 4) {
-    errors.push(`${prefix}: must have exactly 4 options, got ${options.length}`);
-  }
-
-  // Check for duplicate options (case-insensitive)
-  const uniqueOptions = new Set(options.map((o: string) => String(o).toLowerCase().trim()));
-  if (uniqueOptions.size !== options.length) {
-    errors.push(`${prefix}: has duplicate options: ${JSON.stringify(options)}`);
-  }
-
-  // Validate multiple_choice correctAnswer is index 0-3
-  if (questionType === 'multiple_choice') {
-    const correctIdx = correctAnswer;
-    if (typeof correctIdx !== 'number' || correctIdx < 0 || correctIdx > 3) {
-      errors.push(`${prefix}: multiple_choice correctAnswer must be 0-3, got: ${correctIdx}`);
-    }
-  }
-
-  // Validate fill_blank correctAnswer is in options
-  if (questionType === 'fill_blank') {
-    const correctStr = String(correctAnswer).toLowerCase().trim();
-    const optionLower = options.map((o: string) => String(o).toLowerCase().trim());
-    if (!optionLower.includes(correctStr)) {
-      errors.push(`${prefix}: fill_blank correctAnswer "${correctAnswer}" not found in options`);
-    }
-  }
-
-  return { isValid: errors.length === 0, errors };
-}
-
-// Validate all questions in a lesson and return whether they pass
-function validateLessonQuestions(
-  units: Array<{ type: string; content: any }>,
-  lessonIndex: number
-): { isValid: boolean; errors: string[] } {
-  const allErrors: string[] = [];
-  
-  units.forEach((unit, qIdx) => {
-    if (unit.type === 'multiple_choice' || unit.type === 'fill_blank' || unit.type === 'true_false') {
-      const content = unit.content || {};
-      const result = validateQuestionOptions(
-        unit.type,
-        content.options,
-        content.correctIndex !== undefined ? content.correctIndex : content.correctAnswer,
-        qIdx,
-        lessonIndex
-      );
-      allErrors.push(...result.errors);
-    }
-  });
-
-  return { isValid: allErrors.length === 0, errors: allErrors };
-}
-
 function repairJson(jsonString: string): string {
   let repaired = jsonString;
   
@@ -1348,9 +1264,55 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
         }
         
         return normalizeUnitContent(unit);
+      })
+      // FIRST: Filter out questions with invalid options BEFORE enforcing minimum
+      .filter(unit => {
+        if (unit.type === "multiple_choice" || unit.type === "fill_blank") {
+          const content = unit.content || {};
+          const options = content.options;
+          
+          // Check for valid options array with exactly 4 unique items
+          if (!options || !Array.isArray(options) || options.length !== 4) {
+            console.error(`[AI Validation] Removing ${unit.type} question without 4 options: "${content.question || 'no question'}"`);
+            return false;
+          }
+          
+          // Check for duplicates (case-insensitive)
+          const uniqueOptions = new Set(options.map((o: string) => String(o).toLowerCase().trim()));
+          if (uniqueOptions.size !== 4) {
+            console.error(`[AI Validation] Removing ${unit.type} question with duplicate options: ${JSON.stringify(options)}`);
+            return false;
+          }
+          
+          // For multiple_choice, validate correctIndex is 0-3
+          if (unit.type === "multiple_choice") {
+            const correctIdx = content.correctIndex;
+            if (typeof correctIdx !== 'number' || correctIdx < 0 || correctIdx > 3) {
+              console.error(`[AI Validation] Removing multiple_choice question with invalid correctIndex: ${correctIdx}`);
+              return false;
+            }
+          }
+          
+          // For fill_blank, validate correctAnswer is in options and has context
+          if (unit.type === "fill_blank") {
+            const correctStr = String(content.correctAnswer || "").toLowerCase().trim();
+            const optionLower = options.map((o: string) => String(o).toLowerCase().trim());
+            if (!optionLower.includes(correctStr)) {
+              console.error(`[AI Validation] Removing fill_blank - correctAnswer "${content.correctAnswer}" not in options`);
+              return false;
+            }
+            const question = content.question || "";
+            const contentWithoutBlanks = question.replace(/___/g, '').trim();
+            if (contentWithoutBlanks.length < 20) {
+              console.warn(`[AI Validation] Removing contextless fill_blank: "${question}"`);
+              return false;
+            }
+          }
+        }
+        return true;
       });
     
-    // Validate minimum content requirements
+    // Validate minimum content requirements (AFTER filtering invalid questions)
     let estudeUnits = lesson.units.filter(u => u.stage === "estude");
     let mediteUnits = lesson.units.filter(u => u.stage === "medite" && 
       (u.type === "meditation" || u.type === "reflection"));
@@ -1435,58 +1397,6 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
     if (estudeUnits.length < 6) {
       console.warn(`[AI Validation] Lesson "${lesson.title}" has only ${estudeUnits.length} study screens (minimum 6 required)`);
     }
-    
-    lesson.units = lesson.units
-      // Post-normalization: filter out questions that don't have proper options
-      .filter(unit => {
-        // Validate options for multiple_choice and fill_blank
-        if (unit.type === "multiple_choice" || unit.type === "fill_blank") {
-          const content = unit.content || {};
-          const options = content.options;
-          
-          // Check for valid options array with exactly 4 unique items
-          if (!options || !Array.isArray(options) || options.length !== 4) {
-            console.error(`[AI Validation] Removing ${unit.type} question without 4 options: "${content.question || 'no question'}"`);
-            return false;
-          }
-          
-          // Check for duplicates (case-insensitive)
-          const uniqueOptions = new Set(options.map((o: string) => String(o).toLowerCase().trim()));
-          if (uniqueOptions.size !== 4) {
-            console.error(`[AI Validation] Removing ${unit.type} question with duplicate options: ${JSON.stringify(options)}`);
-            return false;
-          }
-          
-          // For multiple_choice, validate correctIndex is 0-3
-          if (unit.type === "multiple_choice") {
-            const correctIdx = content.correctIndex;
-            if (typeof correctIdx !== 'number' || correctIdx < 0 || correctIdx > 3) {
-              console.error(`[AI Validation] Removing multiple_choice question with invalid correctIndex: ${correctIdx}`);
-              return false;
-            }
-          }
-          
-          // For fill_blank, validate correctAnswer is in options
-          if (unit.type === "fill_blank") {
-            const correctStr = String(content.correctAnswer || "").toLowerCase().trim();
-            const optionLower = options.map((o: string) => String(o).toLowerCase().trim());
-            if (!optionLower.includes(correctStr)) {
-              console.error(`[AI Validation] Removing fill_blank question - correctAnswer "${content.correctAnswer}" not in options`);
-              return false;
-            }
-            
-            // Also check for context
-            const question = content.question || "";
-            const contentWithoutBlanks = question.replace(/___/g, '').trim();
-            if (contentWithoutBlanks.length < 20) {
-              console.warn(`[AI Validation] Removing contextless fill_blank: "${question}"`);
-              return false;
-            }
-          }
-        }
-        
-        return true; // Keep valid units
-      });
 
     return lesson;
   });

@@ -33,8 +33,14 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - **Architecture Pattern**: All notification functions use `sendPushToAllMembers()` for batch processing. Push notifications are sent first, then in-app notifications in a separate loop. Each iteration has its own error handling to prevent one failure from blocking others.
     - **Payload Standard**: All notifications include `icon: "/logo.png"` explicitly in the payload for consistent display across devices.
 - **AI Integration**: Used for generating exercises and questions from topics or PDF content, with improved prompts for better quality. Includes quota tracking with 5-minute cooldown to preserve quota for high-priority operations (PDF study generation) when low-priority schedulers hit rate limits.
-  - **Models**: Prioritizes gemini-2.5-flash and gemini-2.5-flash-lite for all AI operations.
+  - **Models**: Prioritizes gemini-3-flash-preview, gemini-2.5-flash and gemini-2.5-lite for all AI operations.
   - **Quota Management**: Schedulers (daily missions, recovery verses) use local fallback data when quota is exhausted, ensuring manual study generation has available quota.
+  - **Question Validation**: All AI-generated questions (multiple_choice, fill_blank) are validated server-side:
+    - Must have exactly 4 unique options (no duplicates)
+    - multiple_choice: correctIndex must be 0-3
+    - fill_blank: correctAnswer must be present in options
+    - Invalid questions are filtered out before saving; minimum counts enforced after filtering
+    - Events use retry with different API keys on validation failure
 - **Study System (DeoGlory)**:
     - **XP System**: Tracks experience points, with corrections to prevent duplication and ensure accurate daily XP calculation. Penalties for incorrect answers and hints are implemented.
     - **Daily Missions**: Each mission awards 10XP. Completing all 5 daily missions gives a 25XP bonus (total 75XP maximum per day from missions).

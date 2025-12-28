@@ -50,16 +50,16 @@ export function CollectibleCard({
   
   const sizeClasses = {
     compact: "w-[100px] h-[140px]",
-    sm: orientation === "portrait" ? "w-[120px] h-[180px]" : "w-[180px] h-[120px]",
-    md: orientation === "portrait" ? "w-[160px] h-[260px] sm:w-[200px] sm:h-[320px]" : "w-[260px] h-[160px] sm:w-[320px] sm:h-[200px]",
-    lg: orientation === "portrait" ? "w-[240px] h-[380px]" : "w-[380px] h-[240px]",
+    sm: "w-[120px] h-[180px]",
+    md: "w-[160px] h-[260px] sm:w-[200px] sm:h-[320px]",
+    lg: "w-[240px] h-[380px]",
   };
 
   const imageHeightClasses = {
     compact: "h-[80px]",
-    sm: orientation === "portrait" ? "h-[100px]" : "h-[70px]",
-    md: orientation === "portrait" ? "h-[140px] sm:h-[180px]" : "h-[100px] sm:h-[130px]",
-    lg: orientation === "portrait" ? "h-[240px]" : "aspect-video",
+    sm: "h-[100px]",
+    md: "h-[140px] sm:h-[180px]",
+    lg: "h-[240px]",
   };
 
   const badgeSizeClasses = {
@@ -386,8 +386,6 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
 
   if (!isOpen) return null;
 
-  const orientation = card.sourceType === "event" ? "landscape" : "portrait";
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -433,7 +431,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
               name={card.name}
               imageUrl={card.imageUrl}
               rarity={card.rarity}
-              orientation={orientation}
+              orientation="portrait"
               size="lg"
             />
             <p className="text-center text-white/70 text-xs mt-3 font-medium">
@@ -581,7 +579,7 @@ export function CollectibleCardGrid({
           name={card.name}
           imageUrl={card.imageUrl}
           rarity={card.rarity}
-          orientation={card.sourceType === "event" ? "landscape" : "portrait"}
+          orientation="portrait"
           onClick={onCardClick ? () => onCardClick(card) : undefined}
           size="md"
         />

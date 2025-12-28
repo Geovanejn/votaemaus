@@ -2209,6 +2209,16 @@ export class DatabaseStorage implements IStorage {
     const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
     const isCorrect = this.checkAnswer(unit.type, content, answer);
     
+    // DEBUG: Log answer verification details
+    console.log('[DEBUG submitUnitAnswer]', {
+      unitId,
+      unitType: unit.type,
+      userAnswer: answer,
+      contentCorrectIndex: content?.correctIndex ?? content?.content?.correctIndex,
+      contentCorrectAnswer: content?.correctAnswer ?? content?.content?.correctAnswer,
+      isCorrect
+    });
+    
     // Deduzir vida quando resposta está errada (apenas na primeira tentativa errada)
     let heartLost = false;
     if (!isCorrect && (!existing || existing.isCorrect !== false)) {

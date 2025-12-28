@@ -17,6 +17,7 @@ interface EstudeScreenProps {
   lessonTitle: string;
   sections: StudySection[];
   verseReference?: string;
+  verseText?: string;
   onComplete: () => void;
   onClose: () => void;
   initialIndex?: number;
@@ -27,6 +28,7 @@ export function EstudeScreen({
   lessonTitle,
   sections,
   verseReference,
+  verseText,
   onComplete,
   onClose,
   initialIndex = 0,
@@ -38,9 +40,19 @@ export function EstudeScreen({
     onIndexChange?.(currentIndex);
   }, [currentIndex, onIndexChange]);
 
-  const currentSection = sections[currentIndex];
-  const isLastSlide = currentIndex === sections.length - 1;
-  const totalSlides = sections.length;
+  const allSections = useMemo(() => {
+    if (verseText && verseReference) {
+      return [
+        { type: "verse" as const, title: "Versículo Base", content: `"${verseText}"`, reference: verseReference },
+        ...sections
+      ];
+    }
+    return sections;
+  }, [verseText, verseReference, sections]);
+
+  const currentSection = allSections[currentIndex];
+  const isLastSlide = currentIndex === allSections.length - 1;
+  const totalSlides = allSections.length;
 
   const textContent = useMemo(() => {
     if (!currentSection) return "";

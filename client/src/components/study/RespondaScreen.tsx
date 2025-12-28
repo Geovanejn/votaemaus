@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,6 +48,11 @@ export function RespondaScreen({
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  // Use a ref to track the most up-to-date correct count (avoids stale closure issues)
+  const correctCountRef = useRef(0);
+  // Track the timeout ID and whether handleNext has already been called for this question
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasAdvancedRef = useRef(false);
   const { fontSize, increaseFontSize, speak, isSpeaking } = useAccessibility();
 
   const { playCorrect, playWrong } = useSoundEffects();
@@ -71,6 +76,13 @@ export function RespondaScreen({
     onQuestionChange?.(currentIndex);
     setSelectedAnswer(null);
     setShowResult(false);
+    // Reset the advance guard when moving to a new question
+    hasAdvancedRef.current = false;
+    // Clear any pending timeout when question changes
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   }, [currentIndex, onQuestionChange]);
 
   useEffect(() => {
@@ -96,35 +108,48 @@ export function RespondaScreen({
     setShowResult(true);
     
     if (isCorrect) {
-      setCorrectCount(prev => prev + 1);
+      // Update both state and ref to ensure we always have the latest value
+      const newCorrectCount = correctCount + 1;
+      correctCountRef.current = newCorrectCount;
+      setCorrectCount(newCorrectCount);
       playCorrect();
       
-      setTimeout(() => {
+      // Store timeout ID so we can cancel it if user clicks the button early
+      timeoutRef.current = setTimeout(() => {
         handleNext();
       }, 1000);
     } else {
       playWrong();
-      setTimeout(() => {
-        setShowResult(false);
-        setSelectedAnswer(null);
+      timeoutRef.current = setTimeout(() => {
         if (currentIndex < totalQuestions - 1) {
           setCurrentIndex(prev => prev + 1);
         } else {
-          onComplete(correctCount, totalQuestions);
+          // Use ref to always get the most up-to-date count
+          onComplete(correctCountRef.current, totalQuestions);
         }
       }, 1000);
     }
   };
 
   const handleNext = () => {
+    // Guard: Only execute once per question to prevent double-advance
+    if (hasAdvancedRef.current) return;
+    hasAdvancedRef.current = true;
+    
+    // Clear any pending timeout to prevent double execution
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     // DO NOT reset state here - let the useEffect on currentIndex handle it
     // This ensures the green/red feedback stays visible until the new question renders
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // For final question, we need to keep the feedback visible briefly before completing
+      // Use ref to always get the most up-to-date count (avoids stale closure)
       setTimeout(() => {
-        onComplete(correctCount, totalQuestions);
+        onComplete(correctCountRef.current, totalQuestions);
       }, 100);
     }
   };
@@ -169,12 +194,13 @@ export function RespondaScreen({
         </div>
       </div>
 
+      <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
         <motion.div 
           key={currentIndex}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className="flex-1 flex flex-col"
         >
           <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
@@ -308,6 +334,7 @@ export function RespondaScreen({
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           )}
+        </div>
         </motion.div>
       </div>
     </div>

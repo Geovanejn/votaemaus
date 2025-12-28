@@ -73,8 +73,13 @@ export function RespondaScreen({
               ] 
             : []));
 
+  // Store onQuestionChange in a ref to avoid re-triggering the effect
+  const onQuestionChangeRef = useRef(onQuestionChange);
+  onQuestionChangeRef.current = onQuestionChange;
+  
   useEffect(() => {
-    onQuestionChange?.(currentIndex);
+    // Only reset state when question index actually changes
+    onQuestionChangeRef.current?.(currentIndex);
     setSelectedAnswer(null);
     setShowResult(false);
     // Reset the advance guard when moving to a new question
@@ -84,7 +89,7 @@ export function RespondaScreen({
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-  }, [currentIndex, onQuestionChange]);
+  }, [currentIndex]); // Only depend on currentIndex, not the callback
 
   useEffect(() => {
     if (!currentQuestion) return;

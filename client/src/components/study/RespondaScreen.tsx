@@ -142,30 +142,30 @@ export function RespondaScreen({
     console.log('[DEBUG] setShowResult(true) called');
     
     if (isCorrect) {
-      console.log('[DEBUG] CORRECT answer branch - scheduling handleNext');
+      console.log('[DEBUG] CORRECT answer branch');
       // Update both state and ref to ensure we always have the latest value
       const newCorrectCount = correctCount + 1;
       correctCountRef.current = newCorrectCount;
       setCorrectCount(newCorrectCount);
       playCorrect();
-      
-      // Store timeout ID so we can cancel it if user clicks the button early
-      timeoutRef.current = setTimeout(() => {
-        console.log('[DEBUG] Timeout fired - calling handleNext()');
-        handleNext();
-      }, 1000);
     } else {
-      console.log('[DEBUG] WRONG answer branch - scheduling next question');
+      console.log('[DEBUG] WRONG answer branch');
       playWrong();
-      timeoutRef.current = setTimeout(() => {
-        if (currentIndex < totalQuestions - 1) {
-          setCurrentIndex(prev => prev + 1);
-        } else {
-          // Use ref to always get the most up-to-date count
-          onComplete(correctCountRef.current, totalQuestions);
-        }
-      }, 1000);
     }
+    
+    // UNIFIED: Both correct and wrong use the same timeout logic
+    const localCurrentIndex = currentIndex;
+    const localTotalQuestions = totalQuestions;
+    console.log('[DEBUG] Scheduling auto-advance timeout, currentIndex:', localCurrentIndex);
+    
+    timeoutRef.current = setTimeout(() => {
+      console.log('[DEBUG] Timeout fired! Advancing from question', localCurrentIndex);
+      if (localCurrentIndex < localTotalQuestions - 1) {
+        setCurrentIndex(localCurrentIndex + 1);
+      } else {
+        onComplete(correctCountRef.current, localTotalQuestions);
+      }
+    }, 1200);
   };
 
   const handleNext = () => {

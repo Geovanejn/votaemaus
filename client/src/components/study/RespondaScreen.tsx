@@ -169,9 +169,14 @@ export function RespondaScreen({
   };
 
   const handleNext = () => {
+    console.log('[DEBUG handleNext] Called, hasAdvancedRef.current:', hasAdvancedRef.current);
     // Guard: Only execute once per question to prevent double-advance
-    if (hasAdvancedRef.current) return;
+    if (hasAdvancedRef.current) {
+      console.log('[DEBUG handleNext] BLOCKED by hasAdvancedRef guard');
+      return;
+    }
     hasAdvancedRef.current = true;
+    console.log('[DEBUG handleNext] Proceeding, set hasAdvancedRef to true');
     
     // Clear any pending timeout to prevent double execution
     if (timeoutRef.current) {
@@ -182,8 +187,10 @@ export function RespondaScreen({
     // DO NOT reset state here - let the useEffect on currentIndex handle it
     // This ensures the green/red feedback stays visible until the new question renders
     if (currentIndex < totalQuestions - 1) {
+      console.log('[DEBUG handleNext] Moving to next question:', currentIndex + 1);
       setCurrentIndex(prev => prev + 1);
     } else {
+      console.log('[DEBUG handleNext] Last question - calling onComplete');
       // Use ref to always get the most up-to-date count (avoids stale closure)
       setTimeout(() => {
         onComplete(correctCountRef.current, totalQuestions);

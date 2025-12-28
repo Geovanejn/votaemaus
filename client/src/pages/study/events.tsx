@@ -431,11 +431,11 @@ function EventCard({ event }: { event: StudyEvent }) {
         data-testid={`card-event-${event.id}`}
       >
         <div 
-          className="h-44 relative flex items-center justify-center overflow-hidden"
+          className={`h-44 relative flex items-center justify-center overflow-hidden event-card-metal ${getMetallicClass(event.theme, event.id)}`}
           style={{ 
             background: event.imageUrl 
               ? `url(${event.imageUrl}) center/cover` 
-              : getGradient(event.theme)
+              : undefined
           }}
         >
           {event.imageUrl && <div className="absolute inset-0 bg-black/20" />}

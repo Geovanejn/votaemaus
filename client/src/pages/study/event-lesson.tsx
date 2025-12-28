@@ -687,8 +687,6 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
               <EstudeScreen
                 lessonTitle={lesson.title}
                 sections={estudeSections}
-                verseText={lesson.verseText || undefined}
-                verseReference={lesson.verseReference || undefined}
                 onComplete={handleEstudeComplete}
                 onClose={() => setLocation(`/study/events/${eventId}`)}
                 initialIndex={estudeScreenIndex}

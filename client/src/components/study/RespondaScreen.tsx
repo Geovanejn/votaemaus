@@ -60,9 +60,13 @@ export function RespondaScreen({
   useEffect(() => {
     if (currentQuestion.type === "true_false" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
       currentQuestion.options = ["Falso", "Verdadeiro"];
-    } else if (currentQuestion.type === "fill_blank" && (!currentQuestion.options || currentQuestion.options.length === 0) && currentQuestion.correctAnswer) {
-      // Basic fallback for fill_blank options if missing
-      currentQuestion.options = [currentQuestion.correctAnswer as string, "Opção 2", "Opção 3", "Opção 4"];
+    } else if (currentQuestion.type === "fill_blank" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
+      if (currentQuestion.correctAnswer) {
+        currentQuestion.options = [currentQuestion.correctAnswer as string, "Opção 2", "Opção 3", "Opção 4"];
+      } else {
+        // Ultimo recurso caso não haja nem correctAnswer
+        currentQuestion.options = ["Opção 1", "Opção 2", "Opção 3", "Opção 4"];
+      }
     }
   }, [currentQuestion]);
 

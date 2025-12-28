@@ -148,7 +148,10 @@ export function RespondaScreen({
           </h3>
         </Card>
 
-        <div className="space-y-2 mb-8">
+        <div className={cn(
+          "mb-8",
+          currentQuestion.type === "true_false" ? "grid grid-cols-2 gap-4" : "space-y-2"
+        )}>
           {currentQuestion.options?.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
             const isCorrect = currentQuestion.type === "multiple_choice" 
@@ -165,21 +168,29 @@ export function RespondaScreen({
                 onClick={() => !showResult && setSelectedAnswer(idx)}
                 disabled={showResult}
                 className={cn(
-                  "w-full p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
+                  "p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
+                  currentQuestion.type === "true_false" ? "flex-col justify-center text-center py-6" : "w-full",
                   !showResult && isSelected ? "border-[#7c3aed] bg-white" : "border-white bg-white shadow-sm",
                   showCorrect && "border-[#22C55E] bg-[#F0FDF4]",
                   showIncorrect && "border-[#EF4444] bg-[#FEF2F2]"
                 )}
               >
-                <div className={cn(
-                  "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-black text-xs border-2",
-                  !showResult && isSelected ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
-                  showCorrect && "bg-[#22C55E] text-white border-[#22C55E]",
-                  showIncorrect && "bg-[#EF4444] text-white border-[#EF4444]"
+                {currentQuestion.type !== "true_false" && (
+                  <div className={cn(
+                    "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-black text-xs border-2",
+                    !showResult && isSelected ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
+                    showCorrect && "bg-[#22C55E] text-white border-[#22C55E]",
+                    showIncorrect && "bg-[#EF4444] text-white border-[#EF4444]"
+                  )}>
+                    {String.fromCharCode(65 + idx)}
+                  </div>
+                )}
+                <span className={cn(
+                  "font-bold text-[14px] leading-tight",
+                  currentQuestion.type === "true_false" ? "text-lg" : "text-[#4B5563]"
                 )}>
-                  {String.fromCharCode(65 + idx)}
-                </div>
-                <span className="text-[#4B5563] font-bold text-[14px] leading-tight">{option}</span>
+                  {option}
+                </span>
               </button>
             );
           })}

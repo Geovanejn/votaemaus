@@ -93,10 +93,10 @@ export function RespondaScreen({
     }
     
     setShowResult(true);
+    
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
-      // Auto advance on correct answer after a short delay
       setTimeout(() => {
         handleNext();
       }, 1500);
@@ -111,7 +111,13 @@ export function RespondaScreen({
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onComplete(correctCount, totalQuestions);
+      // Calculate the final count correctly
+      // Since checkAnswer already updated setCorrectCount, 
+      // but state updates are async, we need a reliable value.
+      setCorrectCount(current => {
+        onComplete(current, totalQuestions);
+        return current;
+      });
     }
   };
 
@@ -201,14 +207,14 @@ export function RespondaScreen({
         )}>
           {currentOptions.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
-            const isCorrect = currentQuestion.type === "multiple_choice" 
+            const isThisOptionCorrect = currentQuestion.type === "multiple_choice" 
               ? idx === currentQuestion.correctIndex
               : currentQuestion.type === "true_false"
                 ? (idx === 1) === currentQuestion.correctAnswer
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-            const isAnswered = selectedAnswer !== null;
-            const showCorrect = showResult && isCorrect;
-            const showIncorrect = showResult && isSelected && !isCorrect;
+            
+            const showCorrect = showResult && isThisOptionCorrect;
+            const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
 
             return (
               <button

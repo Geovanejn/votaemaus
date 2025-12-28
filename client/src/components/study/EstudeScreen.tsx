@@ -79,13 +79,13 @@ export function EstudeScreen({
               </Button>
             </div>
           </div>
-          {currentIndex === 0 && sections[0]?.type === "verse" && (
+          {currentIndex === 0 && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
               <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Versículo Base</p>
               <p className="text-sm italic text-blue-800 dark:text-blue-200 leading-relaxed">
-                {sections[0].content.replace(/<[^>]*>/g, '')}
+                {sections[0]?.type === "verse" ? sections[0].content.replace(/<[^>]*>/g, '') : "Carregando versículo..."}
               </p>
-              {sections[0].title && (
+              {sections[0]?.title && (
                 <p className="text-[10px] font-bold text-blue-500 dark:text-blue-400 mt-1 text-right">
                   — {sections[0].title}
                 </p>

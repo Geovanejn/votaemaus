@@ -2378,31 +2378,50 @@ ESTRUTURA DA SEÇÃO RESPONDA:
 - EXATAMENTE 5 questões variadas: 3 múltipla escolha, 1 verdadeiro/falso, 1 completar lacuna
 - Cada questão com explicação clara
 
-REGRAS CRÍTICAS PARA AS QUESTÕES:
+REGRAS CRÍTICAS PARA AS QUESTÕES - LEIA COM MÁXIMA ATENÇÃO:
 
-1. MÚLTIPLA ESCOLHA:
-   - VARIE a posição da resposta correta (correctAnswer): use 0, 1, 2 ou 3 em questões diferentes
-   - Todas as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
+REGRA UNIVERSAL: TODAS as questões (exceto verdadeiro/falso) DEVEM ter campo "options" com EXATAMENTE 4 alternativas!
+
+1. MÚLTIPLA ESCOLHA (type: "multiple_choice"):
+   - OBRIGATÓRIO: campo "options" com EXATAMENTE 4 alternativas plausíveis
+   - OBRIGATÓRIO: campo "correctAnswer" com o ÍNDICE (0, 1, 2 ou 3) da resposta correta
+   - VARIE a posição da resposta correta entre as questões (não sempre 0 ou sempre 1)
+   - TODAS as 4 alternativas devem ser PLAUSÍVEIS e GRAMATICALMENTE CORRETAS
    - Use distratores inteligentes: respostas que poderiam parecer certas mas têm diferença sutil
-   - NUNCA use alternativas absurdas como "Não sei" ou "Nenhuma das anteriores"
+   - NUNCA use "Não sei", "Nenhuma das anteriores" ou alternativas absurdas
+   - COERÊNCIA: Se a pergunta pede um VERBO, todas as 4 opções devem ser VERBOS
+   - COERÊNCIA: Se a pergunta pede um SUBSTANTIVO, todas as 4 opções devem ser SUBSTANTIVOS
+   - COERÊNCIA: Se a pergunta pede uma FRASE, todas as 4 opções devem ser FRASES do mesmo tamanho
 
-2. VERDADEIRO/FALSO:
+2. VERDADEIRO/FALSO (type: "true_false"):
+   - NÃO precisa de campo "options"
+   - Campo "correctAnswer" deve ser true ou false (booleano)
    - A afirmação deve ser clara e baseada no conteúdo da lição
    - Varie entre afirmações verdadeiras e falsas nas diferentes lições
 
-3. COMPLETAR LACUNA (fill_blank):
-   - OBRIGATÓRIO: inclua campo "options" com EXATAMENTE 4 alternativas
-   - COERÊNCIA SEMÂNTICA: todas as alternativas devem fazer sentido gramatical na frase
-   - Se a lacuna requer VERBO (salvar, amar), todas alternativas devem ser VERBOS
-   - Se a lacuna requer SUBSTANTIVO (amor, fé), todas alternativas devem ser SUBSTANTIVOS
-   - Exemplo BOM: "Jesus veio para ___ o pecador." → options: ["salvar", "redimir", "libertar", "amar"]
-   - Exemplo RUIM: options: ["salvar", "amor", "cruz", "vida"] (classes gramaticais misturadas)
+3. COMPLETAR LACUNA (type: "fill_blank"):
+   - OBRIGATÓRIO: campo "options" com EXATAMENTE 4 alternativas
+   - OBRIGATÓRIO: campo "correctAnswer" com a STRING da resposta correta (deve estar nas options)
+   - COERÊNCIA GRAMATICAL: Todas as 4 alternativas DEVEM fazer sentido na frase
+   - Se a lacuna requer VERBO CONJUGADO (abstenhais, santificai), TODAS as opções devem ser VERBOS CONJUGADOS na mesma forma
+   - Se a lacuna requer VERBO INFINITIVO (salvar, amar), TODAS as opções devem ser VERBOS INFINITIVOS
+   - Se a lacuna requer SUBSTANTIVO (amor, fé), TODAS as opções devem ser SUBSTANTIVOS do mesmo gênero
+   - Se a lacuna requer ADJETIVO (santo, justo), TODAS as opções devem ser ADJETIVOS do mesmo gênero/número
+   
+   EXEMPLOS CORRETOS:
+   - "Jesus veio para ___ o pecador." → options: ["salvar", "redimir", "libertar", "justificar"]
+   - "A ___ é fruto do Espírito." → options: ["paz", "fé", "graça", "esperança"]
+   - "Deus é ___." → options: ["amor", "luz", "verdade", "justiça"]
+   
+   EXEMPLOS INCORRETOS (NUNCA FAÇA ISSO):
+   - options: ["salvar", "amor", "cruz", "vida"] (mistura verbo com substantivos)
+   - options: ["paz", "amou", "santo", "salvação"] (mistura classes gramaticais)
 
 3. Use versículos bíblicos relevantes ao tema
 4. O título do evento deve ser criativo e refletir o tema
 5. As lições devem formar uma progressão lógica do tema
 
-Formato JSON OBRIGATÓRIO:
+Formato JSON OBRIGATÓRIO (SIGA EXATAMENTE):
 {
   "title": "Título criativo do evento",
   "description": "Descrição em 2-3 frases do que os participantes vão aprender",
@@ -2417,41 +2436,41 @@ Formato JSON OBRIGATÓRIO:
         {
           "id": "q1",
           "type": "multiple_choice",
-          "question": "Pergunta sobre o tópico 1?",
-          "options": ["Opção A", "Opção B (correta)", "Opção C", "Opção D"],
+          "question": "Qual foi o propósito de Deus ao enviar seu Filho?",
+          "options": ["Julgar os pecadores", "Salvar a humanidade", "Punir os ímpios", "Criar novas leis"],
           "correctAnswer": 1,
-          "explanation": "Explicação da resposta correta"
+          "explanation": "João 3:16 ensina que Deus enviou seu Filho para salvar, não para condenar."
         },
         {
           "id": "q2",
           "type": "multiple_choice",
-          "question": "Pergunta sobre o tópico 2?",
-          "options": ["Opção A", "Opção B", "Opção C (correta)", "Opção D"],
+          "question": "O que é necessário para não perecer, segundo o versículo?",
+          "options": ["Fazer boas obras", "Seguir rituais religiosos", "Crer em Jesus", "Guardar a lei"],
           "correctAnswer": 2,
-          "explanation": "Explicação da resposta correta"
+          "explanation": "O texto afirma que 'todo aquele que nele crê' terá vida eterna."
         },
         {
           "id": "q3",
           "type": "multiple_choice",
-          "question": "Pergunta sobre a conclusão?",
-          "options": ["Opção A (correta)", "Opção B", "Opção C", "Opção D"],
+          "question": "A vida eterna é prometida para quem?",
+          "options": ["Todo aquele que crê", "Apenas os judeus", "Somente os religiosos", "Os que nunca pecam"],
           "correctAnswer": 0,
-          "explanation": "Explicação da resposta correta"
+          "explanation": "A promessa é universal: 'todo aquele que nele crê'."
         },
         {
           "id": "q4",
           "type": "true_false",
-          "question": "Afirmação sobre o tópico 2 para verificar verdadeira ou falsa?",
-          "correctAnswer": true,
-          "explanation": "Explicação"
+          "question": "Segundo João 3:16, Deus enviou seu Filho para condenar o mundo.",
+          "correctAnswer": false,
+          "explanation": "O texto diz que Deus enviou seu Filho para SALVAR, não para condenar."
         },
         {
           "id": "q5",
           "type": "fill_blank",
-          "question": "Jesus veio para ___ o pecador.",
-          "correctAnswer": "salvar",
-          "options": ["salvar", "redimir", "libertar", "amar"],
-          "explanation": "Explicação"
+          "question": "Porque Deus ___ o mundo de tal maneira que deu o seu Filho unigênito.",
+          "correctAnswer": "amou",
+          "options": ["amou", "criou", "salvou", "redimiu"],
+          "explanation": "O verbo correto é 'amou' - demonstrando o amor de Deus pela humanidade."
         }
       ],
       "xpReward": 50
@@ -2480,18 +2499,65 @@ Gere TODAS as 5 lições completas com ESSA ESTRUTURA EXATA.`;
         if (parsed.title && parsed.description && parsed.lessons && parsed.lessons.length === 5) {
           console.log(`[Event Generation] Successfully generated with AI (key ${keyNum})`);
           
+          // Validate all questions have proper options before accepting
+          let hasInvalidQuestions = false;
+          
           parsed.lessons = parsed.lessons.map((lesson, idx) => ({
             ...lesson,
             dayNumber: idx + 1,
             xpReward: lesson.xpReward || 50,
-            questions: (lesson.questions || []).map((q: any, qIdx: number) => ({
-              ...q,
-              id: q.id || `q${qIdx + 1}`,
-              type: q.type || 'multiple_choice',
-              correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
-              explanation: q.explanation || "Resposta correta!"
-            }))
+            questions: (lesson.questions || []).map((q: any, qIdx: number) => {
+              const questionType = q.type || 'multiple_choice';
+              
+              // Strict validation for multiple_choice and fill_blank - must have exactly 4 options
+              if (questionType !== 'true_false') {
+                if (!q.options || !Array.isArray(q.options) || q.options.length !== 4) {
+                  console.error(`[Event Generation] INVALID: Question ${qIdx + 1} in lesson ${idx + 1} must have exactly 4 options. Type: ${questionType}, Options: ${JSON.stringify(q.options)}`);
+                  hasInvalidQuestions = true;
+                } else {
+                  // Check for duplicate options
+                  const uniqueOptions = new Set(q.options.map((o: string) => String(o).toLowerCase().trim()));
+                  if (uniqueOptions.size !== 4) {
+                    console.error(`[Event Generation] INVALID: Question ${qIdx + 1} in lesson ${idx + 1} has duplicate options: ${JSON.stringify(q.options)}`);
+                    hasInvalidQuestions = true;
+                  }
+                }
+                
+                // For multiple_choice, verify correctAnswer is a valid index (0-3)
+                if (questionType === 'multiple_choice') {
+                  const correctIdx = q.correctAnswer;
+                  if (typeof correctIdx !== 'number' || correctIdx < 0 || correctIdx > 3) {
+                    console.error(`[Event Generation] INVALID: multiple_choice question ${qIdx + 1} in lesson ${idx + 1} - correctAnswer must be 0-3, got: ${correctIdx}`);
+                    hasInvalidQuestions = true;
+                  }
+                }
+                
+                // For fill_blank, verify correctAnswer is in options
+                if (questionType === 'fill_blank' && q.options && Array.isArray(q.options)) {
+                  const correctStr = String(q.correctAnswer);
+                  if (!q.options.some((opt: string) => String(opt).toLowerCase() === correctStr.toLowerCase())) {
+                    console.error(`[Event Generation] INVALID: fill_blank question ${qIdx + 1} in lesson ${idx + 1} - correctAnswer "${correctStr}" not found in options`);
+                    hasInvalidQuestions = true;
+                  }
+                }
+              }
+              
+              return {
+                ...q,
+                id: q.id || `q${qIdx + 1}`,
+                type: questionType,
+                correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
+                explanation: q.explanation || "Resposta correta!",
+                options: questionType !== 'true_false' ? (q.options || []) : undefined
+              };
+            })
           }));
+          
+          // If any questions are invalid, try the next key
+          if (hasInvalidQuestions) {
+            console.warn(`[Event Generation] Key ${keyNum} returned questions with missing/invalid options, trying next key...`);
+            continue;
+          }
           
           return parsed;
         }

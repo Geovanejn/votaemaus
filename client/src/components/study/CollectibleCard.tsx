@@ -141,15 +141,17 @@ export function CollectibleCard({
         </div>
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} mt-2`}
-          style={imageUrl ? {
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-          } : undefined}
+          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 overflow-hidden relative`}
         >
-          {!imageUrl && (
+          {imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={name}
+              className="w-full h-full object-cover"
+              style={{ imageRendering: 'auto' }}
+              crossOrigin="anonymous"
+            />
+          ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">
               <IconComponent className="w-8 h-8 text-white/50" />
             </div>
@@ -219,7 +221,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // High quality capture
-      const scale = 12; // 12x scale for extreme quality (3x standard capture)
+      const scale = 8; // 8x scale for very high quality without extreme memory overhead
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
@@ -227,14 +229,15 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         logging: false,
         allowTaint: true,
         imageTimeout: 30000,
-        imageSmoothingEnabled: true,
+        imageSmoothingEnabled: false, // Disabled as requested
         onclone: (clonedDoc, clonedElement) => {
-          // Ensure cloned element has the image loaded
-          const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
-          if (clonedImageContainer && card.imageUrl) {
-            clonedImageContainer.style.backgroundImage = `url(${card.imageUrl})`;
-            clonedImageContainer.style.backgroundSize = 'cover';
-            clonedImageContainer.style.backgroundPosition = 'center';
+          // Ensure cloned element has the image loaded properly
+          const clonedImage = clonedElement.querySelector('.collectible-card-image img') as HTMLImageElement;
+          if (clonedImage && card.imageUrl) {
+            clonedImage.src = card.imageUrl;
+            clonedImage.style.width = '100%';
+            clonedImage.style.height = '100%';
+            clonedImage.style.objectFit = 'cover';
           }
         },
       });

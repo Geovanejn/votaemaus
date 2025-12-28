@@ -234,69 +234,87 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         allowTaint: true,
         imageTimeout: 30000,
         onclone: (clonedDoc, clonedElement) => {
-          // Copy computed styles from live card to cloned card
+          // Clean up all internal elements - remove any backgrounds, borders, shadows
+          const allElements = clonedElement.querySelectorAll('*');
+          allElements.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            // Skip the main card and image elements
+            if (!htmlEl.classList.contains('collectible-card') && 
+                !htmlEl.classList.contains('collectible-card-image') &&
+                !htmlEl.classList.contains('collectible-card-medallion') &&
+                !htmlEl.tagName.toLowerCase() === 'img') {
+              // Remove backgrounds and borders from all other elements
+              if (htmlEl.classList.contains('collectible-card-text-plate') ||
+                  htmlEl.classList.contains('flex-1') ||
+                  htmlEl.classList.contains('card-shine-beam') ||
+                  htmlEl.classList.contains('card-diamond-effect')) {
+                htmlEl.style.background = 'transparent';
+                htmlEl.style.backgroundColor = 'transparent';
+                htmlEl.style.boxShadow = 'none';
+                htmlEl.style.border = 'none';
+              }
+            }
+          });
+
+          // Apply card background from computed style
           const clonedCard = clonedElement.querySelector('.collectible-card') as HTMLElement;
           if (clonedCard && cardComputedStyle) {
             clonedCard.style.background = cardComputedStyle.background;
             clonedCard.style.backgroundImage = cardComputedStyle.backgroundImage;
-            clonedCard.style.backgroundSize = cardComputedStyle.backgroundSize;
-            clonedCard.style.backgroundPosition = cardComputedStyle.backgroundPosition;
-            clonedCard.style.border = cardComputedStyle.border;
-            clonedCard.style.borderRadius = cardComputedStyle.borderRadius;
-            clonedCard.style.boxShadow = cardComputedStyle.boxShadow;
+            clonedCard.style.backgroundSize = 'cover';
+            clonedCard.style.backgroundPosition = 'center';
+            clonedCard.style.border = 'none'; // Remove card border
+            clonedCard.style.borderRadius = '16px';
+            clonedCard.style.boxShadow = 'none'; // Remove card shadow
             clonedCard.style.overflow = 'hidden';
           }
 
-          // Copy inner container styles
+          // Style inner container - transparent
           const clonedInner = clonedElement.querySelector('.collectible-card-inner') as HTMLElement;
-          if (clonedInner && innerComputedStyle) {
-            clonedInner.style.padding = innerComputedStyle.padding;
-            clonedInner.style.gap = innerComputedStyle.gap;
-            clonedInner.style.display = 'flex';
-            clonedInner.style.flexDirection = 'column';
-            clonedInner.style.height = '100%';
+          if (clonedInner) {
+            clonedInner.style.background = 'transparent';
+            clonedInner.style.padding = '8px';
+            clonedInner.style.gap = '4px';
           }
 
-          // Copy medallion styles
+          // Style medallion - keep its appearance
           const clonedMedallion = clonedElement.querySelector('.collectible-card-medallion') as HTMLElement;
           if (clonedMedallion && medallionComputedStyle) {
             clonedMedallion.style.background = medallionComputedStyle.background;
             clonedMedallion.style.boxShadow = medallionComputedStyle.boxShadow;
-            clonedMedallion.style.width = medallionComputedStyle.width;
-            clonedMedallion.style.height = medallionComputedStyle.height;
-            clonedMedallion.style.borderRadius = '50%';
-            clonedMedallion.style.display = 'flex';
-            clonedMedallion.style.alignItems = 'center';
-            clonedMedallion.style.justifyContent = 'center';
+            clonedMedallion.style.border = 'none';
           }
 
-          // Copy title styles
+          // Style title - keep its appearance
           const clonedTitle = clonedElement.querySelector('.collectible-card-title') as HTMLElement;
           if (clonedTitle && titleComputedStyle) {
-            clonedTitle.style.fontWeight = titleComputedStyle.fontWeight;
-            clonedTitle.style.textTransform = titleComputedStyle.textTransform;
-            clonedTitle.style.letterSpacing = titleComputedStyle.letterSpacing;
-            clonedTitle.style.textAlign = titleComputedStyle.textAlign;
-            clonedTitle.style.lineHeight = titleComputedStyle.lineHeight;
             clonedTitle.style.color = titleComputedStyle.color;
             clonedTitle.style.textShadow = titleComputedStyle.textShadow;
           }
 
-          // Remove text plate background/border for cleaner look (user requested)
+          // Text plate container - completely transparent
           const clonedTextPlate = clonedElement.querySelector('.collectible-card-text-plate') as HTMLElement;
           if (clonedTextPlate) {
             clonedTextPlate.style.background = 'transparent';
+            clonedTextPlate.style.backgroundColor = 'transparent';
             clonedTextPlate.style.boxShadow = 'none';
             clonedTextPlate.style.border = 'none';
           }
 
-          // Copy image container styles but remove heavy borders
+          // Flex container around text - transparent
+          const flexContainers = clonedElement.querySelectorAll('.flex-1');
+          flexContainers.forEach((fc) => {
+            const el = fc as HTMLElement;
+            el.style.background = 'transparent';
+            el.style.backgroundColor = 'transparent';
+          });
+
+          // Image container - clean appearance
           const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
-          if (clonedImageContainer && imageContainerComputedStyle) {
-            clonedImageContainer.style.borderRadius = imageContainerComputedStyle.borderRadius;
+          if (clonedImageContainer) {
+            clonedImageContainer.style.borderRadius = '6px';
             clonedImageContainer.style.overflow = 'hidden';
-            // Remove heavy box-shadow, keep just subtle inset
-            clonedImageContainer.style.boxShadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.3)';
+            clonedImageContainer.style.boxShadow = 'none';
             clonedImageContainer.style.border = 'none';
           }
 
@@ -309,17 +327,15 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedImage.style.objectFit = 'cover';
           }
 
-          // Hide diamond effects
+          // Hide diamond effects and shine beam
           const diamonds = clonedElement.querySelectorAll('.card-diamond-effect');
           diamonds.forEach((d) => {
             (d as HTMLElement).style.display = 'none';
           });
 
-          // Position shine beam for capture
           const shineBeam = clonedElement.querySelector('.card-shine-beam') as HTMLElement;
           if (shineBeam) {
-            shineBeam.style.transform = 'translateX(-40%)';
-            shineBeam.style.animation = 'none';
+            shineBeam.style.display = 'none';
           }
         },
       });

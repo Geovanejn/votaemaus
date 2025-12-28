@@ -126,7 +126,7 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center pt-4">
+        <div className="flex-1 flex flex-col justify-center items-center pt-2">
           {/* Text plate with negative relief (inset container) */}
           <div className="collectible-card-text-plate">
             <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
@@ -136,7 +136,7 @@ export function CollectibleCard({
         </div>
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} mt-1 overflow-hidden relative`}
+          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative`}
         >
           {imageUrl ? (
             <img 

@@ -58,7 +58,9 @@ export function RespondaScreen({
     ? currentQuestion.options 
     : (currentQuestion?.type === "true_false" 
         ? ["Falso", "Verdadeiro"] 
-        : []);
+        : (currentQuestion?.type === "fill_blank" && currentQuestion.correctAnswer 
+            ? [String(currentQuestion.correctAnswer)] 
+            : []));
 
   useEffect(() => {
     onQuestionChange?.(currentIndex);

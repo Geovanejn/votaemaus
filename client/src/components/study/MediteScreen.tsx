@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
+import { ChevronRight, ChevronLeft, Heart, Settings, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AccessibilityToolbar } from "./AccessibilityToolbar";
 
 interface MeditationSection {
   type: "reflection" | "meditation";
@@ -18,151 +17,60 @@ interface MediteScreenProps {
   onComplete: () => void;
   onClose: () => void;
   initialIndex?: number;
-  onIndexChange?: (index: number) => void;
 }
 
 export function MediteScreen({
-  lessonTitle,
   sections,
   onComplete,
   onClose,
-  initialIndex = 0,
-  onIndexChange
+  initialIndex = 0
 }: MediteScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-
-  useEffect(() => {
-    onIndexChange?.(currentIndex);
-  }, [currentIndex, onIndexChange]);
-
-  const currentSection = sections[currentIndex];
-  const isLastSlide = currentIndex === sections.length - 1;
   const totalSlides = sections.length;
+  const currentSection = sections[currentIndex];
 
-  const textContent = useMemo(() => {
-    if (!currentSection) return "";
-    return `${currentSection.title || ""} ${currentSection.content}`.replace(/<[^>]*>/g, " ").trim();
-  }, [currentSection]);
+  const goNext = () => currentIndex < totalSlides - 1 ? setCurrentIndex(prev => prev + 1) : onComplete();
+  const goPrev = () => currentIndex > 0 && setCurrentIndex(prev => prev - 1);
 
-  const goNext = () => {
-    if (!isLastSlide) {
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
-  const goPrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-    }
-  };
-
-  if (!currentSection) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Nenhum conteúdo disponível</p>
-      </div>
-    );
-  }
+  if (!currentSection) return null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
-      <div className="flex flex-col">
-        {/* Header Gradient Section */}
-        <div 
-          className="relative px-6 pt-12 pb-16 rounded-b-[40px] shadow-lg overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
-          }}
-        >
-          <div className="max-w-md mx-auto relative z-10 flex flex-col items-center gap-6 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-white/90 text-sm font-medium uppercase tracking-wider">Reflexão</span>
-              <span className="text-white text-3xl font-black">
-                {currentIndex + 1} <span className="text-white/60 text-xl font-medium">/ {totalSlides}</span>
-              </span>
+    <div className="flex flex-col min-h-screen bg-[#F8F9FC] dark:bg-zinc-950">
+      <div className="relative px-6 pt-10 pb-12 rounded-b-[32px] overflow-hidden shadow-sm"
+           style={{ background: 'linear-gradient(135deg, #db2777 0%, #f472b6 100%)' }}>
+        <div className="max-w-md mx-auto flex flex-col items-center">
+          <div className="w-full flex justify-between items-center mb-6">
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><ArrowLeft className="h-5 w-5" /></button>
+            <div className="text-center">
+              <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">Reflexão</p>
+              <p className="text-white text-2xl font-black">{currentIndex + 1} / {totalSlides}</p>
             </div>
-            
-            {/* ProgressBar */}
-            <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden mt-2">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
-                className="h-full bg-white rounded-full"
-                transition={{ duration: 0.5 }}
-              />
-            </div>
+            <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><Settings className="h-5 w-5" /></button>
           </div>
-        </div>
-
-        {/* Content Section */}
-        <div className="max-w-md mx-auto w-full px-4 -mt-10 pb-32">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="border-0 shadow-2xl rounded-[32px] bg-white dark:bg-zinc-900 overflow-hidden">
-                <div className="p-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-md">
-                      <Heart className="h-6 w-6" />
-                    </div>
-                    <span className="text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest text-xs">
-                      Medite
-                    </span>
-                  </div>
-
-                  <h3 className="text-2xl font-black text-zinc-800 dark:text-zinc-100 mb-6 leading-tight">
-                    {currentSection.title || lessonTitle}
-                  </h3>
-
-                  <div
-                    className="prose prose-zinc dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 leading-relaxed italic"
-                    style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                    dangerouslySetInnerHTML={{
-                      __html: currentSection.content
-                    }}
-                  />
-                </div>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
+          <div className="w-full h-2.5 bg-white/20 rounded-full overflow-hidden">
+            <motion.div animate={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }} className="h-full bg-white rounded-full" />
+          </div>
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 px-6 py-6 pb-10 border-t border-zinc-100 dark:border-zinc-800 z-50">
-        <div className="max-w-md mx-auto flex gap-4">
-          <Button
-            variant="ghost"
-            onClick={goPrev}
-            disabled={currentIndex === 0}
-            className="w-16 h-16 rounded-[24px] border-2 border-zinc-100 dark:border-zinc-800 flex-shrink-0"
-            size="icon"
-          >
-            <ChevronLeft className="h-8 w-8 text-zinc-400" />
-          </Button>
+      <div className="max-w-md mx-auto w-full px-5 -mt-6 flex-1 flex flex-col">
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[24px] bg-white dark:bg-zinc-900 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-600 to-rose-400 flex items-center justify-center text-white"><Heart className="h-4 w-4" /></div>
+            <span className="text-[#db2777] text-[10px] font-black uppercase tracking-widest">Medite</span>
+          </div>
+          <h3 className="text-[19px] font-bold text-[#2D3142] dark:text-zinc-100 mb-4 italic">{currentSection.title}</h3>
+          <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] text-[15px] leading-relaxed italic"
+               dangerouslySetInnerHTML={{ __html: currentSection.content }} />
+        </Card>
+      </div>
 
-          {isLastSlide ? (
-            <Button
-              onClick={onComplete}
-              className="flex-1 h-16 rounded-[24px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
-            >
-              Concluir Meditação
-            </Button>
-          ) : (
-            <Button
-              onClick={goNext}
-              className="flex-1 h-16 rounded-[24px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
-            >
-              Continuar
-              <ChevronRight className="h-6 w-6 ml-2" />
-            </Button>
-          )}
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 p-6 flex gap-3 max-w-md mx-auto">
+        <Button variant="outline" onClick={goPrev} disabled={currentIndex === 0} className="w-16 h-[60px] rounded-[20px] bg-white border-0 shadow-sm"><ChevronLeft className="h-6 w-6 text-[#2D3142]" /></Button>
+        <Button onClick={goNext} className="flex-1 h-[60px] rounded-[20px] bg-[#db2777] text-white text-lg font-bold shadow-lg shadow-pink-500/20 border-0">
+          {currentIndex === totalSlides - 1 ? "Finalizar" : "Continuar"}
+          <ChevronRight className="ml-2 h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

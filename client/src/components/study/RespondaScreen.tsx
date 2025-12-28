@@ -97,15 +97,29 @@ export function RespondaScreen({
     // Unified logic: Check correctIndex first, then fallback to correctAnswer comparison
     let isCorrect: boolean;
     
+    // DEBUG: Log question data
+    console.log('[DEBUG checkAnswer] Question:', {
+      type: currentQuestion.type,
+      correctIndex: currentQuestion.correctIndex,
+      correctAnswer: currentQuestion.correctAnswer,
+      selectedAnswer,
+      options: currentOptions
+    });
+    
     if (currentQuestion.type === "multiple_choice") {
       // For multiple_choice: use correctIndex if defined, otherwise try correctAnswer string match
       if (currentQuestion.correctIndex !== undefined && currentQuestion.correctIndex !== null) {
         isCorrect = selectedAnswer === currentQuestion.correctIndex;
+        console.log('[DEBUG] multiple_choice using correctIndex:', currentQuestion.correctIndex, 'selected:', selectedAnswer, 'isCorrect:', isCorrect);
       } else if (currentQuestion.correctAnswer !== undefined && selectedAnswer !== null) {
         // Fallback: compare selected option text with correctAnswer
-        isCorrect = String(currentOptions[selectedAnswer]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+        const selectedText = String(currentOptions[selectedAnswer]).trim().toLowerCase();
+        const correctText = String(currentQuestion.correctAnswer).trim().toLowerCase();
+        isCorrect = selectedText === correctText;
+        console.log('[DEBUG] multiple_choice using correctAnswer fallback:', correctText, 'selectedText:', selectedText, 'isCorrect:', isCorrect);
       } else {
         isCorrect = false;
+        console.log('[DEBUG] multiple_choice: no correctIndex or correctAnswer found');
       }
     } else if (currentQuestion.type === "true_false") {
       isCorrect = currentQuestion.correctIndex !== undefined
@@ -120,11 +134,15 @@ export function RespondaScreen({
       isCorrect = false;
     }
     
+    console.log('[DEBUG checkAnswer] Final isCorrect:', isCorrect);
+    
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
     setShowResult(true);
+    console.log('[DEBUG] setShowResult(true) called');
     
     if (isCorrect) {
+      console.log('[DEBUG] CORRECT answer branch - scheduling handleNext');
       // Update both state and ref to ensure we always have the latest value
       const newCorrectCount = correctCount + 1;
       correctCountRef.current = newCorrectCount;
@@ -133,9 +151,11 @@ export function RespondaScreen({
       
       // Store timeout ID so we can cancel it if user clicks the button early
       timeoutRef.current = setTimeout(() => {
+        console.log('[DEBUG] Timeout fired - calling handleNext()');
         handleNext();
       }, 1000);
     } else {
+      console.log('[DEBUG] WRONG answer branch - scheduling next question');
       playWrong();
       timeoutRef.current = setTimeout(() => {
         if (currentIndex < totalQuestions - 1) {

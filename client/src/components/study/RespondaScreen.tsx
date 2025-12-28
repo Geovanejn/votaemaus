@@ -194,24 +194,26 @@ export function RespondaScreen({
               </Button>
             </div>
           </div>
-          <h3 className="font-bold text-[#2D3142] dark:text-zinc-100 leading-snug flex flex-wrap items-center gap-1.5"
+          <h3 className="font-bold text-[#2D3142] dark:text-zinc-100 leading-snug"
               style={{ fontSize: `${fontSize}px` }}>
             {currentQuestion.type === "fill_blank" ? (
-              (currentQuestion.question || "").split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
-                <span key={`${currentIndex}-part-${i}`} className="inline-flex items-center flex-wrap gap-1.5">
-                  {part}
-                  {i < arr.length - 1 && (
-                    <span className={cn(
-                      "inline-block min-w-[36px] h-[18px] px-1.5 border-2 rounded-md transition-all flex items-center justify-center text-[9px] font-bold",
-                      selectedAnswer !== null 
-                        ? "border-[#7c3aed] bg-[#7c3aed]/10 text-[#7c3aed] shadow-sm" 
-                        : "border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
-                    )}>
-                      {selectedAnswer !== null ? currentOptions[selectedAnswer] : ""}
-                    </span>
-                  )}
-                </span>
-              ))
+              <span className="inline">
+                {(currentQuestion.question || "").split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
+                  <span key={`${currentIndex}-part-${i}`} className="inline">
+                    {part}
+                    {i < arr.length - 1 && (
+                      <span className={cn(
+                        "inline-flex items-center justify-center min-w-[36px] h-[22px] px-2 border-2 rounded-md transition-all text-[10px] font-bold mx-1 align-middle",
+                        selectedAnswer !== null 
+                          ? "border-[#7c3aed] bg-[#7c3aed]/10 text-[#7c3aed] shadow-sm" 
+                          : "border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
+                      )}>
+                        {selectedAnswer !== null ? currentOptions[selectedAnswer] : ""}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </span>
             ) : (
               currentQuestion.question
             )}

@@ -821,7 +821,7 @@ body {
 
 /* Tighter padding in text plate */
 .collectible-card-text-plate {
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 10px;
   padding: 4px 10px;
   /* Inset shadows - same pattern as rarity icon */

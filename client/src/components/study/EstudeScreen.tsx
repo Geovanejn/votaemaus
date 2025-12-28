@@ -29,7 +29,7 @@ export function EstudeScreen({
   initialIndex = 0
 }: EstudeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const { fontSize, increaseFontSize, decreaseFontSize, speak } = useAccessibility();
+  const { fontSize, increaseFontSize, decreaseFontSize, speak, isSpeaking } = useAccessibility();
   
   // Slide 0: Verse
   // Slide 1+: Topics (Slide 1 should be Topic 0 from sections)

@@ -593,9 +593,9 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                   
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                    {eventCards.slice(0, 4).map((userCard) => (
-                      <div key={userCard.id} className="flex-shrink-0" data-testid={`card-event-${userCard.id}`}>
+                  <div className="grid grid-cols-3 gap-2 justify-items-center">
+                    {eventCards.slice(0, 3).map((userCard) => (
+                      <div key={userCard.id} data-testid={`card-event-${userCard.id}`}>
                         <CollectibleCard
                           name={userCard.card.name}
                           imageUrl={userCard.card.imageUrl}
@@ -632,9 +632,9 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                   
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                    {seasonCards.slice(0, 4).map((userCard) => (
-                      <div key={userCard.id} className="flex-shrink-0" data-testid={`card-season-${userCard.id}`}>
+                  <div className="grid grid-cols-3 gap-2 justify-items-center">
+                    {seasonCards.slice(0, 3).map((userCard) => (
+                      <div key={userCard.id} data-testid={`card-season-${userCard.id}`}>
                         <CollectibleCard
                           name={userCard.card.name}
                           imageUrl={userCard.card.imageUrl}

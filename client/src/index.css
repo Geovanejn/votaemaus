@@ -642,12 +642,22 @@ body {
   height: 100%;
 }
 
-/* Card image container */
+/* Card image container - Forged metal frame effect */
 .collectible-card-image {
   position: relative;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
+  /* Forged frame effect - Inner shadow + Outer glow + Drop shadow (same as text) */
+  box-shadow: 
+    /* Inner shadow - dark inset */
+    inset 2px 2px 3px rgba(0, 0, 0, 0.5),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+    /* Outer glow - overlay mode white 20% */
+    0 0 4px rgba(255, 255, 255, 0.20),
+    0 0 8px rgba(255, 255, 255, 0.10),
+    /* Drop shadow - linear light white 10% (highlight edge) */
+    -1px -1px 0px rgba(255, 255, 255, 0.10);
 }
 
 .collectible-card-image img {
@@ -689,27 +699,50 @@ body {
   z-index: 6;
 }
 
+/* Forged icon effect inside badge */
+.collectible-card-badge svg {
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5)) drop-shadow(-0.5px -0.5px 0px rgba(255, 255, 255, 0.15));
+  opacity: 0.6;
+}
+
 .collectible-card-badge-common {
   background: linear-gradient(145deg, #E5E7EB, #9CA3AF);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  /* Forged effect - Inner shadow + outer glow */
+  box-shadow: 
+    inset 2px 2px 3px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.4),
+    0 0 4px rgba(255, 255, 255, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .collectible-card-badge-rare {
   background: linear-gradient(145deg, #93C5FD, #3B82F6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 
+    inset 2px 2px 3px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.3),
+    0 0 4px rgba(255, 255, 255, 0.15),
+    0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .collectible-card-badge-epic {
   background: linear-gradient(145deg, #C4B5FD, #8B5CF6);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: 
+    inset 2px 2px 3px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.3),
+    0 0 4px rgba(255, 255, 255, 0.15),
+    0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
 .collectible-card-badge-legendary {
   background: linear-gradient(145deg, #FDE68A, #F59E0B);
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+  box-shadow: 
+    inset 2px 2px 3px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.4),
+    0 0 6px rgba(255, 255, 255, 0.20),
+    0 2px 10px rgba(245, 158, 11, 0.4);
 }
 
-/* Rarity indicator icon in top right */
+/* Rarity indicator icon in top right - Forged metal effect */
 .collectible-card-rarity-icon {
   position: absolute;
   top: 12px;
@@ -721,21 +754,38 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 6;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.25);
+  /* Forged metal effect - Inner shadow + Outer glow */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.5),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.10),
+    0 0 3px rgba(255, 255, 255, 0.15);
 }
 
-/* Card text styling with embossed effect */
+/* Forged icon effect inside rarity indicator */
+.collectible-card-rarity-icon svg {
+  filter: drop-shadow(0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5)) drop-shadow(-0.5px -0.5px 0px rgba(255, 255, 255, 0.15));
+  opacity: 0.7;
+}
+
+/* Card text styling - Forged/Embossed metal effect (Photoshop style) */
+/* Fill 0% + Inner Shadow + Color Overlay (black 30%) + Outer Glow (overlay white 20%) + Drop Shadow (linear light white 10%) */
 .collectible-card-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: center;
-  color: white;
+  /* Fill 0% effect - transparent base with color overlay simulation */
+  color: rgba(0, 0, 0, 0.30);
+  /* Combined effects: inner shadow (dark top-left), outer glow (white blur), drop shadow (white highlight) */
   text-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.5);
+    /* Inner shadow effect - dark shadow pushed inward */
+    1px 1px 1px rgba(0, 0, 0, 0.5),
+    /* Outer glow - overlay mode white 20% */
+    0 0 3px rgba(255, 255, 255, 0.20),
+    0 0 6px rgba(255, 255, 255, 0.15),
+    /* Drop shadow - linear light white 10% (highlight on bottom-right edge) */
+    -1px -1px 0px rgba(255, 255, 255, 0.10);
 }
 
 .collectible-card-subtitle {
@@ -743,12 +793,17 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   text-align: center;
-  opacity: 0.9;
-  color: white;
+  /* Fill 0% effect - transparent base with color overlay simulation */
+  color: rgba(0, 0, 0, 0.30);
+  /* Combined effects for subtitle */
   text-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.7),
-    0 0.5px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.4);
+    /* Inner shadow effect */
+    0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5),
+    /* Outer glow - overlay mode white 20% */
+    0 0 2px rgba(255, 255, 255, 0.20),
+    0 0 4px rgba(255, 255, 255, 0.15),
+    /* Drop shadow - linear light white 10% */
+    -0.5px -0.5px 0px rgba(255, 255, 255, 0.10);
 }
 
 /* Portrait orientation (for magazines/seasons) */

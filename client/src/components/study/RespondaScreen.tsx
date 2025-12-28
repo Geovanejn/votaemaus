@@ -58,9 +58,9 @@ export function RespondaScreen({
   }, [currentIndex, onQuestionChange]);
 
   useEffect(() => {
-    if (currentQuestion.type === "true_false" && !currentQuestion.options) {
+    if (currentQuestion.type === "true_false" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
       currentQuestion.options = ["Falso", "Verdadeiro"];
-    } else if (currentQuestion.type === "fill_blank" && !currentQuestion.options && currentQuestion.correctAnswer) {
+    } else if (currentQuestion.type === "fill_blank" && (!currentQuestion.options || currentQuestion.options.length === 0) && currentQuestion.correctAnswer) {
       // Basic fallback for fill_blank options if missing
       currentQuestion.options = [currentQuestion.correctAnswer as string, "Opção 2", "Opção 3", "Opção 4"];
     }

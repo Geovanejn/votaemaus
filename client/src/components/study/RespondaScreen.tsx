@@ -82,11 +82,11 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-    const isCorrect = currentQuestion.type === "multiple_choice" 
-      ? selectedAnswer === currentQuestion.correctIndex
-      : currentQuestion.type === "true_false"
-        ? (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true)
-        : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+      const isCorrect = currentQuestion.type === "multiple_choice" 
+        ? selectedAnswer === currentQuestion.correctIndex
+        : currentQuestion.type === "true_false"
+          ? (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true || currentQuestion.correctIndex === 1)
+          : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
     
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
@@ -96,15 +96,11 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
       playCorrect();
       
-      // Feedback visual: show result, then wait before going to next
-      setShowResult(true);
-      
       setTimeout(() => {
         handleNext();
-      }, 1500);
+      }, 1000);
     } else {
       playWrong();
-      setShowResult(true); // Ensure result is shown for errors too
       setTimeout(() => {
         setShowResult(false);
         setSelectedAnswer(null);
@@ -113,23 +109,19 @@ export function RespondaScreen({
         } else {
           onComplete(correctCount, totalQuestions);
         }
-      }, 1500);
+      }, 1000);
     }
   };
 
   const handleNext = () => {
-    // Correctly pass the updated count to onComplete
-    const finalCorrectCount = correctCount; 
-    // Wait, if it was correct, it was already incremented in setCorrectCount(prev => prev + 1)
-    // But since state is async, we should use a local variable or functional update
+    // Reset state for next question before moving
+    setShowResult(false);
+    setSelectedAnswer(null);
+    
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // Use a trick to get the most recent count
-      setCorrectCount(current => {
-        onComplete(current, totalQuestions);
-        return current;
-      });
+      onComplete(correctCount, totalQuestions);
     }
   };
 
@@ -173,8 +165,15 @@ export function RespondaScreen({
         </div>
       </div>
 
-      <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
-        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
+        <motion.div 
+          key={currentIndex}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="flex-1 flex flex-col"
+        >
+          <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-bold text-xs">?</div>
@@ -301,7 +300,7 @@ export function RespondaScreen({
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

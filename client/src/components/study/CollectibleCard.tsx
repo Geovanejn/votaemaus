@@ -49,17 +49,17 @@ export function CollectibleCard({
   const label = rarityLabels[rarity];
   
   const sizeClasses = {
-    compact: "w-[100px] h-[140px]",
-    sm: "w-[140px] h-[180px]",
-    md: "w-[180px] h-[240px] sm:w-[220px] sm:h-[280px]",
-    lg: "w-[280px] h-[360px]",
+    compact: "w-[100px] h-[120px]",
+    sm: "w-[140px] h-[160px]",
+    md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
+    lg: "w-[280px] h-[320px]",
   };
 
   const imageHeightClasses = {
-    compact: "h-[56px]",
-    sm: "h-[79px]",
-    md: "h-[101px] sm:h-[124px]",
-    lg: "h-[157px]",
+    compact: "h-[48px]",
+    sm: "h-[68px]",
+    md: "h-[88px] sm:h-[108px]",
+    lg: "h-[140px]",
   };
 
   const badgeSizeClasses = {

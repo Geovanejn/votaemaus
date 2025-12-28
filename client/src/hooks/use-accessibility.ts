@@ -4,7 +4,7 @@ export function useAccessibility() {
   const [fontSize, setFontSize] = useState(16);
 
   const increaseFontSize = () => {
-    setFontSize((prev) => (prev < 24 ? prev + 2 : prev));
+    setFontSize((prev) => (prev >= 24 ? 16 : prev + 2));
   };
 
   const speak = (text: string) => {

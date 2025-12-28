@@ -51,6 +51,13 @@ export function RespondaScreen({
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
 
+  const currentOptions = currentQuestion?.options && currentQuestion.options.length > 0 
+    ? currentQuestion.options 
+    : (currentQuestion?.type === "fill_blank" && currentQuestion.correctAnswer 
+        ? [String(currentQuestion.correctAnswer), "Opção 2", "Opção 3", "Opção 4"] 
+        : (currentQuestion?.type === "true_false" ? ["Falso", "Verdadeiro"] : [])
+      );
+
   useEffect(() => {
     onQuestionChange?.(currentIndex);
     setSelectedAnswer(null);
@@ -82,7 +89,7 @@ export function RespondaScreen({
     } else if (currentQuestion.type === "true_false") {
       isCorrect = (selectedAnswer === 1) === currentQuestion.correctAnswer;
     } else if (currentQuestion.type === "fill_blank") {
-      const selectedOption = currentQuestion.options?.[selectedAnswer as number];
+      const selectedOption = currentOptions[selectedAnswer as number];
       isCorrect = String(selectedOption).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
     }
     
@@ -153,17 +160,17 @@ export function RespondaScreen({
           </div>
           <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 leading-snug flex flex-wrap items-center gap-1.5">
             {currentQuestion.type === "fill_blank" ? (
-              currentQuestion.question.split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
-                <span key={i} className="inline-flex items-center flex-wrap gap-1.5">
+              (currentQuestion.question || "").split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
+                <span key={`${currentIndex}-part-${i}`} className="inline-flex items-center flex-wrap gap-1.5">
                   {part}
                   {i < arr.length - 1 && (
                     <span className={cn(
-                      "inline-block min-w-[100px] h-9 px-3 border-2 rounded-md transition-all flex items-center justify-center text-sm font-bold",
+                      "inline-block min-w-[36px] h-[18px] px-1.5 border-2 rounded-md transition-all flex items-center justify-center text-[9px] font-bold",
                       selectedAnswer !== null 
                         ? "border-[#7c3aed] bg-[#7c3aed]/10 text-[#7c3aed] shadow-sm" 
                         : "border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
                     )}>
-                      {selectedAnswer !== null ? currentQuestion.options?.[selectedAnswer] : ""}
+                      {selectedAnswer !== null ? currentOptions[selectedAnswer] : ""}
                     </span>
                   )}
                 </span>
@@ -178,7 +185,7 @@ export function RespondaScreen({
           "mb-8",
           currentQuestion.type === "true_false" ? "grid grid-cols-2 gap-4" : "space-y-2"
         )}>
-          {currentQuestion.options?.map((option, idx) => {
+          {currentOptions.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
             const isCorrect = currentQuestion.type === "multiple_choice" 
               ? idx === currentQuestion.correctIndex

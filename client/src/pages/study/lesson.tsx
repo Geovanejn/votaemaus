@@ -1316,20 +1316,6 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="lesson-page">
-      {!isSessionScreen && (
-        <StudyHeader
-          currentStep={headerCurrentStep}
-          totalSteps={headerTotalSteps}
-          hearts={currentHearts}
-          maxHearts={profileData?.heartsMax || 5}
-          onClose={handleClose}
-          currentStage={currentStage}
-          showStages={!targetStage}
-          showProgress={true}
-          showStats={true}
-        />
-      )}
-
       <main className="flex-1 flex flex-col">
         {showStudyContent ? (
           <EstudeScreen

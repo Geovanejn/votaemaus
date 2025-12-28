@@ -519,47 +519,6 @@ export default function PracticePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="sticky top-0 z-50 p-4 border-b bg-background">
-        <div className="flex items-center gap-3 mb-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation('/study')}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="font-bold text-lg">Pratique</h1>
-            <p className="text-xs text-muted-foreground">
-              Questao {currentIndex + 1} de {questions.length}
-            </p>
-          </div>
-          <div className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm",
-            timeRemaining <= 30 
-              ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" 
-              : "bg-primary/10 text-primary"
-          )}>
-            <Clock className="h-4 w-4" />
-            <span data-testid="timer">{formatTime(timeRemaining)}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex items-center gap-1 text-sm">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <span className="font-medium">{correctCount}</span>
-          </div>
-        </div>
-      </header>
-
       <div className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {currentQuestion && (

@@ -636,44 +636,6 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background border-b">
-        <div className="flex items-center gap-3 p-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setLocation(`/study/events/${eventId}`)}
-            data-testid="button-back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <span className="text-xs text-muted-foreground">Dia {dayNumber}</span>
-            <h1 className="text-lg font-semibold truncate">{lesson.title}</h1>
-          </div>
-          <Badge variant="outline" className="flex items-center gap-1 shrink-0">
-            {stageLabels[currentStage].icon}
-            <span className="hidden sm:inline">{stageLabels[currentStage].label}</span>
-          </Badge>
-        </div>
-        <div className="px-4 pb-3">
-          <div className="flex gap-1 mb-2">
-            {(["estude", "medite", "responda"] as Stage[]).map((stage) => (
-              <div 
-                key={stage}
-                className={`flex-1 h-1.5 rounded-full transition-colors ${
-                  (stage === "estude" && currentStage !== "estude") ||
-                  (stage === "medite" && currentStage === "responda")
-                    ? "bg-primary"
-                    : stage === currentStage
-                      ? "bg-primary/50"
-                      : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </header>
-
       <main className="flex-1 relative">
         <AnimatePresence mode="wait">
           {currentStage === "estude" && (

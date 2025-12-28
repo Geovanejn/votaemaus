@@ -227,7 +227,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       // Capture with computed styles from the live card
       const scale = 3;
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#1a1a2e',
+        backgroundColor: null, // Transparent background - card has its own background
         scale: scale,
         useCORS: true,
         logging: false,
@@ -489,41 +489,14 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         className="flex flex-col items-center gap-6 max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        <div ref={cardRef} className="p-4 rounded-xl relative overflow-hidden" style={{ backgroundColor: '#1a1a2e' }}>
-          {/* Shine/glow overlay effect for download image */}
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.08) 100%)',
-              zIndex: 10,
-            }}
+        <div ref={cardRef} className="relative">
+          <CollectibleCard
+            name={card.name}
+            imageUrl={card.imageUrl}
+            rarity={card.rarity}
+            orientation="portrait"
+            size="lg"
           />
-          <div 
-            className="absolute -inset-1 pointer-events-none rounded-xl"
-            style={{
-              background: card.rarity === 'legendary' 
-                ? 'radial-gradient(ellipse at 30% 20%, rgba(255,215,0,0.25) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(255,165,0,0.2) 0%, transparent 50%)'
-                : card.rarity === 'epic'
-                ? 'radial-gradient(ellipse at 30% 20%, rgba(168,85,247,0.25) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.2) 0%, transparent 50%)'
-                : card.rarity === 'rare'
-                ? 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.25) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(96,165,250,0.2) 0%, transparent 50%)'
-                : 'radial-gradient(ellipse at 30% 20%, rgba(148,163,184,0.2) 0%, transparent 50%)',
-              filter: 'blur(8px)',
-              zIndex: 0,
-            }}
-          />
-          <div className="relative z-[5]">
-            <CollectibleCard
-              name={card.name}
-              imageUrl={card.imageUrl}
-              rarity={card.rarity}
-              orientation="portrait"
-              size="lg"
-            />
-            <p className="text-center text-white/70 text-xs mt-3 font-medium">
-              DeoGlory - UMP Emaus
-            </p>
-          </div>
         </div>
 
         <div className="text-center space-y-2 text-white">

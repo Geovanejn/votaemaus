@@ -51,12 +51,7 @@ export function RespondaScreen({
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
 
-  const currentOptions = currentQuestion?.options && currentQuestion.options.length > 0 
-    ? currentQuestion.options 
-    : (currentQuestion?.type === "fill_blank" && currentQuestion.correctAnswer 
-        ? [String(currentQuestion.correctAnswer), "Opção 2", "Opção 3", "Opção 4"] 
-        : (currentQuestion?.type === "true_false" ? ["Falso", "Verdadeiro"] : [])
-      );
+  const currentOptions = currentQuestion?.options || [];
 
   useEffect(() => {
     onQuestionChange?.(currentIndex);
@@ -69,16 +64,6 @@ export function RespondaScreen({
     
     if (currentQuestion.type === "true_false" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
       currentQuestion.options = ["Falso", "Verdadeiro"];
-    } else if (currentQuestion.type === "fill_blank") {
-      // For fill_blank, we MUST ensure options exist
-      if (!currentQuestion.options || currentQuestion.options.length === 0) {
-        if (currentQuestion.correctAnswer) {
-          const answerStr = String(currentQuestion.correctAnswer);
-          currentQuestion.options = [answerStr, "Opção 2", "Opção 3", "Opção 4"];
-        } else {
-          currentQuestion.options = ["Opção 1", "Opção 2", "Opção 3", "Opção 4"];
-        }
-      }
     }
   }, [currentQuestion, currentIndex]);
 
@@ -96,6 +81,10 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
+      // Auto advance on correct answer after a short delay
+      setTimeout(() => {
+        handleNext();
+      }, 1500);
     } else {
       playWrong();
     }

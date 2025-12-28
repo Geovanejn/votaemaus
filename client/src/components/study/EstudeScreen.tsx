@@ -30,9 +30,8 @@ export function EstudeScreen({
 }: EstudeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const { fontSize, increaseFontSize, decreaseFontSize, speak } = useAccessibility();
-  const totalSlides = sections.length;
-  const currentSection = sections[currentIndex];
-
+  const verseSection = sections.find(s => s.type === "verse") || sections[0];
+  
   const goNext = () => currentIndex < totalSlides - 1 ? setCurrentIndex(prev => prev + 1) : onComplete();
   const goPrev = () => currentIndex > 0 && setCurrentIndex(prev => prev - 1);
 
@@ -73,11 +72,11 @@ export function EstudeScreen({
                 </div>
                 <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Versículo Base</p>
                 <p className="text-xl italic text-blue-800 dark:text-blue-100 leading-relaxed font-serif">
-                  "{sections.find(s => s.type === "verse")?.content.replace(/<[^>]*>/g, '') || "Carregando..."}"
+                  "{verseSection?.content.replace(/<[^>]*>/g, '') || "Carregando..."}"
                 </p>
-                {sections.find(s => s.type === "verse")?.title && (
+                {verseSection?.title && (
                   <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-4">
-                    — {sections.find(s => s.type === "verse")?.title}
+                    — {verseSection.title}
                   </p>
                 )}
               </div>

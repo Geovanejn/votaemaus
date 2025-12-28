@@ -98,6 +98,7 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
       playCorrect();
       // Increased timeout to 2.5 seconds for better feedback visibility
+      // Feedback UI uses showResult && isThisOptionCorrect which should show green
       setTimeout(() => {
         handleNext();
       }, 2500);
@@ -105,6 +106,7 @@ export function RespondaScreen({
       playWrong();
       // Auto-advance even on wrong answers after a delay so they see the red feedback
       setTimeout(() => {
+        // Reset states for the next question
         setShowResult(false);
         setSelectedAnswer(null);
         if (currentIndex < totalQuestions - 1) {
@@ -224,7 +226,7 @@ export function RespondaScreen({
             const isThisOptionCorrect = currentQuestion.type === "multiple_choice" 
               ? idx === currentQuestion.correctIndex
               : currentQuestion.type === "true_false"
-                ? (idx === 1) === currentQuestion.correctAnswer
+                ? (idx === 1) === !!currentQuestion.correctAnswer
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
             
             const showCorrect = showResult && isThisOptionCorrect;

@@ -50,16 +50,16 @@ export function CollectibleCard({
   
   const sizeClasses = {
     compact: "w-[100px] h-[140px]",
-    sm: orientation === "portrait" ? "w-[120px] h-[168px]" : "w-[168px] h-[120px]",
-    md: orientation === "portrait" ? "w-[160px] h-[224px] sm:w-[200px] sm:h-[280px]" : "w-[224px] h-[160px] sm:w-[280px] sm:h-[200px]",
-    lg: orientation === "portrait" ? "w-[240px] h-[336px]" : "w-[336px] h-[240px]",
+    sm: orientation === "portrait" ? "w-[120px] h-[180px]" : "w-[180px] h-[120px]",
+    md: orientation === "portrait" ? "w-[160px] h-[260px] sm:w-[200px] sm:h-[320px]" : "w-[260px] h-[160px] sm:w-[320px] sm:h-[200px]",
+    lg: orientation === "portrait" ? "w-[240px] h-[380px]" : "w-[380px] h-[240px]",
   };
 
   const imageHeightClasses = {
-    compact: "h-[60px]",
-    sm: orientation === "portrait" ? "h-[80px]" : "h-[56px]",
-    md: orientation === "portrait" ? "h-[112px] sm:h-[140px]" : "h-[80px] sm:h-[100px]",
-    lg: orientation === "portrait" ? "h-[200px]" : "aspect-video",
+    compact: "h-[80px]",
+    sm: orientation === "portrait" ? "h-[100px]" : "h-[70px]",
+    md: orientation === "portrait" ? "h-[140px] sm:h-[180px]" : "h-[100px] sm:h-[130px]",
+    lg: orientation === "portrait" ? "h-[240px]" : "aspect-video",
   };
 
   const badgeSizeClasses = {

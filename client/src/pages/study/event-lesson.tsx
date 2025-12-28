@@ -442,17 +442,10 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
 
       if (converted.type === "multiple_choice") {
         const options = q.options || content.options;
-        if (options) {
+        if (options && Array.isArray(options) && options.length > 0) {
           converted.options = options;
           // Ensure correctIndex is ALWAYS a number
           converted.correctIndex = Number(q.correctIndex ?? content.correctIndex ?? 0);
-          
-          // Debug logging
-          console.log(`[Event Lesson Debug] Multiple Choice: "${converted.question?.substring(0, 40)}..."`, {
-            correctIndex: converted.correctIndex,
-            options: converted.options,
-            correctAnswer: converted.options[converted.correctIndex]
-          });
         }
       } else if (converted.type === "true_false") {
         // Check multiple possible locations for isTrue value

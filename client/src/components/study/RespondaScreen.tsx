@@ -96,11 +96,15 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
       playCorrect();
       
+      // Feedback visual: show result, then wait before going to next
+      setShowResult(true);
+      
       setTimeout(() => {
         handleNext();
       }, 1500);
     } else {
       playWrong();
+      setShowResult(true); // Ensure result is shown for errors too
       setTimeout(() => {
         setShowResult(false);
         setSelectedAnswer(null);

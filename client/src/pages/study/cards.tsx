@@ -155,7 +155,7 @@ export default function CardsCollectionPage() {
               </TabsList>
 
               <TabsContent value="all" className="mt-4">
-                <div className="flex flex-wrap justify-center gap-4">
+                <div className="grid grid-cols-3 gap-3 justify-items-center">
                   {userCards?.map(card => (
                     <motion.div
                       key={card.id}
@@ -167,9 +167,8 @@ export default function CardsCollectionPage() {
                         name={card.card?.name || "Card"}
                         imageUrl={card.card?.imageUrl}
                         rarity={card.rarity}
-                        orientation={card.sourceType === "event" ? "landscape" : "portrait"}
                         onClick={() => setSelectedCard(card)}
-                        size="md"
+                        size="compact"
                       />
                     </motion.div>
                   ))}
@@ -190,7 +189,7 @@ export default function CardsCollectionPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap justify-center gap-4">
+                  <div className="grid grid-cols-3 gap-3 justify-items-center">
                     {eventCards.map(card => (
                       <motion.div
                         key={card.id}
@@ -202,9 +201,8 @@ export default function CardsCollectionPage() {
                           name={card.card?.name || "Card"}
                           imageUrl={card.card?.imageUrl}
                           rarity={card.rarity}
-                          orientation="landscape"
                           onClick={() => setSelectedCard(card)}
-                          size="md"
+                          size="compact"
                         />
                       </motion.div>
                     ))}
@@ -226,7 +224,7 @@ export default function CardsCollectionPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap justify-center gap-4">
+                  <div className="grid grid-cols-3 gap-3 justify-items-center">
                     {seasonCards.map(card => (
                       <motion.div
                         key={card.id}
@@ -238,9 +236,8 @@ export default function CardsCollectionPage() {
                           name={card.card?.name || "Card"}
                           imageUrl={card.card?.imageUrl}
                           rarity={card.rarity}
-                          orientation="portrait"
                           onClick={() => setSelectedCard(card)}
-                          size="md"
+                          size="compact"
                         />
                       </motion.div>
                     ))}

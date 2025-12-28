@@ -82,9 +82,8 @@ export function RespondaScreen({
     } else if (currentQuestion.type === "true_false") {
       isCorrect = (selectedAnswer === 1) === currentQuestion.correctAnswer;
     } else if (currentQuestion.type === "fill_blank") {
-      // For fill_blank, selectedAnswer might be the index or the text depending on implementation
-      // In RespondaScreen, it's currently handled as an index for options
-      isCorrect = currentQuestion.options?.[selectedAnswer as number] === currentQuestion.correctAnswer;
+      const selectedOption = currentQuestion.options?.[selectedAnswer as number];
+      isCorrect = String(selectedOption).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
     }
     
     if (isCorrect) {
@@ -152,8 +151,26 @@ export function RespondaScreen({
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-bold text-xs">?</div>
             <span className="text-[#7c3aed] text-[9px] font-black uppercase tracking-widest">Responda</span>
           </div>
-          <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 leading-snug">
-            {currentQuestion.question}
+          <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 leading-snug flex flex-wrap items-center gap-1.5">
+            {currentQuestion.type === "fill_blank" ? (
+              currentQuestion.question.split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
+                <span key={i} className="inline-flex items-center flex-wrap gap-1.5">
+                  {part}
+                  {i < arr.length - 1 && (
+                    <span className={cn(
+                      "inline-block min-w-[100px] h-9 px-3 border-2 rounded-md transition-all flex items-center justify-center text-sm font-bold",
+                      selectedAnswer !== null 
+                        ? "border-[#7c3aed] bg-[#7c3aed]/10 text-[#7c3aed] shadow-sm" 
+                        : "border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
+                    )}>
+                      {selectedAnswer !== null ? currentQuestion.options?.[selectedAnswer] : ""}
+                    </span>
+                  )}
+                </span>
+              ))
+            ) : (
+              currentQuestion.question
+            )}
           </h3>
         </Card>
 

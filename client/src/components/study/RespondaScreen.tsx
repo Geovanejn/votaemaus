@@ -96,6 +96,10 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
+      // Auto advance on correct answer after a short delay
+      setTimeout(() => {
+        handleNext();
+      }, 1500);
     } else {
       playWrong();
     }

@@ -97,11 +97,25 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
+      // Increased timeout to 2.5 seconds for better feedback visibility
       setTimeout(() => {
         handleNext();
-      }, 1500);
+      }, 2500);
     } else {
       playWrong();
+      // Auto-advance even on wrong answers after a delay so they see the red feedback
+      setTimeout(() => {
+        setShowResult(false);
+        setSelectedAnswer(null);
+        if (currentIndex < totalQuestions - 1) {
+          setCurrentIndex(prev => prev + 1);
+        } else {
+          setCorrectCount(current => {
+            onComplete(current, totalQuestions);
+            return current;
+          });
+        }
+      }, 2500);
     }
 
     onAnswer(currentIndex, selectedAnswer, isCorrect);

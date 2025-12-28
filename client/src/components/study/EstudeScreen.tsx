@@ -65,37 +65,46 @@ export function EstudeScreen({
 
       <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
         <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white"><BookOpen className="h-4 w-4" /></div>
-              <span className="text-[#2563eb] text-[9px] font-black uppercase tracking-widest">Estude</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <Type className="h-4 w-4 text-zinc-500" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={handleSpeak} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <Volume2 className="h-4 w-4 text-zinc-500" />
-              </Button>
-            </div>
-          </div>
-          {currentIndex === 0 && (
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
-              <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Versículo Base</p>
-              <p className="text-sm italic text-blue-800 dark:text-blue-200 leading-relaxed">
-                {sections[0]?.type === "verse" ? sections[0].content.replace(/<[^>]*>/g, '') : "Carregando versículo..."}
-              </p>
-              {sections[0]?.title && (
-                <p className="text-[10px] font-bold text-blue-500 dark:text-blue-400 mt-1 text-right">
-                  — {sections[0].title}
+          {currentIndex === 0 ? (
+            <div className="flex-1 flex flex-col justify-center items-center py-10">
+              <div className="w-full p-6 bg-blue-50 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100 dark:border-blue-800/30 shadow-sm text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Versículo Base</p>
+                <p className="text-xl italic text-blue-800 dark:text-blue-100 leading-relaxed font-serif">
+                  "{sections.find(s => s.type === "verse")?.content.replace(/<[^>]*>/g, '') || "Carregando..."}"
                 </p>
-              )}
+                {sections.find(s => s.type === "verse")?.title && (
+                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-4">
+                    — {sections.find(s => s.type === "verse")?.title}
+                  </p>
+                )}
+              </div>
+              <p className="mt-8 text-zinc-400 text-sm animate-pulse italic">Toque em Continuar para iniciar o estudo</p>
             </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white"><BookOpen className="h-4 w-4" /></div>
+                  <span className="text-[#2563eb] text-[9px] font-black uppercase tracking-widest">Estude</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                    <Type className="h-4 w-4 text-zinc-500" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={handleSpeak} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                    <Volume2 className="h-4 w-4 text-zinc-500" />
+                  </Button>
+                </div>
+              </div>
+              <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 mb-3">{currentSection.title || "Tópico de Estudo"}</h3>
+              <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] leading-relaxed"
+                   style={{ fontSize: `${fontSize}px` }}
+                   dangerouslySetInnerHTML={{ __html: currentSection.content }} />
+            </>
           )}
-          <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 mb-3">{currentSection.title || "Tópico de Estudo"}</h3>
-          <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] leading-relaxed"
-               style={{ fontSize: `${fontSize}px` }}
-               dangerouslySetInnerHTML={{ __html: currentSection.content }} />
         </Card>
 
         <div className="mt-4 flex gap-2">

@@ -642,22 +642,35 @@ body {
   height: 100%;
 }
 
-/* Card image container - Forged metal frame effect */
+/* Card image container - Forged metal frame effect (no blur for html2canvas) */
 .collectible-card-image {
   position: relative;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
-  /* Forged frame effect - Inner shadow + Outer glow + Drop shadow (same as text) */
+  /* Tight shadows only - no blur radius for crisp rendering */
   box-shadow: 
-    /* Inner shadow - dark inset */
-    inset 2px 2px 3px rgba(0, 0, 0, 0.5),
-    inset -1px -1px 2px rgba(0, 0, 0, 0.3),
-    /* Outer glow - overlay mode white 20% */
-    0 0 4px rgba(255, 255, 255, 0.20),
-    0 0 8px rgba(255, 255, 255, 0.10),
-    /* Drop shadow - linear light white 10% (highlight edge) */
-    -1px -1px 0px rgba(255, 255, 255, 0.10);
+    inset 2px 2px 0px rgba(0, 0, 0, 0.5),
+    inset -2px -2px 0px rgba(255, 255, 255, 0.25);
+}
+
+/* Forged frame overlay using gradient pseudo-element */
+.collectible-card-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 2;
+  /* Beveled frame gradient - dark top/left edges, light bottom/right edges */
+  background: 
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, transparent 4px),
+    linear-gradient(to right, rgba(0, 0, 0, 0.3) 0%, transparent 4px),
+    linear-gradient(to top, rgba(255, 255, 255, 0.15) 0%, transparent 4px),
+    linear-gradient(to left, rgba(255, 255, 255, 0.15) 0%, transparent 4px);
 }
 
 .collectible-card-image img {
@@ -699,10 +712,10 @@ body {
   z-index: 6;
 }
 
-/* Forged icon effect inside badge */
+/* Forged icon effect inside badge - crisp shadows only */
 .collectible-card-badge svg {
-  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5)) drop-shadow(-0.5px -0.5px 0px rgba(255, 255, 255, 0.15));
-  opacity: 0.6;
+  filter: drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.5)) drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.25));
+  opacity: 0.55;
 }
 
 .collectible-card-badge-common {
@@ -762,30 +775,27 @@ body {
     0 0 3px rgba(255, 255, 255, 0.15);
 }
 
-/* Forged icon effect inside rarity indicator */
+/* Forged icon effect inside rarity indicator - crisp shadows only */
 .collectible-card-rarity-icon svg {
-  filter: drop-shadow(0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5)) drop-shadow(-0.5px -0.5px 0px rgba(255, 255, 255, 0.15));
-  opacity: 0.7;
+  filter: drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.5)) drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.20));
+  opacity: 0.65;
 }
 
-/* Card text styling - Forged/Embossed metal effect (Photoshop style) */
-/* Fill 0% + Inner Shadow + Color Overlay (black 30%) + Outer Glow (overlay white 20%) + Drop Shadow (linear light white 10%) */
+/* Card text styling - Crisp Forged/Embossed metal effect (no blur) */
+/* Tight shadows only (±1px) for html2canvas compatibility */
 .collectible-card-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: center;
-  /* Fill 0% effect - transparent base with color overlay simulation */
-  color: rgba(0, 0, 0, 0.30);
-  /* Combined effects: inner shadow (dark top-left), outer glow (white blur), drop shadow (white highlight) */
+  /* Semi-transparent dark color simulates engraved look */
+  color: rgba(40, 40, 40, 0.65);
+  /* Tight shadows: dark inner edge + light highlight edge (no blur radius) */
   text-shadow: 
-    /* Inner shadow effect - dark shadow pushed inward */
-    1px 1px 1px rgba(0, 0, 0, 0.5),
-    /* Outer glow - overlay mode white 20% */
-    0 0 3px rgba(255, 255, 255, 0.20),
-    0 0 6px rgba(255, 255, 255, 0.15),
-    /* Drop shadow - linear light white 10% (highlight on bottom-right edge) */
-    -1px -1px 0px rgba(255, 255, 255, 0.10);
+    /* Dark inner shadow - top-left offset creates depth */
+    1px 1px 0px rgba(0, 0, 0, 0.6),
+    /* Light highlight - bottom-right offset creates beveled edge */
+    -1px -1px 0px rgba(255, 255, 255, 0.35);
 }
 
 .collectible-card-subtitle {
@@ -793,17 +803,12 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   text-align: center;
-  /* Fill 0% effect - transparent base with color overlay simulation */
-  color: rgba(0, 0, 0, 0.30);
-  /* Combined effects for subtitle */
+  /* Semi-transparent dark color */
+  color: rgba(40, 40, 40, 0.60);
+  /* Tight shadows for subtitle */
   text-shadow: 
-    /* Inner shadow effect */
-    0.5px 0.5px 0.5px rgba(0, 0, 0, 0.5),
-    /* Outer glow - overlay mode white 20% */
-    0 0 2px rgba(255, 255, 255, 0.20),
-    0 0 4px rgba(255, 255, 255, 0.15),
-    /* Drop shadow - linear light white 10% */
-    -0.5px -0.5px 0px rgba(255, 255, 255, 0.10);
+    1px 1px 0px rgba(0, 0, 0, 0.5),
+    -1px -1px 0px rgba(255, 255, 255, 0.30);
 }
 
 /* Portrait orientation (for magazines/seasons) */

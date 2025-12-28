@@ -219,14 +219,15 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // High quality capture
-      const scale = 6;
+      const scale = 12; // 12x scale for extreme quality (3x standard capture)
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
         useCORS: true,
         logging: false,
         allowTaint: true,
-        imageTimeout: 15000,
+        imageTimeout: 30000,
+        imageSmoothingEnabled: true,
         onclone: (clonedDoc, clonedElement) => {
           // Ensure cloned element has the image loaded
           const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;

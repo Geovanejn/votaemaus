@@ -636,25 +636,27 @@ body {
 .collectible-card-inner {
   position: relative;
   z-index: 5;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* Card image container - Inset/Engraved frame effect (negative relief) */
+/* Card image container - Deep Inset/Engraved frame effect (negative relief) */
 .collectible-card-image {
   position: relative;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
-  /* Inverted shadows for inset effect: light top-left, dark bottom-right */
+  background: rgba(0, 0, 0, 0.4);
+  /* Strong inset shadows for deep engraved effect */
   box-shadow: 
-    inset -2px -2px 0px rgba(0, 0, 0, 0.5),
-    inset 2px 2px 0px rgba(255, 255, 255, 0.25);
+    inset 0 3px 6px rgba(0, 0, 0, 0.7),
+    inset 0 -2px 4px rgba(255, 255, 255, 0.15),
+    inset 3px 0 5px rgba(0, 0, 0, 0.5),
+    inset -3px 0 5px rgba(0, 0, 0, 0.5);
 }
 
-/* Inset frame overlay using gradient pseudo-element */
+/* Deep inset frame overlay */
 .collectible-card-image::before {
   content: '';
   position: absolute;
@@ -662,15 +664,15 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   pointer-events: none;
   z-index: 2;
-  /* Inverted beveled frame - light top/left edges, dark bottom/right edges */
+  /* Strong beveled edges for carved recess look */
   background: 
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.20) 0%, transparent 4px),
-    linear-gradient(to right, rgba(255, 255, 255, 0.20) 0%, transparent 4px),
-    linear-gradient(to top, rgba(0, 0, 0, 0.35) 0%, transparent 4px),
-    linear-gradient(to left, rgba(0, 0, 0, 0.35) 0%, transparent 4px);
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, transparent 8px),
+    linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, transparent 6px),
+    linear-gradient(to top, rgba(255, 255, 255, 0.12) 0%, transparent 4px),
+    linear-gradient(to left, rgba(255, 255, 255, 0.12) 0%, transparent 4px);
 }
 
 .collectible-card-image img {
@@ -755,30 +757,48 @@ body {
     0 2px 10px rgba(245, 158, 11, 0.4);
 }
 
-/* Rarity indicator icon in top right - Forged metal effect */
-.collectible-card-rarity-icon {
+/* Centered rarity medallion - Forged metal effect (larger) */
+.collectible-card-medallion {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 6;
-  background: rgba(0, 0, 0, 0.25);
-  /* Forged metal effect - Inner shadow + Outer glow */
+  background: rgba(0, 0, 0, 0.30);
+  /* Forged metal effect - stronger for larger size */
   box-shadow: 
-    inset 1px 1px 2px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.10),
-    0 0 3px rgba(255, 255, 255, 0.15);
+    inset 2px 2px 3px rgba(0, 0, 0, 0.6),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.12),
+    0 0 4px rgba(255, 255, 255, 0.18);
 }
 
-/* Forged icon effect inside rarity indicator */
-.collectible-card-rarity-icon svg {
+/* Medallion rarity variants */
+.collectible-card-medallion-common {
+  background: linear-gradient(145deg, rgba(160, 168, 184, 0.4), rgba(128, 136, 152, 0.3));
+}
+
+.collectible-card-medallion-rare {
+  background: linear-gradient(145deg, rgba(74, 144, 192, 0.4), rgba(59, 130, 180, 0.3));
+}
+
+.collectible-card-medallion-epic {
+  background: linear-gradient(145deg, rgba(139, 107, 168, 0.4), rgba(120, 92, 150, 0.3));
+}
+
+.collectible-card-medallion-legendary {
+  background: linear-gradient(145deg, rgba(212, 160, 80, 0.5), rgba(180, 140, 60, 0.4));
+}
+
+/* Forged icon effect inside medallion */
+.collectible-card-medallion svg {
   filter: drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.5)) drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.20));
-  opacity: 0.65;
+  opacity: 0.70;
 }
 
 

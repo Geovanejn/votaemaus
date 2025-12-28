@@ -115,23 +115,18 @@ export function CollectibleCard({
       />
 
       <div className="collectible-card-inner">
-        {/* Center badge with generic icon */}
-        <div className={`collectible-card-badge collectible-card-badge-${rarity} ${badgeSizeClasses[size]}`}>
-          <IconComponent className="w-1/2 h-1/2 text-gray-700" />
-        </div>
-
-        {/* Rarity icon in top right corner with forged effect */}
-        <div className="collectible-card-rarity-icon">
+        {/* Centered rarity medallion with forged effect */}
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity}`}>
           {rarity === "legendary" ? (
-            <Gem className="w-4 h-4 text-white" />
+            <Gem className="w-6 h-6 text-white" />
           ) : rarity === "epic" ? (
-            <Sparkles className="w-4 h-4 text-white" />
+            <Sparkles className="w-6 h-6 text-white" />
           ) : (
-            <Star className="w-4 h-4 text-white" />
+            <Star className="w-6 h-6 text-white" />
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center pt-8">
+        <div className="flex-1 flex flex-col justify-center items-center pt-4">
           {/* Text plate with negative relief (inset container) */}
           <div className="collectible-card-text-plate">
             <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
@@ -141,7 +136,7 @@ export function CollectibleCard({
         </div>
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 overflow-hidden relative`}
+          className={`collectible-card-image ${imageHeightClasses[size]} mt-1 overflow-hidden relative`}
         >
           {imageUrl ? (
             <img 

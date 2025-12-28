@@ -788,7 +788,6 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
                 onComplete={handleEstudeComplete}
                 onClose={() => setLocation(`/study/events/${eventId}`)}
                 initialIndex={estudeScreenIndex}
-                onIndexChange={handleEstudeIndexChange}
               />
             </motion.div>
           )}
@@ -807,7 +806,6 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
                 onComplete={handleMediteComplete}
                 onClose={() => setLocation(`/study/events/${eventId}`)}
                 initialIndex={mediteScreenIndex}
-                onIndexChange={handleMediteIndexChange}
               />
             </motion.div>
           )}

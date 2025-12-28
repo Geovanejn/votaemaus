@@ -1319,15 +1319,8 @@ export default function LessonPage() {
           <EstudeScreen
             lessonTitle={lessonData.title}
             sections={studySections}
-            verseReference={studySections.find(s => s.type === 'verse')?.reference}
             onComplete={handleStudyComplete}
             onClose={handleClose}
-            onProgress={handleStudyProgress}
-            onSwitchTab={(tab) => {
-              setStageOverride(tab);
-              setCurrentUnitIndex(0);
-              setStudyProgress(null);
-            }}
           />
         ) : showMediteContent ? (
           <MediteScreen
@@ -1335,12 +1328,6 @@ export default function LessonPage() {
             sections={mediteSections}
             onComplete={handleMeditateComplete}
             onClose={handleClose}
-            onProgress={handleStudyProgress}
-            onSwitchTab={(tab) => {
-              setStageOverride(tab);
-              setCurrentUnitIndex(0);
-              setStudyProgress(null);
-            }}
           />
         ) : showRespondaContent ? (
           <RespondaScreen

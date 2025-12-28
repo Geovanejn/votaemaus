@@ -94,11 +94,19 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-    // Unified logic: Prioritize correctIndex when defined for all question types
+    // Unified logic: Check correctIndex first, then fallback to correctAnswer comparison
     let isCorrect: boolean;
     
     if (currentQuestion.type === "multiple_choice") {
-      isCorrect = selectedAnswer === currentQuestion.correctIndex;
+      // For multiple_choice: use correctIndex if defined, otherwise try correctAnswer string match
+      if (currentQuestion.correctIndex !== undefined && currentQuestion.correctIndex !== null) {
+        isCorrect = selectedAnswer === currentQuestion.correctIndex;
+      } else if (currentQuestion.correctAnswer !== undefined && selectedAnswer !== null) {
+        // Fallback: compare selected option text with correctAnswer
+        isCorrect = String(currentOptions[selectedAnswer]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+      } else {
+        isCorrect = false;
+      }
     } else if (currentQuestion.type === "true_false") {
       isCorrect = currentQuestion.correctIndex !== undefined
         ? selectedAnswer === currentQuestion.correctIndex
@@ -267,10 +275,18 @@ export function RespondaScreen({
         )}>
           {currentOptions.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
-            // Fix: Prioritize correctIndex when defined for all question types
+            // Fix: Check correctIndex first, then fallback to correctAnswer comparison
             let isThisOptionCorrect: boolean;
             if (currentQuestion.type === "multiple_choice") {
-              isThisOptionCorrect = idx === currentQuestion.correctIndex;
+              // For multiple_choice: use correctIndex if defined, otherwise try correctAnswer string match
+              if (currentQuestion.correctIndex !== undefined && currentQuestion.correctIndex !== null) {
+                isThisOptionCorrect = idx === currentQuestion.correctIndex;
+              } else if (currentQuestion.correctAnswer !== undefined) {
+                // Fallback: compare option text with correctAnswer
+                isThisOptionCorrect = String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+              } else {
+                isThisOptionCorrect = false;
+              }
             } else if (currentQuestion.type === "true_false") {
               isThisOptionCorrect = currentQuestion.correctIndex !== undefined 
                 ? idx === currentQuestion.correctIndex

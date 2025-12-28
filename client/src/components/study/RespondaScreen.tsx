@@ -82,11 +82,14 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-      const isCorrect = currentQuestion.type === "multiple_choice" 
-        ? selectedAnswer === currentQuestion.correctIndex
-        : currentQuestion.type === "true_false"
-          ? (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true || currentQuestion.correctIndex === 1)
-          : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+    // Unified logic: For true/false, prioritize correctIndex when defined
+    const isCorrect = currentQuestion.type === "multiple_choice" 
+      ? selectedAnswer === currentQuestion.correctIndex
+      : currentQuestion.type === "true_false"
+        ? (currentQuestion.correctIndex !== undefined
+            ? selectedAnswer === currentQuestion.correctIndex
+            : (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true))
+        : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
     
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
@@ -114,14 +117,15 @@ export function RespondaScreen({
   };
 
   const handleNext = () => {
-    // Reset state for next question before moving
-    setShowResult(false);
-    setSelectedAnswer(null);
-    
+    // DO NOT reset state here - let the useEffect on currentIndex handle it
+    // This ensures the green/red feedback stays visible until the new question renders
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onComplete(correctCount, totalQuestions);
+      // For final question, we need to keep the feedback visible briefly before completing
+      setTimeout(() => {
+        onComplete(correctCount, totalQuestions);
+      }, 100);
     }
   };
 
@@ -228,10 +232,14 @@ export function RespondaScreen({
         )}>
           {currentOptions.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
+            // Fix: For true/false, prioritize correctIndex when defined (used by event lessons)
+            // Otherwise fall back to correctAnswer boolean/string comparison
             const isThisOptionCorrect = currentQuestion.type === "multiple_choice" 
               ? idx === currentQuestion.correctIndex
               : currentQuestion.type === "true_false"
-                ? (idx === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true)
+                ? (currentQuestion.correctIndex !== undefined 
+                    ? idx === currentQuestion.correctIndex
+                    : (idx === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true))
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
             
             const showCorrect = showResult && isThisOptionCorrect;

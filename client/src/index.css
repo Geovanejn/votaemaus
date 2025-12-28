@@ -755,34 +755,26 @@ body {
     0 2px 10px rgba(245, 158, 11, 0.4);
 }
 
-/* Rarity indicator icon in top right - Forged metal effect */
-.collectible-card-rarity-icon {
+/* Rarity label in top left corner */
+.collectible-card-rarity-label {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 10px;
+  left: 10px;
   z-index: 6;
-  background: rgba(0, 0, 0, 0.25);
-  /* Forged metal effect - Inner shadow + Outer glow */
-  box-shadow: 
-    inset 1px 1px 2px rgba(0, 0, 0, 0.5),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.10),
-    0 0 3px rgba(255, 255, 255, 0.15);
 }
 
-/* Forged icon effect inside rarity indicator - crisp shadows only */
-.collectible-card-rarity-icon svg {
-  filter: drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.5)) drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.20));
-  opacity: 0.65;
+/* Rarity text styling - outside container, subtle shadow */
+.collectible-card-rarity-text {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: rgba(200, 200, 200, 0.75);
+  /* Very subtle shadow */
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
 
-/* Text styling - Subtle raised effect */
+/* Text styling - With subtle glow */
 .collectible-card-title {
   font-weight: 700;
   text-transform: uppercase;
@@ -790,31 +782,11 @@ body {
   text-align: center;
   line-height: 1.2;
   /* Lighter text color */
-  color: rgba(220, 220, 220, 0.90);
-  /* Shadow around all edges */
+  color: rgba(230, 230, 230, 0.92);
+  /* Subtle glow + light shadow around edges */
   text-shadow: 
-    0 0 1px rgba(0, 0, 0, 0.5),
-    1px 0 0 rgba(0, 0, 0, 0.3),
-    -1px 0 0 rgba(0, 0, 0, 0.3),
-    0 1px 0 rgba(0, 0, 0, 0.3),
-    0 -1px 0 rgba(0, 0, 0, 0.3);
-}
-
-.collectible-card-subtitle {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-align: center;
-  line-height: 1.2;
-  /* Lighter text color */
-  color: rgba(200, 200, 200, 0.85);
-  /* Shadow around all edges */
-  text-shadow: 
-    0 0 1px rgba(0, 0, 0, 0.4),
-    1px 0 0 rgba(0, 0, 0, 0.25),
-    -1px 0 0 rgba(0, 0, 0, 0.25),
-    0 1px 0 rgba(0, 0, 0, 0.25),
-    0 -1px 0 rgba(0, 0, 0, 0.25);
+    0 0 4px rgba(255, 255, 255, 0.15),
+    0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 /* Tighter padding in text plate */

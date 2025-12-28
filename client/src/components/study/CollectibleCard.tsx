@@ -115,31 +115,34 @@ export function CollectibleCard({
       />
 
       <div className="collectible-card-inner">
+        {/* Rarity icon in center top (replacing old badge) */}
         <div className={`collectible-card-badge collectible-card-badge-${rarity} ${badgeSizeClasses[size]}`}>
-          <IconComponent className="w-1/2 h-1/2 text-gray-700" />
-        </div>
-
-        <div className="collectible-card-rarity-icon">
           {rarity === "legendary" ? (
-            <Gem className="w-4 h-4 text-white" />
+            <Gem className="w-1/2 h-1/2 text-gray-700" />
           ) : rarity === "epic" ? (
-            <Sparkles className="w-4 h-4 text-white" />
+            <Sparkles className="w-1/2 h-1/2 text-gray-700" />
+          ) : rarity === "rare" ? (
+            <Star className="w-1/2 h-1/2 text-gray-700" />
           ) : (
-            <Star className="w-4 h-4 text-white" />
+            <Star className="w-1/2 h-1/2 text-gray-700" />
           )}
         </div>
 
+        {/* Rarity label in top left corner */}
+        {showLabel && (
+          <div className="collectible-card-rarity-label">
+            <span className={`collectible-card-rarity-text ${subtitleSizeClasses[size]}`}>
+              {label}
+            </span>
+          </div>
+        )}
+
         <div className="flex-1 flex flex-col justify-center items-center pt-8">
-          {/* Text plate with negative relief (inset container) */}
+          {/* Text plate with negative relief (inset container) - only title */}
           <div className="collectible-card-text-plate">
             <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
               {name}
             </h3>
-            {showLabel && (
-              <p className={`collectible-card-subtitle ${subtitleSizeClasses[size]} mt-1`}>
-                {label}
-              </p>
-            )}
           </div>
         </div>
 

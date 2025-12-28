@@ -56,7 +56,9 @@ export function RespondaScreen({
 
   const currentOptions = currentQuestion?.options && currentQuestion.options.length > 0 
     ? currentQuestion.options 
-    : [];
+    : (currentQuestion?.type === "true_false" 
+        ? ["Falso", "Verdadeiro"] 
+        : []);
 
   useEffect(() => {
     onQuestionChange?.(currentIndex);

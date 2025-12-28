@@ -57,10 +57,25 @@ export function RespondaScreen({
     setShowResult(false);
   }, [currentIndex, onQuestionChange]);
 
+  useEffect(() => {
+    if (currentQuestion.type === "true_false" && !currentQuestion.options) {
+      currentQuestion.options = ["Falso", "Verdadeiro"];
+    } else if (currentQuestion.type === "fill_blank" && !currentQuestion.options && currentQuestion.correctAnswer) {
+      // Basic fallback for fill_blank options if missing
+      currentQuestion.options = [currentQuestion.correctAnswer as string, "Opção 2", "Opção 3", "Opção 4"];
+    }
+  }, [currentQuestion]);
+
   const checkAnswer = () => {
     let isCorrect = false;
     if (currentQuestion.type === "multiple_choice") {
       isCorrect = selectedAnswer === currentQuestion.correctIndex;
+    } else if (currentQuestion.type === "true_false") {
+      isCorrect = (selectedAnswer === 1) === currentQuestion.correctAnswer;
+    } else if (currentQuestion.type === "fill_blank") {
+      // For fill_blank, selectedAnswer might be the index or the text depending on implementation
+      // In RespondaScreen, it's currently handled as an index for options
+      isCorrect = currentQuestion.options?.[selectedAnswer as number] === currentQuestion.correctAnswer;
     }
     
     if (isCorrect) {
@@ -136,7 +151,11 @@ export function RespondaScreen({
         <div className="space-y-2 mb-8">
           {currentQuestion.options?.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
-            const isCorrect = idx === currentQuestion.correctIndex;
+            const isCorrect = currentQuestion.type === "multiple_choice" 
+              ? idx === currentQuestion.correctIndex
+              : currentQuestion.type === "true_false"
+                ? (idx === 1) === currentQuestion.correctAnswer
+                : option === currentQuestion.correctAnswer;
             const showCorrect = showResult && isCorrect;
             const showIncorrect = showResult && isSelected && !isCorrect;
 

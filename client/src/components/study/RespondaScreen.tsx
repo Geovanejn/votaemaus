@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronRight, Heart, Settings, ArrowLeft } from "lucide-react";
+import { Heart, Settings, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { useAccessibility } from "@/hooks/use-accessibility";
@@ -163,26 +163,6 @@ export function RespondaScreen({
         setCurrentIndex(nextIndex);
       }
     }, 1500);
-  };
-
-  const handleNext = () => {
-    if (hasAdvancedRef.current) {
-      return;
-    }
-    hasAdvancedRef.current = true;
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    
-    if (currentIndex < totalQuestions - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setTimeout(() => {
-        onComplete(correctCountRef.current, totalQuestions);
-      }, 100);
-    }
   };
 
   if (!currentQuestion) return null;
@@ -363,21 +343,13 @@ export function RespondaScreen({
         </div>
 
         <div className="mt-4">
-          {!showResult ? (
+          {!showResult && (
             <Button
               onClick={checkAnswer}
               disabled={selectedAnswer === null}
               className="w-full h-[52px] rounded-[16px] bg-gradient-to-r from-[#7c3aed] to-[#f472b6] text-white text-base font-bold shadow-md border-0"
             >
               Confirmar Resposta
-            </Button>
-          ) : (
-            <Button
-              onClick={handleNext}
-              className="w-full h-[52px] rounded-[16px] bg-[#7c3aed] text-white text-base font-bold shadow-md border-0"
-            >
-              {currentIndex === totalQuestions - 1 ? "Finalizar" : "Continuar"}
-              <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           )}
         </div>

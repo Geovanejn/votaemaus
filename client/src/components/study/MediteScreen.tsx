@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronRight, ChevronLeft, Heart, Settings, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAccessibility } from "@/hooks/use-accessibility";
+import { Volume2, Type } from "lucide-react";
 
 interface MeditationSection {
   type: "reflection" | "meditation";
@@ -20,17 +22,24 @@ interface MediteScreenProps {
 }
 
 export function MediteScreen({
+  lessonTitle,
   sections,
   onComplete,
   onClose,
   initialIndex = 0
 }: MediteScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const { fontSize, increaseFontSize, speak } = useAccessibility();
   const totalSlides = sections.length;
   const currentSection = sections[currentIndex];
 
   const goNext = () => currentIndex < totalSlides - 1 ? setCurrentIndex(prev => prev + 1) : onComplete();
   const goPrev = () => currentIndex > 0 && setCurrentIndex(prev => prev - 1);
+
+  const handleSpeak = () => {
+    if (!currentSection) return;
+    speak(`${currentSection.title}. ${currentSection.content.replace(/<[^>]*>/g, '')}`);
+  };
 
   if (!currentSection) return null;
 
@@ -55,12 +64,23 @@ export function MediteScreen({
 
       <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
         <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-600 to-rose-400 flex items-center justify-center text-white"><Heart className="h-4 w-4" /></div>
-            <span className="text-[#db2777] text-[9px] font-black uppercase tracking-widest">Medite</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-600 to-rose-400 flex items-center justify-center text-white"><Heart className="h-4 w-4" /></div>
+              <span className="text-[#db2777] text-[9px] font-black uppercase tracking-widest">Medite</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <Type className="h-4 w-4 text-zinc-500" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={handleSpeak} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <Volume2 className="h-4 w-4 text-zinc-500" />
+              </Button>
+            </div>
           </div>
           <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 mb-3 italic">{currentSection.title}</h3>
-          <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] text-[14px] leading-relaxed italic"
+          <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] leading-relaxed italic"
+               style={{ fontSize: `${fontSize}px` }}
                dangerouslySetInnerHTML={{ __html: currentSection.content }} />
         </Card>
 

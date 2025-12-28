@@ -776,47 +776,30 @@ export default function LessonPage() {
     || '';
   
   let topicCounter = 0;
-  const studySections: StudySection[] = studyUnits
-    .filter((unit) => {
-      // Filter out sections with empty content
-      // Keep verse units if they have body, verseText, or highlight (reference text)
-      if (unit.type === 'verse') {
-        const content = unit.content.body || unit.content.verseText || unit.content.highlight || '';
-        return content.trim().length > 0;
-      }
-      const content = unit.content.body || '';
-      return content.trim().length > 0;
-    })
-    .map((unit) => {
-    if (unit.type === 'verse') {
-      // For verse units, content can come from body, verseText
-      // If only highlight exists (as verse reference), use it as fallback content
-      const verseContent = unit.content.body || unit.content.verseText || '';
-      return {
-        type: 'verse' as const,
-        title: unit.content.title || 'Versículo Base',
-        content: verseContent || unit.content.highlight || '',
-        reference: unit.content.highlight || unit.content.verseReference || baseVerseReference
-      };
+  const studySections = useMemo((): StudySection[] => {
+    if (!lessonData?.units) return [];
+    
+    // Get all units for the "estude" stage
+    const units = lessonData.units.filter(u => u.stage === "estude");
+    
+    // Convert units to sections
+    const sections: StudySection[] = units.map(u => ({
+      type: u.type as any,
+      title: u.content.title || u.content.verseReference || (u.type === 'verse' ? 'Versículo Base' : ''),
+      content: u.content.body || u.content.verseText || u.content.highlight || ""
+    }));
+
+    // Find the primary verse unit to ensure it's first
+    const primaryVerseIndex = sections.findIndex(s => s.type === 'verse');
+    
+    if (primaryVerseIndex > 0) {
+      // Move the verse to the front if it's not already there
+      const [verse] = sections.splice(primaryVerseIndex, 1);
+      return [verse, ...sections];
     }
     
-    const isConclusion = unit.content.title?.toLowerCase().includes('conclus');
-    if (isConclusion) {
-      return {
-        type: 'conclusion' as const,
-        title: unit.content.title || 'Conclusão',
-        content: unit.content.body || ''
-      };
-    }
-    
-    topicCounter++;
-    return {
-      type: 'topic' as const,
-      title: unit.content.title || '',
-      content: unit.content.body || '',
-      topicNumber: topicCounter
-    };
-  });
+    return sections;
+  }, [lessonData]);
   
   const isMediteStage = currentUnit?.stage === 'medite';
   const isMediteType = currentUnit?.type === 'meditation' || currentUnit?.type === 'reflection';

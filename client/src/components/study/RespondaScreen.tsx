@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { ChevronRight, Heart, Settings, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
+import { useAccessibility } from "@/hooks/use-accessibility";
+import { Volume2, Type } from "lucide-react";
 
 interface QuizQuestion {
   type: "multiple_choice" | "true_false" | "fill_blank";
@@ -46,6 +48,7 @@ export function RespondaScreen({
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const { fontSize, increaseFontSize, speak } = useAccessibility();
 
   const { playCorrect, playWrong } = useSoundEffects();
   const currentQuestion = questions[currentIndex];
@@ -151,11 +154,22 @@ export function RespondaScreen({
 
       <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
         <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-bold text-xs">?</div>
-            <span className="text-[#7c3aed] text-[9px] font-black uppercase tracking-widest">Responda</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-bold text-xs">?</div>
+              <span className="text-[#7c3aed] text-[9px] font-black uppercase tracking-widest">Responda</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <Type className="h-4 w-4 text-zinc-500" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => speak(currentQuestion.question)} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <Volume2 className="h-4 w-4 text-zinc-500" />
+              </Button>
+            </div>
           </div>
-          <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 leading-snug flex flex-wrap items-center gap-1.5">
+          <h3 className="font-bold text-[#2D3142] dark:text-zinc-100 leading-snug flex flex-wrap items-center gap-1.5"
+              style={{ fontSize: `${fontSize}px` }}>
             {currentQuestion.type === "fill_blank" ? (
               (currentQuestion.question || "").split(/_{2,}|\[\.{3}\]/).map((part, i, arr) => (
                 <span key={`${currentIndex}-part-${i}`} className="inline-flex items-center flex-wrap gap-1.5">
@@ -189,8 +203,9 @@ export function RespondaScreen({
               : currentQuestion.type === "true_false"
                 ? (idx === 1) === currentQuestion.correctAnswer
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-            const showCorrect = showResult && isCorrect;
-            const showIncorrect = showResult && isSelected && !isCorrect;
+            const isAnswered = selectedAnswer !== null;
+            const showCorrect = (showResult || (isAnswered && isCorrect)) && isCorrect;
+            const showIncorrect = (showResult || (isAnswered && isSelected && !isCorrect)) && isSelected && !isCorrect;
 
             return (
               <button
@@ -200,7 +215,7 @@ export function RespondaScreen({
                 className={cn(
                   "p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
                   currentQuestion.type === "true_false" ? "flex-col justify-center text-center py-6" : "w-full",
-                  !showResult && isSelected ? "border-[#7c3aed] bg-white" : "border-white bg-white shadow-sm",
+                  (!showResult && isSelected) || showCorrect ? "border-[#22C55E] bg-[#F0FDF4]" : "border-white bg-white shadow-sm",
                   showCorrect && "border-[#22C55E] bg-[#F0FDF4]",
                   showIncorrect && "border-[#EF4444] bg-[#FEF2F2]"
                 )}
@@ -208,7 +223,7 @@ export function RespondaScreen({
                 {(currentQuestion.type === "multiple_choice" || currentQuestion.type === "fill_blank") && (
                   <div className={cn(
                     "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-black text-xs border-2",
-                    !showResult && isSelected ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
+                    (!showResult && isSelected) || showCorrect ? "bg-[#22C55E] text-white border-[#22C55E]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
                     showCorrect && "bg-[#22C55E] text-white border-[#22C55E]",
                     showIncorrect && "bg-[#EF4444] text-white border-[#EF4444]"
                   )}>

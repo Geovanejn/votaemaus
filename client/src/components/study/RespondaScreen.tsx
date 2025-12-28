@@ -48,7 +48,7 @@ export function RespondaScreen({
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
-  const { fontSize, increaseFontSize, speak } = useAccessibility();
+  const { fontSize, increaseFontSize, speak, isSpeaking } = useAccessibility();
 
   const { playCorrect, playWrong } = useSoundEffects();
   const currentQuestion = questions[currentIndex];

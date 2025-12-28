@@ -802,7 +802,7 @@ body {
 }
 
 
-/* Text styling - With glow and subtle shadow */
+/* Text styling - With glow and hard shadow */
 .collectible-card-title {
   font-weight: 700;
   text-transform: uppercase;
@@ -811,11 +811,10 @@ body {
   line-height: 1.2;
   /* Lighter text color */
   color: rgba(230, 230, 230, 0.92);
-  /* Glow + softer shadow */
+  /* Glow + hard shadow (no blur) */
   text-shadow: 
-    0 0 4px rgba(255, 255, 255, 0.18),
-    1px 1px 1px rgba(0, 0, 0, 0.4),
-    -1px -1px 1px rgba(0, 0, 0, 0.25);
+    0 0 3px rgba(255, 255, 255, 0.15),
+    1px 1px 0px rgba(0, 0, 0, 0.45);
 }
 
 /* Tighter padding in text plate */

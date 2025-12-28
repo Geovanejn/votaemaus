@@ -155,6 +155,7 @@ interface SavedLessonProgress {
   heartsWereDepleted: boolean;
   respondaQuestionIndex?: number;
   accumulatedXp?: number;
+  respondaCorrectAnswers?: number;
 }
 
 function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress | null {
@@ -174,7 +175,7 @@ function getSavedProgress(lessonId: number, userId: number): SavedLessonProgress
   return null;
 }
 
-function saveProgress(lessonId: number, userId: number, unitIndex: number, stage: string | null, heartsWereDepleted: boolean, respondaQuestionIndex?: number, accumulatedXp?: number): void {
+function saveProgress(lessonId: number, userId: number, unitIndex: number, stage: string | null, heartsWereDepleted: boolean, respondaQuestionIndex?: number, accumulatedXp?: number, respondaCorrect?: number): void {
   try {
     const key = getLessonProgressKey(lessonId, userId);
     const progress: SavedLessonProgress = {
@@ -186,6 +187,7 @@ function saveProgress(lessonId: number, userId: number, unitIndex: number, stage
       heartsWereDepleted,
       respondaQuestionIndex: respondaQuestionIndex ?? 0,
       accumulatedXp: accumulatedXp ?? 0,
+      respondaCorrectAnswers: respondaCorrect ?? 0,
     };
     localStorage.setItem(key, JSON.stringify(progress));
   } catch (e) {
@@ -193,8 +195,8 @@ function saveProgress(lessonId: number, userId: number, unitIndex: number, stage
   }
 }
 
-function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null, respondaQuestionIndex?: number, accumulatedXp?: number): void {
-  saveProgress(lessonId, userId, unitIndex, stage, true, respondaQuestionIndex, accumulatedXp);
+function saveProgressOnHeartDepletion(lessonId: number, userId: number, unitIndex: number, stage: string | null, respondaQuestionIndex?: number, accumulatedXp?: number, respondaCorrect?: number): void {
+  saveProgress(lessonId, userId, unitIndex, stage, true, respondaQuestionIndex, accumulatedXp, respondaCorrect);
 }
 
 function clearSavedProgress(lessonId: number, userId: number): void {
@@ -492,6 +494,10 @@ export default function LessonPage() {
           setInitialRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
           setCurrentRespondaQuestionIndex(savedProgress.respondaQuestionIndex);
         }
+        // Restore the responda correct answers count if it was saved
+        if (savedProgress.respondaCorrectAnswers !== undefined && savedProgress.respondaCorrectAnswers > 0) {
+          setRespondaCorrectAnswers(savedProgress.respondaCorrectAnswers);
+        }
         // Restore accumulated XP if it was saved
         // Set ref BEFORE state to guard against race condition with responda bootstrap effect
         if (savedProgress.accumulatedXp !== undefined && savedProgress.accumulatedXp > 0) {
@@ -522,9 +528,9 @@ export default function LessonPage() {
         !progressSavedForDepletion.current) {
       // Mark as saved to prevent multiple saves
       progressSavedForDepletion.current = true;
-      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage, currentRespondaQuestionIndex, displayXp);
+      saveProgressOnHeartDepletion(lessonId, user.id, currentUnitIndex, activeStage, currentRespondaQuestionIndex, displayXp, respondaCorrectAnswers);
     }
-  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id, currentRespondaQuestionIndex, displayXp]);
+  }, [noHeartsError, serverHearts, lessonId, currentUnitIndex, activeStage, user?.id, currentRespondaQuestionIndex, displayXp, respondaCorrectAnswers]);
 
   // Clear saved progress when lesson is completed
   useEffect(() => {
@@ -1082,7 +1088,7 @@ export default function LessonPage() {
       // Save progress before exiting (not hearts depleted, just normal exit)
       if (user?.id && lessonId > 0) {
         const currentStage = stageOverride || stageParam || null;
-        saveProgress(lessonId, user.id, currentUnitIndex, currentStage, false, currentRespondaQuestionIndex, displayXp);
+        saveProgress(lessonId, user.id, currentUnitIndex, currentStage, false, currentRespondaQuestionIndex, displayXp, respondaCorrectAnswers);
       }
       setLocation("/study");
     }

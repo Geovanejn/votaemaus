@@ -108,39 +108,23 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-    // Unified logic: Check correctIndex first, then fallback to correctAnswer comparison
     let isCorrect: boolean;
     
-    // DEBUG: Log question data
-    console.log('[DEBUG checkAnswer] Question:', {
-      type: currentQuestion.type,
-      correctIndex: currentQuestion.correctIndex,
-      correctAnswer: currentQuestion.correctAnswer,
-      selectedAnswer,
-      options: currentOptions
-    });
-    
     if (currentQuestion.type === "multiple_choice") {
-      // For multiple_choice: use correctIndex if defined, otherwise try correctAnswer string match
       if (currentQuestion.correctIndex !== undefined && currentQuestion.correctIndex !== null) {
         isCorrect = selectedAnswer === currentQuestion.correctIndex;
-        console.log('[DEBUG] multiple_choice using correctIndex:', currentQuestion.correctIndex, 'selected:', selectedAnswer, 'isCorrect:', isCorrect);
       } else if (currentQuestion.correctAnswer !== undefined && selectedAnswer !== null) {
-        // Fallback: compare selected option text with correctAnswer
         const selectedText = String(currentOptions[selectedAnswer]).trim().toLowerCase();
         const correctText = String(currentQuestion.correctAnswer).trim().toLowerCase();
         isCorrect = selectedText === correctText;
-        console.log('[DEBUG] multiple_choice using correctAnswer fallback:', correctText, 'selectedText:', selectedText, 'isCorrect:', isCorrect);
       } else {
         isCorrect = false;
-        console.log('[DEBUG] multiple_choice: no correctIndex or correctAnswer found');
       }
     } else if (currentQuestion.type === "true_false") {
       isCorrect = currentQuestion.correctIndex !== undefined
         ? selectedAnswer === currentQuestion.correctIndex
         : (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true);
     } else if (currentQuestion.type === "fill_blank") {
-      // For fill_blank: use correctIndex if available, otherwise string comparison
       isCorrect = currentQuestion.correctIndex !== undefined
         ? selectedAnswer === currentQuestion.correctIndex
         : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
@@ -148,25 +132,17 @@ export function RespondaScreen({
       isCorrect = false;
     }
     
-    console.log('[DEBUG checkAnswer] Final isCorrect:', isCorrect);
-    console.log('[DEBUG] BEFORE update - correctCount state:', correctCount, 'ref:', correctCountRef.current);
-    
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
-    // Capture values before any state updates
     const nextIndex = currentIndex + 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;
     
-    // Calculate new correct count
     let newCorrectCount = correctCountRef.current;
     if (isCorrect) {
       newCorrectCount = correctCountRef.current + 1;
       correctCountRef.current = newCorrectCount;
-      console.log('[DEBUG] Incremented correctCountRef to:', correctCountRef.current);
     }
     
-    // Use flushSync to force immediate re-render with feedback visible
-    console.log('[DEBUG] Calling flushSync to update showResult=true');
     flushSync(() => {
       setShowResult(true);
       if (isCorrect) {
@@ -174,55 +150,35 @@ export function RespondaScreen({
       }
     });
     
-    console.log('[DEBUG] AFTER flushSync - showResult should be true, correctCount:', newCorrectCount);
-    
-    // Play sound after visual update
     if (isCorrect) {
-      try { playCorrect(); } catch (e) { console.error('playCorrect error:', e); }
+      try { playCorrect(); } catch (e) { /* silent */ }
     } else {
-      try { playWrong(); } catch (e) { console.error('playWrong error:', e); }
+      try { playWrong(); } catch (e) { /* silent */ }
     }
     
-    // Auto-advance after delay so user can see feedback
-    const finalCorrectCount = correctCountRef.current;
-    console.log('[DEBUG] Scheduling auto-advance. finalCorrectCount:', finalCorrectCount, 'isLastQuestion:', isLastQuestion);
-    
     window.setTimeout(() => {
-      console.log('[DEBUG] Auto-advance executing! correctCountRef.current:', correctCountRef.current);
       if (isLastQuestion) {
-        console.log('[DEBUG] Calling onComplete with:', correctCountRef.current, 'of', totalQuestions);
         onComplete(correctCountRef.current, totalQuestions);
       } else {
-        console.log('[DEBUG] Moving to question', nextIndex);
         setCurrentIndex(nextIndex);
       }
     }, 1500);
   };
 
   const handleNext = () => {
-    console.log('[DEBUG handleNext] Called, hasAdvancedRef.current:', hasAdvancedRef.current);
-    // Guard: Only execute once per question to prevent double-advance
     if (hasAdvancedRef.current) {
-      console.log('[DEBUG handleNext] BLOCKED by hasAdvancedRef guard');
       return;
     }
     hasAdvancedRef.current = true;
-    console.log('[DEBUG handleNext] Proceeding, set hasAdvancedRef to true');
     
-    // Clear any pending timeout to prevent double execution
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
     
-    // DO NOT reset state here - let the useEffect on currentIndex handle it
-    // This ensures the green/red feedback stays visible until the new question renders
     if (currentIndex < totalQuestions - 1) {
-      console.log('[DEBUG handleNext] Moving to next question:', currentIndex + 1);
       setCurrentIndex(prev => prev + 1);
     } else {
-      console.log('[DEBUG handleNext] Last question - calling onComplete');
-      // Use ref to always get the most up-to-date count (avoids stale closure)
       setTimeout(() => {
         onComplete(correctCountRef.current, totalQuestions);
       }, 100);
@@ -361,12 +317,7 @@ export function RespondaScreen({
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
             
-            // DEBUG: Log render state for each option
-            if (idx === 0 || isSelected || isThisOptionCorrect) {
-              console.log(`[RENDER] Option ${idx}: showResult=${showResult}, isSelected=${isSelected}, isThisOptionCorrect=${isThisOptionCorrect}, showCorrect=${showCorrect}, showIncorrect=${showIncorrect}`);
-            }
-            
-            // Critical fix: Ensure feedback classes are applied consistently for ALL types
+            // Feedback classes for correct/incorrect states
             const feedbackClasses = showCorrect 
               ? "border-[#22C55E] bg-[#F0FDF4] dark:bg-[#064E3B]/20 text-[#166534] dark:text-[#4ADE80]" 
               : showIncorrect 

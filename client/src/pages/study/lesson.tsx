@@ -620,6 +620,36 @@ export default function LessonPage() {
     }
   }, [earlyTargetStage, previousStagesXp, lessonId, displayXp, lessonData?.units]);
 
+  // IMPORTANT: All useMemo hooks must be defined before any early returns to respect React's hooks rules
+  const studySections = useMemo((): StudySection[] => {
+    if (!lessonData?.units) return [];
+    
+    // Get all units for the "estude" stage
+    const units = lessonData.units.filter(u => u.stage === "estude");
+    
+    // Convert units to sections
+    const sections: StudySection[] = units.map(u => ({
+      type: u.type as any,
+      title: u.content.title || u.content.verseReference || (u.type === 'verse' ? 'Versículo Base' : ''),
+      content: u.content.body || u.content.verseText || u.content.highlight || ""
+    }));
+
+    // Find Slide 0 (Verse) - MUST be first
+    const primaryVerseIndex = sections.findIndex(s => s.type === 'verse');
+    
+    if (primaryVerseIndex > -1) {
+      const [verse] = sections.splice(primaryVerseIndex, 1);
+      return [verse, ...sections];
+    } else {
+      // Create slide 0 if missing
+      return [{
+        type: 'verse',
+        title: 'Versículo Base',
+        content: 'Versículo não carregado.'
+      }, ...sections];
+    }
+  }, [lessonData]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4" data-testid="not-authenticated">
@@ -785,36 +815,6 @@ export default function LessonPage() {
     || studyUnits.find(u => u.type === 'verse')?.content?.verseReference 
     || lessonData.title 
     || '';
-  
-  let topicCounter = 0;
-  const studySections = useMemo((): StudySection[] => {
-    if (!lessonData?.units) return [];
-    
-    // Get all units for the "estude" stage
-    const units = lessonData.units.filter(u => u.stage === "estude");
-    
-    // Convert units to sections
-    const sections: StudySection[] = units.map(u => ({
-      type: u.type as any,
-      title: u.content.title || u.content.verseReference || (u.type === 'verse' ? 'Versículo Base' : ''),
-      content: u.content.body || u.content.verseText || u.content.highlight || ""
-    }));
-
-    // Find Slide 0 (Verse) - MUST be first
-    const primaryVerseIndex = sections.findIndex(s => s.type === 'verse');
-    
-    if (primaryVerseIndex > -1) {
-      const [verse] = sections.splice(primaryVerseIndex, 1);
-      return [verse, ...sections];
-    } else {
-      // Create slide 0 if missing
-      return [{
-        type: 'verse',
-        title: 'Versículo Base',
-        content: 'Versículo não carregado.'
-      }, ...sections];
-    }
-  }, [lessonData]);
   
   const isMediteStage = currentUnit?.stage === 'medite';
   const isMediteType = currentUnit?.type === 'meditation' || currentUnit?.type === 'reflection';

@@ -14,6 +14,7 @@ interface CollectibleCardProps {
   rarity: CardRarity;
   orientation?: CardOrientation;
   sourceType?: "season" | "event";
+  sourceId?: number;
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
@@ -40,6 +41,7 @@ export function CollectibleCard({
   rarity,
   orientation = "portrait",
   sourceType,
+  sourceId = 0,
   onClick,
   className = "",
   showLabel = true,
@@ -47,6 +49,10 @@ export function CollectibleCard({
 }: CollectibleCardProps) {
   const IconComponent = rarityIcons[rarity];
   const label = rarityLabels[rarity];
+  
+  // Rotate metallic textures by sourceId: silver, blue, purple, gold
+  const textures = ["metallic-silver", "metallic-blue", "metallic-purple", "metallic-gold"];
+  const metallicTexture = textures[sourceId % 4];
   
   const sizeClasses = {
     compact: "w-[100px] h-[140px]",
@@ -114,12 +120,12 @@ export function CollectibleCard({
         }}
       />
 
-      <div className="collectible-card-inner">
+      <div className={`collectible-card-inner ${metallicTexture} event-card-metal`}>
         <div className={`collectible-card-badge collectible-card-badge-${rarity} ${badgeSizeClasses[size]}`}>
-          <IconComponent className="w-1/2 h-1/2 text-gray-700" />
+          <IconComponent className={`w-1/2 h-1/2 text-gray-700 embossed-icon`} />
         </div>
 
-        <div className="collectible-card-rarity-icon">
+        <div className="collectible-card-rarity-icon embossed-icon">
           {rarity === "legendary" ? (
             <Gem className="w-4 h-4 text-white" />
           ) : rarity === "epic" ? (
@@ -130,18 +136,21 @@ export function CollectibleCard({
         </div>
 
         <div className="flex-1 flex flex-col justify-center pt-8">
-          <h3 className={`collectible-card-title ${titleSizeClasses[size]} mb-1`}>
+          <h3 className={`collectible-card-title embossed-text ${titleSizeClasses[size]} mb-1`}>
             {name}
           </h3>
           {showLabel && (
-            <p className={`collectible-card-subtitle ${subtitleSizeClasses[size]}`}>
+            <p className={`collectible-card-subtitle embossed-text ${subtitleSizeClasses[size]}`}>
               {label}
             </p>
           )}
         </div>
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 overflow-hidden relative`}
+          className={`collectible-card-image ${imageHeightClasses[size]} mt-2 overflow-hidden relative embossed-text`}
+          style={{
+            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
+          }}
         >
           {imageUrl ? (
             <img 
@@ -153,7 +162,7 @@ export function CollectibleCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">
-              <IconComponent className="w-8 h-8 text-white/50" />
+              <IconComponent className="w-8 h-8 text-white/50 embossed-icon" />
             </div>
           )}
         </div>

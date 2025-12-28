@@ -777,6 +777,7 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
                 questions={questions}
                 streak={0}
                 initialQuestionIndex={currentQuestionIndex}
+                initialCorrectCount={correctAnswers}
                 onAnswer={(idx, ans, isCorrect) => {
                   if (isCorrect) {
                     setCorrectAnswers(prev => prev + 1);

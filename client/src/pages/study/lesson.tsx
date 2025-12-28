@@ -1344,6 +1344,7 @@ export default function LessonPage() {
             hearts={currentHearts}
             maxHearts={profileData?.heartsMax || 5}
             initialQuestionIndex={initialRespondaQuestionIndex}
+            initialCorrectCount={respondaCorrectAnswers}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
             onClose={handleClose}

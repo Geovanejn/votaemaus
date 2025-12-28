@@ -27,6 +27,7 @@ interface RespondaScreenProps {
   hearts?: number;
   maxHearts?: number;
   initialQuestionIndex?: number;
+  initialCorrectCount?: number;
   onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
   onComplete: (correctCount: number, totalQuestions: number) => void;
   onClose: () => void;
@@ -39,6 +40,7 @@ export function RespondaScreen({
   hearts = 5,
   maxHearts = 5,
   initialQuestionIndex = 0,
+  initialCorrectCount = 0,
   onAnswer,
   onComplete,
   onClose,
@@ -48,9 +50,15 @@ export function RespondaScreen({
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
+  const [correctCount, setCorrectCount] = useState(initialCorrectCount);
   // Use a ref to track the most up-to-date correct count (avoids stale closure issues)
-  const correctCountRef = useRef(0);
+  const correctCountRef = useRef(initialCorrectCount);
+  
+  // Sync ref with initialCorrectCount on mount
+  useEffect(() => {
+    correctCountRef.current = initialCorrectCount;
+    setCorrectCount(initialCorrectCount);
+  }, [initialCorrectCount]);
   // Track the timeout ID and whether handleNext has already been called for this question
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasAdvancedRef = useRef(false);

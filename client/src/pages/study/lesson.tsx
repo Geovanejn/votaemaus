@@ -326,7 +326,12 @@ export default function LessonPage() {
 
   const submitAnswerMutation = useMutation({
     mutationFn: async ({ unitId, answer }: { unitId: number; answer: any }) => {
-      const res = await apiRequest("POST", `/api/study/units/${unitId}/answer`, { answer });
+      // Deduzir vida apenas nas páginas /study e /study/estudos
+      const shouldDeductHeart = window.location.pathname === "/study" || window.location.pathname.startsWith("/study/estudos") || window.location.pathname.startsWith("/study/lesson");
+      const res = await apiRequest("POST", `/api/study/units/${unitId}/answer`, { 
+        answer,
+        skipHeartDeduction: !shouldDeductHeart 
+      });
       return res.json() as Promise<AnswerResult>;
     },
     onSuccess: (result) => {
@@ -789,16 +794,20 @@ export default function LessonPage() {
       content: u.content.body || u.content.verseText || u.content.highlight || ""
     }));
 
-    // Find the primary verse unit to ensure it's first
+    // Find Slide 0 (Verse) - MUST be first
     const primaryVerseIndex = sections.findIndex(s => s.type === 'verse');
     
-    if (primaryVerseIndex > 0) {
-      // Move the verse to the front if it's not already there
+    if (primaryVerseIndex > -1) {
       const [verse] = sections.splice(primaryVerseIndex, 1);
       return [verse, ...sections];
+    } else {
+      // Create slide 0 if missing
+      return [{
+        type: 'verse',
+        title: 'Versículo Base',
+        content: 'Versículo não carregado.'
+      }, ...sections];
     }
-    
-    return sections;
   }, [lessonData]);
   
   const isMediteStage = currentUnit?.stage === 'medite';

@@ -82,15 +82,13 @@ export function RespondaScreen({
   }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
-    let isCorrect = false;
-    if (currentQuestion.type === "multiple_choice") {
-      isCorrect = selectedAnswer === currentQuestion.correctIndex;
-    } else if (currentQuestion.type === "true_false") {
-      isCorrect = (selectedAnswer === 1) === currentQuestion.correctAnswer;
-    } else if (currentQuestion.type === "fill_blank") {
-      const selectedOption = currentOptions[selectedAnswer as number];
-      isCorrect = String(selectedOption).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
-    }
+    const isCorrect = currentQuestion.type === "multiple_choice" 
+      ? selectedAnswer === currentQuestion.correctIndex
+      : currentQuestion.type === "true_false"
+        ? (selectedAnswer === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true)
+        : String(currentOptions[selectedAnswer as number]).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
+    
+    onAnswer(currentIndex, selectedAnswer, isCorrect);
     
     setShowResult(true);
     
@@ -98,39 +96,32 @@ export function RespondaScreen({
       setCorrectCount(prev => prev + 1);
       playCorrect();
       
-      // We set showResult to true, which triggers the green UI
-      // The auto-advance happens after 1.5s
       setTimeout(() => {
         handleNext();
       }, 1500);
     } else {
       playWrong();
-      // Reduced auto-advance to 1.5 seconds per user request
       setTimeout(() => {
-        // Reset states for the next question
         setShowResult(false);
         setSelectedAnswer(null);
         if (currentIndex < totalQuestions - 1) {
           setCurrentIndex(prev => prev + 1);
         } else {
-          setCorrectCount(current => {
-            onComplete(current, totalQuestions);
-            return current;
-          });
+          onComplete(correctCount, totalQuestions);
         }
       }, 1500);
     }
-
-    onAnswer(currentIndex, selectedAnswer, isCorrect);
   };
 
   const handleNext = () => {
+    // Correctly pass the updated count to onComplete
+    const finalCorrectCount = correctCount; 
+    // Wait, if it was correct, it was already incremented in setCorrectCount(prev => prev + 1)
+    // But since state is async, we should use a local variable or functional update
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      // Calculate the final count correctly
-      // Since checkAnswer already updated setCorrectCount, 
-      // but state updates are async, we need a reliable value.
+      // Use a trick to get the most recent count
       setCorrectCount(current => {
         onComplete(current, totalQuestions);
         return current;
@@ -189,8 +180,16 @@ export function RespondaScreen({
               <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 <Type className="h-4 w-4 text-zinc-500" />
               </Button>
-              <Button size="icon" variant="ghost" onClick={() => speak(currentQuestion.question)} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <Volume2 className="h-4 w-4 text-zinc-500" />
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                onClick={() => speak(currentQuestion.question)} 
+                className={cn(
+                  "h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors",
+                  isSpeaking && "bg-purple-100 dark:bg-purple-900/40 text-purple-600 shadow-inner"
+                )}
+              >
+                <Volume2 className={cn("h-4 w-4 text-zinc-500", isSpeaking && "text-purple-600")} />
               </Button>
             </div>
           </div>
@@ -235,7 +234,7 @@ export function RespondaScreen({
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
             
-            // Critical fix: Ensure feedback classes are applied consistently
+            // Critical fix: Ensure feedback classes are applied consistently for ALL types
             const feedbackClasses = showCorrect 
               ? "border-[#22C55E] bg-[#F0FDF4] dark:bg-[#064E3B]/20 text-[#166534] dark:text-[#4ADE80]" 
               : showIncorrect 

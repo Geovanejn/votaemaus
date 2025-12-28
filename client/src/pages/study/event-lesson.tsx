@@ -530,12 +530,26 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
     const titles = (estudeContent.match(/<h3[^>]*>(.*?)<\/h3>/gi) || []).map(t => t.replace(/<[^>]*>/g, ''));
     
     const sections: any[] = [];
+    // Add verse as the first section for EstudeScreen slide 0
+    // THIS IS THE CRITICAL FIX: Ensure verse is always the first slide
+    if (lesson?.verseText) {
+      sections.push({ 
+        type: "verse", 
+        title: lesson.verseReference || "Referência", 
+        content: lesson.verseText 
+      });
+    } else {
+      // Fallback only if no verse at all, but we should prioritize AI content
+      sections.push({ type: "verse", title: "Versículo Base", content: "Versículo base não disponível." });
+    }
+
+    // Now add topics
     sections.push({ type: "topic", title: titles[0] || "Tópico 1", content: estudeParts[0] || "" });
     sections.push({ type: "topic", title: titles[1] || "Tópico 2", content: estudeParts[1] || "" });
     sections.push({ type: "conclusion", title: "Conclusão", content: estudeParts[2] || "Conclusão do estudo." });
     
     return sections;
-  }, [contentSections.estude]);
+  }, [contentSections.estude, lesson?.verseText, lesson?.verseReference]);
 
   const mediteSections = useMemo(() => {
     const mediteContent = contentSections.medite;
@@ -580,6 +594,12 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
 
   const handleQuestionIndexChange = (index: number) => {
     setCurrentQuestionIndex(index);
+  };
+
+  const handleAnswer = (index: number, answer: any, isCorrect: boolean) => {
+    if (isCorrect) {
+      setCorrectAnswers(prev => prev + 1);
+    }
   };
 
   const handleStageModalClose = () => {

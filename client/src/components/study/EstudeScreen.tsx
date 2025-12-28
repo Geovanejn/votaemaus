@@ -42,7 +42,9 @@ export function EstudeScreen({
 
   const handleSpeak = () => {
     if (!currentSection) return;
-    const textToSpeak = `${currentSection.title || ""}. ${currentSection.content.replace(/<[^>]*>/g, '')}`;
+    const textToSpeak = currentIndex === 0 
+      ? `Versículo Base. ${currentSection.content.replace(/<[^>]*>/g, '')}. Referência: ${currentSection.title || ""}`
+      : `${currentSection.title || ""}. ${currentSection.content.replace(/<[^>]*>/g, '')}`;
     speak(textToSpeak);
   };
 
@@ -80,7 +82,7 @@ export function EstudeScreen({
                    style={{ fontSize: `${fontSize}px` }}>
                   "{verseSection?.content.replace(/<[^>]*>/g, '') || "Carregando..."}"
                 </p>
-                {verseSection?.title && verseSection.type === "verse" && (
+                {verseSection?.title && (
                   <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-2">
                     — {verseSection.title}
                   </p>
@@ -99,8 +101,16 @@ export function EstudeScreen({
                   <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
                     <Type className="h-4 w-4 text-zinc-500" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={handleSpeak} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                    <Volume2 className="h-4 w-4 text-zinc-500" />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={handleSpeak} 
+                    className={cn(
+                      "h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors",
+                      isSpeaking && "bg-blue-100 dark:bg-blue-900/40 text-blue-600 shadow-inner"
+                    )}
+                  >
+                    <Volume2 className={cn("h-4 w-4 text-zinc-500", isSpeaking && "text-blue-600")} />
                   </Button>
                 </div>
               </div>

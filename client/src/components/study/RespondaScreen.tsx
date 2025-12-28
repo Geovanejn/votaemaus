@@ -97,8 +97,8 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
-      // Increased timeout to 2.5 seconds for better feedback visibility
       // Feedback UI uses showResult && isThisOptionCorrect which should show green
+      // The timeout here handles the AUTO-ADVANCE, not the feedback visibility itself
       setTimeout(() => {
         handleNext();
       }, 2500);
@@ -226,11 +226,20 @@ export function RespondaScreen({
             const isThisOptionCorrect = currentQuestion.type === "multiple_choice" 
               ? idx === currentQuestion.correctIndex
               : currentQuestion.type === "true_false"
-                ? (idx === 1) === !!currentQuestion.correctAnswer
+                ? (idx === 1) === (String(currentQuestion.correctAnswer).toLowerCase() === "true" || currentQuestion.correctAnswer === true)
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
             
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
+            
+            // Force green background for the correct option when showResult is true
+            const feedbackClasses = showCorrect 
+              ? "border-[#22C55E] bg-[#F0FDF4] dark:bg-[#064E3B]/20" 
+              : showIncorrect 
+                ? "border-[#EF4444] bg-[#FEF2F2] dark:bg-[#7F1D1D]/20"
+                : (!showResult && isSelected) 
+                  ? "border-[#7c3aed] bg-[#7c3aed]/5" 
+                  : "border-white dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm";
 
             return (
               <button
@@ -240,13 +249,7 @@ export function RespondaScreen({
                 className={cn(
                   "p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
                   currentQuestion.type === "true_false" ? "flex-col justify-center text-center py-6" : "w-full",
-                  showCorrect 
-                    ? "border-[#22C55E] bg-[#F0FDF4]" 
-                    : showIncorrect 
-                      ? "border-[#EF4444] bg-[#FEF2F2]"
-                      : (!showResult && isSelected) 
-                        ? "border-[#7c3aed] bg-[#7c3aed]/5" 
-                        : "border-white bg-white shadow-sm"
+                  feedbackClasses
                 )}
               >
                 {(currentQuestion.type === "multiple_choice" || currentQuestion.type === "fill_blank") && (
@@ -258,7 +261,7 @@ export function RespondaScreen({
                         ? "bg-[#EF4444] text-white border-[#EF4444]"
                         : (!showResult && isSelected)
                           ? "bg-[#7c3aed] text-white border-[#7c3aed]"
-                          : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]"
+                          : "bg-[#F8F9FC] dark:bg-zinc-800 text-[#2D3142] dark:text-zinc-100 border-[#F0F2F5] dark:border-zinc-700"
                   )}>
                     {String.fromCharCode(65 + idx)}
                   </div>

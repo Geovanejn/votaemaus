@@ -30,6 +30,8 @@ export function EstudeScreen({
 }: EstudeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const { fontSize, increaseFontSize, decreaseFontSize, speak } = useAccessibility();
+  const totalSlides = sections.length;
+  const currentSection = sections[currentIndex];
   const verseSection = sections.find(s => s.type === "verse") || sections[0];
   
   const goNext = () => currentIndex < totalSlides - 1 ? setCurrentIndex(prev => prev + 1) : onComplete();

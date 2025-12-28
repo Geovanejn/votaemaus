@@ -51,7 +51,15 @@ export function RespondaScreen({
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
 
-  const currentOptions = currentQuestion?.options || [];
+  const currentOptions = currentQuestion?.options && currentQuestion.options.length > 0 
+    ? currentQuestion.options 
+    : (currentQuestion?.type === "true_false" 
+        ? ["Falso", "Verdadeiro"] 
+        : (currentQuestion?.type === "fill_blank" && currentQuestion.correctAnswer 
+            ? [String(currentQuestion.correctAnswer), "Opção 2", "Opção 3", "Opção 4"] 
+            : []
+          )
+      );
 
   useEffect(() => {
     onQuestionChange?.(currentIndex);

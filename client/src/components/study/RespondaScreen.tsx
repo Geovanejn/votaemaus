@@ -97,14 +97,13 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
-      // Feedback UI uses showResult && isThisOptionCorrect which should show green
-      // The timeout here handles the AUTO-ADVANCE, not the feedback visibility itself
+      // Reduced timeout to 1.5 seconds per user request
       setTimeout(() => {
         handleNext();
-      }, 2500);
+      }, 1500);
     } else {
       playWrong();
-      // Auto-advance even on wrong answers after a delay so they see the red feedback
+      // Reduced auto-advance to 1.5 seconds per user request
       setTimeout(() => {
         // Reset states for the next question
         setShowResult(false);
@@ -117,7 +116,7 @@ export function RespondaScreen({
             return current;
           });
         }
-      }, 2500);
+      }, 1500);
     }
 
     onAnswer(currentIndex, selectedAnswer, isCorrect);

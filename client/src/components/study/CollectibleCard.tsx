@@ -182,28 +182,69 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
   const shareText = `Conquistei o card "${card.name}" (${rarityLabels[card.rarity]}) no DeoGlory! Venha estudar a Palavra comigo na UMP Emaus.`;
   const fullShareText = `${shareText}\n\n${shareUrl}`;
   
+  // Card style configurations for html2canvas (inline styles needed because CSS classes don't always work)
+  const cardStyles: Record<CardRarity, { background: string; border: string; boxShadow: string }> = {
+    common: {
+      background: 'url(/CARD_COMUM_1766929049960.png) center/cover no-repeat',
+      border: '2px solid #A0A8B8',
+      boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.4), inset 0 -1px 3px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)',
+    },
+    rare: {
+      background: 'url(/CARD_RARO_1766929049996.png) center/cover no-repeat',
+      border: '2px solid #4A90C0',
+      boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.3), inset 0 -1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(59, 130, 246, 0.2)',
+    },
+    epic: {
+      background: 'url(/CARD_ÉPICO_1766929050040.png) center/cover no-repeat',
+      border: '2px solid #8B6BA8',
+      boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.25), inset 0 -1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(139, 92, 246, 0.25)',
+    },
+    legendary: {
+      background: 'url(/CARD_LENDÁRIO_1766929050060.png) center/cover no-repeat',
+      border: '3px solid #D4A050',
+      boxShadow: 'inset 0 1px 4px rgba(255, 255, 255, 0.35), inset 0 -1px 4px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(251, 191, 36, 0.25)',
+    },
+  };
+
+  const medallionStyles: Record<CardRarity, string> = {
+    common: 'linear-gradient(145deg, rgba(160, 168, 184, 0.4), rgba(128, 136, 152, 0.3))',
+    rare: 'linear-gradient(145deg, rgba(74, 144, 192, 0.4), rgba(59, 130, 180, 0.3))',
+    epic: 'linear-gradient(145deg, rgba(139, 107, 168, 0.4), rgba(120, 92, 150, 0.3))',
+    legendary: 'linear-gradient(145deg, rgba(212, 160, 80, 0.5), rgba(180, 140, 60, 0.4))',
+  };
+
   const generateImage = useCallback(async (): Promise<Blob | null> => {
     if (!cardRef.current) return null;
     
     try {
-      // Pre-load image at full resolution if available
-      const imageContainer = cardRef.current.querySelector('.collectible-card-image') as HTMLElement;
-      let originalBgImage = '';
-      
-      if (imageContainer && card.imageUrl) {
-        originalBgImage = imageContainer.style.backgroundImage;
-        
-        // Create a high-res image and wait for it to load
-        await new Promise<void>((resolve) => {
+      // Pre-load card background image
+      const rarity = card.rarity;
+      const bgImages: Record<CardRarity, string> = {
+        common: '/CARD_COMUM_1766929049960.png',
+        rare: '/CARD_RARO_1766929049996.png',
+        epic: '/CARD_ÉPICO_1766929050040.png',
+        legendary: '/CARD_LENDÁRIO_1766929050060.png',
+      };
+
+      // Pre-load all images
+      await Promise.all([
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = bgImages[rarity];
+        }),
+        card.imageUrl ? new Promise<void>((resolve) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => resolve();
           img.onerror = () => resolve();
           img.src = card.imageUrl!;
-        });
-      }
+        }) : Promise.resolve(),
+      ]);
       
-      // Pause animations and position shine for capture (left side of card)
+      // Pause animations and position shine for capture
       const shineBeams = cardRef.current.querySelectorAll('.card-shine-beam');
       shineBeams.forEach((beam) => {
         const el = beam as HTMLElement;
@@ -213,10 +254,10 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       });
       
       // Wait for styles to apply
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       // High quality capture
-      const scale = 8; // 8x scale for very high quality without extreme memory overhead
+      const scale = 8;
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: '#1a1a2e',
         scale: scale,
@@ -224,8 +265,86 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         logging: false,
         allowTaint: true,
         imageTimeout: 30000,
-        imageSmoothingEnabled: false, // Disabled as requested
+        imageSmoothingEnabled: false,
         onclone: (clonedDoc, clonedElement) => {
+          // Apply inline styles to the cloned card element for html2canvas compatibility
+          const clonedCard = clonedElement.querySelector('.collectible-card') as HTMLElement;
+          if (clonedCard) {
+            const styles = cardStyles[rarity];
+            clonedCard.style.background = styles.background;
+            clonedCard.style.border = styles.border;
+            clonedCard.style.boxShadow = styles.boxShadow;
+            clonedCard.style.position = 'relative';
+            clonedCard.style.overflow = 'hidden';
+            clonedCard.style.borderRadius = '16px';
+          }
+
+          // Style the inner container
+          const clonedInner = clonedElement.querySelector('.collectible-card-inner') as HTMLElement;
+          if (clonedInner) {
+            clonedInner.style.position = 'relative';
+            clonedInner.style.zIndex = '5';
+            clonedInner.style.padding = '10px';
+            clonedInner.style.display = 'flex';
+            clonedInner.style.flexDirection = 'column';
+            clonedInner.style.height = '100%';
+            clonedInner.style.gap = '6px';
+          }
+
+          // Style the medallion
+          const clonedMedallion = clonedElement.querySelector('.collectible-card-medallion') as HTMLElement;
+          if (clonedMedallion) {
+            clonedMedallion.style.position = 'relative';
+            clonedMedallion.style.alignSelf = 'center';
+            clonedMedallion.style.width = '44px';
+            clonedMedallion.style.height = '44px';
+            clonedMedallion.style.flexShrink = '0';
+            clonedMedallion.style.borderRadius = '50%';
+            clonedMedallion.style.display = 'flex';
+            clonedMedallion.style.alignItems = 'center';
+            clonedMedallion.style.justifyContent = 'center';
+            clonedMedallion.style.zIndex = '6';
+            clonedMedallion.style.background = medallionStyles[rarity];
+            clonedMedallion.style.boxShadow = 'inset 2px 2px 3px rgba(0, 0, 0, 0.6), inset -1px -1px 2px rgba(255, 255, 255, 0.12), 0 0 4px rgba(255, 255, 255, 0.18)';
+          }
+
+          // Style medallion SVG
+          const medallionSvg = clonedElement.querySelector('.collectible-card-medallion svg') as HTMLElement;
+          if (medallionSvg) {
+            medallionSvg.style.opacity = '0.70';
+          }
+
+          // Style the text plate
+          const clonedTextPlate = clonedElement.querySelector('.collectible-card-text-plate') as HTMLElement;
+          if (clonedTextPlate) {
+            clonedTextPlate.style.background = 'rgba(0, 0, 0, 0.15)';
+            clonedTextPlate.style.borderRadius = '10px';
+            clonedTextPlate.style.padding = '4px 10px';
+            clonedTextPlate.style.boxShadow = 'inset 1px 1px 1px rgba(0, 0, 0, 0.55), inset -1px -1px 1px rgba(255, 255, 255, 0.14), 0 0 2px rgba(255, 255, 255, 0.12)';
+          }
+
+          // Style the title
+          const clonedTitle = clonedElement.querySelector('.collectible-card-title') as HTMLElement;
+          if (clonedTitle) {
+            clonedTitle.style.fontWeight = '700';
+            clonedTitle.style.textTransform = 'uppercase';
+            clonedTitle.style.letterSpacing = '0.05em';
+            clonedTitle.style.textAlign = 'center';
+            clonedTitle.style.lineHeight = '1.2';
+            clonedTitle.style.color = 'rgba(230, 230, 230, 0.92)';
+            clonedTitle.style.textShadow = '0 0 3px rgba(255, 255, 255, 0.15), 1px 1px 0px rgba(0, 0, 0, 0.45)';
+          }
+
+          // Style the image container
+          const clonedImageContainer = clonedElement.querySelector('.collectible-card-image') as HTMLElement;
+          if (clonedImageContainer) {
+            clonedImageContainer.style.position = 'relative';
+            clonedImageContainer.style.borderRadius = '6px';
+            clonedImageContainer.style.overflow = 'hidden';
+            clonedImageContainer.style.background = 'rgba(0, 0, 0, 0.4)';
+            clonedImageContainer.style.boxShadow = 'inset 0 3px 6px rgba(0, 0, 0, 0.7), inset 0 -2px 4px rgba(255, 255, 255, 0.15), inset 3px 0 5px rgba(0, 0, 0, 0.5), inset -3px 0 5px rgba(0, 0, 0, 0.5)';
+          }
+
           // Ensure cloned element has the image loaded properly
           const clonedImage = clonedElement.querySelector('.collectible-card-image img') as HTMLImageElement;
           if (clonedImage && card.imageUrl) {
@@ -233,6 +352,25 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             clonedImage.style.width = '100%';
             clonedImage.style.height = '100%';
             clonedImage.style.objectFit = 'cover';
+          }
+
+          // Hide diamond effects for cleaner capture
+          const diamonds = clonedElement.querySelectorAll('.card-diamond-effect');
+          diamonds.forEach((d) => {
+            (d as HTMLElement).style.display = 'none';
+          });
+
+          // Style the shine beam
+          const shineBeam = clonedElement.querySelector('.card-shine-beam') as HTMLElement;
+          if (shineBeam) {
+            shineBeam.style.position = 'absolute';
+            shineBeam.style.inset = '0';
+            shineBeam.style.pointerEvents = 'none';
+            shineBeam.style.zIndex = '20';
+            shineBeam.style.borderRadius = '16px';
+            shineBeam.style.background = 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.25) 23%, rgba(255,255,255,0.5) 25%, rgba(255,255,255,0.25) 27%, transparent 30%)';
+            shineBeam.style.transform = 'translateX(-40%)';
+            shineBeam.style.animation = 'none';
           }
         },
       });
@@ -252,7 +390,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       console.error('Error generating card image:', error);
       return null;
     }
-  }, [card.imageUrl]);
+  }, [card.imageUrl, card.rarity]);
 
   const prepareAndShare = useCallback(async (platform: 'whatsapp' | 'instagram' | 'facebook' | 'x') => {
     if (typeof window === "undefined") return;

@@ -854,7 +854,8 @@ export default function LessonPage() {
       correctIndex: innerContent.correctIndex,
       correctAnswer: questionType === 'fill_blank' ? innerContent.correctAnswer : innerContent.isTrue,
       hint: innerContent.hint,
-      explanation: innerContent.explanation || innerContent.explanationCorrect || innerContent.explanationIncorrect
+      explanation: innerContent.explanation || innerContent.explanationCorrect || innerContent.explanationIncorrect,
+      unitId: unit.id
     };
   });
   
@@ -1262,9 +1263,10 @@ export default function LessonPage() {
     }
   };
 
-  const handleRespondaAnswer = async (questionIndex: number, answer: any, isCorrect: boolean) => {
-    const unit = respondaUnits[questionIndex];
-    if (!unit) return;
+  const handleRespondaAnswer = async (questionIndex: number, answer: any, isCorrect: boolean, unitId?: number) => {
+    // Use unitId from the shuffled question if available, fallback to index-based lookup
+    const targetUnitId = unitId ?? respondaUnits[questionIndex]?.id;
+    if (!targetUnitId) return;
     
     // Track mistakes in real-time for accurate achievement calculation
     // This is critical for the "Perfeito" achievement to work correctly
@@ -1276,10 +1278,10 @@ export default function LessonPage() {
       setRespondaCorrectAnswers(prev => prev + 1);
     }
     
-    // Submit to server for persistence
+    // Submit to server for persistence using the correct unitId
     try {
       await submitAnswerMutation.mutateAsync({ 
-        unitId: unit.id, 
+        unitId: targetUnitId, 
         answer: answer 
       });
     } catch (error) {

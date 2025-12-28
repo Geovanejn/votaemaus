@@ -18,6 +18,7 @@ interface QuizQuestion {
   hint?: string;
   explanation?: string;
   category?: string;
+  unitId?: number;
 }
 
 interface RespondaScreenProps {
@@ -28,7 +29,7 @@ interface RespondaScreenProps {
   maxHearts?: number;
   initialQuestionIndex?: number;
   initialCorrectCount?: number;
-  onAnswer: (questionIndex: number, answer: any, isCorrect: boolean) => void;
+  onAnswer: (questionIndex: number, answer: any, isCorrect: boolean, unitId?: number) => void;
   onComplete: (correctCount: number, totalQuestions: number) => void;
   onClose: () => void;
   onQuestionChange?: (currentIndex: number) => void;
@@ -132,7 +133,7 @@ export function RespondaScreen({
       isCorrect = false;
     }
     
-    onAnswer(currentIndex, selectedAnswer, isCorrect);
+    onAnswer(currentIndex, selectedAnswer, isCorrect, currentQuestion.unitId);
     
     const nextIndex = currentIndex + 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;

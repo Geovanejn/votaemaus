@@ -65,108 +65,101 @@ export function MediteScreen({
   }
 
   return (
-    <div className="flex flex-col p-4">
-      <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Cabeçalho da sessão */}
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500/10">
-            <Heart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400" data-testid="session-title-medite">Medite</h3>
-            <p className="text-sm text-muted-foreground">{lessonTitle}</p>
-          </div>
-          <AccessibilityToolbar textContent={textContent} />
-        </div>
-
-        {/* Barra de progresso */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">
-              Slide {currentIndex + 1} de {totalSlides}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(((currentIndex + 1) / totalSlides) * 100)}%
-            </span>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-purple-500 transition-all duration-300"
-              style={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
-            />
+    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+      <div className="flex flex-col">
+        {/* Header Gradient Section */}
+        <div 
+          className="relative px-6 pt-12 pb-16 rounded-b-[40px] shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+          }}
+        >
+          <div className="max-w-md mx-auto relative z-10 flex flex-col items-center gap-6 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-white/90 text-sm font-medium uppercase tracking-wider">Reflexão</span>
+              <span className="text-white text-3xl font-black">
+                {currentIndex + 1} <span className="text-white/60 text-xl font-medium">/ {totalSlides}</span>
+              </span>
+            </div>
+            
+            {/* ProgressBar */}
+            <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden mt-2">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }}
+                className="h-full bg-white rounded-full"
+                transition={{ duration: 0.5 }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Conteúdo do slide */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="p-6">
-              <div className="space-y-4">
-                {currentSection.title && (
-                  <h3 className="text-xl font-semibold">{currentSection.title}</h3>
-                )}
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none"
-                  style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                  dangerouslySetInnerHTML={{
-                    __html: currentSection.content
-                  }}
-                />
-              </div>
-            </Card>
-          </motion.div>
-        </AnimatePresence>
+        {/* Content Section */}
+        <div className="max-w-md mx-auto w-full px-4 -mt-10 pb-32">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="border-0 shadow-2xl rounded-[32px] bg-white dark:bg-zinc-900 overflow-hidden">
+                <div className="p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-md">
+                      <Heart className="h-6 w-6" />
+                    </div>
+                    <span className="text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest text-xs">
+                      Medite
+                    </span>
+                  </div>
 
-        {/* Navegação */}
-        <div className="flex gap-3 mt-4 items-center justify-between">
+                  <h3 className="text-2xl font-black text-zinc-800 dark:text-zinc-100 mb-6 leading-tight">
+                    {currentSection.title || lessonTitle}
+                  </h3>
+
+                  <div
+                    className="prose prose-zinc dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 leading-relaxed italic"
+                    style={{ fontSize: 'var(--study-font-size, 16px)' }}
+                    dangerouslySetInnerHTML={{
+                      __html: currentSection.content
+                    }}
+                  />
+                </div>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 px-6 py-6 pb-10 border-t border-zinc-100 dark:border-zinc-800 z-50">
+        <div className="max-w-md mx-auto flex gap-4">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={goPrev}
             disabled={currentIndex === 0}
+            className="w-16 h-16 rounded-[24px] border-2 border-zinc-100 dark:border-zinc-800 flex-shrink-0"
             size="icon"
-            data-testid="button-prev-slide"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-8 w-8 text-zinc-400" />
           </Button>
-
-          <div className="flex gap-2">
-            {Array.from({ length: totalSlides }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-purple-500" : "w-2 bg-muted"
-                )}
-                data-testid={`dot-${i}`}
-              />
-            ))}
-          </div>
 
           {isLastSlide ? (
             <Button
               onClick={onComplete}
-              data-testid="button-medite-complete"
-              className="flex-1 ml-2 bg-purple-600 hover:bg-purple-700"
+              className="flex-1 h-16 rounded-[24px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
             >
-              Continuar
-              <ChevronRight className="h-5 w-5 ml-2" />
+              Concluir Meditação
             </Button>
           ) : (
             <Button
-              variant="outline"
               onClick={goNext}
-              disabled={isLastSlide}
-              size="icon"
-              data-testid="button-next-slide"
+              className="flex-1 h-16 rounded-[24px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
             >
-              <ChevronRight className="h-5 w-5" />
+              Continuar
+              <ChevronRight className="h-6 w-6 ml-2" />
             </Button>
           )}
         </div>

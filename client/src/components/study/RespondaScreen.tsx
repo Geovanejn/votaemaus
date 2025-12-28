@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, XCircle, ChevronRight, CircleHelp, Heart } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccessibilityToolbar } from "./AccessibilityToolbar";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
@@ -41,6 +41,7 @@ interface QuizQuestion {
   correctAnswer?: string | boolean;
   hint?: string;
   explanation?: string;
+  category?: string;
 }
 
 interface RespondaScreenProps {
@@ -55,6 +56,7 @@ interface RespondaScreenProps {
   onComplete: (correctCount: number, totalQuestions: number) => void;
   onClose: () => void;
   onQuestionChange?: (currentIndex: number) => void;
+  showHearts?: boolean;
 }
 
 function generateFillBlankOptions(correctAnswer: string, question?: string): string[] {
@@ -97,15 +99,15 @@ function generateFillBlankOptions(correctAnswer: string, question?: string): str
 
 function HeartsDisplay({ hearts, maxHearts }: { hearts: number; maxHearts: number }) {
   return (
-    <div className="flex items-center gap-0.5" data-testid="hearts-display">
+    <div className="flex items-center justify-center gap-1.5" data-testid="hearts-display">
       {Array.from({ length: maxHearts }).map((_, i) => (
         <Heart
           key={i}
           className={cn(
-            "h-5 w-5 transition-all",
+            "h-6 w-6 transition-all",
             i < hearts 
               ? "text-red-500 fill-red-500" 
-              : "text-muted-foreground/30"
+              : "text-white/30"
           )}
         />
       ))}
@@ -124,7 +126,8 @@ export function RespondaScreen({
   onAnswer,
   onComplete,
   onClose,
-  onQuestionChange
+  onQuestionChange,
+  showHearts = true
 }: RespondaScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -153,7 +156,6 @@ export function RespondaScreen({
       if (hasAIOptions && currentQuestion.options!.length >= 4) {
         setFillBlankOptions([...currentQuestion.options!].sort(() => Math.random() - 0.5));
       } else if (hasAIOptions && currentQuestion.options!.length >= 2) {
-        console.warn(`[fill_blank] Question has ${currentQuestion.options!.length} options, expected 4. Using available options.`);
         const existing = currentQuestion.options!.slice();
         const answer = String(currentQuestion.correctAnswer || existing[0] || "");
         const generated = generateFillBlankOptions(answer, currentQuestion.question);
@@ -162,10 +164,8 @@ export function RespondaScreen({
       } else {
         const answer = String(currentQuestion.correctAnswer || "");
         if (answer && answer !== "undefined" && answer !== "") {
-          console.warn(`[fill_blank] No AI options provided, generating fallback for: "${answer}"`);
           setFillBlankOptions(generateFillBlankOptions(answer, currentQuestion.question));
         } else {
-          console.error(`[fill_blank] Invalid question: no options and no correctAnswer`);
           setFillBlankOptions([]);
         }
       }
@@ -205,16 +205,6 @@ export function RespondaScreen({
                       !!rawCorrect);
         
         isCorrect = trueFalseAnswer === isTrue;
-
-        console.group("%c[DEBUG RespondaScreen] Validação Verdadeiro/Falso", "color: #ff9800; font-weight: bold;");
-        console.log("Pergunta:", currentQuestion.question);
-        console.log("Resposta do Banco (raw):", rawCorrect);
-        console.log("Tipo do dado do Banco:", typeof rawCorrect);
-        console.log("Interpretado como (isTrue):", isTrue);
-        console.log("Resposta do Usuário:", trueFalseAnswer);
-        console.log("Resultado da Validação (isCorrect):", isCorrect ? "CORRETO" : "ERRADO");
-        console.groupEnd();
-
         break;
       }
       case "fill_blank": {
@@ -243,27 +233,6 @@ export function RespondaScreen({
     }
   };
 
-  const isAnswerCorrect = (): boolean => {
-    switch (currentQuestion?.type) {
-      case "multiple_choice": {
-        const correctIdx = Number(currentQuestion.correctIndex);
-        const selectedIdx = Number(selectedAnswer);
-        return selectedIdx === correctIdx;
-      }
-      case "true_false": {
-        const rawCorrect = currentQuestion.correctAnswer;
-        const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
-                      (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
-                      !!rawCorrect);
-        return trueFalseAnswer === isTrue;
-      }
-      case "fill_blank":
-        return fillBlankAnswer.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim();
-      default:
-        return false;
-    }
-  };
-
   if (!currentQuestion) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -273,246 +242,206 @@ export function RespondaScreen({
   }
 
   return (
-    <div className="flex flex-col p-4">
-      <div className="max-w-2xl mx-auto w-full flex flex-col">
-        {/* Cabeçalho da sessão com corações */}
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10">
-            <CircleHelp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400" data-testid="session-title-responda">Responda</h3>
-            <p className="text-sm text-muted-foreground">{lessonTitle}</p>
-          </div>
-          <HeartsDisplay hearts={hearts} maxHearts={maxHearts} />
-          <AccessibilityToolbar textContent={buildFullTextForSpeech(currentQuestion, fillBlankOptions)} />
-        </div>
-
-        {/* Barra de progresso */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">
-              Questão {currentIndex + 1} de {totalQuestions}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(((currentIndex + 1) / totalQuestions) * 100)}%
-            </span>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-orange-500 transition-all duration-300"
-              style={{ width: `${((currentIndex + 1) / totalQuestions) * 100}%` }}
-            />
+    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+      <div className="flex flex-col">
+        {/* Header Gradient Section */}
+        <div 
+          className="relative px-6 pt-12 pb-16 rounded-b-[40px] shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed 0%, #d946ef 100%)'
+          }}
+        >
+          <div className="max-w-md mx-auto relative z-10 flex flex-col items-center gap-6">
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-white/90 text-sm font-medium uppercase tracking-wider">Questão</span>
+              <span className="text-white text-3xl font-black">
+                {currentIndex + 1} <span className="text-white/60 text-xl font-medium">/ {totalQuestions}</span>
+              </span>
+            </div>
+            
+            {showHearts && <HeartsDisplay hearts={hearts} maxHearts={maxHearts} />}
+            
+            {/* ProgressBar */}
+            <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden mt-2">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${((currentIndex + 1) / totalQuestions) * 100}%` }}
+                className="h-full bg-white rounded-full"
+                transition={{ duration: 0.5 }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Questão */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="p-6 flex flex-col">
-              {/* Texto da questão */}
-              <div className="mb-4">
-                {currentQuestion.type === "fill_blank" ? (
-                  <p 
-                    className="text-lg font-semibold mb-4"
-                    style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                    dangerouslySetInnerHTML={{ __html: formatQuestionWithBlank(currentQuestion.question) }}
-                  />
-                ) : (
-                  <p className="text-lg font-semibold mb-4" style={{ fontSize: 'var(--study-font-size, 16px)' }}>
-                    {currentQuestion.question}
-                  </p>
-                )}
-
-                {/* Opções */}
-                <div className="space-y-3">
-                  {currentQuestion.type === "multiple_choice" && (
-                    <div className="space-y-2">
-                      {currentQuestion.options?.map((option, idx) => {
-                        const isSelected = selectedAnswer === idx;
-                        const isCorrect = idx === currentQuestion.correctIndex;
-                        const showCorrect = showResult && isCorrect;
-                        const showIncorrect = showResult && isSelected && !isCorrect;
-
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => !showResult && setSelectedAnswer(idx)}
-                            disabled={showResult}
-                            className={cn(
-                              "w-full p-3 rounded-lg text-left font-medium transition-all border-2",
-                              !showResult && isSelected && "border-primary bg-primary/10",
-                              !showResult && !isSelected && "border-muted hover:border-primary/50",
-                              showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
-                              showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
-                            )}
-                            style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                            data-testid={`button-option-${idx}`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span><strong className="mr-2">{String.fromCharCode(65 + idx)})</strong>{option}</span>
-                              {showResult && (
-                                <>
-                                  {isCorrect && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-                                  {isSelected && !isCorrect && <XCircle className="h-5 w-5 text-red-500" />}
-                                </>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+        {/* Content Section */}
+        <div className="max-w-md mx-auto w-full px-4 -mt-10 pb-32">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="border-0 shadow-2xl rounded-[32px] bg-white dark:bg-zinc-900 overflow-hidden">
+                <div className="p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-md">
+                      <span className="text-xl font-bold">?</span>
                     </div>
-                  )}
+                    <span className="text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest text-xs">
+                      {currentQuestion.category || "Estudo"}
+                    </span>
+                  </div>
 
-                  {currentQuestion.type === "true_false" && (
-                    <div className="flex gap-3">
-                      {[true, false].map((value) => {
-                        const isSelected = trueFalseAnswer === value;
-                        const rawCorrect = currentQuestion.correctAnswer;
-                        const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
-                                      (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
-                                      !!rawCorrect);
-                        const isCorrect = value === isTrue;
-                        const showCorrect = showResult && isCorrect;
-                        const showIncorrect = showResult && isSelected && !isCorrect;
+                  <h3 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 mb-8 leading-tight">
+                    {currentQuestion.type === "fill_blank" ? (
+                      <span dangerouslySetInnerHTML={{ __html: formatQuestionWithBlank(currentQuestion.question) }} />
+                    ) : currentQuestion.question}
+                  </h3>
 
-                        return (
-                          <button
-                            key={String(value)}
-                            onClick={() => !showResult && setTrueFalseAnswer(value)}
-                            disabled={showResult}
-                            className={cn(
-                              "flex-1 p-3 rounded-lg font-medium transition-all border-2",
-                              !showResult && isSelected && "border-primary bg-primary/10",
-                              !showResult && !isSelected && "border-muted hover:border-primary/50",
-                              showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
-                              showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
-                            )}
-                            style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                            data-testid={`button-${value}`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span>{value ? "Verdadeiro" : "Falso"}</span>
-                              {showResult && (
-                                <>
-                                  {isCorrect && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-                                  {isSelected && !isCorrect && <XCircle className="h-5 w-5 text-red-500" />}
-                                </>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {currentQuestion.type === "fill_blank" && (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        {fillBlankOptions.map((option, idx) => {
-                          const isSelected = fillBlankAnswer === option;
-                          const isCorrect = option.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim();
-                          const showCorrect = showResult && isCorrect;
-                          const showIncorrect = showResult && isSelected && !isCorrect;
-
-                          return (
-                            <button
-                              key={idx}
-                              onClick={() => !showResult && setFillBlankAnswer(option)}
-                              disabled={showResult}
-                              className={cn(
-                                "p-3 rounded-lg font-medium transition-all border-2",
-                                !showResult && isSelected && "border-primary bg-primary/10",
-                                !showResult && !isSelected && "border-muted hover:border-primary/50",
-                                showCorrect && "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
-                                showIncorrect && "border-red-500 bg-red-500/10 text-red-700 dark:text-red-400"
-                              )}
-                              style={{ fontSize: 'var(--study-font-size, 16px)' }}
-                              data-testid={`button-fill-option-${idx}`}
-                            >
-                              <div className="flex items-center justify-center gap-2">
-                                <span>{option}</span>
-                                {showResult && (
-                                  <>
-                                    {isCorrect && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                                    {isSelected && !isCorrect && <XCircle className="h-4 w-4 text-red-500" />}
-                                  </>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {/* Feedback Explanation - Only if answered */}
+                  {showResult && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mb-8 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800"
+                    >
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 italic">
+                        {currentQuestion.explanation || "Resposta enviada para análise."}
+                      </p>
+                    </motion.div>
                   )}
                 </div>
+              </Card>
 
-                {/* Explicação */}
-                {showResult && (
-                  <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      <strong>Explicação:</strong> {currentQuestion.explanation || "Resposta enviada para análise."}
-                    </p>
+              {/* Options Section */}
+              <div className="mt-8 space-y-4">
+                {currentQuestion.type === "multiple_choice" && currentQuestion.options?.map((option, idx) => {
+                  const isSelected = selectedAnswer === idx;
+                  const isCorrect = idx === currentQuestion.correctIndex;
+                  const showCorrect = showResult && isCorrect;
+                  const showIncorrect = showResult && isSelected && !isCorrect;
+
+                  return (
+                    <motion.button
+                      key={idx}
+                      whileHover={!showResult ? { scale: 1.02 } : {}}
+                      whileTap={!showResult ? { scale: 0.98 } : {}}
+                      onClick={() => !showResult && setSelectedAnswer(idx)}
+                      disabled={showResult}
+                      className={cn(
+                        "w-full p-5 rounded-[24px] text-left font-bold transition-all border-2 flex items-center gap-4",
+                        !showResult && isSelected ? "border-purple-500 bg-purple-50 dark:bg-purple-900/10" : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900",
+                        showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400",
+                        showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center border-2 font-black",
+                        !showResult && isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-zinc-400",
+                        showCorrect && "border-green-500 bg-green-500 text-white",
+                        showIncorrect && "border-red-500 bg-red-500 text-white"
+                      )}>
+                        {String.fromCharCode(65 + idx)}
+                      </div>
+                      <span className="flex-1">{option}</span>
+                    </motion.button>
+                  );
+                })}
+
+                {currentQuestion.type === "true_false" && [true, false].map((value) => {
+                  const isSelected = trueFalseAnswer === value;
+                  const rawCorrect = currentQuestion.correctAnswer;
+                  const isTrue = typeof rawCorrect === 'boolean' ? rawCorrect : 
+                                (typeof rawCorrect === 'string' ? (rawCorrect.toLowerCase().trim() === 'true' || rawCorrect.toLowerCase().trim() === 'verdadeiro') : 
+                                !!rawCorrect);
+                  const isCorrect = value === isTrue;
+                  const showCorrect = showResult && isCorrect;
+                  const showIncorrect = showResult && isSelected && !isCorrect;
+
+                  return (
+                    <motion.button
+                      key={String(value)}
+                      whileHover={!showResult ? { scale: 1.02 } : {}}
+                      whileTap={!showResult ? { scale: 0.98 } : {}}
+                      onClick={() => !showResult && setTrueFalseAnswer(value)}
+                      disabled={showResult}
+                      className={cn(
+                        "w-full p-5 rounded-[24px] text-left font-bold transition-all border-2 flex items-center gap-4",
+                        !showResult && isSelected ? "border-purple-500 bg-purple-50 dark:bg-purple-900/10" : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900",
+                        showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400",
+                        showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center border-2 font-black",
+                        !showResult && isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-zinc-400",
+                        showCorrect && "border-green-500 bg-green-500 text-white",
+                        showIncorrect && "border-red-500 bg-red-500 text-white"
+                      )}>
+                        {value ? 'V' : 'F'}
+                      </div>
+                      <span className="flex-1">{value ? "Verdadeiro" : "Falso"}</span>
+                    </motion.button>
+                  );
+                })}
+
+                {currentQuestion.type === "fill_blank" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {fillBlankOptions.map((option, idx) => {
+                      const isSelected = fillBlankAnswer === option;
+                      const isCorrect = option.toLowerCase().trim() === String(currentQuestion.correctAnswer).toLowerCase().trim();
+                      const showCorrect = showResult && isCorrect;
+                      const showIncorrect = showResult && isSelected && !isCorrect;
+
+                      return (
+                        <motion.button
+                          key={idx}
+                          whileHover={!showResult ? { scale: 1.02 } : {}}
+                          whileTap={!showResult ? { scale: 0.98 } : {}}
+                          onClick={() => !showResult && setFillBlankAnswer(option)}
+                          disabled={showResult}
+                          className={cn(
+                            "p-4 rounded-[20px] font-bold transition-all border-2 text-center",
+                            !showResult && isSelected ? "border-purple-500 bg-purple-50 dark:bg-purple-900/10" : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900",
+                            showCorrect && "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-400",
+                            showIncorrect && "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400"
+                          )}
+                        >
+                          {option}
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
 
-              {/* Botão confirmar */}
-              {!showResult && (
-                <Button
-                  onClick={checkAnswer}
-                  disabled={!hasAnswer}
-                  className="w-full bg-orange-600 hover:bg-orange-700"
-                  data-testid="button-confirm"
-                >
-                  Confirmar
-                </Button>
-              )}
-            </Card>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Navegação */}
-        <div className="flex gap-3 mt-4 items-center justify-center">
-          <div className="flex gap-2 flex-1 justify-center">
-            {Array.from({ length: totalQuestions }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i === currentIndex ? "w-6 bg-orange-500" : i < currentIndex ? "w-2 bg-orange-500/50" : "w-2 bg-muted"
-                )}
-                data-testid={`dot-${i}`}
-              />
-            ))}
-          </div>
-
-          {showResult && (
-            isLastQuestion ? (
-              <Button
-                onClick={handleNext}
-                data-testid="button-responda-complete"
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                Completar
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleNext}
-                data-testid="button-next-question"
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                Proxima
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
-            )
+      {/* Action Bar (Fixed at Bottom) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 px-6 py-6 pb-10 border-t border-zinc-100 dark:border-zinc-800 z-50">
+        <div className="max-w-md mx-auto">
+          {!showResult ? (
+            <Button
+              onClick={checkAnswer}
+              disabled={!hasAnswer}
+              className="w-full h-16 rounded-[24px] bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
+              data-testid="button-confirm"
+            >
+              Confirmar Resposta
+            </Button>
+          ) : (
+            <Button
+              onClick={handleNext}
+              className="w-full h-16 rounded-[24px] bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-lg font-black shadow-xl shadow-purple-500/25 border-0"
+              data-testid="button-next-question"
+            >
+              {isLastQuestion ? "Completar Lição" : "Próxima Pergunta"}
+              <ChevronRight className="h-6 w-6 ml-2" />
+            </Button>
           )}
         </div>
       </div>

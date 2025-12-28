@@ -794,19 +794,16 @@ body {
     0 0 2px rgba(255, 255, 255, 0.12);
 }
 
-/* Text styling - POSITIVE relief (raised/embossed from the inset plate) */
-/* Same pattern as the icon inside rarity indicator */
+/* Text styling - Subtle raised effect */
 .collectible-card-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: center;
-  /* Light color for raised text */
-  color: #f0f0f0;
-  /* Positive relief: dark shadow top-left, light highlight bottom-right */
-  text-shadow: 
-    -1px -1px 0px rgba(0, 0, 0, 0.55),
-    1px 1px 0px rgba(255, 255, 255, 0.50);
+  /* Muted light color - not too bright */
+  color: rgba(200, 200, 200, 0.85);
+  /* Only dark shadow for depth, no white highlight */
+  text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.6);
 }
 
 .collectible-card-subtitle {
@@ -814,12 +811,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   text-align: center;
-  /* Light color for raised text */
-  color: #e8e8e8;
-  /* Positive relief - slightly softer */
-  text-shadow: 
-    -1px -1px 0px rgba(0, 0, 0, 0.50),
-    1px 1px 0px rgba(255, 255, 255, 0.40);
+  /* Muted light color */
+  color: rgba(180, 180, 180, 0.80);
+  /* Only dark shadow */
+  text-shadow: -1px -1px 0px rgba(0, 0, 0, 0.5);
 }
 
 /* Portrait orientation (for magazines/seasons) */

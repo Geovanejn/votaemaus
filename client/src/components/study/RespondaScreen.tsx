@@ -92,19 +92,15 @@ export function RespondaScreen({
       isCorrect = String(selectedOption).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
     }
     
+    setShowResult(true);
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
-      // Auto advance on correct answer after a short delay
-      setTimeout(() => {
-        handleNext();
-      }, 1500);
     } else {
       playWrong();
     }
 
     onAnswer(currentIndex, selectedAnswer, isCorrect);
-    setShowResult(true);
   };
 
   const handleNext = () => {
@@ -207,8 +203,8 @@ export function RespondaScreen({
                 ? (idx === 1) === currentQuestion.correctAnswer
                 : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
             const isAnswered = selectedAnswer !== null;
-            const showCorrect = (showResult || (isAnswered && isCorrect)) && isCorrect;
-            const showIncorrect = (showResult || (isAnswered && isSelected && !isCorrect)) && isSelected && !isCorrect;
+            const showCorrect = showResult && isCorrect;
+            const showIncorrect = showResult && isSelected && !isCorrect;
 
             return (
               <button
@@ -218,7 +214,7 @@ export function RespondaScreen({
                 className={cn(
                   "p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
                   currentQuestion.type === "true_false" ? "flex-col justify-center text-center py-6" : "w-full",
-                  (!showResult && isSelected) || showCorrect ? "border-[#22C55E] bg-[#F0FDF4]" : "border-white bg-white shadow-sm",
+                  (!showResult && isSelected) ? "border-[#7c3aed] bg-[#7c3aed]/5" : "border-white bg-white shadow-sm",
                   showCorrect && "border-[#22C55E] bg-[#F0FDF4]",
                   showIncorrect && "border-[#EF4444] bg-[#FEF2F2]"
                 )}
@@ -226,7 +222,7 @@ export function RespondaScreen({
                 {(currentQuestion.type === "multiple_choice" || currentQuestion.type === "fill_blank") && (
                   <div className={cn(
                     "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-black text-xs border-2",
-                    (!showResult && isSelected) || showCorrect ? "bg-[#22C55E] text-white border-[#22C55E]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
+                    (!showResult && isSelected) ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",
                     showCorrect && "bg-[#22C55E] text-white border-[#22C55E]",
                     showIncorrect && "bg-[#EF4444] text-white border-[#EF4444]"
                   )}>

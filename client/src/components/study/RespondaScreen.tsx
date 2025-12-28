@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -87,11 +87,11 @@ export function RespondaScreen({
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FC] dark:bg-zinc-950">
       <div 
-        className="relative px-6 pt-6 pb-8 rounded-b-[24px] overflow-hidden shadow-sm"
+        className="relative px-6 pt-4 pb-6 rounded-b-[24px] overflow-hidden shadow-sm"
         style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #f472b6 100%)' }}
       >
         <div className="max-w-md mx-auto flex flex-col items-center">
-          <div className="w-full flex justify-between items-center mb-4">
+          <div className="w-full flex justify-between items-center mb-3">
             <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white">
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -105,14 +105,14 @@ export function RespondaScreen({
           </div>
 
           {showHearts && (
-            <div className="flex gap-1 mb-4">
+            <div className="flex gap-1 mb-3">
               {Array.from({ length: maxHearts }).map((_, i) => (
-                <Heart key={i} className={cn("h-5 w-5", i < hearts ? "text-[#FF4B4B] fill-[#FF4B4B]" : "text-white/30")} />
+                <Heart key={i} className={cn("h-4 w-4", i < hearts ? "text-[#FF4B4B] fill-[#FF4B4B]" : "text-white/30")} />
               ))}
             </div>
           )}
 
-          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${((currentIndex + 1) / totalQuestions) * 100}%` }}
@@ -122,18 +122,18 @@ export function RespondaScreen({
         </div>
       </div>
 
-      <div className="max-w-md mx-auto w-full px-4 -mt-4 flex-1 flex flex-col">
-        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-4">
+      <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
+        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-white font-bold text-xs">?</div>
-            <span className="text-[#7c3aed] text-[9px] font-black uppercase tracking-widest">{currentQuestion.category || "HISTÓRIA"}</span>
+            <span className="text-[#7c3aed] text-[9px] font-black uppercase tracking-widest">Responda</span>
           </div>
           <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 leading-snug">
             {currentQuestion.question}
           </h3>
         </Card>
 
-        <div className="space-y-2 mb-20">
+        <div className="space-y-2 mb-8">
           {currentQuestion.options?.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
             const isCorrect = idx === currentQuestion.correctIndex;
@@ -146,7 +146,7 @@ export function RespondaScreen({
                 onClick={() => !showResult && setSelectedAnswer(idx)}
                 disabled={showResult}
                 className={cn(
-                  "w-full p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[56px]",
+                  "w-full p-3 rounded-[16px] text-left transition-all border-2 flex items-center gap-3 min-h-[52px]",
                   !showResult && isSelected ? "border-[#7c3aed] bg-white" : "border-white bg-white shadow-sm",
                   showCorrect && "border-[#22C55E] bg-[#F0FDF4]",
                   showIncorrect && "border-[#EF4444] bg-[#FEF2F2]"
@@ -165,10 +165,8 @@ export function RespondaScreen({
             );
           })}
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-transparent pointer-events-none">
-        <div className="max-w-md mx-auto pointer-events-auto">
+        <div className="mt-4">
           {!showResult ? (
             <Button
               onClick={checkAnswer}

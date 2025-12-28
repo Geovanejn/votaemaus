@@ -36,10 +36,10 @@ export function EstudeScreen({
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FC] dark:bg-zinc-950">
-      <div className="relative px-6 pt-6 pb-8 rounded-b-[24px] overflow-hidden shadow-sm"
+      <div className="relative px-6 pt-4 pb-6 rounded-b-[24px] overflow-hidden shadow-sm"
            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)' }}>
         <div className="max-w-md mx-auto flex flex-col items-center">
-          <div className="w-full flex justify-between items-center mb-4">
+          <div className="w-full flex justify-between items-center mb-3">
             <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white"><ArrowLeft className="h-4 w-4" /></button>
             <div className="text-center">
               <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider">Seção</p>
@@ -47,14 +47,14 @@ export function EstudeScreen({
             </div>
             <button className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white"><Settings className="h-4 w-4" /></button>
           </div>
-          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
             <motion.div animate={{ width: `${((currentIndex + 1) / totalSlides) * 100}%` }} className="h-full bg-white rounded-full" />
           </div>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto w-full px-4 -mt-4 flex-1 flex flex-col">
-        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-4">
+      <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
+        <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white"><BookOpen className="h-4 w-4" /></div>
             <span className="text-[#2563eb] text-[9px] font-black uppercase tracking-widest">Estude</span>
@@ -63,14 +63,14 @@ export function EstudeScreen({
           <div className="prose prose-zinc dark:prose-invert max-w-none text-[#4B5563] text-[14px] leading-relaxed"
                dangerouslySetInnerHTML={{ __html: currentSection.content }} />
         </Card>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 flex gap-2 max-w-md mx-auto">
-        <Button variant="outline" onClick={goPrev} disabled={currentIndex === 0} className="w-14 h-[52px] rounded-[16px] bg-white border-0 shadow-sm"><ChevronLeft className="h-5 w-5 text-[#2D3142]" /></Button>
-        <Button onClick={goNext} className="flex-1 h-[52px] rounded-[16px] bg-[#2563eb] text-white text-base font-bold shadow-md border-0">
-          {currentIndex === totalSlides - 1 ? "Finalizar" : "Continuar"}
-          <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="mt-4 flex gap-2">
+          <Button variant="outline" onClick={goPrev} disabled={currentIndex === 0} className="w-14 h-[52px] rounded-[16px] bg-white border-0 shadow-sm"><ChevronLeft className="h-5 w-5 text-[#2D3142]" /></Button>
+          <Button onClick={goNext} className="flex-1 h-[52px] rounded-[16px] bg-[#2563eb] text-white text-base font-bold shadow-md border-0">
+            {currentIndex === totalSlides - 1 ? "Finalizar" : "Continuar"}
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -1365,22 +1365,12 @@ export default function LessonPage() {
             streak={profileData?.currentStreak || 0}
             hearts={currentHearts}
             maxHearts={profileData?.heartsMax || 5}
-            crystals={profileData?.crystals || 0}
-            initialXp={displayXp}
             initialQuestionIndex={initialRespondaQuestionIndex}
             onAnswer={handleRespondaAnswer}
             onComplete={handleRespondaComplete}
             onClose={handleClose}
-            onProgress={handleStudyProgress}
-            onSwitchTab={(tab) => {
-              setStageOverride(tab);
-              setCurrentUnitIndex(0);
-              setStudyProgress(null);
-              setInitialRespondaQuestionIndex(0);
-              setCurrentRespondaQuestionIndex(0);
-            }}
-            onXpChange={(xp) => setDisplayXp(xp)}
             onQuestionChange={(index) => setCurrentRespondaQuestionIndex(index)}
+            showHearts={true}
           />
         ) : (
           <>

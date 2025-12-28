@@ -141,31 +141,34 @@ export function RespondaScreen({
     setShowResult(true);
     console.log('[DEBUG] setShowResult(true) called');
     
+    // Capture values before any async operations
+    const nextIndex = currentIndex + 1;
+    const isLastQuestion = currentIndex >= totalQuestions - 1;
+    const savedCorrectCount = correctCountRef.current;
+    
     if (isCorrect) {
-      console.log('[DEBUG] CORRECT answer branch');
-      // Update both state and ref to ensure we always have the latest value
-      const newCorrectCount = correctCount + 1;
-      correctCountRef.current = newCorrectCount;
-      setCorrectCount(newCorrectCount);
-      playCorrect();
+      console.log('[DEBUG] CORRECT answer - incrementing count');
+      correctCountRef.current = savedCorrectCount + 1;
+      setCorrectCount(savedCorrectCount + 1);
+      try { playCorrect(); } catch (e) { console.error('playCorrect error:', e); }
     } else {
-      console.log('[DEBUG] WRONG answer branch');
-      playWrong();
+      console.log('[DEBUG] WRONG answer');
+      try { playWrong(); } catch (e) { console.error('playWrong error:', e); }
     }
     
-    // UNIFIED: Both correct and wrong use the same timeout logic
-    const localCurrentIndex = currentIndex;
-    const localTotalQuestions = totalQuestions;
-    console.log('[DEBUG] Scheduling auto-advance timeout, currentIndex:', localCurrentIndex);
+    // Use window.setTimeout to ensure it's the native browser function
+    console.log('[DEBUG] Setting up auto-advance. Next:', nextIndex, 'IsLast:', isLastQuestion);
     
-    timeoutRef.current = setTimeout(() => {
-      console.log('[DEBUG] Timeout fired! Advancing from question', localCurrentIndex);
-      if (localCurrentIndex < localTotalQuestions - 1) {
-        setCurrentIndex(localCurrentIndex + 1);
+    window.setTimeout(() => {
+      console.log('[DEBUG] Auto-advance executing now!');
+      if (isLastQuestion) {
+        console.log('[DEBUG] Completing quiz with', correctCountRef.current, 'correct');
+        onComplete(correctCountRef.current, totalQuestions);
       } else {
-        onComplete(correctCountRef.current, localTotalQuestions);
+        console.log('[DEBUG] Moving to question', nextIndex);
+        setCurrentIndex(nextIndex);
       }
-    }, 1200);
+    }, 1500);
   };
 
   const handleNext = () => {

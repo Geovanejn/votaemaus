@@ -4,6 +4,10 @@ import { motion } from "framer-motion";
 import { useRef, useState, useCallback } from "react";
 import html2canvas from "html2canvas";
 import { useToast } from "@/hooks/use-toast";
+import silverTexture from "@/assets/textures/metallic-silver.png";
+import blueTexture from "@/assets/textures/metallic-blue.png";
+import purpleTexture from "@/assets/textures/metallic-purple.png";
+import goldTexture from "@/assets/textures/metallic-gold.png";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -50,9 +54,14 @@ export function CollectibleCard({
   const IconComponent = rarityIcons[rarity];
   const label = rarityLabels[rarity];
   
-  // Rotate metallic textures by sourceId: silver, blue, purple, gold
-  const textures = ["metallic-silver", "metallic-blue", "metallic-purple", "metallic-gold"];
-  const metallicTexture = textures[sourceId % 4];
+  // Map rarity to texture: common=silver, rare=blue, epic=purple, legendary=gold
+  const textureImageMap: Record<CardRarity, string> = {
+    common: silverTexture,
+    rare: blueTexture,
+    epic: purpleTexture,
+    legendary: goldTexture
+  };
+  const textureImage = textureImageMap[rarity];
   
   const sizeClasses = {
     compact: "w-[100px] h-[140px]",
@@ -120,7 +129,14 @@ export function CollectibleCard({
         }}
       />
 
-      <div className={`collectible-card-inner ${metallicTexture} event-card-metal`}>
+      <div 
+        className="collectible-card-inner event-card-metal"
+        style={{
+          backgroundImage: `url(${textureImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className={`collectible-card-badge collectible-card-badge-${rarity} ${badgeSizeClasses[size]}`}>
           <IconComponent className={`w-1/2 h-1/2 text-gray-700 embossed-icon`} />
         </div>

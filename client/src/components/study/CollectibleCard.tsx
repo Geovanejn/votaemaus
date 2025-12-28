@@ -129,15 +129,18 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center pt-8">
-          <h3 className={`collectible-card-title ${titleSizeClasses[size]} mb-1`}>
-            {name}
-          </h3>
-          {showLabel && (
-            <p className={`collectible-card-subtitle ${subtitleSizeClasses[size]}`}>
-              {label}
-            </p>
-          )}
+        <div className="flex-1 flex flex-col justify-center items-center pt-8">
+          {/* Text plate with negative relief (inset container) */}
+          <div className="collectible-card-text-plate">
+            <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
+              {name}
+            </h3>
+            {showLabel && (
+              <p className={`collectible-card-subtitle ${subtitleSizeClasses[size]} mt-1`}>
+                {label}
+              </p>
+            )}
+          </div>
         </div>
 
         <div 

@@ -70,22 +70,23 @@ export function EstudeScreen({
       <div className="max-w-md mx-auto w-full px-4 -mt-3 flex-1 flex flex-col pb-6">
         <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
           {currentIndex === 0 ? (
-            <div className="flex-1 flex flex-col justify-center items-center py-10">
-              <div className="w-full p-6 bg-blue-50 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100 dark:border-blue-800/30 shadow-sm text-center">
-                <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="h-6 w-6" />
+            <div className="flex-1 flex flex-col justify-center items-center py-6">
+              <div className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-[20px] border border-blue-100 dark:border-blue-800/30 shadow-sm text-center">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center mx-auto mb-3">
+                  <BookOpen className="h-5 w-5" />
                 </div>
-                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Versículo Base</p>
-                <p className="text-lg italic text-blue-800 dark:text-blue-100 leading-relaxed font-serif">
+                <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2">Versículo Base</p>
+                <p className="italic text-blue-800 dark:text-blue-100 leading-tight font-serif"
+                   style={{ fontSize: `${fontSize}px` }}>
                   "{verseSection?.content.replace(/<[^>]*>/g, '') || "Carregando..."}"
                 </p>
-                {verseSection?.title && (
-                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-3">
+                {verseSection?.title && verseSection.type === "verse" && (
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mt-2">
                     — {verseSection.title}
                   </p>
                 )}
               </div>
-              <p className="mt-8 text-zinc-400 text-sm animate-pulse italic">Toque em Continuar para iniciar o estudo</p>
+              <p className="mt-6 text-zinc-400 text-[11px] animate-pulse italic">Toque em Continuar para iniciar o estudo</p>
             </div>
           ) : (
             <>

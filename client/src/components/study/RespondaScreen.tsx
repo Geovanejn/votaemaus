@@ -97,7 +97,9 @@ export function RespondaScreen({
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
       playCorrect();
-      // Reduced timeout to 1.5 seconds per user request
+      
+      // We set showResult to true, which triggers the green UI
+      // The auto-advance happens after 1.5s
       setTimeout(() => {
         handleNext();
       }, 1500);
@@ -231,14 +233,14 @@ export function RespondaScreen({
             const showCorrect = showResult && isThisOptionCorrect;
             const showIncorrect = showResult && isSelected && !isThisOptionCorrect;
             
-            // Force green background for the correct option when showResult is true
+            // Critical fix: Ensure feedback classes are applied consistently
             const feedbackClasses = showCorrect 
-              ? "border-[#22C55E] bg-[#F0FDF4] dark:bg-[#064E3B]/20" 
+              ? "border-[#22C55E] bg-[#F0FDF4] dark:bg-[#064E3B]/20 text-[#166534] dark:text-[#4ADE80]" 
               : showIncorrect 
-                ? "border-[#EF4444] bg-[#FEF2F2] dark:bg-[#7F1D1D]/20"
+                ? "border-[#EF4444] bg-[#FEF2F2] dark:bg-[#7F1D1D]/20 text-[#991B1B] dark:text-[#FCA5A5]"
                 : (!showResult && isSelected) 
-                  ? "border-[#7c3aed] bg-[#7c3aed]/5" 
-                  : "border-white dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm";
+                  ? "border-[#7c3aed] bg-[#7c3aed]/5 text-[#7c3aed]" 
+                  : "border-white dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm text-[#4B5563] dark:text-zinc-300";
 
             return (
               <button

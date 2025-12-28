@@ -58,17 +58,22 @@ export function RespondaScreen({
   }, [currentIndex, onQuestionChange]);
 
   useEffect(() => {
+    if (!currentQuestion) return;
+    
     if (currentQuestion.type === "true_false" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
       currentQuestion.options = ["Falso", "Verdadeiro"];
-    } else if (currentQuestion.type === "fill_blank" && (!currentQuestion.options || currentQuestion.options.length === 0)) {
-      if (currentQuestion.correctAnswer) {
-        currentQuestion.options = [currentQuestion.correctAnswer as string, "Opção 2", "Opção 3", "Opção 4"];
-      } else {
-        // Ultimo recurso caso não haja nem correctAnswer
-        currentQuestion.options = ["Opção 1", "Opção 2", "Opção 3", "Opção 4"];
+    } else if (currentQuestion.type === "fill_blank") {
+      // For fill_blank, we MUST ensure options exist
+      if (!currentQuestion.options || currentQuestion.options.length === 0) {
+        if (currentQuestion.correctAnswer) {
+          const answerStr = String(currentQuestion.correctAnswer);
+          currentQuestion.options = [answerStr, "Opção 2", "Opção 3", "Opção 4"];
+        } else {
+          currentQuestion.options = ["Opção 1", "Opção 2", "Opção 3", "Opção 4"];
+        }
       }
     }
-  }, [currentQuestion]);
+  }, [currentQuestion, currentIndex]);
 
   const checkAnswer = () => {
     let isCorrect = false;
@@ -162,13 +167,13 @@ export function RespondaScreen({
               ? idx === currentQuestion.correctIndex
               : currentQuestion.type === "true_false"
                 ? (idx === 1) === currentQuestion.correctAnswer
-                : option === currentQuestion.correctAnswer;
+                : String(option).trim().toLowerCase() === String(currentQuestion.correctAnswer).trim().toLowerCase();
             const showCorrect = showResult && isCorrect;
             const showIncorrect = showResult && isSelected && !isCorrect;
 
             return (
               <button
-                key={idx}
+                key={`${currentIndex}-${idx}`}
                 onClick={() => !showResult && setSelectedAnswer(idx)}
                 disabled={showResult}
                 className={cn(
@@ -179,7 +184,7 @@ export function RespondaScreen({
                   showIncorrect && "border-[#EF4444] bg-[#FEF2F2]"
                 )}
               >
-                {currentQuestion.type !== "true_false" && (
+                {(currentQuestion.type === "multiple_choice" || currentQuestion.type === "fill_blank") && (
                   <div className={cn(
                     "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-black text-xs border-2",
                     !showResult && isSelected ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-[#F8F9FC] text-[#2D3142] border-[#F0F2F5]",

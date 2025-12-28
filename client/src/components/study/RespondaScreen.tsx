@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -138,34 +139,35 @@ export function RespondaScreen({
     
     onAnswer(currentIndex, selectedAnswer, isCorrect);
     
-    setShowResult(true);
-    console.log('[DEBUG] setShowResult(true) called');
-    
-    // Capture values before any async operations
+    // Capture values before any state updates
     const nextIndex = currentIndex + 1;
     const isLastQuestion = currentIndex >= totalQuestions - 1;
     const savedCorrectCount = correctCountRef.current;
     
+    // Use flushSync to force immediate re-render with feedback visible
+    flushSync(() => {
+      setShowResult(true);
+      if (isCorrect) {
+        correctCountRef.current = savedCorrectCount + 1;
+        setCorrectCount(savedCorrectCount + 1);
+      }
+    });
+    
+    console.log('[DEBUG] Feedback should now be visible. isCorrect:', isCorrect);
+    
+    // Play sound after visual update
     if (isCorrect) {
-      console.log('[DEBUG] CORRECT answer - incrementing count');
-      correctCountRef.current = savedCorrectCount + 1;
-      setCorrectCount(savedCorrectCount + 1);
       try { playCorrect(); } catch (e) { console.error('playCorrect error:', e); }
     } else {
-      console.log('[DEBUG] WRONG answer');
       try { playWrong(); } catch (e) { console.error('playWrong error:', e); }
     }
     
-    // Use window.setTimeout to ensure it's the native browser function
-    console.log('[DEBUG] Setting up auto-advance. Next:', nextIndex, 'IsLast:', isLastQuestion);
-    
+    // Auto-advance after delay so user can see feedback
     window.setTimeout(() => {
       console.log('[DEBUG] Auto-advance executing now!');
       if (isLastQuestion) {
-        console.log('[DEBUG] Completing quiz with', correctCountRef.current, 'correct');
         onComplete(correctCountRef.current, totalQuestions);
       } else {
-        console.log('[DEBUG] Moving to question', nextIndex);
         setCurrentIndex(nextIndex);
       }
     }, 1500);

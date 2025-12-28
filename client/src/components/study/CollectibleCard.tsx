@@ -126,7 +126,7 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center pt-1">
+        <div className="flex-1 flex flex-col justify-center items-center">
           {/* Text plate with negative relief (inset container) */}
           <div className="collectible-card-text-plate">
             <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>

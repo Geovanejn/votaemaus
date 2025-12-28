@@ -640,7 +640,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 2px;
+  gap: 6px;
 }
 
 /* Card image container - Deep Inset/Engraved frame effect (negative relief) */
@@ -760,12 +760,11 @@ body {
 
 /* Centered rarity medallion - Forged metal effect (larger) */
 .collectible-card-medallion {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  align-self: center;
   width: 44px;
   height: 44px;
+  flex-shrink: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;

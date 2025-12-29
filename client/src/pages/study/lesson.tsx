@@ -549,7 +549,8 @@ export default function LessonPage() {
 
   // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
   // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
-  // Valores fixos: Estude = 50 XP, Medite = 50 XP, Responda = 10 XP por certa (máx 50), Bônus = 30 XP
+  // Valores fixos: Estude = 50 XP, Medite = 50 XP, Responda = 10 XP por certa (máx 50)
+  // Bônus de conclusão: 30 XP (lições semanais) ou 50 XP (revistas/temporadas)
   const previousStagesXp = useMemo(() => {
     if (!lessonData?.units) return 0;
     const allU = lessonData.units;

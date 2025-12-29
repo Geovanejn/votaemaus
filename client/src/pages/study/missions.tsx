@@ -371,7 +371,7 @@ export default function MissionsPage() {
               <Gem className="w-5 h-5 text-[#F4C430]" />
             </div>
             <p className="text-sm text-foreground">
-              <span className="font-bold text-[#F4C430]">+50 XP bonus</span>
+              <span className="font-bold text-[#F4C430]">+25 XP bonus</span>
               {" "}ao completar todas!
             </p>
           </motion.div>
@@ -423,7 +423,7 @@ export default function MissionsPage() {
                   Todas as missões concluídas!
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Parabéns! Você completou todas as missões de hoje e ganhou +50 XP bônus!
+                  Parabéns! Você completou todas as missões de hoje e ganhou +25 XP bônus!
                 </p>
               </div>
             </motion.div>

@@ -250,6 +250,7 @@ export default function LessonPage() {
     nextIndex: number;
     respondaCorrectAnswers?: number;
     totalRespondaQuestions?: number;
+    lessonBonus?: number;
   } | null>(null);
   const [studyProgress, setStudyProgress] = useState<{ current: number; total: number } | null>(null);
   const [stageOverride, setStageOverride] = useState<string | null>(null);
@@ -971,6 +972,9 @@ export default function LessonPage() {
     const respondaUnits = allUnits.filter(u => u.stage === 'responda');
     const totalXpFromResponda = displayXp - displayXpBeforeResponda;
     
+    // Lesson completion bonus: 50 for season lessons, 30 for regular weekly lessons
+    const LESSON_COMPLETION_BONUS = lessonData?.seasonId ? 50 : 30;
+    
     // Note: mistakes are now tracked in real-time via handleRespondaAnswer
     // No need to calculate here - the mistakes state is already accurate
     
@@ -984,12 +988,13 @@ export default function LessonPage() {
     }
     
     setStageCompleteData({
-      xp: totalXpFromResponda,
+      xp: totalXpFromResponda + LESSON_COMPLETION_BONUS,
       stageType: "responda",
       nextStage: null,
       nextIndex: allUnits.length,
       respondaCorrectAnswers: correctCount,
-      totalRespondaQuestions: totalQuestions
+      totalRespondaQuestions: totalQuestions,
+      lessonBonus: LESSON_COMPLETION_BONUS
     });
     setShowStageComplete(true);
   };

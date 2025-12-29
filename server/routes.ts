@@ -1799,8 +1799,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { stage } = req.body;
       
       const STAGE_XP = {
-        estude: 60,
-        medite: 60
+        estude: 50,
+        medite: 50
       };
       
       const xpToAward = STAGE_XP[stage as keyof typeof STAGE_XP];

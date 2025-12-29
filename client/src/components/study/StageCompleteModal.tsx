@@ -139,7 +139,7 @@ export function StageCompleteModal({
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.25 }}
-                    className="flex flex-col items-center justify-center gap-1 mb-5 py-4 px-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30"
+                    className="flex flex-col items-center justify-center gap-2 mb-5 py-4 px-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30"
                   >
                     <motion.div
                       animate={{ scale: [1, 1.2, 1] }}
@@ -153,6 +153,11 @@ export function StageCompleteModal({
                       <span className="text-4xl font-black text-emerald-500">{totalRespondaQuestions}</span>
                     </div>
                     <span className="text-sm font-bold text-emerald-500/70">Certas</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Zap className="h-4 w-4 text-amber-500 fill-amber-500/30" />
+                      <span className="text-lg font-black text-amber-500">+{respondaCorrectAnswers * 10}</span>
+                      <span className="text-xs font-bold text-amber-500/70">XP</span>
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div

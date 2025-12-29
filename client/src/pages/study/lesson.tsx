@@ -549,12 +549,12 @@ export default function LessonPage() {
 
   // Calcular XP inicial das etapas anteriores (estude + medite) quando entra direto na etapa responda
   // IMPORTANTE: Este hook deve estar ANTES de qualquer return condicional
-  // Valores fixos: Estude = 60 XP, Medite = 60 XP
+  // Valores fixos: Estude = 50 XP, Medite = 50 XP, Responda = 10 XP por certa (máx 50), Bônus = 30 XP
   const previousStagesXp = useMemo(() => {
     if (!lessonData?.units) return 0;
     const allU = lessonData.units;
-    const ESTUDE_FIXED_XP = 60;
-    const MEDITE_FIXED_XP = 60;
+    const ESTUDE_FIXED_XP = 50;
+    const MEDITE_FIXED_XP = 50;
     
     const hasEstude = allU.some(u => u.stage === 'estude');
     const hasMedite = allU.some(u => u.stage === 'medite');
@@ -985,7 +985,7 @@ export default function LessonPage() {
   };
 
   const handleMeditateComplete = async () => {
-    const MEDITE_FIXED_XP = 60;
+    const MEDITE_FIXED_XP = 50;
     const meditateUnits = allUnits.filter(u => u.stage === 'medite');
     
     for (const unit of meditateUnits) {
@@ -1196,7 +1196,7 @@ export default function LessonPage() {
   const currentStage = targetStage || currentUnit?.stage || 'responda';
   
   const handleStudyComplete = async () => {
-    const ESTUDE_FIXED_XP = 60;
+    const ESTUDE_FIXED_XP = 50;
     
     for (const unit of studyUnits) {
       try {

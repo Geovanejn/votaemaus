@@ -2195,7 +2195,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async submitUnitAnswer(userId: number, unitId: number, answer: any): Promise<any> {
-    const RESPONDA_XP_PER_CORRECT = 20;
+    const RESPONDA_XP_PER_CORRECT = 10;
     const unit = await this.getStudyUnitById(unitId);
     if (!unit) return null;
     

@@ -47,6 +47,8 @@ interface UnitContent {
   meditationGuide?: string;
   verseReference?: string;
   verseText?: string;
+  text?: string;
+  reference?: string;
 }
 
 interface Unit {
@@ -629,10 +631,12 @@ export default function LessonPage() {
     const units = lessonData.units.filter(u => u.stage === "estude");
     
     // Convert units to sections
+    // Note: verse units from season PDFs use { text, reference } format
+    // while other units use { body, title } or { verseText, verseReference } format
     const sections: StudySection[] = units.map(u => ({
       type: u.type as any,
-      title: u.content.title || u.content.verseReference || (u.type === 'verse' ? 'Versículo Base' : ''),
-      content: u.content.body || u.content.verseText || u.content.highlight || ""
+      title: u.content.title || u.content.verseReference || u.content.reference || (u.type === 'verse' ? 'Versículo Base' : ''),
+      content: u.content.body || u.content.verseText || u.content.text || u.content.highlight || ""
     }));
 
     // Find Slide 0 (Verse) - MUST be first

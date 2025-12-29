@@ -899,7 +899,9 @@ export default function LessonPage() {
       });
 
       const isCorrect = result.correct;
-      const xpForUnit = currentUnit.xpValue || 5;
+      // Responda stage uses fixed 10 XP per correct answer
+      const RESPONDA_XP_PER_CORRECT = 10;
+      const xpForUnit = isRespondaStage ? RESPONDA_XP_PER_CORRECT : (currentUnit.xpValue || 5);
       const heartsAfter = result.profile.hearts;
       const heartsLost = Math.max(0, heartsBeforeAnswer.current - heartsAfter);
 
@@ -1268,6 +1270,9 @@ export default function LessonPage() {
     const targetUnitId = unitId ?? respondaUnits[questionIndex]?.id;
     if (!targetUnitId) return;
     
+    // Fixed 10 XP per correct answer in Responda stage
+    const RESPONDA_XP_PER_CORRECT = 10;
+    
     // Track mistakes in real-time for accurate achievement calculation
     // This is critical for the "Perfeito" achievement to work correctly
     if (!isCorrect) {
@@ -1276,6 +1281,8 @@ export default function LessonPage() {
     } else {
       // Track correct answers for the stage complete modal
       setRespondaCorrectAnswers(prev => prev + 1);
+      // Add XP for correct answer
+      setDisplayXp(prev => prev + RESPONDA_XP_PER_CORRECT);
     }
     
     // Submit to server for persistence using the correct unitId

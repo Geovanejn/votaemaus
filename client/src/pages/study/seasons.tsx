@@ -508,11 +508,13 @@ interface SeasonWithDetails extends Season {
 function SeasonListItem({ 
   season, 
   onLessonClick,
-  focusLessonId 
+  focusLessonId,
+  scrollToNextId 
 }: { 
   season: SeasonWithDetails;
   onLessonClick: (lessonId: number, stage?: "estude" | "medite" | "responda") => void;
   focusLessonId?: number | null;
+  scrollToNextId?: number | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const lessonRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -538,6 +540,30 @@ function SeasonListItem({
       }, 400);
     }
   }, [focusLessonId, lessons]);
+
+  // Handle scrollToNext - find the next available lesson after the completed one
+  useEffect(() => {
+    if (scrollToNextId && lessons.some(l => l.id === scrollToNextId) && !hasScrolledToLesson.current) {
+      setIsExpanded(true);
+      hasScrolledToLesson.current = true;
+      
+      // Find the next non-completed lesson after scrollToNextId
+      const completedIndex = lessons.findIndex(l => l.id === scrollToNextId);
+      if (completedIndex !== -1) {
+        const nextLesson = lessons.slice(completedIndex + 1).find(l => l.status !== 'completed');
+        if (nextLesson) {
+          setTimeout(() => {
+            lessonRefs.current[nextLesson.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Clear the URL parameter
+            window.history.replaceState({}, '', '/study/estudos');
+          }, 400);
+        } else {
+          // No next lesson found in this season, just clear URL
+          window.history.replaceState({}, '', '/study/estudos');
+        }
+      }
+    }
+  }, [scrollToNextId, lessons]);
 
   const estimatedTotalMinutes = lessons.reduce((acc, l) => acc + (l.estimatedMinutes || 45), 0);
   const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
@@ -601,6 +627,7 @@ export default function SeasonsPage() {
   
   const searchParams = new URLSearchParams(searchString);
   const focusLessonId = searchParams.get('lesson') ? parseInt(searchParams.get('lesson')!) : null;
+  const scrollToNextId = searchParams.get('scrollToNext') ? parseInt(searchParams.get('scrollToNext')!) : null;
 
   const { data: seasons, isLoading: seasonsLoading, error: seasonsError, refetch: refetchSeasons } = useQuery<Season[]>({
     queryKey: ['/api/study/seasons'],
@@ -711,6 +738,7 @@ export default function SeasonsPage() {
               season={season}
               onLessonClick={handleLessonClick}
               focusLessonId={focusLessonId}
+              scrollToNextId={scrollToNextId}
             />
           ))}
         </main>

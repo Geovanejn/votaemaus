@@ -1106,11 +1106,12 @@ export default function LessonPage() {
   };
 
   const handleLessonComplete = () => {
-    // Check if this is a season lesson (revista) or a regular study week lesson
+    // Redirect to lesson list - the page will auto-scroll to the next available lesson
+    // Using scrollToNext=1 to indicate we want to scroll to the next available lesson after this one
     if (lessonData?.seasonId) {
-      setLocation(`/study/estudos?lesson=${lessonId}`);
+      setLocation(`/study/estudos?scrollToNext=${lessonId}`);
     } else {
-      setLocation(`/study?lesson=${lessonId}`);
+      setLocation(`/study?scrollToNext=${lessonId}`);
     }
   };
 
@@ -1242,7 +1243,7 @@ export default function LessonPage() {
   const handleStageModalClose = async () => {
     if (!stageCompleteData) return;
     
-    const { xp, stageType, nextStage, nextIndex } = stageCompleteData;
+    const { xp, stageType, nextStage } = stageCompleteData;
     
     if (stageType !== 'responda') {
       setDisplayXp(prev => prev + xp);
@@ -1260,11 +1261,13 @@ export default function LessonPage() {
     queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] });
     
     if (stageType === 'responda') {
+      // Responda completed - finish the lesson
       await handleLessonCompletion();
+    } else if (nextStage) {
+      // Automatically advance to the next stage (estude -> medite -> responda)
+      setStageOverride(nextStage);
     } else {
-      // Return to the appropriate study page lesson card instead of auto-advancing
-      // This lets user select the next section manually
-      // Check if this is a season lesson (revista) or a regular study week lesson
+      // No next stage available, go back to lesson list
       if (lessonData?.seasonId) {
         setLocation(`/study/estudos?lesson=${lessonId}`);
       } else {

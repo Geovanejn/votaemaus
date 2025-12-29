@@ -435,8 +435,9 @@ export default function StudyHomePage() {
   useEffect(() => {
     const params = new URLSearchParams(searchString);
     const lessonId = params.get('lesson');
+    const scrollToNext = params.get('scrollToNext');
     
-    if (lessonId) {
+    if (lessonId || scrollToNext) {
       scrollAttemptedRef.current = false;
     }
   }, [searchString]);
@@ -445,8 +446,10 @@ export default function StudyHomePage() {
     if (!isLoading && allWeeksData?.length && searchString && !scrollAttemptedRef.current) {
       const params = new URLSearchParams(searchString);
       const lessonId = params.get('lesson');
+      const scrollToNext = params.get('scrollToNext');
       
       if (lessonId) {
+        // Scroll to a specific lesson
         scrollAttemptedRef.current = true;
         setTimeout(() => {
           const element = document.getElementById(`lesson-${lessonId}`);
@@ -455,6 +458,42 @@ export default function StudyHomePage() {
           }
           window.history.replaceState({}, '', '/study');
         }, 400);
+      } else if (scrollToNext) {
+        // Scroll to the next available lesson after the completed one
+        scrollAttemptedRef.current = true;
+        const completedLessonId = parseInt(scrollToNext);
+        
+        // Find the next available lesson across all weeks
+        let foundNextLesson = false;
+        let foundCompletedLesson = false;
+        
+        for (const week of allWeeksData) {
+          if (!week.lessons) continue;
+          for (const lesson of week.lessons) {
+            if (lesson.id === completedLessonId) {
+              foundCompletedLesson = true;
+              continue;
+            }
+            // If we found the completed lesson, look for the next non-completed lesson
+            if (foundCompletedLesson && lesson.status !== 'completed') {
+              setTimeout(() => {
+                const element = document.getElementById(`lesson-${lesson.id}`);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                window.history.replaceState({}, '', '/study');
+              }, 400);
+              foundNextLesson = true;
+              break;
+            }
+          }
+          if (foundNextLesson) break;
+        }
+        
+        // If no next lesson found, just clear the URL
+        if (!foundNextLesson) {
+          window.history.replaceState({}, '', '/study');
+        }
       }
     }
   }, [isLoading, allWeeksData, searchString]);

@@ -212,7 +212,7 @@ export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { vibrateError } = useSounds();
+  const { sounds, vibrateError } = useSounds();
   const lessonId = parseInt(id || "0");
   const stageParam = useQueryParam('stage');
   
@@ -907,12 +907,15 @@ export default function LessonPage() {
       const heartsLost = Math.max(0, heartsBeforeAnswer.current - heartsAfter);
 
       if (isCorrect) {
+        sounds.practiceCorrect();
         setDisplayXp(prev => prev + xpForUnit);
         // Track correct answers during responda stage
         if (isRespondaStage) {
           setRespondaCorrectAnswers(prev => prev + 1);
         }
       } else {
+        sounds.practiceError();
+        vibrateError();
         setMistakes(prev => prev + 1);
       }
 
@@ -1277,9 +1280,11 @@ export default function LessonPage() {
     // Track mistakes in real-time for accurate achievement calculation
     // This is critical for the "Perfeito" achievement to work correctly
     if (!isCorrect) {
-      setMistakes(prev => prev + 1);
+      sounds.practiceError();
       vibrateError();
+      setMistakes(prev => prev + 1);
     } else {
+      sounds.practiceCorrect();
       // Track correct answers for the stage complete modal
       setRespondaCorrectAnswers(prev => prev + 1);
       // Add XP for correct answer

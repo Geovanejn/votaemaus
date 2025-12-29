@@ -672,7 +672,11 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
 
   const handleAnswer = (index: number, answer: any, isCorrect: boolean) => {
     if (isCorrect) {
+      sounds.practiceCorrect();
       setCorrectAnswers(prev => prev + 1);
+    } else {
+      sounds.practiceError();
+      vibrateError();
     }
   };
 

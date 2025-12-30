@@ -605,18 +605,18 @@ export default function EspiritualidadeDevocionalEditor() {
                   />
                 </CardContent>
               </Card>
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={createMutation.isPending || updateMutation.isPending}
-                data-testid="button-save"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar Devocional"}
-              </Button>
             </div>
           </div>
+
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={createMutation.isPending || updateMutation.isPending}
+            data-testid="button-save"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar Devocional"}
+          </Button>
         </form>
       </Form>
     </div>

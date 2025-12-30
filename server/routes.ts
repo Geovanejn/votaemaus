@@ -197,13 +197,17 @@ const audioUpload = multer({
       'audio/ogg', 'audio/x-ogg', 'application/ogg',
       'audio/aac', 'audio/x-aac', 'audio/aacp',
       'audio/m4a', 'audio/x-m4a', 'audio/mp4',
-      'audio/webm'
+      'audio/webm',
+      // Android often sends files as octet-stream when selecting from file managers
+      'application/octet-stream'
     ];
     // Also check file extension as fallback
     const ext = file.originalname.toLowerCase().split('.').pop();
-    const allowedExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'webm'];
+    const allowedExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'webm', 'opus', 'mp4', '3gp'];
     
+    // Accept if mime type matches, or if file has audio extension, or if it's octet-stream (trust frontend filter)
     if (allowedMimes.includes(file.mimetype) || (ext && allowedExts.includes(ext))) {
+      console.log(`[Upload Audio] Accepted file: ${file.originalname}, mimetype: ${file.mimetype}`);
       cb(null, true);
     } else {
       console.log(`[Upload Audio] Rejected file: ${file.originalname}, mimetype: ${file.mimetype}`);

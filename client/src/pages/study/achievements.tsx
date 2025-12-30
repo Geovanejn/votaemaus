@@ -456,27 +456,27 @@ function ShareableAchievementCard({ achievement, onClose }: { achievement: Achie
   };
   
   return (
-    <div className="flex flex-col items-center p-6">
-      <div ref={cardRef} style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+    <div className="flex flex-col items-center p-4 sm:p-6 w-full max-w-full overflow-x-hidden">
+      <div ref={cardRef} className="max-w-full" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
         <StaticShareableCard achievement={achievement} showUnlockedDate={true} />
       </div>
       
       <motion.div 
-        className="flex gap-3 mt-6"
+        className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-6 w-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        <Button variant="outline" onClick={onClose} data-testid="button-close-share">
+        <Button variant="outline" size="sm" onClick={onClose} data-testid="button-close-share">
           Fechar
         </Button>
-        <Button variant="outline" onClick={handleDownload} disabled={isGenerating} data-testid="button-download-achievement">
-          <Download className="h-4 w-4 mr-2" />
+        <Button variant="outline" size="sm" onClick={handleDownload} disabled={isGenerating} data-testid="button-download-achievement">
+          <Download className="h-4 w-4 mr-1 sm:mr-2" />
           Baixar
         </Button>
-        <Button onClick={handleShare} disabled={isGenerating} data-testid="button-share-achievement">
-          <Share2 className="h-4 w-4 mr-2" />
-          {isGenerating ? "Gerando..." : "Compartilhar"}
+        <Button size="sm" onClick={handleShare} disabled={isGenerating} data-testid="button-share-achievement">
+          <Share2 className="h-4 w-4 mr-1 sm:mr-2" />
+          {isGenerating ? "..." : "Compartilhar"}
         </Button>
       </motion.div>
     </div>
@@ -598,7 +598,7 @@ export default function AchievementsPage() {
       </main>
 
       <Dialog open={!!selectedAchievement} onOpenChange={() => setSelectedAchievement(null)}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md p-0 overflow-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Compartilhar Conquista</DialogTitle>
           </DialogHeader>

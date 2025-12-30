@@ -16,6 +16,32 @@ interface DevotionalData {
   verseReference: string;
   summary?: string;
   imageUrl?: string;
+  mobileCropData?: string | null;
+}
+
+interface MobileCropData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+function getMobileBackgroundStyle(cropData: MobileCropData | null): React.CSSProperties {
+  if (!cropData) {
+    return { backgroundPosition: 'center' };
+  }
+  const posX = cropData.x + (cropData.width / 2);
+  const posY = cropData.y + (cropData.height / 2);
+  return { backgroundPosition: `${posX}% ${posY}%` };
 }
 
 interface EventData {
@@ -52,6 +78,7 @@ type BannerSlide = {
   subtitle: string;
   caption: string;
   imageUrl: string;
+  mobileCropData?: MobileCropData | null;
   linkUrl: string;
   linkText: string;
   secondaryLinkUrl?: string;
@@ -93,6 +120,7 @@ export function HeroBanner() {
         subtitle: `"${d.verse}"`,
         caption: d.verseReference,
         imageUrl: d.imageUrl || defaultDevotionalImg,
+        mobileCropData: parseMobileCropData(d.mobileCropData),
         linkUrl: `/devocionais/${d.id}`,
         linkText: 'Ler Devocional',
         icon: BookOpen,
@@ -139,6 +167,7 @@ export function HeroBanner() {
         subtitle: `"${d.verse}"`,
         caption: d.verseReference,
         imageUrl: d.imageUrl || defaultDevotionalImg,
+        mobileCropData: parseMobileCropData(d.mobileCropData),
         linkUrl: `/devocionais/${d.id}`,
         linkText: 'Ler Devocional',
         icon: BookOpen,
@@ -263,9 +292,20 @@ export function HeroBanner() {
           transition={{ duration: 0.6 }}
           className="absolute inset-0"
         >
+          {/* Desktop background - always centered */}
           <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
             style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
+          />
+          {/* Mobile background - uses crop position if available, otherwise centered */}
+          <div 
+            className="absolute inset-0 md:hidden bg-cover bg-no-repeat"
+            style={{ 
+              backgroundImage: `url(${currentSlide.imageUrl})`,
+              ...(currentSlide.mobileCropData 
+                ? getMobileBackgroundStyle(currentSlide.mobileCropData) 
+                : { backgroundPosition: 'center' })
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/50" />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-gray-900/30" />

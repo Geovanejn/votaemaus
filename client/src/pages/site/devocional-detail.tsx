@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -51,6 +51,91 @@ const sanitizeConfig = {
 };
 
 import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
+
+// Instagram Embed Component using official blockquote method
+function InstagramEmbed({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Extract post URL for blockquote
+  const getCleanUrl = (instagramUrl: string) => {
+    const match = instagramUrl.match(/instagram\.com\/(p|reel|reels)\/([A-Za-z0-9_-]+)/);
+    if (match) {
+      return `https://www.instagram.com/${match[1]}/${match[2]}/`;
+    }
+    return instagramUrl;
+  };
+
+  useEffect(() => {
+    if (!url) return;
+
+    const loadInstagramEmbed = () => {
+      // Load Instagram embed script
+      const existingScript = document.querySelector('script[src*="instagram.com/embed.js"]');
+      
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.src = 'https://www.instagram.com/embed.js';
+        script.async = true;
+        script.onload = () => {
+          if ((window as any).instgrm) {
+            (window as any).instgrm.Embeds.process();
+          }
+          setIsLoading(false);
+        };
+        document.body.appendChild(script);
+      } else {
+        setTimeout(() => {
+          if ((window as any).instgrm) {
+            (window as any).instgrm.Embeds.process();
+          }
+          setIsLoading(false);
+        }, 300);
+      }
+    };
+
+    loadInstagramEmbed();
+  }, [url]);
+
+  const cleanUrl = getCleanUrl(url);
+
+  return (
+    <div ref={containerRef} className="instagram-embed-container relative rounded-lg overflow-hidden">
+      {isLoading && (
+        <div className="flex items-center justify-center py-8 bg-muted/30 rounded-lg">
+          <Loader2 className="h-6 w-6 animate-spin text-pink-500" />
+        </div>
+      )}
+      <blockquote 
+        className="instagram-media" 
+        data-instgrm-captioned
+        data-instgrm-permalink={cleanUrl}
+        data-instgrm-version="14"
+        style={{ 
+          background: 'transparent', 
+          border: 0, 
+          margin: '0 auto', 
+          maxWidth: '540px', 
+          minWidth: '326px', 
+          padding: 0, 
+          width: '100%'
+        }}
+      >
+        <a 
+          href={cleanUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block bg-card rounded-lg p-4 text-center hover:bg-muted transition-colors"
+        >
+          <p className="text-sm text-muted-foreground mb-2">Ver no Instagram</p>
+          <p className="text-xs text-muted-foreground truncate max-w-xs mx-auto">
+            {url}
+          </p>
+        </a>
+      </blockquote>
+    </div>
+  );
+}
 
 interface MobileCropData {
   x: number;
@@ -483,9 +568,9 @@ export default function DevocionalDetailPage() {
               transition={{ delay: 0.2 }}
               className="lg:col-span-2"
             >
-              <Card>
-                <CardContent className="p-8">
-                  <div className="prose prose-lg dark:prose-invert max-w-none">
+              <Card className="overflow-hidden">
+                <CardContent className="p-4 sm:p-8 overflow-x-hidden">
+                  <div className="prose prose-lg dark:prose-invert max-w-none break-words">
                     {hasHtmlContent ? (
                       <div 
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(devotional.contentHtml!, sanitizeConfig) }}
@@ -544,19 +629,7 @@ export default function DevocionalDetailPage() {
                           <h4 className="font-medium flex items-center gap-2">
                             <span className="text-pink-500">Instagram</span>
                           </h4>
-                          <div className="rounded-lg overflow-hidden bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 p-[1px]">
-                            <a 
-                              href={devotional.instagramUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block bg-card rounded-lg p-4 text-center hover:bg-muted transition-colors"
-                            >
-                              <p className="text-sm text-muted-foreground mb-2">Ver no Instagram</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-xs mx-auto">
-                                {devotional.instagramUrl}
-                              </p>
-                            </a>
-                          </div>
+                          <InstagramEmbed url={devotional.instagramUrl} />
                         </div>
                       )}
 

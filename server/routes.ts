@@ -190,11 +190,24 @@ const audioUpload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit for audio
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/x-wav'];
-    if (allowedMimes.includes(file.mimetype)) {
+    // Accept various audio MIME types (browsers report different types)
+    const allowedMimes = [
+      'audio/mpeg', 'audio/mp3', 'audio/x-mpeg', 'audio/mpeg3', 'audio/x-mpeg-3',
+      'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/x-pn-wav',
+      'audio/ogg', 'audio/x-ogg', 'application/ogg',
+      'audio/aac', 'audio/x-aac', 'audio/aacp',
+      'audio/m4a', 'audio/x-m4a', 'audio/mp4',
+      'audio/webm'
+    ];
+    // Also check file extension as fallback
+    const ext = file.originalname.toLowerCase().split('.').pop();
+    const allowedExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'webm'];
+    
+    if (allowedMimes.includes(file.mimetype) || (ext && allowedExts.includes(ext))) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas arquivos MP3, WAV ou OGG são permitidos'));
+      console.log(`[Upload Audio] Rejected file: ${file.originalname}, mimetype: ${file.mimetype}`);
+      cb(new Error('Apenas arquivos de áudio são permitidos (MP3, WAV, OGG, AAC, M4A)'));
     }
   }
 });
@@ -2309,10 +2322,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { PREDEFINED_ENCOURAGEMENT_MESSAGES } = await import('@shared/schema');
-      // Map to expected format: key, text, icon (frontend expects "text" field)
+      // Map to expected format: key, title, body, icon (frontend expects title/body fields)
       const messages = PREDEFINED_ENCOURAGEMENT_MESSAGES.map(msg => ({
         key: msg.key,
-        text: msg.text,
+        title: msg.text.split('!')[0] + (msg.text.includes('!') ? '!' : ''),
+        body: msg.text,
         icon: msg.icon,
       }));
       res.json({ messages });

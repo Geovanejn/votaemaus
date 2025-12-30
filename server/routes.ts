@@ -367,10 +367,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Convert to Base64 data URL
       const base64 = req.file.buffer.toString('base64');
-      const mimeType = req.file.mimetype || 'audio/mpeg';
+      
+      // Determine correct MIME type - use audio/mpeg for unknown types like octet-stream
+      let mimeType = req.file.mimetype;
+      if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('audio/')) {
+        // Try to detect from file extension
+        const ext = req.file.originalname.toLowerCase().split('.').pop();
+        const extToMime: Record<string, string> = {
+          'mp3': 'audio/mpeg',
+          'wav': 'audio/wav',
+          'ogg': 'audio/ogg',
+          'aac': 'audio/aac',
+          'm4a': 'audio/mp4',
+          'webm': 'audio/webm',
+          'opus': 'audio/opus',
+          'mp4': 'audio/mp4',
+          '3gp': 'audio/3gpp'
+        };
+        mimeType = (ext && extToMime[ext]) || 'audio/mpeg';
+      }
+      
       const dataUrl = `data:${mimeType};base64,${base64}`;
 
-      console.log(`[Upload] Audio converted to Base64: ${fileSizeKB.toFixed(1)}KB`);
+      console.log(`[Upload] Audio converted to Base64: ${fileSizeKB.toFixed(1)}KB, mimeType: ${mimeType}`);
 
       res.json({ url: dataUrl, fileName: `audio_${Date.now()}.${mimeType.split('/')[1]}` });
     } catch (error) {

@@ -27,7 +27,7 @@ export function generateToken(user: Omit<User, "password">): string {
       secretaria: user.secretaria
     },
     JWT_SECRET,
-    { expiresIn: "2h" }
+    { expiresIn: "72h" }
   );
 }
 

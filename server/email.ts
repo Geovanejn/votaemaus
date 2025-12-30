@@ -167,173 +167,85 @@ export async function sendBirthdayEmail(
   try {
     const formattedName = getFirstAndLastName(memberName);
     
-    // Download member photo (from photoUrl or Gravatar) as Buffer for CID attachment
-    const memberPhotoUrl = photoUrl || getGravatarUrl(memberEmail);
-    console.log(`Downloading member photo from: ${memberPhotoUrl}`);
-    let memberPhotoBuffer = await downloadImageAsBuffer(memberPhotoUrl);
-    
-    if (!memberPhotoBuffer) {
-      console.error(`Failed to download member photo for ${memberEmail}, trying Gravatar fallback`);
-      // Only try Gravatar if we haven't already tried it
-      if (photoUrl) {
-        const fallbackUrl = getGravatarUrl(memberEmail);
-        console.log(`Trying Gravatar fallback: ${fallbackUrl}`);
-        memberPhotoBuffer = await downloadImageAsBuffer(fallbackUrl);
-        if (!memberPhotoBuffer) {
-          console.error(`Failed to download Gravatar fallback for ${memberEmail}`);
-          return false;
-        }
-      } else {
-        console.error(`Gravatar download already failed for ${memberEmail}`);
-        return false;
-      }
-    }
+    // Note: Photo download removed - plain text emails without attachments
+    // have better deliverability and are less likely to be filtered as promotional
     
     // Plain text version for better deliverability (Gmail Primary inbox)
+    // OPTIMIZED: Removed emojis, promotional language, and simplified for Primary inbox
     const plainText = `
-Olá, ${formattedName}!
+Ola, ${formattedName}!
 
-Hoje é um dia muito especial - é o seu aniversário!
+Hoje e um dia muito especial - e o seu aniversario!
 
-Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
+Toda a UMP Emaus se une para celebrar este momento com voce e desejar muitas alegrias, bencaos e realizacoes neste novo ciclo que se inicia.
 
-"Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça" - Números 6:24-25
+"Que o Senhor te abencoe e te guarde; que o Senhor faca resplandecer o seu rosto sobre ti e te conceda graca" - Numeros 6:24-25
 
-Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
+Que este novo ano de vida seja repleto de saude, paz, amor e muita alegria ao lado de Deus e de todos que voce ama!
 
 Com carinho,
-Toda a família UMP Emaús
+Toda a familia UMP Emaus
     `.trim();
 
+    // OPTIMIZED HTML for Gmail Primary inbox:
+    // - Removed emojis (triggers promotional filter)
+    // - Simplified HTML structure (less marketing-like)
+    // - Personal sender format "Nome from UMP" 
+    // - Minimal styling, no gradients
+    // - No links/CTAs (personal emails don't have CTAs)
+    // - Subject line without promotional words
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaus <suporte@emausvota.com.br>",
+      replyTo: "suporte@emausvota.com.br",
       to: memberEmail,
-      subject: `Parabéns pelo seu dia, ${formattedName}!`,
+      subject: `Feliz aniversario, ${formattedName}`,
       text: plainText,
       html: `
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
-          <tr>
-            <td align="center" style="padding: 20px 0;">
-              <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; font-family: Arial, sans-serif;">
-                <!-- Header -->
-                <tr>
-                  <td align="center" style="background-color: #FFA500; padding: 40px 20px;">
-                    <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">🎉 Feliz Aniversário!</h1>
-                    <p style="color: #ffffff; margin: 0; font-size: 16px; opacity: 0.95;">Que dia especial!</p>
-                  </td>
-                </tr>
-                
-                <!-- Main Content -->
-                <tr>
-                  <td align="center" style="padding: 40px 30px;">
-                    <!-- Member Photo - Centralized -->
-                    <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 30px auto;">
-                      <tr>
-                        <td align="center">
-                          <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #FFA500; border-radius: 50px; margin: 0 auto;">
-                            <tr>
-                              <td align="center" style="padding: 4px;">
-                                <table cellpadding="0" cellspacing="0" border="0" align="center" style="background-color: #ffffff; border-radius: 46px; margin: 0 auto;">
-                                  <tr>
-                                    <td align="center" style="padding: 2px;">
-                                      <table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 75px; height: 75px; border-radius: 38px; overflow: hidden; background-color: #f0f0f0; margin: 0 auto;">
-                                        <tr>
-                                          <td align="center" valign="middle">
-                                            <img 
-                                              src="cid:member-photo" 
-                                              alt=""
-                                              width="75"
-                                              height="75"
-                                              style="display: block; width: 75px; height: 75px; border-radius: 38px; border: 0; object-fit: cover; margin: 0 auto;"
-                                            />
-                                          </td>
-                                        </tr>
-                                      </table>
-                                    </td>
-                                  </tr>
-                                </table>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                    </table>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px;">
+          
+          <!-- Personal Greeting -->
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+            Ola, <strong>${formattedName}</strong>!
+          </p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 20px 0;">
+            Hoje e um dia muito especial - e o seu aniversario!
+          </p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 25px 0;">
+            Toda a UMP Emaus se une para celebrar este momento com voce e desejar muitas alegrias, bencaos e realizacoes neste novo ciclo que se inicia.
+          </p>
 
-                    <p style="font-size: 18px; color: #333; margin: 0 0 25px 0; text-align: center; font-weight: 500;">Olá, <strong>${formattedName}</strong>!</p>
-                    
-                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 20px 0;">
-                      Hoje é um dia muito especial - é o seu aniversário! 🎂
-                    </p>
-                    
-                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 25px 0;">
-                      Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
-                    </p>
+          <!-- Bible Verse - Simple quote style -->
+          <div style="border-left: 3px solid #FFA500; padding-left: 15px; margin: 25px 0;">
+            <p style="margin: 0 0 8px 0; color: #555; font-size: 15px; font-style: italic; line-height: 1.6;">
+              "Que o Senhor te abencoe e te guarde; que o Senhor faca resplandecer o seu rosto sobre ti e te conceda graca"
+            </p>
+            <p style="margin: 0; color: #888; font-size: 13px;">
+              Numeros 6:24-25
+            </p>
+          </div>
 
-                    <!-- Bible Verse -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
-                      <tr>
-                        <td style="background-color: #FFF9E6; border-left: 4px solid #FFA500; padding: 20px; border-radius: 4px;">
-                          <p style="margin: 0 0 8px 0; color: #666; font-size: 15px; text-align: center; font-style: italic; line-height: 1.6;">
-                            "Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça"
-                          </p>
-                          <p style="margin: 0; color: #FFA500; font-weight: bold; text-align: center; font-size: 13px;">
-                            Números 6:24-25
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
+          <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 25px 0 20px 0;">
+            Que este novo ano de vida seja repleto de saude, paz, amor e muita alegria ao lado de Deus e de todos que voce ama!
+          </p>
+          
+          <p style="font-size: 15px; color: #333; margin: 20px 0 5px 0;">
+            Com carinho,
+          </p>
+          <p style="font-size: 15px; color: #333; margin: 0;">
+            <strong>Toda a familia UMP Emaus</strong>
+          </p>
 
-                    <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 10px 0;">
-                      Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
-                    </p>
-                    
-                    <p style="font-size: 16px; color: #FFA500; margin: 25px 0 0 0; text-align: center; font-weight: 500;">
-                      Com carinho,<br>Toda a família UMP Emaús ❤️
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                  <td align="center" style="background-color: #f8f9fa; padding: 25px; border-top: 1px solid #e9ecef;">
-                    ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin: 0 auto 12px auto; display: block;" />` : ''}
-                    <p style="color: #888; font-size: 13px; margin: 0;">
-                      UMP Emaús
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
+        </div>
       `,
     };
 
-    // Attach member photo as CID (same method as logo)
-    const attachments: any[] = [];
-    
-    if (memberPhotoBuffer) {
-      attachments.push({
-        content: memberPhotoBuffer.toString('base64'),
-        filename: 'member-photo.jpg',
-        contentId: 'member-photo',
-      });
-    }
-    
-    if (logoBuffer) {
-      attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      });
-    }
-    
-    if (attachments.length > 0) {
-      emailPayload.attachments = attachments;
-    }
+    // No attachments for better deliverability - CID images can trigger promotional filters
+    // Personal emails typically don't have logos or multiple images
 
     await resend.emails.send(emailPayload);
-    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail}) with CID photo attachment`);
+    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail}) - optimized for Primary inbox`);
     return true;
   } catch (error) {
     console.error("Error sending birthday email:", error);
@@ -555,7 +467,7 @@ export async function sendNewPrayerRequestEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
@@ -631,7 +543,7 @@ export async function sendNewCommentEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
@@ -706,7 +618,7 @@ export async function sendNewDevotionalEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const devotionalUrl = `${appUrl}/devocionais/${devotionalId}`;
     
@@ -810,7 +722,7 @@ export async function sendNewEventEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const eventUrl = `${appUrl}/agenda/${eventId}`;
     
@@ -920,7 +832,7 @@ export async function sendSeasonPublishedEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
@@ -1018,7 +930,7 @@ export async function sendSeasonEndedEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
@@ -1107,7 +1019,7 @@ export async function sendBonusEventEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
@@ -1180,7 +1092,7 @@ export async function sendLessonAvailableEmail(
     
     const appUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : (process.env.APP_URL || 'https://emausvota.com.br');
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",

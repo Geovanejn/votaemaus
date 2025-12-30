@@ -47,8 +47,8 @@ export default function LoginPage() {
     if (sessionExpired === "true") {
       localStorage.removeItem("sessionExpired");
       toast({
-        title: "Sessão expirada",
-        description: "Sua sessão expirou após 2 horas de inatividade. Por favor, faça login novamente.",
+        title: "Sessao expirada",
+        description: "Sua sessao expirou apos 72 horas. Por favor, faca login novamente.",
         variant: "destructive",
       });
     }
@@ -512,10 +512,10 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              Código válido por 15 minutos
+              Codigo valido por 15 minutos
             </p>
             <p className="text-xs text-muted-foreground">
-              Após o login, sua sessão fica ativa por 2 horas
+              Apos o login, sua sessao fica ativa por 72 horas
             </p>
           </div>
 

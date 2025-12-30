@@ -167,85 +167,103 @@ export async function sendBirthdayEmail(
   try {
     const formattedName = getFirstAndLastName(memberName);
     
-    // Note: Photo download removed - plain text emails without attachments
-    // have better deliverability and are less likely to be filtered as promotional
+    // Download member photo (from photoUrl or Gravatar) as Buffer for CID attachment
+    const memberPhotoUrl = photoUrl || getGravatarUrl(memberEmail);
+    console.log(`Downloading member photo from: ${memberPhotoUrl}`);
+    let memberPhotoBuffer = await downloadImageAsBuffer(memberPhotoUrl);
     
-    // Plain text version for better deliverability (Gmail Primary inbox)
-    // OPTIMIZED: Removed emojis, promotional language, and simplified for Primary inbox
+    if (!memberPhotoBuffer) {
+      console.error(`Failed to download member photo for ${memberEmail}, trying Gravatar fallback`);
+      if (photoUrl) {
+        const fallbackUrl = getGravatarUrl(memberEmail);
+        console.log(`Trying Gravatar fallback: ${fallbackUrl}`);
+        memberPhotoBuffer = await downloadImageAsBuffer(fallbackUrl);
+      }
+    }
+    
+    // Plain text version
     const plainText = `
-Ola, ${formattedName}!
+Olá, ${formattedName}!
 
-Hoje e um dia muito especial - e o seu aniversario!
+Hoje é um dia muito especial - é o seu aniversário!
 
-Toda a UMP Emaus se une para celebrar este momento com voce e desejar muitas alegrias, bencaos e realizacoes neste novo ciclo que se inicia.
+Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
 
-"Que o Senhor te abencoe e te guarde; que o Senhor faca resplandecer o seu rosto sobre ti e te conceda graca" - Numeros 6:24-25
+"Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça" - Números 6:24-25
 
-Que este novo ano de vida seja repleto de saude, paz, amor e muita alegria ao lado de Deus e de todos que voce ama!
+Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
 
 Com carinho,
-Toda a familia UMP Emaus
+Toda a família UMP Emaús
     `.trim();
 
-    // OPTIMIZED HTML for Gmail Primary inbox:
-    // - Removed emojis (triggers promotional filter)
-    // - Simplified HTML structure (less marketing-like)
-    // - Personal sender format "Nome from UMP" 
-    // - Minimal styling, no gradients
-    // - No links/CTAs (personal emails don't have CTAs)
-    // - Subject line without promotional words
+    // Build HTML with member photo
+    const photoHtml = memberPhotoBuffer 
+      ? `<div style="text-align: center; margin-bottom: 25px;">
+          <img src="cid:member-photo" alt="${formattedName}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #FFA500;" />
+        </div>`
+      : '';
+
     const emailPayload: any = {
-      from: "UMP Emaus <suporte@emausvota.com.br>",
-      replyTo: "suporte@emausvota.com.br",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
+      replyTo: "contato@umpemaus.com.br",
       to: memberEmail,
-      subject: `Feliz aniversario, ${formattedName}`,
+      subject: `Feliz aniversário, ${formattedName}!`,
       text: plainText,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px;">
           
-          <!-- Personal Greeting -->
+          ${photoHtml}
+          
           <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
-            Ola, <strong>${formattedName}</strong>!
+            Olá, <strong>${formattedName}</strong>!
           </p>
           
           <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 20px 0;">
-            Hoje e um dia muito especial - e o seu aniversario!
+            Hoje é um dia muito especial - é o seu aniversário!
           </p>
           
           <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 25px 0;">
-            Toda a UMP Emaus se une para celebrar este momento com voce e desejar muitas alegrias, bencaos e realizacoes neste novo ciclo que se inicia.
+            Toda a UMP Emaús se une para celebrar este momento com você e desejar muitas alegrias, bênçãos e realizações neste novo ciclo que se inicia.
           </p>
 
-          <!-- Bible Verse - Simple quote style -->
           <div style="border-left: 3px solid #FFA500; padding-left: 15px; margin: 25px 0;">
             <p style="margin: 0 0 8px 0; color: #555; font-size: 15px; font-style: italic; line-height: 1.6;">
-              "Que o Senhor te abencoe e te guarde; que o Senhor faca resplandecer o seu rosto sobre ti e te conceda graca"
+              "Que o Senhor te abençoe e te guarde; que o Senhor faça resplandecer o seu rosto sobre ti e te conceda graça"
             </p>
             <p style="margin: 0; color: #888; font-size: 13px;">
-              Numeros 6:24-25
+              Números 6:24-25
             </p>
           </div>
 
           <p style="font-size: 15px; color: #555; line-height: 1.7; margin: 25px 0 20px 0;">
-            Que este novo ano de vida seja repleto de saude, paz, amor e muita alegria ao lado de Deus e de todos que voce ama!
+            Que este novo ano de vida seja repleto de saúde, paz, amor e muita alegria ao lado de Deus e de todos que você ama!
           </p>
           
           <p style="font-size: 15px; color: #333; margin: 20px 0 5px 0;">
             Com carinho,
           </p>
           <p style="font-size: 15px; color: #333; margin: 0;">
-            <strong>Toda a familia UMP Emaus</strong>
+            <strong>Toda a família UMP Emaús</strong>
           </p>
 
         </div>
       `,
     };
 
-    // No attachments for better deliverability - CID images can trigger promotional filters
-    // Personal emails typically don't have logos or multiple images
+    // Add member photo as CID attachment if available
+    if (memberPhotoBuffer) {
+      emailPayload.attachments = [
+        {
+          content: memberPhotoBuffer.toString('base64'),
+          filename: 'photo.jpg',
+          contentId: 'member-photo',
+        },
+      ];
+    }
 
     await resend.emails.send(emailPayload);
-    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail}) - optimized for Primary inbox`);
+    console.log(`✓ Birthday email sent to ${formattedName} (${memberEmail})`);
     return true;
   } catch (error) {
     console.error("Error sending birthday email:", error);

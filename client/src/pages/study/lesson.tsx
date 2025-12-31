@@ -340,8 +340,9 @@ export default function LessonPage() {
       return res.json() as Promise<AnswerResult>;
     },
     onSuccess: (result) => {
+      // OPTIMIZED: Only update profile locally during lesson, avoid refetching weeks
+      // Week data only needs to be refreshed when lesson is fully completed
       queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
     }
   });
 
@@ -356,12 +357,20 @@ export default function LessonPage() {
       if (result.progress?.xpEarned !== undefined) {
         setFinalXpFromServer(result.progress.xpEarned);
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/all'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/practice'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] });
+      
+      // OPTIMIZED: Selective cache invalidation
+      // Update profile locally first for immediate UI feedback
+      if (result.profile) {
+        queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
+      }
+      
+      // Only invalidate what's truly necessary after lesson completion
+      // These are the caches that actually need fresh data:
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] }); // Week progress changed
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/bulk'] }); // Bulk endpoint
+      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] }); // Goal progress changed
+      // Note: Removed /api/study/weeks/all, /api/study/practice, /api/study/current-lesson 
+      // as they're either deprecated or not critical for immediate refresh
       
       const streakInfo = result.streakInfo;
       const previousStreak = previousStreakRef.current;
@@ -414,12 +423,12 @@ export default function LessonPage() {
       return res.json();
     },
     onSuccess: (result) => {
+      // OPTIMIZED: Only update profile locally, avoid redundant refetches during lesson
+      // The lesson data doesn't change when completing units - units are tracked separately
+      // Full cache invalidation happens only when lesson is fully completed
       if (result.profile) {
         queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
-      queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
     }
   });
 
@@ -1257,13 +1266,11 @@ export default function LessonPage() {
     setShowStageComplete(false);
     setStageCompleteData(null);
     
+    // OPTIMIZED: Selective cache invalidation for stage completion
+    // Only invalidate essentials - profile is usually updated via setQueryData
     queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/all'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/study/profile'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/bulk'] });
     queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/study/lessons', lessonId.toString()] });
-    queryClient.invalidateQueries({ queryKey: ['/api/study/seasons'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] });
     
     if (stageType === 'responda') {
       // Responda completed - finish the lesson

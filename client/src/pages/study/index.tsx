@@ -392,26 +392,21 @@ export default function StudyHomePage() {
   const sortedWeeks = weeks ? [...weeks].filter(w => w && w.id).reverse() : [];
   const weekIds = sortedWeeks.map(w => w.id);
 
+  // OPTIMIZED: Use bulk endpoint to fetch all weeks with lessons in a single request
+  // This eliminates N+1 query problem (previously made one request per week)
   const { data: allWeeksData, isLoading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useQuery<WeekWithLessons[]>({
-    queryKey: ['/api/study/weeks/all', weekIds],
+    queryKey: ['/api/study/weeks/bulk', weekIds.join(',')],
     queryFn: async () => {
       if (!sortedWeeks.length) return [];
-      const results = await Promise.all(
-        sortedWeeks.map(async (week) => {
-          const token = localStorage.getItem("token");
-          const res = await fetch(`/api/study/weeks/${week.id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (!res.ok) return null;
-          const data = await res.json();
-          // Transform flat response to expected WeekWithLessons format
-          const { lessons, ...weekData } = data;
-          return { week: weekData as StudyWeek, lessons: lessons || [] };
-        })
-      );
-      return results.filter(Boolean) as WeekWithLessons[];
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/study/weeks/bulk?ids=${weekIds.join(',')}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) return [];
+      return res.json();
     },
-    enabled: isAuthenticated && !!weeks?.length,
+    enabled: isAuthenticated && !!weeks?.length && weekIds.length > 0,
+    staleTime: 30 * 1000, // 30 seconds - data is fresh for a short while
   });
 
   const currentWeek = sortedWeeks?.[sortedWeeks.length - 1];

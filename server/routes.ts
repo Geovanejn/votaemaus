@@ -1263,26 +1263,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const winners = await storage.getElectionWinners(electionId);
         const winnerUserIds = new Set(winners.map(w => w.userId));
         
-        console.log(`\n[API /api/members/non-admins] ========== MEMBER FILTERING DEBUG ==========`);
-        console.log(`[DEBUG] Election ID: ${electionId}`);
-        console.log(`[DEBUG] Winners found:`, JSON.stringify(winners, null, 2));
-        console.log(`[DEBUG] Winner User IDs:`, Array.from(winnerUserIds));
-        console.log(`[DEBUG] Total members before filtering:`, membersWithoutPasswords.length);
-        console.log(`[DEBUG] Members before filtering (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
-        
         // Filter by winners
         const beforeWinnerFilter = membersWithoutPasswords.length;
-        membersWithoutPasswords = membersWithoutPasswords.filter(m => {
-          const isWinner = winnerUserIds.has(m.id);
-          if (isWinner) {
-            console.log(`[DEBUG] Filtering out winner: ${m.fullName} (id: ${m.id})`);
-          }
-          return !isWinner;
-        });
-        
-        console.log(`[DEBUG] Filtered out ${beforeWinnerFilter - membersWithoutPasswords.length} winners`);
-        console.log(`[DEBUG] Members after winner filter:`, membersWithoutPasswords.length);
-        console.log(`[DEBUG] Remaining members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
+        membersWithoutPasswords = membersWithoutPasswords.filter(m => !winnerUserIds.has(m.id));
         
         // Filter by presence - only include members who are present
         const presenceCheckPromises = membersWithoutPasswords.map(async m => ({
@@ -1291,10 +1274,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
         const presenceResults = await Promise.all(presenceCheckPromises);
         membersWithoutPasswords = presenceResults.filter(r => r.isPresent).map(r => r.member);
-        
-        console.log(`[DEBUG] Members after presence filter:`, membersWithoutPasswords.length);
-        console.log(`[DEBUG] Final members (id, fullName):`, membersWithoutPasswords.map(m => ({ id: m.id, fullName: m.fullName })));
-        console.log(`[API /api/members/non-admins] ========== END DEBUG ==========\n`);
       }
       
       res.json(membersWithoutPasswords);
@@ -1874,7 +1853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete a lesson
+  // Complete a lesson - OPTIMIZED: Using parallel processing for independent operations
   app.post("/api/study/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -1882,114 +1861,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const lessonId = parseInt(req.params.lessonId);
       const { xpEarned, mistakesCount, timeSpentSeconds } = req.body;
+      const userId = req.user.id;
+      const isPerfect = mistakesCount === 0;
+      const weekKey = getWeekKeyForLesson();
+      const today = getTodayBrazilDate();
 
+      // Step 1: Complete lesson (must happen first as other operations depend on it)
       const progress = await storage.completeLesson(
-        req.user.id, 
+        userId, 
         lessonId, 
         xpEarned || 0, 
         mistakesCount || 0, 
         timeSpentSeconds || 0,
-        mistakesCount === 0
+        isPerfect
       );
-      
-      // Update season progress - FIXED: Track lesson completion for magazine ranking
-      // NOTE: Stage XP (estude, medite) is already tracked in complete-stage endpoint
-      // The lesson completion only adds the bonus XP (50) + responda XP to avoid double-counting
-      // The xpEarned from frontend includes answer XP from responda + completion bonus
-      try {
-        const lesson = await storage.getLessonById(lessonId);
-        if (lesson?.seasonId) {
-          const currentProgress = await storage.getUserSeasonProgress(req.user.id, lesson.seasonId);
-          // Only add the xpEarned (bonus + responda XP), stage XP already tracked separately
-          await storage.updateUserSeasonProgress(req.user.id, lesson.seasonId, {
-            xpEarned: (currentProgress?.xpEarned || 0) + (xpEarned || 0),
-            lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
-          });
-        }
-      } catch (seasonError) {
-        console.error("Error updating season progress:", seasonError);
-        // Don't fail the entire request if season update fails
-      }
-      
-      // Increment weekly lesson count for weekly goals
-      const weekKey = getWeekKeyForLesson();
-      await storage.incrementWeeklyLesson(req.user.id, weekKey);
-      
-      // Increment streak
-      const streakResult = await storage.incrementStreak(req.user.id);
-      
-      // Check and award crystals based on criteria (perfect lesson, streaks, etc.)
-      const isPerfect = mistakesCount === 0;
-      const crystalRewards = await storage.checkAndAwardLessonCrystals(req.user.id, isPerfect);
-      
-      // Check for streak milestones
+
+      // Step 2: Run independent operations in parallel using Promise.allSettled
+      // These operations don't depend on each other's results
+      const [
+        seasonResult,
+        weeklyLessonResult,
+        streakResult,
+        crystalResult,
+        achievementsResult
+      ] = await Promise.allSettled([
+        // Update season progress
+        (async () => {
+          const lesson = await storage.getLessonById(lessonId);
+          if (lesson?.seasonId) {
+            const currentProgress = await storage.getUserSeasonProgress(userId, lesson.seasonId);
+            await storage.updateUserSeasonProgress(userId, lesson.seasonId, {
+              xpEarned: (currentProgress?.xpEarned || 0) + (xpEarned || 0),
+              lessonsCompleted: (currentProgress?.lessonsCompleted || 0) + 1,
+            });
+          }
+        })(),
+        // Increment weekly lesson count
+        storage.incrementWeeklyLesson(userId, weekKey),
+        // Increment streak
+        storage.incrementStreak(userId),
+        // Check and award crystals
+        storage.checkAndAwardLessonCrystals(userId, isPerfect),
+        // Check achievements
+        storage.checkAndUnlockAchievements(userId, { 
+          event: 'lesson_complete', 
+          value: isPerfect ? 1 : 0 
+        })
+      ]);
+
+      // Extract results (with fallbacks for failed operations)
+      const streakData = streakResult.status === 'fulfilled' ? streakResult.value : { newStreak: 0, isNewRecord: false };
+      const crystalData = crystalResult.status === 'fulfilled' ? crystalResult.value : { crystalsAwarded: 0, rewards: [] };
+      const unlockedAchievements = achievementsResult.status === 'fulfilled' ? achievementsResult.value : [];
+
+      // Step 3: Check streak milestone (depends on streak result)
       let milestoneReward = null;
-      if (streakResult.newStreak > 0) {
-        milestoneReward = await storage.checkAndAwardStreakMilestone(req.user.id, streakResult.newStreak);
-      }
-      
-      // Check and unlock achievements
-      const unlockedAchievements = await storage.checkAndUnlockAchievements(req.user.id, { 
-        event: 'lesson_complete', 
-        value: mistakesCount === 0 ? 1 : 0 
-      });
-      
-      // Auto-complete daily missions related to lesson completion
-      const today = getTodayBrazilDate();
-      try {
-        // First ensure missions are assigned for today
-        await storage.assignDailyMissions(req.user.id, today);
-        
-        // Then get the missions and complete relevant ones
-        const userMissions = await storage.getUserDailyMissions(req.user.id, today);
-        const missionWeekKey = getCurrentWeekKey();
-        console.log(`[Missions] Checking ${userMissions.length} missions for user ${req.user.id} on ${today}`);
-        
-        // Check if all missions were already completed before auto-completion
-        const allCompletedBefore = userMissions.length > 0 && userMissions.every(m => m.completed);
-        
-        for (const mission of userMissions) {
-          if (mission.completed) continue;
-          
-          const missionType = mission.mission?.type;
-          console.log(`[Missions] Checking mission ${mission.missionId} type: ${missionType}`);
-          
-          // Complete "complete_lesson" type missions
-          if (missionType === 'complete_lesson') {
-            console.log(`[Missions] Completing complete_lesson mission ${mission.missionId}`);
-            await storage.completeMission(req.user.id, mission.missionId, today);
-          }
-          // Complete "maintain_streak" type missions
-          if (missionType === 'maintain_streak') {
-            console.log(`[Missions] Completing maintain_streak mission ${mission.missionId}`);
-            await storage.completeMission(req.user.id, mission.missionId, today);
-          }
+      if (streakData.newStreak > 0) {
+        try {
+          milestoneReward = await storage.checkAndAwardStreakMilestone(userId, streakData.newStreak);
+        } catch (e) {
+          console.error("Error checking streak milestone:", e);
         }
-        
-        // Check if ALL daily missions are now completed after auto-completion
-        // Only increment if they weren't already all completed before
-        if (!allCompletedBefore) {
-          const updatedMissions = await storage.getUserDailyMissions(req.user.id, today);
+      }
+
+      // Step 4: Process daily missions in parallel
+      try {
+        await storage.assignDailyMissions(userId, today);
+        const userMissions = await storage.getUserDailyMissions(userId, today);
+        const missionWeekKey = getCurrentWeekKey();
+        const allCompletedBefore = userMissions.length > 0 && userMissions.every(m => m.completed);
+
+        // Complete relevant missions in parallel
+        const missionsToComplete = userMissions.filter(m => {
+          if (m.completed) return false;
+          const missionType = m.mission?.type;
+          return missionType === 'complete_lesson' || missionType === 'maintain_streak';
+        });
+
+        if (missionsToComplete.length > 0) {
+          await Promise.allSettled(
+            missionsToComplete.map(m => storage.completeMission(userId, m.missionId, today))
+          );
+        }
+
+        // Check if all missions are now completed
+        if (!allCompletedBefore && missionsToComplete.length > 0) {
+          const updatedMissions = await storage.getUserDailyMissions(userId, today);
           const allCompletedAfter = updatedMissions.length > 0 && updatedMissions.every(m => m.completed);
           if (allCompletedAfter) {
-            console.log(`[Missions] All daily missions completed via auto-complete, incrementing weekly count`);
-            await storage.incrementWeeklyMission(req.user.id, missionWeekKey);
+            await storage.incrementWeeklyMission(userId, missionWeekKey);
           }
         }
       } catch (missionError) {
         console.error("Error updating daily missions:", missionError);
       }
-      
-      const profile = await storage.getStudyProfile(req.user.id);
+
+      // Step 5: Get final profile
+      const profile = await storage.getStudyProfile(userId);
       
       res.json({ 
         progress, 
         profile,
         streakInfo: {
-          newStreak: streakResult.newStreak,
-          isNewRecord: streakResult.isNewRecord,
-          crystalsAwarded: crystalRewards.crystalsAwarded,
-          crystalRewards: crystalRewards.rewards,
+          newStreak: streakData.newStreak,
+          isNewRecord: streakData.isNewRecord,
+          crystalsAwarded: crystalData.crystalsAwarded,
+          crystalRewards: crystalData.rewards,
           milestoneReward
         },
         unlockedAchievements: unlockedAchievements.map(ua => ua.achievement)
@@ -2135,6 +2112,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get leaderboard error:", error);
       res.status(500).json({ message: "Erro ao buscar ranking" });
+    }
+  });
+
+  // ==================== OPTIMIZED AGGREGATED ENDPOINTS ====================
+
+  // OPTIMIZED: Dashboard aggregated endpoint - returns all home data in one request
+  // This eliminates the "waterfall" of multiple sequential requests
+  app.get("/api/study/dashboard", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const userId = req.user.id;
+      const weekKey = getCurrentWeekKey();
+      const today = getTodayBrazilDate();
+
+      // Run all queries in parallel for maximum performance
+      const [
+        profileResult,
+        weeksResult,
+        weeklyGoalResult,
+        leaderboardResult,
+        missionsResult
+      ] = await Promise.allSettled([
+        storage.getOrCreateStudyProfile(userId),
+        storage.getPublishedStudyWeeks(),
+        storage.getWeeklyGoalStatus(userId, weekKey),
+        (async () => {
+          const now = new Date();
+          const weekNumber = Math.ceil((now.getDate() + now.getDay()) / 7);
+          const periodKey = `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+          return storage.getLeaderboard('weekly', periodKey, 10);
+        })(),
+        (async () => {
+          await storage.assignDailyMissions(userId, today);
+          return storage.getUserDailyMissions(userId, today);
+        })()
+      ]);
+
+      // Extract results with fallbacks
+      const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+      const weeks = weeksResult.status === 'fulfilled' ? weeksResult.value : [];
+      const weeklyGoal = weeklyGoalResult.status === 'fulfilled' ? weeklyGoalResult.value : null;
+      const leaderboard = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [];
+      const missions = missionsResult.status === 'fulfilled' ? missionsResult.value : [];
+
+      // Get lessons with progress for each week in parallel (bulk operation)
+      let weeksWithLessons: any[] = [];
+      if (weeks.length > 0) {
+        const lessonPromises = weeks.map(async (week: any) => {
+          const lessons = await storage.getLessonsWithProgress(userId, week.id);
+          return { week, lessons };
+        });
+        const lessonResults = await Promise.allSettled(lessonPromises);
+        weeksWithLessons = lessonResults
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+          .map(r => r.value);
+      }
+
+      res.json({
+        profile,
+        weeksWithLessons,
+        weeklyGoal,
+        leaderboard: { periodType: 'weekly', entries: leaderboard },
+        missions
+      });
+    } catch (error) {
+      console.error("Get dashboard error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados do dashboard" });
+    }
+  });
+
+  // OPTIMIZED: Bulk weeks endpoint - get multiple weeks with lessons in one request
+  // This solves the N+1 query problem where frontend fetches each week separately
+  app.get("/api/study/weeks/bulk", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const userId = req.user.id;
+      const weekIds = (req.query.ids as string || '').split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+
+      if (weekIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Fetch all weeks with their lessons in parallel
+      const weekPromises = weekIds.map(async (weekId) => {
+        const week = await storage.getStudyWeekById(weekId);
+        if (!week) return null;
+        const lessons = await storage.getLessonsWithProgress(userId, weekId);
+        return { week, lessons };
+      });
+
+      const results = await Promise.allSettled(weekPromises);
+      const weeksWithLessons = results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+
+      res.json(weeksWithLessons);
+    } catch (error) {
+      console.error("Get bulk weeks error:", error);
+      res.status(500).json({ message: "Erro ao buscar semanas" });
     }
   });
 
@@ -7614,13 +7694,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             q.explanation = q.explanation || content.explanation || "";
             
             const correctAnswerText = q.options[q.correctIndex];
-            console.log(`[DEBUG] Before randomize - Q: "${q.question?.substring(0, 40)}..." correctIndex: ${q.correctIndex}, correctAnswer: "${correctAnswerText}"`);
             
             // Then randomize
             const processed = randomizeMultipleChoiceAnswer(q);
             processed.correctIndex = Number(processed.correctIndex);
-            
-            console.log(`[DEBUG] After randomize - correctIndex: ${processed.correctIndex}, correctAnswer: "${processed.options[processed.correctIndex]}"`);
             
             return processed;
           }
@@ -7675,8 +7752,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               correctAnswer: isTrue, // Provide both for compatibility
               explanation: q.explanation || content.explanation || ""
             };
-            
-            console.log(`[DEBUG] True/False - Q: "${processed.question?.substring(0, 40)}..." isTrue: ${isTrue}`);
             
             return processed;
           }

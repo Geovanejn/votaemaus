@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
 import { motion } from "framer-motion";
+import { SilentErrorBoundary } from "@/components/ErrorBoundary";
 
 interface SiteLayoutProps {
   children: ReactNode;
@@ -20,7 +21,11 @@ export function SiteLayout({ children, hideFooter = false }: SiteLayoutProps) {
       >
         {children}
       </motion.main>
-      {!hideFooter && <SiteFooter />}
+      {!hideFooter && (
+        <SilentErrorBoundary>
+          <SiteFooter />
+        </SilentErrorBoundary>
+      )}
     </div>
   );
 }

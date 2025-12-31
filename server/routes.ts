@@ -801,27 +801,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Election Attendance endpoints
+  // OPTIMIZED: Election Attendance endpoints - batch query for users
   app.get("/api/elections/:id/attendance", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.id);
-      const attendance = await storage.getElectionAttendance(electionId);
+      const [attendance, winners] = await Promise.all([
+        storage.getElectionAttendance(electionId),
+        storage.getElectionWinners(electionId)
+      ]);
       
-      // Get winners for this election to exclude them from attendance list
-      const winners = await storage.getElectionWinners(electionId);
       const winnerUserIds = new Set(winners.map(w => w.userId));
       
-      // Join with user information and filter out winners
-      const attendanceWithUsersPromises = attendance.map(async (att) => {
-        const user = await storage.getUserById(att.memberId);
-        return {
-          ...att,
-          memberName: user?.fullName || '',
-          memberEmail: user?.email || '',
-        };
-      });
-      const attendanceWithUsersAll = await Promise.all(attendanceWithUsersPromises);
-      const attendanceWithUsers = attendanceWithUsersAll.filter(att => !winnerUserIds.has(att.memberId));
+      if (attendance.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all users at once
+      const memberIds = [...new Set(attendance.map(att => att.memberId))];
+      const usersMap = await storage.getUsersByIds(memberIds);
+      
+      // Build response with O(1) lookups and filter out winners
+      const attendanceWithUsers = attendance
+        .filter(att => !winnerUserIds.has(att.memberId))
+        .map(att => {
+          const user = usersMap.get(att.memberId);
+          return {
+            ...att,
+            memberName: user?.fullName || '',
+            memberEmail: user?.email || '',
+          };
+        });
       
       res.json(attendanceWithUsers);
     } catch (error) {
@@ -1332,6 +1341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OPTIMIZED: Get candidates by position - batch query for users
   app.get("/api/elections/:electionId/positions/:positionId/candidates", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const electionId = parseInt(req.params.electionId);
@@ -1342,14 +1352,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const candidates = await storage.getCandidatesByPosition(positionId, electionId);
-      const candidatesWithPhotosPromises = candidates.map(async (candidate) => {
-        const user = await storage.getUserById(candidate.userId);
+      if (candidates.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all users at once
+      const userIds = [...new Set(candidates.map(c => c.userId))];
+      const usersMap = await storage.getUsersByIds(userIds);
+      
+      // Build response with O(1) lookups
+      const candidatesWithPhotos = candidates.map(candidate => {
+        const user = usersMap.get(candidate.userId);
         return {
           ...candidate,
           photoUrl: user?.photoUrl || getGravatarUrl(candidate.email),
         };
       });
-      const candidatesWithPhotos = await Promise.all(candidatesWithPhotosPromises);
       
       res.json(candidatesWithPhotos);
     } catch (error) {
@@ -1485,20 +1503,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OPTIMIZED: Get election winners - batch query for users
   app.get("/api/elections/:electionId/winners", async (req, res) => {
     try {
       const electionId = parseInt(req.params.electionId);
-      const winners = await storage.getElectionWinners(electionId);
-      const results = await storage.getElectionResults(electionId);
+      const [winners, results, positions] = await Promise.all([
+        storage.getElectionWinners(electionId),
+        storage.getElectionResults(electionId),
+        storage.getAllPositions()
+      ]);
       
       if (!results) {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
       
-      // Get position, user details, and vote count for each winner
-      const positions = await storage.getAllPositions();
-      const formattedWinnersPromises = winners.map(async (w) => {
-        const user = await storage.getUserById(w.userId);
+      if (winners.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all winner users at once
+      const userIds = [...new Set(winners.map(w => w.userId))];
+      const usersMap = await storage.getUsersByIds(userIds);
+      
+      // Build response with O(1) lookups
+      const formattedWinners = winners.map(w => {
+        const user = usersMap.get(w.userId);
         const position = positions.find(p => p.id === w.positionId);
         
         // Find vote count from results
@@ -1514,7 +1543,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           wonAtScrutiny: w.wonAtScrutiny
         };
       });
-      const formattedWinners = await Promise.all(formattedWinnersPromises);
 
       res.json(formattedWinners);
     } catch (error) {
@@ -2360,7 +2388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get member's collectible cards
+  // OPTIMIZED: Get member's collectible cards - batch queries instead of N+1
   app.get("/api/study/member/:userId/cards", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const targetUserId = parseInt(req.params.userId);
@@ -2369,32 +2397,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userCards = await storage.getUserCards(targetUserId);
-      const cardsWithDetails = await Promise.all(
-        userCards.map(async (uc) => {
-          const card = await storage.getCollectibleCardById(uc.cardId);
-          if (!card) return null;
-          const event = card.sourceType === 'event' 
-            ? await storage.getStudyEventById(card.sourceId) 
-            : null;
-          return {
-            id: uc.id,
-            cardId: card.id,
-            rarity: uc.rarity,
-            performance: uc.performance,
-            earnedAt: uc.earnedAt,
-            card: {
-              name: card.name,
-              imageUrl: card.imageUrl,
-              description: card.description,
-            },
-            event: event ? {
-              id: event.id,
-              title: event.title,
-              theme: event.theme,
-            } : null,
-          };
-        })
-      );
+      if (userCards.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all cards at once
+      const cardIds = [...new Set(userCards.map(uc => uc.cardId))];
+      const cardsMap = await storage.getCollectibleCardsByIds(cardIds);
+      
+      // Collect event IDs from cards
+      const eventIds = [...new Set(
+        Array.from(cardsMap.values())
+          .filter(c => c.sourceType === 'event')
+          .map(c => c.sourceId)
+      )];
+      const eventsMap = await storage.getStudyEventsByIds(eventIds);
+      
+      // Build response with O(1) lookups
+      const cardsWithDetails = userCards.map(uc => {
+        const card = cardsMap.get(uc.cardId);
+        if (!card) return null;
+        const event = card.sourceType === 'event' ? eventsMap.get(card.sourceId) : null;
+        return {
+          id: uc.id,
+          cardId: card.id,
+          rarity: uc.rarity,
+          performance: uc.performance,
+          earnedAt: uc.earnedAt,
+          card: {
+            name: card.name,
+            imageUrl: card.imageUrl,
+            description: card.description,
+          },
+          event: event ? {
+            id: event.id,
+            title: event.title,
+            theme: event.theme,
+          } : null,
+        };
+      });
       
       res.json(cardsWithDetails.filter(Boolean));
     } catch (error) {
@@ -2464,7 +2505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get received encouragements (for notifications)
+  // OPTIMIZED: Get received encouragements - batch query for senders
   app.get("/api/study/encouragements", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -2474,17 +2515,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const encouragements = await storage.getReceivedEncouragements(req.user.id, limit);
       
-      // Get sender info for each encouragement
-      const encouragementsWithSender = await Promise.all(
-        encouragements.map(async (e) => {
-          const sender = await storage.getUserById(e.senderId);
-          return {
-            ...e,
-            senderName: sender?.fullName || 'Membro',
-            senderPhotoUrl: sender?.photoUrl || null,
-          };
-        })
-      );
+      if (encouragements.length === 0) {
+        return res.json({ encouragements: [] });
+      }
+      
+      // Batch fetch all senders at once
+      const senderIds = [...new Set(encouragements.map(e => e.senderId))];
+      const sendersMap = await storage.getUsersByIds(senderIds);
+      
+      // Build response with O(1) lookups
+      const encouragementsWithSender = encouragements.map(e => {
+        const sender = sendersMap.get(e.senderId);
+        return {
+          ...e,
+          senderName: sender?.fullName || 'Membro',
+          senderPhotoUrl: sender?.photoUrl || null,
+        };
+      });
       
       res.json({ encouragements: encouragementsWithSender });
     } catch (error) {
@@ -7976,21 +8023,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === ROTAS MEMBROS - MEUS CARDS ===
 
-  // Listar cards do usuario com detalhes
+  // OPTIMIZED: Listar cards do usuario com detalhes - batch query
   app.get("/api/study/cards", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userCards = await storage.getUserCards(req.user!.id);
       
-      // Get full card details for each user card
-      const cardsWithDetails = await Promise.all(
-        userCards.map(async (userCard) => {
-          const cardDetails = await storage.getCollectibleCardById(userCard.cardId);
-          return {
-            ...userCard,
-            card: cardDetails,
-          };
-        })
-      );
+      if (userCards.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all card details at once
+      const cardIds = [...new Set(userCards.map(uc => uc.cardId))];
+      const cardsMap = await storage.getCollectibleCardsByIds(cardIds);
+      
+      // Build response with O(1) lookups
+      const cardsWithDetails = userCards.map(userCard => ({
+        ...userCard,
+        card: cardsMap.get(userCard.cardId) || null,
+      }));
       
       res.json(cardsWithDetails);
     } catch (error) {

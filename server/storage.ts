@@ -435,6 +435,9 @@ export interface IStorage {
   getAllCollectibleCards(): Promise<CollectibleCard[]>;
   getActiveCollectibleCards(): Promise<CollectibleCard[]>;
   getCollectibleCardById(id: number): Promise<CollectibleCard | null>;
+  getCollectibleCardsByIds(ids: number[]): Promise<Map<number, CollectibleCard>>;
+  getStudyEventsByIds(ids: number[]): Promise<Map<number, StudyEvent>>;
+  getUsersByIds(ids: number[]): Promise<Map<number, User>>;
   createCollectibleCard(data: InsertCollectibleCard): Promise<CollectibleCard>;
   updateCollectibleCard(id: number, data: Partial<InsertCollectibleCard>): Promise<CollectibleCard | null>;
   deleteCollectibleCard(id: number): Promise<void>;
@@ -6274,6 +6277,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.collectibleCards.id, id))
       .limit(1);
     return card || null;
+  }
+
+  // OPTIMIZED: Batch fetch multiple cards by IDs
+  async getCollectibleCardsByIds(ids: number[]): Promise<Map<number, CollectibleCard>> {
+    if (ids.length === 0) return new Map();
+    const cards = await db.select()
+      .from(schema.collectibleCards)
+      .where(inArray(schema.collectibleCards.id, ids));
+    return new Map(cards.map(c => [c.id, c]));
+  }
+
+  // OPTIMIZED: Batch fetch multiple events by IDs
+  async getStudyEventsByIds(ids: number[]): Promise<Map<number, StudyEvent>> {
+    if (ids.length === 0) return new Map();
+    const events = await db.select()
+      .from(schema.studyEvents)
+      .where(inArray(schema.studyEvents.id, ids));
+    return new Map(events.map(e => [e.id, e]));
+  }
+
+  // OPTIMIZED: Batch fetch multiple users by IDs
+  async getUsersByIds(ids: number[]): Promise<Map<number, User>> {
+    if (ids.length === 0) return new Map();
+    const users = await db.select()
+      .from(schema.users)
+      .where(inArray(schema.users.id, ids));
+    return new Map(users.map(u => [u.id, u]));
   }
 
   async createCollectibleCard(data: InsertCollectibleCard): Promise<CollectibleCard> {

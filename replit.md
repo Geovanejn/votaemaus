@@ -81,6 +81,8 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - **Weekly Goal Scheduler**: Batch fetches all profiles and progress in 2 queries instead of N+1, uses Map lookup for O(1) access.
     - **AI Rate Limiting**: Daily missions scheduler uses sequential AI calls with 1s delay between each to avoid API rate limiting.
 - **Admin API Validation**: All admin UPDATE endpoints use dedicated Zod schemas with `.strict()` to whitelist allowed fields and prevent privilege escalation (e.g., users cannot promote themselves to admin via PATCH requests).
+- **Error Handling**: Centralized error handling with `handleApiError()` and `AppError` class in `server/utils/logger.ts`. Production mode filters internal error details.
+- **Type Consistency**: All icon prop types use `LucideIcon` instead of `typeof IconName` for consistency across components.
 
 ## Deployment (Render)
 - **Build Command**: `npm run build`

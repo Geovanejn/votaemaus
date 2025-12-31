@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Zap, Target, Clock, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ function StatBox({
 }: { 
   label: string; 
   value: string | number; 
-  icon: typeof Zap; 
+  icon: LucideIcon; 
   color: string;
   delay: number;
 }) {

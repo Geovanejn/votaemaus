@@ -1,4 +1,5 @@
 import { Star, Gem, Crown, Sparkles, Loader2, Download } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SiWhatsapp, SiInstagram, SiFacebook, SiX } from "react-icons/si";
 import { motion } from "framer-motion";
 import { useRef, useState, useCallback } from "react";
@@ -27,7 +28,7 @@ const rarityLabels: Record<CardRarity, string> = {
   legendary: "Lendario",
 };
 
-const rarityIcons: Record<CardRarity, typeof Star> = {
+const rarityIcons: Record<CardRarity, LucideIcon> = {
   common: Star,
   rare: Star,
   epic: Gem,

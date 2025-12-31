@@ -22,6 +22,7 @@ import {
   GraduationCap,
   X
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSounds } from "@/hooks/use-sounds";
 import { useEffect } from "react";
@@ -42,7 +43,7 @@ interface AchievementNotificationProps {
   onClose: () => void;
 }
 
-const iconMap: Record<string, typeof Flame> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: BookOpen,
   "book-open": BookOpen,

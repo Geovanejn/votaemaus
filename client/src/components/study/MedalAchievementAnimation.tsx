@@ -14,6 +14,7 @@ import {
   GraduationCap,
   Sparkles
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSounds } from "@/hooks/use-sounds";
 import { useEffect, useRef } from "react";
@@ -34,7 +35,7 @@ interface MedalAchievementAnimationProps {
   onClose: () => void;
 }
 
-const iconMap: Record<string, typeof Medal> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: BookOpen,
   "book-open": BookOpen,

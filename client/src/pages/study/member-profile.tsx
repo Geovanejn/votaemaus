@@ -23,6 +23,7 @@ import {
   X,
   Download
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SiX, SiFacebook, SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -116,7 +117,7 @@ const rarityLabels: Record<string, string> = {
   common: "Comum",
 };
 
-const iconMap: Record<string, typeof Star> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: BookOpen,
   trophy: Trophy,

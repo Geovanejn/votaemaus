@@ -37,6 +37,7 @@ import {
   Infinity,
   Layers
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useCallback } from "react";
@@ -65,7 +66,7 @@ interface Achievement {
   unlockedAt: string | null;
 }
 
-const iconMap: Record<string, typeof Flame> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: Book,
   "book-open": BookOpen,
@@ -105,7 +106,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 const categoryConfig: Record<string, { 
-  icon: typeof Flame; 
+  icon: LucideIcon; 
   bgColor: string; 
   iconBg: string;
   unlockedBg: string;

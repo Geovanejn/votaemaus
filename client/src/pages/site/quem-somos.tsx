@@ -11,6 +11,7 @@ import {
   Mail,
   BookOpen
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
@@ -77,7 +78,7 @@ const defaultTimeline = [
   },
 ];
 
-const iconMap: Record<string, typeof BookOpen> = {
+const iconMap: Record<string, LucideIcon> = {
   BookOpen,
   Heart,
   Church,
@@ -274,7 +275,7 @@ export default function QuemSomosPage() {
           </motion.div>
 
           <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {values.map((value: { icon: typeof BookOpen; title: string; description: string }) => (
+            {values.map((value: { icon: LucideIcon; title: string; description: string }) => (
               <StaggerItem key={value.title}>
                 <Card className="h-full text-center hover-elevate">
                   <CardContent className="p-6">

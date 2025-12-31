@@ -1,11 +1,12 @@
 import { Home, Compass, Trophy, User, BookOpen, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface NavItem {
   path: string;
-  icon: typeof Home;
+  icon: LucideIcon;
   label: string;
   activeColor: string;
 }

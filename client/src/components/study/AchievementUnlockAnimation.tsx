@@ -7,6 +7,7 @@ import {
   Heart, Target, CheckCircle, Calendar, Sunrise, Moon,
   BookMarked, BookHeart, Shield, GraduationCap, TrendingUp, Sparkles, Book, Share2, Download
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSounds } from "@/hooks/use-sounds";
@@ -30,7 +31,7 @@ interface AchievementUnlockAnimationProps {
   className?: string;
 }
 
-const iconMap: Record<string, typeof Flame> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: Book,
   "book-open": BookOpen,

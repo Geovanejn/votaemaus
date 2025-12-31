@@ -12,6 +12,7 @@ import {
   Sparkles,
   Check
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ interface WeeklyGoalStatus {
 }
 
 interface GoalCardProps {
-  icon: typeof BookOpen;
+  icon: LucideIcon;
   label: string;
   current: number;
   target: number;

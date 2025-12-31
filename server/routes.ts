@@ -5590,7 +5590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Obter temporada com lições
+  // Obter temporada com lições - OPTIMIZED: parallel data fetching
   app.get("/api/study/seasons/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const seasonId = parseInt(req.params.id);
@@ -5598,14 +5598,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
 
-      const season = await storage.getSeasonById(seasonId);
+      // Fetch all data in parallel for faster response
+      const [season, lessons, userProgress, finalChallenge] = await Promise.all([
+        storage.getSeasonById(seasonId),
+        storage.getLessonsWithProgressForSeason(req.user!.id, seasonId),
+        storage.getUserSeasonProgress(req.user!.id, seasonId),
+        storage.getSeasonFinalChallenge(seasonId)
+      ]);
+      
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
-
-      const lessons = await storage.getLessonsWithProgressForSeason(req.user!.id, seasonId);
-      const userProgress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
-      const finalChallenge = await storage.getSeasonFinalChallenge(seasonId);
       
       const lessonsCompleted = userProgress?.lessonsCompleted || 0;
       const totalLessons = season.totalLessons || 0;

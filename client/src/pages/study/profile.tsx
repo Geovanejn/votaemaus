@@ -24,6 +24,7 @@ import {
   Lock,
   Sparkles
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +67,7 @@ interface RecentActivity {
   date: string | null;
 }
 
-const iconMap: Record<string, typeof Flame> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: BookOpen,
   "book-open": BookOpen,

@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Trophy, Loader2, Star, Flame, Medal, BookOpen } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { usePresence } from "@/hooks/use-websocket";
@@ -326,7 +327,7 @@ function ConquistasRecentes() {
     },
   });
 
-  const iconMap: Record<string, typeof Star> = {
+  const iconMap: Record<string, LucideIcon> = {
     flame: Flame,
     book: BookOpen,
     trophy: Trophy,

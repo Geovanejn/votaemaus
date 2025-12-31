@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { BookOpen, Calendar, Instagram, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import defaultDevotionalImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 import defaultEventImg from "@assets/stock_images/christian_bible_stud_56b5ae40.jpg";
@@ -83,7 +84,7 @@ type BannerSlide = {
   linkText: string;
   secondaryLinkUrl?: string;
   secondaryLinkText?: string;
-  icon: typeof BookOpen;
+  icon: LucideIcon;
   badge: string;
 };
 

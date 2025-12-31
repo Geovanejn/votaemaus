@@ -3,6 +3,7 @@ import {
   Heart, Target, CheckCircle, Calendar, Sunrise, Moon,
   BookMarked, BookHeart, Shield, GraduationCap, TrendingUp, Sparkles, Book
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface Achievement {
   id: number;
@@ -15,7 +16,7 @@ interface Achievement {
   unlockedAt?: string | null;
 }
 
-const iconMap: Record<string, typeof Flame> = {
+const iconMap: Record<string, LucideIcon> = {
   flame: Flame,
   book: Book,
   "book-open": BookOpen,

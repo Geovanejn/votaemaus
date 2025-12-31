@@ -509,16 +509,20 @@ function SeasonListItem({
   season, 
   onLessonClick,
   focusLessonId,
-  scrollToNextId 
+  scrollToNextId,
+  autoExpandForLessonId 
 }: { 
   season: SeasonWithDetails;
   onLessonClick: (lessonId: number, stage?: "estude" | "medite" | "responda") => void;
   focusLessonId?: number | null;
   scrollToNextId?: number | null;
+  autoExpandForLessonId?: number | null;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const shouldAutoExpand = autoExpandForLessonId !== null && autoExpandForLessonId !== undefined;
+  const [isExpanded, setIsExpanded] = useState(shouldAutoExpand);
   const lessonRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const hasScrolledToLesson = useRef(false);
+  const seasonCardRef = useRef<HTMLDivElement | null>(null);
 
   const { data: seasonDetail, isLoading: detailLoading } = useQuery<SeasonDetailResponse>({
     queryKey: ['/api/study/seasons', season.id.toString()],
@@ -565,11 +569,28 @@ function SeasonListItem({
     }
   }, [scrollToNextId, lessons]);
 
+  // Auto-expand and scroll to current lesson when page loads
+  useEffect(() => {
+    if (autoExpandForLessonId && lessons.length > 0 && !hasScrolledToLesson.current) {
+      const targetLesson = lessons.find(l => l.id === autoExpandForLessonId);
+      if (targetLesson) {
+        hasScrolledToLesson.current = true;
+        // First scroll to season card, then to the lesson
+        setTimeout(() => {
+          seasonCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => {
+            lessonRefs.current[autoExpandForLessonId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }, 200);
+      }
+    }
+  }, [autoExpandForLessonId, lessons]);
+
   const estimatedTotalMinutes = lessons.reduce((acc, l) => acc + (l.estimatedMinutes || 45), 0);
   const avgMinutesPerLesson = lessons.length > 0 ? Math.round(estimatedTotalMinutes / lessons.length) : 45;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" ref={seasonCardRef}>
       <SeasonCard 
         season={season}
         lessonsCount={season.totalLessons}
@@ -732,15 +753,24 @@ export default function SeasonsPage() {
             {seasons.length} revista{seasons.length !== 1 ? 's' : ''} disponível{seasons.length !== 1 ? 'veis' : ''}
           </p>
           
-          {sortedSeasons.map((season) => (
-            <SeasonListItem
-              key={season.id}
-              season={season}
-              onLessonClick={handleLessonClick}
-              focusLessonId={focusLessonId}
-              scrollToNextId={scrollToNextId}
-            />
-          ))}
+          {sortedSeasons.map((season) => {
+            // Check if this season contains the current lesson for auto-expand
+            const isCurrentLessonSeason = currentLessonData?.season.id === season.id;
+            const autoExpandLessonId = isCurrentLessonSeason && !focusLessonId && !scrollToNextId 
+              ? currentLessonData?.lesson.id 
+              : null;
+            
+            return (
+              <SeasonListItem
+                key={season.id}
+                season={season}
+                onLessonClick={handleLessonClick}
+                focusLessonId={focusLessonId}
+                scrollToNextId={scrollToNextId}
+                autoExpandForLessonId={autoExpandLessonId}
+              />
+            );
+          })}
         </main>
       ) : (
         <EmptyState />

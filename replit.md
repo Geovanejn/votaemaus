@@ -87,6 +87,7 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
     - **Seasons List**: `getUserSeasonProgressBatch()` fetches all season progress in single query instead of N+1 queries per season.
     - **Current Lesson**: `getCurrentLessonOptimized()` uses batch query with minimal fields instead of loading all lessons.
     - **Weeks Bulk**: `getWeeksWithLessonsBulkOptimized()` batch method with data projection (2 queries instead of N+1).
+    - **Batch Storage Methods**: `getUsersByIds()`, `getCollectibleCardsByIds()`, `getStudyEventsByIds()` return Map<id, entity> for O(1) lookups. Used in election attendance/winners/candidates, user cards, and encouragements endpoints.
     - **HTTP Compression**: Gzip compression enabled (level 6, threshold 1KB) for reduced JSON payload size.
     - **Database Indexes**: Added indexes on `userLessonProgress` (userId, status, completedAt), `userUnitProgress` (userId, isCompleted), `xpTransactions` (userId, createdAt), `userDailyMissions` (userId, assignedDate).
 - **Admin API Validation**: All admin UPDATE endpoints use dedicated Zod schemas with `.strict()` to whitelist allowed fields and prevent privilege escalation (e.g., users cannot promote themselves to admin via PATCH requests).

@@ -3470,280 +3470,201 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Leaderboard Methods
-  // Global leaderboard - uses same XP calculation as getUserTotalXp
+  // Global leaderboard - OPTIMIZED: Single query with subqueries instead of N+1
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Get all non-admin users
-    const allUsers = await db.select({
-      userId: schema.users.id,
-      fullName: schema.users.fullName,
-      photoUrl: schema.users.photoUrl,
-    })
-      .from(schema.users)
-      .where(eq(schema.users.isAdmin, false));
+    // Single optimized query using subqueries for all XP components
+    const leaderboardData = await db.execute(sql`
+      SELECT 
+        u.id as user_id,
+        u.full_name,
+        u.photo_url,
+        COALESCE(sp.current_streak, 0) as current_streak,
+        COALESCE(sp.current_level, 1) as current_level,
+        COALESCE(lesson_xp.total, 0) as lesson_xp,
+        COALESCE(bonus_xp.total, 0) as bonus_xp,
+        COALESCE(achievement_xp.total, 0) as achievement_xp,
+        COALESCE(mission_xp.total, 0) as mission_xp,
+        (
+          COALESCE(lesson_xp.total, 0) + 
+          COALESCE(bonus_xp.total, 0) + 
+          COALESCE(achievement_xp.total, 0) + 
+          COALESCE(mission_xp.total, 0)
+        ) as total_xp
+      FROM users u
+      LEFT JOIN study_profiles sp ON sp.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_earned), 0) as total 
+        FROM user_lesson_progress 
+        WHERE user_id = u.id AND status = 'completed'
+      ) lesson_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(bonus_xp), 0) as total 
+        FROM weekly_practice_bonus 
+        WHERE user_id = u.id
+      ) bonus_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_reward), 0) as total 
+        FROM achievement_xp 
+        WHERE user_id = u.id
+      ) achievement_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(mission_xp + bonus_xp), 0) as total 
+        FROM daily_mission_xp 
+        WHERE user_id = u.id
+      ) mission_xp ON true
+      WHERE u.is_admin = false
+      ORDER BY total_xp DESC
+      LIMIT ${limit}
+    `);
     
-    // Calculate total XP for each user: lesson XP + weekly bonuses + achievements + missions
-    const usersWithXp = await Promise.all(allUsers.map(async (user) => {
-      // Sum ALL completed lesson XP
-      const [lessonXpResult] = await db.select({
-        totalXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
-      })
-        .from(schema.userLessonProgress)
-        .where(and(
-          eq(schema.userLessonProgress.userId, user.userId),
-          eq(schema.userLessonProgress.status, 'completed')
-        ));
-      
-      // Sum ALL immutable weekly bonuses
-      const [bonusResult] = await db.select({
-        totalBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
-      })
-        .from(schema.weeklyPracticeBonus)
-        .where(eq(schema.weeklyPracticeBonus.userId, user.userId));
-      
-      // Sum ALL immutable achievement XP
-      const [achievementResult] = await db.select({
-        totalAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
-      })
-        .from(schema.achievementXp)
-        .where(eq(schema.achievementXp.userId, user.userId));
-      
-      // Sum ALL immutable daily mission XP (mission XP + bonus XP)
-      const [dailyMissionResult] = await db.select({
-        totalDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
-      })
-        .from(schema.dailyMissionXp)
-        .where(eq(schema.dailyMissionXp.userId, user.userId));
-      
-      // Get profile for streak and level
-      const [profile] = await db.select({
-        currentStreak: schema.studyProfiles.currentStreak,
-        currentLevel: schema.studyProfiles.currentLevel,
-      })
-        .from(schema.studyProfiles)
-        .where(eq(schema.studyProfiles.userId, user.userId))
-        .limit(1);
-      
-      const totalLessonXp = Number(lessonXpResult?.totalXp || 0);
-      const totalBonusXp = Number(bonusResult?.totalBonus || 0);
-      const totalAchievementXp = Number(achievementResult?.totalAchievementXp || 0);
-      const totalDailyMissionXp = Number(dailyMissionResult?.totalDailyMissionXp || 0);
-      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp;
-      
-      return {
-        ...user,
-        totalXp,
-        currentStreak: profile?.currentStreak || 0,
-        currentLevel: profile?.currentLevel || 1,
-      };
-    }));
+    const rows = leaderboardData.rows as any[];
     
-    // Sort by total XP and assign ranks
-    const sortedUsers = usersWithXp
-      .sort((a, b) => b.totalXp - a.totalXp)
-      .slice(0, limit);
-    
-    return sortedUsers.map((p, index) => ({
+    return rows.map((row, index) => ({
       rank: index + 1,
-      userId: p.userId,
-      username: p.fullName || 'Unknown',
-      photoUrl: p.photoUrl,
-      totalXp: p.totalXp,
-      level: p.currentLevel,
-      currentStreak: p.currentStreak,
+      userId: row.user_id,
+      username: row.full_name || 'Unknown',
+      photoUrl: row.photo_url,
+      totalXp: Number(row.total_xp || 0),
+      level: Number(row.current_level || 1),
+      currentStreak: Number(row.current_streak || 0),
     }));
   }
 
-  // Annual leaderboard - REFACTORED: XP from lessons in specific year + immutable weekly bonuses (single source)
+  // Annual leaderboard - OPTIMIZED: Single query with subqueries instead of N+1
   async getAnnualLeaderboard(year: number, limit: number = 50): Promise<any[]> {
-    // Get all non-admin users
-    const allUsers = await db.select({
-      userId: schema.users.id,
-      fullName: schema.users.fullName,
-      photoUrl: schema.users.photoUrl,
-    })
-      .from(schema.users)
-      .where(eq(schema.users.isAdmin, false));
+    // Single optimized query using subqueries for all yearly XP components
+    const leaderboardData = await db.execute(sql`
+      SELECT 
+        u.id as user_id,
+        u.full_name,
+        u.photo_url,
+        COALESCE(sp.current_streak, 0) as current_streak,
+        COALESCE(sp.current_level, 1) as current_level,
+        COALESCE(lesson_xp.total, 0) as lesson_xp,
+        COALESCE(bonus_xp.total, 0) as bonus_xp,
+        COALESCE(achievement_xp.total, 0) as achievement_xp,
+        COALESCE(mission_xp.total, 0) as mission_xp,
+        COALESCE(event_xp.total, 0) as event_xp,
+        (
+          COALESCE(lesson_xp.total, 0) + 
+          COALESCE(bonus_xp.total, 0) + 
+          COALESCE(achievement_xp.total, 0) + 
+          COALESCE(mission_xp.total, 0) +
+          COALESCE(event_xp.total, 0)
+        ) as total_xp
+      FROM users u
+      LEFT JOIN study_profiles sp ON sp.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(ulp.xp_earned), 0) as total 
+        FROM user_lesson_progress ulp
+        INNER JOIN study_lessons sl ON sl.id = ulp.lesson_id
+        WHERE ulp.user_id = u.id AND ulp.status = 'completed'
+        AND EXTRACT(YEAR FROM sl.created_at) = ${year}
+      ) lesson_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(bonus_xp), 0) as total 
+        FROM weekly_practice_bonus 
+        WHERE user_id = u.id
+        AND EXTRACT(YEAR FROM earned_at) = ${year}
+      ) bonus_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_reward), 0) as total 
+        FROM achievement_xp 
+        WHERE user_id = u.id
+        AND EXTRACT(YEAR FROM earned_at) = ${year}
+      ) achievement_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(mission_xp + bonus_xp), 0) as total 
+        FROM daily_mission_xp 
+        WHERE user_id = u.id
+        AND EXTRACT(YEAR FROM earned_at) = ${year}
+      ) mission_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_earned), 0) as total 
+        FROM user_event_progress 
+        WHERE user_id = u.id AND completed = true
+        AND EXTRACT(YEAR FROM completed_at) = ${year}
+      ) event_xp ON true
+      WHERE u.is_admin = false
+      ORDER BY total_xp DESC
+      LIMIT ${limit}
+    `);
     
-    // Calculate XP earned during the specified year for each user: lessons + weekly bonuses
-    const usersWithYearlyXp = await Promise.all(allUsers.map(async (user) => {
-      // Get lesson XP from that year only
-      const [yearlyXpResult] = await db.select({
-        yearlyXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`
-      })
-        .from(schema.userLessonProgress)
-        .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
-        .where(and(
-          eq(schema.userLessonProgress.userId, user.userId),
-          eq(schema.userLessonProgress.status, 'completed'),
-          sql`EXTRACT(YEAR FROM ${schema.studyLessons.createdAt}) = ${year}`
-        ));
-      
-      // Get weekly bonuses earned during that year
-      const [bonusResult] = await db.select({
-        yearlyBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
-      })
-        .from(schema.weeklyPracticeBonus)
-        .where(and(
-          eq(schema.weeklyPracticeBonus.userId, user.userId),
-          sql`EXTRACT(YEAR FROM ${schema.weeklyPracticeBonus.earnedAt}) = ${year}`
-        ));
-      
-      // Get achievement XP earned during that year
-      const [achievementResult] = await db.select({
-        yearlyAchievementXp: sql<number>`COALESCE(SUM(${schema.achievementXp.xpReward}), 0)`
-      })
-        .from(schema.achievementXp)
-        .where(and(
-          eq(schema.achievementXp.userId, user.userId),
-          sql`EXTRACT(YEAR FROM ${schema.achievementXp.earnedAt}) = ${year}`
-        ));
-      
-      // Get daily mission XP earned during that year
-      const [dailyMissionResult] = await db.select({
-        yearlyDailyMissionXp: sql<number>`COALESCE(SUM(${schema.dailyMissionXp.missionXp} + ${schema.dailyMissionXp.bonusXp}), 0)`
-      })
-        .from(schema.dailyMissionXp)
-        .where(and(
-          eq(schema.dailyMissionXp.userId, user.userId),
-          sql`EXTRACT(YEAR FROM ${schema.dailyMissionXp.earnedAt}) = ${year}`
-        ));
-      
-      // Get event XP earned during that year (events count for annual ranking)
-      const [eventXpResult] = await db.select({
-        yearlyEventXp: sql<number>`COALESCE(SUM(${schema.userEventProgress.xpEarned}), 0)`
-      })
-        .from(schema.userEventProgress)
-        .where(and(
-          eq(schema.userEventProgress.userId, user.userId),
-          eq(schema.userEventProgress.completed, true),
-          sql`EXTRACT(YEAR FROM ${schema.userEventProgress.completedAt}) = ${year}`
-        ));
-      
-      // Get profile for streak and level
-      const [profile] = await db.select({
-        currentStreak: schema.studyProfiles.currentStreak,
-        currentLevel: schema.studyProfiles.currentLevel,
-      })
-        .from(schema.studyProfiles)
-        .where(eq(schema.studyProfiles.userId, user.userId))
-        .limit(1);
-      
-      const totalLessonXp = Number(yearlyXpResult?.yearlyXp || 0);
-      const totalBonusXp = Number(bonusResult?.yearlyBonus || 0);
-      const totalAchievementXp = Number(achievementResult?.yearlyAchievementXp || 0);
-      const totalDailyMissionXp = Number(dailyMissionResult?.yearlyDailyMissionXp || 0);
-      const totalEventXp = Number(eventXpResult?.yearlyEventXp || 0);
-      const totalXp = totalLessonXp + totalBonusXp + totalAchievementXp + totalDailyMissionXp + totalEventXp;
-      
-      return {
-        ...user,
-        totalXp,
-        currentStreak: profile?.currentStreak || 0,
-        currentLevel: profile?.currentLevel || 1,
-      };
-    }));
+    const rows = leaderboardData.rows as any[];
     
-    // Sort by XP and limit
-    const sortedUsers = usersWithYearlyXp
-      .sort((a, b) => b.totalXp - a.totalXp)
-      .slice(0, limit);
-    
-    return sortedUsers.map((p, index) => ({
+    return rows.map((row, index) => ({
       rank: index + 1,
-      userId: p.userId,
-      username: p.fullName || 'Unknown',
-      photoUrl: p.photoUrl,
-      totalXp: p.totalXp,
-      level: p.currentLevel,
-      currentStreak: p.currentStreak,
+      userId: row.user_id,
+      username: row.full_name || 'Unknown',
+      photoUrl: row.photo_url,
+      totalXp: Number(row.total_xp || 0),
+      level: Number(row.current_level || 1),
+      currentStreak: Number(row.current_streak || 0),
     }));
   }
 
-  // Season leaderboard - REFACTORED: XP from lessons in season + weekly bonuses earned during season (single source)
+  // Season leaderboard - OPTIMIZED: Single query with subqueries instead of N+1
   async getSeasonLeaderboard(seasonId: number, limit: number = 50): Promise<any[]> {
-    // Get ALL non-admin users
-    const allMembers = await db.select({
-      userId: schema.users.id,
-      fullName: schema.users.fullName,
-      photoUrl: schema.users.photoUrl,
+    // First get season dates for bonus XP calculation
+    const [season] = await db.select({
+      startsAt: schema.seasons.startsAt,
+      endsAt: schema.seasons.endsAt,
     })
-      .from(schema.users)
-      .where(eq(schema.users.isAdmin, false));
+      .from(schema.seasons)
+      .where(eq(schema.seasons.id, seasonId))
+      .limit(1);
     
-    // Calculate XP earned in this season for each member: lessons + weekly bonuses
-    const usersWithProgress = await Promise.all(allMembers.map(async (user) => {
-      // Get XP and lesson count from lessons in this season
-      const [seasonXpResult] = await db.select({
-        seasonXp: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
-        lessonsCompleted: sql<number>`COALESCE(COUNT(*), 0)`,
-      })
-        .from(schema.userLessonProgress)
-        .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
-        .where(and(
-          eq(schema.userLessonProgress.userId, user.userId),
-          eq(schema.userLessonProgress.status, 'completed'),
-          eq(schema.studyLessons.seasonId, seasonId)
-        ));
-      
-      // Get weekly bonuses earned during this season's timeframe
-      const [season] = await db.select({
-        startsAt: schema.seasons.startsAt,
-        endsAt: schema.seasons.endsAt,
-      })
-        .from(schema.seasons)
-        .where(eq(schema.seasons.id, seasonId))
-        .limit(1);
-      
-      let bonusXp = 0;
-      if (season?.startsAt && season?.endsAt) {
-        const [bonusResult] = await db.select({
-          seasonBonus: sql<number>`COALESCE(SUM(${schema.weeklyPracticeBonus.bonusXp}), 0)`
-        })
-          .from(schema.weeklyPracticeBonus)
-          .where(and(
-            eq(schema.weeklyPracticeBonus.userId, user.userId),
-            sql`${schema.weeklyPracticeBonus.earnedAt} BETWEEN ${season.startsAt} AND ${season.endsAt}`
-          ));
-        bonusXp = Number(bonusResult?.seasonBonus || 0);
-      }
-      
-      // Get profile for streak and level
-      const [profile] = await db.select({
-        currentStreak: schema.studyProfiles.currentStreak,
-        currentLevel: schema.studyProfiles.currentLevel,
-      })
-        .from(schema.studyProfiles)
-        .where(eq(schema.studyProfiles.userId, user.userId))
-        .limit(1);
-      
-      const lessonXp = Number(seasonXpResult?.seasonXp || 0);
-      const totalXp = lessonXp + bonusXp;
-      
-      return {
-        userId: user.userId,
-        fullName: user.fullName,
-        photoUrl: user.photoUrl,
-        totalXp,
-        lessonsCompleted: Number(seasonXpResult?.lessonsCompleted || 0),
-        currentStreak: profile?.currentStreak || 0,
-        currentLevel: profile?.currentLevel || 1,
-      };
-    }));
+    // Single optimized query using subqueries for season-specific XP
+    const leaderboardData = await db.execute(sql`
+      SELECT 
+        u.id as user_id,
+        u.full_name,
+        u.photo_url,
+        COALESCE(sp.current_streak, 0) as current_streak,
+        COALESCE(sp.current_level, 1) as current_level,
+        COALESCE(lesson_data.xp, 0) as lesson_xp,
+        COALESCE(lesson_data.count, 0) as lessons_completed,
+        ${season?.startsAt && season?.endsAt ? sql`COALESCE(bonus_xp.total, 0)` : sql`0`} as bonus_xp,
+        (
+          COALESCE(lesson_data.xp, 0) + 
+          ${season?.startsAt && season?.endsAt ? sql`COALESCE(bonus_xp.total, 0)` : sql`0`}
+        ) as total_xp
+      FROM users u
+      LEFT JOIN study_profiles sp ON sp.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT 
+          COALESCE(SUM(ulp.xp_earned), 0) as xp,
+          COUNT(*) as count
+        FROM user_lesson_progress ulp
+        INNER JOIN study_lessons sl ON sl.id = ulp.lesson_id
+        WHERE ulp.user_id = u.id 
+        AND ulp.status = 'completed'
+        AND sl.season_id = ${seasonId}
+      ) lesson_data ON true
+      ${season?.startsAt && season?.endsAt ? sql`
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(bonus_xp), 0) as total 
+          FROM weekly_practice_bonus 
+          WHERE user_id = u.id
+          AND earned_at BETWEEN ${season.startsAt} AND ${season.endsAt}
+        ) bonus_xp ON true
+      ` : sql``}
+      WHERE u.is_admin = false
+      ORDER BY total_xp DESC
+      LIMIT ${limit}
+    `);
     
-    // Sort by XP and limit
-    const sortedUsers = usersWithProgress
-      .sort((a, b) => b.totalXp - a.totalXp)
-      .slice(0, limit);
+    const rows = leaderboardData.rows as any[];
     
-    return sortedUsers.map((p, index) => ({
+    return rows.map((row, index) => ({
       rank: index + 1,
-      userId: p.userId,
-      username: p.fullName || 'Unknown',
-      photoUrl: p.photoUrl,
-      totalXp: p.totalXp,
-      level: p.currentLevel,
-      currentStreak: p.currentStreak,
-      lessonsCompleted: p.lessonsCompleted,
+      userId: row.user_id,
+      username: row.full_name || 'Unknown',
+      photoUrl: row.photo_url,
+      totalXp: Number(row.total_xp || 0),
+      level: Number(row.current_level || 1),
+      currentStreak: Number(row.current_streak || 0),
+      lessonsCompleted: Number(row.lessons_completed || 0),
     }));
   }
 

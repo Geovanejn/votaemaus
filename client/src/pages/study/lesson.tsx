@@ -364,13 +364,16 @@ export default function LessonPage() {
         queryClient.setQueryData<StudyProfile>(['/api/study/profile'], result.profile);
       }
       
-      // Only invalidate what's truly necessary after lesson completion
-      // These are the caches that actually need fresh data:
+      // CRITICAL: Invalidate all caches needed for immediate UI feedback after lesson completion
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks'] }); // Week progress changed
       queryClient.invalidateQueries({ queryKey: ['/api/study/weeks/bulk'] }); // Bulk endpoint
       queryClient.invalidateQueries({ queryKey: ['/api/study/weekly-goal'] }); // Goal progress changed
-      // Note: Removed /api/study/weeks/all, /api/study/practice, /api/study/current-lesson 
-      // as they're either deprecated or not critical for immediate refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/study/current-lesson'] }); // Next lesson unlocked
+      queryClient.invalidateQueries({ queryKey: ['/api/study/seasons'] }); // Season progress updated
+      // Invalidate season detail with array key pattern for proper cache matching
+      if (lessonData?.seasonId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/study/seasons', lessonData.seasonId] });
+      }
       
       const streakInfo = result.streakInfo;
       const previousStreak = previousStreakRef.current;

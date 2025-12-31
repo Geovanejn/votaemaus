@@ -1692,6 +1692,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // IMPORTANT: Bulk endpoint MUST be defined BEFORE /:weekId to avoid route conflict
+  // This solves the N+1 query problem where frontend fetches each week separately
+  app.get("/api/study/weeks/bulk", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Nao autenticado" });
+      }
+      const userId = req.user.id;
+      const weekIds = (req.query.ids as string || '').split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+
+      if (weekIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Fetch all weeks with their lessons in parallel
+      const weekPromises = weekIds.map(async (weekId) => {
+        const week = await storage.getStudyWeekById(weekId);
+        if (!week) return null;
+        const lessons = await storage.getLessonsWithProgress(userId, weekId);
+        return { week, lessons };
+      });
+
+      const results = await Promise.allSettled(weekPromises);
+      const weeksWithLessons = results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+
+      res.json(weeksWithLessons);
+    } catch (error) {
+      console.error("Get bulk weeks error:", error);
+      res.status(500).json({ message: "Erro ao buscar semanas" });
+    }
+  });
+
   // Get a specific study week with lessons
   app.get("/api/study/weeks/:weekId", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -1699,6 +1733,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Nao autenticado" });
       }
       const weekId = parseInt(req.params.weekId);
+      if (isNaN(weekId)) {
+        return res.status(400).json({ message: "ID de semana inválido" });
+      }
       const week = await storage.getStudyWeekById(weekId);
       if (!week) {
         return res.status(404).json({ message: "Semana de estudo não encontrada" });
@@ -2199,40 +2236,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get dashboard error:", error);
       res.status(500).json({ message: "Erro ao buscar dados do dashboard" });
-    }
-  });
-
-  // OPTIMIZED: Bulk weeks endpoint - get multiple weeks with lessons in one request
-  // This solves the N+1 query problem where frontend fetches each week separately
-  app.get("/api/study/weeks/bulk", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
-      }
-      const userId = req.user.id;
-      const weekIds = (req.query.ids as string || '').split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
-
-      if (weekIds.length === 0) {
-        return res.json([]);
-      }
-
-      // Fetch all weeks with their lessons in parallel
-      const weekPromises = weekIds.map(async (weekId) => {
-        const week = await storage.getStudyWeekById(weekId);
-        if (!week) return null;
-        const lessons = await storage.getLessonsWithProgress(userId, weekId);
-        return { week, lessons };
-      });
-
-      const results = await Promise.allSettled(weekPromises);
-      const weeksWithLessons = results
-        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
-        .map(r => r.value);
-
-      res.json(weeksWithLessons);
-    } catch (error) {
-      console.error("Get bulk weeks error:", error);
-      res.status(500).json({ message: "Erro ao buscar semanas" });
     }
   });
 
@@ -5522,13 +5525,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Obter lição atual em progresso do usuário (para "Continue estudando")
+  // OPTIMIZED: Fetch all seasons' lessons in parallel instead of sequential loops
   app.get("/api/study/current-lesson", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const seasons = await storage.getPublishedSeasons();
       
-      for (const season of seasons) {
-        const lessons = await storage.getLessonsWithProgressForSeason(req.user!.id, season.id);
-        
+      if (seasons.length === 0) {
+        return res.json(null);
+      }
+
+      // Fetch all lessons for all seasons in parallel
+      const seasonsWithLessons = await Promise.all(
+        seasons.map(async (season) => ({
+          season,
+          lessons: await storage.getLessonsWithProgressForSeason(req.user!.id, season.id)
+        }))
+      );
+      
+      // Find the first available lesson across all seasons
+      for (const { season, lessons } of seasonsWithLessons) {
         for (let i = 0; i < lessons.length; i++) {
           const lesson = lessons[i];
           const previousLesson = lessons[i - 1];

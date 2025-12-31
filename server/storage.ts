@@ -420,6 +420,7 @@ export interface IStorage {
   
   // Study Event Lessons Methods
   getStudyEventLessons(eventId: number): Promise<StudyEventLesson[]>;
+  getStudyEventLessonsLightweight(eventId: number): Promise<any[]>;
   getStudyEventLessonByDay(eventId: number, dayNumber: number): Promise<StudyEventLesson | null>;
   createStudyEventLesson(data: InsertStudyEventLesson): Promise<StudyEventLesson>;
   updateStudyEventLesson(id: number, data: Partial<InsertStudyEventLesson>): Promise<StudyEventLesson | null>;
@@ -6159,6 +6160,22 @@ export class DatabaseStorage implements IStorage {
 
   async getStudyEventLessons(eventId: number): Promise<StudyEventLesson[]> {
     return db.select()
+      .from(schema.studyEventLessons)
+      .where(eq(schema.studyEventLessons.eventId, eventId))
+      .orderBy(asc(schema.studyEventLessons.dayNumber));
+  }
+
+  // OPTIMIZED: Lightweight lessons for event listing - excludes content and questions
+  async getStudyEventLessonsLightweight(eventId: number): Promise<any[]> {
+    return db.select({
+      id: schema.studyEventLessons.id,
+      eventId: schema.studyEventLessons.eventId,
+      dayNumber: schema.studyEventLessons.dayNumber,
+      title: schema.studyEventLessons.title,
+      verseReference: schema.studyEventLessons.verseReference,
+      xpReward: schema.studyEventLessons.xpReward,
+      status: schema.studyEventLessons.status,
+    })
       .from(schema.studyEventLessons)
       .where(eq(schema.studyEventLessons.eventId, eventId))
       .orderBy(asc(schema.studyEventLessons.dayNumber));

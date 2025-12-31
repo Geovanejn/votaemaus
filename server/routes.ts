@@ -7722,7 +7722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Obter evento por ID com progresso do usuario
+  // Obter evento por ID com progresso do usuario - LIGHTWEIGHT (no content/questions)
   app.get("/api/study/events/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -7735,8 +7735,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event || !validStatuses.includes(event.status)) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
-      const progress = await storage.getUserEventProgress(req.user!.id, id);
-      const lessons = await storage.getStudyEventLessons(id);
+      // Parallel fetch for better performance
+      const [progress, lessons] = await Promise.all([
+        storage.getUserEventProgress(req.user!.id, id),
+        storage.getStudyEventLessonsLightweight(id), // OPTIMIZED: excludes content/questions
+      ]);
       res.json({ event, lessons, progress });
     } catch (error) {
       console.error("Get event details error:", error);

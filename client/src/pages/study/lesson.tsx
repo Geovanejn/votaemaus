@@ -1015,13 +1015,14 @@ export default function LessonPage() {
     const MEDITE_FIXED_XP = 50;
     const meditateUnits = allUnits.filter(u => u.stage === 'medite');
     
-    for (const unit of meditateUnits) {
-      try {
-        await completeUnitMutation.mutateAsync(unit.id);
-      } catch (error) {
-        console.error("Error completing meditate unit:", error);
-      }
-    }
+    // Complete all meditate units in parallel for faster completion
+    await Promise.all(
+      meditateUnits.map(unit => 
+        completeUnitMutation.mutateAsync(unit.id).catch(error => {
+          console.error("Error completing meditate unit:", error);
+        })
+      )
+    );
     
     // Add fixed XP for completing Medite section
     try {
@@ -1226,13 +1227,14 @@ export default function LessonPage() {
   const handleStudyComplete = async () => {
     const ESTUDE_FIXED_XP = 50;
     
-    for (const unit of studyUnits) {
-      try {
-        await completeUnitMutation.mutateAsync(unit.id);
-      } catch (error) {
-        console.error("Error completing study unit:", error);
-      }
-    }
+    // Complete all study units in parallel for faster completion
+    await Promise.all(
+      studyUnits.map(unit => 
+        completeUnitMutation.mutateAsync(unit.id).catch(error => {
+          console.error("Error completing study unit:", error);
+        })
+      )
+    );
     
     // Add fixed XP for completing Estude section
     try {

@@ -169,7 +169,7 @@ export function RespondaScreen({
       } else {
         setCurrentIndex(nextIndex);
       }
-    }, 1500);
+    }, 1000);
   };
 
   if (!currentQuestion) return null;

@@ -5582,12 +5582,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Listar temporadas publicadas (usuário autenticado) com progresso
+  // OPTIMIZED: Batch fetch all season progress in single query instead of N+1
   app.get("/api/study/seasons", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const seasons = await storage.getPublishedSeasons();
       
-      const seasonsWithProgress = await Promise.all(seasons.map(async (season) => {
-        const progress = await storage.getUserSeasonProgress(req.user!.id, season.id);
+      // Batch fetch all progress in one query
+      const seasonIds = seasons.map(s => s.id);
+      const progressMap = await storage.getUserSeasonProgressBatch(req.user!.id, seasonIds);
+      
+      const seasonsWithProgress = seasons.map((season) => {
+        const progress = progressMap.get(season.id) || null;
         const lessonsCompleted = progress?.lessonsCompleted || 0;
         const totalLessons = season.totalLessons || 0;
         const isCompleted = totalLessons > 0 && lessonsCompleted >= totalLessons;
@@ -5602,7 +5607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completedAt: progress.completedAt
           } : null
         };
-      }));
+      });
       
       res.json(seasonsWithProgress);
     } catch (error) {

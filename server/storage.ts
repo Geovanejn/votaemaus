@@ -4466,6 +4466,24 @@ export class DatabaseStorage implements IStorage {
     return progress || null;
   }
 
+  // OPTIMIZED: Batch fetch season progress for multiple seasons (avoids N+1)
+  async getUserSeasonProgressBatch(userId: number, seasonIds: number[]): Promise<Map<number, schema.UserSeasonProgress>> {
+    if (seasonIds.length === 0) return new Map();
+    
+    const progressList = await db.select().from(schema.userSeasonProgress)
+      .where(and(
+        eq(schema.userSeasonProgress.userId, userId),
+        inArray(schema.userSeasonProgress.seasonId, seasonIds)
+      ));
+    
+    const progressBySeasonId = new Map<number, schema.UserSeasonProgress>();
+    for (const p of progressList) {
+      progressBySeasonId.set(p.seasonId, p);
+    }
+    
+    return progressBySeasonId;
+  }
+
   async updateUserSeasonProgress(userId: number, seasonId: number, data: Partial<schema.InsertUserSeasonProgress>): Promise<schema.UserSeasonProgress> {
     const existing = await this.getUserSeasonProgress(userId, seasonId);
     

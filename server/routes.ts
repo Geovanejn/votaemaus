@@ -36,6 +36,14 @@ import {
   insertSiteEventSchema,
   insertSeasonSchema,
   calculateCardRarity,
+  // Update schemas for secure partial updates
+  updateBannerSchema,
+  updateBoardMemberSchema,
+  updateSiteEventSchema,
+  updateSeasonSchema,
+  updateStudyEventSchema,
+  updateStudyEventLessonSchema,
+  updateCollectibleCardSchema,
 } from "@shared/schema";
 import { z, ZodError } from "zod";
 
@@ -4850,11 +4858,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      // Validate that body is a non-empty object
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateBoardMemberSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
-      const updated = await storage.updateBoardMember(id, req.body);
+      
+      const updated = await storage.updateBoardMember(id, validatedData);
       if (!updated) {
         return res.status(404).json({ message: "Membro nao encontrado" });
       }
@@ -4864,6 +4876,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update board member error:", error);
       res.status(500).json({ message: "Erro ao atualizar membro da diretoria" });
     }
@@ -5054,15 +5069,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateSiteEventSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
       
       // Check if event is being published (was not published, now is)
       const existingEvent = await storage.getSiteEventById(id);
       const wasPublished = existingEvent?.isPublished;
       
-      const updated = await storage.updateSiteEvent(id, req.body);
+      const updated = await storage.updateSiteEvent(id, validatedData);
       if (!updated) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
@@ -5079,6 +5098,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update event error:", error);
       res.status(500).json({ message: "Erro ao atualizar evento" });
     }
@@ -5319,10 +5341,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateBannerSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
-      const updated = await storage.updateBanner(id, req.body);
+      
+      const updated = await storage.updateBanner(id, validatedData);
       if (!updated) {
         return res.status(404).json({ message: "Banner nao encontrado" });
       }
@@ -5332,6 +5359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update banner error:", error);
       res.status(500).json({ message: "Erro ao atualizar banner" });
     }
@@ -6056,15 +6086,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar temporada
   app.post("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
-      }
+      // Validate with insert schema (omitting createdBy which is set server-side)
+      const validatedData = insertSeasonSchema.omit({ createdBy: true }).parse(req.body);
+      
       const season = await storage.createSeason({
-        ...req.body,
+        ...validatedData,
         createdBy: req.user!.id
       });
       res.status(201).json(season);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Create season error:", error);
       res.status(500).json({ message: "Erro ao criar temporada" });
     }
@@ -6077,16 +6110,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(seasonId)) {
         return res.status(400).json({ message: "ID inválido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateSeasonSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
 
-      const season = await storage.updateSeason(seasonId, req.body);
+      const season = await storage.updateSeason(seasonId, validatedData);
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
       res.json(season);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update season error:", error);
       res.status(500).json({ message: "Erro ao atualizar temporada" });
     }
@@ -7203,17 +7243,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateStudyEventSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
       
       // Check if status is being changed to 'published'
       const previousEvent = await storage.getStudyEventById(id);
       const isBeingPublished = previousEvent && 
         previousEvent.status !== 'published' && 
-        req.body.status === 'published';
+        validatedData.status === 'published';
       
-      const event = await storage.updateStudyEvent(id, req.body);
+      const event = await storage.updateStudyEvent(id, validatedData);
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
@@ -7227,6 +7271,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
       res.json(event);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update study event error:", error);
       res.status(500).json({ message: "Erro ao atualizar evento" });
     }
@@ -7509,15 +7556,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(lessonId)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateStudyEventLessonSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
-      const lesson = await storage.updateStudyEventLesson(lessonId, req.body);
+      
+      const lesson = await storage.updateStudyEventLesson(lessonId, validatedData);
       if (!lesson) {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
       res.json(lesson);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update event lesson error:", error);
       res.status(500).json({ message: "Erro ao atualizar licao" });
     }
@@ -7636,16 +7691,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
-      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      
+      // Validate with dedicated update schema (strict mode rejects unknown fields)
+      const validatedData = updateCollectibleCardSchema.parse(req.body);
+      
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
-      const card = await storage.updateCollectibleCard(id, req.body);
+      
+      const card = await storage.updateCollectibleCard(id, validatedData);
       if (!card) {
         return res.status(404).json({ message: "Card nao encontrado" });
       }
       await logAuditAction(req.user?.id, "update", "collectible_card", id, `Card atualizado: ${card.name}`, req);
       res.json(card);
     } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Update card error:", error);
       res.status(500).json({ message: "Erro ao atualizar card" });
     }

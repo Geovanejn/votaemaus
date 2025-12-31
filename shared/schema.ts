@@ -447,7 +447,27 @@ export const insertSiteEventSchema = createInsertSchema(siteEvents).omit({
   updatedAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateSiteEventSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().nullable().optional(),
+  shortDescription: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().nullable().optional(),
+  time: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  locationUrl: z.string().nullable().optional(),
+  price: z.string().nullable().optional(),
+  registrationUrl: z.string().nullable().optional(),
+  category: z.string().optional(),
+  isPublished: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  isAllDay: z.boolean().optional(),
+}).strict();
+
 export type InsertSiteEvent = z.infer<typeof insertSiteEventSchema>;
+export type UpdateSiteEvent = z.infer<typeof updateSiteEventSchema>;
 export type SiteEvent = typeof siteEvents.$inferSelect;
 
 // ==================== POSTS INSTAGRAM ====================
@@ -617,7 +637,22 @@ export const insertBannerSchema = createInsertSchema(banners).omit({
   updatedAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateBannerSchema = z.object({
+  title: z.string().optional(),
+  subtitle: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  backgroundColor: z.string().nullable().optional(),
+  linkUrl: z.string().nullable().optional(),
+  linkText: z.string().nullable().optional(),
+  orderIndex: z.number().optional(),
+  isActive: z.boolean().optional(),
+  startsAt: z.coerce.date().nullable().optional(),
+  endsAt: z.coerce.date().nullable().optional(),
+}).strict();
+
 export type InsertBanner = z.infer<typeof insertBannerSchema>;
+export type UpdateBanner = z.infer<typeof updateBannerSchema>;
 export type Banner = typeof banners.$inferSelect;
 
 // ==================== MEMBROS DA DIRETORIA ====================
@@ -647,7 +682,23 @@ export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({
   updatedAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateBoardMemberSchema = z.object({
+  userId: z.number().nullable().optional(),
+  name: z.string().optional(),
+  position: z.string().optional(),
+  photoUrl: z.string().nullable().optional(),
+  instagram: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  termStart: z.string().optional(),
+  termEnd: z.string().optional(),
+  orderIndex: z.number().optional(),
+  isCurrent: z.boolean().optional(),
+}).strict();
+
 export type InsertBoardMember = z.infer<typeof insertBoardMemberSchema>;
+export type UpdateBoardMember = z.infer<typeof updateBoardMemberSchema>;
 export type BoardMember = typeof boardMembers.$inferSelect;
 
 // ==================== CONTEUDO DO SITE ====================
@@ -848,7 +899,27 @@ export const insertSeasonSchema = createInsertSchema(seasons).omit({
   updatedAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH/PUT
+export const updateSeasonSchema = z.object({
+  title: z.string().optional(),
+  subtitle: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  pdfUrl: z.string().nullable().optional(),
+  aiExtractedTitle: z.string().nullable().optional(),
+  status: z.enum(["draft", "processing", "published", "archived"]).optional(),
+  isLocked: z.boolean().optional(),
+  isEnded: z.boolean().optional(),
+  endedAt: z.coerce.date().nullable().optional(),
+  totalLessons: z.number().optional(),
+  publishedAt: z.coerce.date().nullable().optional(),
+  startsAt: z.coerce.date().nullable().optional(),
+  endsAt: z.coerce.date().nullable().optional(),
+  aiMetadata: z.string().nullable().optional(),
+}).strict();
+
 export type InsertSeason = z.infer<typeof insertSeasonSchema>;
+export type UpdateSeason = z.infer<typeof updateSeasonSchema>;
 export type Season = typeof seasons.$inferSelect;
 
 // ==================== DESAFIO FINAL DA TEMPORADA ====================
@@ -1777,7 +1848,19 @@ export const insertCollectibleCardSchema = createInsertSchema(collectibleCards).
   createdAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateCollectibleCardSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  category: z.string().optional(),
+  themeColor: z.string().nullable().optional(),
+  availableRarities: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
+}).strict();
+
 export type InsertCollectibleCard = z.infer<typeof insertCollectibleCardSchema>;
+export type UpdateCollectibleCard = z.infer<typeof updateCollectibleCardSchema>;
 export type CollectibleCard = typeof collectibleCards.$inferSelect;
 
 // Eventos Especiais DeoGlory
@@ -1805,7 +1888,23 @@ export const insertStudyEventSchema = createInsertSchema(studyEvents).omit({
   updatedAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateStudyEventSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().nullable().optional(),
+  theme: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  status: z.enum(["draft", "published", "ended"]).optional(),
+  forceUnlock: z.boolean().optional(),
+  cardId: z.number().nullable().optional(),
+  lessonsCount: z.number().optional(),
+  xpMultiplier: z.number().optional(),
+}).strict();
+
 export type InsertStudyEvent = z.infer<typeof insertStudyEventSchema>;
+export type UpdateStudyEvent = z.infer<typeof updateStudyEventSchema>;
 export type StudyEvent = typeof studyEvents.$inferSelect;
 
 // Lições de Eventos Especiais
@@ -1830,7 +1929,20 @@ export const insertStudyEventLessonSchema = createInsertSchema(studyEventLessons
   createdAt: true,
 });
 
+// Update schema - whitelist of allowed fields for PATCH
+export const updateStudyEventLessonSchema = z.object({
+  dayNumber: z.number().optional(),
+  title: z.string().optional(),
+  content: z.string().optional(),
+  verseReference: z.string().nullable().optional(),
+  verseText: z.string().nullable().optional(),
+  questions: z.any().optional(), // jsonb type
+  xpReward: z.number().optional(),
+  status: z.enum(["draft", "released"]).optional(),
+}).strict();
+
 export type InsertStudyEventLesson = z.infer<typeof insertStudyEventLessonSchema>;
+export type UpdateStudyEventLesson = z.infer<typeof updateStudyEventLessonSchema>;
 export type StudyEventLesson = typeof studyEventLessons.$inferSelect;
 
 // Progresso do usuário em eventos

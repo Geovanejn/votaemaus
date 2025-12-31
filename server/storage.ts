@@ -207,6 +207,7 @@ export interface IStorage {
   getOrCreateStudyProfile(userId: number): Promise<any>;
   updateStudyProfile(userId: number, data: Partial<{ dailyVerseReadDate: string }>): Promise<void>;
   getPublishedStudyWeeks(): Promise<any[]>;
+  getWeeksWithLessonsBulkOptimized(userId: number, weekIds: number[]): Promise<any[]>;
   getLessonsWithProgress(userId: number, weekId: number): Promise<any[]>;
   getUserLessonProgress(userId: number, lessonId: number): Promise<any | null>;
   startLesson(userId: number, lessonId: number): Promise<any>;
@@ -329,6 +330,12 @@ export interface IStorage {
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(filters?: { userId?: number; resource?: string; limit?: number }): Promise<AuditLog[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
+  
+  // Current Lesson Optimized
+  getCurrentLessonOptimized(userId: number): Promise<{
+    lesson: { id: number; lessonNumber: number; title: string; sectionsCompleted: number; totalSections: number; status: string };
+    season: { id: number; title: string };
+  } | null>;
   
   // Season Methods
   getAllSeasons(): Promise<schema.Season[]>;
@@ -2029,6 +2036,142 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(schema.studyWeeks)
       .where(eq(schema.studyWeeks.status, 'published'))
       .orderBy(desc(schema.studyWeeks.year), desc(schema.studyWeeks.weekNumber));
+  }
+
+  // OPTIMIZED: Bulk fetch weeks with lessons - batch queries with full payload
+  async getWeeksWithLessonsBulkOptimized(userId: number, weekIds: number[]): Promise<any[]> {
+    if (weekIds.length === 0) return [];
+    
+    // Batch fetch all weeks (full data)
+    const weeks = await db.select().from(schema.studyWeeks)
+      .where(inArray(schema.studyWeeks.id, weekIds));
+    
+    if (weeks.length === 0) return [];
+    
+    // Batch fetch all lessons for all weeks with progress (full fields)
+    const lessonsWithProgress = await db.select({
+      id: schema.studyLessons.id,
+      studyWeekId: schema.studyLessons.studyWeekId,
+      orderIndex: schema.studyLessons.orderIndex,
+      title: schema.studyLessons.title,
+      type: schema.studyLessons.type,
+      description: schema.studyLessons.description,
+      xpReward: schema.studyLessons.xpReward,
+      estimatedMinutes: schema.studyLessons.estimatedMinutes,
+      icon: schema.studyLessons.icon,
+      isBonus: schema.studyLessons.isBonus,
+      isLocked: schema.studyLessons.isLocked,
+      unlockDate: schema.studyLessons.unlockDate,
+      seasonId: schema.studyLessons.seasonId,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      isReleased: schema.studyLessons.isReleased,
+      progressStatus: schema.userLessonProgress.status,
+      progressXpEarned: schema.userLessonProgress.xpEarned,
+      progressPerfectScore: schema.userLessonProgress.perfectScore,
+    })
+      .from(schema.studyLessons)
+      .leftJoin(
+        schema.userLessonProgress,
+        and(
+          eq(schema.userLessonProgress.lessonId, schema.studyLessons.id),
+          eq(schema.userLessonProgress.userId, userId)
+        )
+      )
+      .where(inArray(schema.studyLessons.studyWeekId, weekIds))
+      .orderBy(asc(schema.studyLessons.orderIndex));
+    
+    // Batch fetch all units for all lessons
+    const lessonIds = lessonsWithProgress.map(l => l.id);
+    let unitsByLessonId = new Map<number, { id: number; stage: string | null; type: string | null }[]>();
+    let unitProgressByUnitId = new Map<number, { isCompleted: boolean; isCorrect: boolean | null }>();
+    
+    if (lessonIds.length > 0) {
+      const allUnits = await db.select({
+        id: schema.studyUnits.id,
+        lessonId: schema.studyUnits.lessonId,
+        stage: schema.studyUnits.stage,
+        type: schema.studyUnits.type,
+      }).from(schema.studyUnits)
+        .where(inArray(schema.studyUnits.lessonId, lessonIds));
+      
+      for (const unit of allUnits) {
+        if (!unitsByLessonId.has(unit.lessonId)) {
+          unitsByLessonId.set(unit.lessonId, []);
+        }
+        unitsByLessonId.get(unit.lessonId)!.push({ id: unit.id, stage: unit.stage, type: unit.type });
+      }
+      
+      // Batch fetch unit progress
+      const allUnitIds = allUnits.map(u => u.id);
+      if (allUnitIds.length > 0) {
+        const allProgress = await db.select({
+          unitId: schema.userUnitProgress.unitId,
+          isCompleted: schema.userUnitProgress.isCompleted,
+          isCorrect: schema.userUnitProgress.isCorrect,
+        }).from(schema.userUnitProgress)
+          .where(and(
+            eq(schema.userUnitProgress.userId, userId),
+            inArray(schema.userUnitProgress.unitId, allUnitIds)
+          ));
+        
+        for (const p of allProgress) {
+          unitProgressByUnitId.set(p.unitId, { isCompleted: p.isCompleted, isCorrect: p.isCorrect });
+        }
+      }
+    }
+    
+    // Group lessons by weekId with calculated progress
+    const lessonsByWeekId = new Map<number, any[]>();
+    for (const lesson of lessonsWithProgress) {
+      const units = unitsByLessonId.get(lesson.id) || [];
+      
+      // Calculate sections progress
+      let sectionsCompleted = 0;
+      let totalSections = units.length;
+      
+      for (const unit of units) {
+        const progress = unitProgressByUnitId.get(unit.id);
+        if (progress?.isCompleted) sectionsCompleted++;
+      }
+      
+      // Derive correct status: if no progress but lesson is unlocked, status is 'available'
+      let status = lesson.progressStatus;
+      if (!status) {
+        status = lesson.isLocked ? 'locked' : 'available';
+      }
+      
+      if (!lessonsByWeekId.has(lesson.studyWeekId!)) {
+        lessonsByWeekId.set(lesson.studyWeekId!, []);
+      }
+      lessonsByWeekId.get(lesson.studyWeekId!)!.push({
+        id: lesson.id,
+        studyWeekId: lesson.studyWeekId,
+        orderIndex: lesson.orderIndex,
+        title: lesson.title,
+        type: lesson.type,
+        description: lesson.description,
+        xpReward: lesson.xpReward,
+        estimatedMinutes: lesson.estimatedMinutes,
+        icon: lesson.icon,
+        isBonus: lesson.isBonus,
+        isLocked: lesson.isLocked,
+        unlockDate: lesson.unlockDate,
+        seasonId: lesson.seasonId,
+        lessonNumber: lesson.lessonNumber,
+        isReleased: lesson.isReleased,
+        status,
+        xpEarned: lesson.progressXpEarned || 0,
+        perfectScore: lesson.progressPerfectScore || false,
+        sectionsCompleted,
+        totalSections,
+      });
+    }
+    
+    // Build final result
+    return weeks.map(week => ({
+      week,
+      lessons: lessonsByWeekId.get(week.id) || [],
+    }));
   }
 
   async getLessonsWithProgress(userId: number, weekId: number): Promise<any[]> {
@@ -4038,6 +4181,108 @@ export class DatabaseStorage implements IStorage {
     return query
       .orderBy(desc(schema.auditLogs.createdAt))
       .limit(filters?.limit || 100);
+  }
+
+  // ==================== CURRENT LESSON OPTIMIZED ====================
+  
+  // OPTIMIZED: Single SQL query to find current lesson instead of loading all lessons + JavaScript loop
+  async getCurrentLessonOptimized(userId: number): Promise<{
+    lesson: { id: number; lessonNumber: number; title: string; sectionsCompleted: number; totalSections: number; status: string };
+    season: { id: number; title: string };
+  } | null> {
+    // Get all published seasons ordered by publishedAt
+    const seasons = await db.select({
+      id: schema.seasons.id,
+      title: schema.seasons.title,
+    }).from(schema.seasons)
+      .where(eq(schema.seasons.status, "published"))
+      .orderBy(asc(schema.seasons.publishedAt));
+    
+    if (seasons.length === 0) return null;
+    
+    const seasonIds = seasons.map(s => s.id);
+    
+    // Get all lessons from published seasons with their progress in one query
+    const lessonsWithProgress = await db.select({
+      id: schema.studyLessons.id,
+      seasonId: schema.studyLessons.seasonId,
+      orderIndex: schema.studyLessons.orderIndex,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      title: schema.studyLessons.title,
+      isLocked: schema.studyLessons.isLocked,
+      progressStatus: schema.userLessonProgress.status,
+    })
+      .from(schema.studyLessons)
+      .leftJoin(
+        schema.userLessonProgress,
+        and(
+          eq(schema.userLessonProgress.lessonId, schema.studyLessons.id),
+          eq(schema.userLessonProgress.userId, userId)
+        )
+      )
+      .where(inArray(schema.studyLessons.seasonId, seasonIds))
+      .orderBy(asc(schema.studyLessons.seasonId), asc(schema.studyLessons.orderIndex));
+    
+    if (lessonsWithProgress.length === 0) return null;
+    
+    // Group lessons by seasonId for efficient lookup
+    const lessonsBySeasonId = new Map<number, typeof lessonsWithProgress>();
+    for (const lesson of lessonsWithProgress) {
+      if (!lessonsBySeasonId.has(lesson.seasonId!)) {
+        lessonsBySeasonId.set(lesson.seasonId!, []);
+      }
+      lessonsBySeasonId.get(lesson.seasonId!)!.push(lesson);
+    }
+    
+    // Find first available lesson across all seasons (in order)
+    for (const season of seasons) {
+      const lessons = lessonsBySeasonId.get(season.id) || [];
+      
+      for (let i = 0; i < lessons.length; i++) {
+        const lesson = lessons[i];
+        const previousLesson = lessons[i - 1];
+        const previousCompleted = i === 0 || previousLesson?.progressStatus === 'completed';
+        // Derive correct status: if no progress but lesson is unlocked, status is 'available'
+        const status = lesson.progressStatus || (lesson.isLocked ? 'locked' : 'available');
+        
+        if (status !== 'completed' && previousCompleted && !lesson.isLocked) {
+          // Get unit counts for this specific lesson
+          const units = await db.select({ id: schema.studyUnits.id })
+            .from(schema.studyUnits)
+            .where(eq(schema.studyUnits.lessonId, lesson.id));
+          
+          const unitIds = units.map(u => u.id);
+          let completedCount = 0;
+          if (unitIds.length > 0) {
+            const completed = await db.select({ unitId: schema.userUnitProgress.unitId })
+              .from(schema.userUnitProgress)
+              .where(and(
+                eq(schema.userUnitProgress.userId, userId),
+                eq(schema.userUnitProgress.isCompleted, true),
+                inArray(schema.userUnitProgress.unitId, unitIds)
+              ));
+            completedCount = completed.length;
+          }
+          
+          return {
+            lesson: {
+              id: lesson.id,
+              lessonNumber: lesson.lessonNumber || (lesson.orderIndex + 1),
+              title: lesson.title,
+              sectionsCompleted: completedCount,
+              totalSections: units.length,
+              status,
+            },
+            season: {
+              id: season.id,
+              title: season.title,
+            }
+          };
+        }
+      }
+    }
+    
+    return null;
   }
 
   // ==================== SEASON METHODS ====================

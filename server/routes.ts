@@ -1708,7 +1708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // IMPORTANT: Bulk endpoint MUST be defined BEFORE /:weekId to avoid route conflict
-  // This solves the N+1 query problem where frontend fetches each week separately
+  // OPTIMIZED: Batch queries with data projection - 2 SQL queries instead of N+1
   app.get("/api/study/weeks/bulk", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -1721,19 +1721,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      // Fetch all weeks with their lessons in parallel
-      const weekPromises = weekIds.map(async (weekId) => {
-        const week = await storage.getStudyWeekById(weekId);
-        if (!week) return null;
-        const lessons = await storage.getLessonsWithProgress(userId, weekId);
-        return { week, lessons };
-      });
-
-      const results = await Promise.allSettled(weekPromises);
-      const weeksWithLessons = results
-        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
-        .map(r => r.value);
-
+      // Optimized: single batch method with minimal data projection
+      const weeksWithLessons = await storage.getWeeksWithLessonsBulkOptimized(userId, weekIds);
       res.json(weeksWithLessons);
     } catch (error) {
       console.error("Get bulk weeks error:", error);
@@ -5531,50 +5520,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Obter lição atual em progresso do usuário (para "Continue estudando")
-  // OPTIMIZED: Fetch all seasons' lessons in parallel instead of sequential loops
+  // OPTIMIZED: Single method with minimal SQL queries instead of loading all lessons
   app.get("/api/study/current-lesson", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const seasons = await storage.getPublishedSeasons();
-      
-      if (seasons.length === 0) {
-        return res.json(null);
-      }
-
-      // Fetch all lessons for all seasons in parallel
-      const seasonsWithLessons = await Promise.all(
-        seasons.map(async (season) => ({
-          season,
-          lessons: await storage.getLessonsWithProgressForSeason(req.user!.id, season.id)
-        }))
-      );
-      
-      // Find the first available lesson across all seasons
-      for (const { season, lessons } of seasonsWithLessons) {
-        for (let i = 0; i < lessons.length; i++) {
-          const lesson = lessons[i];
-          const previousLesson = lessons[i - 1];
-          const previousCompleted = i === 0 || previousLesson?.status === 'completed';
-          
-          if (lesson.status !== 'completed' && previousCompleted && !lesson.isLocked) {
-            return res.json({
-              lesson: {
-                id: lesson.id,
-                lessonNumber: lesson.lessonNumber || (lesson.orderIndex + 1),
-                title: lesson.title,
-                sectionsCompleted: lesson.sectionsCompleted || 0,
-                totalSections: lesson.totalSections || 3,
-                status: lesson.status
-              },
-              season: {
-                id: season.id,
-                title: season.title
-              }
-            });
-          }
-        }
-      }
-      
-      res.json(null);
+      const result = await storage.getCurrentLessonOptimized(req.user!.id);
+      res.json(result);
     } catch (error) {
       console.error("Get current lesson error:", error);
       res.status(500).json({ message: "Erro ao buscar lição atual" });

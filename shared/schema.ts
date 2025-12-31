@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, integer, text, boolean, unique, timestamp, real, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, unique, timestamp, real, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import crypto from "crypto";
@@ -1255,6 +1255,9 @@ export const userLessonProgress = pgTable("user_lesson_progress", {
   timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
 }, (table) => ({
   uniqueUserLesson: unique().on(table.userId, table.lessonId),
+  userIdIdx: index("user_lesson_progress_user_id_idx").on(table.userId),
+  userStatusIdx: index("user_lesson_progress_user_status_idx").on(table.userId, table.status),
+  completedAtIdx: index("user_lesson_progress_completed_at_idx").on(table.completedAt),
 }));
 
 export const insertUserLessonProgressSchema = createInsertSchema(userLessonProgress).omit({
@@ -1275,6 +1278,8 @@ export const userUnitProgress = pgTable("user_unit_progress", {
   completedAt: timestamp("completed_at"),
 }, (table) => ({
   uniqueUserUnit: unique().on(table.userId, table.unitId),
+  userIdIdx: index("user_unit_progress_user_id_idx").on(table.userId),
+  userCompletedIdx: index("user_unit_progress_user_completed_idx").on(table.userId, table.isCompleted),
 }));
 
 export const insertUserUnitProgressSchema = createInsertSchema(userUnitProgress).omit({
@@ -1308,7 +1313,10 @@ export const xpTransactions = pgTable("xp_transactions", {
   sourceId: integer("source_id"),
   description: text("description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  userIdIdx: index("xp_transactions_user_id_idx").on(table.userId),
+  userCreatedAtIdx: index("xp_transactions_user_created_at_idx").on(table.userId, table.createdAt),
+}));
 
 export const insertXpTransactionSchema = createInsertSchema(xpTransactions).omit({
   id: true,
@@ -1440,6 +1448,7 @@ export const userDailyMissions = pgTable("user_daily_missions", {
   xpAwarded: integer("xp_awarded").notNull().default(0),
 }, (table) => ({
   uniqueUserMissionDate: unique().on(table.userId, table.missionId, table.assignedDate),
+  userDateIdx: index("user_daily_missions_user_date_idx").on(table.userId, table.assignedDate),
 }));
 
 export const insertUserDailyMissionSchema = createInsertSchema(userDailyMissions).omit({

@@ -6,6 +6,7 @@ import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler,
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
 import cors from "cors";
+import compression from "compression";
 import path from "path";
 
 async function seedAchievementsAndVerses() {
@@ -125,6 +126,19 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(cors());
+
+// HTTP compression (gzip/brotli) - reduces JSON payload size significantly
+app.use(compression({
+  level: 6, // Balanced compression level (1-9)
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Compress JSON and text responses
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 
 app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
 

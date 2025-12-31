@@ -2038,36 +2038,38 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(schema.studyWeeks.year), desc(schema.studyWeeks.weekNumber));
   }
 
-  // OPTIMIZED: Bulk fetch weeks with lessons - batch queries with full payload
+  // OPTIMIZED: Bulk fetch weeks with lessons - LIGHTWEIGHT payload for listing
+  // Heavy content (content, markdown, description, units) loaded on-demand via GET /lessons/:id
   async getWeeksWithLessonsBulkOptimized(userId: number, weekIds: number[]): Promise<any[]> {
     if (weekIds.length === 0) return [];
     
-    // Batch fetch all weeks (full data)
-    const weeks = await db.select().from(schema.studyWeeks)
+    // Batch fetch weeks (lightweight - only essential fields)
+    const weeks = await db.select({
+      id: schema.studyWeeks.id,
+      weekNumber: schema.studyWeeks.weekNumber,
+      year: schema.studyWeeks.year,
+      title: schema.studyWeeks.title,
+      status: schema.studyWeeks.status,
+    }).from(schema.studyWeeks)
       .where(inArray(schema.studyWeeks.id, weekIds));
     
     if (weeks.length === 0) return [];
     
-    // Batch fetch all lessons for all weeks with progress (full fields)
+    // Batch fetch lessons with progress - LIGHTWEIGHT fields only
+    // Excludes: content, markdown, description, videoUrl (heavy fields)
     const lessonsWithProgress = await db.select({
       id: schema.studyLessons.id,
       studyWeekId: schema.studyLessons.studyWeekId,
       orderIndex: schema.studyLessons.orderIndex,
       title: schema.studyLessons.title,
-      type: schema.studyLessons.type,
-      description: schema.studyLessons.description,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      icon: schema.studyLessons.icon,
       xpReward: schema.studyLessons.xpReward,
       estimatedMinutes: schema.studyLessons.estimatedMinutes,
-      icon: schema.studyLessons.icon,
-      isBonus: schema.studyLessons.isBonus,
       isLocked: schema.studyLessons.isLocked,
-      unlockDate: schema.studyLessons.unlockDate,
+      isBonus: schema.studyLessons.isBonus,
       seasonId: schema.studyLessons.seasonId,
-      lessonNumber: schema.studyLessons.lessonNumber,
-      isReleased: schema.studyLessons.isReleased,
       progressStatus: schema.userLessonProgress.status,
-      progressXpEarned: schema.userLessonProgress.xpEarned,
-      progressPerfectScore: schema.userLessonProgress.perfectScore,
     })
       .from(schema.studyLessons)
       .leftJoin(
@@ -2080,61 +2082,58 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(schema.studyLessons.studyWeekId, weekIds))
       .orderBy(asc(schema.studyLessons.orderIndex));
     
-    // Batch fetch all units for all lessons
+    // Batch fetch unit COUNTS only (not full unit data)
     const lessonIds = lessonsWithProgress.map(l => l.id);
-    let unitsByLessonId = new Map<number, { id: number; stage: string | null; type: string | null }[]>();
-    let unitProgressByUnitId = new Map<number, { isCompleted: boolean; isCorrect: boolean | null }>();
+    let unitCountByLessonId = new Map<number, number>();
+    let completedCountByLessonId = new Map<number, number>();
     
     if (lessonIds.length > 0) {
+      // Get unit IDs grouped by lesson for counting
       const allUnits = await db.select({
         id: schema.studyUnits.id,
         lessonId: schema.studyUnits.lessonId,
-        stage: schema.studyUnits.stage,
-        type: schema.studyUnits.type,
       }).from(schema.studyUnits)
         .where(inArray(schema.studyUnits.lessonId, lessonIds));
       
+      // Count units per lesson
       for (const unit of allUnits) {
-        if (!unitsByLessonId.has(unit.lessonId)) {
-          unitsByLessonId.set(unit.lessonId, []);
-        }
-        unitsByLessonId.get(unit.lessonId)!.push({ id: unit.id, stage: unit.stage, type: unit.type });
+        unitCountByLessonId.set(unit.lessonId, (unitCountByLessonId.get(unit.lessonId) || 0) + 1);
       }
       
-      // Batch fetch unit progress
+      // Batch fetch completed unit counts
       const allUnitIds = allUnits.map(u => u.id);
       if (allUnitIds.length > 0) {
-        const allProgress = await db.select({
+        const completedProgress = await db.select({
           unitId: schema.userUnitProgress.unitId,
-          isCompleted: schema.userUnitProgress.isCompleted,
-          isCorrect: schema.userUnitProgress.isCorrect,
         }).from(schema.userUnitProgress)
           .where(and(
             eq(schema.userUnitProgress.userId, userId),
+            eq(schema.userUnitProgress.isCompleted, true),
             inArray(schema.userUnitProgress.unitId, allUnitIds)
           ));
         
-        for (const p of allProgress) {
-          unitProgressByUnitId.set(p.unitId, { isCompleted: p.isCompleted, isCorrect: p.isCorrect });
+        // Map completed units back to lessons
+        const unitToLesson = new Map<number, number>();
+        for (const unit of allUnits) {
+          unitToLesson.set(unit.id, unit.lessonId);
+        }
+        
+        for (const p of completedProgress) {
+          const lessonId = unitToLesson.get(p.unitId);
+          if (lessonId) {
+            completedCountByLessonId.set(lessonId, (completedCountByLessonId.get(lessonId) || 0) + 1);
+          }
         }
       }
     }
     
-    // Group lessons by weekId with calculated progress
+    // Group lessons by weekId with LIGHTWEIGHT payload
     const lessonsByWeekId = new Map<number, any[]>();
     for (const lesson of lessonsWithProgress) {
-      const units = unitsByLessonId.get(lesson.id) || [];
+      const unitCount = unitCountByLessonId.get(lesson.id) || 0;
+      const completedCount = completedCountByLessonId.get(lesson.id) || 0;
       
-      // Calculate sections progress
-      let sectionsCompleted = 0;
-      let totalSections = units.length;
-      
-      for (const unit of units) {
-        const progress = unitProgressByUnitId.get(unit.id);
-        if (progress?.isCompleted) sectionsCompleted++;
-      }
-      
-      // Derive correct status: if no progress but lesson is unlocked, status is 'available'
+      // Derive correct status
       let status = lesson.progressStatus;
       if (!status) {
         status = lesson.isLocked ? 'locked' : 'available';
@@ -2143,27 +2142,22 @@ export class DatabaseStorage implements IStorage {
       if (!lessonsByWeekId.has(lesson.studyWeekId!)) {
         lessonsByWeekId.set(lesson.studyWeekId!, []);
       }
+      
+      // LIGHTWEIGHT lesson object - no heavy fields
       lessonsByWeekId.get(lesson.studyWeekId!)!.push({
         id: lesson.id,
-        studyWeekId: lesson.studyWeekId,
-        orderIndex: lesson.orderIndex,
         title: lesson.title,
-        type: lesson.type,
-        description: lesson.description,
+        lessonNumber: lesson.lessonNumber || (lesson.orderIndex + 1),
+        icon: lesson.icon,
         xpReward: lesson.xpReward,
         estimatedMinutes: lesson.estimatedMinutes,
-        icon: lesson.icon,
-        isBonus: lesson.isBonus,
         isLocked: lesson.isLocked,
-        unlockDate: lesson.unlockDate,
+        isBonus: lesson.isBonus,
         seasonId: lesson.seasonId,
-        lessonNumber: lesson.lessonNumber,
-        isReleased: lesson.isReleased,
         status,
-        xpEarned: lesson.progressXpEarned || 0,
-        perfectScore: lesson.progressPerfectScore || false,
-        sectionsCompleted,
-        totalSections,
+        unitCount,
+        sectionsCompleted: completedCount,
+        totalSections: unitCount,
       });
     }
     

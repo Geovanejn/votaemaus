@@ -364,6 +364,7 @@ export interface IStorage {
   
   // Weekly Goal Methods
   getWeeklyGoalProgress(userId: number, weekKey: string): Promise<schema.WeeklyGoalProgress | null>;
+  getAllWeeklyGoalProgressByWeek(weekKey: string): Promise<schema.WeeklyGoalProgress[]>;
   updateWeeklyGoalProgress(userId: number, weekKey: string, data: Partial<schema.InsertWeeklyGoalProgress>): Promise<schema.WeeklyGoalProgress>;
   getWeeklyGoalStatus(userId: number, weekKey: string): Promise<schema.WeeklyGoalStatus>;
   incrementWeeklyLesson(userId: number, weekKey: string): Promise<void>;
@@ -4597,6 +4598,12 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return progress || null;
+  }
+
+  // OPTIMIZED: Batch fetch all weekly goal progress for a given week (avoids N+1 in scheduler)
+  async getAllWeeklyGoalProgressByWeek(weekKey: string): Promise<schema.WeeklyGoalProgress[]> {
+    return await db.select().from(schema.weeklyGoalProgress)
+      .where(eq(schema.weeklyGoalProgress.weekKey, weekKey));
   }
 
   async updateWeeklyGoalProgress(userId: number, weekKey: string, data: Partial<schema.InsertWeeklyGoalProgress>): Promise<schema.WeeklyGoalProgress> {

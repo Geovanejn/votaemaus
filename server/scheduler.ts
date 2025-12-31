@@ -463,17 +463,24 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
       generateTimedQuizWithAI
     } = await import('./ai');
     
-    // Generate all content (AI with fallback)
-    console.log('[Daily Missions Scheduler] Generating all mission content with AI...');
+    // Generate all content (AI with fallback) - RATE LIMITED to avoid API overload
+    console.log('[Daily Missions Scheduler] Generating all mission content with AI (rate limited)...');
     
-    const [aiMissions, quizQuestions, bibleFact, bibleCharacter, verseMemory, timedQuizQuestions] = await Promise.all([
-      generateDailyMissionsWithAI(),
-      generateQuizQuestionsWithAI(10), // 10 questions for variety
-      generateBibleFactWithAI(),
-      generateBibleCharacterWithAI(),
-      generateVerseMemoryWithAI(),
-      generateTimedQuizWithAI(5) // 5 quick questions for timed challenge
-    ]);
+    // Helper to add delay between API calls
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    // Sequential calls with 1s delay to avoid rate limiting
+    const aiMissions = await generateDailyMissionsWithAI();
+    await delay(1000);
+    const quizQuestions = await generateQuizQuestionsWithAI(10);
+    await delay(1000);
+    const bibleFact = await generateBibleFactWithAI();
+    await delay(1000);
+    const bibleCharacter = await generateBibleCharacterWithAI();
+    await delay(1000);
+    const verseMemory = await generateVerseMemoryWithAI();
+    await delay(1000);
+    const timedQuizQuestions = await generateTimedQuizWithAI(5);
     
     await storage.createDailyMissionContent({
       contentDate: today,
@@ -551,15 +558,21 @@ async function processWeeklyGoalRewards(): Promise<void> {
     const previousWeekKey = getPreviousWeekKey();
     console.log(`[Weekly Goal Scheduler] Checking week: ${previousWeekKey}`);
     
-    // Get all study profiles
-    const allProfiles = await storage.getAllStudyProfiles();
-    console.log(`[Weekly Goal Scheduler] Found ${allProfiles.length} profiles to check`);
+    // OPTIMIZED: Batch fetch profiles and progress in 2 queries instead of N+1
+    const [allProfiles, allProgress] = await Promise.all([
+      storage.getAllStudyProfiles(),
+      storage.getAllWeeklyGoalProgressByWeek(previousWeekKey)
+    ]);
+    
+    // Create lookup map for O(1) access
+    const progressMap = new Map(allProgress.map(p => [p.userId, p]));
+    console.log(`[Weekly Goal Scheduler] Found ${allProfiles.length} profiles, ${allProgress.length} progress records`);
     
     let rewardsDistributed = 0;
     
     for (const profile of allProfiles) {
       try {
-        const progress = await storage.getWeeklyGoalProgress(profile.userId, previousWeekKey);
+        const progress = progressMap.get(profile.userId);
         
         if (!progress || progress.weeklyBonusDistributed) {
           continue;
@@ -831,11 +844,11 @@ let deadlineCacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
 function cleanDeadlineNotificationsCache(): void {
   const now = Date.now();
   const maxAge = 48 * 60 * 60 * 1000; // 48 hours in ms
-  for (const [key, timestamp] of sentDeadlineNotifications.entries()) {
+  Array.from(sentDeadlineNotifications.entries()).forEach(([key, timestamp]) => {
     if (now - timestamp > maxAge) {
       sentDeadlineNotifications.delete(key);
     }
-  }
+  });
 }
 
 // Start cache cleanup interval (call once at init, clears previous interval)

@@ -76,6 +76,11 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 - **Environment Configuration**: Utilizes environment variables (`secrets`) for sensitive information and API keys.
 - **Root Administrator**: Automatic creation and promotion of a root admin user based on environment variables.
 - **Render Deployment**: Server binds to port FIRST before database initialization. Uses lazy db initialization with Proxy pattern to ensure Render detects the port before any DATABASE_URL validation. If initialization fails, process exits with code 1 after port is bound.
+- **Performance Optimizations**:
+    - **Leaderboard Queries**: Optimized from 500+ N+1 queries to single SQL queries using LEFT JOIN LATERAL subqueries. General, annual, and seasonal leaderboards all use optimized single-query patterns.
+    - **Weekly Goal Scheduler**: Batch fetches all profiles and progress in 2 queries instead of N+1, uses Map lookup for O(1) access.
+    - **AI Rate Limiting**: Daily missions scheduler uses sequential AI calls with 1s delay between each to avoid API rate limiting.
+- **Admin API Validation**: All admin UPDATE endpoints use dedicated Zod schemas with `.strict()` to whitelist allowed fields and prevent privilege escalation (e.g., users cannot promote themselves to admin via PATCH requests).
 
 ## Deployment (Render)
 - **Build Command**: `npm run build`

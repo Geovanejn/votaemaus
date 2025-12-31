@@ -1418,17 +1418,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OPTIMIZED: Helper to add candidate photos in batch (avoids N+1)
+  async function addCandidatePhotosInBatch(positions: any[]) {
+    // Collect all unique emails
+    const emails = new Set<string>();
+    for (const position of positions) {
+      for (const candidate of position.candidates) {
+        if (candidate.candidateEmail) emails.add(candidate.candidateEmail);
+      }
+    }
+    
+    // Batch fetch all users by email in parallel
+    const emailArray = Array.from(emails);
+    const userPromises = emailArray.map(email => storage.getUserByEmail(email));
+    const users = await Promise.all(userPromises);
+    
+    // Create lookup map
+    const userMap = new Map<string, any>();
+    emailArray.forEach((email, i) => {
+      if (users[i]) userMap.set(email, users[i]);
+    });
+    
+    // Apply photos
+    for (const position of positions) {
+      for (const candidate of position.candidates) {
+        const user = userMap.get(candidate.candidateEmail);
+        candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
+      }
+    }
+  }
+
   app.get("/api/results/latest", async (req, res) => {
     try {
       const results = await storage.getLatestElectionResults();
       if (results) {
-        // Add photo URLs to candidates (custom photo or Gravatar)
-        for (const position of results.positions) {
-          for (const candidate of position.candidates) {
-            const user = await storage.getUserByEmail(candidate.candidateEmail);
-            candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-          }
-        }
+        // OPTIMIZED: Batch fetch all candidate photos
+        await addCandidatePhotosInBatch(results.positions);
       }
       res.json(results);
     } catch (error) {
@@ -1448,13 +1473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Eleição não encontrada" });
       }
 
-      // Add photo URLs to candidates (custom photo or Gravatar)
-      for (const position of results.positions) {
-        for (const candidate of position.candidates) {
-          const user = await storage.getUserByEmail(candidate.candidateEmail);
-          candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-        }
-      }
+      // OPTIMIZED: Batch fetch all candidate photos
+      await addCandidatePhotosInBatch(results.positions);
 
       res.json(results);
     } catch (error) {
@@ -1514,13 +1534,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Dados de auditoria não encontrados para esta eleição" });
       }
 
-      // Add photo URLs to candidates in results
-      for (const position of auditData.results.positions) {
-        for (const candidate of position.candidates) {
-          const user = await storage.getUserByEmail(candidate.candidateEmail);
-          candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
-        }
-      }
+      // OPTIMIZED: Batch fetch all candidate photos
+      await addCandidatePhotosInBatch(auditData.results.positions);
 
       // Generate verification hash for PDF
       const verificationHash = generatePdfVerificationHash(
@@ -3259,16 +3274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const upcomingEvents = allEvents.filter(e => e.status === 'published' && new Date(e.startDate) > now);
       const completedEvents = allEvents.filter(e => e.status === 'completed');
       
-      let totalParticipants = 0;
-      let totalCardsAwarded = 0;
-      
-      for (const event of allEvents) {
-        const lessons = await storage.getStudyEventLessons(event.id);
-        for (const lesson of lessons) {
-          const progress = await storage.getUserEventLessonProgress(0, lesson.id);
-        }
-      }
-      
+      // Note: Removed unused N+1 loop that was fetching lessons/progress but not using the results
       const cards = await storage.getActiveCollectibleCards();
       
       res.json({

@@ -1074,6 +1074,25 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(schema.studyUnits.orderIndex));
   }
 
+  // OPTIMIZED: Batch fetch units for multiple lessons in one query (avoids N+1)
+  async getUnitsForMultipleLessons(lessonIds: number[]): Promise<Map<number, any[]>> {
+    if (lessonIds.length === 0) return new Map();
+    
+    const units = await db.select().from(schema.studyUnits)
+      .where(inArray(schema.studyUnits.lessonId, lessonIds))
+      .orderBy(asc(schema.studyUnits.lessonId), asc(schema.studyUnits.orderIndex));
+    
+    // Group by lessonId
+    const unitsByLesson = new Map<number, any[]>();
+    for (const unit of units) {
+      const lessonUnits = unitsByLesson.get(unit.lessonId) || [];
+      lessonUnits.push(unit);
+      unitsByLesson.set(unit.lessonId, lessonUnits);
+    }
+    
+    return unitsByLesson;
+  }
+
   async getStudyUnitById(unitId: number): Promise<any | null> {
     const [unit] = await db.select().from(schema.studyUnits)
       .where(eq(schema.studyUnits.id, unitId))
@@ -5408,18 +5427,18 @@ export class DatabaseStorage implements IStorage {
     const lessons = await this.getLessonsForWeek(weekId);
     const totalLessons = lessons.length;
     
+    // OPTIMIZED: Single query to count completed lessons instead of N+1
     let lessonsCompleted = 0;
-    for (const lesson of lessons) {
-      const progress = await db.select().from(schema.userLessonProgress)
+    if (lessons.length > 0) {
+      const lessonIds = lessons.map(l => l.id);
+      const completedProgress = await db.select({ lessonId: schema.userLessonProgress.lessonId })
+        .from(schema.userLessonProgress)
         .where(and(
           eq(schema.userLessonProgress.userId, userId),
-          eq(schema.userLessonProgress.lessonId, lesson.id),
+          inArray(schema.userLessonProgress.lessonId, lessonIds),
           eq(schema.userLessonProgress.status, 'completed')
-        ))
-        .limit(1);
-      if (progress.length > 0) {
-        lessonsCompleted++;
-      }
+        ));
+      lessonsCompleted = completedProgress.length;
     }
 
     const isUnlocked = lessonsCompleted >= totalLessons && totalLessons > 0;
@@ -5441,10 +5460,14 @@ export class DatabaseStorage implements IStorage {
 
     const lessons = await this.getLessonsForWeek(weekId);
     
+    // OPTIMIZED: Batch fetch all units for all lessons (single query instead of N+1)
+    const lessonIds = lessons.map(l => l.id);
+    const unitsByLesson = await this.getUnitsForMultipleLessons(lessonIds);
+    
     // Collect existing questions from lessons to avoid duplicates
     const existingQuestionTexts: string[] = [];
     for (const lesson of lessons) {
-      const units = await this.getUnitsByLessonId(lesson.id);
+      const units = unitsByLesson.get(lesson.id) || [];
       for (const unit of units) {
         if (['multiple_choice', 'true_false', 'fill_blank'].includes(unit.type)) {
           try {
@@ -5509,10 +5532,14 @@ export class DatabaseStorage implements IStorage {
     const practiceQuestions: schema.PracticeQuestion[] = [];
     const usedQuestions = new Set<string>();
     
+    // OPTIMIZED: Batch fetch all units for all lessons (single query instead of N+1)
+    const lessonIds = lessons.map(l => l.id);
+    const unitsByLesson = await this.getUnitsForMultipleLessons(lessonIds);
+    
     // Collect all question units from all lessons
     const allQuestionUnits: { unit: any; lesson: any }[] = [];
     for (const lesson of lessons) {
-      const units = await this.getUnitsByLessonId(lesson.id);
+      const units = unitsByLesson.get(lesson.id) || [];
       for (const unit of units) {
         if (['multiple_choice', 'true_false', 'fill_blank'].includes(unit.type)) {
           allQuestionUnits.push({ unit, lesson });

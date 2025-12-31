@@ -31,8 +31,18 @@ import {
   insertStudyEventSchema,
   insertStudyEventLessonSchema,
   insertCollectibleCardSchema,
+  insertBoardMemberSchema,
+  insertBannerSchema,
+  insertSiteEventSchema,
+  insertSeasonSchema,
   calculateCardRarity,
 } from "@shared/schema";
+import { z, ZodError } from "zod";
+
+// Helper function to check if an error is a ZodError
+function isZodError(error: unknown): error is ZodError {
+  return error instanceof ZodError || (error as any)?.name === 'ZodError';
+}
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail } from "./email";
 import { 
@@ -4817,13 +4827,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create board member (admin or marketing)
   app.post("/api/admin/board-members", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      const member = await storage.createBoardMember(req.body);
+      const validatedData = insertBoardMemberSchema.parse(req.body);
+      const member = await storage.createBoardMember(validatedData);
       
       // Audit log
-      await logAuditAction(req.user?.id, "create", "board_member", member.id, `Criado: ${req.body.name} - ${req.body.position}`, req);
+      await logAuditAction(req.user?.id, "create", "board_member", member.id, `Criado: ${validatedData.name} - ${validatedData.position}`, req);
       
       res.status(201).json(member);
-    } catch (error) {
+    } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Create board member error:", error);
       res.status(500).json({ message: "Erro ao criar membro da diretoria" });
     }
@@ -4836,6 +4850,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      // Validate that body is a non-empty object
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       const updated = await storage.updateBoardMember(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Membro nao encontrado" });
@@ -4845,7 +4863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "update", "board_member", id, `Atualizado: ${updated.name}`, req);
       
       res.json(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update board member error:", error);
       res.status(500).json({ message: "Erro ao atualizar membro da diretoria" });
     }
@@ -5036,6 +5054,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       
       // Check if event is being published (was not published, now is)
       const existingEvent = await storage.getSiteEventById(id);
@@ -5057,7 +5078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "update", "event", id, `Atualizado: ${updated.title}`, req);
       
       res.json(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update event error:", error);
       res.status(500).json({ message: "Erro ao atualizar evento" });
     }
@@ -5275,13 +5296,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create banner (admin or marketing)
   app.post("/api/admin/banners", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      const banner = await storage.createBanner({ ...req.body, createdBy: req.user!.id });
+      const validatedData = insertBannerSchema.omit({ createdBy: true }).parse(req.body);
+      const banner = await storage.createBanner({ ...validatedData, createdBy: req.user!.id });
       
       // Audit log
-      await logAuditAction(req.user?.id, "create", "banner", banner.id, `Criado: ${req.body.title}`, req);
+      await logAuditAction(req.user?.id, "create", "banner", banner.id, `Criado: ${validatedData.title}`, req);
       
       res.status(201).json(banner);
-    } catch (error) {
+    } catch (error: any) {
+      if (isZodError(error)) {
+        return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
+      }
       console.error("Create banner error:", error);
       res.status(500).json({ message: "Erro ao criar banner" });
     }
@@ -5294,6 +5319,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       const updated = await storage.updateBanner(id, req.body);
       if (!updated) {
         return res.status(404).json({ message: "Banner nao encontrado" });
@@ -5303,7 +5331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditAction(req.user?.id, "update", "banner", id, `Atualizado: ${updated.title}`, req);
       
       res.json(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update banner error:", error);
       res.status(500).json({ message: "Erro ao atualizar banner" });
     }
@@ -6028,12 +6056,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar temporada
   app.post("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
+      if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       const season = await storage.createSeason({
         ...req.body,
         createdBy: req.user!.id
       });
       res.status(201).json(season);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create season error:", error);
       res.status(500).json({ message: "Erro ao criar temporada" });
     }
@@ -6046,13 +6077,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(seasonId)) {
         return res.status(400).json({ message: "ID inválido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
 
       const season = await storage.updateSeason(seasonId, req.body);
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
       res.json(season);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update season error:", error);
       res.status(500).json({ message: "Erro ao atualizar temporada" });
     }
@@ -7169,6 +7203,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       
       // Check if status is being changed to 'published'
       const previousEvent = await storage.getStudyEventById(id);
@@ -7189,7 +7226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
       res.json(event);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update study event error:", error);
       res.status(500).json({ message: "Erro ao atualizar evento" });
     }
@@ -7472,12 +7509,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(lessonId)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       const lesson = await storage.updateStudyEventLesson(lessonId, req.body);
       if (!lesson) {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
       res.json(lesson);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update event lesson error:", error);
       res.status(500).json({ message: "Erro ao atualizar licao" });
     }
@@ -7596,13 +7636,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID invalido" });
       }
+      if (!req.body || typeof req.body !== 'object' || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: "Dados invalidos: body vazio ou invalido" });
+      }
       const card = await storage.updateCollectibleCard(id, req.body);
       if (!card) {
         return res.status(404).json({ message: "Card nao encontrado" });
       }
       await logAuditAction(req.user?.id, "update", "collectible_card", id, `Card atualizado: ${card.name}`, req);
       res.json(card);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update card error:", error);
       res.status(500).json({ message: "Erro ao atualizar card" });
     }

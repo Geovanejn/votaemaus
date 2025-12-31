@@ -4407,26 +4407,22 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(schema.studyLessons.orderIndex));
   }
 
+  // OPTIMIZED: Batch queries for season lessons - LIGHTWEIGHT payload for listing
+  // Heavy content (content, markdown, units) loaded on-demand via GET /lessons/:id
   async getLessonsWithProgressForSeason(userId: number, seasonId: number): Promise<any[]> {
+    // Batch fetch lessons with progress - LIGHTWEIGHT fields only
     const lessonsWithProgress = await db.select({
       id: schema.studyLessons.id,
-      studyWeekId: schema.studyLessons.studyWeekId,
       orderIndex: schema.studyLessons.orderIndex,
       title: schema.studyLessons.title,
-      type: schema.studyLessons.type,
-      description: schema.studyLessons.description,
+      lessonNumber: schema.studyLessons.lessonNumber,
+      icon: schema.studyLessons.icon,
       xpReward: schema.studyLessons.xpReward,
       estimatedMinutes: schema.studyLessons.estimatedMinutes,
-      icon: schema.studyLessons.icon,
-      isBonus: schema.studyLessons.isBonus,
       isLocked: schema.studyLessons.isLocked,
-      unlockDate: schema.studyLessons.unlockDate,
-      seasonId: schema.studyLessons.seasonId,
-      lessonNumber: schema.studyLessons.lessonNumber,
+      isBonus: schema.studyLessons.isBonus,
       isReleased: schema.studyLessons.isReleased,
       progressStatus: schema.userLessonProgress.status,
-      progressXpEarned: schema.userLessonProgress.xpEarned,
-      progressPerfectScore: schema.userLessonProgress.perfectScore,
     })
       .from(schema.studyLessons)
       .leftJoin(
@@ -4438,36 +4434,55 @@ export class DatabaseStorage implements IStorage {
       )
       .where(eq(schema.studyLessons.seasonId, seasonId))
       .orderBy(asc(schema.studyLessons.orderIndex));
-
-    const lessonsWithStageProgress = await Promise.all(lessonsWithProgress.map(async (row) => {
-      const units = await db.select({
-        id: schema.studyUnits.id,
-        stage: schema.studyUnits.stage,
-        type: schema.studyUnits.type,
-        orderIndex: schema.studyUnits.orderIndex,
-      }).from(schema.studyUnits)
-        .where(eq(schema.studyUnits.lessonId, row.id))
-        .orderBy(asc(schema.studyUnits.orderIndex));
-      
-      const unitIds = units.map(u => u.id);
-      let unitProgressList: { unitId: number; isCompleted: boolean; isCorrect: boolean | null }[] = [];
-      if (unitIds.length > 0) {
-        unitProgressList = await db.select({
-          unitId: schema.userUnitProgress.unitId,
-          isCompleted: schema.userUnitProgress.isCompleted,
-          isCorrect: schema.userUnitProgress.isCorrect,
-        }).from(schema.userUnitProgress)
-          .where(and(
-            eq(schema.userUnitProgress.userId, userId),
-            inArray(schema.userUnitProgress.unitId, unitIds)
-          ));
+    
+    if (lessonsWithProgress.length === 0) return [];
+    
+    // Batch fetch ALL units for ALL lessons (minimal fields for stage calculation)
+    const lessonIds = lessonsWithProgress.map(l => l.id);
+    const allUnits = await db.select({
+      id: schema.studyUnits.id,
+      lessonId: schema.studyUnits.lessonId,
+      stage: schema.studyUnits.stage,
+      type: schema.studyUnits.type,
+    }).from(schema.studyUnits)
+      .where(inArray(schema.studyUnits.lessonId, lessonIds));
+    
+    // Group units by lessonId
+    const unitsByLessonId = new Map<number, { id: number; stage: string | null; type: string | null }[]>();
+    for (const unit of allUnits) {
+      if (!unitsByLessonId.has(unit.lessonId)) {
+        unitsByLessonId.set(unit.lessonId, []);
       }
+      unitsByLessonId.get(unit.lessonId)!.push(unit);
+    }
+    
+    // Batch fetch ALL unit progress
+    const allUnitIds = allUnits.map(u => u.id);
+    const completedUnitIds = new Set<number>();
+    
+    if (allUnitIds.length > 0) {
+      const allProgress = await db.select({
+        unitId: schema.userUnitProgress.unitId,
+      }).from(schema.userUnitProgress)
+        .where(and(
+          eq(schema.userUnitProgress.userId, userId),
+          eq(schema.userUnitProgress.isCompleted, true),
+          inArray(schema.userUnitProgress.unitId, allUnitIds)
+        ));
       
-      const completedUnitIds = new Set(unitProgressList.filter(u => u.isCompleted).map(u => u.unitId));
-      
-      const estudeTypes = ['text', 'verse'];
-      const mediteTypes = ['meditation', 'reflection'];
-      const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+      for (const p of allProgress) {
+        completedUnitIds.add(p.unitId);
+      }
+    }
+    
+    // Stage type mappings
+    const estudeTypes = ['text', 'verse'];
+    const mediteTypes = ['meditation', 'reflection'];
+    const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+    
+    // Build LIGHTWEIGHT result with calculated stage progress
+    return lessonsWithProgress.map((row) => {
+      const units = unitsByLessonId.get(row.id) || [];
       
       let estudeTotal = 0, estudeCompleted = 0;
       let mediteTotal = 0, mediteCompleted = 0;
@@ -4476,16 +4491,17 @@ export class DatabaseStorage implements IStorage {
       for (const unit of units) {
         const stage = (unit.stage || 'estude') as 'estude' | 'medite' | 'responda';
         const unitType = unit.type || 'text';
+        const isCompleted = completedUnitIds.has(unit.id);
         
         if (stage === 'estude' && estudeTypes.includes(unitType)) {
           estudeTotal++;
-          if (completedUnitIds.has(unit.id)) estudeCompleted++;
+          if (isCompleted) estudeCompleted++;
         } else if (stage === 'medite' && mediteTypes.includes(unitType)) {
           mediteTotal++;
-          if (completedUnitIds.has(unit.id)) mediteCompleted++;
+          if (isCompleted) mediteCompleted++;
         } else if (stage === 'responda' && respondaTypes.includes(unitType)) {
           respondaTotal++;
-          if (completedUnitIds.has(unit.id)) respondaCompleted++;
+          if (isCompleted) respondaCompleted++;
         }
       }
       
@@ -4496,32 +4512,29 @@ export class DatabaseStorage implements IStorage {
       const totalSections = estudeTotal + mediteTotal + respondaTotal;
       const sectionsCompleted = estudeCompleted + mediteCompleted + respondaCompleted;
       
+      // Derive correct status
+      const status = row.progressStatus || (row.isLocked ? 'locked' : 'available');
+      
+      // LIGHTWEIGHT lesson object - no heavy fields
       return {
         id: row.id,
-        studyWeekId: row.studyWeekId,
-        orderIndex: row.orderIndex,
         title: row.title,
-        type: row.type,
-        description: row.description,
+        lessonNumber: row.lessonNumber || (row.orderIndex + 1),
+        icon: row.icon,
         xpReward: row.xpReward,
         estimatedMinutes: row.estimatedMinutes,
-        icon: row.icon,
-        isBonus: row.isBonus,
         isLocked: row.isLocked,
-        unlockDate: row.unlockDate,
-        seasonId: row.seasonId,
-        lessonNumber: row.lessonNumber,
+        isBonus: row.isBonus,
         isReleased: row.isReleased,
-        status: row.progressStatus || 'locked',
+        status,
         studyCompleted,
         meditationCompleted,
         quizCompleted,
         sectionsCompleted,
         totalSections,
+        unitCount: units.length,
       };
-    }));
-    
-    return lessonsWithStageProgress;
+    });
   }
 
   async createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson> {

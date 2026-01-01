@@ -224,7 +224,7 @@ function EventCard({ event }: { event: StudyEvent }) {
   const getThemeIcon = (title: string, theme: string) => {
     const t = theme.toLowerCase();
     const titleLower = title.toLowerCase();
-    const iconClass = "h-10 w-10 text-white/50";
+    const iconClass = "h-10 w-10 text-white/25";
     
     // Ano Novo / New Year - fireworks and celebration icons
     if (titleLower.includes('ano novo') || titleLower.includes('new year') || titleLower.includes('réveillon') || titleLower.includes('reveillon') || t.includes('ano novo')) {

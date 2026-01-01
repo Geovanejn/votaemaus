@@ -224,7 +224,7 @@ function EventCard({ event }: { event: StudyEvent }) {
   const getThemeIcon = (title: string, theme: string) => {
     const t = theme.toLowerCase();
     const titleLower = title.toLowerCase();
-    const iconClass = "h-10 w-10 text-white/25";
+    const iconClass = "h-10 w-10 text-white/80";
     
     // Ano Novo / New Year - fireworks and celebration icons
     if (titleLower.includes('ano novo') || titleLower.includes('new year') || titleLower.includes('réveillon') || titleLower.includes('reveillon') || t.includes('ano novo')) {
@@ -455,7 +455,7 @@ function EventCard({ event }: { event: StudyEvent }) {
           {isLocked ? (
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center z-20">
               <div className="flex-1 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/15 shadow-lg">
                   {getThemeIcon(event.title, event.theme)}
                 </div>
               </div>
@@ -474,7 +474,7 @@ function EventCard({ event }: { event: StudyEvent }) {
             </div>
           ) : (
             <>
-              <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
+              <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/15 shadow-lg">
                 <div className="embossed-icon">
                   {getThemeIcon(event.title, event.theme)}
                 </div>

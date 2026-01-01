@@ -951,6 +951,24 @@ export async function notifyEncouragement(
   );
 }
 
+export async function notifyEventStartingSoon(
+  eventId: number,
+  eventTitle: string
+): Promise<void> {
+  console.log(`[Notifications] notifyEventStartingSoon STARTED for event ${eventId}: "${eventTitle}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Evento Comeca Amanha!",
+    body: `"${eventTitle}" comeca em 24 horas. Prepare-se!`,
+    url: `/study/eventos/${eventId}`,
+    tag: `event-starting-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Event starting soon push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+}
+
 export async function notifyEventDeadline(
   eventId: number,
   eventTitle: string,

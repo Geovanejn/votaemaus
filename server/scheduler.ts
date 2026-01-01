@@ -1,10 +1,10 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyEventStartingSoon, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
-import { getEventCurrentDay, getEventTotalDays } from "./utils/date";
+import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
@@ -861,14 +861,26 @@ function startDeadlineCacheCleanup(): void {
 }
 
 async function processEventDeadlineNotifications(): Promise<void> {
-  console.log('[Event Deadline Scheduler] Checking for events approaching deadline...');
+  console.log('[Event Deadline Scheduler] Checking for events approaching start/deadline...');
   
   try {
     // Clean old cache entries at the start of each check
     cleanDeadlineNotificationsCache();
     
     const allEvents = await storage.getAllStudyEvents();
-    const now = new Date();
+    
+    // Get current time in Sao Paulo timezone for accurate comparisons
+    const nowParts = getTodayBrazilParts();
+    const nowFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    const nowTimeParts = nowFormatter.formatToParts(new Date());
+    const nowHour = parseInt(nowTimeParts.find(p => p.type === 'hour')?.value || '0');
+    const nowMinute = parseInt(nowTimeParts.find(p => p.type === 'minute')?.value || '0');
+    const nowBrazil = createBrazilDate(nowParts.year, nowParts.month, nowParts.day, nowHour, nowMinute);
     
     let notificationsSent = 0;
     
@@ -878,27 +890,55 @@ async function processEventDeadlineNotifications(): Promise<void> {
         // Only check published events
         if (event.status !== 'published') continue;
         
-        const endDate = new Date(event.endDate);
-        // Set end time to 23:59:59 of end date
-        endDate.setHours(23, 59, 59, 999);
+        // Get event dates in Sao Paulo timezone
+        const startParts = getDatePartsFromDate(new Date(event.startDate));
+        const endParts = getDatePartsFromDate(new Date(event.endDate));
         
+        // Event starts at 00:00 Sao Paulo time on start date
+        const eventStartBrazil = createBrazilDate(startParts.year, startParts.month, startParts.day, 0, 0, 0);
+        // Event ends at 23:59:59 Sao Paulo time on end date
+        const eventEndBrazil = createBrazilDate(endParts.year, endParts.month, endParts.day, 23, 59, 59);
+        
+        // === Check 24h before event STARTS ===
+        const msUntilStart = eventStartBrazil.getTime() - nowBrazil.getTime();
+        const hoursUntilStart = msUntilStart / (1000 * 60 * 60);
+        
+        // If event hasn't started yet and is within 24h of starting (range: <=24 && >0)
+        // Cache key prevents duplicate notifications
+        if (hoursUntilStart > 0 && hoursUntilStart <= 24) {
+          const startCacheKey = `${event.id}-start-24h`;
+          const alreadySentStart = sentDeadlineNotifications.has(startCacheKey);
+          
+          if (!alreadySentStart) {
+            try {
+              await notifyEventStartingSoon(event.id, event.title);
+              sentDeadlineNotifications.set(startCacheKey, Date.now());
+              notificationsSent++;
+              console.log(`[Event Deadline Scheduler] Sent 24h before start notification for event "${event.title}" (${hoursUntilStart.toFixed(1)}h until start)`);
+            } catch (notifyError) {
+              console.error(`[Event Deadline Scheduler] Error sending start notification for event ${event.id}:`, notifyError);
+            }
+          }
+        }
+        
+        // === Check before event ENDS ===
         // Skip events that have already ended
-        if (endDate <= now) continue;
+        if (eventEndBrazil <= nowBrazil) continue;
         
-        const msRemaining = endDate.getTime() - now.getTime();
+        const msRemaining = eventEndBrazil.getTime() - nowBrazil.getTime();
         const hoursRemaining = msRemaining / (1000 * 60 * 60);
         
         // Define notification thresholds (in hours) with explicit lower bounds
         // Thresholds are ordered from largest to smallest
         // Each threshold has a lower bound to prevent duplicate notifications
         const thresholds = [
-          { hours: 24, lowerBound: 5, label: '1 dia' },   // 24h > remaining > 5h
-          { hours: 5, lowerBound: 1, label: '5 horas' },  // 5h > remaining > 1h
+          { hours: 24, lowerBound: 3, label: '1 dia' },   // 24h > remaining > 3h
+          { hours: 3, lowerBound: 1, label: '3 horas' },  // 3h > remaining > 1h
           { hours: 1, lowerBound: 0, label: '1 hora' },   // 1h > remaining > 0h
         ];
         
         for (const threshold of thresholds) {
-          const cacheKey = `${event.id}-${threshold.hours}h`;
+          const cacheKey = `${event.id}-end-${threshold.hours}h`;
           
           // Check if we should send this notification:
           // - Time remaining is within threshold range (crossed upper limit but above lower bound)

@@ -36,11 +36,11 @@ DELETE FROM user_event_progress;
 DELETE FROM user_cards;
 
 -- 6. TRANSAÇÕES DE XP
--- Apaga todo histórico de XP ganho
+-- Apaga TODO o histórico de XP ganho (CRÍTICO para zerar XP)
 DELETE FROM xp_transactions;
 
 -- 7. CONQUISTAS DOS USUÁRIOS
--- Apaga as conquistas desbloqueadas
+-- Apaga as conquistas desbloqueadas (inclui xp_earned de cada conquista)
 DELETE FROM user_achievements;
 
 -- 8. CURTIDAS EM CONQUISTAS
@@ -67,29 +67,37 @@ DELETE FROM streak_freeze_history;
 -- Apaga os marcos de streak desbloqueados
 DELETE FROM user_streak_milestones;
 
--- 14. RESET DOS PERFIS DE ESTUDO
--- Reseta os contadores nos perfis (XP, cristais, streaks, etc.)
--- Mantém o perfil existente mas zera todos os valores
+-- 14. RESET COMPLETO DOS PERFIS DE ESTUDO
+-- Reseta TODOS os contadores nos perfis para valores iniciais
+-- Isso inclui XP, cristais, streaks, níveis, corações, etc.
 UPDATE study_profiles SET
-  current_streak = 0,
-  max_streak = 0,
   total_xp = 0,
-  weekly_xp = 0,
+  current_level = 1,
+  current_streak = 0,
+  longest_streak = 0,
+  hearts = 5,
+  hearts_max = 5,
+  hearts_refill_at = NULL,
+  last_activity_date = NULL,
+  verses_read_for_recovery = 0,
   crystals = 0,
-  streak_freezes = 0,
+  streak_freezes_available = 0,
+  last_lesson_completed_at = NULL,
+  streak_warning_day = 0,
+  total_streak_freeze_used = 0,
+  consecutive_perfect_lessons = 0,
+  consecutive_lessons = 0,
+  total_lessons_completed_today = 0,
   last_lesson_date = NULL,
-  weekly_goal = 3,
-  weekly_goal_completed = false,
-  perfect_lessons = 0,
-  consecutive_perfect = 0,
-  consecutive_daily = 0,
-  last_perfect_date = NULL,
-  hint_penalty_enabled = true,
+  weekly_lessons_streak = 0,
+  daily_verse_read_date = NULL,
   updated_at = NOW();
 
 -- ================================================================
 -- RESULTADO ESPERADO:
--- - Todos os usuários terão 0 XP, 0 cristais, 0 streak
+-- - Todos os usuários terão 0 XP total
+-- - Todos os usuários voltam ao nível 1
+-- - 0 cristais, 0 streak, 5 corações
 -- - Nenhuma lição/unidade estará marcada como concluída
 -- - Nenhuma conquista estará desbloqueada
 -- - Nenhuma carta colecionável estará atribuída
@@ -99,23 +107,50 @@ UPDATE study_profiles SET
 -- ================================================================
 -- TABELAS AFETADAS (resumo):
 -- ================================================================
--- | Tabela                      | Ação   | Descrição                    |
--- |-----------------------------|--------|------------------------------|
--- | user_lesson_progress        | DELETE | Progresso das lições         |
--- | user_unit_progress          | DELETE | Progresso das unidades       |
--- | user_season_progress        | DELETE | Progresso das temporadas     |
--- | user_final_challenge_progress| DELETE | Desafios finais             |
--- | user_event_progress         | DELETE | Progresso em eventos         |
--- | user_cards                  | DELETE | Cartas colecionáveis ganhas  |
--- | xp_transactions             | DELETE | Histórico de XP              |
--- | user_achievements           | DELETE | Conquistas desbloqueadas     |
--- | achievement_likes           | DELETE | Curtidas em conquistas       |
--- | achievement_xp              | DELETE | XP bônus de conquistas       |
--- | user_daily_missions         | DELETE | Missões diárias              |
--- | crystal_transactions        | DELETE | Histórico de cristais        |
--- | streak_freeze_history       | DELETE | Uso de streak freeze         |
--- | user_streak_milestones      | DELETE | Marcos de streak             |
--- | study_profiles              | UPDATE | Reset dos contadores         |
+-- | Tabela                       | Ação   | Descrição                    |
+-- |------------------------------|--------|------------------------------|
+-- | user_lesson_progress         | DELETE | Progresso das lições         |
+-- | user_unit_progress           | DELETE | Progresso das unidades       |
+-- | user_season_progress         | DELETE | Progresso das temporadas     |
+-- | user_final_challenge_progress| DELETE | Desafios finais              |
+-- | user_event_progress          | DELETE | Progresso em eventos         |
+-- | user_cards                   | DELETE | Cartas colecionáveis ganhas  |
+-- | xp_transactions              | DELETE | Histórico de XP (CRÍTICO)    |
+-- | user_achievements            | DELETE | Conquistas desbloqueadas     |
+-- | achievement_likes            | DELETE | Curtidas em conquistas       |
+-- | achievement_xp               | DELETE | XP bônus de conquistas       |
+-- | user_daily_missions          | DELETE | Missões diárias              |
+-- | crystal_transactions         | DELETE | Histórico de cristais        |
+-- | streak_freeze_history        | DELETE | Uso de streak freeze         |
+-- | user_streak_milestones       | DELETE | Marcos de streak             |
+-- | study_profiles               | UPDATE | Reset COMPLETO dos campos    |
+-- ================================================================
+
+-- ================================================================
+-- CAMPOS RESETADOS EM study_profiles:
+-- ================================================================
+-- | Campo                        | Valor Resetado | Descrição              |
+-- |------------------------------|----------------|------------------------|
+-- | total_xp                     | 0              | XP total acumulado     |
+-- | current_level                | 1              | Nível do jogador       |
+-- | current_streak               | 0              | Streak atual           |
+-- | longest_streak               | 0              | Maior streak           |
+-- | hearts                       | 5              | Corações disponíveis   |
+-- | hearts_max                   | 5              | Máximo de corações     |
+-- | hearts_refill_at             | NULL           | Timer de recarga       |
+-- | last_activity_date           | NULL           | Última atividade       |
+-- | verses_read_for_recovery     | 0              | Versículos lidos       |
+-- | crystals                     | 0              | Cristais               |
+-- | streak_freezes_available     | 0              | Freezes disponíveis    |
+-- | last_lesson_completed_at     | NULL           | Última lição           |
+-- | streak_warning_day           | 0              | Aviso de streak        |
+-- | total_streak_freeze_used     | 0              | Total freezes usados   |
+-- | consecutive_perfect_lessons  | 0              | Lições perfeitas seq.  |
+-- | consecutive_lessons          | 0              | Lições consecutivas    |
+-- | total_lessons_completed_today| 0              | Lições hoje            |
+-- | last_lesson_date             | NULL           | Data última lição      |
+-- | weekly_lessons_streak        | 0              | Streak semanal         |
+-- | daily_verse_read_date        | NULL           | Data versículo diário  |
 -- ================================================================
 
 -- ================================================================

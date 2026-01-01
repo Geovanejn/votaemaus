@@ -221,12 +221,25 @@ function EventCard({ event }: { event: StudyEvent }) {
     }
   };
 
-  const getThemeIcon = (theme: string) => {
+  const getThemeIcon = (title: string, theme: string) => {
     const t = theme.toLowerCase();
-    const iconClass = "h-10 w-10 text-white/80";
+    const titleLower = title.toLowerCase();
+    const iconClass = "h-10 w-10 text-white/50";
+    
+    // Ano Novo / New Year - fireworks and celebration icons
+    if (titleLower.includes('ano novo') || titleLower.includes('new year') || titleLower.includes('réveillon') || titleLower.includes('reveillon') || t.includes('ano novo')) {
+      const anoNovoIcons = [
+        <PartyPopper key="party" className={iconClass} />,
+        <Sparkles key="sparkles" className={iconClass} />,
+        <Star key="star" className={iconClass} />,
+        <Zap key="zap" className={iconClass} />,
+        <Flame key="flame" className={iconClass} />,
+      ];
+      return anoNovoIcons[event.id % anoNovoIcons.length];
+    }
     
     // Natal / Christmas - variety of festive icons
-    if (t.includes('natal') || t.includes('christmas') || t.includes('advento')) {
+    if (t.includes('natal') || t.includes('christmas') || t.includes('advento') || titleLower.includes('natal') || titleLower.includes('christmas')) {
       const natalIcons = [
         <Star key="star" className={iconClass} />,
         <Gift key="gift" className={iconClass} />,
@@ -443,7 +456,7 @@ function EventCard({ event }: { event: StudyEvent }) {
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center z-20">
               <div className="flex-1 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
-                  {getThemeIcon(event.theme)}
+                  {getThemeIcon(event.title, event.theme)}
                 </div>
               </div>
               <div className="text-center text-white pb-4">
@@ -463,7 +476,7 @@ function EventCard({ event }: { event: StudyEvent }) {
             <>
               <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-xl">
                 <div className="embossed-icon">
-                  {getThemeIcon(event.theme)}
+                  {getThemeIcon(event.title, event.theme)}
                 </div>
               </div>
               {isActive && daysUntilEnd <= 1 && (() => {

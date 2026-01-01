@@ -77,7 +77,8 @@ import {
   notifyNewComment,
   notifyDevotionalComment,
   notifySeasonPublished,
-  notifyNewLessonToAll
+  notifyNewLessonToAll,
+  notifyNewStudyEvent
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
@@ -7288,10 +7289,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
       
-      // If event was just published, release lessons based on current date
+      // If event was just published, release lessons based on current date and send notifications
       if (isBeingPublished) {
         const releasedCount = await releaseEventLessonsForCurrentDay(id);
         console.log(`[Event Publish] Event "${event.title}" published. Released ${releasedCount} lessons.`);
+        
+        // Send push notifications and emails to all members
+        notifyNewStudyEvent(
+          event.id,
+          event.title,
+          event.description,
+          event.startDate.toISOString(),
+          event.endDate.toISOString(),
+          event.imageUrl
+        ).catch(err => console.error("[Event Publish] Notification error:", err));
       }
       
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);

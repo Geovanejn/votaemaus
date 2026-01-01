@@ -7,6 +7,7 @@ import {
   sendNewDevotionalEmail,
   sendNewEventEmail,
   sendSeasonPublishedEmail,
+  sendNewStudyEventEmail,
   isEmailConfigured,
 } from "./email";
 
@@ -640,6 +641,82 @@ export async function notifySeasonPublished(
   console.log(`[Notifications] Season published notification complete`);
 }
 
+export async function notifyNewStudyEvent(
+  eventId: number,
+  title: string,
+  description: string | null,
+  startDate: string,
+  endDate: string,
+  imageUrl: string | null
+): Promise<void> {
+  console.log(`[Notifications] notifyNewStudyEvent STARTED for event ${eventId}: "${title}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Novo Evento Especial!",
+    body: `"${title}" esta disponivel no DeoGlory. Participe agora!`,
+    url: `/study/events/${eventId}`,
+    tag: `study-event-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  // Send push notifications to all active members
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Study event push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications
+  const activeMembers = await storage.getActiveMembers();
+  for (const member of activeMembers) {
+    try {
+      await createInAppNotification(
+        member.id,
+        "new_event",
+        payload.title,
+        payload.body,
+        { eventId, url: payload.url }
+      );
+    } catch (error) {
+      console.error(`[Notifications] Failed to create in-app notification for user ${member.id}:`, error);
+    }
+  }
+
+  // Send email to ALL members
+  if (isEmailConfigured()) {
+    const allMembers = await storage.getAllMembers();
+    const emailMap = new Map<string, { email: string; fullName: string }>();
+    for (const member of allMembers) {
+      if (member.email && !emailMap.has(member.email.toLowerCase())) {
+        emailMap.set(member.email.toLowerCase(), { email: member.email, fullName: member.fullName });
+      }
+    }
+    
+    const uniqueRecipients = Array.from(emailMap.values());
+    const batchSize = 10;
+    let emailsSent = 0;
+    
+    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
+      const batch = uniqueRecipients.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(recipient => 
+          sendNewStudyEventEmail(
+            recipient.email, 
+            recipient.fullName, 
+            title, 
+            description,
+            startDate,
+            endDate,
+            eventId, 
+            imageUrl
+          )
+        )
+      );
+      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    }
+    console.log(`[Notifications] Study event email sent to ${emailsSent}/${uniqueRecipients.length} members`);
+  }
+
+  console.log(`[Notifications] Study event notification complete`);
+}
+
 export async function notifyLessonAvailable(
   userId: number,
   lessonTitle: string,
@@ -929,4 +1006,47 @@ export async function notifyDailyVerse(verse: string, reference: string): Promis
 
 export function isWebPushConfigured(): boolean {
   return webPushConfigured;
+}
+
+export async function notifyMarketingEventReminder(
+  eventId: number,
+  eventTitle: string,
+  eventDate: string,
+  eventTime: string | null,
+  timeLabel: string
+): Promise<void> {
+  console.log(`[Notifications] notifyMarketingEventReminder STARTED for event ${eventId}: "${eventTitle}" - ${timeLabel}`);
+  
+  const timeInfo = eventTime ? ` as ${eventTime}` : '';
+  const payload: NotificationPayload = {
+    title: `Lembrete: ${eventTitle}`,
+    body: `O evento acontece em ${timeLabel}${timeInfo}. Nao esqueca!`,
+    url: `/agenda/${eventId}`,
+    tag: `marketing-event-reminder-${eventId}-${timeLabel}`,
+    icon: "/logo.png",
+  };
+
+  // Send push notifications to all active members
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Marketing event reminder push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications
+  const activeMembers = await storage.getActiveMembers();
+  for (const member of activeMembers) {
+    try {
+      await createInAppNotification(
+        member.id,
+        "new_event",
+        payload.title,
+        payload.body,
+        { eventId, url: payload.url }
+      );
+    } catch (error) {
+      console.error(`[Notifications] Failed to create marketing event reminder in-app for user ${member.id}:`, error);
+    }
+  }
+
+  // Also notify anonymous visitors
+  const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
+  console.log(`[Notifications] Marketing event reminder anonymous push: ${anonymousResult.sent} sent`);
 }

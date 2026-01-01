@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, sendPushToAllMembers, sendPushToUser } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays } from "./utils/date";
@@ -939,4 +939,141 @@ export function initEventDeadlineScheduler(): void {
   console.log('[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications };
+// Marketing Event Reminder Scheduler
+// Sends reminders: 1 week, 24 hours, and 2 hours before marketing events
+const sentMarketingReminders = new Map<string, number>();
+let marketingCacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function cleanupMarketingRemindersCache(): void {
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  
+  for (const [key, timestamp] of sentMarketingReminders.entries()) {
+    if (now - timestamp > ONE_WEEK_MS) {
+      sentMarketingReminders.delete(key);
+    }
+  }
+}
+
+function startMarketingRemindersCacheCleanup(): void {
+  if (marketingCacheCleanupInterval) {
+    clearInterval(marketingCacheCleanupInterval);
+  }
+  marketingCacheCleanupInterval = setInterval(cleanupMarketingRemindersCache, 60 * 60 * 1000);
+}
+
+function stopMarketingRemindersCacheCleanup(): void {
+  if (marketingCacheCleanupInterval) {
+    clearInterval(marketingCacheCleanupInterval);
+    marketingCacheCleanupInterval = null;
+  }
+}
+
+// Convert event date string (YYYY-MM-DD) and time (HH:MM) in Sao Paulo timezone to UTC Date
+// Sao Paulo is UTC-3 (Brazil no longer uses daylight saving time since 2019)
+function parseEventDateInSaoPaulo(dateStr: string, timeStr: string | null): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  let hour = 9; // Default to 9:00 if no time specified
+  let minute = 0;
+  
+  if (timeStr) {
+    const [h, m] = timeStr.split(':');
+    hour = parseInt(h) || 9;
+    minute = parseInt(m) || 0;
+  }
+  
+  // Build ISO string with Sao Paulo offset (-03:00)
+  const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00-03:00`;
+  return new Date(isoString);
+}
+
+async function processMarketingEventReminders(): Promise<void> {
+  console.log('[Marketing Reminder Scheduler] Processing marketing event reminders...');
+  
+  try {
+    // Clean old cache entries at the start of each check
+    cleanupMarketingRemindersCache();
+    
+    const upcomingEvents = await storage.getUpcomingEvents(50);
+    
+    if (upcomingEvents.length === 0) {
+      console.log('[Marketing Reminder Scheduler] No upcoming marketing events found');
+      return;
+    }
+
+    // Use current time in UTC for comparison (event times are also converted to UTC)
+    const now = new Date();
+    let notificationsSent = 0;
+
+    for (const event of upcomingEvents) {
+      try {
+        if (!event.isPublished) continue;
+
+        // Validate event date format
+        const eventDateParts = event.startDate.split('-');
+        if (eventDateParts.length !== 3) continue;
+        
+        // Parse event date/time as Sao Paulo timezone and convert to UTC for comparison
+        const eventDateTime = parseEventDateInSaoPaulo(event.startDate, event.time || null);
+        const msUntilEvent = eventDateTime.getTime() - now.getTime();
+        const hoursUntilEvent = msUntilEvent / (1000 * 60 * 60);
+        
+        // Skip events that already started
+        if (hoursUntilEvent <= 0) continue;
+
+        // Reminder thresholds (in hours before event)
+        // Each threshold has a lower bound to prevent duplicate notifications
+        const thresholds = [
+          { hours: 168, lowerBound: 24, label: '1 semana' },   // 7 days = 168h, valid range: 168h > remaining > 24h
+          { hours: 24, lowerBound: 2, label: '24 horas' },     // 24h > remaining > 2h
+          { hours: 2, lowerBound: 0, label: '2 horas' },       // 2h > remaining > 0h
+        ];
+
+        for (const threshold of thresholds) {
+          const cacheKey = `marketing-${event.id}-${threshold.hours}h`;
+
+          // Check if we should send this notification
+          const isInRange = hoursUntilEvent <= threshold.hours && hoursUntilEvent > threshold.lowerBound;
+          const alreadySent = sentMarketingReminders.has(cacheKey);
+
+          if (isInRange && !alreadySent) {
+            try {
+              await notifyMarketingEventReminder(
+                event.id,
+                event.title,
+                event.startDate,
+                event.time || null,
+                threshold.label
+              );
+              sentMarketingReminders.set(cacheKey, Date.now());
+              notificationsSent++;
+              console.log(`[Marketing Reminder Scheduler] Sent ${threshold.label} reminder for "${event.title}" (${hoursUntilEvent.toFixed(1)}h until event)`);
+            } catch (notifyError) {
+              console.error(`[Marketing Reminder Scheduler] Error sending notification for event ${event.id}:`, notifyError);
+            }
+          }
+        }
+      } catch (eventError) {
+        console.error(`[Marketing Reminder Scheduler] Error processing event ${event.id}:`, eventError);
+      }
+    }
+
+    console.log(`[Marketing Reminder Scheduler] Check completed. Sent ${notificationsSent} reminder(s)`);
+  } catch (error) {
+    console.error('[Marketing Reminder Scheduler] Error:', error);
+  }
+}
+
+export function initMarketingReminderScheduler(): void {
+  // Stop any existing cleanup interval before starting a new one (prevents duplicates on hot reload)
+  stopMarketingRemindersCacheCleanup();
+  startMarketingRemindersCacheCleanup();
+  
+  // Run every hour at :30 to avoid overlapping with other schedulers
+  cron.schedule('30 * * * *', processMarketingEventReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders };

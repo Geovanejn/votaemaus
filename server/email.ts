@@ -928,6 +928,123 @@ export async function sendSeasonPublishedEmail(
   }
 }
 
+export async function sendNewStudyEventEmail(
+  recipientEmail: string,
+  recipientName: string,
+  eventTitle: string,
+  eventDescription: string | null,
+  startDate: string,
+  endDate: string,
+  eventId: number,
+  imageUrl: string | null = null
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New study event notification to ${recipientEmail}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    
+    const appUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : (process.env.APP_URL || 'https://umpemaus.com.br');
+    
+    const eventUrl = `${appUrl}/study/events/${eventId}`;
+    
+    // Download event image if available
+    let eventImageBuffer: Buffer | null = null;
+    if (imageUrl) {
+      eventImageBuffer = await downloadImageAsBuffer(imageUrl);
+    }
+    
+    // Format dates in Brazilian format
+    const formatDateBR = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    };
+    
+    const emailPayload: any = {
+      from: "UMP Emaús <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novo Evento Especial DeoGlory: ${eventTitle}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">DeoGlory - Estudos Especiais</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento Disponivel!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Ola, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Um novo evento especial de estudos esta disponivel no DeoGlory:
+            </p>
+            
+            <!-- Event Card with Image -->
+            <div style="background-color: #F5F3FF; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              ${eventImageBuffer ? `
+                <div style="margin-bottom: 15px;">
+                  <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+                </div>
+              ` : ''}
+              <p style="margin: 0 0 10px 0; color: #6366f1; font-weight: bold; font-size: 20px;">${eventTitle}</p>
+              ${eventDescription ? `<p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">${eventDescription}</p>` : ''}
+              <div style="background-color: #EDE9FE; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                <p style="margin: 0; color: #7C3AED; font-size: 13px;">
+                  <strong>Periodo:</strong> ${formatDateBR(startDate)} ate ${formatDateBR(endDate)}
+                </p>
+              </div>
+            </div>
+            
+            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
+              Participe e ganhe XP em dobro + cards colecionaveis exclusivos!
+            </p>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Participar do Evento
+              </a>
+            </div>
+          </div>
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaus - DeoGlory</p>
+          </div>
+        </div>
+      `,
+    };
+
+    const attachments: any[] = [];
+    
+    if (eventImageBuffer) {
+      attachments.push({
+        content: eventImageBuffer.toString('base64'),
+        filename: 'event.jpg',
+        contentId: 'event-image',
+      });
+    }
+    
+    if (logoBuffer) {
+      attachments.push({
+        content: logoBuffer.toString('base64'),
+        filename: 'logo.png',
+        contentId: 'logo-emaus',
+      });
+    }
+    
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending study event notification email:", error);
+    return false;
+  }
+}
+
 export async function sendSeasonEndedEmail(
   recipientEmail: string,
   recipientName: string,

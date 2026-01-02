@@ -102,7 +102,7 @@
 - [x] Endpoints da loja (membro)
 - [x] Endpoint de dashboard mensal (GET /api/treasury/dashboard/monthly)
 - [x] Endpoints de relatórios Excel (movimentações, pagamentos de membros)
-- [ ] Endpoints de notificações manuais
+- [x] Endpoints de notificações manuais (individual e em massa)
 - [x] Endpoints de dashboard
 - [x] Endpoints de taxas de eventos (CRUD + confirmações)
 

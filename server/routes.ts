@@ -9437,6 +9437,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== TREASURY NOTIFICATIONS (Treasurer) ====================
+
+  // Send manual payment reminder to member
+  app.post("/api/treasury/notifications/reminder", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { userId, message } = req.body;
+      
+      const parsedUserId = parseInt(userId);
+      if (!userId || isNaN(parsedUserId)) {
+        return res.status(400).json({ message: "ID do membro invalido" });
+      }
+      
+      const member = await storage.getMemberById(parsedUserId);
+      if (!member) {
+        return res.status(404).json({ message: "Membro nao encontrado" });
+      }
+      
+      const customMessage = (message && typeof message === "string" && message.trim()) 
+        ? message.trim().substring(0, 500)
+        : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para mais detalhes.";
+      
+      const result = await notifications.sendPushToUser(parsedUserId, {
+        title: "Lembrete da Tesouraria",
+        body: customMessage,
+        icon: "/logo.png",
+        data: { url: "/financeiro" },
+      });
+      
+      res.json({ 
+        success: true, 
+        sent: result,
+        message: `Notificacao enviada para ${member.fullName}` 
+      });
+    } catch (error) {
+      console.error("Send treasury reminder error:", error);
+      res.status(500).json({ message: "Erro ao enviar notificacao" });
+    }
+  });
+
+  // Send bulk payment reminder to all members with pending payments
+  app.post("/api/treasury/notifications/bulk-reminder", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { message } = req.body;
+      const year = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      
+      const members = await storage.getAllMembers();
+      const membersWithPending = new Set<number>();
+      
+      for (const member of members) {
+        const percapta = await storage.getMemberPercaptaPayment(member.id, year);
+        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        
+        const percaptaPending = percapta && !percapta.paidAt;
+        const umpPending = umpPayments.some(p => p.month <= currentMonth && !p.paidAt);
+        
+        if (percaptaPending || umpPending) {
+          membersWithPending.add(member.id);
+        }
+      }
+      
+      const memberIds = Array.from(membersWithPending);
+      
+      if (memberIds.length === 0) {
+        return res.json({ 
+          success: true, 
+          membersNotified: 0,
+          sent: 0,
+          message: "Nenhum membro com pagamentos pendentes" 
+        });
+      }
+      
+      const customMessage = (message && typeof message === "string" && message.trim()) 
+        ? message.trim().substring(0, 500)
+        : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para regularizar.";
+      
+      const result = await notifications.sendPushToUsers(memberIds, {
+        title: "Lembrete de Pagamentos Pendentes",
+        body: customMessage,
+        icon: "/logo.png",
+        data: { url: "/financeiro" },
+      });
+      
+      res.json({ 
+        success: true, 
+        membersNotified: memberIds.length,
+        sent: result,
+      });
+    } catch (error) {
+      console.error("Send bulk treasury reminder error:", error);
+      res.status(500).json({ message: "Erro ao enviar notificacoes" });
+    }
+  });
+
   // ==================== EVENT FEES (Admin/Treasurer) ====================
 
   // Create/update fee for an event

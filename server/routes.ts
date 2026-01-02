@@ -8378,9 +8378,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const itemNames: string[] = [];
           for (const item of orderItems.slice(0, 2)) {
             const product = await storage.getShopItemById(item.itemId);
-            itemNames.push(product?.name || 'Item');
+            itemNames.push(product?.name || 'Produto');
           }
-          const itemsText = orderItems.length > 1 ? `${itemNames[0]} e mais ${orderItems.length - 1}` : itemNames[0] || 'Item';
+          const firstName = itemNames[0] || 'Produto';
+          const itemsText = orderItems.length > 1 ? `${firstName} e mais ${orderItems.length - 1}` : firstName;
           
           await storage.createNotification({
             userId: order.userId,
@@ -8440,9 +8441,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const itemNames: string[] = [];
               for (const item of orderItems.slice(0, 2)) {
                 const product = await storage.getShopItemById(item.itemId);
-                itemNames.push(product?.name || 'Item');
+                itemNames.push(product?.name || 'Produto');
               }
-              const itemsText = orderItems.length > 1 ? `${itemNames[0]} e mais ${orderItems.length - 1}` : itemNames[0] || 'Item';
+              const firstName = itemNames[0] || 'Produto';
+              const itemsText = orderItems.length > 1 ? `${firstName} e mais ${orderItems.length - 1}` : firstName;
               
               await storage.createNotification({
                 userId: order.userId,

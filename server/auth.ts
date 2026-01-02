@@ -106,3 +106,25 @@ export function requireAdminOrEspiritualidade(
   }
   next();
 }
+
+export function requireMarketing(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
+    return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de marketing" });
+  }
+  next();
+}
+
+export function requireTreasurer(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  if (!req.user?.isAdmin && !req.user?.isTreasurer) {
+    return res.status(403).json({ message: "Acesso negado: apenas administradores ou tesoureiro" });
+  }
+  next();
+}

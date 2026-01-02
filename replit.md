@@ -117,6 +117,39 @@ The front-end is built with React, featuring a responsive design. The DeoGlory s
 - **React Markdown**: For rendering Markdown content.
 - **Google Maps (indirect)**: Location links open in Google Maps, but direct integration has been removed.
 
+## Treasury Module (Módulo de Tesouraria)
+
+### Overview
+A comprehensive financial management system for UMP Emaús with the following features:
+- Member fee management (Taxa Percapta and Taxa UMP)
+- Virtual store with payment integration
+- Event fee collection
+- Financial dashboards for treasurer and members
+- Mercado Pago PIX payment integration (0.99% fee)
+- Mobile-first design (mandatory for all pages)
+
+### Role Separation
+- **Admin/Treasurer**: Access to treasury panel (configurations, entries, loans, reports)
+- **Admin/Marketing**: Access to shop management (products, categories, order status)
+- **Members**: Access to their financial panel and can buy from shop
+
+### API Routes
+- **Treasury Settings**: `GET/PUT /api/treasury/settings`
+- **Treasury Dashboard**: `GET /api/treasury/dashboard`
+- **Treasury Entries**: `GET/POST /api/treasury/entries`
+- **Treasury Loans**: `GET/POST /api/treasury/loans`, `PUT /api/treasury/loans/:id/installments/:id`
+- **Member Payments (Admin)**: `GET /api/treasury/member-payments`, `POST /api/treasury/payments/percapta`, `POST /api/treasury/payments/ump`
+- **My Finances (Member)**: `GET /api/my-finances`
+- **Shop (Admin/Marketing)**: `/api/admin/shop/*`
+- **Shop (Member)**: `/api/shop/*`
+
+### Middleware
+- `requireTreasurer`: Allows Admin OR Treasurer access
+- `requireMarketing`: Allows Admin OR Marketing access
+
+### Documentation
+Complete specification in `docs/MODULO_TESOURARIA.md`
+
 ## Future Plans
 
 ### Native App-Like Navigation

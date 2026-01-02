@@ -69,11 +69,11 @@ export default function LojaPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (cartItems: { itemId: number; quantity: number }[]) => {
+    mutationFn: async (cartItems: { itemId: number; quantity: number; gender?: string; size?: string }[]) => {
       return apiRequest("POST", "/api/shop/checkout", { items: cartItems });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
       setCart([]);
       setIsCheckoutOpen(false);
       setIsCartOpen(false);

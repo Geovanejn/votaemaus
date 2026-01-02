@@ -14,6 +14,8 @@ import {
   requireMember,
   requireAdminOrMarketing,
   requireAdminOrEspiritualidade,
+  requireMarketing,
+  requireTreasurer,
   type AuthRequest 
 } from "./auth";
 import { 
@@ -8096,6 +8098,904 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get cards catalog error:", error);
       res.status(500).json({ message: "Erro ao buscar catalogo" });
+    }
+  });
+
+  // ==================== SHOP ROUTES - ADMIN (MARKETING) ====================
+
+  // Listar categorias da loja (admin)
+  app.get("/api/admin/shop/categories", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const categories = await storage.getShopCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Get shop categories error:", error);
+      res.status(500).json({ message: "Erro ao buscar categorias" });
+    }
+  });
+
+  // Criar categoria (admin)
+  app.post("/api/admin/shop/categories", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== "string") {
+        return res.status(400).json({ message: "Nome obrigatório" });
+      }
+      const category = await storage.createShopCategory({ name, isDefault: false });
+      res.json(category);
+    } catch (error) {
+      console.error("Create shop category error:", error);
+      res.status(500).json({ message: "Erro ao criar categoria" });
+    }
+  });
+
+  // Listar itens da loja (admin - todos os itens)
+  app.get("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const items = await storage.getShopItems(false);
+      const categories = await storage.getShopCategories();
+      const categoryMap = new Map(categories.map(c => [c.id, c]));
+      
+      const itemsWithDetails = await Promise.all(items.map(async (item) => {
+        const images = await storage.getShopItemImages(item.id);
+        const sizes = await storage.getShopItemSizes(item.id);
+        return {
+          ...item,
+          category: categoryMap.get(item.categoryId) || null,
+          images,
+          sizes,
+        };
+      }));
+      
+      res.json(itemsWithDetails);
+    } catch (error) {
+      console.error("Get admin shop items error:", error);
+      res.status(500).json({ message: "Erro ao buscar itens" });
+    }
+  });
+
+  // Criar item da loja (admin)
+  app.post("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder } = req.body;
+      
+      if (!name || price === undefined || !categoryId || !genderType) {
+        return res.status(400).json({ message: "Campos obrigatórios faltando" });
+      }
+      
+      const item = await storage.createShopItem({
+        name,
+        description: description || null,
+        price: Number(price),
+        categoryId: Number(categoryId),
+        genderType,
+        hasSize: hasSize ?? true,
+        isAvailable: isAvailable ?? true,
+        isPreOrder: isPreOrder ?? false,
+      });
+      
+      res.json(item);
+    } catch (error) {
+      console.error("Create shop item error:", error);
+      res.status(500).json({ message: "Erro ao criar item" });
+    }
+  });
+
+  // Atualizar item da loja (admin)
+  app.patch("/api/admin/shop/items/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder } = req.body;
+      
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (price !== undefined) updates.price = Number(price);
+      if (categoryId !== undefined) updates.categoryId = Number(categoryId);
+      if (genderType !== undefined) updates.genderType = genderType;
+      if (hasSize !== undefined) updates.hasSize = hasSize;
+      if (isAvailable !== undefined) updates.isAvailable = isAvailable;
+      if (isPreOrder !== undefined) updates.isPreOrder = isPreOrder;
+      
+      const item = await storage.updateShopItem(id, updates);
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      
+      res.json(item);
+    } catch (error) {
+      console.error("Update shop item error:", error);
+      res.status(500).json({ message: "Erro ao atualizar item" });
+    }
+  });
+
+  // Excluir item da loja (admin)
+  app.delete("/api/admin/shop/items/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      await storage.deleteShopItem(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete shop item error:", error);
+      res.status(500).json({ message: "Erro ao excluir item" });
+    }
+  });
+
+  // Upload de imagem do item (admin)
+  app.post("/api/admin/shop/items/:id/images", authenticateToken, requireMarketing, imageUpload.single("image"), async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const item = await storage.getShopItemById(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "Imagem obrigatória" });
+      }
+      
+      const gender = req.body.gender || "unissex";
+      
+      const processedImage = await sharp(req.file.buffer)
+        .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      
+      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+      
+      const existingImages = await storage.getShopItemImages(id);
+      const sortOrder = existingImages.length;
+      
+      const image = await storage.createShopItemImage({
+        itemId: id,
+        gender,
+        imageData: base64Image,
+        sortOrder,
+      });
+      
+      res.json(image);
+    } catch (error) {
+      console.error("Upload shop item image error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload da imagem" });
+    }
+  });
+
+  // Excluir imagem do item (admin)
+  app.delete("/api/admin/shop/items/:itemId/images/:imageId", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      await storage.deleteShopItemImage(imageId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete shop item image error:", error);
+      res.status(500).json({ message: "Erro ao excluir imagem" });
+    }
+  });
+
+  // Adicionar tamanho ao item (admin)
+  app.post("/api/admin/shop/items/:id/sizes", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { gender, size } = req.body;
+      if (!gender || !size) {
+        return res.status(400).json({ message: "Gênero e tamanho obrigatórios" });
+      }
+      
+      const existingSizes = await storage.getShopItemSizes(id);
+      const sortOrder = existingSizes.length;
+      
+      const newSize = await storage.createShopItemSize({
+        itemId: id,
+        gender,
+        size,
+        sortOrder,
+      });
+      
+      res.json(newSize);
+    } catch (error) {
+      console.error("Add shop item size error:", error);
+      res.status(500).json({ message: "Erro ao adicionar tamanho" });
+    }
+  });
+
+  // Listar pedidos da loja (admin)
+  app.get("/api/admin/shop/orders", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const orders = await storage.getShopOrders(status ? { status } : undefined);
+      
+      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
+        const items = await storage.getShopOrderItems(order.id);
+        const user = await storage.getUserById(order.userId);
+        
+        const itemsWithProduct = await Promise.all(items.map(async (item) => {
+          const product = await storage.getShopItemById(item.itemId);
+          return { ...item, product };
+        }));
+        
+        return {
+          ...order,
+          user: user ? { id: user.id, fullName: user.fullName, email: user.email } : null,
+          items: itemsWithProduct,
+        };
+      }));
+      
+      res.json(ordersWithDetails);
+    } catch (error) {
+      console.error("Get admin shop orders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos" });
+    }
+  });
+
+  // Atualizar status do pedido (admin)
+  app.patch("/api/admin/shop/orders/:id/status", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { orderStatus } = req.body;
+      if (!orderStatus) {
+        return res.status(400).json({ message: "Status obrigatório" });
+      }
+      
+      const validStatuses = ["awaiting_payment", "paid", "producing", "ready"];
+      if (!validStatuses.includes(orderStatus)) {
+        return res.status(400).json({ message: "Status inválido" });
+      }
+      
+      const order = await storage.updateShopOrder(id, { orderStatus });
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Update shop order status error:", error);
+      res.status(500).json({ message: "Erro ao atualizar status" });
+    }
+  });
+
+  // ==================== SHOP ROUTES - MEMBER ====================
+
+  // Listar itens disponíveis (catálogo público)
+  app.get("/api/shop/items", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const items = await storage.getShopItems(true);
+      
+      const itemsWithDetails = await Promise.all(items.map(async (item) => {
+        const images = await storage.getShopItemImages(item.id);
+        const sizes = await storage.getShopItemSizes(item.id);
+        return { ...item, images, sizes };
+      }));
+      
+      res.json(itemsWithDetails);
+    } catch (error) {
+      console.error("Get shop items error:", error);
+      res.status(500).json({ message: "Erro ao buscar itens" });
+    }
+  });
+
+  // Obter item específico
+  app.get("/api/shop/items/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const item = await storage.getShopItemById(id);
+      if (!item || !item.isAvailable) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      
+      const images = await storage.getShopItemImages(id);
+      const sizes = await storage.getShopItemSizes(id);
+      
+      res.json({ ...item, images, sizes });
+    } catch (error) {
+      console.error("Get shop item error:", error);
+      res.status(500).json({ message: "Erro ao buscar item" });
+    }
+  });
+
+  // Obter carrinho do usuário
+  app.get("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const cartItems = await storage.getCartItems(req.user!.id);
+      
+      const itemsWithDetails = await Promise.all(cartItems.map(async (cartItem) => {
+        const item = await storage.getShopItemById(cartItem.itemId);
+        return { ...cartItem, item };
+      }));
+      
+      res.json(itemsWithDetails);
+    } catch (error) {
+      console.error("Get cart error:", error);
+      res.status(500).json({ message: "Erro ao buscar carrinho" });
+    }
+  });
+
+  // Adicionar ao carrinho
+  app.post("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { itemId, quantity, gender, size } = req.body;
+      
+      if (!itemId || !quantity) {
+        return res.status(400).json({ message: "Item e quantidade obrigatórios" });
+      }
+      
+      const item = await storage.getShopItemById(itemId);
+      if (!item || !item.isAvailable) {
+        return res.status(404).json({ message: "Item não disponível" });
+      }
+      
+      const cartItem = await storage.addToCart({
+        userId: req.user!.id,
+        itemId: Number(itemId),
+        quantity: Number(quantity),
+        gender: gender || null,
+        size: size || null,
+      });
+      
+      res.json(cartItem);
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      res.status(500).json({ message: "Erro ao adicionar ao carrinho" });
+    }
+  });
+
+  // Atualizar quantidade no carrinho
+  app.patch("/api/shop/cart/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { quantity } = req.body;
+      
+      if (isNaN(id) || !quantity) {
+        return res.status(400).json({ message: "Dados inválidos" });
+      }
+      
+      const cartItem = await storage.updateCartItem(id, Number(quantity));
+      if (!cartItem) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      
+      res.json(cartItem);
+    } catch (error) {
+      console.error("Update cart error:", error);
+      res.status(500).json({ message: "Erro ao atualizar carrinho" });
+    }
+  });
+
+  // Remover do carrinho
+  app.delete("/api/shop/cart/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      await storage.removeFromCart(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove from cart error:", error);
+      res.status(500).json({ message: "Erro ao remover do carrinho" });
+    }
+  });
+
+  // Limpar carrinho
+  app.delete("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.clearCart(req.user!.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Clear cart error:", error);
+      res.status(500).json({ message: "Erro ao limpar carrinho" });
+    }
+  });
+
+  // Finalizar pedido (checkout)
+  app.post("/api/shop/checkout", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { items, observation } = req.body;
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Itens obrigatórios" });
+      }
+      
+      let totalAmount = 0;
+      const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string }[] = [];
+      
+      for (const cartItem of items) {
+        const item = await storage.getShopItemById(cartItem.itemId);
+        if (!item || !item.isAvailable) {
+          return res.status(400).json({ message: `Item ${cartItem.itemId} não disponível` });
+        }
+        
+        const qty = Number(cartItem.quantity) || 1;
+        totalAmount += item.price * qty;
+        orderItems.push({
+          itemId: item.id,
+          quantity: qty,
+          unitPrice: item.price,
+          gender: cartItem.gender,
+          size: cartItem.size,
+        });
+      }
+      
+      const year = new Date().getFullYear();
+      const existingOrders = await storage.getShopOrders();
+      const yearOrders = existingOrders.filter(o => o.orderCode.startsWith(`#${year}-`));
+      const nextNumber = (yearOrders.length + 1).toString().padStart(4, "0");
+      const orderCode = `#${year}-${nextNumber}`;
+      
+      const order = await storage.createShopOrder({
+        orderCode,
+        userId: req.user!.id,
+        totalAmount,
+        observation: observation || null,
+        paymentStatus: "pending",
+        orderStatus: "awaiting_payment",
+      });
+      
+      for (const oi of orderItems) {
+        await storage.createShopOrderItem({
+          orderId: order.id,
+          itemId: oi.itemId,
+          quantity: oi.quantity,
+          gender: oi.gender || null,
+          size: oi.size || null,
+          unitPrice: oi.unitPrice,
+        });
+      }
+      
+      await storage.clearCart(req.user!.id);
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ message: "Erro ao finalizar pedido" });
+    }
+  });
+
+  // Listar meus pedidos
+  app.get("/api/shop/my-orders", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orders = await storage.getShopOrders({ userId: req.user!.id });
+      
+      const ordersWithItems = await Promise.all(orders.map(async (order) => {
+        const items = await storage.getShopOrderItems(order.id);
+        const itemsWithProduct = await Promise.all(items.map(async (item) => {
+          const product = await storage.getShopItemById(item.itemId);
+          return { ...item, product };
+        }));
+        return { ...order, items: itemsWithProduct };
+      }));
+      
+      res.json(ordersWithItems);
+    } catch (error) {
+      console.error("Get my orders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos" });
+    }
+  });
+
+  // Obter pedido específico
+  app.get("/api/shop/my-orders/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const order = await storage.getShopOrderById(id);
+      if (!order || order.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      const items = await storage.getShopOrderItems(order.id);
+      const itemsWithProduct = await Promise.all(items.map(async (item) => {
+        const product = await storage.getShopItemById(item.itemId);
+        return { ...item, product };
+      }));
+      
+      res.json({ ...order, items: itemsWithProduct });
+    } catch (error) {
+      console.error("Get order error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedido" });
+    }
+  });
+
+  // Cancelar pedido (antes de pagar)
+  app.delete("/api/shop/my-orders/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const order = await storage.getShopOrderById(id);
+      if (!order || order.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      if (order.paymentStatus !== "pending") {
+        return res.status(400).json({ message: "Não é possível cancelar pedido já pago" });
+      }
+      
+      await storage.updateShopOrder(id, { orderStatus: "cancelled" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      res.status(500).json({ message: "Erro ao cancelar pedido" });
+    }
+  });
+
+  // ==================== TREASURY ROUTES (Tesoureiro/Admin) ====================
+
+  // Obter configurações da tesouraria
+  app.get("/api/treasury/settings", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      let settings = await storage.getTreasurySettings(year);
+      
+      if (!settings) {
+        settings = await storage.createTreasurySettings({
+          year,
+          percaptaAmount: 0,
+          umpMonthlyAmount: 0,
+          pixKey: null,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Get treasury settings error:", error);
+      res.status(500).json({ message: "Erro ao buscar configurações" });
+    }
+  });
+
+  // Atualizar configurações da tesouraria
+  app.put("/api/treasury/settings/:id", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { percaptaAmount, umpMonthlyAmount, pixKey } = req.body;
+      
+      const settings = await storage.updateTreasurySettings(id, {
+        percaptaAmount,
+        umpMonthlyAmount,
+        pixKey,
+      });
+      
+      if (!settings) {
+        return res.status(404).json({ message: "Configurações não encontradas" });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Update treasury settings error:", error);
+      res.status(500).json({ message: "Erro ao atualizar configurações" });
+    }
+  });
+
+  // Obter resumo do dashboard
+  app.get("/api/treasury/dashboard", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const summary = await storage.getTreasuryDashboardSummary(year);
+      res.json(summary);
+    } catch (error) {
+      console.error("Get treasury dashboard error:", error);
+      res.status(500).json({ message: "Erro ao buscar resumo" });
+    }
+  });
+
+  // Listar lançamentos da tesouraria
+  app.get("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { type, userId, year, status } = req.query;
+      
+      const entries = await storage.getTreasuryEntries({
+        type: type as string | undefined,
+        userId: userId ? parseInt(userId as string) : undefined,
+        year: year ? parseInt(year as string) : undefined,
+        status: status as string | undefined,
+      });
+      
+      res.json(entries);
+    } catch (error) {
+      console.error("Get treasury entries error:", error);
+      res.status(500).json({ message: "Erro ao buscar lançamentos" });
+    }
+  });
+
+  // Criar lançamento manual
+  app.post("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { type, category, description, amount, userId, referenceYear, referenceMonth, attachmentUrl } = req.body;
+      
+      if (!type || !category || !amount) {
+        return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      const entry = await storage.createTreasuryEntry({
+        type,
+        category,
+        description,
+        amount,
+        userId: userId || null,
+        referenceYear: referenceYear || new Date().getFullYear(),
+        referenceMonth: referenceMonth || null,
+        paymentStatus: "paid",
+        attachmentUrl: attachmentUrl || null,
+      });
+      
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Create treasury entry error:", error);
+      res.status(500).json({ message: "Erro ao criar lançamento" });
+    }
+  });
+
+  // Listar empréstimos
+  app.get("/api/treasury/loans", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const loans = await storage.getTreasuryLoans();
+      
+      const loansWithInstallments = await Promise.all(loans.map(async (loan) => {
+        const installments = await storage.getTreasuryLoanInstallments(loan.id);
+        return { ...loan, installments };
+      }));
+      
+      res.json(loansWithInstallments);
+    } catch (error) {
+      console.error("Get treasury loans error:", error);
+      res.status(500).json({ message: "Erro ao buscar empréstimos" });
+    }
+  });
+
+  // Criar empréstimo
+  app.post("/api/treasury/loans", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { origin, description, totalAmount, isInstallment, installmentCount, installmentAmount, installmentDueDates } = req.body;
+      
+      if (!origin || !totalAmount) {
+        return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      const loan = await storage.createTreasuryLoan({
+        origin,
+        description: description || null,
+        totalAmount,
+        paidAmount: 0,
+        isInstallment: isInstallment || false,
+        status: "active",
+      });
+      
+      if (isInstallment && installmentCount > 0) {
+        for (let i = 0; i < installmentCount; i++) {
+          await storage.createTreasuryLoanInstallment({
+            loanId: loan.id,
+            installmentNumber: i + 1,
+            amount: installmentAmount,
+            dueDate: installmentDueDates?.[i] ? new Date(installmentDueDates[i]) : new Date(),
+            isPaid: false,
+          });
+        }
+      }
+      
+      const installments = await storage.getTreasuryLoanInstallments(loan.id);
+      res.status(201).json({ ...loan, installments });
+    } catch (error) {
+      console.error("Create treasury loan error:", error);
+      res.status(500).json({ message: "Erro ao criar empréstimo" });
+    }
+  });
+
+  // Marcar parcela como paga
+  app.put("/api/treasury/loans/:loanId/installments/:installmentId", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const loanId = parseInt(req.params.loanId);
+      const installmentId = parseInt(req.params.installmentId);
+      
+      if (isNaN(loanId) || isNaN(installmentId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { isPaid, paidAt } = req.body;
+      
+      const installment = await storage.updateTreasuryLoanInstallment(installmentId, {
+        isPaid,
+        paidAt: isPaid ? (paidAt ? new Date(paidAt) : new Date()) : null,
+      });
+      
+      if (!installment) {
+        return res.status(404).json({ message: "Parcela não encontrada" });
+      }
+      
+      const loan = await storage.getTreasuryLoanById(loanId);
+      if (loan) {
+        const installments = await storage.getTreasuryLoanInstallments(loanId);
+        const paidAmount = installments.filter(i => i.isPaid).reduce((sum, i) => sum + i.amount, 0);
+        const allPaid = installments.every(i => i.isPaid);
+        
+        await storage.updateTreasuryLoan(loanId, {
+          paidAmount,
+          status: allPaid ? "paid" : "active",
+        });
+      }
+      
+      res.json(installment);
+    } catch (error) {
+      console.error("Update installment error:", error);
+      res.status(500).json({ message: "Erro ao atualizar parcela" });
+    }
+  });
+
+  // Listar status de pagamentos de todos os membros (para painel do tesoureiro)
+  app.get("/api/treasury/member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const members = await storage.getAllMembers(true);
+      const activeMembers = members.filter(m => m.isMember);
+      
+      const memberPayments = await Promise.all(activeMembers.map(async (member) => {
+        const percapta = await storage.getMemberPercaptaPayment(member.id, year);
+        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        
+        return {
+          member: {
+            id: member.id,
+            name: member.name,
+            email: member.email,
+            profileImage: member.profileImage,
+          },
+          percapta: percapta || { isPaid: false, amount: null, paidAt: null },
+          umpPayments,
+          umpPaidMonths: umpPayments.filter(p => p.isPaid).length,
+          umpTotalMonths: 12,
+        };
+      }));
+      
+      res.json(memberPayments);
+    } catch (error) {
+      console.error("Get member payments error:", error);
+      res.status(500).json({ message: "Erro ao buscar pagamentos" });
+    }
+  });
+
+  // ==================== MEMBER FINANCIAL PANEL ROUTES ====================
+
+  // Obter meu painel financeiro
+  app.get("/api/my-finances", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const userId = req.user!.id;
+      
+      const settings = await storage.getTreasurySettings(year);
+      const percapta = await storage.getMemberPercaptaPayment(userId, year);
+      const umpPayments = await storage.getMemberUmpPayments(userId, year);
+      
+      const orders = await storage.getShopOrders({ userId });
+      const ordersWithItems = await Promise.all(orders.map(async (order) => {
+        const items = await storage.getShopOrderItems(order.id);
+        return { ...order, items };
+      }));
+      
+      res.json({
+        year,
+        isMember: req.user!.isMember,
+        settings: settings ? {
+          percaptaAmount: settings.percaptaAmount,
+          umpMonthlyAmount: settings.umpMonthlyAmount,
+        } : null,
+        percapta: percapta || { isPaid: false, amount: null, paidAt: null },
+        umpPayments,
+        umpPaidMonths: umpPayments.filter(p => p.isPaid).length,
+        orders: ordersWithItems,
+      });
+    } catch (error) {
+      console.error("Get my finances error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados financeiros" });
+    }
+  });
+
+  // Registrar pagamento de taxa (para integração com Mercado Pago futuramente)
+  app.post("/api/treasury/payments/percapta", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { userId, year, amount, paidAt } = req.body;
+      
+      if (!userId || !year || !amount) {
+        return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      let payment = await storage.getMemberPercaptaPayment(userId, year);
+      
+      if (payment) {
+        payment = await storage.updateMemberPercaptaPayment(payment.id, {
+          isPaid: true,
+          amount,
+          paidAt: paidAt ? new Date(paidAt) : new Date(),
+        });
+      } else {
+        payment = await storage.createMemberPercaptaPayment({
+          userId,
+          year,
+          isPaid: true,
+          amount,
+          paidAt: paidAt ? new Date(paidAt) : new Date(),
+        });
+      }
+      
+      res.json(payment);
+    } catch (error) {
+      console.error("Create percapta payment error:", error);
+      res.status(500).json({ message: "Erro ao registrar pagamento" });
+    }
+  });
+
+  // Registrar pagamento de taxa UMP
+  app.post("/api/treasury/payments/ump", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { userId, year, months, amountPerMonth, paidAt } = req.body;
+      
+      if (!userId || !year || !months || !amountPerMonth) {
+        return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      const payments = [];
+      
+      for (const month of months) {
+        let payment = await storage.getMemberUmpPayment(userId, year, month);
+        
+        if (payment) {
+          payment = await storage.updateMemberUmpPayment(payment.id, {
+            isPaid: true,
+            amount: amountPerMonth,
+            paidAt: paidAt ? new Date(paidAt) : new Date(),
+          });
+        } else {
+          payment = await storage.createMemberUmpPayment({
+            userId,
+            year,
+            month,
+            isPaid: true,
+            amount: amountPerMonth,
+            paidAt: paidAt ? new Date(paidAt) : new Date(),
+          });
+        }
+        
+        payments.push(payment);
+      }
+      
+      res.json(payments);
+    } catch (error) {
+      console.error("Create UMP payment error:", error);
+      res.status(500).json({ message: "Erro ao registrar pagamento" });
     }
   });
 

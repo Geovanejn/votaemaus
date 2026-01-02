@@ -23,23 +23,35 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
+interface OrderItemProduct {
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+}
+
 interface OrderItem {
   id: number;
+  orderId: number;
   itemId: number;
-  itemName: string;
   quantity: number;
+  gender: string | null;
+  size: string | null;
   unitPrice: number;
+  product: OrderItemProduct | null;
 }
 
 interface Order {
   id: number;
+  orderCode: string;
   userId: number;
   totalAmount: number;
   paymentStatus: "pending" | "paid" | "cancelled" | "refunded";
-  productionStatus: "pending" | "in_production" | "ready" | "delivered";
+  orderStatus: "awaiting_payment" | "paid" | "producing" | "ready" | "cancelled";
   pixCode: string | null;
   pixQrCode: string | null;
   pixExpiresAt: string | null;
+  observation: string | null;
   createdAt: string;
   items: OrderItem[];
 }
@@ -68,11 +80,12 @@ const paymentStatusLabels: Record<string, { label: string; variant: "default" | 
   refunded: { label: "Estornado", variant: "outline" },
 };
 
-const productionStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Aguardando Producao", variant: "secondary" },
-  in_production: { label: "Em Producao", variant: "outline" },
-  ready: { label: "Pronto", variant: "default" },
-  delivered: { label: "Entregue", variant: "default" },
+const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
+  paid: { label: "Pago", variant: "default" },
+  producing: { label: "Em Producao", variant: "outline" },
+  ready: { label: "Pronto para Retirada", variant: "default" },
+  cancelled: { label: "Cancelado", variant: "destructive" },
 };
 
 export default function MeusPedidosPage() {
@@ -82,7 +95,7 @@ export default function MeusPedidosPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
-    queryKey: ["/api/shop/orders/my"],
+    queryKey: ["/api/shop/my-orders"],
     enabled: isAuthenticated,
   });
 
@@ -206,8 +219,8 @@ export default function MeusPedidosPage() {
                           {formatCurrency(order.totalAmount)}
                         </p>
                       </div>
-                      <Badge variant={productionStatusLabels[order.productionStatus]?.variant || "secondary"}>
-                        {productionStatusLabels[order.productionStatus]?.label || order.productionStatus}
+                      <Badge variant={orderStatusLabels[order.orderStatus]?.variant || "secondary"}>
+                        {orderStatusLabels[order.orderStatus]?.label || order.orderStatus}
                       </Badge>
                     </div>
                   </CardContent>
@@ -234,8 +247,8 @@ export default function MeusPedidosPage() {
                   <Badge variant={paymentStatusLabels[selectedOrder.paymentStatus]?.variant || "secondary"}>
                     Pagamento: {paymentStatusLabels[selectedOrder.paymentStatus]?.label}
                   </Badge>
-                  <Badge variant={productionStatusLabels[selectedOrder.productionStatus]?.variant || "secondary"}>
-                    {productionStatusLabels[selectedOrder.productionStatus]?.label}
+                  <Badge variant={orderStatusLabels[selectedOrder.orderStatus]?.variant || "secondary"}>
+                    {orderStatusLabels[selectedOrder.orderStatus]?.label}
                   </Badge>
                 </div>
 
@@ -243,7 +256,7 @@ export default function MeusPedidosPage() {
                   <h4 className="font-medium text-sm">Itens do Pedido</h4>
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.quantity}x {item.itemName}</span>
+                      <span>{item.quantity}x {item.product?.name || "Item"}</span>
                       <span className="font-medium">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>

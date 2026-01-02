@@ -89,18 +89,18 @@
 - [ ] Pagamento para visitantes
 
 ### Backend - APIs
-- [ ] Endpoints de configurações
-- [ ] Endpoints de entradas/saídas
-- [ ] Endpoints de empréstimos
+- [x] Endpoints de configurações
+- [x] Endpoints de entradas/saídas
+- [x] Endpoints de empréstimos
 - [ ] Endpoints de PIX (criar, status, refresh)
 - [ ] Webhook do Mercado Pago
-- [ ] Endpoints de taxas do membro
+- [x] Endpoints de taxas do membro
 - [ ] Endpoints de eventos
-- [ ] Endpoints da loja (admin)
-- [ ] Endpoints da loja (membro)
+- [x] Endpoints da loja (admin)
+- [x] Endpoints da loja (membro)
 - [ ] Endpoints de relatórios
 - [ ] Endpoints de notificações
-- [ ] Endpoints de dashboard
+- [x] Endpoints de dashboard
 
 ### Integração Mercado Pago
 - [ ] Configuração do SDK

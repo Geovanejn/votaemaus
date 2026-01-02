@@ -60,6 +60,32 @@ import type {
   InsertCollectibleCard,
   UserCard,
   InsertUserCard,
+  ShopCategory,
+  InsertShopCategory,
+  ShopItem,
+  InsertShopItem,
+  ShopItemImage,
+  InsertShopItemImage,
+  ShopItemSize,
+  InsertShopItemSize,
+  ShopCartItem,
+  InsertShopCartItem,
+  ShopOrder,
+  InsertShopOrder,
+  ShopOrderItem,
+  InsertShopOrderItem,
+  TreasurySettings,
+  InsertTreasurySettings,
+  TreasuryEntry,
+  InsertTreasuryEntry,
+  TreasuryLoan,
+  InsertTreasuryLoan,
+  TreasuryLoanInstallment,
+  InsertTreasuryLoanInstallment,
+  MemberPercaptaPayment,
+  InsertMemberPercaptaPayment,
+  MemberUmpPayment,
+  InsertMemberUmpPayment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -449,6 +475,49 @@ export interface IStorage {
   
   // Event Completion Methods
   getUsersWhoCompletedEvent(eventId: number, totalLessons: number): Promise<number[]>;
+  
+  // Shop Categories Methods
+  getShopCategories(): Promise<ShopCategory[]>;
+  getShopCategoryById(id: number): Promise<ShopCategory | null>;
+  createShopCategory(data: InsertShopCategory): Promise<ShopCategory>;
+  updateShopCategory(id: number, data: Partial<InsertShopCategory>): Promise<ShopCategory | null>;
+  deleteShopCategory(id: number): Promise<void>;
+  
+  // Shop Items Methods
+  getShopItems(onlyAvailable?: boolean): Promise<ShopItem[]>;
+  getShopItemById(id: number): Promise<ShopItem | null>;
+  createShopItem(data: InsertShopItem): Promise<ShopItem>;
+  updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
+  deleteShopItem(id: number): Promise<void>;
+  
+  // Shop Item Images Methods
+  getShopItemImages(itemId: number): Promise<ShopItemImage[]>;
+  createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage>;
+  deleteShopItemImage(id: number): Promise<void>;
+  
+  // Shop Item Sizes Methods
+  getShopItemSizes(itemId: number): Promise<ShopItemSize[]>;
+  createShopItemSize(data: InsertShopItemSize): Promise<ShopItemSize>;
+  deleteShopItemSize(id: number): Promise<void>;
+  deleteShopItemSizesByItem(itemId: number): Promise<void>;
+  
+  // Shop Cart Methods
+  getCartItems(userId: number): Promise<ShopCartItem[]>;
+  addToCart(data: InsertShopCartItem): Promise<ShopCartItem>;
+  updateCartItem(id: number, quantity: number): Promise<ShopCartItem | null>;
+  removeFromCart(id: number): Promise<void>;
+  clearCart(userId: number): Promise<void>;
+  
+  // Shop Orders Methods
+  getShopOrders(filters?: { userId?: number; status?: string }): Promise<ShopOrder[]>;
+  getShopOrderById(id: number): Promise<ShopOrder | null>;
+  getShopOrderByCode(code: string): Promise<ShopOrder | null>;
+  createShopOrder(data: InsertShopOrder): Promise<ShopOrder>;
+  updateShopOrder(id: number, data: Partial<InsertShopOrder>): Promise<ShopOrder | null>;
+  
+  // Shop Order Items Methods
+  getShopOrderItems(orderId: number): Promise<ShopOrderItem[]>;
+  createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -6379,6 +6448,495 @@ export class DatabaseStorage implements IStorage {
         return lessonIds.every(id => completedIds.includes(id));
       })
       .map(p => p.userId);
+  }
+
+  // ==================== SHOP CATEGORIES METHODS ====================
+
+  async getShopCategories(): Promise<ShopCategory[]> {
+    return db.select()
+      .from(schema.shopCategories)
+      .orderBy(asc(schema.shopCategories.name));
+  }
+
+  async getShopCategoryById(id: number): Promise<ShopCategory | null> {
+    const [category] = await db.select()
+      .from(schema.shopCategories)
+      .where(eq(schema.shopCategories.id, id))
+      .limit(1);
+    return category || null;
+  }
+
+  async createShopCategory(data: InsertShopCategory): Promise<ShopCategory> {
+    const [category] = await db.insert(schema.shopCategories)
+      .values(data)
+      .returning();
+    return category;
+  }
+
+  async updateShopCategory(id: number, data: Partial<InsertShopCategory>): Promise<ShopCategory | null> {
+    const [category] = await db.update(schema.shopCategories)
+      .set(data)
+      .where(eq(schema.shopCategories.id, id))
+      .returning();
+    return category || null;
+  }
+
+  async deleteShopCategory(id: number): Promise<void> {
+    await db.delete(schema.shopCategories)
+      .where(eq(schema.shopCategories.id, id));
+  }
+
+  // ==================== SHOP ITEMS METHODS ====================
+
+  async getShopItems(onlyAvailable: boolean = false): Promise<ShopItem[]> {
+    if (onlyAvailable) {
+      return db.select()
+        .from(schema.shopItems)
+        .where(eq(schema.shopItems.isAvailable, true))
+        .orderBy(desc(schema.shopItems.createdAt));
+    }
+    return db.select()
+      .from(schema.shopItems)
+      .orderBy(desc(schema.shopItems.createdAt));
+  }
+
+  async getShopItemById(id: number): Promise<ShopItem | null> {
+    const [item] = await db.select()
+      .from(schema.shopItems)
+      .where(eq(schema.shopItems.id, id))
+      .limit(1);
+    return item || null;
+  }
+
+  async createShopItem(data: InsertShopItem): Promise<ShopItem> {
+    const [item] = await db.insert(schema.shopItems)
+      .values(data)
+      .returning();
+    return item;
+  }
+
+  async updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null> {
+    const [item] = await db.update(schema.shopItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.shopItems.id, id))
+      .returning();
+    return item || null;
+  }
+
+  async deleteShopItem(id: number): Promise<void> {
+    await db.delete(schema.shopItems)
+      .where(eq(schema.shopItems.id, id));
+  }
+
+  // ==================== SHOP ITEM IMAGES METHODS ====================
+
+  async getShopItemImages(itemId: number): Promise<ShopItemImage[]> {
+    return db.select()
+      .from(schema.shopItemImages)
+      .where(eq(schema.shopItemImages.itemId, itemId))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+  }
+
+  async createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage> {
+    const [image] = await db.insert(schema.shopItemImages)
+      .values(data)
+      .returning();
+    return image;
+  }
+
+  async deleteShopItemImage(id: number): Promise<void> {
+    await db.delete(schema.shopItemImages)
+      .where(eq(schema.shopItemImages.id, id));
+  }
+
+  // ==================== SHOP ITEM SIZES METHODS ====================
+
+  async getShopItemSizes(itemId: number): Promise<ShopItemSize[]> {
+    return db.select()
+      .from(schema.shopItemSizes)
+      .where(eq(schema.shopItemSizes.itemId, itemId))
+      .orderBy(asc(schema.shopItemSizes.sortOrder));
+  }
+
+  async createShopItemSize(data: InsertShopItemSize): Promise<ShopItemSize> {
+    const [size] = await db.insert(schema.shopItemSizes)
+      .values(data)
+      .returning();
+    return size;
+  }
+
+  async deleteShopItemSize(id: number): Promise<void> {
+    await db.delete(schema.shopItemSizes)
+      .where(eq(schema.shopItemSizes.id, id));
+  }
+
+  async deleteShopItemSizesByItem(itemId: number): Promise<void> {
+    await db.delete(schema.shopItemSizes)
+      .where(eq(schema.shopItemSizes.itemId, itemId));
+  }
+
+  // ==================== SHOP CART METHODS ====================
+
+  async getCartItems(userId: number): Promise<ShopCartItem[]> {
+    return db.select()
+      .from(schema.shopCartItems)
+      .where(eq(schema.shopCartItems.userId, userId))
+      .orderBy(desc(schema.shopCartItems.addedAt));
+  }
+
+  async addToCart(data: InsertShopCartItem): Promise<ShopCartItem> {
+    const [cartItem] = await db.insert(schema.shopCartItems)
+      .values(data)
+      .returning();
+    return cartItem;
+  }
+
+  async updateCartItem(id: number, quantity: number): Promise<ShopCartItem | null> {
+    const [cartItem] = await db.update(schema.shopCartItems)
+      .set({ quantity })
+      .where(eq(schema.shopCartItems.id, id))
+      .returning();
+    return cartItem || null;
+  }
+
+  async removeFromCart(id: number): Promise<void> {
+    await db.delete(schema.shopCartItems)
+      .where(eq(schema.shopCartItems.id, id));
+  }
+
+  async clearCart(userId: number): Promise<void> {
+    await db.delete(schema.shopCartItems)
+      .where(eq(schema.shopCartItems.userId, userId));
+  }
+
+  // ==================== SHOP ORDERS METHODS ====================
+
+  async getShopOrders(filters?: { userId?: number; status?: string }): Promise<ShopOrder[]> {
+    let query = db.select().from(schema.shopOrders);
+    
+    if (filters?.userId && filters?.status) {
+      return db.select()
+        .from(schema.shopOrders)
+        .where(and(
+          eq(schema.shopOrders.userId, filters.userId),
+          eq(schema.shopOrders.orderStatus, filters.status)
+        ))
+        .orderBy(desc(schema.shopOrders.createdAt));
+    } else if (filters?.userId) {
+      return db.select()
+        .from(schema.shopOrders)
+        .where(eq(schema.shopOrders.userId, filters.userId))
+        .orderBy(desc(schema.shopOrders.createdAt));
+    } else if (filters?.status) {
+      return db.select()
+        .from(schema.shopOrders)
+        .where(eq(schema.shopOrders.orderStatus, filters.status))
+        .orderBy(desc(schema.shopOrders.createdAt));
+    }
+    
+    return db.select()
+      .from(schema.shopOrders)
+      .orderBy(desc(schema.shopOrders.createdAt));
+  }
+
+  async getShopOrderById(id: number): Promise<ShopOrder | null> {
+    const [order] = await db.select()
+      .from(schema.shopOrders)
+      .where(eq(schema.shopOrders.id, id))
+      .limit(1);
+    return order || null;
+  }
+
+  async getShopOrderByCode(code: string): Promise<ShopOrder | null> {
+    const [order] = await db.select()
+      .from(schema.shopOrders)
+      .where(eq(schema.shopOrders.orderCode, code))
+      .limit(1);
+    return order || null;
+  }
+
+  async createShopOrder(data: InsertShopOrder): Promise<ShopOrder> {
+    const [order] = await db.insert(schema.shopOrders)
+      .values(data)
+      .returning();
+    return order;
+  }
+
+  async updateShopOrder(id: number, data: Partial<InsertShopOrder>): Promise<ShopOrder | null> {
+    const [order] = await db.update(schema.shopOrders)
+      .set(data)
+      .where(eq(schema.shopOrders.id, id))
+      .returning();
+    return order || null;
+  }
+
+  // ==================== SHOP ORDER ITEMS METHODS ====================
+
+  async getShopOrderItems(orderId: number): Promise<ShopOrderItem[]> {
+    return db.select()
+      .from(schema.shopOrderItems)
+      .where(eq(schema.shopOrderItems.orderId, orderId));
+  }
+
+  async createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem> {
+    const [item] = await db.insert(schema.shopOrderItems)
+      .values(data)
+      .returning();
+    return item;
+  }
+
+  // ==================== TREASURY SETTINGS METHODS ====================
+
+  async getTreasurySettings(year: number): Promise<TreasurySettings | null> {
+    const [settings] = await db.select()
+      .from(schema.treasurySettings)
+      .where(eq(schema.treasurySettings.year, year))
+      .limit(1);
+    return settings || null;
+  }
+
+  async createTreasurySettings(data: InsertTreasurySettings): Promise<TreasurySettings> {
+    const [settings] = await db.insert(schema.treasurySettings)
+      .values(data)
+      .returning();
+    return settings;
+  }
+
+  async updateTreasurySettings(id: number, data: Partial<InsertTreasurySettings>): Promise<TreasurySettings | null> {
+    const [settings] = await db.update(schema.treasurySettings)
+      .set(data)
+      .where(eq(schema.treasurySettings.id, id))
+      .returning();
+    return settings || null;
+  }
+
+  // ==================== TREASURY ENTRIES METHODS ====================
+
+  async getTreasuryEntries(filters?: { 
+    type?: string; 
+    userId?: number; 
+    year?: number;
+    status?: string;
+  }): Promise<TreasuryEntry[]> {
+    let conditions = [];
+    
+    if (filters?.type) {
+      conditions.push(eq(schema.treasuryEntries.type, filters.type as any));
+    }
+    if (filters?.userId) {
+      conditions.push(eq(schema.treasuryEntries.userId, filters.userId));
+    }
+    if (filters?.year) {
+      conditions.push(eq(schema.treasuryEntries.referenceYear, filters.year));
+    }
+    if (filters?.status) {
+      conditions.push(eq(schema.treasuryEntries.paymentStatus, filters.status as any));
+    }
+    
+    if (conditions.length > 0) {
+      return db.select()
+        .from(schema.treasuryEntries)
+        .where(and(...conditions))
+        .orderBy(desc(schema.treasuryEntries.createdAt));
+    }
+    
+    return db.select()
+      .from(schema.treasuryEntries)
+      .orderBy(desc(schema.treasuryEntries.createdAt));
+  }
+
+  async getTreasuryEntryById(id: number): Promise<TreasuryEntry | null> {
+    const [entry] = await db.select()
+      .from(schema.treasuryEntries)
+      .where(eq(schema.treasuryEntries.id, id))
+      .limit(1);
+    return entry || null;
+  }
+
+  async createTreasuryEntry(data: InsertTreasuryEntry): Promise<TreasuryEntry> {
+    const [entry] = await db.insert(schema.treasuryEntries)
+      .values(data)
+      .returning();
+    return entry;
+  }
+
+  async updateTreasuryEntry(id: number, data: Partial<InsertTreasuryEntry>): Promise<TreasuryEntry | null> {
+    const [entry] = await db.update(schema.treasuryEntries)
+      .set(data)
+      .where(eq(schema.treasuryEntries.id, id))
+      .returning();
+    return entry || null;
+  }
+
+  // ==================== TREASURY LOANS METHODS ====================
+
+  async getTreasuryLoans(): Promise<TreasuryLoan[]> {
+    return db.select()
+      .from(schema.treasuryLoans)
+      .orderBy(desc(schema.treasuryLoans.createdAt));
+  }
+
+  async getTreasuryLoanById(id: number): Promise<TreasuryLoan | null> {
+    const [loan] = await db.select()
+      .from(schema.treasuryLoans)
+      .where(eq(schema.treasuryLoans.id, id))
+      .limit(1);
+    return loan || null;
+  }
+
+  async createTreasuryLoan(data: InsertTreasuryLoan): Promise<TreasuryLoan> {
+    const [loan] = await db.insert(schema.treasuryLoans)
+      .values(data)
+      .returning();
+    return loan;
+  }
+
+  async updateTreasuryLoan(id: number, data: Partial<InsertTreasuryLoan>): Promise<TreasuryLoan | null> {
+    const [loan] = await db.update(schema.treasuryLoans)
+      .set(data)
+      .where(eq(schema.treasuryLoans.id, id))
+      .returning();
+    return loan || null;
+  }
+
+  // ==================== TREASURY LOAN INSTALLMENTS METHODS ====================
+
+  async getTreasuryLoanInstallments(loanId: number): Promise<TreasuryLoanInstallment[]> {
+    return db.select()
+      .from(schema.treasuryLoanInstallments)
+      .where(eq(schema.treasuryLoanInstallments.loanId, loanId))
+      .orderBy(asc(schema.treasuryLoanInstallments.dueDate));
+  }
+
+  async createTreasuryLoanInstallment(data: InsertTreasuryLoanInstallment): Promise<TreasuryLoanInstallment> {
+    const [installment] = await db.insert(schema.treasuryLoanInstallments)
+      .values(data)
+      .returning();
+    return installment;
+  }
+
+  async updateTreasuryLoanInstallment(id: number, data: Partial<InsertTreasuryLoanInstallment>): Promise<TreasuryLoanInstallment | null> {
+    const [installment] = await db.update(schema.treasuryLoanInstallments)
+      .set(data)
+      .where(eq(schema.treasuryLoanInstallments.id, id))
+      .returning();
+    return installment || null;
+  }
+
+  // ==================== MEMBER PERCAPTA PAYMENTS METHODS ====================
+
+  async getMemberPercaptaPayment(userId: number, year: number): Promise<MemberPercaptaPayment | null> {
+    const [payment] = await db.select()
+      .from(schema.memberPercaptaPayments)
+      .where(and(
+        eq(schema.memberPercaptaPayments.userId, userId),
+        eq(schema.memberPercaptaPayments.year, year)
+      ))
+      .limit(1);
+    return payment || null;
+  }
+
+  async createMemberPercaptaPayment(data: InsertMemberPercaptaPayment): Promise<MemberPercaptaPayment> {
+    const [payment] = await db.insert(schema.memberPercaptaPayments)
+      .values(data)
+      .returning();
+    return payment;
+  }
+
+  async updateMemberPercaptaPayment(id: number, data: Partial<InsertMemberPercaptaPayment>): Promise<MemberPercaptaPayment | null> {
+    const [payment] = await db.update(schema.memberPercaptaPayments)
+      .set(data)
+      .where(eq(schema.memberPercaptaPayments.id, id))
+      .returning();
+    return payment || null;
+  }
+
+  // ==================== MEMBER UMP PAYMENTS METHODS ====================
+
+  async getMemberUmpPayments(userId: number, year: number): Promise<MemberUmpPayment[]> {
+    return db.select()
+      .from(schema.memberUmpPayments)
+      .where(and(
+        eq(schema.memberUmpPayments.userId, userId),
+        eq(schema.memberUmpPayments.year, year)
+      ))
+      .orderBy(asc(schema.memberUmpPayments.month));
+  }
+
+  async getMemberUmpPayment(userId: number, year: number, month: number): Promise<MemberUmpPayment | null> {
+    const [payment] = await db.select()
+      .from(schema.memberUmpPayments)
+      .where(and(
+        eq(schema.memberUmpPayments.userId, userId),
+        eq(schema.memberUmpPayments.year, year),
+        eq(schema.memberUmpPayments.month, month)
+      ))
+      .limit(1);
+    return payment || null;
+  }
+
+  async createMemberUmpPayment(data: InsertMemberUmpPayment): Promise<MemberUmpPayment> {
+    const [payment] = await db.insert(schema.memberUmpPayments)
+      .values(data)
+      .returning();
+    return payment;
+  }
+
+  async updateMemberUmpPayment(id: number, data: Partial<InsertMemberUmpPayment>): Promise<MemberUmpPayment | null> {
+    const [payment] = await db.update(schema.memberUmpPayments)
+      .set(data)
+      .where(eq(schema.memberUmpPayments.id, id))
+      .returning();
+    return payment || null;
+  }
+
+  // ==================== TREASURY DASHBOARD METHODS ====================
+
+  async getTreasuryDashboardSummary(year: number): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+    pendingPayments: number;
+    paidMembers: number;
+    pendingMembers: number;
+  }> {
+    const entries = await this.getTreasuryEntries({ year });
+    
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let pendingPayments = 0;
+    
+    for (const entry of entries) {
+      if (entry.paymentStatus === "paid") {
+        if (entry.type === "income") {
+          totalIncome += entry.amount;
+        } else {
+          totalExpense += entry.amount;
+        }
+      } else if (entry.paymentStatus === "pending") {
+        pendingPayments += entry.amount;
+      }
+    }
+    
+    const activeMembers = await this.getAllMembers(true);
+    const activeMemberIds = activeMembers.filter(m => m.isMember).map(m => m.id);
+    
+    let paidMembers = 0;
+    for (const memberId of activeMemberIds) {
+      const percapta = await this.getMemberPercaptaPayment(memberId, year);
+      if (percapta?.isPaid) {
+        paidMembers++;
+      }
+    }
+    
+    return {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      pendingPayments,
+      paidMembers,
+      pendingMembers: activeMemberIds.length - paidMembers,
+    };
   }
 }
 

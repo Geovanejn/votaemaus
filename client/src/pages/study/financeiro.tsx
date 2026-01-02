@@ -148,10 +148,9 @@ export default function FinanceiroPage() {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Card className={cn(
-                  "border-l-4",
                   financial.totalOwed === 0 
-                    ? "border-l-green-500" 
-                    : "border-l-amber-500"
+                    ? "bg-green-50 dark:bg-green-900/20" 
+                    : "bg-amber-50 dark:bg-amber-900/20"
                 )}>
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between gap-4">

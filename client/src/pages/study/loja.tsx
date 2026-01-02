@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   ChevronLeft,
+  ChevronRight,
   ShoppingBag,
   ShoppingCart,
   Package,
@@ -17,13 +21,12 @@ import {
   Minus,
   Trash2,
   CreditCard,
-  AlertCircle,
   CheckCircle,
   Loader2,
-  Store
+  Store,
+  AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
@@ -37,15 +40,16 @@ interface ShopItemWithDetails {
   hasSize: boolean;
   isAvailable: boolean;
   isPreOrder: boolean;
-  images: { id: number; gender: string; imageData: string }[];
-  sizes: { id: number; gender: string; size: string }[];
+  images: { id: number; gender: string; imageData: string; sortOrder: number }[];
+  sizes: { id: number; gender: string; size: string; sortOrder: number }[];
 }
 
 interface CartItem {
   item: ShopItemWithDetails;
   quantity: number;
-  selectedGender?: string;
-  selectedSize?: string;
+  selectedGender: string;
+  selectedSize: string | null;
+  cartId: string;
 }
 
 function formatCurrency(cents: number): string {
@@ -55,26 +59,67 @@ function formatCurrency(cents: number): string {
   });
 }
 
+function getGenderLabel(gender: string): string {
+  const labels: Record<string, string> = {
+    unissex: "Unissex",
+    masculino: "Masculino",
+    feminino: "Feminino",
+    masculino_feminino: "Masc. e Fem.",
+  };
+  return labels[gender] || gender;
+}
+
+function getGendersForType(genderType: string): string[] {
+  if (genderType === "masculino_feminino") return ["masculino", "feminino"];
+  return [genderType];
+}
+
 export default function LojaPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [observation, setObservation] = useState("");
+  const [viewingItem, setViewingItem] = useState<ShopItemWithDetails | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [selectedGender, setSelectedGender] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [addQuantity, setAddQuantity] = useState(1);
 
   const { data: items, isLoading } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
     enabled: isAuthenticated,
   });
 
+  useEffect(() => {
+    if (viewingItem) {
+      const genders = getGendersForType(viewingItem.genderType);
+      setSelectedGender(genders[0]);
+      setSelectedSize("");
+      setCarouselIndex(0);
+      setAddQuantity(1);
+    }
+  }, [viewingItem]);
+
+  useEffect(() => {
+    if (viewingItem && selectedGender) {
+      setCarouselIndex(0);
+    }
+  }, [selectedGender, viewingItem]);
+
   const checkoutMutation = useMutation({
-    mutationFn: async (cartItems: { itemId: number; quantity: number; gender?: string; size?: string }[]) => {
-      return apiRequest("POST", "/api/shop/checkout", { items: cartItems });
+    mutationFn: async (data: { 
+      items: { itemId: number; quantity: number; gender: string; size: string | null }[]; 
+      observation: string 
+    }) => {
+      return apiRequest("POST", "/api/shop/checkout", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
       setCart([]);
+      setObservation("");
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
       toast({
@@ -97,29 +142,51 @@ export default function LojaPage() {
     return null;
   }
 
-  const addToCart = (item: ShopItemWithDetails) => {
+  const addToCart = () => {
+    if (!viewingItem) return;
+    
+    if (viewingItem.hasSize && !selectedSize) {
+      toast({
+        title: "Selecione um tamanho",
+        description: "É necessário escolher um tamanho para este produto.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cartId = `${viewingItem.id}-${selectedGender}-${selectedSize || 'nosize'}`;
+    
     setCart((prev) => {
-      const existing = prev.find((c) => c.item.id === item.id);
+      const existing = prev.find((c) => c.cartId === cartId);
       if (existing) {
         return prev.map((c) =>
-          c.item.id === item.id
-            ? { ...c, quantity: Math.min(c.quantity + 1, 10) }
+          c.cartId === cartId
+            ? { ...c, quantity: Math.min(c.quantity + addQuantity, 10) }
             : c
         );
       }
-      return [...prev, { item, quantity: 1 }];
+      return [...prev, { 
+        item: viewingItem, 
+        quantity: addQuantity, 
+        selectedGender,
+        selectedSize: viewingItem.hasSize ? selectedSize : null,
+        cartId
+      }];
     });
+
     toast({
       title: "Adicionado ao carrinho",
-      description: `${item.name} foi adicionado.`,
+      description: `${viewingItem.name} foi adicionado.`,
     });
+    
+    setViewingItem(null);
   };
 
-  const updateQuantity = (itemId: number, delta: number) => {
+  const updateQuantity = (cartId: string, delta: number) => {
     setCart((prev) =>
       prev
         .map((c) => {
-          if (c.item.id === itemId) {
+          if (c.cartId === cartId) {
             const newQty = c.quantity + delta;
             if (newQty <= 0) return null;
             return { ...c, quantity: Math.min(newQty, 10) };
@@ -130,8 +197,8 @@ export default function LojaPage() {
     );
   };
 
-  const removeFromCart = (itemId: number) => {
-    setCart((prev) => prev.filter((c) => c.item.id !== itemId));
+  const removeFromCart = (cartId: string) => {
+    setCart((prev) => prev.filter((c) => c.cartId !== cartId));
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + c.item.price * c.quantity, 0);
@@ -141,11 +208,32 @@ export default function LojaPage() {
     const cartItems = cart.map((c) => ({
       itemId: c.item.id,
       quantity: c.quantity,
+      gender: c.selectedGender,
+      size: c.selectedSize,
     }));
-    checkoutMutation.mutate(cartItems);
+    checkoutMutation.mutate({ items: cartItems, observation });
   };
 
   const availableItems = items?.filter((item) => item.isAvailable) || [];
+
+  const getImagesForGender = (item: ShopItemWithDetails, gender: string) => {
+    return item.images
+      .filter(img => img.gender === gender)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  };
+
+  const getSizesForGender = (item: ShopItemWithDetails, gender: string) => {
+    return item.sizes
+      .filter(s => s.gender === gender)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  };
+
+  const currentImages = viewingItem ? getImagesForGender(viewingItem, selectedGender) : [];
+  const currentSizes = viewingItem ? getSizesForGender(viewingItem, selectedGender) : [];
+
+  const canCheckout = cart.every(c => 
+    !c.item.hasSize || c.selectedSize
+  );
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -165,7 +253,7 @@ export default function LojaPage() {
                 Voltar
               </Button>
             </Link>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
                   <Store className="h-6 w-6" />
@@ -186,7 +274,7 @@ export default function LojaPage() {
                 data-testid="button-open-cart"
               >
                 <ShoppingCart className="h-4 w-4" />
-                Carrinho
+                <span className="hidden sm:inline">Carrinho</span>
                 {cartItemCount > 0 && (
                   <Badge 
                     className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center"
@@ -228,7 +316,11 @@ export default function LojaPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="h-full flex flex-col" data-testid={`card-item-${item.id}`}>
+                  <Card 
+                    className="h-full flex flex-col cursor-pointer hover-elevate" 
+                    onClick={() => setViewingItem(item)}
+                    data-testid={`card-item-${item.id}`}
+                  >
                     <div className="aspect-square bg-muted relative overflow-hidden rounded-t-md">
                       {item.images && item.images.length > 0 ? (
                         <img
@@ -246,7 +338,7 @@ export default function LojaPage() {
                           variant="secondary" 
                           className="absolute top-2 right-2 text-xs"
                         >
-                          Pre-venda
+                          Pré-venda
                         </Badge>
                       )}
                     </div>
@@ -254,11 +346,11 @@ export default function LojaPage() {
                       <h3 className="font-medium text-sm line-clamp-2" data-testid={`text-item-name-${item.id}`}>
                         {item.name}
                       </h3>
-                      {item.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {item.description}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-1 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {getGenderLabel(item.genderType)}
+                        </Badge>
+                      </div>
                       <p className="text-lg font-bold mt-2 text-primary">
                         {formatCurrency(item.price)}
                       </p>
@@ -267,12 +359,13 @@ export default function LojaPage() {
                       <Button
                         className="w-full gap-2"
                         size="sm"
-                        onClick={() => addToCart(item)}
-                        disabled={cart.find((c) => c.item.id === item.id)?.quantity === 10}
-                        data-testid={`button-add-cart-${item.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingItem(item);
+                        }}
+                        data-testid={`button-view-item-${item.id}`}
                       >
-                        <Plus className="h-4 w-4" />
-                        Adicionar
+                        Ver Detalhes
                       </Button>
                     </CardFooter>
                   </Card>
@@ -283,8 +376,173 @@ export default function LojaPage() {
         </div>
       </section>
 
+      <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+          {viewingItem && (
+            <>
+              <div className="relative aspect-square bg-muted">
+                {currentImages.length > 0 ? (
+                  <>
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={currentImages[carouselIndex]?.id}
+                        src={currentImages[carouselIndex]?.imageData}
+                        alt={viewingItem.name}
+                        className="w-full h-full object-cover"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      />
+                    </AnimatePresence>
+                    {currentImages.length > 1 && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute left-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setCarouselIndex(i => (i - 1 + currentImages.length) % currentImages.length)}
+                          data-testid="button-carousel-prev"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          onClick={() => setCarouselIndex(i => (i + 1) % currentImages.length)}
+                          data-testid="button-carousel-next"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                          {currentImages.map((_, idx) => (
+                            <button
+                              key={idx}
+                              className={`w-2 h-2 rounded-full transition-colors ${
+                                idx === carouselIndex ? 'bg-white' : 'bg-white/50'
+                              }`}
+                              onClick={() => setCarouselIndex(idx)}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="h-16 w-16 text-muted-foreground" />
+                  </div>
+                )}
+                {viewingItem.isPreOrder && (
+                  <Badge className="absolute top-4 right-4">Pré-venda</Badge>
+                )}
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold" data-testid="text-item-detail-name">
+                    {viewingItem.name}
+                  </h2>
+                  <p className="text-2xl font-bold text-primary mt-1">
+                    {formatCurrency(viewingItem.price)}
+                  </p>
+                </div>
+
+                {viewingItem.description && (
+                  <p className="text-muted-foreground text-sm">
+                    {viewingItem.description}
+                  </p>
+                )}
+
+                {getGendersForType(viewingItem.genderType).length > 1 && (
+                  <div className="space-y-2">
+                    <Label>Modelo</Label>
+                    <div className="flex gap-2">
+                      {getGendersForType(viewingItem.genderType).map(g => (
+                        <Button
+                          key={g}
+                          variant={selectedGender === g ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setSelectedGender(g);
+                            setSelectedSize("");
+                          }}
+                          data-testid={`button-gender-${g}`}
+                        >
+                          {getGenderLabel(g)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {viewingItem.hasSize && (
+                  <div className="space-y-2">
+                    <Label>Tamanho</Label>
+                    {currentSizes.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {currentSizes.map(s => (
+                          <Button
+                            key={s.id}
+                            variant={selectedSize === s.size ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedSize(s.size)}
+                            data-testid={`button-size-${s.size}`}
+                          >
+                            {s.size}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Nenhum tamanho disponível para este modelo
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4">
+                  <Label>Quantidade</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setAddQuantity(q => Math.max(1, q - 1))}
+                      disabled={addQuantity <= 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center font-medium">{addQuantity}</span>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setAddQuantity(q => Math.min(10, q + 1))}
+                      disabled={addQuantity >= 10}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full gap-2"
+                  size="lg"
+                  onClick={addToCart}
+                  disabled={viewingItem.hasSize && !selectedSize}
+                  data-testid="button-add-to-cart"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Adicionar ao Carrinho - {formatCurrency(viewingItem.price * addQuantity)}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
@@ -302,14 +560,14 @@ export default function LojaPage() {
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {cart.map((cartItem) => (
                   <div
-                    key={cartItem.item.id}
+                    key={cartItem.cartId}
                     className="flex items-center gap-3 p-3 bg-muted rounded-md"
-                    data-testid={`cart-item-${cartItem.item.id}`}
+                    data-testid={`cart-item-${cartItem.cartId}`}
                   >
                     <div className="w-12 h-12 bg-background rounded overflow-hidden flex-shrink-0">
                       {cartItem.item.images && cartItem.item.images.length > 0 ? (
                         <img
-                          src={cartItem.item.images[0].imageData}
+                          src={cartItem.item.images.find(i => i.gender === cartItem.selectedGender)?.imageData || cartItem.item.images[0].imageData}
                           alt={cartItem.item.name}
                           className="w-full h-full object-cover"
                         />
@@ -321,7 +579,11 @@ export default function LojaPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{cartItem.item.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
+                        {getGenderLabel(cartItem.selectedGender)}
+                        {cartItem.selectedSize && ` - ${cartItem.selectedSize}`}
+                      </p>
+                      <p className="text-sm font-medium">
                         {formatCurrency(cartItem.item.price)}
                       </p>
                     </div>
@@ -329,28 +591,28 @@ export default function LojaPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => updateQuantity(cartItem.item.id, -1)}
-                        data-testid={`button-decrease-${cartItem.item.id}`}
+                        onClick={() => updateQuantity(cartItem.cartId, -1)}
+                        data-testid={`button-decrease-${cartItem.cartId}`}
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <span className="w-8 text-center font-medium">
+                      <span className="w-6 text-center font-medium text-sm">
                         {cartItem.quantity}
                       </span>
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => updateQuantity(cartItem.item.id, 1)}
+                        onClick={() => updateQuantity(cartItem.cartId, 1)}
                         disabled={cartItem.quantity >= 10}
-                        data-testid={`button-increase-${cartItem.item.id}`}
+                        data-testid={`button-increase-${cartItem.cartId}`}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
-                        onClick={() => removeFromCart(cartItem.item.id)}
-                        data-testid={`button-remove-${cartItem.item.id}`}
+                        onClick={() => removeFromCart(cartItem.cartId)}
+                        data-testid={`button-remove-${cartItem.cartId}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -372,6 +634,7 @@ export default function LojaPage() {
                     setIsCartOpen(false);
                     setIsCheckoutOpen(true);
                   }}
+                  disabled={!canCheckout}
                   data-testid="button-checkout"
                 >
                   <CreditCard className="h-4 w-4" />
@@ -391,7 +654,7 @@ export default function LojaPage() {
       </Dialog>
 
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -405,17 +668,38 @@ export default function LojaPage() {
           <div className="space-y-3">
             {cart.map((cartItem) => (
               <div
-                key={cartItem.item.id}
-                className="flex justify-between items-center text-sm"
+                key={cartItem.cartId}
+                className="flex justify-between items-start text-sm"
               >
-                <span>
-                  {cartItem.quantity}x {cartItem.item.name}
-                </span>
+                <div>
+                  <span className="font-medium">
+                    {cartItem.quantity}x {cartItem.item.name}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {getGenderLabel(cartItem.selectedGender)}
+                    {cartItem.selectedSize && ` - ${cartItem.selectedSize}`}
+                  </p>
+                </div>
                 <span className="font-medium">
                   {formatCurrency(cartItem.item.price * cartItem.quantity)}
                 </span>
               </div>
             ))}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="observation">Observações (opcional)</Label>
+            <Textarea
+              id="observation"
+              placeholder="Alguma observação sobre seu pedido?"
+              value={observation}
+              onChange={(e) => setObservation(e.target.value)}
+              maxLength={500}
+              data-testid="input-observation"
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {observation.length}/500
+            </p>
           </div>
 
           <div className="border-t pt-4">

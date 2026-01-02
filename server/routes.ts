@@ -9071,6 +9071,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== MEMBER FINANCIAL STATUS (Accessible by member) ====================
+
+  // Get member's own financial status
+  app.get("/api/treasury/member/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const yearParam = req.query.year;
+      const year = yearParam ? parseInt(yearParam as string) : new Date().getFullYear();
+      
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Get treasury settings for current values
+      const settings = await storage.getTreasurySettings(year);
+      const percaptaAmount = settings?.percaptaValue || 0;
+      const umpMonthlyAmount = settings?.umpMonthlyValue || 0;
+      
+      // Get Percapta payment status
+      const percaptaPayment = await storage.getMemberPercaptaPayment(userId, year);
+      const percaptaStatus = {
+        amount: percaptaAmount,
+        paidAmount: percaptaPayment?.amount || 0,
+        isPaid: !!percaptaPayment?.paidAt,
+        paidAt: percaptaPayment?.paidAt || null,
+        dueDate: null,
+      };
+      
+      // Get UMP monthly payments
+      const umpPayments = await storage.getMemberUmpPayments(userId, year);
+      const paidMonths = umpPayments
+        .filter(p => p.paidAt)
+        .map(p => p.month);
+      
+      const currentMonth = new Date().getMonth() + 1;
+      const unpaidMonths: number[] = [];
+      
+      // Only count months up to current month as unpaid (future months aren't due yet)
+      for (let m = 1; m <= currentMonth; m++) {
+        if (!paidMonths.includes(m)) {
+          unpaidMonths.push(m);
+        }
+      }
+      
+      const umpStatus = {
+        monthlyAmount: umpMonthlyAmount,
+        paidMonths: paidMonths.sort((a, b) => a - b),
+        unpaidMonths: unpaidMonths.sort((a, b) => a - b),
+        totalOwed: unpaidMonths.length * umpMonthlyAmount,
+        totalPaid: paidMonths.length * umpMonthlyAmount,
+      };
+      
+      // Calculate total owed
+      const percaptaOwed = percaptaStatus.isPaid ? 0 : percaptaAmount;
+      const totalOwed = percaptaOwed + umpStatus.totalOwed;
+      
+      // Get recent transactions for this member
+      const allEntries = await storage.getTreasuryEntries({ userId, year });
+      const transactions = allEntries
+        .filter(e => e.category === "taxa_ump" || e.category === "taxa_percapta")
+        .slice(0, 10)
+        .map(e => ({
+          id: e.id,
+          type: e.type,
+          amount: e.amount,
+          description: e.description,
+          status: e.paymentStatus || "pending",
+          createdAt: e.createdAt?.toISOString() || new Date().toISOString(),
+        }));
+      
+      res.json({
+        memberId: userId,
+        memberName: user.fullName,
+        year,
+        percaptaStatus,
+        umpStatus,
+        totalOwed,
+        transactions,
+      });
+    } catch (error) {
+      console.error("Get member financial status error:", error);
+      res.status(500).json({ message: "Erro ao buscar status financeiro" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

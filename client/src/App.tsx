@@ -80,7 +80,7 @@ const TesourariaConfiguracoes = lazy(() => import("@/pages/admin/tesouraria/Teso
 const TesourariaMovimentacoes = lazy(() => import("@/pages/admin/tesouraria/TesourariaMovimentacoes"));
 const TesourariaTaxas = lazy(() => import("@/pages/admin/tesouraria/TesourariaTaxas"));
 const TesourariaEmprestimos = lazy(() => import("@/pages/admin/tesouraria/TesourariaEmprestimos"));
-const LojaAdmin = lazy(() => import("@/pages/admin/tesouraria/TesourariaLojaAdmin"));
+const LojaAdmin = lazy(() => import("@/pages/admin/marketing/LojaAdmin"));
 const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
 
 function PageLoader() {

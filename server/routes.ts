@@ -8702,8 +8702,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Criar ou atualizar configurações (POST para frontend)
+  app.post("/api/treasury/settings", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { year, percaptaAmount, umpMonthlyAmount, pixKey } = req.body;
+      const targetYear = year || new Date().getFullYear();
+      
+      let settings = await storage.getTreasurySettings(targetYear);
+      
+      if (settings) {
+        settings = await storage.updateTreasurySettings(settings.id, {
+          percaptaAmount: percaptaAmount ?? settings.percaptaAmount,
+          umpMonthlyAmount: umpMonthlyAmount ?? settings.umpMonthlyAmount,
+          pixKey: pixKey !== undefined ? pixKey : settings.pixKey,
+        });
+      } else {
+        settings = await storage.createTreasurySettings({
+          year: targetYear,
+          percaptaAmount: percaptaAmount ?? 0,
+          umpMonthlyAmount: umpMonthlyAmount ?? 0,
+          pixKey: pixKey || null,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Create/update treasury settings error:", error);
+      res.status(500).json({ message: "Erro ao salvar configurações" });
+    }
+  });
+
   // Obter resumo do dashboard
   app.get("/api/treasury/dashboard", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const summary = await storage.getTreasuryDashboardSummary(year);
+      res.json(summary);
+    } catch (error) {
+      console.error("Get treasury dashboard error:", error);
+      res.status(500).json({ message: "Erro ao buscar resumo" });
+    }
+  });
+
+  // Alias para o frontend
+  app.get("/api/treasury/dashboard/summary", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const summary = await storage.getTreasuryDashboardSummary(year);
@@ -8736,7 +8778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar lançamento manual
   app.post("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
-      const { type, category, description, amount, userId, referenceYear, referenceMonth, attachmentUrl } = req.body;
+      const { type, category, description, amount, userId, referenceYear, referenceMonth, receiptUrl, paymentMethod } = req.body;
       
       if (!type || !category || !amount) {
         return res.status(400).json({ message: "Dados incompletos" });
@@ -8751,7 +8793,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referenceYear: referenceYear || new Date().getFullYear(),
         referenceMonth: referenceMonth || null,
         paymentStatus: "paid",
-        attachmentUrl: attachmentUrl || null,
+        paymentMethod: paymentMethod || "manual",
+        receiptUrl: receiptUrl || null,
       });
       
       res.status(201).json(entry);
@@ -8781,7 +8824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar empréstimo
   app.post("/api/treasury/loans", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
-      const { origin, description, totalAmount, isInstallment, installmentCount, installmentAmount, installmentDueDates } = req.body;
+      const { origin, originName, originMemberId, description, totalAmount, isInstallment, installmentCount, installmentAmount, installmentDueDates } = req.body;
       
       if (!origin || !totalAmount) {
         return res.status(400).json({ message: "Dados incompletos" });
@@ -8789,10 +8832,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const loan = await storage.createTreasuryLoan({
         origin,
+        originName: originName || null,
+        originMemberId: originMemberId || null,
         description: description || null,
         totalAmount,
-        paidAmount: 0,
         isInstallment: isInstallment || false,
+        installmentCount: installmentCount || null,
+        installmentAmount: installmentAmount || null,
         status: "active",
       });
       
@@ -8803,7 +8849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             installmentNumber: i + 1,
             amount: installmentAmount,
             dueDate: installmentDueDates?.[i] ? new Date(installmentDueDates[i]) : new Date(),
-            isPaid: false,
+            status: "pending",
           });
         }
       }
@@ -8826,10 +8872,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { isPaid, paidAt } = req.body;
+      const { status, paidAt } = req.body;
+      const isPaid = status === "paid";
       
       const installment = await storage.updateTreasuryLoanInstallment(installmentId, {
-        isPaid,
+        status: status || "pending",
         paidAt: isPaid ? (paidAt ? new Date(paidAt) : new Date()) : null,
       });
       
@@ -8840,11 +8887,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.getTreasuryLoanById(loanId);
       if (loan) {
         const installments = await storage.getTreasuryLoanInstallments(loanId);
-        const paidAmount = installments.filter(i => i.isPaid).reduce((sum, i) => sum + i.amount, 0);
-        const allPaid = installments.every(i => i.isPaid);
+        const allPaid = installments.every(i => i.status === "paid");
         
         await storage.updateTreasuryLoan(loanId, {
-          paidAmount,
           status: allPaid ? "paid" : "active",
         });
       }
@@ -8870,13 +8915,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           member: {
             id: member.id,
-            name: member.name,
+            name: member.fullName,
             email: member.email,
-            profileImage: member.profileImage,
+            profileImage: member.photoUrl,
           },
-          percapta: percapta || { isPaid: false, amount: null, paidAt: null },
+          percapta: percapta ? { isPaid: true, amount: percapta.amount, paidAt: percapta.paidAt } : { isPaid: false, amount: null, paidAt: null },
           umpPayments,
-          umpPaidMonths: umpPayments.filter(p => p.isPaid).length,
+          umpPaidMonths: umpPayments.length,
           umpTotalMonths: 12,
         };
       }));
@@ -8913,9 +8958,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           percaptaAmount: settings.percaptaAmount,
           umpMonthlyAmount: settings.umpMonthlyAmount,
         } : null,
-        percapta: percapta || { isPaid: false, amount: null, paidAt: null },
-        umpPayments,
-        umpPaidMonths: umpPayments.filter(p => p.isPaid).length,
+        percapta: percapta ? { isPaid: true, amount: percapta.amount, paidAt: percapta.paidAt } : { isPaid: false, amount: null, paidAt: null },
+        umpPayments: umpPayments.map(p => ({ ...p, isPaid: true })),
+        umpPaidMonths: umpPayments.length,
         orders: ordersWithItems,
       });
     } catch (error) {
@@ -8924,7 +8969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Registrar pagamento de taxa (para integração com Mercado Pago futuramente)
+  // Registrar pagamento de taxa Percapta
   app.post("/api/treasury/payments/percapta", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const { userId, year, amount, paidAt } = req.body;
@@ -8933,21 +8978,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dados incompletos" });
       }
       
+      // Criar entrada na tesouraria primeiro
+      const entry = await storage.createTreasuryEntry({
+        type: "income",
+        category: "taxa_percapta",
+        description: `Taxa Percapta ${year} - Membro #${userId}`,
+        amount,
+        userId,
+        referenceYear: year,
+        paymentStatus: "paid",
+        paymentMethod: "manual",
+        paidAt: paidAt ? new Date(paidAt) : new Date(),
+      });
+      
       let payment = await storage.getMemberPercaptaPayment(userId, year);
       
       if (payment) {
         payment = await storage.updateMemberPercaptaPayment(payment.id, {
-          isPaid: true,
           amount,
           paidAt: paidAt ? new Date(paidAt) : new Date(),
+          entryId: entry.id,
         });
       } else {
         payment = await storage.createMemberPercaptaPayment({
           userId,
           year,
-          isPaid: true,
           amount,
           paidAt: paidAt ? new Date(paidAt) : new Date(),
+          entryId: entry.id,
         });
       }
       
@@ -8970,22 +9028,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payments = [];
       
       for (const month of months) {
+        // Criar entrada na tesouraria primeiro
+        const entry = await storage.createTreasuryEntry({
+          type: "income",
+          category: "taxa_ump",
+          description: `Taxa UMP ${month}/${year} - Membro #${userId}`,
+          amount: amountPerMonth,
+          userId,
+          referenceYear: year,
+          referenceMonth: month,
+          paymentStatus: "paid",
+          paymentMethod: "manual",
+          paidAt: paidAt ? new Date(paidAt) : new Date(),
+        });
+        
         let payment = await storage.getMemberUmpPayment(userId, year, month);
         
         if (payment) {
           payment = await storage.updateMemberUmpPayment(payment.id, {
-            isPaid: true,
             amount: amountPerMonth,
             paidAt: paidAt ? new Date(paidAt) : new Date(),
+            entryId: entry.id,
           });
         } else {
           payment = await storage.createMemberUmpPayment({
             userId,
             year,
             month,
-            isPaid: true,
             amount: amountPerMonth,
             paidAt: paidAt ? new Date(paidAt) : new Date(),
+            entryId: entry.id,
           });
         }
         

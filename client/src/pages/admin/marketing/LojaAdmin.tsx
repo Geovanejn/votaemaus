@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,15 @@ import {
   Pencil,
   Trash2,
   Search,
-  Filter,
   Loader2,
   Store,
   ImagePlus,
   Eye,
-  EyeOff
+  EyeOff,
+  X,
+  Upload,
+  FolderPlus,
+  Ruler
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -46,6 +49,22 @@ import {
 interface ShopCategory {
   id: number;
   name: string;
+  isDefault: boolean;
+}
+
+interface ShopItemImage {
+  id: number;
+  itemId: number;
+  gender: string;
+  imageData: string;
+  sortOrder: number;
+}
+
+interface ShopItemSize {
+  id: number;
+  itemId: number;
+  gender: string;
+  size: string;
   sortOrder: number;
 }
 
@@ -60,6 +79,8 @@ interface ShopItemAdmin {
   isAvailable: boolean;
   isPreOrder: boolean;
   category?: ShopCategory;
+  images?: ShopItemImage[];
+  sizes?: ShopItemSize[];
 }
 
 const itemFormSchema = z.object({
@@ -91,7 +112,22 @@ function parseCurrencyInput(value: string): number {
   return Math.round(parseFloat(cleaned || "0") * 100);
 }
 
-export default function TesourariaLojaAdmin() {
+function getGenderLabel(gender: string): string {
+  const labels: Record<string, string> = {
+    unissex: "Unissex",
+    masculino: "Masculino",
+    feminino: "Feminino",
+    masculino_feminino: "Masc. e Fem.",
+  };
+  return labels[gender] || gender;
+}
+
+function getGendersForType(genderType: string): string[] {
+  if (genderType === "masculino_feminino") return ["masculino", "feminino"];
+  return [genderType];
+}
+
+export default function LojaAdmin() {
   const { hasMarketingPanel } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -99,6 +135,14 @@ export default function TesourariaLojaAdmin() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ShopItemAdmin | null>(null);
   const [priceDisplay, setPriceDisplay] = useState("");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [managingItem, setManagingItem] = useState<ShopItemAdmin | null>(null);
+  const [manageTab, setManageTab] = useState<"images" | "sizes">("images");
+  const [uploadingGender, setUploadingGender] = useState<string>("unissex");
+  const [newSizeGender, setNewSizeGender] = useState<string>("unissex");
+  const [newSizeName, setNewSizeName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasAccess = hasMarketingPanel;
 
@@ -196,6 +240,74 @@ export default function TesourariaLojaAdmin() {
     },
   });
 
+  const createCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return apiRequest("POST", "/api/admin/shop/categories", { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/categories"] });
+      setIsCategoryOpen(false);
+      setNewCategoryName("");
+      toast({ title: "Categoria criada", description: "A nova categoria foi adicionada." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível criar a categoria.", variant: "destructive" });
+    },
+  });
+
+  const uploadImageMutation = useMutation({
+    mutationFn: async ({ itemId, gender, file }: { itemId: number; gender: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("gender", gender);
+      
+      const response = await fetch(`/api/admin/shop/items/${itemId}/images`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ title: "Imagem enviada", description: "A imagem foi adicionada ao item." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível enviar a imagem.", variant: "destructive" });
+    },
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: async ({ itemId, imageId }: { itemId: number; imageId: number }) => {
+      return apiRequest("DELETE", `/api/admin/shop/items/${itemId}/images/${imageId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ title: "Imagem removida", description: "A imagem foi excluída." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível remover a imagem.", variant: "destructive" });
+    },
+  });
+
+  const addSizeMutation = useMutation({
+    mutationFn: async ({ itemId, gender, size }: { itemId: number; gender: string; size: string }) => {
+      return apiRequest("POST", `/api/admin/shop/items/${itemId}/sizes`, { gender, size });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      setNewSizeName("");
+      toast({ title: "Tamanho adicionado", description: "O tamanho foi adicionado ao item." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível adicionar o tamanho.", variant: "destructive" });
+    },
+  });
+
   if (!hasAccess) {
     setLocation("/admin");
     return null;
@@ -212,6 +324,34 @@ export default function TesourariaLojaAdmin() {
       createMutation.mutate(data);
     }
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && managingItem) {
+      uploadImageMutation.mutate({
+        itemId: managingItem.id,
+        gender: uploadingGender,
+        file,
+      });
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleAddSize = () => {
+    if (managingItem && newSizeName.trim()) {
+      addSizeMutation.mutate({
+        itemId: managingItem.id,
+        gender: newSizeGender,
+        size: newSizeName.trim(),
+      });
+    }
+  };
+
+  const currentItemData = managingItem 
+    ? items?.find(i => i.id === managingItem.id) 
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -241,18 +381,29 @@ export default function TesourariaLojaAdmin() {
                     Gestão da Loja
                   </h1>
                   <p className="text-white/80">
-                    Gerenciar produtos e categorias
+                    Marketing - Gerenciar produtos e categorias
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => setIsCreateOpen(true)}
-                className="gap-2"
-                data-testid="button-add-item"
-              >
-                <Plus className="h-4 w-4" />
-                Novo Produto
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCategoryOpen(true)}
+                  className="gap-2 bg-white/10 border-white/30 text-white"
+                  data-testid="button-add-category"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  Nova Categoria
+                </Button>
+                <Button
+                  onClick={() => setIsCreateOpen(true)}
+                  className="gap-2"
+                  data-testid="button-add-item"
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Produto
+                </Button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -274,8 +425,8 @@ export default function TesourariaLojaAdmin() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-48" />
               ))}
             </div>
@@ -283,53 +434,94 @@ export default function TesourariaLojaAdmin() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum produto</h3>
+                <h3 className="text-lg font-medium mb-2">Nenhum produto encontrado</h3>
                 <p className="text-muted-foreground mb-4">
-                  Adicione produtos para exibir na loja.
+                  {searchTerm ? "Tente outra busca" : "Adicione o primeiro produto da loja"}
                 </p>
-                <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Adicionar Produto
-                </Button>
+                {!searchTerm && (
+                  <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Novo Produto
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredItems.map((item) => (
-                <Card key={item.id} data-testid={`card-admin-item-${item.id}`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base truncate">{item.name}</CardTitle>
-                        <CardDescription className="line-clamp-2">
-                          {item.description || "Sem descrição"}
-                        </CardDescription>
-                      </div>
-                      <Badge variant={item.isAvailable ? "default" : "secondary"}>
-                        {item.isAvailable ? "Ativo" : "Inativo"}
-                      </Badge>
+                <Card key={item.id} className="overflow-hidden">
+                  <div className="aspect-video bg-muted relative flex items-center justify-center">
+                    {item.images && item.images.length > 0 ? (
+                      <img 
+                        src={item.images[0].imageData} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                    )}
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      {!item.isAvailable && (
+                        <Badge variant="secondary" className="text-xs">
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          Oculto
+                        </Badge>
+                      )}
+                      {item.isPreOrder && (
+                        <Badge variant="outline" className="text-xs bg-background">
+                          Pré-venda
+                        </Badge>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-xl font-bold text-primary">
+                  </div>
+                  <CardContent className="p-4 space-y-3">
+                    <div>
+                      <h3 className="font-medium truncate" data-testid={`text-item-name-${item.id}`}>
+                        {item.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {item.category?.name} - {getGenderLabel(item.genderType)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-lg" data-testid={`text-item-price-${item.id}`}>
                         {formatCurrency(item.price)}
                       </span>
                       <div className="flex gap-1">
-                        <Badge variant="outline">{item.genderType}</Badge>
-                        {item.isPreOrder && <Badge variant="secondary">Pre-venda</Badge>}
+                        {item.images && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.images.length} img
+                          </Badge>
+                        )}
+                        {item.sizes && item.hasSize && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.sizes.length} tam
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         size="sm"
                         variant="outline"
                         className="flex-1 gap-1"
+                        onClick={() => {
+                          setManagingItem(item);
+                          setManageTab("images");
+                          setUploadingGender(getGendersForType(item.genderType)[0]);
+                        }}
+                        data-testid={`button-manage-item-${item.id}`}
+                      >
+                        <ImagePlus className="h-3 w-3" />
+                        Gerenciar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => setEditingItem(item)}
                         data-testid={`button-edit-item-${item.id}`}
                       >
                         <Pencil className="h-3 w-3" />
-                        Editar
                       </Button>
                       <Button
                         size="sm"
@@ -351,6 +543,213 @@ export default function TesourariaLojaAdmin() {
           )}
         </div>
       </section>
+
+      <Dialog open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogDescription>
+              Crie uma nova categoria para organizar os produtos
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Nome da categoria</Label>
+              <Input
+                id="category-name"
+                placeholder="Ex: Uniformes"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                data-testid="input-category-name"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsCategoryOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => createCategoryMutation.mutate(newCategoryName)}
+              disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
+              data-testid="button-save-category"
+            >
+              {createCategoryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!managingItem} onOpenChange={(open) => !open && setManagingItem(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar: {managingItem?.name}</DialogTitle>
+            <DialogDescription>
+              Adicione imagens e tamanhos ao produto
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="images" className="gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Imagens
+              </TabsTrigger>
+              <TabsTrigger value="sizes" className="gap-2" disabled={!managingItem?.hasSize}>
+                <Ruler className="h-4 w-4" />
+                Tamanhos
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="images" className="space-y-4 mt-4">
+              <div className="flex items-center gap-2">
+                <Select value={uploadingGender} onValueChange={setUploadingGender}>
+                  <SelectTrigger className="w-40" data-testid="select-upload-gender">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managingItem && getGendersForType(managingItem.genderType).map((g) => (
+                      <SelectItem key={g} value={g}>{getGenderLabel(g)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="outline"
+                  className="gap-2 flex-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadImageMutation.isPending}
+                  data-testid="button-upload-image"
+                >
+                  {uploadImageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Enviar Imagem
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Máximo 5 imagens por gênero. Recomendado: 800x800px
+              </p>
+
+              <div className="space-y-3">
+                {managingItem && getGendersForType(managingItem.genderType).map((gender) => {
+                  const genderImages = currentItemData?.images?.filter(img => img.gender === gender) || [];
+                  return (
+                    <div key={gender} className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        {getGenderLabel(gender)} ({genderImages.length}/5)
+                      </Label>
+                      {genderImages.length > 0 ? (
+                        <div className="grid grid-cols-5 gap-2">
+                          {genderImages.map((img) => (
+                            <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden bg-muted">
+                              <img 
+                                src={img.imageData} 
+                                alt="" 
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => deleteImageMutation.mutate({ 
+                                  itemId: managingItem.id, 
+                                  imageId: img.id 
+                                })}
+                                data-testid={`button-delete-image-${img.id}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground py-2">
+                          Nenhuma imagem adicionada
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="sizes" className="space-y-4 mt-4">
+              <div className="flex items-center gap-2">
+                <Select value={newSizeGender} onValueChange={setNewSizeGender}>
+                  <SelectTrigger className="w-40" data-testid="select-size-gender">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managingItem && getGendersForType(managingItem.genderType).map((g) => (
+                      <SelectItem key={g} value={g}>{getGenderLabel(g)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Ex: P, M, G, GG"
+                  value={newSizeName}
+                  onChange={(e) => setNewSizeName(e.target.value)}
+                  className="flex-1"
+                  data-testid="input-size-name"
+                />
+                <Button
+                  onClick={handleAddSize}
+                  disabled={!newSizeName.trim() || addSizeMutation.isPending}
+                  data-testid="button-add-size"
+                >
+                  {addSizeMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {managingItem && getGendersForType(managingItem.genderType).map((gender) => {
+                  const genderSizes = currentItemData?.sizes?.filter(s => s.gender === gender) || [];
+                  return (
+                    <div key={gender} className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        {getGenderLabel(gender)}
+                      </Label>
+                      {genderSizes.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {genderSizes.map((size) => (
+                            <Badge key={size.id} variant="secondary" className="gap-1">
+                              {size.size}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Nenhum tamanho adicionado
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManagingItem(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isCreateOpen || !!editingItem} onOpenChange={(open) => {
         if (!open) {
@@ -396,8 +795,9 @@ export default function TesourariaLojaAdmin() {
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Descrição do produto" 
+                        placeholder="Descrição do produto (máx 500 caracteres)" 
                         {...field} 
+                        maxLength={500}
                         data-testid="input-item-description"
                       />
                     </FormControl>

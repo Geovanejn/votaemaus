@@ -9,6 +9,28 @@ import cors from "cors";
 import compression from "compression";
 import path from "path";
 
+async function seedShopCategories() {
+  try {
+    const existingCategories = await storage.getShopCategories();
+    if (existingCategories.length === 0) {
+      console.log("[Seed] Criando categorias da loja...");
+      const defaultCategories = [
+        { name: "Vestuários", isDefault: true },
+        { name: "Acessórios", isDefault: true },
+        { name: "Livros", isDefault: true },
+        { name: "Kit UMP", isDefault: true },
+      ];
+      
+      for (const cat of defaultCategories) {
+        await storage.createShopCategory(cat);
+      }
+      console.log(`[Seed] ${defaultCategories.length} categorias da loja criadas!`);
+    }
+  } catch (error: any) {
+    console.error("[Seed] Erro ao criar categorias da loja:", error.message);
+  }
+}
+
 async function seedAchievementsAndVerses() {
   try {
     const existingVerses = await storage.getAllBibleVerses();
@@ -226,6 +248,7 @@ app.use((req, res, next) => {
     // Server will shut down if initialization fails
     try {
       await initializeDatabase();
+      await seedShopCategories();
       await seedAchievementsAndVerses();
       initBirthdayScheduler();
       initDeoGlorySchedulers();

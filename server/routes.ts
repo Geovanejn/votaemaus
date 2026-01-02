@@ -9286,6 +9286,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== TREASURY REPORTS (Treasurer) ====================
+
+  // Generate treasury report (Excel)
+  app.get("/api/treasury/reports/excel", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const ExcelJS = await import("exceljs");
+      const yearParam = req.query.year as string;
+      const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+      const monthParam = req.query.month as string;
+      const month = monthParam ? parseInt(monthParam) : undefined;
+      
+      const entries = await storage.getTreasuryEntries({ year });
+      const filteredEntries = month 
+        ? entries.filter(e => {
+            const entryDate = e.paidAt || e.createdAt;
+            return entryDate && new Date(entryDate).getMonth() + 1 === month;
+          })
+        : entries;
+      
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "UMP Emaus - Tesouraria";
+      workbook.created = new Date();
+      
+      const sheet = workbook.addWorksheet("Movimentacoes");
+      
+      sheet.columns = [
+        { header: "Data", key: "date", width: 15 },
+        { header: "Tipo", key: "type", width: 12 },
+        { header: "Categoria", key: "category", width: 20 },
+        { header: "Descricao", key: "description", width: 40 },
+        { header: "Valor (R$)", key: "amount", width: 15 },
+        { header: "Status", key: "status", width: 12 },
+        { header: "Membro", key: "member", width: 25 },
+      ];
+      
+      const members = await storage.getAllMembers();
+      const memberMap = new Map(members.map(m => [m.id, m.fullName]));
+      
+      for (const entry of filteredEntries) {
+        const entryDate = entry.paidAt || entry.createdAt;
+        sheet.addRow({
+          date: entryDate ? new Date(entryDate).toLocaleDateString("pt-BR") : "-",
+          type: entry.type === "income" ? "Entrada" : "Saida",
+          category: entry.category,
+          description: entry.description || "-",
+          amount: (entry.amount / 100).toFixed(2),
+          status: entry.paymentStatus === "paid" ? "Pago" : entry.paymentStatus === "pending" ? "Pendente" : "Cancelado",
+          member: entry.userId ? memberMap.get(entry.userId) || "-" : "-",
+        });
+      }
+      
+      // Style header row
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+      
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename=relatorio-tesouraria-${year}${month ? `-${month.toString().padStart(2, "0")}` : ""}.xlsx`);
+      
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("Generate Excel report error:", error);
+      res.status(500).json({ message: "Erro ao gerar relatorio" });
+    }
+  });
+
+  // Generate member payments report (Excel)
+  app.get("/api/treasury/reports/member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const ExcelJS = await import("exceljs");
+      const yearParam = req.query.year as string;
+      const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+      
+      const members = await storage.getAllMembers();
+      const settings = await storage.getTreasurySettings(year);
+      
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "UMP Emaus - Tesouraria";
+      workbook.created = new Date();
+      
+      const sheet = workbook.addWorksheet("Pagamentos");
+      
+      // Header row for months
+      const headers = ["Membro", "Percapta"];
+      for (let m = 1; m <= 12; m++) {
+        headers.push(["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][m]);
+      }
+      headers.push("Total Pago", "Total Devido");
+      
+      sheet.columns = headers.map((h, i) => ({ 
+        header: h, 
+        key: i === 0 ? "member" : i === 1 ? "percapta" : i <= 13 ? `month${i - 1}` : i === 14 ? "totalPaid" : "totalOwed",
+        width: i === 0 ? 30 : 12,
+      }));
+      
+      for (const member of members) {
+        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
+        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        const paidMonths = new Set(umpPayments.filter(p => p.paidAt).map(p => p.month));
+        
+        const row: Record<string, string> = {
+          member: member.fullName,
+          percapta: percaptaPayment?.paidAt ? "Pago" : "Pendente",
+        };
+        
+        let totalPaid = percaptaPayment?.paidAt ? (settings?.percaptaAmount || 0) : 0;
+        let totalOwed = !percaptaPayment?.paidAt ? (settings?.percaptaAmount || 0) : 0;
+        
+        for (let m = 1; m <= 12; m++) {
+          if (paidMonths.has(m)) {
+            row[`month${m}`] = "Pago";
+            totalPaid += settings?.umpMonthlyAmount || 0;
+          } else if (m <= new Date().getMonth() + 1) {
+            row[`month${m}`] = "Pendente";
+            totalOwed += settings?.umpMonthlyAmount || 0;
+          } else {
+            row[`month${m}`] = "-";
+          }
+        }
+        
+        row.totalPaid = `R$ ${(totalPaid / 100).toFixed(2)}`;
+        row.totalOwed = `R$ ${(totalOwed / 100).toFixed(2)}`;
+        
+        sheet.addRow(row);
+      }
+      
+      // Style header row
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+      
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename=pagamentos-membros-${year}.xlsx`);
+      
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("Generate member payments report error:", error);
+      res.status(500).json({ message: "Erro ao gerar relatorio" });
+    }
+  });
+
   // ==================== EVENT FEES (Admin/Treasurer) ====================
 
   // Create/update fee for an event

@@ -9286,6 +9286,284 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== EVENT FEES (Admin/Treasurer) ====================
+
+  // Create/update fee for an event
+  app.post("/api/treasury/event-fees/:eventId", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const { feeAmount, deadline } = req.body;
+      
+      if (!feeAmount || !deadline) {
+        return res.status(400).json({ message: "Valor e prazo são obrigatórios" });
+      }
+      
+      // Check if event exists
+      const event = await storage.getSiteEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Evento não encontrado" });
+      }
+      
+      // Check if fee already exists
+      const existingFee = await storage.getEventFee(eventId);
+      if (existingFee) {
+        const updated = await storage.updateEventFee(eventId, {
+          feeAmount: Math.round(feeAmount * 100),
+          deadline: new Date(deadline),
+        });
+        return res.json(updated);
+      }
+      
+      const fee = await storage.createEventFee({
+        eventId,
+        feeAmount: Math.round(feeAmount * 100),
+        deadline: new Date(deadline),
+      });
+      
+      res.status(201).json(fee);
+    } catch (error) {
+      console.error("Create event fee error:", error);
+      res.status(500).json({ message: "Erro ao criar taxa do evento" });
+    }
+  });
+
+  // Get event fee
+  app.get("/api/treasury/event-fees/:eventId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const fee = await storage.getEventFee(eventId);
+      
+      if (!fee) {
+        return res.status(404).json({ message: "Taxa não encontrada" });
+      }
+      
+      res.json(fee);
+    } catch (error) {
+      console.error("Get event fee error:", error);
+      res.status(500).json({ message: "Erro ao buscar taxa" });
+    }
+  });
+
+  // Delete event fee
+  app.delete("/api/treasury/event-fees/:eventId", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const deleted = await storage.deleteEventFee(eventId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Taxa não encontrada" });
+      }
+      
+      res.json({ message: "Taxa removida com sucesso" });
+    } catch (error) {
+      console.error("Delete event fee error:", error);
+      res.status(500).json({ message: "Erro ao remover taxa" });
+    }
+  });
+
+  // List all events with fees
+  app.get("/api/treasury/events-with-fees", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const eventsWithFees = await storage.getEventsWithFees();
+      
+      // Add confirmation counts
+      const result = await Promise.all(eventsWithFees.map(async ({ event, fee }) => {
+        const counts = await storage.getEventConfirmationCount(event.id);
+        return {
+          event,
+          fee,
+          confirmationCount: counts,
+        };
+      }));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Get events with fees error:", error);
+      res.status(500).json({ message: "Erro ao listar eventos com taxa" });
+    }
+  });
+
+  // ==================== EVENT CONFIRMATIONS ====================
+
+  // Get confirmations for an event (admin/treasurer)
+  app.get("/api/treasury/event-confirmations/:eventId", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const confirmations = await storage.getEventConfirmationsWithUsers(eventId);
+      const counts = await storage.getEventConfirmationCount(eventId);
+      
+      res.json({
+        confirmations,
+        counts,
+      });
+    } catch (error) {
+      console.error("Get event confirmations error:", error);
+      res.status(500).json({ message: "Erro ao buscar confirmações" });
+    }
+  });
+
+  // Confirm attendance at event (member)
+  app.post("/api/events/:eventId/confirm", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user!.id;
+      const rawVisitorCount = req.body.visitorCount;
+      
+      // Validate visitorCount
+      const visitorCount = typeof rawVisitorCount === "number" && rawVisitorCount >= 0 
+        ? Math.floor(rawVisitorCount) 
+        : 0;
+      
+      // Check if event exists
+      const event = await storage.getSiteEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Evento não encontrado" });
+      }
+      
+      // Check if fee exists
+      const fee = await storage.getEventFee(eventId);
+      if (!fee) {
+        return res.status(400).json({ message: "Este evento não requer confirmação com taxa" });
+      }
+      
+      // Check deadline
+      if (new Date() > fee.deadline) {
+        return res.status(400).json({ message: "Prazo de confirmação encerrado" });
+      }
+      
+      // Check if already confirmed
+      const existing = await storage.getEventConfirmation(eventId, userId);
+      if (existing) {
+        return res.status(400).json({ message: "Você já confirmou presença neste evento" });
+      }
+      
+      // Calculate total amount in centavos (member + visitors)
+      const memberFee = fee.feeAmount; // already in centavos
+      const visitorsFee = visitorCount * fee.feeAmount;
+      const totalAmount = memberFee + visitorsFee; // in centavos
+      
+      // Create treasury entry for the fee
+      const year = new Date().getFullYear();
+      const entry = await storage.createTreasuryEntry({
+        type: "income",
+        category: "taxa_evento",
+        description: `Taxa do evento: ${event.title}${visitorCount > 0 ? ` (+${visitorCount} visitante(s))` : ''}`,
+        amount: totalAmount,
+        userId,
+        referenceYear: year,
+        paymentMethod: "pix",
+        paymentStatus: "pending",
+        eventId: eventId,
+      });
+      
+      // Create confirmation
+      const confirmation = await storage.createEventConfirmation({
+        eventId,
+        userId,
+        isVisitor: false,
+        visitorCount,
+        entryId: entry.id,
+      });
+      
+      res.status(201).json({
+        confirmation,
+        entry,
+        totalAmount: totalAmount / 100,
+        message: "Presença confirmada! Realize o pagamento para completar sua inscrição.",
+      });
+    } catch (error) {
+      console.error("Confirm event attendance error:", error);
+      res.status(500).json({ message: "Erro ao confirmar presença" });
+    }
+  });
+
+  // Cancel event confirmation (member)
+  app.delete("/api/events/:eventId/confirm", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user!.id;
+      
+      // Check if confirmed
+      const confirmation = await storage.getEventConfirmation(eventId, userId);
+      if (!confirmation) {
+        return res.status(404).json({ message: "Confirmação não encontrada" });
+      }
+      
+      // Check if already paid
+      if (confirmation.entryId) {
+        const entry = await storage.getTreasuryEntryById(confirmation.entryId);
+        if (entry?.paymentStatus === "paid") {
+          return res.status(400).json({ message: "Não é possível cancelar após o pagamento. Entre em contato com o tesoureiro." });
+        }
+      }
+      
+      // Delete confirmation first, then update entry status
+      await storage.deleteEventConfirmation(eventId, userId);
+      
+      // Mark entry as cancelled (after confirmation removed so counts stay accurate)
+      if (confirmation.entryId) {
+        await storage.updateTreasuryEntry(confirmation.entryId, { paymentStatus: "cancelled" });
+      }
+      
+      res.json({ message: "Confirmação cancelada com sucesso" });
+    } catch (error) {
+      console.error("Cancel event confirmation error:", error);
+      res.status(500).json({ message: "Erro ao cancelar confirmação" });
+    }
+  });
+
+  // Get my confirmation status for an event (member)
+  app.get("/api/events/:eventId/my-confirmation", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user!.id;
+      
+      const confirmation = await storage.getEventConfirmation(eventId, userId);
+      const fee = await storage.getEventFee(eventId);
+      
+      if (!confirmation) {
+        return res.json({
+          confirmed: false,
+          fee: fee ? { amount: fee.feeAmount / 100, deadline: fee.deadline } : null,
+        });
+      }
+      
+      let paymentStatus = "pending";
+      if (confirmation.entryId) {
+        const entry = await storage.getTreasuryEntryById(confirmation.entryId);
+        paymentStatus = entry?.paymentStatus || "pending";
+      }
+      
+      res.json({
+        confirmed: true,
+        confirmation,
+        paymentStatus,
+        fee: fee ? { amount: fee.feeAmount / 100, deadline: fee.deadline } : null,
+      });
+    } catch (error) {
+      console.error("Get my confirmation error:", error);
+      res.status(500).json({ message: "Erro ao buscar confirmação" });
+    }
+  });
+
+  // Get event confirmation counts (public for showing on event page)
+  app.get("/api/events/:eventId/confirmation-count", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const counts = await storage.getEventConfirmationCount(eventId);
+      const fee = await storage.getEventFee(eventId);
+      
+      res.json({
+        ...counts,
+        hasFee: !!fee,
+        deadline: fee?.deadline || null,
+      });
+    } catch (error) {
+      console.error("Get confirmation count error:", error);
+      res.status(500).json({ message: "Erro ao buscar contagem" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

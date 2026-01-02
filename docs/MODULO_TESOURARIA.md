@@ -87,8 +87,8 @@
 ### Frontend - Eventos com Taxa
 - [ ] Modificar página de evento para taxa
 - [ ] Fluxo de confirmação com pagamento
-- [ ] Contador de confirmados
-- [ ] Pagamento para visitantes
+- [x] Contador de confirmados (API implementada)
+- [x] Pagamento para visitantes (API implementada)
 
 ### Backend - APIs
 - [x] Endpoints de configurações
@@ -97,13 +97,14 @@
 - [ ] Endpoints de PIX (criar, status, refresh)
 - [ ] Webhook do Mercado Pago
 - [x] Endpoints de taxas do membro
-- [ ] Endpoints de eventos com taxa
+- [x] Endpoints de eventos com taxa
 - [x] Endpoints da loja (admin)
 - [x] Endpoints da loja (membro)
 - [x] Endpoint de dashboard mensal (GET /api/treasury/dashboard/monthly)
 - [ ] Endpoints de relatórios (PDF/Excel)
 - [ ] Endpoints de notificações manuais
 - [x] Endpoints de dashboard
+- [x] Endpoints de taxas de eventos (CRUD + confirmações)
 
 ### Integração Mercado Pago
 - [ ] Configuração do SDK

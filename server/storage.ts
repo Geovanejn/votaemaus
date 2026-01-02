@@ -86,6 +86,10 @@ import type {
   InsertMemberPercaptaPayment,
   MemberUmpPayment,
   InsertMemberUmpPayment,
+  EventFee,
+  InsertEventFee,
+  EventConfirmation,
+  InsertEventConfirmation,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -7027,6 +7031,102 @@ export class DatabaseStorage implements IStorage {
       totalExpense,
       balance: totalIncome - totalExpense,
     };
+  }
+
+  // ==================== EVENT FEES ====================
+
+  async createEventFee(data: InsertEventFee): Promise<EventFee> {
+    const [fee] = await db.insert(schema.eventFees).values(data).returning();
+    return fee;
+  }
+
+  async getEventFee(eventId: number): Promise<EventFee | undefined> {
+    const [fee] = await db.select().from(schema.eventFees).where(eq(schema.eventFees.eventId, eventId));
+    return fee;
+  }
+
+  async updateEventFee(eventId: number, data: Partial<InsertEventFee>): Promise<EventFee | undefined> {
+    const [fee] = await db.update(schema.eventFees)
+      .set(data)
+      .where(eq(schema.eventFees.eventId, eventId))
+      .returning();
+    return fee;
+  }
+
+  async deleteEventFee(eventId: number): Promise<boolean> {
+    const result = await db.delete(schema.eventFees).where(eq(schema.eventFees.eventId, eventId)).returning();
+    return result.length > 0;
+  }
+
+  async getEventsWithFees(): Promise<Array<{ event: SiteEvent; fee: EventFee }>> {
+    const results = await db.select()
+      .from(schema.eventFees)
+      .innerJoin(schema.siteEvents, eq(schema.eventFees.eventId, schema.siteEvents.id));
+    
+    return results.map(r => ({
+      event: r.site_events,
+      fee: r.event_fees,
+    }));
+  }
+
+  // ==================== EVENT CONFIRMATIONS ====================
+
+  async createEventConfirmation(data: InsertEventConfirmation): Promise<EventConfirmation> {
+    const [confirmation] = await db.insert(schema.eventConfirmations).values(data).returning();
+    return confirmation;
+  }
+
+  async getEventConfirmation(eventId: number, userId: number): Promise<EventConfirmation | undefined> {
+    const [confirmation] = await db.select().from(schema.eventConfirmations)
+      .where(and(
+        eq(schema.eventConfirmations.eventId, eventId),
+        eq(schema.eventConfirmations.userId, userId)
+      ));
+    return confirmation;
+  }
+
+  async getEventConfirmations(eventId: number): Promise<EventConfirmation[]> {
+    return db.select().from(schema.eventConfirmations)
+      .where(eq(schema.eventConfirmations.eventId, eventId));
+  }
+
+  async getEventConfirmationsWithUsers(eventId: number): Promise<Array<EventConfirmation & { user: User }>> {
+    const results = await db.select()
+      .from(schema.eventConfirmations)
+      .innerJoin(schema.users, eq(schema.eventConfirmations.userId, schema.users.id))
+      .where(eq(schema.eventConfirmations.eventId, eventId));
+    
+    return results.map(r => ({
+      ...r.event_confirmations,
+      user: r.users,
+    }));
+  }
+
+  async deleteEventConfirmation(eventId: number, userId: number): Promise<boolean> {
+    const result = await db.delete(schema.eventConfirmations)
+      .where(and(
+        eq(schema.eventConfirmations.eventId, eventId),
+        eq(schema.eventConfirmations.userId, userId)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getEventConfirmationCount(eventId: number): Promise<{ members: number; visitors: number }> {
+    const confirmations = await this.getEventConfirmations(eventId);
+    let members = 0;
+    let visitors = 0;
+    
+    for (const c of confirmations) {
+      if (c.isVisitor) {
+        visitors += (c.visitorCount || 1);
+      } else {
+        members++;
+        visitors += (c.visitorCount || 0);
+      }
+    }
+    
+    return { members, visitors };
   }
 }
 

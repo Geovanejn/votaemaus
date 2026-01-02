@@ -168,6 +168,46 @@ export default function FinanceiroPage() {
     createPaymentMutation.mutate({ type: "ump", months: financial.umpStatus.unpaidMonths });
   };
 
+  const [payingEventId, setPayingEventId] = useState<number | null>(null);
+
+  const createEventPaymentMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      setPayingEventId(eventId);
+      const res = await apiRequest("POST", `/api/pix/event-fee/${eventId}`);
+      return res.json();
+    },
+    onSuccess: (data, eventId) => {
+      const event = memberEvents?.find(e => e.eventId === eventId);
+      setPixPaymentData({
+        entryId: data.entryId,
+        amount: data.amount,
+        description: event?.eventName ? `Taxa: ${event.eventName}` : `Taxa de Evento`,
+      });
+      setPixModalOpen(true);
+      setPayingEventId(null);
+    },
+    onError: (error: Error) => {
+      setPayingEventId(null);
+      toast({
+        title: "Erro ao gerar pagamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePayEvent = (eventId: number) => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createEventPaymentMutation.mutate(eventId);
+  };
+
   const handlePaymentComplete = () => {
     refetch();
     refetchEvents();
@@ -494,18 +534,36 @@ export default function FinanceiroPage() {
                                 )}
                               </p>
                             </div>
-                            <div className="text-right flex-shrink-0 ml-2">
+                            <div className="text-right flex-shrink-0 ml-2 flex items-center gap-2">
                               {event.hasFee && event.totalAmount > 0 ? (
                                 <>
-                                  <p className="font-medium text-sm">
-                                    {formatCurrency(event.totalAmount)}
-                                  </p>
-                                  <Badge 
-                                    variant={event.isPaid ? "default" : "secondary"}
-                                    className="text-xs"
-                                  >
-                                    {event.isPaid ? "Pago" : "Pendente"}
-                                  </Badge>
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {formatCurrency(event.totalAmount)}
+                                    </p>
+                                    <Badge 
+                                      variant={event.isPaid ? "default" : "secondary"}
+                                      className="text-xs"
+                                    >
+                                      {event.isPaid ? "Pago" : "Pendente"}
+                                    </Badge>
+                                  </div>
+                                  {!event.isPaid && pixStatus?.configured && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handlePayEvent(event.eventId)}
+                                      disabled={payingEventId === event.eventId}
+                                      className="gap-1"
+                                      data-testid={`button-pay-event-${event.eventId}`}
+                                    >
+                                      {payingEventId === event.eventId ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <QrCode className="h-3 w-3" />
+                                      )}
+                                      Pagar
+                                    </Button>
+                                  )}
                                 </>
                               ) : (
                                 <Badge variant="outline" className="text-xs">

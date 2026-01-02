@@ -61,7 +61,9 @@
 - [x] Histórico de pagamentos
 - [x] Histórico de pedidos da loja
 - [ ] Histórico de eventos
-- [ ] Componente de pagamento PIX (QR Code) - aguardando integração MP
+- [x] Componente de pagamento PIX (QR Code) - PixPaymentModal.tsx
+- [x] Botão pagar Taxa UMP via PIX
+- [x] Botão pagar Taxa Percapta via PIX
 
 ### Frontend - Loja Virtual
 - [x] Página de catálogo (listagem de itens)
@@ -72,6 +74,8 @@
 - [x] Carrinho de compras
 - [x] Página de checkout
 - [x] Página de meus pedidos (/study/meus-pedidos)
+- [x] PIX automático após checkout
+- [x] Gerar PIX para pedidos pendentes em Meus Pedidos
 
 ### Frontend - Marketing (Gestão da Loja)
 - [x] CRUD de categorias
@@ -89,13 +93,14 @@
 - [ ] Fluxo de confirmação com pagamento
 - [x] Contador de confirmados (API implementada)
 - [x] Pagamento para visitantes (API implementada)
+- [x] Botão pagar taxa de evento via PIX (na página financeiro)
 
 ### Backend - APIs
 - [x] Endpoints de configurações
 - [x] Endpoints de entradas/saídas
 - [x] Endpoints de empréstimos
-- [ ] Endpoints de PIX (criar, status, refresh)
-- [ ] Webhook do Mercado Pago
+- [x] Endpoints de PIX (criar, status, refresh)
+- [x] Webhook do Mercado Pago
 - [x] Endpoints de taxas do membro
 - [x] Endpoints de eventos com taxa
 - [x] Endpoints da loja (admin)
@@ -107,10 +112,12 @@
 - [x] Endpoints de taxas de eventos (CRUD + confirmações)
 
 ### Integração Mercado Pago
-- [ ] Configuração do SDK
-- [ ] Geração de QR Code PIX
-- [ ] Processamento de webhook
-- [ ] Atualização automática de status
+- [x] Configuração do SDK (mercadopago.ts)
+- [x] Geração de QR Code PIX
+- [x] Processamento de webhook
+- [x] Atualização automática de status
+- [x] Polling de status a cada 5 segundos
+- [x] Expiração de 15 minutos para QR Codes
 
 ### Sistema de Notificações
 - [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 09:00
@@ -347,6 +354,105 @@ O módulo de tesouraria é um sistema completo de gestão financeira para a UMP 
 - Webhook: HTTPS obrigatório (Render já tem)
 - Access Token: armazenado como secret
 - Validação de assinatura do webhook
+
+### 5.6 Como Obter o Access Token do Mercado Pago
+
+1. **Criar conta no Mercado Pago**:
+   - Acesse https://www.mercadopago.com.br
+   - Crie uma conta ou faça login
+
+2. **Acessar painel de desenvolvedores**:
+   - Acesse https://www.mercadopago.com.br/developers/panel
+   - Clique em "Suas integrações"
+
+3. **Criar uma aplicação**:
+   - Clique em "Criar aplicação"
+   - Nome: "UMP Emaús - Sistema de Pagamentos"
+   - Selecione: "Pagamentos online" > "CheckoutAPI"
+   - Aceite os termos e crie
+
+4. **Obter credenciais de PRODUÇÃO**:
+   - Após criar, clique na aplicação
+   - Vá em "Credenciais de produção"
+   - Copie o **Access Token** (começa com `APP_USR-`)
+   
+   **IMPORTANTE**: Use as credenciais de PRODUÇÃO, não as de teste!
+
+5. **Configurar Webhook**:
+   - Na mesma página, vá em "Webhooks"
+   - Clique em "Configurar notificações"
+   - URL: `https://SEU-DOMINIO.onrender.com/api/pix/webhook`
+   - Eventos: Marque "Pagamentos" (payments)
+   - Salve
+
+### 5.7 Configurar no Render
+
+1. **Acessar o Render**:
+   - Acesse https://dashboard.render.com
+   - Selecione seu serviço (Web Service)
+
+2. **Adicionar a variável de ambiente**:
+   - Vá em "Environment" no menu lateral
+   - Clique em "Add Environment Variable"
+   - Key: `MERCADO_PAGO_ACCESS_TOKEN`
+   - Value: Cole o Access Token copiado do Mercado Pago
+   - Clique em "Save Changes"
+
+3. **Reiniciar o serviço**:
+   - O Render vai reiniciar automaticamente
+   - Aguarde o deploy concluir
+
+4. **Verificar configuração**:
+   - Acesse o sistema e faça um pagamento de teste
+   - O QR Code PIX deve aparecer
+
+### 5.8 Endpoints PIX Implementados
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/pix/status` | Verifica se PIX está configurado |
+| POST | `/api/pix/generate/:entryId` | Gera QR Code para uma entrada |
+| GET | `/api/pix/check/:entryId` | Verifica status do pagamento |
+| POST | `/api/pix/webhook` | Recebe notificações do Mercado Pago |
+| POST | `/api/pix/member-fee` | Gera PIX para taxa de membro |
+| POST | `/api/pix/shop-order/:orderId` | Gera PIX para pedido da loja |
+| POST | `/api/pix/event-fee/:eventId` | Gera PIX para taxa de evento |
+
+### 5.9 Componentes Frontend
+
+| Componente | Localização | Descrição |
+|------------|-------------|-----------|
+| PixPaymentModal | `client/src/components/PixPaymentModal.tsx` | Modal com QR Code, código copia-cola, countdown |
+| Financeiro | `client/src/pages/study/financeiro.tsx` | Painel financeiro do membro com PIX |
+| Loja | `client/src/pages/study/loja.tsx` | Checkout com PIX automático |
+| Meus Pedidos | `client/src/pages/study/meus-pedidos.tsx` | Gerar PIX para pedidos pendentes |
+
+### 5.10 Fluxo Técnico do PIX
+
+```
+[Usuário clica "Pagar"]
+       |
+       v
+[Frontend chama POST /api/pix/generate/:entryId]
+       |
+       v
+[Backend cria cobrança no Mercado Pago]
+       |
+       v
+[Retorna QR Code + código copia-cola]
+       |
+       v
+[Modal exibe QR Code com countdown de 15 min]
+       |
+       v
+[Polling a cada 5s: GET /api/pix/check/:entryId]
+       |
+       v
+[Se aprovado ou webhook recebido]
+       |
+       v
+[Atualiza status para "completed" + notifica usuário]
+```
 
 ---
 

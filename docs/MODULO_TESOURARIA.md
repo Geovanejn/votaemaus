@@ -38,7 +38,8 @@
 ### Frontend - Painel do Tesoureiro
 - [x] Página principal do dashboard
 - [x] Componente de resumo financeiro
-- [ ] Gráficos (entradas vs saídas, pizza, barras)
+- [x] Gráfico mensal (entradas vs saídas em barras)
+- [ ] Gráficos adicionais (pizza por categoria)
 - [x] Lista de transações com filtros
 - [x] Alertas de inadimplência
 - [x] Formulário de configurações (taxas, chave PIX)
@@ -46,41 +47,42 @@
 - [x] Página de empréstimos
 - [x] Página de pedidos da loja
 - [x] Página de relatórios
-- [ ] Formulário de entrada manual
-- [ ] Formulário de saída manual
-- [ ] Gerenciamento de empréstimos
+- [x] Formulário de entrada manual (com tipos e categorias)
+- [x] Formulário de saída manual (integrado no mesmo formulário)
+- [ ] Gerenciamento de empréstimos (criar/editar)
 - [ ] Gerenciamento de parcelas
 - [ ] Envio de notificações manuais
-- [ ] Geração de relatórios
+- [ ] Geração de relatórios (PDF/Excel)
 
 ### Frontend - Painel Financeiro do Membro
-- [ ] Página principal do painel financeiro
-- [ ] Status de Taxa Percapta
-- [ ] Status de Taxa UMP (meses pagos/pendentes)
-- [ ] Histórico de pagamentos
-- [ ] Histórico de pedidos da loja
+- [x] Página principal do painel financeiro (/study/financeiro)
+- [x] Status de Taxa Percapta
+- [x] Status de Taxa UMP (meses pagos/pendentes)
+- [x] Histórico de pagamentos
+- [x] Histórico de pedidos da loja
 - [ ] Histórico de eventos
-- [ ] Componente de pagamento PIX (QR Code)
+- [ ] Componente de pagamento PIX (QR Code) - aguardando integração MP
 
 ### Frontend - Loja Virtual
-- [ ] Página de catálogo (listagem de itens)
-- [ ] Página de detalhes do item
-- [ ] Carrossel de imagens
-- [ ] Seleção de gênero/tamanho
-- [ ] Tabela de medidas
-- [ ] Carrinho de compras
-- [ ] Página de checkout
-- [ ] Página de meus pedidos
+- [x] Página de catálogo (listagem de itens)
+- [x] Página de detalhes do item
+- [x] Carrossel de imagens
+- [x] Seleção de gênero/tamanho
+- [x] Tabela de medidas
+- [x] Carrinho de compras
+- [x] Página de checkout
+- [x] Página de meus pedidos (/study/meus-pedidos)
 
 ### Frontend - Marketing (Gestão da Loja)
-- [ ] CRUD de categorias
-- [ ] CRUD de itens
-- [ ] Upload de imagens
-- [ ] Gestão de tamanhos
-- [ ] Gestão de tabela de medidas
-- [ ] Lista de pedidos
-- [ ] Atualização de status em lote
-- [ ] Filtros de pedidos
+- [x] CRUD de categorias
+- [x] CRUD de itens
+- [x] Upload de imagens
+- [x] Gestão de tamanhos
+- [x] Gestão de tabela de medidas
+- [x] Lista de pedidos (PedidosAdmin.tsx)
+- [x] Atualização de status em lote
+- [x] Filtros de pedidos (status, busca, data)
+- [x] Modal de detalhes do pedido
 
 ### Frontend - Eventos com Taxa
 - [ ] Modificar página de evento para taxa
@@ -95,11 +97,12 @@
 - [ ] Endpoints de PIX (criar, status, refresh)
 - [ ] Webhook do Mercado Pago
 - [x] Endpoints de taxas do membro
-- [ ] Endpoints de eventos
+- [ ] Endpoints de eventos com taxa
 - [x] Endpoints da loja (admin)
 - [x] Endpoints da loja (membro)
-- [ ] Endpoints de relatórios
-- [ ] Endpoints de notificações
+- [x] Endpoint de dashboard mensal (GET /api/treasury/dashboard/monthly)
+- [ ] Endpoints de relatórios (PDF/Excel)
+- [ ] Endpoints de notificações manuais
 - [x] Endpoints de dashboard
 
 ### Integração Mercado Pago
@@ -109,14 +112,15 @@
 - [ ] Atualização automática de status
 
 ### Sistema de Notificações
-- [ ] Scheduler dia 5 (Taxa UMP/Percapta)
+- [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 09:00
 - [ ] Scheduler eventos (5, 3, 1 dia antes)
-- [ ] Scheduler carrinho abandonado
+- [x] Scheduler carrinho abandonado - diário às 10:00 (24-48h)
 - [ ] Scheduler parcelas de empréstimo
 - [ ] Scheduler virada de ano
 - [ ] Scheduler resumo mensal
-- [ ] Notificação de pedido pronto
+- [x] Notificação de pedido pronto (ao mudar status para 'ready')
 - [ ] Notificação de saldo zerado/negativo
+- Nota: Schedulers usam cache em memória (reminders podem repetir após restart)
 
 ---
 

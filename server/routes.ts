@@ -80,7 +80,8 @@ import {
   notifyDevotionalComment,
   notifySeasonPublished,
   notifyNewLessonToAll,
-  notifyNewStudyEvent
+  notifyNewStudyEvent,
+  sendPushToUser
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
@@ -8370,6 +8371,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pedido não encontrado" });
       }
       
+      // Enviar notificação quando pedido está pronto para retirada
+      if (orderStatus === 'ready') {
+        try {
+          const orderItems = await storage.getShopOrderItems(id);
+          const itemNames: string[] = [];
+          for (const item of orderItems.slice(0, 2)) {
+            const product = await storage.getShopItemById(item.itemId);
+            itemNames.push(product?.name || 'Item');
+          }
+          const itemsText = orderItems.length > 1 ? `${itemNames[0]} e mais ${orderItems.length - 1}` : itemNames[0] || 'Item';
+          
+          await storage.createNotification({
+            userId: order.userId,
+            type: 'order_ready',
+            title: 'Pedido Pronto para Retirada',
+            body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
+            data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+          });
+          
+          await sendPushToUser(order.userId, {
+            title: 'Pedido Pronto para Retirada',
+            body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
+            url: '/study/meus-pedidos',
+            tag: `order-ready-${order.id}`,
+            icon: '/logo.png',
+          });
+        } catch (notifError) {
+          console.error('Error sending order ready notification:', notifError);
+        }
+      }
+      
       res.json(order);
     } catch (error) {
       console.error("Update shop order status error:", error);
@@ -8396,10 +8428,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedOrders = [];
-      for (const id of orderIds) {
-        const order = await storage.updateShopOrder(id, { orderStatus });
+      for (const orderId of orderIds) {
+        const order = await storage.updateShopOrder(orderId, { orderStatus });
         if (order) {
           updatedOrders.push(order);
+          
+          // Enviar notificação quando pedido está pronto para retirada
+          if (orderStatus === 'ready') {
+            try {
+              const orderItems = await storage.getShopOrderItems(orderId);
+              const itemNames: string[] = [];
+              for (const item of orderItems.slice(0, 2)) {
+                const product = await storage.getShopItemById(item.itemId);
+                itemNames.push(product?.name || 'Item');
+              }
+              const itemsText = orderItems.length > 1 ? `${itemNames[0]} e mais ${orderItems.length - 1}` : itemNames[0] || 'Item';
+              
+              await storage.createNotification({
+                userId: order.userId,
+                type: 'order_ready',
+                title: 'Pedido Pronto para Retirada',
+                body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
+                data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+              });
+              
+              await sendPushToUser(order.userId, {
+                title: 'Pedido Pronto para Retirada',
+                body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
+                url: '/study/meus-pedidos',
+                tag: `order-ready-${order.id}`,
+                icon: '/logo.png',
+              });
+            } catch (notifError) {
+              console.error('Error sending order ready notification:', notifError);
+            }
+          }
         }
       }
       

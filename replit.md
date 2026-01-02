@@ -147,6 +147,11 @@ A comprehensive financial management system for UMP Emaús with the following fe
 - `requireTreasurer`: Allows Admin OR Treasurer access
 - `requireMarketing`: Allows Admin OR Marketing access
 
+### Schedulers
+- **Day 5 Tax Reminder**: Runs monthly on day 5 at 09:00. Notifies members with pending Percapta or UMP payments.
+- **Abandoned Cart Reminder**: Runs daily at 10:00. Notifies members with orders pending payment for 24-48 hours.
+- Note: Schedulers use in-memory caches for idempotency (reminders may repeat after server restarts).
+
 ### Documentation
 Complete specification in `docs/MODULO_TESOURARIA.md`
 

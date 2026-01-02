@@ -1116,4 +1116,146 @@ export function initMarketingReminderScheduler(): void {
   console.log('[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders };
+// ==================== TREASURY SCHEDULERS ====================
+// Note: These schedulers use in-memory caches for idempotency (consistent with other schedulers in this file).
+// Limitation: Reminders may repeat after server restarts. Consider persisting reminder state to DB
+// when PIX integration is complete and more robust tracking is needed.
+
+const sentTreasuryReminders = new Map<string, number>();
+
+async function processTreasuryDay5Reminder(): Promise<void> {
+  console.log('[Treasury Scheduler] Processing day 5 tax reminder...');
+  
+  try {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const reminderKey = `${currentYear}-${currentMonth}`;
+    
+    const allMembers = await storage.getAllMembers();
+    const settings = await storage.getTreasurySettings(currentYear);
+    const percaptaAmount = settings?.percaptaAmount || 0;
+    
+    let notificationsSent = 0;
+    
+    for (const member of allMembers) {
+      if (!member.activeMember) continue;
+      
+      const memberKey = `${member.id}-${reminderKey}`;
+      if (sentTreasuryReminders.has(memberKey)) continue;
+      
+      try {
+        // Reuse same logic as /api/treasury/member/status route
+        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, currentYear);
+        const hasPendingPercapta = percaptaAmount > 0 && !percaptaPayment?.paidAt;
+        
+        const umpPayments = await storage.getMemberUmpPayments(member.id, currentYear);
+        const paidMonths = umpPayments.filter(p => p.paidAt).map(p => p.month);
+        const unpaidMonths: number[] = [];
+        for (let m = 1; m <= currentMonth; m++) {
+          if (!paidMonths.includes(m)) unpaidMonths.push(m);
+        }
+        const hasPendingUmp = unpaidMonths.length > 0;
+        
+        if (hasPendingPercapta || hasPendingUmp) {
+          let body = 'Voce possui taxas pendentes: ';
+          const pending: string[] = [];
+          if (hasPendingPercapta) pending.push('Percapta anual');
+          if (hasPendingUmp) pending.push(`Taxa UMP (${unpaidMonths.length} meses)`);
+          body += pending.join(' e ') + '. Acesse seu painel financeiro para regularizar.';
+          
+          await storage.createNotification({
+            userId: member.id,
+            type: 'treasury_reminder',
+            title: 'Lembrete de Taxas',
+            body,
+            data: JSON.stringify({ year: currentYear, month: currentMonth }),
+          });
+          
+          await sendPushToUser(member.id, {
+            title: 'Lembrete de Taxas',
+            body,
+            url: '/study/financeiro',
+            tag: `treasury-reminder-${currentYear}-${currentMonth}`,
+            icon: '/logo.png',
+          });
+          
+          sentTreasuryReminders.set(memberKey, Date.now());
+          notificationsSent++;
+        }
+      } catch (memberError) {
+        console.error(`[Treasury Scheduler] Error processing member ${member.id}:`, memberError);
+      }
+    }
+    
+    console.log(`[Treasury Scheduler] Day 5 reminder completed. Sent ${notificationsSent} notification(s)`);
+  } catch (error) {
+    console.error('[Treasury Scheduler] Error during day 5 reminder:', error);
+  }
+}
+
+const sentAbandonedCartReminders = new Set<number>();
+
+async function processAbandonedCartReminder(): Promise<void> {
+  console.log('[Shop Scheduler] Processing abandoned cart reminders...');
+  
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    
+    const allOrders = await storage.getShopOrders({ status: 'awaiting_payment' });
+    const abandonedOrders = allOrders.filter((order) => {
+      if (!order.createdAt) return false;
+      if (order.orderStatus !== 'awaiting_payment') return false;
+      if (sentAbandonedCartReminders.has(order.id)) return false;
+      const orderDate = new Date(order.createdAt);
+      return orderDate < twentyFourHoursAgo && orderDate > fortyEightHoursAgo;
+    });
+    
+    let notificationsSent = 0;
+    
+    for (const order of abandonedOrders) {
+      try {
+        const body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Complete sua compra antes que expire!`;
+        
+        await storage.createNotification({
+          userId: order.userId,
+          type: 'abandoned_cart',
+          title: 'Pedido Pendente',
+          body,
+          data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+        });
+        
+        await sendPushToUser(order.userId, {
+          title: 'Pedido Pendente',
+          body,
+          url: '/study/meus-pedidos',
+          tag: `abandoned-cart-${order.id}`,
+          icon: '/logo.png',
+        });
+        
+        sentAbandonedCartReminders.add(order.id);
+        notificationsSent++;
+      } catch (orderError) {
+        console.error(`[Shop Scheduler] Error processing order ${order.id}:`, orderError);
+      }
+    }
+    
+    console.log(`[Shop Scheduler] Abandoned cart check completed. Sent ${notificationsSent} notification(s)`);
+  } catch (error) {
+    console.error('[Shop Scheduler] Error during abandoned cart check:', error);
+  }
+}
+
+export function initTreasurySchedulers(): void {
+  cron.schedule('0 9 5 * *', processTreasuryDay5Reminder, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 09:00 (America/Sao_Paulo)');
+  
+  cron.schedule('0 10 * * *', processAbandonedCartReminder, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run daily at 10:00 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder };

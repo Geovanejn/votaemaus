@@ -15,7 +15,7 @@
 -- ================================================================
 
 -- 1. PROGRESSO DE LIÇÕES E UNIDADES
--- Apaga o progresso de cada lição e unidade concluída
+-- Apaga o progresso de cada lição e unidade bj
 DELETE FROM user_lesson_progress;
 DELETE FROM user_unit_progress;
 

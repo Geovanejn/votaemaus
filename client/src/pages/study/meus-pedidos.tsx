@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PixPaymentModal } from "@/components/PixPaymentModal";
 import { useState } from "react";
 import { 
   ChevronLeft,
@@ -22,6 +23,7 @@ import {
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface OrderItemProduct {
   id: number;
@@ -94,11 +96,56 @@ export default function MeusPedidosPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixPaymentData, setPixPaymentData] = useState<{
+    entryId: number;
+    amount: number;
+    description: string;
+  } | null>(null);
 
-  const { data: orders, isLoading } = useQuery<Order[]>({
+  const { data: orders, isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/shop/my-orders"],
     enabled: isAuthenticated,
   });
+
+  const { data: pixStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/pix/status"],
+    enabled: isAuthenticated,
+  });
+
+  const generatePixMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest("POST", `/api/pix/shop-order/${orderId}`);
+      return res.json();
+    },
+    onSuccess: (data, orderId) => {
+      const order = orders?.find(o => o.id === orderId);
+      setPixPaymentData({
+        entryId: data.entryId,
+        amount: data.amount,
+        description: `Pedido #${order?.orderCode || orderId}`,
+      });
+      setSelectedOrder(null);
+      setPixModalOpen(true);
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao gerar PIX",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePixPaymentComplete = () => {
+    setPixModalOpen(false);
+    setPixPaymentData(null);
+    refetch();
+    toast({
+      title: "Pagamento confirmado!",
+      description: "Seu pedido foi pago com sucesso.",
+    });
+  };
 
   if (!isAuthenticated) {
     setLocation("/login");
@@ -271,20 +318,39 @@ export default function MeusPedidosPage() {
                   </div>
                 </div>
 
-                {selectedOrder.paymentStatus === "pending" && selectedOrder.pixCode && (
+                {selectedOrder.paymentStatus === "pending" && (
                   <div className="border rounded-md p-3 space-y-3">
                     <h4 className="font-medium text-sm flex items-center gap-2">
                       <QrCode className="h-4 w-4" />
                       Pagamento PIX
                     </h4>
 
-                    {isPixExpired(selectedOrder.pixExpiresAt) ? (
-                      <div className="text-center py-4">
-                        <XCircle className="h-8 w-8 mx-auto text-destructive mb-2" />
-                        <p className="text-sm text-destructive">QR Code expirado</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Solicite um novo QR Code
+                    {!selectedOrder.pixCode || isPixExpired(selectedOrder.pixExpiresAt) ? (
+                      <div className="text-center py-4 space-y-3">
+                        <Clock className="h-8 w-8 mx-auto text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {selectedOrder.pixCode ? "QR Code expirado" : "PIX não gerado"}
                         </p>
+                        {pixStatus?.configured && (
+                          <Button
+                            onClick={() => generatePixMutation.mutate(selectedOrder.id)}
+                            disabled={generatePixMutation.isPending}
+                            className="gap-2"
+                            data-testid="button-generate-pix"
+                          >
+                            {generatePixMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Gerando...
+                              </>
+                            ) : (
+                              <>
+                                <QrCode className="h-4 w-4" />
+                                Gerar QR Code PIX
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -333,6 +399,17 @@ export default function MeusPedidosPage() {
       </Dialog>
 
       <BottomNav />
+
+      {pixPaymentData && (
+        <PixPaymentModal
+          open={pixModalOpen}
+          onOpenChange={setPixModalOpen}
+          entryId={pixPaymentData.entryId}
+          amount={pixPaymentData.amount}
+          description={pixPaymentData.description}
+          onPaymentComplete={handlePixPaymentComplete}
+        />
+      )}
     </div>
   );
 }

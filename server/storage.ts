@@ -6757,6 +6757,14 @@ export class DatabaseStorage implements IStorage {
     return entry || null;
   }
 
+  async getTreasuryEntryByPixId(pixTransactionId: string): Promise<TreasuryEntry | null> {
+    const [entry] = await db.select()
+      .from(schema.treasuryEntries)
+      .where(eq(schema.treasuryEntries.pixTransactionId, pixTransactionId))
+      .limit(1);
+    return entry || null;
+  }
+
   async createTreasuryEntry(data: InsertTreasuryEntry): Promise<TreasuryEntry> {
     const [entry] = await db.insert(schema.treasuryEntries)
       .values(data)

@@ -72,6 +72,13 @@ import sharp from "sharp";
 import rateLimit from "express-rate-limit";
 import { moderateContent, shouldAutoReject } from "./profanity-filter";
 import { 
+  createPixPayment, 
+  getPaymentStatus, 
+  isMercadoPagoConfigured, 
+  calculatePixFee,
+  isValidWebhookPayload 
+} from "./mercadopago";
+import { 
   notifyNewDevotional, 
   notifyNewEvent, 
   notifyNewPrayerRequest, 
@@ -9923,6 +9930,543 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get confirmation count error:", error);
       res.status(500).json({ message: "Erro ao buscar contagem" });
+    }
+  });
+
+  // ==================== PIX PAYMENT ENDPOINTS ====================
+
+  // Check if Mercado Pago is configured
+  app.get("/api/pix/status", authenticateToken, async (req: AuthRequest, res) => {
+    res.json({ configured: isMercadoPagoConfigured() });
+  });
+
+  // Generate PIX for treasury entry payment
+  app.post("/api/pix/generate/:entryId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user!.id;
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      const entry = await storage.getTreasuryEntryById(entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Entrada não encontrada" });
+      }
+
+      if (entry.userId !== userId && !req.user!.isAdmin && !req.user!.isTreasurer) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (entry.paymentStatus === "completed") {
+        return res.status(400).json({ message: "Este pagamento já foi realizado" });
+      }
+
+      if (entry.paymentStatus === "cancelled") {
+        return res.status(400).json({ message: "Este pagamento foi cancelado" });
+      }
+
+      // Check if there's a valid unexpired PIX
+      if (entry.pixQrCode && entry.pixExpiresAt && new Date(entry.pixExpiresAt) > new Date()) {
+        return res.json({
+          paymentId: entry.pixTransactionId,
+          qrCode: entry.pixQrCode,
+          qrCodeBase64: entry.pixQrCodeBase64,
+          expiresAt: entry.pixExpiresAt,
+          amount: entry.amount / 100,
+        });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const result = await createPixPayment({
+        amountCentavos: entry.amount,
+        description: entry.description || `Pagamento UMP - ${entry.category}`,
+        payerEmail: user.email,
+        payerName: user.fullName,
+        externalReference: `entry-${entryId}`,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: result.error });
+      }
+
+      await storage.updateTreasuryEntry(entryId, {
+        pixTransactionId: result.paymentId?.toString(),
+        pixQrCode: result.qrCode,
+        pixQrCodeBase64: result.qrCodeBase64,
+        pixExpiresAt: result.expiresAt,
+        paymentStatus: "pending",
+      });
+
+      res.json({
+        paymentId: result.paymentId,
+        qrCode: result.qrCode,
+        qrCodeBase64: result.qrCodeBase64,
+        expiresAt: result.expiresAt,
+        amount: entry.amount / 100,
+      });
+    } catch (error) {
+      console.error("Generate PIX error:", error);
+      res.status(500).json({ message: "Erro ao gerar PIX" });
+    }
+  });
+
+  // Check PIX payment status
+  app.get("/api/pix/check/:entryId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user!.id;
+
+      const entry = await storage.getTreasuryEntryById(entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Entrada não encontrada" });
+      }
+
+      if (entry.userId !== userId && !req.user!.isAdmin && !req.user!.isTreasurer) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (entry.paymentStatus === "completed") {
+        return res.json({ status: "completed", approved: true });
+      }
+
+      if (!entry.pixTransactionId) {
+        return res.json({ status: entry.paymentStatus, approved: false });
+      }
+
+      if (!isMercadoPagoConfigured()) {
+        return res.json({ status: entry.paymentStatus, approved: false });
+      }
+
+      const result = await getPaymentStatus(parseInt(entry.pixTransactionId));
+
+      if (result.success && result.approved) {
+        await storage.updateTreasuryEntry(entryId, {
+          paymentStatus: "completed",
+          paidAt: new Date(),
+        });
+
+        // Process post-payment logic based on category
+        await processPaymentCompletion(entry);
+
+        return res.json({ status: "completed", approved: true });
+      }
+
+      // Check if expired
+      if (entry.pixExpiresAt && new Date(entry.pixExpiresAt) < new Date()) {
+        return res.json({ status: "expired", approved: false });
+      }
+
+      res.json({ 
+        status: result.status || entry.paymentStatus, 
+        approved: false 
+      });
+    } catch (error) {
+      console.error("Check PIX status error:", error);
+      res.status(500).json({ message: "Erro ao verificar pagamento" });
+    }
+  });
+
+  // Webhook for Mercado Pago notifications
+  app.post("/api/pix/webhook", async (req, res) => {
+    try {
+      if (!isValidWebhookPayload(req.body)) {
+        return res.sendStatus(400);
+      }
+
+      const { type, data } = req.body;
+
+      if (type === "payment" || type === "payment.updated") {
+        const paymentId = typeof data.id === "string" ? parseInt(data.id) : data.id;
+
+        if (!isMercadoPagoConfigured()) {
+          return res.sendStatus(200);
+        }
+
+        const result = await getPaymentStatus(paymentId);
+
+        if (result.success && result.approved) {
+          // Find entry by pixTransactionId
+          const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
+
+          if (entry && entry.paymentStatus !== "completed") {
+            await storage.updateTreasuryEntry(entry.id, {
+              paymentStatus: "completed",
+              paidAt: new Date(),
+            });
+
+            await processPaymentCompletion(entry);
+            console.log(`[Webhook] Payment ${paymentId} approved for entry ${entry.id}`);
+          }
+        }
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.sendStatus(200);
+    }
+  });
+
+  // Helper function to process payment completion
+  async function processPaymentCompletion(entry: any) {
+    try {
+      const now = new Date();
+
+      // Handle UMP fee payment
+      if (entry.category === "taxa_ump" && entry.userId && entry.referenceMonth) {
+        await storage.createMemberUmpPayment({
+          userId: entry.userId,
+          year: entry.referenceYear,
+          month: entry.referenceMonth,
+          amount: entry.amount,
+          entryId: entry.id,
+          paidAt: now,
+        });
+      }
+
+      // Handle Percapta payment
+      if (entry.category === "taxa_percapta" && entry.userId) {
+        await storage.createMemberPercaptaPayment({
+          userId: entry.userId,
+          year: entry.referenceYear,
+          amount: entry.amount,
+          entryId: entry.id,
+          paidAt: now,
+        });
+      }
+
+      // Handle shop order
+      if (entry.orderId) {
+        await storage.updateShopOrder(entry.orderId, {
+          paymentStatus: "paid",
+          orderStatus: "confirmed",
+          paidAt: now,
+        });
+
+        // Note: Shop order notification can be added later
+      }
+
+      // Handle loan installment
+      if (entry.loanId) {
+        const loan = await storage.getTreasuryLoanById(entry.loanId);
+        if (loan) {
+          const installments = await storage.getTreasuryLoanInstallments(entry.loanId);
+          const pendingInstallment = installments.find(i => i.status === "pending");
+          if (pendingInstallment) {
+            await storage.updateTreasuryLoanInstallment(pendingInstallment.id, {
+              status: "paid",
+              paidAt: now,
+              entryId: entry.id,
+            });
+
+            // Check if all installments are paid
+            const allPaid = installments.every(i => 
+              i.id === pendingInstallment.id || i.status === "paid"
+            );
+            if (allPaid) {
+              await storage.updateTreasuryLoan(entry.loanId, { status: "paid" });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Process payment completion error:", error);
+    }
+  }
+
+  // Create payment entry and generate PIX for member fees
+  app.post("/api/pix/member-fee", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { type, year, months } = req.body;
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      const settings = await storage.getTreasurySettings(year);
+      if (!settings) {
+        return res.status(400).json({ message: "Configurações da tesouraria não definidas" });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      let amount: number;
+      let description: string;
+      let category: string;
+      let referenceMonth: number | null = null;
+
+      if (type === "percapta") {
+        // Check if already paid
+        const existingPayment = await storage.getMemberPercaptaPayment(userId, year);
+        if (existingPayment) {
+          return res.status(400).json({ message: "Taxa Percapta já paga para este ano" });
+        }
+        
+        amount = settings.percaptaAmount;
+        description = `Taxa Percapta ${year}`;
+        category = "taxa_percapta";
+      } else if (type === "ump") {
+        if (!months || !Array.isArray(months) || months.length === 0) {
+          return res.status(400).json({ message: "Selecione os meses para pagamento" });
+        }
+
+        // Check which months are already paid
+        const paidMonths = await storage.getMemberUmpPayments(userId, year);
+        const paidMonthNumbers = paidMonths.map(p => p.month);
+        const unpaidMonths = months.filter((m: number) => !paidMonthNumbers.includes(m));
+
+        if (unpaidMonths.length === 0) {
+          return res.status(400).json({ message: "Todos os meses selecionados já foram pagos" });
+        }
+
+        // For now, handle single month payment (can extend to batch later)
+        referenceMonth = unpaidMonths[0];
+        amount = settings.umpMonthlyAmount * unpaidMonths.length;
+        const monthNames = unpaidMonths.map((m: number) => 
+          new Date(2000, m - 1, 1).toLocaleDateString("pt-BR", { month: "short" })
+        ).join(", ");
+        description = `Taxa UMP - ${monthNames}/${year}`;
+        category = "taxa_ump";
+      } else {
+        return res.status(400).json({ message: "Tipo de taxa inválido" });
+      }
+
+      // Create treasury entry
+      const entry = await storage.createTreasuryEntry({
+        type: "income",
+        category,
+        description,
+        amount,
+        userId,
+        referenceYear: year,
+        referenceMonth,
+        paymentMethod: "pix",
+        paymentStatus: "pending",
+      });
+
+      // Generate PIX
+      const result = await createPixPayment({
+        amountCentavos: amount,
+        description,
+        payerEmail: user.email,
+        payerName: user.fullName,
+        externalReference: `entry-${entry.id}`,
+      });
+
+      if (!result.success) {
+        await storage.updateTreasuryEntry(entry.id, { paymentStatus: "cancelled" });
+        return res.status(500).json({ message: result.error });
+      }
+
+      await storage.updateTreasuryEntry(entry.id, {
+        pixTransactionId: result.paymentId?.toString(),
+        pixQrCode: result.qrCode,
+        pixQrCodeBase64: result.qrCodeBase64,
+        pixExpiresAt: result.expiresAt,
+      });
+
+      res.json({
+        entryId: entry.id,
+        paymentId: result.paymentId,
+        qrCode: result.qrCode,
+        qrCodeBase64: result.qrCodeBase64,
+        expiresAt: result.expiresAt,
+        amount: amount / 100,
+      });
+    } catch (error) {
+      console.error("Create member fee PIX error:", error);
+      res.status(500).json({ message: "Erro ao criar pagamento" });
+    }
+  });
+
+  // Generate PIX for shop order
+  app.post("/api/pix/shop-order/:orderId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const userId = req.user!.id;
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      const order = await storage.getShopOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      if (order.userId !== userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (order.paymentStatus === "paid") {
+        return res.status(400).json({ message: "Pedido já pago" });
+      }
+
+      // Check if there's an existing valid entry with PIX
+      if (order.entryId) {
+        const existingEntry = await storage.getTreasuryEntryById(order.entryId);
+        if (existingEntry?.pixQrCode && existingEntry.pixExpiresAt && 
+            new Date(existingEntry.pixExpiresAt) > new Date()) {
+          return res.json({
+            entryId: existingEntry.id,
+            paymentId: existingEntry.pixTransactionId,
+            qrCode: existingEntry.pixQrCode,
+            qrCodeBase64: existingEntry.pixQrCodeBase64,
+            expiresAt: existingEntry.pixExpiresAt,
+            amount: order.totalAmount / 100,
+          });
+        }
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // Create or update treasury entry
+      let entry;
+      if (order.entryId) {
+        entry = await storage.getTreasuryEntryById(order.entryId);
+      }
+
+      if (!entry) {
+        entry = await storage.createTreasuryEntry({
+          type: "income",
+          category: "loja",
+          description: `Pedido #${order.orderCode}`,
+          amount: order.totalAmount,
+          userId,
+          referenceYear: new Date().getFullYear(),
+          paymentMethod: "pix",
+          paymentStatus: "pending",
+          orderId: order.id,
+        });
+
+        await storage.updateShopOrder(orderId, { entryId: entry.id });
+      }
+
+      // Generate PIX
+      const result = await createPixPayment({
+        amountCentavos: order.totalAmount,
+        description: `Pedido #${order.orderCode} - Loja UMP`,
+        payerEmail: user.email,
+        payerName: user.fullName,
+        externalReference: `order-${orderId}`,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: result.error });
+      }
+
+      await storage.updateTreasuryEntry(entry.id, {
+        pixTransactionId: result.paymentId?.toString(),
+        pixQrCode: result.qrCode,
+        pixQrCodeBase64: result.qrCodeBase64,
+        pixExpiresAt: result.expiresAt,
+      });
+
+      res.json({
+        entryId: entry.id,
+        paymentId: result.paymentId,
+        qrCode: result.qrCode,
+        qrCodeBase64: result.qrCodeBase64,
+        expiresAt: result.expiresAt,
+        amount: order.totalAmount / 100,
+      });
+    } catch (error) {
+      console.error("Create shop order PIX error:", error);
+      res.status(500).json({ message: "Erro ao gerar PIX do pedido" });
+    }
+  });
+
+  // Generate PIX for event fee
+  app.post("/api/pix/event-fee/:eventId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user!.id;
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      const confirmation = await storage.getEventConfirmation(eventId, userId);
+      if (!confirmation) {
+        return res.status(404).json({ message: "Confirmação não encontrada. Confirme presença primeiro." });
+      }
+
+      if (!confirmation.entryId) {
+        return res.status(400).json({ message: "Entrada de pagamento não encontrada" });
+      }
+
+      const entry = await storage.getTreasuryEntryById(confirmation.entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Entrada não encontrada" });
+      }
+
+      if (entry.paymentStatus === "completed") {
+        return res.status(400).json({ message: "Pagamento já realizado" });
+      }
+
+      // Check if there's a valid unexpired PIX
+      if (entry.pixQrCode && entry.pixExpiresAt && new Date(entry.pixExpiresAt) > new Date()) {
+        return res.json({
+          entryId: entry.id,
+          paymentId: entry.pixTransactionId,
+          qrCode: entry.pixQrCode,
+          qrCodeBase64: entry.pixQrCodeBase64,
+          expiresAt: entry.pixExpiresAt,
+          amount: entry.amount / 100,
+        });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const event = await storage.getSiteEventById(eventId);
+
+      // Generate PIX
+      const result = await createPixPayment({
+        amountCentavos: entry.amount,
+        description: `Taxa do evento: ${event?.title || "Evento"}`,
+        payerEmail: user.email,
+        payerName: user.fullName,
+        externalReference: `event-${eventId}-${userId}`,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: result.error });
+      }
+
+      await storage.updateTreasuryEntry(entry.id, {
+        pixTransactionId: result.paymentId?.toString(),
+        pixQrCode: result.qrCode,
+        pixQrCodeBase64: result.qrCodeBase64,
+        pixExpiresAt: result.expiresAt,
+      });
+
+      res.json({
+        entryId: entry.id,
+        paymentId: result.paymentId,
+        qrCode: result.qrCode,
+        qrCodeBase64: result.qrCodeBase64,
+        expiresAt: result.expiresAt,
+        amount: entry.amount / 100,
+      });
+    } catch (error) {
+      console.error("Create event fee PIX error:", error);
+      res.status(500).json({ message: "Erro ao gerar PIX da taxa" });
     }
   });
 

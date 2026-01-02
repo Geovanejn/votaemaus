@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { PixPaymentModal } from "@/components/PixPaymentModal";
 import { 
   ChevronLeft,
   ChevronRight,
@@ -24,7 +25,8 @@ import {
   CheckCircle,
   Loader2,
   Store,
-  AlertTriangle
+  AlertTriangle,
+  QrCode
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -87,9 +89,20 @@ export default function LojaPage() {
   const [selectedGender, setSelectedGender] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [addQuantity, setAddQuantity] = useState(1);
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixPaymentData, setPixPaymentData] = useState<{
+    entryId: number;
+    amount: number;
+    description: string;
+  } | null>(null);
 
   const { data: items, isLoading } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: pixStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/pix/status"],
     enabled: isAuthenticated,
   });
 
@@ -114,19 +127,40 @@ export default function LojaPage() {
       items: { itemId: number; quantity: number; gender: string; size: string | null }[]; 
       observation: string 
     }) => {
-      return apiRequest("POST", "/api/shop/checkout", data);
+      const res = await apiRequest("POST", "/api/shop/checkout", data);
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async (orderData: { orderId: number; orderCode: string; totalAmount: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
       setCart([]);
       setObservation("");
       setIsCheckoutOpen(false);
       setIsCartOpen(false);
-      toast({
-        title: "Pedido realizado",
-        description: "Seu pedido foi criado. Aguarde o QR Code PIX.",
-      });
-      setLocation("/study/meus-pedidos");
+
+      if (pixStatus?.configured === false) {
+        toast({
+          title: "Pedido realizado",
+          description: "Seu pedido foi criado. Acesse Meus Pedidos para pagar.",
+        });
+        setLocation("/study/meus-pedidos");
+      } else {
+        try {
+          const pixRes = await apiRequest("POST", `/api/pix/shop-order/${orderData.orderId}`);
+          const pixData = await pixRes.json();
+          setPixPaymentData({
+            entryId: pixData.entryId,
+            amount: pixData.amount,
+            description: `Pedido #${orderData.orderCode}`,
+          });
+          setPixModalOpen(true);
+        } catch {
+          toast({
+            title: "Pedido criado",
+            description: "Seu pedido foi criado. Acesse Meus Pedidos para pagar.",
+          });
+          setLocation("/study/meus-pedidos");
+        }
+      }
     },
     onError: () => {
       toast({
@@ -136,6 +170,16 @@ export default function LojaPage() {
       });
     },
   });
+
+  const handlePixPaymentComplete = () => {
+    setPixModalOpen(false);
+    setPixPaymentData(null);
+    toast({
+      title: "Pagamento confirmado!",
+      description: "Seu pedido foi pago com sucesso.",
+    });
+    setLocation("/study/meus-pedidos");
+  };
 
   if (!isAuthenticated) {
     setLocation("/login");
@@ -746,6 +790,17 @@ export default function LojaPage() {
       </Dialog>
 
       <BottomNav />
+
+      {pixPaymentData && (
+        <PixPaymentModal
+          open={pixModalOpen}
+          onOpenChange={setPixModalOpen}
+          entryId={pixPaymentData.entryId}
+          amount={pixPaymentData.amount}
+          description={pixPaymentData.description}
+          onPaymentComplete={handlePixPaymentComplete}
+        />
+      )}
     </div>
   );
 }

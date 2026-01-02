@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { BottomNav } from "@/components/study";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PixPaymentModal } from "@/components/PixPaymentModal";
 import { 
   ChevronLeft,
   Wallet,
@@ -17,10 +19,13 @@ import {
   CreditCard,
   Calendar,
   TrendingUp,
-  Loader2
+  Loader2,
+  QrCode
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface MemberFinancialStatus {
   memberId: number;
@@ -87,17 +92,88 @@ const monthNames = [
 export default function FinanceiroPage() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 
-  const { data: financial, isLoading, error } = useQuery<MemberFinancialStatus>({
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixPaymentData, setPixPaymentData] = useState<{
+    entryId: number;
+    amount: number;
+    description: string;
+  } | null>(null);
+
+  const { data: financial, isLoading, error, refetch } = useQuery<MemberFinancialStatus>({
     queryKey: ["/api/treasury/member/status", currentYear],
     enabled: isAuthenticated,
   });
 
-  const { data: memberEvents, isLoading: isLoadingEvents } = useQuery<MemberEvent[]>({
+  const { data: memberEvents, isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery<MemberEvent[]>({
     queryKey: [`/api/treasury/member/events?year=${currentYear}`],
     enabled: isAuthenticated,
   });
+
+  const { data: pixStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/pix/status"],
+    enabled: isAuthenticated,
+  });
+
+  const createPaymentMutation = useMutation({
+    mutationFn: async (params: { type: "percapta" | "ump"; months?: number[] }) => {
+      const res = await apiRequest("POST", "/api/pix/member-fee", {
+        type: params.type,
+        year: currentYear,
+        months: params.months,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setPixPaymentData({
+        entryId: data.entryId,
+        amount: data.amount,
+        description: data.type === "percapta" ? `Taxa Percapta ${currentYear}` : `Taxa UMP ${currentYear}`,
+      });
+      setPixModalOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao gerar pagamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePayPercapta = () => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createPaymentMutation.mutate({ type: "percapta" });
+  };
+
+  const handlePayUmp = () => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!financial) return;
+    createPaymentMutation.mutate({ type: "ump", months: financial.umpStatus.unpaidMonths });
+  };
+
+  const handlePaymentComplete = () => {
+    refetch();
+    refetchEvents();
+    setPixModalOpen(false);
+    setPixPaymentData(null);
+  };
 
   if (!isAuthenticated) {
     setLocation("/login");
@@ -225,9 +301,15 @@ export default function FinanceiroPage() {
                     {!financial.percaptaStatus.isPaid && (
                       <Button 
                         className="w-full gap-2"
+                        onClick={handlePayPercapta}
+                        disabled={createPaymentMutation.isPending}
                         data-testid="button-pay-percapta"
                       >
-                        <CreditCard className="h-4 w-4" />
+                        {createPaymentMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <QrCode className="h-4 w-4" />
+                        )}
                         Pagar via PIX
                       </Button>
                     )}
@@ -307,9 +389,15 @@ export default function FinanceiroPage() {
                         </div>
                         <Button 
                           className="w-full gap-2"
+                          onClick={handlePayUmp}
+                          disabled={createPaymentMutation.isPending}
                           data-testid="button-pay-ump"
                         >
-                          <CreditCard className="h-4 w-4" />
+                          {createPaymentMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <QrCode className="h-4 w-4" />
+                          )}
                           Pagar meses pendentes
                         </Button>
                       </div>
@@ -447,6 +535,17 @@ export default function FinanceiroPage() {
       </section>
 
       <BottomNav />
+
+      {pixPaymentData && (
+        <PixPaymentModal
+          open={pixModalOpen}
+          onOpenChange={setPixModalOpen}
+          entryId={pixPaymentData.entryId}
+          amount={pixPaymentData.amount}
+          description={pixPaymentData.description}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 }

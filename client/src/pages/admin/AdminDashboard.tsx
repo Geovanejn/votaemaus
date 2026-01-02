@@ -12,7 +12,9 @@ import {
   LogOut,
   Sparkles,
   Settings,
-  Wallet
+  Wallet,
+  ShoppingBag,
+  Store
 } from "lucide-react";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -157,6 +159,38 @@ const adminPanels = [
     ],
     forTreasurer: true,
   },
+  {
+    id: "loja",
+    title: "Loja UMP",
+    subtitle: "Produtos e Acessórios",
+    description: "Adquira camisetas, kits, livros e outros produtos da UMP Emaús.",
+    icon: ShoppingBag,
+    color: "from-purple-500 to-violet-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    href: "/study/loja",
+    features: [
+      "Catálogo de produtos",
+      "Pagamento via PIX",
+      "Acompanhe seus pedidos",
+    ],
+    forMember: true,
+  },
+  {
+    id: "loja-admin",
+    title: "Gestão da Loja",
+    subtitle: "Administração de Produtos",
+    description: "Gerencie produtos, categorias e pedidos da loja virtual da UMP.",
+    icon: Store,
+    color: "from-pink-500 to-rose-600",
+    buttonColor: "bg-pink-600 hover:bg-pink-700",
+    href: "/admin/loja",
+    features: [
+      "Cadastrar e editar produtos",
+      "Gerenciar categorias",
+      "Acompanhar pedidos",
+    ],
+    forMarketing: true,
+  },
 ];
 
 export default function AdminDashboard() {
@@ -174,6 +208,7 @@ export default function AdminDashboard() {
     if (panel.forSecretaria === "espiritualidade" && hasEspiritualidadePanel) return true;
     if (panel.forSecretaria === "marketing" && hasMarketingPanel) return true;
     if (panel.forTreasurer && hasTreasuryPanel) return true;
+    if (panel.forMarketing && hasMarketingPanel) return true;
     return false;
   });
 

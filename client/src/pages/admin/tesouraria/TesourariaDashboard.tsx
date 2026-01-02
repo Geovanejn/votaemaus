@@ -9,7 +9,6 @@ import {
   TrendingUp,
   TrendingDown,
   Users,
-  ShoppingBag,
   Receipt,
   FileText,
   Settings,
@@ -45,14 +44,6 @@ const menuItems = [
     icon: Landmark,
     href: "/admin/tesouraria/emprestimos",
     color: "text-purple-600 dark:text-purple-400",
-  },
-  {
-    id: "loja",
-    title: "Loja Virtual",
-    description: "Visualizar pedidos e pagamentos",
-    icon: ShoppingBag,
-    href: "/admin/tesouraria/loja",
-    color: "text-orange-600 dark:text-orange-400",
   },
   {
     id: "relatorios",

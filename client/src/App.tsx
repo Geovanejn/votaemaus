@@ -61,6 +61,9 @@ const EventsPage = lazy(() => import("@/pages/study/events"));
 const EventDetailPage = lazy(() => import("@/pages/study/event-detail"));
 const EventLessonPage = lazy(() => import("@/pages/study/event-lesson"));
 const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
+const FinanceiroPage = lazy(() => import("@/pages/study/financeiro"));
+const LojaPage = lazy(() => import("@/pages/study/loja"));
+const MeusPedidosPage = lazy(() => import("@/pages/study/meus-pedidos"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
 const DeoGloryEstudos = lazy(() => import("@/pages/study/admin/DeoGloryEstudos"));
@@ -77,7 +80,7 @@ const TesourariaConfiguracoes = lazy(() => import("@/pages/admin/tesouraria/Teso
 const TesourariaMovimentacoes = lazy(() => import("@/pages/admin/tesouraria/TesourariaMovimentacoes"));
 const TesourariaTaxas = lazy(() => import("@/pages/admin/tesouraria/TesourariaTaxas"));
 const TesourariaEmprestimos = lazy(() => import("@/pages/admin/tesouraria/TesourariaEmprestimos"));
-const TesourariaLoja = lazy(() => import("@/pages/admin/tesouraria/TesourariaLoja"));
+const LojaAdmin = lazy(() => import("@/pages/admin/tesouraria/TesourariaLojaAdmin"));
 const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
 
 function PageLoader() {
@@ -186,7 +189,7 @@ function Router() {
           <Route path="/admin/tesouraria/movimentacoes" component={TesourariaMovimentacoes} />
           <Route path="/admin/tesouraria/taxas" component={TesourariaTaxas} />
           <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
-          <Route path="/admin/tesouraria/loja" component={TesourariaLoja} />
+          <Route path="/admin/loja" component={LojaAdmin} />
           <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
@@ -210,6 +213,9 @@ function Router() {
           <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
           <Route path="/study/events/:id" component={EventDetailPage} />
           <Route path="/study/cards" component={CardsCollectionPage} />
+          <Route path="/study/financeiro" component={FinanceiroPage} />
+          <Route path="/study/loja" component={LojaPage} />
+          <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -259,6 +265,9 @@ function Router() {
         <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
         <Route path="/study/events/:id" component={EventDetailPage} />
         <Route path="/study/cards" component={CardsCollectionPage} />
+        <Route path="/study/financeiro" component={FinanceiroPage} />
+        <Route path="/study/loja" component={LojaPage} />
+        <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
         <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />
@@ -277,7 +286,7 @@ function Router() {
         <Route path="/admin/tesouraria/movimentacoes" component={TesourariaMovimentacoes} />
         <Route path="/admin/tesouraria/taxas" component={TesourariaTaxas} />
         <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
-        <Route path="/admin/tesouraria/loja" component={TesourariaLoja} />
+        <Route path="/admin/loja" component={LojaAdmin} />
         <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />

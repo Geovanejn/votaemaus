@@ -16,7 +16,9 @@ import {
   LogOut,
   Heart,
   Megaphone,
-  Settings
+  Settings,
+  Wallet,
+  ShoppingBag
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,38 @@ const systems = [
       "Sistema de XP e níveis",
       "Conquistas desbloqueáveis",
       "Ranking entre membros",
+    ],
+  },
+  {
+    id: "financeiro",
+    title: "Meu Financeiro",
+    subtitle: "Taxas e Contribuições",
+    description: "Acompanhe suas taxas, faça pagamentos via PIX e mantenha-se em dia com suas contribuições.",
+    icon: Wallet,
+    color: "from-emerald-500 to-teal-600",
+    buttonColor: "bg-emerald-600 hover:bg-emerald-700",
+    href: "/study/financeiro",
+    features: [
+      "Acompanhamento de taxas",
+      "Pagamento via PIX",
+      "Histórico de pagamentos",
+      "Status em tempo real",
+    ],
+  },
+  {
+    id: "loja",
+    title: "Loja UMP",
+    subtitle: "Produtos e Acessórios",
+    description: "Adquira camisetas, kits, livros e outros produtos da UMP Emaús. Pague via PIX.",
+    icon: ShoppingBag,
+    color: "from-purple-500 to-violet-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    href: "/study/loja",
+    features: [
+      "Camisetas e uniformes",
+      "Kits e materiais",
+      "Pagamento via PIX",
+      "Acompanhe seus pedidos",
     ],
   },
 ];

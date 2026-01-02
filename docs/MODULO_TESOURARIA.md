@@ -1,5 +1,14 @@
 # Módulo de Tesouraria - Especificação Completa
 
+## Diretrizes de Design
+
+### Mobile First
+- **OBRIGATÓRIO**: Todo o sistema deve ser totalmente adaptado para mobile
+- Nunca usar scroll horizontal, apenas vertical
+- Todas as páginas, modais, formulários e componentes devem ser responsivos
+- Testar em viewports de 320px a 428px (dispositivos móveis comuns)
+- Usar classes Tailwind responsivas: `sm:`, `md:`, `lg:` para adaptações
+
 ## Progresso de Implementação
 
 > Marcar com [x] conforme cada item for implementado.

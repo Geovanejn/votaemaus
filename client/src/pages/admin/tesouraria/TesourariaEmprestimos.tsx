@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -10,10 +15,12 @@ import {
   Plus,
   Calendar,
   Loader2,
-  ChevronRight
+  Check
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import type { TreasuryLoan, TreasuryLoanInstallment } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { TreasuryLoan, TreasuryLoanInstallment, User } from "@shared/schema";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -23,6 +30,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Accordion,
   AccordionContent,
@@ -59,16 +73,115 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 export default function TesourariaEmprestimos() {
   const { hasTreasuryPanel } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    origin: "church" as string,
+    originMemberId: undefined as number | undefined,
+    totalAmount: "",
+    isInstallment: false,
+    installmentCount: "1",
+    description: "",
+    firstDueDate: "",
+  });
 
   const { data: loans, isLoading } = useQuery<LoanWithInstallments[]>({
     queryKey: ["/api/treasury/loans"],
     enabled: hasTreasuryPanel,
   });
 
+  const { data: members } = useQuery<User[]>({
+    queryKey: ["/api/admin/members"],
+    enabled: hasTreasuryPanel && formData.origin === "member",
+  });
+
+  const createLoanMutation = useMutation({
+    mutationFn: async (data: {
+      origin: string;
+      originMemberId?: number;
+      totalAmount: number;
+      isInstallment: boolean;
+      installmentCount: number;
+      description: string;
+      firstDueDate: string;
+    }) => {
+      return await apiRequest("POST", "/api/treasury/loans", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/loans"] });
+      toast({ title: "Emprestimo registrado com sucesso" });
+      setDialogOpen(false);
+      setFormData({
+        origin: "church",
+        originMemberId: undefined,
+        totalAmount: "",
+        isInstallment: false,
+        installmentCount: "1",
+        description: "",
+        firstDueDate: "",
+      });
+    },
+    onError: () => {
+      toast({ title: "Erro ao criar emprestimo", variant: "destructive" });
+    },
+  });
+
+  const payInstallmentMutation = useMutation({
+    mutationFn: async ({ loanId, installmentId }: { loanId: number; installmentId: number }) => {
+      return await apiRequest("PUT", `/api/treasury/loans/${loanId}/installments/${installmentId}`, {
+        status: "paid",
+        paidAt: new Date().toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/loans"] });
+      toast({ title: "Parcela paga com sucesso" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
+    },
+  });
+
   if (!hasTreasuryPanel) {
     setLocation("/admin");
     return null;
   }
+
+  const parseBrlCurrency = (value: string): number => {
+    const cleaned = value
+      .replace(/\s/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+    return parseFloat(cleaned);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseBrlCurrency(formData.totalAmount) * 100;
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Valor invalido", variant: "destructive" });
+      return;
+    }
+    if (!formData.firstDueDate) {
+      toast({ title: "Informe a data de vencimento", variant: "destructive" });
+      return;
+    }
+    const installmentCount = parseInt(formData.installmentCount) || 1;
+    if (formData.isInstallment && installmentCount < 2) {
+      toast({ title: "Numero de parcelas deve ser no minimo 2", variant: "destructive" });
+      return;
+    }
+    createLoanMutation.mutate({
+      origin: formData.origin,
+      originMemberId: formData.originMemberId,
+      totalAmount: Math.round(amount),
+      isInstallment: formData.isInstallment,
+      installmentCount: formData.isInstallment ? installmentCount : 1,
+      description: formData.description,
+      firstDueDate: formData.firstDueDate,
+    });
+  };
 
   const activeLoans = loans?.filter(l => l.status === "active") ?? [];
   const totalActive = activeLoans.reduce((sum, l) => sum + l.totalAmount, 0);
@@ -108,20 +221,124 @@ export default function TesourariaEmprestimos() {
                   </p>
                 </div>
               </div>
-              <Dialog>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2 bg-white/20" data-testid="button-new-loan">
                     <Plus className="h-4 w-4" />
-                    Novo Empréstimo
+                    Novo Emprestimo
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Novo Empréstimo</DialogTitle>
+                    <DialogTitle>Novo Emprestimo</DialogTitle>
                   </DialogHeader>
-                  <p className="text-muted-foreground text-sm">
-                    Formulário de cadastro em desenvolvimento...
-                  </p>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Origem</Label>
+                      <Select
+                        value={formData.origin}
+                        onValueChange={(v) => setFormData({ ...formData, origin: v, originMemberId: undefined })}
+                      >
+                        <SelectTrigger data-testid="select-loan-origin">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="church">Igreja</SelectItem>
+                          <SelectItem value="member">Membro</SelectItem>
+                          <SelectItem value="federation">Federacao</SelectItem>
+                          <SelectItem value="other">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {formData.origin === "member" && members && (
+                      <div className="space-y-2">
+                        <Label>Membro</Label>
+                        <Select
+                          value={formData.originMemberId?.toString() || ""}
+                          onValueChange={(v) => setFormData({ ...formData, originMemberId: parseInt(v) })}
+                        >
+                          <SelectTrigger data-testid="select-loan-member">
+                            <SelectValue placeholder="Selecione o membro" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {members.map((m) => (
+                              <SelectItem key={m.id} value={m.id.toString()}>
+                                {m.fullName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Valor Total (R$)</Label>
+                      <Input
+                        type="text"
+                        value={formData.totalAmount}
+                        onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                        placeholder="0,00"
+                        data-testid="input-loan-amount"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={formData.isInstallment}
+                        onCheckedChange={(v) => setFormData({ ...formData, isInstallment: v })}
+                        data-testid="switch-loan-installment"
+                      />
+                      <Label>Parcelado</Label>
+                    </div>
+
+                    {formData.isInstallment && (
+                      <div className="space-y-2">
+                        <Label>Numero de Parcelas</Label>
+                        <Input
+                          type="number"
+                          min="2"
+                          max="24"
+                          value={formData.installmentCount}
+                          onChange={(e) => setFormData({ ...formData, installmentCount: e.target.value })}
+                          data-testid="input-loan-installments"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Data do Primeiro Vencimento</Label>
+                      <Input
+                        type="date"
+                        value={formData.firstDueDate}
+                        onChange={(e) => setFormData({ ...formData, firstDueDate: e.target.value })}
+                        data-testid="input-loan-due-date"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Descricao (opcional)</Label>
+                      <Textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Detalhes do emprestimo..."
+                        data-testid="input-loan-description"
+                      />
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={createLoanMutation.isPending}
+                      data-testid="button-submit-loan"
+                    >
+                      {createLoanMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Registrar Emprestimo"
+                      )}
+                    </Button>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
@@ -262,8 +479,24 @@ export default function TesourariaEmprestimos() {
                                       {formatCurrency(installment.amount)}
                                     </div>
                                     {installment.status === "pending" && (
-                                      <Button size="sm" variant="outline">
-                                        Pagar
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => payInstallmentMutation.mutate({ 
+                                          loanId: loan.id, 
+                                          installmentId: installment.id 
+                                        })}
+                                        disabled={payInstallmentMutation.isPending}
+                                        data-testid={`button-pay-installment-${installment.id}`}
+                                      >
+                                        {payInstallmentMutation.isPending ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Check className="h-3 w-3 mr-1" />
+                                            Pagar
+                                          </>
+                                        )}
                                       </Button>
                                     )}
                                   </div>

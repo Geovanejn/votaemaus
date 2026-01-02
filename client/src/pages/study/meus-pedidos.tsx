@@ -85,6 +85,7 @@ const orderStatusLabels: Record<string, { label: string; variant: "default" | "s
   paid: { label: "Pago", variant: "default" },
   producing: { label: "Em Producao", variant: "outline" },
   ready: { label: "Pronto para Retirada", variant: "default" },
+  delivered: { label: "Entregue", variant: "default" },
   cancelled: { label: "Cancelado", variant: "destructive" },
 };
 

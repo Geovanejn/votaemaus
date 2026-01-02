@@ -81,6 +81,7 @@ const TesourariaMovimentacoes = lazy(() => import("@/pages/admin/tesouraria/Teso
 const TesourariaTaxas = lazy(() => import("@/pages/admin/tesouraria/TesourariaTaxas"));
 const TesourariaEmprestimos = lazy(() => import("@/pages/admin/tesouraria/TesourariaEmprestimos"));
 const LojaAdmin = lazy(() => import("@/pages/admin/marketing/LojaAdmin"));
+const PedidosAdmin = lazy(() => import("@/pages/admin/marketing/PedidosAdmin"));
 const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
 
 function PageLoader() {
@@ -184,6 +185,8 @@ function Router() {
           <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
           <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
           <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
+          <Route path="/admin/marketing/loja" component={LojaAdmin} />
+          <Route path="/admin/marketing/pedidos" component={PedidosAdmin} />
           <Route path="/admin/tesouraria" component={TesourariaDashboard} />
           <Route path="/admin/tesouraria/configuracoes" component={TesourariaConfiguracoes} />
           <Route path="/admin/tesouraria/movimentacoes" component={TesourariaMovimentacoes} />
@@ -280,6 +283,8 @@ function Router() {
         <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
         <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
         <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
+        <Route path="/admin/marketing/loja" component={LojaAdmin} />
+        <Route path="/admin/marketing/pedidos" component={PedidosAdmin} />
         {/* Tesouraria Panel - Access for treasurers */}
         <Route path="/admin/tesouraria" component={TesourariaDashboard} />
         <Route path="/admin/tesouraria/configuracoes" component={TesourariaConfiguracoes} />

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake, ArrowLeft } from "lucide-react";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake, ArrowLeft, Package, ShoppingBag } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -301,6 +301,38 @@ export default function MarketingDashboard() {
                 <Button variant="outline" className="w-full justify-start" data-testid="button-edit-quem-somos">
                   <FileText className="h-4 w-4 mr-2" />
                   Editar Quem Somos
+                  <ArrowUpRight className="h-4 w-4 ml-auto" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card data-testid="card-shop-section">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Loja Virtual
+            </CardTitle>
+            <CardDescription>
+              Gerencie produtos e pedidos da loja
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <Link href="/admin/marketing/loja">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-manage-shop">
+                  <Package className="h-4 w-4 mr-2" />
+                  Gerenciar Produtos
+                  <ArrowUpRight className="h-4 w-4 ml-auto" />
+                </Button>
+              </Link>
+              <Link href="/admin/marketing/pedidos">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-manage-orders">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Gerenciar Pedidos
                   <ArrowUpRight className="h-4 w-4 ml-auto" />
                 </Button>
               </Link>

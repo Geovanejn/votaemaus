@@ -1,8 +1,10 @@
 import { useAuth } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -12,11 +14,10 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  Filter,
   Calendar,
   Loader2
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import type { TreasuryEntry } from "@shared/schema";
 import { format } from "date-fns";
@@ -34,7 +35,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -44,14 +48,37 @@ function formatCurrency(value: number): string {
 }
 
 const categoryLabels: Record<string, string> = {
+  taxa_percapta: "Taxa Percapta",
+  taxa_ump: "Taxa UMP",
   percapta: "Percapta",
   ump: "Taxa UMP",
-  loan: "Empréstimo",
+  loan: "Emprestimo",
   misc: "Diversos",
   event: "Evento",
   events: "Eventos",
   marketing: "Marketing",
+  shop: "Loja",
+  donation: "Doacao",
+  other: "Outros",
 };
+
+const incomeCategories = [
+  { value: "taxa_percapta", label: "Taxa Percapta" },
+  { value: "taxa_ump", label: "Taxa UMP" },
+  { value: "events", label: "Eventos" },
+  { value: "shop", label: "Loja" },
+  { value: "donation", label: "Doacao" },
+  { value: "loan", label: "Pagamento Emprestimo" },
+  { value: "other", label: "Outros" },
+];
+
+const expenseCategories = [
+  { value: "events", label: "Eventos" },
+  { value: "marketing", label: "Marketing" },
+  { value: "loan", label: "Emprestimo" },
+  { value: "misc", label: "Diversos" },
+  { value: "other", label: "Outros" },
+];
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pendente", variant: "secondary" },
@@ -63,15 +90,69 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 export default function TesourariaMovimentacoes() {
   const { hasTreasuryPanel } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const currentYear = new Date().getFullYear();
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formType, setFormType] = useState<"income" | "expense">("income");
+  const [formCategory, setFormCategory] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formAmount, setFormAmount] = useState("");
 
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
     queryKey: ["/api/treasury/entries", currentYear],
     enabled: hasTreasuryPanel,
   });
+
+  const createEntryMutation = useMutation({
+    mutationFn: async (data: { type: string; category: string; description: string; amount: number; paymentStatus: string; paymentMethod: string }) => {
+      return apiRequest("POST", "/api/treasury/entries", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard/monthly"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard/summary"] });
+      setDialogOpen(false);
+      resetForm();
+      toast({ title: "Movimentacao registrada com sucesso" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao registrar movimentacao", variant: "destructive" });
+    },
+  });
+
+  const resetForm = () => {
+    setFormType("income");
+    setFormCategory("");
+    setFormDescription("");
+    setFormAmount("");
+  };
+
+  const handleSubmit = () => {
+    if (!formCategory || !formAmount) {
+      toast({ title: "Preencha todos os campos obrigatorios", variant: "destructive" });
+      return;
+    }
+
+    const amountCents = Math.round(parseFloat(formAmount.replace(",", ".")) * 100);
+    if (isNaN(amountCents) || amountCents <= 0) {
+      toast({ title: "Valor invalido", variant: "destructive" });
+      return;
+    }
+
+    createEntryMutation.mutate({
+      type: formType,
+      category: formCategory,
+      description: formDescription,
+      amount: amountCents,
+      paymentStatus: "paid",
+      paymentMethod: "manual",
+    });
+  };
 
   if (!hasTreasuryPanel) {
     setLocation("/admin");
@@ -86,6 +167,8 @@ export default function TesourariaMovimentacoes() {
     const matchesStatus = statusFilter === "all" || entry.paymentStatus === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
   }) ?? [];
+
+  const categories = formType === "income" ? incomeCategories : expenseCategories;
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,27 +195,110 @@ export default function TesourariaMovimentacoes() {
                 </div>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold" data-testid="text-entries-title">
-                    Movimentações
+                    Movimentacoes
                   </h1>
                   <p className="text-white/80">
-                    Entradas e saídas - {currentYear}
+                    Entradas e saidas - {currentYear}
                   </p>
                 </div>
               </div>
-              <Dialog>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2 bg-white/20" data-testid="button-new-entry">
                     <Plus className="h-4 w-4" />
-                    Nova Movimentação
+                    Nova Movimentacao
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Nova Movimentação</DialogTitle>
+                    <DialogTitle>Nova Movimentacao</DialogTitle>
                   </DialogHeader>
-                  <p className="text-muted-foreground text-sm">
-                    Formulário de cadastro em desenvolvimento...
-                  </p>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={formType === "income" ? "default" : "outline"}
+                          className="flex-1 gap-2"
+                          onClick={() => {
+                            setFormType("income");
+                            setFormCategory("");
+                          }}
+                          data-testid="button-type-income"
+                        >
+                          <TrendingUp className="h-4 w-4" />
+                          Entrada
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formType === "expense" ? "default" : "outline"}
+                          className="flex-1 gap-2"
+                          onClick={() => {
+                            setFormType("expense");
+                            setFormCategory("");
+                          }}
+                          data-testid="button-type-expense"
+                        >
+                          <TrendingDown className="h-4 w-4" />
+                          Saida
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Categoria *</Label>
+                      <Select value={formCategory} onValueChange={setFormCategory}>
+                        <SelectTrigger data-testid="select-category">
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Valor (R$) *</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={formAmount}
+                        onChange={(e) => setFormAmount(e.target.value)}
+                        data-testid="input-amount"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Descricao</Label>
+                      <Textarea
+                        placeholder="Descricao da movimentacao..."
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        className="resize-none"
+                        rows={3}
+                        data-testid="input-description"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter className="gap-2">
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={handleSubmit}
+                      disabled={createEntryMutation.isPending}
+                      data-testid="button-submit-entry"
+                    >
+                      {createEntryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Registrar
+                    </Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
@@ -154,14 +320,14 @@ export default function TesourariaMovimentacoes() {
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por descrição ou pagador..."
+                      placeholder="Buscar por descricao ou pagador..."
                       className="pl-10"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       data-testid="input-search-entries"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | "income" | "expense")}>
                       <SelectTrigger className="w-[140px]" data-testid="select-type-filter">
                         <SelectValue placeholder="Tipo" />
@@ -169,7 +335,7 @@ export default function TesourariaMovimentacoes() {
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="income">Entradas</SelectItem>
-                        <SelectItem value="expense">Saídas</SelectItem>
+                        <SelectItem value="expense">Saidas</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -200,8 +366,8 @@ export default function TesourariaMovimentacoes() {
                 <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">
                   {entries?.length === 0 
-                    ? "Nenhuma movimentação registrada" 
-                    : "Nenhuma movimentação encontrada com os filtros aplicados"}
+                    ? "Nenhuma movimentacao registrada" 
+                    : "Nenhuma movimentacao encontrada com os filtros aplicados"}
                 </p>
               </CardContent>
             </Card>
@@ -212,7 +378,7 @@ export default function TesourariaMovimentacoes() {
                   key={entry.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * index }}
+                  transition={{ delay: 0.05 * Math.min(index, 10) }}
                 >
                   <Card className="hover-elevate cursor-pointer">
                     <CardContent className="p-4">
@@ -241,7 +407,7 @@ export default function TesourariaMovimentacoes() {
                             <Calendar className="h-3 w-3" />
                             {entry.createdAt && format(new Date(entry.createdAt), "dd MMM yyyy", { locale: ptBR })}
                             {entry.externalPayerName && (
-                              <span>• {entry.externalPayerName}</span>
+                              <span>- {entry.externalPayerName}</span>
                             )}
                           </div>
                         </div>

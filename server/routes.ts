@@ -8360,7 +8360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status obrigatório" });
       }
       
-      const validStatuses = ["awaiting_payment", "paid", "producing", "ready"];
+      const validStatuses = ["awaiting_payment", "paid", "producing", "ready", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         return res.status(400).json({ message: "Status inválido" });
       }
@@ -8374,6 +8374,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update shop order status error:", error);
       res.status(500).json({ message: "Erro ao atualizar status" });
+    }
+  });
+
+  // Atualizar status de múltiplos pedidos em lote (admin)
+  app.patch("/api/admin/shop/orders/bulk-status", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { orderIds, orderStatus } = req.body;
+      
+      if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+        return res.status(400).json({ message: "IDs de pedidos obrigatórios" });
+      }
+      
+      if (!orderStatus) {
+        return res.status(400).json({ message: "Status obrigatório" });
+      }
+      
+      const validStatuses = ["awaiting_payment", "paid", "producing", "ready", "delivered", "cancelled"];
+      if (!validStatuses.includes(orderStatus)) {
+        return res.status(400).json({ message: "Status inválido" });
+      }
+      
+      const updatedOrders = [];
+      for (const id of orderIds) {
+        const order = await storage.updateShopOrder(id, { orderStatus });
+        if (order) {
+          updatedOrders.push(order);
+        }
+      }
+      
+      res.json({ updated: updatedOrders.length, orders: updatedOrders });
+    } catch (error) {
+      console.error("Bulk update shop order status error:", error);
+      res.status(500).json({ message: "Erro ao atualizar status em lote" });
     }
   });
 
@@ -8756,6 +8789,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dados mensais para gráfico
+  app.get("/api/treasury/dashboard/monthly", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const entries = await storage.getTreasuryEntries({ year });
+      
+      const monthlyData = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        monthName: new Date(year, i).toLocaleDateString('pt-BR', { month: 'short' }),
+        income: 0,
+        expense: 0,
+      }));
+
+      entries.forEach(entry => {
+        if (entry.paymentStatus === 'paid' && entry.createdAt) {
+          const month = new Date(entry.createdAt).getMonth();
+          if (entry.type === 'income') {
+            monthlyData[month].income += entry.amount;
+          } else {
+            monthlyData[month].expense += entry.amount;
+          }
+        }
+      });
+
+      res.json(monthlyData);
+    } catch (error) {
+      console.error("Get monthly treasury data error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados mensais" });
+    }
+  });
+
   // Listar lançamentos da tesouraria
   app.get("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -9087,8 +9151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get treasury settings for current values
       const settings = await storage.getTreasurySettings(year);
-      const percaptaAmount = settings?.percaptaValue || 0;
-      const umpMonthlyAmount = settings?.umpMonthlyValue || 0;
+      const percaptaAmount = settings?.percaptaAmount || 0;
+      const umpMonthlyAmount = settings?.umpMonthlyAmount || 0;
       
       // Get Percapta payment status
       const percaptaPayment = await storage.getMemberPercaptaPayment(userId, year);

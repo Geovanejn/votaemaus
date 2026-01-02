@@ -12,13 +12,29 @@ import {
   Receipt,
   FileText,
   Settings,
-  Bell,
   CreditCard,
   Landmark,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { TreasuryDashboardSummary } from "@shared/schema";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+type MonthlyData = {
+  month: number;
+  monthName: string;
+  income: number;
+  expense: number;
+};
 
 const menuItems = [
   {
@@ -76,6 +92,11 @@ export default function TesourariaDashboard() {
 
   const { data: summary, isLoading } = useQuery<TreasuryDashboardSummary>({
     queryKey: ["/api/treasury/dashboard/summary"],
+    enabled: hasTreasuryPanel,
+  });
+
+  const { data: monthlyData, isLoading: isLoadingMonthly } = useQuery<MonthlyData[]>({
+    queryKey: ["/api/treasury/dashboard/monthly"],
     enabled: hasTreasuryPanel,
   });
 
@@ -240,7 +261,7 @@ export default function TesourariaDashboard() {
                   <AlertTriangle className="h-5 w-5 text-amber-600" />
                   <div className="flex-1">
                     <p className="font-medium text-amber-800 dark:text-amber-200">
-                      {summary?.pendingLoans} empréstimo(s) ativo(s)
+                      {summary?.pendingLoans} emprestimo(s) ativo(s)
                     </p>
                     <p className="text-sm text-amber-600 dark:text-amber-400">
                       {summary?.pendingInstallments} parcela(s) pendente(s) de pagamento
@@ -255,6 +276,64 @@ export default function TesourariaDashboard() {
               </Card>
             </motion.div>
           )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="mb-8"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Movimentacao Mensal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingMonthly ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyData}>
+                        <XAxis 
+                          dataKey="monthName" 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis 
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(value) => `R$${(value / 100).toFixed(0)}`}
+                        />
+                        <Tooltip 
+                          formatter={(value: number) => 
+                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+                          }
+                          labelFormatter={(label) => `Mes: ${label}`}
+                        />
+                        <Legend />
+                        <Bar 
+                          dataKey="income" 
+                          name="Entradas" 
+                          fill="#22c55e" 
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar 
+                          dataKey="expense" 
+                          name="Saidas" 
+                          fill="#ef4444" 
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {menuItems.map((item, index) => (

@@ -1,5 +1,118 @@
 # Módulo de Tesouraria - Especificação Completa
 
+## Progresso de Implementação
+
+> Marcar com [x] conforme cada item for implementado.
+
+### Schema do Banco de Dados
+- [x] Campo `isTreasurer` na tabela `users`
+- [x] Campo `activeMemberSince` na tabela `users`
+- [x] Tabela `treasury_settings`
+- [x] Tabela `treasury_entries`
+- [x] Tabela `treasury_loans`
+- [x] Tabela `treasury_loan_installments`
+- [x] Tabela `treasury_expense_categories`
+- [x] Tabela `shop_categories`
+- [x] Tabela `shop_items`
+- [x] Tabela `shop_item_images`
+- [x] Tabela `shop_item_sizes`
+- [x] Tabela `shop_item_size_charts`
+- [x] Tabela `shop_cart_items`
+- [x] Tabela `shop_orders`
+- [x] Tabela `shop_order_items`
+- [x] Tabela `event_fees`
+- [x] Tabela `event_confirmations`
+- [x] Tabela `treasury_notifications_log`
+- [x] Tabela `member_ump_payments`
+- [x] Tabela `member_percapta_payments`
+
+### Frontend - Painel do Tesoureiro
+- [ ] Página principal do dashboard
+- [ ] Componente de resumo financeiro
+- [ ] Gráficos (entradas vs saídas, pizza, barras)
+- [ ] Lista de transações com filtros
+- [ ] Alertas de inadimplência
+- [ ] Formulário de configurações (taxas, chave PIX)
+- [ ] Formulário de entrada manual
+- [ ] Formulário de saída manual
+- [ ] Gerenciamento de empréstimos
+- [ ] Gerenciamento de parcelas
+- [ ] Envio de notificações manuais
+- [ ] Geração de relatórios
+
+### Frontend - Painel Financeiro do Membro
+- [ ] Página principal do painel financeiro
+- [ ] Status de Taxa Percapta
+- [ ] Status de Taxa UMP (meses pagos/pendentes)
+- [ ] Histórico de pagamentos
+- [ ] Histórico de pedidos da loja
+- [ ] Histórico de eventos
+- [ ] Componente de pagamento PIX (QR Code)
+
+### Frontend - Loja Virtual
+- [ ] Página de catálogo (listagem de itens)
+- [ ] Página de detalhes do item
+- [ ] Carrossel de imagens
+- [ ] Seleção de gênero/tamanho
+- [ ] Tabela de medidas
+- [ ] Carrinho de compras
+- [ ] Página de checkout
+- [ ] Página de meus pedidos
+
+### Frontend - Marketing (Gestão da Loja)
+- [ ] CRUD de categorias
+- [ ] CRUD de itens
+- [ ] Upload de imagens
+- [ ] Gestão de tamanhos
+- [ ] Gestão de tabela de medidas
+- [ ] Lista de pedidos
+- [ ] Atualização de status em lote
+- [ ] Filtros de pedidos
+
+### Frontend - Eventos com Taxa
+- [ ] Modificar página de evento para taxa
+- [ ] Fluxo de confirmação com pagamento
+- [ ] Contador de confirmados
+- [ ] Pagamento para visitantes
+
+### Backend - APIs
+- [ ] Endpoints de configurações
+- [ ] Endpoints de entradas/saídas
+- [ ] Endpoints de empréstimos
+- [ ] Endpoints de PIX (criar, status, refresh)
+- [ ] Webhook do Mercado Pago
+- [ ] Endpoints de taxas do membro
+- [ ] Endpoints de eventos
+- [ ] Endpoints da loja (admin)
+- [ ] Endpoints da loja (membro)
+- [ ] Endpoints de relatórios
+- [ ] Endpoints de notificações
+- [ ] Endpoints de dashboard
+
+### Integração Mercado Pago
+- [ ] Configuração do SDK
+- [ ] Geração de QR Code PIX
+- [ ] Processamento de webhook
+- [ ] Atualização automática de status
+
+### Sistema de Notificações
+- [ ] Scheduler dia 5 (Taxa UMP/Percapta)
+- [ ] Scheduler eventos (5, 3, 1 dia antes)
+- [ ] Scheduler carrinho abandonado
+- [ ] Scheduler parcelas de empréstimo
+- [ ] Scheduler virada de ano
+- [ ] Scheduler resumo mensal
+- [ ] Notificação de pedido pronto
+- [ ] Notificação de saldo zerado/negativo
+
+---
+
+## IMPORTANTE: Após Conclusão da Implementação
+
+> Após a conclusão de TODO o módulo da tesouraria, gerar o SQL completo para adicionar as novas tabelas e colunas que foram criadas. Este SQL deve ser salvo em `docs/MIGRATION_TESOURARIA.sql` para aplicar em produção.
+
+---
+
 ## Sumário
 
 1. [Visão Geral](#1-visão-geral)

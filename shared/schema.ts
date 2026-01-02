@@ -35,6 +35,8 @@ export const users = pgTable("users", {
   isMember: boolean("is_member").notNull().default(true),
   activeMember: boolean("active_member").notNull().default(true),
   secretaria: text("secretaria"),
+  isTreasurer: boolean("is_treasurer").notNull().default(false),
+  activeMemberSince: timestamp("active_member_since"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -2040,4 +2042,432 @@ export type PublicMemberProfile = {
   }>;
   isOnline: boolean;
   lastSeenAt: string | null;
+};
+
+// =====================================================
+// MÓDULO DE TESOURARIA
+// =====================================================
+
+// Tipos de entrada
+export type TreasuryIncomeCategory = "percapta" | "ump" | "loan" | "misc" | "event";
+
+// Tipos de saída
+export type TreasuryExpenseCategoryType = "percapta" | "loan" | "events" | "marketing";
+
+// Status de pagamento
+export type PaymentStatus = "pending" | "paid" | "expired" | "cancelled";
+
+// Status do pedido
+export type OrderStatus = "awaiting_payment" | "paid" | "producing" | "ready";
+
+// Métodos de pagamento
+export type PaymentMethod = "pix" | "cash" | "manual";
+
+// Origem de empréstimo
+export type LoanOrigin = "church" | "member" | "federation" | "other";
+
+// Configurações da tesouraria (por ano)
+export const treasurySettings = pgTable("treasury_settings", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull(),
+  percaptaAmount: integer("percapta_amount").notNull(),
+  umpMonthlyAmount: integer("ump_monthly_amount").notNull(),
+  pixKey: text("pix_key"),
+  treasurerId: integer("treasurer_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTreasurySettingsSchema = createInsertSchema(treasurySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTreasurySettings = z.infer<typeof insertTreasurySettingsSchema>;
+export type TreasurySettings = typeof treasurySettings.$inferSelect;
+
+// Categorias de despesa customizáveis
+export const treasuryExpenseCategories = pgTable("treasury_expense_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTreasuryExpenseCategorySchema = createInsertSchema(treasuryExpenseCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTreasuryExpenseCategory = z.infer<typeof insertTreasuryExpenseCategorySchema>;
+export type TreasuryExpenseCategory = typeof treasuryExpenseCategories.$inferSelect;
+
+// Empréstimos
+export const treasuryLoans = pgTable("treasury_loans", {
+  id: serial("id").primaryKey(),
+  origin: text("origin").notNull(),
+  originName: text("origin_name"),
+  originMemberId: integer("origin_member_id").references(() => users.id),
+  totalAmount: integer("total_amount").notNull(),
+  isInstallment: boolean("is_installment").notNull().default(false),
+  installmentCount: integer("installment_count"),
+  installmentAmount: integer("installment_amount"),
+  status: text("status").notNull().default("active"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTreasuryLoanSchema = createInsertSchema(treasuryLoans).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTreasuryLoan = z.infer<typeof insertTreasuryLoanSchema>;
+export type TreasuryLoan = typeof treasuryLoans.$inferSelect;
+
+// Parcelas de empréstimo
+export const treasuryLoanInstallments = pgTable("treasury_loan_installments", {
+  id: serial("id").primaryKey(),
+  loanId: integer("loan_id").notNull().references(() => treasuryLoans.id),
+  installmentNumber: integer("installment_number").notNull(),
+  amount: integer("amount").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  status: text("status").notNull().default("pending"),
+  paidAt: timestamp("paid_at"),
+  entryId: integer("entry_id"),
+});
+
+export const insertTreasuryLoanInstallmentSchema = createInsertSchema(treasuryLoanInstallments).omit({
+  id: true,
+});
+
+export type InsertTreasuryLoanInstallment = z.infer<typeof insertTreasuryLoanInstallmentSchema>;
+export type TreasuryLoanInstallment = typeof treasuryLoanInstallments.$inferSelect;
+
+// Entradas e saídas da tesouraria
+export const treasuryEntries = pgTable("treasury_entries", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  category: text("category").notNull(),
+  subcategory: text("subcategory"),
+  description: text("description"),
+  amount: integer("amount").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  externalPayerName: text("external_payer_name"),
+  paymentMethod: text("payment_method").notNull(),
+  paymentStatus: text("payment_status").notNull(),
+  pixTransactionId: text("pix_transaction_id"),
+  pixQrCode: text("pix_qr_code"),
+  pixQrCodeBase64: text("pix_qr_code_base64"),
+  pixExpiresAt: timestamp("pix_expires_at"),
+  referenceMonth: integer("reference_month"),
+  referenceYear: integer("reference_year").notNull(),
+  eventId: integer("event_id"),
+  orderId: integer("order_id"),
+  loanId: integer("loan_id").references(() => treasuryLoans.id),
+  receiptUrl: text("receipt_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+}, (table) => ({
+  userIdIdx: index("treasury_entries_user_id_idx").on(table.userId),
+  typeIdx: index("treasury_entries_type_idx").on(table.type),
+  statusIdx: index("treasury_entries_status_idx").on(table.paymentStatus),
+  yearIdx: index("treasury_entries_year_idx").on(table.referenceYear),
+}));
+
+export const insertTreasuryEntrySchema = createInsertSchema(treasuryEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTreasuryEntry = z.infer<typeof insertTreasuryEntrySchema>;
+export type TreasuryEntry = typeof treasuryEntries.$inferSelect;
+
+// Pagamentos de Taxa UMP por mês
+export const memberUmpPayments = pgTable("member_ump_payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  amount: integer("amount").notNull(),
+  entryId: integer("entry_id").notNull().references(() => treasuryEntries.id),
+  paidAt: timestamp("paid_at").notNull(),
+}, (table) => ({
+  uniqueUserYearMonth: unique().on(table.userId, table.year, table.month),
+}));
+
+export const insertMemberUmpPaymentSchema = createInsertSchema(memberUmpPayments).omit({
+  id: true,
+});
+
+export type InsertMemberUmpPayment = z.infer<typeof insertMemberUmpPaymentSchema>;
+export type MemberUmpPayment = typeof memberUmpPayments.$inferSelect;
+
+// Pagamentos de Taxa Percapta por ano
+export const memberPercaptaPayments = pgTable("member_percapta_payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  year: integer("year").notNull(),
+  amount: integer("amount").notNull(),
+  entryId: integer("entry_id").notNull().references(() => treasuryEntries.id),
+  paidAt: timestamp("paid_at").notNull(),
+}, (table) => ({
+  uniqueUserYear: unique().on(table.userId, table.year),
+}));
+
+export const insertMemberPercaptaPaymentSchema = createInsertSchema(memberPercaptaPayments).omit({
+  id: true,
+});
+
+export type InsertMemberPercaptaPayment = z.infer<typeof insertMemberPercaptaPaymentSchema>;
+export type MemberPercaptaPayment = typeof memberPercaptaPayments.$inferSelect;
+
+// Log de notificações da tesouraria
+export const treasuryNotificationsLog = pgTable("treasury_notifications_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type").notNull(),
+  referenceId: integer("reference_id"),
+  sentAt: timestamp("sent_at").defaultNow(),
+  isManual: boolean("is_manual").notNull().default(false),
+});
+
+export const insertTreasuryNotificationLogSchema = createInsertSchema(treasuryNotificationsLog).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type InsertTreasuryNotificationLog = z.infer<typeof insertTreasuryNotificationLogSchema>;
+export type TreasuryNotificationLog = typeof treasuryNotificationsLog.$inferSelect;
+
+// =====================================================
+// LOJA VIRTUAL
+// =====================================================
+
+// Categorias de itens da loja
+export const shopCategories = pgTable("shop_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertShopCategorySchema = createInsertSchema(shopCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShopCategory = z.infer<typeof insertShopCategorySchema>;
+export type ShopCategory = typeof shopCategories.$inferSelect;
+
+// Itens da loja
+export const shopItems = pgTable("shop_items", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: integer("price").notNull(),
+  categoryId: integer("category_id").notNull().references(() => shopCategories.id),
+  genderType: text("gender_type").notNull(),
+  hasSize: boolean("has_size").notNull().default(true),
+  isAvailable: boolean("is_available").notNull().default(true),
+  isPreOrder: boolean("is_pre_order").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertShopItemSchema = createInsertSchema(shopItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertShopItem = z.infer<typeof insertShopItemSchema>;
+export type ShopItem = typeof shopItems.$inferSelect;
+
+// Imagens dos itens
+export const shopItemImages = pgTable("shop_item_images", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  gender: text("gender").notNull(),
+  imageData: text("image_data").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertShopItemImageSchema = createInsertSchema(shopItemImages).omit({
+  id: true,
+});
+
+export type InsertShopItemImage = z.infer<typeof insertShopItemImageSchema>;
+export type ShopItemImage = typeof shopItemImages.$inferSelect;
+
+// Tamanhos dos itens
+export const shopItemSizes = pgTable("shop_item_sizes", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  gender: text("gender").notNull(),
+  size: text("size").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const insertShopItemSizeSchema = createInsertSchema(shopItemSizes).omit({
+  id: true,
+});
+
+export type InsertShopItemSize = z.infer<typeof insertShopItemSizeSchema>;
+export type ShopItemSize = typeof shopItemSizes.$inferSelect;
+
+// Tabela de medidas dos itens
+export const shopItemSizeCharts = pgTable("shop_item_size_charts", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  gender: text("gender").notNull(),
+  size: text("size").notNull(),
+  width: real("width"),
+  length: real("length"),
+  sleeve: real("sleeve"),
+  shoulder: real("shoulder"),
+});
+
+export const insertShopItemSizeChartSchema = createInsertSchema(shopItemSizeCharts).omit({
+  id: true,
+});
+
+export type InsertShopItemSizeChart = z.infer<typeof insertShopItemSizeChartSchema>;
+export type ShopItemSizeChart = typeof shopItemSizeCharts.$inferSelect;
+
+// Carrinho de compras
+export const shopCartItems = pgTable("shop_cart_items", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  itemId: integer("item_id").notNull().references(() => shopItems.id),
+  quantity: integer("quantity").notNull().default(1),
+  gender: text("gender"),
+  size: text("size"),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
+export const insertShopCartItemSchema = createInsertSchema(shopCartItems).omit({
+  id: true,
+  addedAt: true,
+});
+
+export type InsertShopCartItem = z.infer<typeof insertShopCartItemSchema>;
+export type ShopCartItem = typeof shopCartItems.$inferSelect;
+
+// Pedidos
+export const shopOrders = pgTable("shop_orders", {
+  id: serial("id").primaryKey(),
+  orderCode: text("order_code").notNull().unique(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  totalAmount: integer("total_amount").notNull(),
+  observation: text("observation"),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  orderStatus: text("order_status").notNull().default("awaiting_payment"),
+  entryId: integer("entry_id").references(() => treasuryEntries.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+}, (table) => ({
+  userIdIdx: index("shop_orders_user_id_idx").on(table.userId),
+  statusIdx: index("shop_orders_status_idx").on(table.orderStatus),
+}));
+
+export const insertShopOrderSchema = createInsertSchema(shopOrders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShopOrder = z.infer<typeof insertShopOrderSchema>;
+export type ShopOrder = typeof shopOrders.$inferSelect;
+
+// Itens do pedido
+export const shopOrderItems = pgTable("shop_order_items", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => shopOrders.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").notNull().references(() => shopItems.id),
+  quantity: integer("quantity").notNull(),
+  gender: text("gender"),
+  size: text("size"),
+  unitPrice: integer("unit_price").notNull(),
+});
+
+export const insertShopOrderItemSchema = createInsertSchema(shopOrderItems).omit({
+  id: true,
+});
+
+export type InsertShopOrderItem = z.infer<typeof insertShopOrderItemSchema>;
+export type ShopOrderItem = typeof shopOrderItems.$inferSelect;
+
+// =====================================================
+// EVENTOS COM TAXA
+// =====================================================
+
+// Taxa de evento
+export const eventFees = pgTable("event_fees", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().unique(),
+  feeAmount: integer("fee_amount").notNull(),
+  deadline: timestamp("deadline").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEventFeeSchema = createInsertSchema(eventFees).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEventFee = z.infer<typeof insertEventFeeSchema>;
+export type EventFee = typeof eventFees.$inferSelect;
+
+// Confirmações de evento
+export const eventConfirmations = pgTable("event_confirmations", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  isVisitor: boolean("is_visitor").notNull().default(false),
+  visitorCount: integer("visitor_count").default(0),
+  entryId: integer("entry_id").references(() => treasuryEntries.id),
+  confirmedAt: timestamp("confirmed_at").defaultNow(),
+}, (table) => ({
+  eventUserIdx: index("event_confirmations_event_user_idx").on(table.eventId, table.userId),
+}));
+
+export const insertEventConfirmationSchema = createInsertSchema(eventConfirmations).omit({
+  id: true,
+  confirmedAt: true,
+});
+
+export type InsertEventConfirmation = z.infer<typeof insertEventConfirmationSchema>;
+export type EventConfirmation = typeof eventConfirmations.$inferSelect;
+
+// Tipos compostos para frontend
+export type ShopItemWithDetails = ShopItem & {
+  category: ShopCategory;
+  images: ShopItemImage[];
+  sizes: ShopItemSize[];
+  sizeCharts: ShopItemSizeChart[];
+};
+
+export type ShopOrderWithItems = ShopOrder & {
+  items: (ShopOrderItem & { item: ShopItem })[];
+  user: Pick<User, "id" | "fullName" | "email" | "photoUrl">;
+};
+
+export type TreasuryDashboardSummary = {
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  membersUpToDate: number;
+  membersOverdue: number;
+  pendingLoans: number;
+  pendingInstallments: number;
+};
+
+export type MemberFinancialStatus = {
+  percaptaPaid: boolean;
+  percaptaAmount: number | null;
+  umpMonthsPaid: number[];
+  umpMonthsPending: number[];
+  umpMonthlyAmount: number;
+  totalOwed: number;
 };

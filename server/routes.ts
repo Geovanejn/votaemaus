@@ -8885,6 +8885,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get expense breakdown by category
+  app.get("/api/treasury/dashboard/category-expenses", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const entries = await storage.getTreasuryEntries({ year, type: "expense" });
+      
+      const categoryMap = new Map<string, number>();
+      
+      entries.forEach(entry => {
+        if (entry.paymentStatus === "paid") {
+          const current = categoryMap.get(entry.category) || 0;
+          categoryMap.set(entry.category, current + entry.amount);
+        }
+      });
+      
+      const categoryData = Array.from(categoryMap.entries())
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount);
+      
+      res.json(categoryData);
+    } catch (error) {
+      console.error("Get category expenses error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados por categoria" });
+    }
+  });
+
   // Listar lançamentos da tesouraria
   app.get("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {

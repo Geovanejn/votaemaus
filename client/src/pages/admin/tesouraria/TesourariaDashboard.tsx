@@ -22,6 +22,9 @@ import type { TreasuryDashboardSummary } from "@shared/schema";
 import {
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   ResponsiveContainer,
@@ -34,6 +37,29 @@ type MonthlyData = {
   monthName: string;
   income: number;
   expense: number;
+};
+
+type CategoryExpense = {
+  category: string;
+  amount: number;
+};
+
+const CATEGORY_COLORS = [
+  "#f97316", "#ef4444", "#3b82f6", "#22c55e", "#8b5cf6", 
+  "#ec4899", "#14b8a6", "#f59e0b", "#6366f1", "#84cc16"
+];
+
+const categoryLabels: Record<string, string> = {
+  "taxa_ump": "Taxa UMP",
+  "taxa_percapta": "Percapta",
+  "emprestimo": "Emprestimo",
+  "evento": "Evento",
+  "loja": "Loja",
+  "oferta": "Oferta",
+  "doacao": "Doacao",
+  "projeto": "Projeto",
+  "manutencao": "Manutencao",
+  "outros": "Outros",
 };
 
 const menuItems = [
@@ -97,6 +123,11 @@ export default function TesourariaDashboard() {
 
   const { data: monthlyData, isLoading: isLoadingMonthly } = useQuery<MonthlyData[]>({
     queryKey: ["/api/treasury/dashboard/monthly"],
+    enabled: hasTreasuryPanel,
+  });
+
+  const { data: categoryData, isLoading: isLoadingCategory } = useQuery<CategoryExpense[]>({
+    queryKey: ["/api/treasury/dashboard/category-expenses"],
     enabled: hasTreasuryPanel,
   });
 
@@ -328,6 +359,64 @@ export default function TesourariaDashboard() {
                           radius={[4, 4, 0, 0]}
                         />
                       </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-8"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Despesas por Categoria</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingCategory ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !categoryData || categoryData.length === 0 ? (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    Sem despesas registradas
+                  </div>
+                ) : (
+                  <div className="h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="amount"
+                          nameKey="category"
+                          label={({ category, percent }) => 
+                            `${categoryLabels[category] || category} ${(percent * 100).toFixed(0)}%`
+                          }
+                          labelLine={false}
+                        >
+                          {categoryData.map((_, index) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} 
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => 
+                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+                          }
+                          labelFormatter={(label) => categoryLabels[label] || label}
+                        />
+                      </PieChart>
                     </ResponsiveContainer>
                   </div>
                 )}

@@ -27,12 +27,16 @@
 - [x] Tabela `member_percapta_payments`
 
 ### Frontend - Painel do Tesoureiro
-- [ ] Página principal do dashboard
-- [ ] Componente de resumo financeiro
+- [x] Página principal do dashboard
+- [x] Componente de resumo financeiro
 - [ ] Gráficos (entradas vs saídas, pizza, barras)
-- [ ] Lista de transações com filtros
-- [ ] Alertas de inadimplência
-- [ ] Formulário de configurações (taxas, chave PIX)
+- [x] Lista de transações com filtros
+- [x] Alertas de inadimplência
+- [x] Formulário de configurações (taxas, chave PIX)
+- [x] Página de taxas dos membros
+- [x] Página de empréstimos
+- [x] Página de pedidos da loja
+- [x] Página de relatórios
 - [ ] Formulário de entrada manual
 - [ ] Formulário de saída manual
 - [ ] Gerenciamento de empréstimos

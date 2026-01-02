@@ -9,9 +9,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isMember: boolean;
+  isTreasurer: boolean;
   isLoading: boolean;
   hasEspiritualidadePanel: boolean;
   hasMarketingPanel: boolean;
+  hasTreasuryPanel: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -102,9 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!token,
     isAdmin: user?.isAdmin ?? false,
     isMember: user?.isMember ?? false,
+    isTreasurer: user?.isTreasurer ?? false,
     isLoading,
     hasEspiritualidadePanel: user?.isAdmin || user?.secretaria === "espiritualidade",
     hasMarketingPanel: user?.isAdmin || user?.secretaria === "marketing",
+    hasTreasuryPanel: (user?.isAdmin || user?.isTreasurer) ?? false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

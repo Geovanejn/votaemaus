@@ -11,7 +11,8 @@ import {
   ArrowRight, 
   LogOut,
   Sparkles,
-  Settings
+  Settings,
+  Wallet
 } from "lucide-react";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -140,10 +141,26 @@ const adminPanels = [
     ],
     forAdmin: true,
   },
+  {
+    id: "tesouraria",
+    title: "Tesouraria",
+    subtitle: "Gestão Financeira",
+    description: "Gerencie pagamentos, taxas, empréstimos e acompanhe as finanças da UMP.",
+    icon: Wallet,
+    color: "from-amber-500 to-orange-600",
+    buttonColor: "bg-amber-600 hover:bg-amber-700",
+    href: "/admin/tesouraria",
+    features: [
+      "Controle de entradas e saídas",
+      "Gerenciar taxas e empréstimos",
+      "Loja virtual e relatórios",
+    ],
+    forTreasurer: true,
+  },
 ];
 
 export default function AdminDashboard() {
-  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel } = useAuth();
+  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel, hasTreasuryPanel } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
@@ -156,6 +173,7 @@ export default function AdminDashboard() {
     if (panel.forAdmin && isAdmin) return true;
     if (panel.forSecretaria === "espiritualidade" && hasEspiritualidadePanel) return true;
     if (panel.forSecretaria === "marketing" && hasMarketingPanel) return true;
+    if (panel.forTreasurer && hasTreasuryPanel) return true;
     return false;
   });
 

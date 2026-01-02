@@ -72,6 +72,13 @@ const DeoGloryRevistaDetail = lazy(() => import("@/pages/study/admin/DeoGloryRev
 const DeoGloryLicaoDetail = lazy(() => import("@/pages/study/admin/DeoGloryLicaoDetail"));
 const AdminStudyEventos = lazy(() => import("@/pages/admin/study/eventos"));
 const AdminStudyEventoEditor = lazy(() => import("@/pages/admin/study/evento-editor"));
+const TesourariaDashboard = lazy(() => import("@/pages/admin/tesouraria/TesourariaDashboard"));
+const TesourariaConfiguracoes = lazy(() => import("@/pages/admin/tesouraria/TesourariaConfiguracoes"));
+const TesourariaMovimentacoes = lazy(() => import("@/pages/admin/tesouraria/TesourariaMovimentacoes"));
+const TesourariaTaxas = lazy(() => import("@/pages/admin/tesouraria/TesourariaTaxas"));
+const TesourariaEmprestimos = lazy(() => import("@/pages/admin/tesouraria/TesourariaEmprestimos"));
+const TesourariaLoja = lazy(() => import("@/pages/admin/tesouraria/TesourariaLoja"));
+const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
 
 function PageLoader() {
   return (
@@ -174,6 +181,13 @@ function Router() {
           <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
           <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
           <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
+          <Route path="/admin/tesouraria" component={TesourariaDashboard} />
+          <Route path="/admin/tesouraria/configuracoes" component={TesourariaConfiguracoes} />
+          <Route path="/admin/tesouraria/movimentacoes" component={TesourariaMovimentacoes} />
+          <Route path="/admin/tesouraria/taxas" component={TesourariaTaxas} />
+          <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
+          <Route path="/admin/tesouraria/loja" component={TesourariaLoja} />
+          <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />
@@ -257,6 +271,14 @@ function Router() {
         <Route path="/admin/marketing/diretoria" component={MarketingDiretoria} />
         <Route path="/admin/marketing/diretoria/:id" component={MarketingDiretoriaEditor} />
         <Route path="/admin/marketing/quem-somos" component={MarketingQuemSomos} />
+        {/* Tesouraria Panel - Access for treasurers */}
+        <Route path="/admin/tesouraria" component={TesourariaDashboard} />
+        <Route path="/admin/tesouraria/configuracoes" component={TesourariaConfiguracoes} />
+        <Route path="/admin/tesouraria/movimentacoes" component={TesourariaMovimentacoes} />
+        <Route path="/admin/tesouraria/taxas" component={TesourariaTaxas} />
+        <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
+        <Route path="/admin/tesouraria/loja" component={TesourariaLoja} />
+        <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

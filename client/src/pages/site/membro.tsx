@@ -88,7 +88,7 @@ const systems = [
     icon: Wallet,
     color: "from-emerald-500 to-teal-600",
     buttonColor: "bg-emerald-600 hover:bg-emerald-700",
-    href: "/study/financeiro",
+    href: "/financeiro",
     features: [
       "Acompanhamento de taxas",
       "Pagamento via PIX",
@@ -104,7 +104,7 @@ const systems = [
     icon: ShoppingBag,
     color: "from-purple-500 to-violet-600",
     buttonColor: "bg-purple-600 hover:bg-purple-700",
-    href: "/study/loja",
+    href: "/loja",
     features: [
       "Camisetas e uniformes",
       "Kits e materiais",

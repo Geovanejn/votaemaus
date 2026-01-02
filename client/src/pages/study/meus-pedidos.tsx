@@ -181,7 +181,7 @@ export default function MeusPedidosPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Link href="/study/loja">
+            <Link href="/loja">
               <Button 
                 variant="ghost" 
                 className="mb-2 text-white/80 gap-2"
@@ -224,7 +224,7 @@ export default function MeusPedidosPage() {
                 <p className="text-muted-foreground mb-4">
                   Voce ainda nao fez nenhum pedido.
                 </p>
-                <Link href="/study/loja">
+                <Link href="/loja">
                   <Button data-testid="button-go-shop">
                     Ir para a Loja
                   </Button>

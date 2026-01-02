@@ -219,6 +219,10 @@ function Router() {
           <Route path="/study/financeiro" component={FinanceiroPage} />
           <Route path="/study/loja" component={LojaPage} />
           <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
+          {/* Painel Financeiro - Separate Panel */}
+          <Route path="/financeiro" component={FinanceiroPage} />
+          <Route path="/loja" component={LojaPage} />
+          <Route path="/meus-pedidos" component={MeusPedidosPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
           <Route path="/devocionais" component={DevocionaisPage} />
@@ -271,6 +275,10 @@ function Router() {
         <Route path="/study/financeiro" component={FinanceiroPage} />
         <Route path="/study/loja" component={LojaPage} />
         <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
+        {/* Painel Financeiro - Separate Panel */}
+        <Route path="/financeiro" component={FinanceiroPage} />
+        <Route path="/loja" component={LojaPage} />
+        <Route path="/meus-pedidos" component={MeusPedidosPage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />
         <Route path="/admin/espiritualidade/devocionais" component={EspiritualidadeDevocionais} />

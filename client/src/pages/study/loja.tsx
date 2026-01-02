@@ -142,7 +142,7 @@ export default function LojaPage() {
           title: "Pedido realizado",
           description: "Seu pedido foi criado. Acesse Meus Pedidos para pagar.",
         });
-        setLocation("/study/meus-pedidos");
+        setLocation("/meus-pedidos");
       } else {
         try {
           const pixRes = await apiRequest("POST", `/api/pix/shop-order/${orderData.orderId}`);
@@ -158,7 +158,7 @@ export default function LojaPage() {
             title: "Pedido criado",
             description: "Seu pedido foi criado. Acesse Meus Pedidos para pagar.",
           });
-          setLocation("/study/meus-pedidos");
+          setLocation("/meus-pedidos");
         }
       }
     },
@@ -178,7 +178,7 @@ export default function LojaPage() {
       title: "Pagamento confirmado!",
       description: "Seu pedido foi pago com sucesso.",
     });
-    setLocation("/study/meus-pedidos");
+    setLocation("/meus-pedidos");
   };
 
   if (!isAuthenticated) {

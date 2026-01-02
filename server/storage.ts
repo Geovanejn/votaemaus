@@ -6938,6 +6938,96 @@ export class DatabaseStorage implements IStorage {
       pendingMembers: activeMemberIds.length - paidMembers,
     };
   }
+
+  // ==================== TREASURY SCHEDULER HELPERS ====================
+
+  async getTreasurer(): Promise<User | null> {
+    const [treasurer] = await db.select()
+      .from(schema.users)
+      .where(eq(schema.users.isTreasurer, true))
+      .limit(1);
+    return treasurer || null;
+  }
+
+  async getAllUnpaidLoanInstallments(): Promise<(TreasuryLoanInstallment & { loanDescription?: string })[]> {
+    const loans = await this.getTreasuryLoans();
+    const result: (TreasuryLoanInstallment & { loanDescription?: string })[] = [];
+    
+    for (const loan of loans) {
+      if (loan.status === 'closed') continue;
+      const installments = await this.getTreasuryLoanInstallments(loan.id);
+      for (const inst of installments) {
+        if (!inst.paidAt) {
+          result.push({ ...inst, loanDescription: loan.description || undefined });
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  async resetYearlyTaxes(newYear: number): Promise<void> {
+    // Percapta and UMP payments for new year are created on-demand when members access their financial panel
+    // This method ensures treasury settings exist for the new year (copies from previous year if needed)
+    const existingSettings = await this.getTreasurySettings(newYear);
+    if (!existingSettings) {
+      const lastYearSettings = await this.getTreasurySettings(newYear - 1);
+      if (lastYearSettings) {
+        await this.createTreasurySettings({
+          year: newYear,
+          percaptaAmount: lastYearSettings.percaptaAmount,
+          umpMonthlyAmount: lastYearSettings.umpMonthlyAmount,
+          pixKey: lastYearSettings.pixKey,
+          pixKeyType: lastYearSettings.pixKeyType,
+        });
+        console.log(`[Storage] Treasury settings for ${newYear} created from ${newYear - 1} values`);
+      } else {
+        await this.createTreasurySettings({
+          year: newYear,
+          percaptaAmount: 0,
+          umpMonthlyAmount: 0,
+          pixKey: null,
+          pixKeyType: null,
+        });
+        console.log(`[Storage] Treasury settings for ${newYear} created with default values`);
+      }
+    }
+    console.log(`[Storage] Year reset completed for ${newYear}`);
+  }
+
+  async getTreasuryMonthSummary(year: number, month: number): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+  }> {
+    const entries = await this.getTreasuryEntries({ year });
+    
+    let totalIncome = 0;
+    let totalExpense = 0;
+    
+    for (const entry of entries) {
+      if (entry.paymentStatus !== "paid") continue;
+      
+      // Check if entry is from the specified month
+      const entryDate = entry.paidAt || entry.createdAt;
+      if (!entryDate) continue;
+      
+      const entryMonth = new Date(entryDate).getMonth() + 1;
+      if (entryMonth !== month) continue;
+      
+      if (entry.type === "income") {
+        totalIncome += entry.amount;
+      } else {
+        totalExpense += entry.amount;
+      }
+    }
+    
+    return {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

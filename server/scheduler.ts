@@ -1246,16 +1246,228 @@ async function processAbandonedCartReminder(): Promise<void> {
   }
 }
 
+// ==================== LOAN INSTALLMENT REMINDERS ====================
+
+const sentLoanInstallmentReminders = new Map<string, number>();
+
+async function processLoanInstallmentReminders(): Promise<void> {
+  console.log('[Treasury Scheduler] Processing loan installment reminders...');
+  
+  try {
+    const treasurer = await storage.getTreasurer();
+    if (!treasurer) {
+      console.log('[Treasury Scheduler] No treasurer configured, skipping loan reminders');
+      return;
+    }
+    
+    const unpaidInstallments = await storage.getAllUnpaidLoanInstallments();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    let notificationsSent = 0;
+    
+    for (const installment of unpaidInstallments) {
+      if (!installment.dueDate) continue;
+      
+      const dueDate = new Date(installment.dueDate);
+      const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      const daysUntilDue = Math.round((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      const thresholds = [
+        { days: 3, label: '3 dias' },
+        { days: 1, label: '1 dia' },
+        { days: 0, label: 'hoje' },
+      ];
+      
+      for (const threshold of thresholds) {
+        if (daysUntilDue !== threshold.days) continue;
+        
+        const reminderKey = `loan-${installment.id}-${threshold.days}`;
+        if (sentLoanInstallmentReminders.has(reminderKey)) continue;
+        
+        const dueDateStr = dueDate.toLocaleDateString('pt-BR');
+        const body = threshold.days === 0
+          ? `Parcela de R$${installment.amount.toFixed(2)} do emprestimo "${installment.loanDescription || 'Emprestimo'}" vence HOJE (${dueDateStr})!`
+          : `Parcela de R$${installment.amount.toFixed(2)} do emprestimo "${installment.loanDescription || 'Emprestimo'}" vence em ${threshold.label} (${dueDateStr}).`;
+        
+        await storage.createNotification({
+          userId: treasurer.id,
+          type: 'loan_installment_due',
+          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          body,
+          data: JSON.stringify({ installmentId: installment.id, loanId: installment.loanId }),
+        });
+        
+        await sendPushToUser(treasurer.id, {
+          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          body,
+          url: '/admin/tesouraria/emprestimos',
+          tag: reminderKey,
+          icon: '/logo.png',
+        });
+        
+        sentLoanInstallmentReminders.set(reminderKey, Date.now());
+        notificationsSent++;
+        console.log(`[Treasury Scheduler] Sent ${threshold.label} reminder for installment ${installment.id}`);
+      }
+    }
+    
+    console.log(`[Treasury Scheduler] Loan installment check completed. Sent ${notificationsSent} notification(s)`);
+  } catch (error) {
+    console.error('[Treasury Scheduler] Error during loan installment check:', error);
+  }
+}
+
+// ==================== YEAR ROLLOVER SCHEDULER ====================
+
+async function processYearRollover(): Promise<void> {
+  console.log('[Treasury Scheduler] Processing year rollover...');
+  
+  try {
+    const newYear = new Date().getFullYear();
+    
+    // Prepare storage for new year (creates new settings if needed)
+    await storage.resetYearlyTaxes(newYear);
+    
+    // Notify all active members about new fiscal year
+    const allMembers = await storage.getAllMembers();
+    const activeMembers = allMembers.filter(m => m.activeMember);
+    
+    let notificationsSent = 0;
+    
+    for (const member of activeMembers) {
+      try {
+        const body = `Feliz Ano Novo! O periodo fiscal de ${newYear} comecou. Suas taxas Percapta e UMP foram renovadas. Acesse seu painel financeiro para mais detalhes.`;
+        
+        await storage.createNotification({
+          userId: member.id,
+          type: 'year_rollover',
+          title: `Novo Periodo Fiscal ${newYear}`,
+          body,
+          data: JSON.stringify({ year: newYear }),
+        });
+        
+        await sendPushToUser(member.id, {
+          title: `Novo Periodo Fiscal ${newYear}`,
+          body,
+          url: '/study/financeiro',
+          tag: `year-rollover-${newYear}`,
+          icon: '/logo.png',
+        });
+        
+        notificationsSent++;
+      } catch (memberError) {
+        console.error(`[Treasury Scheduler] Error notifying member ${member.id}:`, memberError);
+      }
+    }
+    
+    console.log(`[Treasury Scheduler] Year rollover completed. Notified ${notificationsSent} member(s)`);
+  } catch (error) {
+    console.error('[Treasury Scheduler] Error during year rollover:', error);
+  }
+}
+
+// ==================== MONTHLY SUMMARY SCHEDULER ====================
+
+async function processMonthlyTreasurySummary(): Promise<void> {
+  console.log('[Treasury Scheduler] Processing monthly summary...');
+  
+  try {
+    const treasurer = await storage.getTreasurer();
+    if (!treasurer) {
+      console.log('[Treasury Scheduler] No treasurer configured, skipping monthly summary');
+      return;
+    }
+    
+    const now = new Date();
+    const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+    const summaryYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const currentYear = now.getFullYear();
+    const monthNames = ['', 'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    
+    // Get summary for just the last month
+    const monthSummary = await storage.getTreasuryMonthSummary(summaryYear, lastMonth);
+    
+    // Get overall balance (year to date) for balance alert
+    const yearSummary = await storage.getTreasuryDashboardSummary(currentYear);
+    
+    const body = `Resumo de ${monthNames[lastMonth]}/${summaryYear}: Entradas R$${monthSummary.totalIncome.toFixed(2)}, Saidas R$${monthSummary.totalExpense.toFixed(2)}, Resultado R$${monthSummary.balance.toFixed(2)}. Saldo atual: R$${yearSummary.balance.toFixed(2)}.`;
+    
+    await storage.createNotification({
+      userId: treasurer.id,
+      type: 'monthly_summary',
+      title: `Resumo Mensal - ${monthNames[lastMonth]}`,
+      body,
+      data: JSON.stringify({ month: lastMonth, year: summaryYear, ...monthSummary, currentBalance: yearSummary.balance }),
+    });
+    
+    await sendPushToUser(treasurer.id, {
+      title: `Resumo Mensal - ${monthNames[lastMonth]}`,
+      body,
+      url: '/admin/tesouraria',
+      tag: `monthly-summary-${summaryYear}-${lastMonth}`,
+      icon: '/logo.png',
+    });
+    
+    // Check for negative/zero balance and alert (using current year balance)
+    if (yearSummary.balance <= 0) {
+      const alertBody = yearSummary.balance < 0
+        ? `ALERTA: O saldo da tesouraria esta NEGATIVO: R$${yearSummary.balance.toFixed(2)}. Atencao urgente necessaria!`
+        : `AVISO: O saldo da tesouraria esta ZERADO. Considere revisar as financas.`;
+      
+      await storage.createNotification({
+        userId: treasurer.id,
+        type: 'balance_alert',
+        title: yearSummary.balance < 0 ? 'Saldo Negativo!' : 'Saldo Zerado',
+        body: alertBody,
+        data: JSON.stringify({ balance: yearSummary.balance }),
+      });
+      
+      await sendPushToUser(treasurer.id, {
+        title: yearSummary.balance < 0 ? 'Saldo Negativo!' : 'Saldo Zerado',
+        body: alertBody,
+        url: '/admin/tesouraria',
+        tag: `balance-alert-${summaryYear}-${lastMonth}`,
+        icon: '/logo.png',
+      });
+    }
+    
+    console.log(`[Treasury Scheduler] Monthly summary sent to treasurer`);
+  } catch (error) {
+    console.error('[Treasury Scheduler] Error during monthly summary:', error);
+  }
+}
+
 export function initTreasurySchedulers(): void {
+  // Day 5 reminder for pending taxes
   cron.schedule('0 9 5 * *', processTreasuryDay5Reminder, {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 09:00 (America/Sao_Paulo)');
   
+  // Abandoned cart reminder
   cron.schedule('0 10 * * *', processAbandonedCartReminder, {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run daily at 10:00 (America/Sao_Paulo)');
+  
+  // Loan installment reminders (daily at 08:00)
+  cron.schedule('0 8 * * *', processLoanInstallmentReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
+  
+  // Year rollover (Jan 1st at 00:05)
+  cron.schedule('5 0 1 1 *', processYearRollover, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)');
+  
+  // Monthly summary (1st of each month at 08:00)
+  cron.schedule('0 8 1 * *', processMonthlyTreasurySummary, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder };
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processYearRollover, processMonthlyTreasurySummary };

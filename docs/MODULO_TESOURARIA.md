@@ -113,13 +113,13 @@
 
 ### Sistema de Notificações
 - [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 09:00
-- [ ] Scheduler eventos (5, 3, 1 dia antes)
+- [ ] Scheduler eventos (5, 3, 1 dia antes) - aguardando sistema de eventos com taxa
 - [x] Scheduler carrinho abandonado - diário às 10:00 (24-48h)
-- [ ] Scheduler parcelas de empréstimo
-- [ ] Scheduler virada de ano
-- [ ] Scheduler resumo mensal
+- [x] Scheduler parcelas de empréstimo - diário às 08:00 (3 dias, 1 dia, no dia)
+- [x] Scheduler virada de ano - 1º de janeiro às 00:05
+- [x] Scheduler resumo mensal - dia 1 às 08:00 (inclui alerta de saldo)
 - [x] Notificação de pedido pronto (ao mudar status para 'ready')
-- [ ] Notificação de saldo zerado/negativo
+- [x] Notificação de saldo zerado/negativo (incluído no resumo mensal)
 - Nota: Schedulers usam cache em memória (reminders podem repetir após restart)
 
 ---

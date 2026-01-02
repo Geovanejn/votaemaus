@@ -9312,6 +9312,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Member event history (only events with fees)
+  app.get("/api/treasury/member/events", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const yearParam = req.query.year;
+      const year = yearParam ? parseInt(yearParam as string) : new Date().getFullYear();
+      
+      // Get all event fees with amount > 0 or visitorAmount > 0
+      const allFees = await db.select().from(eventFees).where(
+        or(gt(eventFees.amount, 0), gt(eventFees.visitorAmount, 0))
+      );
+      const feeEventIds = allFees.map(f => f.eventId);
+      
+      if (feeEventIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get event confirmations for this user that have fees
+      const confirmations = await db.select()
+        .from(eventConfirmations)
+        .where(and(
+          eq(eventConfirmations.userId, userId),
+          inArray(eventConfirmations.eventId, feeEventIds)
+        ))
+        .orderBy(desc(eventConfirmations.confirmedAt));
+      
+      if (confirmations.length === 0) {
+        return res.json([]);
+      }
+      
+      const eventIds = confirmations.map(c => c.eventId);
+      const eventsData = await db.select().from(events).where(inArray(events.id, eventIds));
+      
+      // Filter events by year
+      const yearEvents = eventsData.filter(e => {
+        if (!e.date) return false;
+        return new Date(e.date).getFullYear() === year;
+      });
+      const yearEventIds = new Set(yearEvents.map(e => e.id));
+      const eventsMap = new Map(yearEvents.map(e => [e.id, e]));
+      
+      // Get event fees for year events
+      const feesData = allFees.filter(f => yearEventIds.has(f.eventId));
+      const feesMap = new Map(feesData.map(f => [f.eventId, f]));
+      
+      // Get payment entries for these confirmations
+      const yearConfirmations = confirmations.filter(c => yearEventIds.has(c.eventId));
+      const entryIds = yearConfirmations.filter(c => c.entryId).map(c => c.entryId!);
+      let entriesMap = new Map<number, typeof treasuryEntries.$inferSelect>();
+      if (entryIds.length > 0) {
+        const entriesData = await db.select().from(treasuryEntries).where(inArray(treasuryEntries.id, entryIds));
+        entriesMap = new Map(entriesData.map(e => [e.id, e]));
+      }
+      
+      const memberEvents = yearConfirmations
+        .map(conf => {
+          const event = eventsMap.get(conf.eventId);
+          const fee = feesMap.get(conf.eventId);
+          const entry = conf.entryId ? entriesMap.get(conf.entryId) : null;
+          
+          const baseAmount = fee?.amount || 0;
+          const visitorAmount = fee?.visitorAmount || 0;
+          const totalAmount = baseAmount + ((conf.visitorCount || 0) * visitorAmount);
+          
+          // Validate entry belongs to this year (use referenceYear or createdAt year)
+          const entryYear = entry?.referenceYear || (entry?.createdAt ? new Date(entry.createdAt).getFullYear() : null);
+          const isPaidThisYear = entry?.paymentStatus === "completed" && entryYear === year;
+          
+          return {
+            id: conf.id,
+            eventId: conf.eventId,
+            eventName: event?.title || "Evento",
+            eventDate: event?.date?.toISOString() || null,
+            eventImageUrl: event?.imageUrl || null,
+            isVisitor: conf.isVisitor,
+            visitorCount: conf.visitorCount || 0,
+            confirmedAt: conf.confirmedAt?.toISOString() || null,
+            totalAmount,
+            hasFee: totalAmount > 0,
+            isPaid: isPaidThisYear,
+          };
+        })
+        .filter(e => e.totalAmount > 0); // Only return events with owed amount
+      
+      res.json(memberEvents);
+    } catch (error) {
+      console.error("Get member events error:", error);
+      res.status(500).json({ message: "Erro ao buscar eventos do membro" });
+    }
+  });
+
   // ==================== TREASURY REPORTS (Treasurer) ====================
 
   // Generate treasury report (Excel)

@@ -50,6 +50,20 @@ interface MemberFinancialStatus {
   }[];
 }
 
+interface MemberEvent {
+  id: number;
+  eventId: number;
+  eventName: string;
+  eventDate: string | null;
+  eventImageUrl: string | null;
+  isVisitor: boolean;
+  visitorCount: number;
+  confirmedAt: string | null;
+  totalAmount: number;
+  hasFee: boolean;
+  isPaid: boolean;
+}
+
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",
@@ -77,6 +91,11 @@ export default function FinanceiroPage() {
 
   const { data: financial, isLoading, error } = useQuery<MemberFinancialStatus>({
     queryKey: ["/api/treasury/member/status", currentYear],
+    enabled: isAuthenticated,
+  });
+
+  const { data: memberEvents, isLoading: isLoadingEvents } = useQuery<MemberEvent[]>({
+    queryKey: [`/api/treasury/member/events?year=${currentYear}`],
     enabled: isAuthenticated,
   });
 
@@ -338,6 +357,73 @@ export default function FinanceiroPage() {
                               <Badge variant="outline" className="text-xs">
                                 {tx.status === "completed" ? "Confirmado" : tx.status}
                               </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Eventos com Taxa
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingEvents ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                      </div>
+                    ) : !memberEvents || memberEvents.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Nenhuma inscricao em eventos</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {memberEvents.map((event) => (
+                          <div 
+                            key={event.id}
+                            className="flex items-center justify-between py-2 border-b last:border-0"
+                            data-testid={`member-event-${event.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{event.eventName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {event.eventDate ? formatDate(event.eventDate) : "Sem data"}
+                                {event.visitorCount > 0 && (
+                                  <span className="ml-2">+ {event.visitorCount} visitante(s)</span>
+                                )}
+                              </p>
+                            </div>
+                            <div className="text-right flex-shrink-0 ml-2">
+                              {event.hasFee && event.totalAmount > 0 ? (
+                                <>
+                                  <p className="font-medium text-sm">
+                                    {formatCurrency(event.totalAmount)}
+                                  </p>
+                                  <Badge 
+                                    variant={event.isPaid ? "default" : "secondary"}
+                                    className="text-xs"
+                                  >
+                                    {event.isPaid ? "Pago" : "Pendente"}
+                                  </Badge>
+                                </>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  Sem taxa
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         ))}

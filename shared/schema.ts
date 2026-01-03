@@ -2272,6 +2272,8 @@ export const shopItems = pgTable("shop_items", {
   hasSize: boolean("has_size").notNull().default(true),
   isAvailable: boolean("is_available").notNull().default(true),
   isPreOrder: boolean("is_pre_order").notNull().default(false),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  featuredOrder: integer("featured_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

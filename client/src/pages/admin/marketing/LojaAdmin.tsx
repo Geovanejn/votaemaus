@@ -78,6 +78,8 @@ interface ShopItemAdmin {
   hasSize: boolean;
   isAvailable: boolean;
   isPreOrder: boolean;
+  isFeatured: boolean;
+  featuredOrder: number | null;
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
@@ -92,6 +94,8 @@ const itemFormSchema = z.object({
   hasSize: z.boolean(),
   isAvailable: z.boolean(),
   isPreOrder: z.boolean(),
+  isFeatured: z.boolean(),
+  featuredOrder: z.number().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -167,6 +171,8 @@ export default function LojaAdmin() {
       hasSize: true,
       isAvailable: true,
       isPreOrder: false,
+      isFeatured: false,
+      featuredOrder: 0,
     },
   });
 
@@ -181,6 +187,8 @@ export default function LojaAdmin() {
         hasSize: editingItem.hasSize,
         isAvailable: editingItem.isAvailable,
         isPreOrder: editingItem.isPreOrder,
+        isFeatured: editingItem.isFeatured,
+        featuredOrder: editingItem.featuredOrder || 0,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -193,6 +201,8 @@ export default function LojaAdmin() {
         hasSize: true,
         isAvailable: true,
         isPreOrder: false,
+        isFeatured: false,
+        featuredOrder: 0,
       });
       setPriceDisplay("");
     }
@@ -461,6 +471,11 @@ export default function LojaAdmin() {
                       <Package className="h-12 w-12 text-muted-foreground" />
                     )}
                     <div className="absolute top-2 right-2 flex gap-1">
+                      {item.isFeatured && (
+                        <Badge className="text-xs bg-yellow-400 text-zinc-950 hover:bg-yellow-500">
+                          Destaque
+                        </Badge>
+                      )}
                       {!item.isAvailable && (
                         <Badge variant="secondary" className="text-xs">
                           <EyeOff className="h-3 w-3 mr-1" />
@@ -469,7 +484,7 @@ export default function LojaAdmin() {
                       )}
                       {item.isPreOrder && (
                         <Badge variant="outline" className="text-xs bg-background">
-                          Pré-venda
+                          Pre-venda
                         </Badge>
                       )}
                     </div>
@@ -953,6 +968,53 @@ export default function LojaAdmin() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="isFeatured"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-3 border-yellow-500/30 bg-yellow-500/5">
+                      <div>
+                        <FormLabel className="text-yellow-600 dark:text-yellow-400">Destaque no Banner</FormLabel>
+                        <FormDescription className="text-xs">
+                          Exibir no carousel da loja
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-is-featured"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("isFeatured") && (
+                  <FormField
+                    control={form.control}
+                    name="featuredOrder"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ordem no Banner</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={field.value || 0}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            data-testid="input-featured-order"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Menor numero aparece primeiro
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <DialogFooter className="gap-2 pt-4">

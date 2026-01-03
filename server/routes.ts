@@ -8297,6 +8297,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload de imagem de banner do item (admin) - para carrossel da home
+  app.post("/api/admin/shop/items/:id/banner", authenticateToken, requireMarketing, imageUpload.single("bannerImage"), async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const item = await storage.getShopItemById(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item nao encontrado" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "Imagem obrigatoria" });
+      }
+      
+      // Process banner image - wider aspect ratio for home carousel
+      const processedImage = await sharp(req.file.buffer)
+        .rotate()
+        .resize(1200, 600, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      
+      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+      
+      const updatedItem = await storage.updateShopItem(id, { bannerImageData: base64Image });
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Upload shop item banner error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload do banner" });
+    }
+  });
+
+  // Excluir imagem de banner do item (admin)
+  app.delete("/api/admin/shop/items/:id/banner", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const item = await storage.getShopItemById(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item nao encontrado" });
+      }
+      
+      const updatedItem = await storage.updateShopItem(id, { bannerImageData: null });
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Delete shop item banner error:", error);
+      res.status(500).json({ message: "Erro ao excluir banner" });
+    }
+  });
+
   // Adicionar tamanho ao item (admin)
   app.post("/api/admin/shop/items/:id/sizes", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {

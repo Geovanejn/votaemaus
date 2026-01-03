@@ -2274,6 +2274,7 @@ export const shopItems = pgTable("shop_items", {
   isPreOrder: boolean("is_pre_order").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
   featuredOrder: integer("featured_order").default(0),
+  bannerImageData: text("banner_image_data"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

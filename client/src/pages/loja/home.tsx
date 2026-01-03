@@ -1,18 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShopHeader } from "@/components/shop/ShopHeader";
-import { 
-  ChevronRight,
-  ChevronLeft,
-  Package,
-  Truck
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Package } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 
 interface ShopItemWithDetails {
   id: number;
@@ -26,6 +21,7 @@ interface ShopItemWithDetails {
   isPreOrder: boolean;
   isFeatured: boolean;
   featuredOrder: number | null;
+  bannerImageData: string | null;
   images: { id: number; gender: string; imageData: string; sortOrder: number }[];
 }
 
@@ -44,7 +40,24 @@ function formatCurrency(cents: number): string {
 
 export default function LojaHomePage() {
   const { isAuthenticated } = useAuth();
-  const [heroIndex, setHeroIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, dragFree: false },
+    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+  );
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCarouselIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi, onSelect]);
 
   const { data: featuredItems, isLoading: loadingFeatured } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/featured"],
@@ -61,85 +74,83 @@ export default function LojaHomePage() {
     enabled: isAuthenticated,
   });
 
-  const hasFeatured = featuredItems && featuredItems.length > 0;
+  const bannerItems = featuredItems?.filter(item => item.bannerImageData || (item.images && item.images.length > 0)).slice(0, 10) || [];
   const newArrivals = allItems?.filter(item => item.isAvailable).slice(0, 6) || [];
 
-  useEffect(() => {
-    if (hasFeatured && featuredItems.length > 1) {
-      const interval = setInterval(() => {
-        setHeroIndex((prev) => (prev + 1) % featuredItems.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [hasFeatured, featuredItems?.length]);
+  const categoryBadges: { [key: string]: { label: string; bgColor: string; textColor: string } } = {
+    "Camisetas": { label: "CAMISETAS", bgColor: "bg-black", textColor: "text-white" },
+    "Biblias": { label: "BIBLIAS", bgColor: "bg-yellow-400", textColor: "text-black" },
+    "Agendas": { label: "NOVAS AGENDAS", bgColor: "bg-yellow-400", textColor: "text-black" },
+    "Livros": { label: "OS MAIS PEDIDOS", bgColor: "bg-black", textColor: "text-white" },
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <ShopHeader />
 
-      {/* Hero Banner */}
+      {/* Banner Carousel - Swipeable */}
       {loadingFeatured ? (
         <Skeleton className="w-full aspect-[4/5] max-h-[500px] bg-gray-100" />
-      ) : hasFeatured ? (
+      ) : bannerItems.length > 0 ? (
         <section className="relative bg-gray-100">
-          <div className="relative aspect-[4/5] max-h-[500px] overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={heroIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0"
-              >
-                {featuredItems[heroIndex]?.images?.[0]?.imageData ? (
-                  <img
-                    src={featuredItems[heroIndex].images[0].imageData}
-                    alt={featuredItems[heroIndex].name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                    <Package className="h-20 w-20 text-gray-400" />
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex">
+              {bannerItems.map((item, index) => {
+                const bannerImage = item.bannerImageData || item.images?.[0]?.imageData;
+                return (
+                  <div 
+                    key={item.id} 
+                    className="flex-[0_0_100%] min-w-0 relative aspect-[4/5] max-h-[500px]"
+                  >
+                    <Link href={`/loja/produto/${item.id}`}>
+                      {bannerImage ? (
+                        <img
+                          src={bannerImage}
+                          alt={item.name}
+                          className="w-full h-full object-cover cursor-pointer"
+                          data-testid={`banner-image-${index}`}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center cursor-pointer">
+                          <Package className="h-20 w-20 text-gray-400" />
+                        </div>
+                      )}
+                    </Link>
+                    
+                    {/* Banner Text Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
+                      <p className="text-white/80 text-sm mb-1">Novidade</p>
+                      <h2 className="text-white text-xl font-bold mb-2">{item.name}</h2>
+                      <Link href={`/loja/produto/${item.id}`}>
+                        <Button 
+                          className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold px-6 text-sm"
+                          data-testid={`button-banner-cta-${index}`}
+                        >
+                          Peca ja o seu!!!
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <p className="text-sm font-medium mb-1 opacity-90">Novidade</p>
-                  <h2 className="text-2xl font-bold mb-2" data-testid="text-hero-title">
-                    {featuredItems[heroIndex].name}
-                  </h2>
-                  <p className="text-lg font-semibold mb-4">
-                    {formatCurrency(featuredItems[heroIndex].price)}
-                  </p>
-                  <Link href={`/loja/produto/${featuredItems[heroIndex].id}`}>
-                    <Button 
-                      className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold px-6"
-                      data-testid="button-hero-shop"
-                    >
-                      Peca ja o seu!!!
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-            
-            {/* Dots indicator */}
-            {featuredItems.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {featuredItems.map((_, idx) => (
-                  <button
-                    key={idx}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      idx === heroIndex ? "bg-white" : "bg-white/40"
-                    }`}
-                    onClick={() => setHeroIndex(idx)}
-                    data-testid={`button-hero-dot-${idx}`}
-                  />
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
+          
+          {/* Dots Indicator */}
+          {bannerItems.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {bannerItems.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    idx === carouselIndex ? "bg-white" : "bg-white/50"
+                  }`}
+                  onClick={() => emblaApi?.scrollTo(idx)}
+                  data-testid={`button-banner-dot-${idx}`}
+                />
+              ))}
+            </div>
+          )}
         </section>
       ) : (
         <section className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-12 px-6">
@@ -155,56 +166,48 @@ export default function LojaHomePage() {
         </section>
       )}
 
-      {/* Free Shipping Banner */}
-      <section className="bg-white border-y border-gray-100 py-4">
-        <div className="flex items-center justify-center gap-3 px-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-lg">
-            <Truck className="h-6 w-6 text-gray-600" />
-          </div>
-          <div>
-            <p className="font-bold text-black text-sm">FRETE GRATIS</p>
-            <p className="text-xs text-gray-500">Em compras acima de R$170</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Grid */}
+      {/* Categories Grid 2x2 - Jesuscopy Style */}
       {categories && categories.length > 0 && (
-        <section className="px-4 py-6">
-          <div className="grid grid-cols-2 gap-3">
+        <section className="px-3 py-4">
+          <div className="grid grid-cols-2 gap-2">
             {categories.slice(0, 4).map((cat, index) => {
               const categoryItems = allItems?.filter(item => item.categoryId === cat.id && item.isAvailable) || [];
-              const previewImage = categoryItems[0]?.images?.[0]?.imageData;
+              const previewImages = categoryItems.slice(0, 4).map(item => item.images?.[0]?.imageData).filter(Boolean);
+              const badge = categoryBadges[cat.name] || { label: cat.name.toUpperCase(), bgColor: index % 2 === 0 ? "bg-black" : "bg-yellow-400", textColor: index % 2 === 0 ? "text-white" : "text-black" };
               
               return (
                 <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                  <div 
+                    className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100 shadow-sm cursor-pointer"
                     data-testid={`card-category-${cat.id}`}
                   >
-                    {previewImage ? (
-                      <img
-                        src={previewImage}
-                        alt={cat.name}
-                        className="w-full h-full object-cover"
-                      />
+                    {/* Category Image Grid Background */}
+                    {previewImages.length > 0 ? (
+                      <div className="absolute inset-0 grid grid-cols-2 gap-0.5">
+                        {previewImages.slice(0, 4).map((img, imgIdx) => (
+                          <div key={imgIdx} className="overflow-hidden">
+                            <img
+                              src={img}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                        {previewImages.length < 4 && Array(4 - previewImages.length).fill(0).map((_, i) => (
+                          <div key={`empty-${i}`} className="bg-gray-200" />
+                        ))}
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="h-12 w-12 text-gray-300" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <Badge 
-                      className={`absolute top-3 left-3 text-xs font-bold px-3 py-1 ${
-                        index % 2 === 0 ? "bg-black text-white" : "bg-yellow-400 text-black"
-                      }`}
-                    >
-                      {cat.name.toUpperCase()}
-                    </Badge>
-                  </motion.div>
+                    
+                    {/* Category Badge */}
+                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-sm shadow-md`}>
+                      {badge.label}
+                    </div>
+                  </div>
                 </Link>
               );
             })}
@@ -212,15 +215,17 @@ export default function LojaHomePage() {
         </section>
       )}
 
-      {/* New Arrivals */}
+      {/* Lancamentos Section */}
       <section className="px-4 py-6">
-        <h2 className="text-2xl font-bold text-black mb-4">Lancamentos!</h2>
+        <h2 className="text-2xl font-bold text-black mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+          Lancamentos!
+        </h2>
 
         {loadingItems ? (
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-lg overflow-hidden border border-gray-100">
-                <Skeleton className="aspect-square w-full bg-gray-100" />
+                <Skeleton className="aspect-[3/4] w-full bg-gray-100" />
                 <div className="p-3 space-y-2">
                   <Skeleton className="h-4 w-3/4 bg-gray-100" />
                   <Skeleton className="h-5 w-1/2 bg-gray-100" />
@@ -236,50 +241,35 @@ export default function LojaHomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {newArrivals.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link href={`/loja/produto/${item.id}`}>
-                  <div 
-                    className="bg-white rounded-lg overflow-hidden border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
-                    data-testid={`card-item-${item.id}`}
-                  >
-                    <div className="aspect-square bg-gray-50 relative overflow-hidden">
-                      {item.images && item.images.length > 0 ? (
-                        <img
-                          src={item.images[0].imageData}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-12 w-12 text-gray-300" />
-                        </div>
-                      )}
-                      {!item.isAvailable && (
-                        <Badge className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5">
-                          Esgotado
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-medium text-sm text-black line-clamp-2 mb-2" data-testid={`text-item-name-${item.id}`}>
-                        {item.name}
-                      </h3>
-                      <p className="text-lg font-bold text-black" data-testid={`text-item-price-${item.id}`}>
-                        {formatCurrency(item.price)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatCurrency(item.price * 0.95)} a vista com desconto
-                      </p>
-                    </div>
+            {newArrivals.map((item) => (
+              <Link key={item.id} href={`/loja/produto/${item.id}`}>
+                <div 
+                  className="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-pointer"
+                  data-testid={`card-item-${item.id}`}
+                >
+                  <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+                    {item.images && item.images.length > 0 ? (
+                      <img
+                        src={item.images[0].imageData}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="h-12 w-12 text-gray-300" />
+                      </div>
+                    )}
                   </div>
-                </Link>
-              </motion.div>
+                  <div className="p-3">
+                    <h3 className="font-normal text-sm text-black line-clamp-2 mb-1" data-testid={`text-item-name-${item.id}`}>
+                      {item.name}
+                    </h3>
+                    <p className="text-base font-bold text-black" data-testid={`text-item-price-${item.id}`}>
+                      {formatCurrency(item.price)}
+                    </p>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         )}
@@ -287,7 +277,7 @@ export default function LojaHomePage() {
         {newArrivals.length > 0 && (
           <div className="mt-6 text-center">
             <Link href="/loja/catalogo">
-              <Button variant="outline" className="border-black text-black hover:bg-black hover:text-white">
+              <Button variant="outline" className="border-black text-black hover:bg-black hover:text-white px-8">
                 Ver Todos os Produtos
               </Button>
             </Link>

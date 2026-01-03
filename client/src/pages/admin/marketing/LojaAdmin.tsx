@@ -80,6 +80,7 @@ interface ShopItemAdmin {
   isPreOrder: boolean;
   isFeatured: boolean;
   featuredOrder: number | null;
+  bannerImageData: string | null;
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
@@ -147,6 +148,7 @@ export default function LojaAdmin() {
   const [newSizeGender, setNewSizeGender] = useState<string>("unissex");
   const [newSizeName, setNewSizeName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const hasAccess = hasMarketingPanel;
 
@@ -309,6 +311,52 @@ export default function LojaAdmin() {
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível remover a imagem.", variant: "destructive" });
+    },
+  });
+
+  const uploadBannerMutation = useMutation({
+    mutationFn: async ({ itemId, file }: { itemId: number; file: File }) => {
+      const formData = new FormData();
+      formData.append("bannerImage", file);
+      
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`/api/admin/shop/items/${itemId}/banner`, {
+        method: "POST",
+        body: formData,
+        headers,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(error.message || "Upload failed");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ title: "Banner enviado", description: "A imagem de banner foi atualizada." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Nao foi possivel enviar o banner.", variant: "destructive" });
+    },
+  });
+
+  const deleteBannerMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/items/${itemId}/banner`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ title: "Banner removido", description: "A imagem de banner foi excluida." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Nao foi possivel remover o banner.", variant: "destructive" });
     },
   });
 
@@ -628,44 +676,122 @@ export default function LojaAdmin() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="images" className="space-y-4 mt-4">
-              <div className="flex items-center gap-2">
-                <Select value={uploadingGender} onValueChange={setUploadingGender}>
-                  <SelectTrigger className="w-40" data-testid="select-upload-gender">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {managingItem && getGendersForType(managingItem.genderType).map((g) => (
-                      <SelectItem key={g} value={g}>{getGenderLabel(g)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  variant="outline"
-                  className="gap-2 flex-1"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadImageMutation.isPending}
-                  data-testid="button-upload-image"
-                >
-                  {uploadImageMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+            <TabsContent value="images" className="space-y-6 mt-4">
+              {/* Banner Image Section - Available for all items */}
+              {managingItem && (
+                <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <Label className="text-sm font-medium">Imagem do Banner</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Aparece no carrossel da home. Recomendado: 1200x600px
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        ref={bannerInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && managingItem) {
+                            uploadBannerMutation.mutate({ itemId: managingItem.id, file });
+                          }
+                          if (bannerInputRef.current) {
+                            bannerInputRef.current.value = "";
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={uploadBannerMutation.isPending}
+                        data-testid="button-upload-banner"
+                      >
+                        {uploadBannerMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        {currentItemData?.bannerImageData ? "Trocar" : "Enviar"}
+                      </Button>
+                      {currentItemData?.bannerImageData && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteBannerMutation.mutate(managingItem.id)}
+                          disabled={deleteBannerMutation.isPending}
+                          data-testid="button-delete-banner"
+                        >
+                          {deleteBannerMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {currentItemData?.bannerImageData ? (
+                    <div className="relative aspect-[2/1] rounded-md overflow-hidden bg-muted">
+                      <img
+                        src={currentItemData.bannerImageData}
+                        alt="Banner preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   ) : (
-                    <Upload className="h-4 w-4" />
+                    <div className="aspect-[2/1] rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                      Nenhum banner definido
+                    </div>
                   )}
-                  Enviar Imagem
-                </Button>
-              </div>
+                </div>
+              )}
 
-              <p className="text-xs text-muted-foreground">
-                Máximo 5 imagens por gênero. Recomendado: 800x800px
-              </p>
+              {/* Product Images Section */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium">Imagens do Produto</Label>
+                <div className="flex items-center gap-2">
+                  <Select value={uploadingGender} onValueChange={setUploadingGender}>
+                    <SelectTrigger className="w-40" data-testid="select-upload-gender">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managingItem && getGendersForType(managingItem.genderType).map((g) => (
+                        <SelectItem key={g} value={g}>{getGenderLabel(g)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    variant="outline"
+                    className="gap-2 flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadImageMutation.isPending}
+                    data-testid="button-upload-image"
+                  >
+                    {uploadImageMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Enviar Imagem
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Maximo 5 imagens por genero. Recomendado: 800x800px
+                </p>
+              </div>
 
               <div className="space-y-3">
                 {managingItem && getGendersForType(managingItem.genderType).map((gender) => {

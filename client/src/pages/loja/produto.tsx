@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingCart, Check, Truck } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { ShopHeader } from "@/components/shop/ShopHeader";
+import useEmblaCarousel from "embla-carousel-react";
 import type { ShopItem, ShopItemImage, ShopItemSize, ShopItemSizeChart } from "@shared/schema";
 
 interface ShopItemWithDetails extends ShopItem {
@@ -70,9 +70,25 @@ export default function LojaProdutoPage() {
     return s.gender === selectedGender;
   }) || [];
 
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, dragFree: false });
+
   useEffect(() => {
-    setCarouselIndex(0);
-  }, [selectedGender]);
+    if (emblaApi) {
+      emblaApi.scrollTo(0);
+    }
+  }, [selectedGender, emblaApi]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCarouselIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi, onSelect]);
 
   const addToCart = () => {
     if (!product || !user) {
@@ -124,29 +140,30 @@ export default function LojaProdutoPage() {
     <div className="min-h-screen bg-white">
       <ShopHeader />
 
-      {/* Product Image Gallery */}
+      {/* Product Image Gallery - Swipeable */}
       <div className="relative bg-white">
-        <div className="aspect-square relative">
-          {currentImages.length > 0 ? (
-            <>
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentImages[carouselIndex]?.id}
-                  src={currentImages[carouselIndex]?.imageData}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                />
-              </AnimatePresence>
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-              <ShoppingCart className="h-16 w-16 text-gray-300" />
+        {currentImages.length > 0 ? (
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex">
+              {currentImages.map((img, idx) => (
+                <div key={img.id} className="flex-[0_0_100%] min-w-0">
+                  <div className="aspect-square">
+                    <img
+                      src={img.imageData}
+                      alt={`${product.name} - ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      data-testid={`product-image-${idx}`}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="aspect-square flex items-center justify-center bg-gray-100">
+            <ShoppingCart className="h-16 w-16 text-gray-300" />
+          </div>
+        )}
 
         {/* Dots indicator */}
         {currentImages.length > 1 && (
@@ -157,7 +174,7 @@ export default function LojaProdutoPage() {
                 className={`w-2.5 h-2.5 rounded-full transition-all ${
                   idx === carouselIndex ? "bg-black" : "bg-gray-300"
                 }`}
-                onClick={() => setCarouselIndex(idx)}
+                onClick={() => emblaApi?.scrollTo(idx)}
                 data-testid={`button-dot-${idx}`}
               />
             ))}

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { PixPaymentModal } from "@/components/PixPaymentModal";
 import type { ShopItem, ShopCartItem } from "@shared/schema";
 
 function formatCurrency(value: number) {
@@ -28,9 +29,20 @@ export default function LojaCarrinhoPage() {
   const { toast } = useToast();
   const [promoCode, setPromoCode] = useState("");
   const [observation, setObservation] = useState("");
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixPaymentData, setPixPaymentData] = useState<{
+    entryId: number;
+    amount: number;
+    description: string;
+  } | null>(null);
 
   const { data: cartItems, isLoading } = useQuery<CartItemWithDetails[]>({
     queryKey: ["/api/shop/cart"],
+    enabled: !!user,
+  });
+
+  const { data: pixStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/pix/status"],
     enabled: !!user,
   });
 
@@ -55,13 +67,25 @@ export default function LojaCarrinhoPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: async (data: { items: Array<{ cartItemId: number; gender: string; size?: string }>; observation?: string }) => {
-      return apiRequest("POST", "/api/shop/checkout", data);
+      const res = await apiRequest("POST", "/api/shop/checkout", data);
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (orderData: { orderId: number; orderCode: string; totalAmount: number; financeEntryId: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shop/orders"] });
-      toast({ title: "Pedido realizado!", description: "Seu pedido foi enviado com sucesso." });
-      setLocation("/meus-pedidos");
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
+      
+      if (pixStatus?.configured && orderData.financeEntryId) {
+        setPixPaymentData({
+          entryId: orderData.financeEntryId,
+          amount: orderData.totalAmount,
+          description: `Pedido #${orderData.orderCode}`,
+        });
+        setPixModalOpen(true);
+      } else {
+        toast({ title: "Pedido realizado!", description: "Seu pedido foi enviado. Acesse Meus Pedidos para pagar." });
+        setLocation("/meus-pedidos");
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Erro", description: error.message || "Não foi possível finalizar o pedido.", variant: "destructive" });
@@ -319,11 +343,34 @@ export default function LojaCarrinhoPage() {
 
       {/* Footer */}
       <div className="bg-gray-50 p-6">
-        <h4 className="text-xl font-bold text-black mb-2">SHOP.CO</h4>
+        <h4 className="text-xl font-bold text-black mb-2">Emaús Shop</h4>
         <p className="text-sm text-gray-600">
-          We have clothes that suits your style and which you're proud to wear. From women to men.
+          Produtos exclusivos da UMP Emaús para você.
         </p>
       </div>
+
+      {/* PIX Payment Modal */}
+      {pixPaymentData && (
+        <PixPaymentModal
+          open={pixModalOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPixModalOpen(false);
+              toast({ title: "Pedido realizado!", description: "Você pode pagar seu pedido em Meus Pedidos." });
+              setLocation("/meus-pedidos");
+            }
+          }}
+          entryId={pixPaymentData.entryId}
+          amount={pixPaymentData.amount}
+          description={pixPaymentData.description}
+          onPaymentComplete={() => {
+            setPixModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
+            toast({ title: "Pagamento confirmado!", description: "Seu pedido foi pago com sucesso." });
+            setLocation("/meus-pedidos");
+          }}
+        />
+      )}
     </div>
   );
 }

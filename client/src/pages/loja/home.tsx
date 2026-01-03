@@ -113,20 +113,6 @@ export default function LojaHomePage() {
                         </div>
                       )}
                     </Link>
-                    
-                    {/* Banner Text Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
-                      <p className="text-white/80 text-sm mb-1">Novidade</p>
-                      <h2 className="text-white text-xl font-bold mb-2">{item.name}</h2>
-                      <Link href={`/loja/produto/${item.id}`}>
-                        <Button 
-                          className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold px-6 text-sm"
-                          data-testid={`button-banner-cta-${index}`}
-                        >
-                          Peca ja o seu!!!
-                        </Button>
-                      </Link>
-                    </div>
                   </div>
                 );
               })}

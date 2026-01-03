@@ -271,14 +271,22 @@ export default function LojaAdmin() {
       formData.append("image", file);
       formData.append("gender", gender);
       
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/admin/shop/items/${itemId}/images`, {
         method: "POST",
         body: formData,
+        headers,
         credentials: "include",
       });
       
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const error = await response.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(error.message || "Upload failed");
       }
       return response.json();
     },
@@ -328,9 +336,10 @@ export default function LojaAdmin() {
   ) || [];
 
   const onSubmit = (data: ItemFormValues) => {
+    const featuredOrder = data.isFeatured ? (data.featuredOrder ?? undefined) : undefined;
     const payload = {
       ...data,
-      featuredOrder: data.isFeatured ? (data.featuredOrder ?? null) : null,
+      featuredOrder,
     };
     if (editingItem) {
       updateMutation.mutate({ ...payload, id: editingItem.id });

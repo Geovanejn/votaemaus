@@ -196,18 +196,18 @@ const upload = multer({
   }
 });
 
-// Configure multer for image uploads (8MB limit)
+// Configure multer for image uploads (50MB limit - will be compressed by sharp)
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 8 * 1024 * 1024, // 8MB limit for images
+    fileSize: 50 * 1024 * 1024, // 50MB limit - sharp will compress/resize large images
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/heic', 'image/heif'];
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas imagens JPEG, PNG ou WebP são permitidas'));
+      cb(new Error('Apenas imagens JPEG, PNG, WebP ou HEIC são permitidas'));
     }
   }
 });

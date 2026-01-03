@@ -149,6 +149,19 @@ export default function LojaAdmin() {
   const [newSizeName, setNewSizeName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  
+  // Size chart modal state
+  const [sizeChartModal, setSizeChartModal] = useState<{
+    open: boolean;
+    itemId: number;
+    gender: string;
+    size: string;
+    width: string;
+    length: string;
+    sleeve: string;
+    shoulder: string;
+    hydrated: boolean; // Flag to track if data has been loaded
+  } | null>(null);
 
   const hasAccess = hasMarketingPanel;
 
@@ -161,6 +174,60 @@ export default function LojaAdmin() {
     queryKey: ["/api/admin/shop/categories"],
     enabled: hasAccess,
   });
+
+  // Query for size charts when managing item (not when modal opens)
+  const { data: sizeCharts } = useQuery<{ id: number; itemId: number; gender: string; size: string; width: number | null; length: number | null; sleeve: number | null; shoulder: number | null }[]>({
+    queryKey: ["size-charts", managingItem?.id],
+    queryFn: async () => {
+      if (!managingItem?.id) return [];
+      const res = await fetch(`/api/admin/shop/items/${managingItem.id}/size-charts`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch size charts");
+      return res.json();
+    },
+    enabled: !!managingItem?.id,
+  });
+
+  // Helper function to open size chart modal with existing data
+  const openSizeChartModal = (itemId: number, gender: string, size: string) => {
+    const existingChart = sizeCharts?.find(
+      c => c.gender === gender && c.size === size
+    );
+    const hasData = !!existingChart;
+    setSizeChartModal({
+      open: true,
+      itemId,
+      gender,
+      size,
+      width: existingChart?.width?.toString() || "",
+      length: existingChart?.length?.toString() || "",
+      sleeve: existingChart?.sleeve?.toString() || "",
+      shoulder: existingChart?.shoulder?.toString() || "",
+      hydrated: hasData, // Mark as hydrated if data was found synchronously
+    });
+  };
+
+  // Update modal when sizeCharts data loads (for async fetch after modal opens)
+  useEffect(() => {
+    if (sizeChartModal?.open && !sizeChartModal.hydrated && sizeCharts) {
+      const existingChart = sizeCharts.find(
+        c => c.gender === sizeChartModal.gender && c.size === sizeChartModal.size
+      );
+      if (existingChart) {
+        // Only hydrate once - set values from server
+        setSizeChartModal(prev => prev ? {
+          ...prev,
+          width: existingChart.width?.toString() || "",
+          length: existingChart.length?.toString() || "",
+          sleeve: existingChart.sleeve?.toString() || "",
+          shoulder: existingChart.shoulder?.toString() || "",
+          hydrated: true,
+        } : null);
+      } else {
+        // No chart exists for this size - mark as hydrated to allow user input
+        setSizeChartModal(prev => prev ? { ...prev, hydrated: true } : null);
+      }
+    }
+  }, [sizeCharts, sizeChartModal?.open, sizeChartModal?.hydrated, sizeChartModal?.gender, sizeChartModal?.size]);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -364,13 +431,33 @@ export default function LojaAdmin() {
     mutationFn: async ({ itemId, gender, size }: { itemId: number; gender: string; size: string }) => {
       return apiRequest("POST", `/api/admin/shop/items/${itemId}/sizes`, { gender, size });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
-      setNewSizeName("");
       toast({ title: "Tamanho adicionado", description: "O tamanho foi adicionado ao item." });
+      // Open size chart modal after adding size (new size, no existing data)
+      openSizeChartModal(variables.itemId, variables.gender, variables.size);
+      setNewSizeName("");
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível adicionar o tamanho.", variant: "destructive" });
+    },
+  });
+
+  const upsertSizeChartMutation = useMutation({
+    mutationFn: async (data: { itemId: number; gender: string; size: string; width?: number; length?: number; sleeve?: number; shoulder?: number }) => {
+      return apiRequest("POST", `/api/admin/shop/items/${data.itemId}/size-charts`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      // Also invalidate size-charts query to refresh cached data
+      if (managingItem) {
+        queryClient.invalidateQueries({ queryKey: ["size-charts", managingItem.id] });
+      }
+      setSizeChartModal(null);
+      toast({ title: "Dimensoes salvas", description: "As dimensoes do tamanho foram salvas." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Nao foi possivel salvar as dimensoes.", variant: "destructive" });
     },
   });
 
@@ -879,8 +966,19 @@ export default function LojaAdmin() {
                       {genderSizes.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {genderSizes.map((size) => (
-                            <Badge key={size.id} variant="secondary" className="gap-1">
+                            <Badge 
+                              key={size.id} 
+                              variant="secondary" 
+                              className="gap-1 cursor-pointer"
+                              onClick={() => {
+                                if (managingItem) {
+                                  openSizeChartModal(managingItem.id, size.gender, size.size);
+                                }
+                              }}
+                              data-testid={`badge-size-${size.size}`}
+                            >
                               {size.size}
+                              <Ruler className="h-3 w-3 ml-1" />
                             </Badge>
                           ))}
                         </div>
@@ -1185,6 +1283,112 @@ export default function LojaAdmin() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Size Chart Modal */}
+      <Dialog open={!!sizeChartModal?.open} onOpenChange={(open) => {
+        if (!open) setSizeChartModal(null);
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Dimensoes do Tamanho {sizeChartModal?.size}</DialogTitle>
+            <DialogDescription>
+              Preencha as medidas em centimetros (opcional)
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="width">Largura (cm)</Label>
+              <Input
+                id="width"
+                type="number"
+                step="0.5"
+                placeholder="Ex: 50"
+                value={sizeChartModal?.width || ""}
+                onChange={(e) => sizeChartModal && setSizeChartModal({
+                  ...sizeChartModal,
+                  width: e.target.value
+                })}
+                data-testid="input-size-width"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="length">Comprimento (cm)</Label>
+              <Input
+                id="length"
+                type="number"
+                step="0.5"
+                placeholder="Ex: 70"
+                value={sizeChartModal?.length || ""}
+                onChange={(e) => sizeChartModal && setSizeChartModal({
+                  ...sizeChartModal,
+                  length: e.target.value
+                })}
+                data-testid="input-size-length"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sleeve">Manga (cm)</Label>
+              <Input
+                id="sleeve"
+                type="number"
+                step="0.5"
+                placeholder="Ex: 20"
+                value={sizeChartModal?.sleeve || ""}
+                onChange={(e) => sizeChartModal && setSizeChartModal({
+                  ...sizeChartModal,
+                  sleeve: e.target.value
+                })}
+                data-testid="input-size-sleeve"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shoulder">Ombro (cm)</Label>
+              <Input
+                id="shoulder"
+                type="number"
+                step="0.5"
+                placeholder="Ex: 45"
+                value={sizeChartModal?.shoulder || ""}
+                onChange={(e) => sizeChartModal && setSizeChartModal({
+                  ...sizeChartModal,
+                  shoulder: e.target.value
+                })}
+                data-testid="input-size-shoulder"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSizeChartModal(null)}>
+              Pular
+            </Button>
+            <Button
+              onClick={() => {
+                if (sizeChartModal) {
+                  upsertSizeChartMutation.mutate({
+                    itemId: sizeChartModal.itemId,
+                    gender: sizeChartModal.gender,
+                    size: sizeChartModal.size,
+                    width: sizeChartModal.width ? parseFloat(sizeChartModal.width) : undefined,
+                    length: sizeChartModal.length ? parseFloat(sizeChartModal.length) : undefined,
+                    sleeve: sizeChartModal.sleeve ? parseFloat(sizeChartModal.sleeve) : undefined,
+                    shoulder: sizeChartModal.shoulder ? parseFloat(sizeChartModal.shoulder) : undefined,
+                  });
+                }
+              }}
+              disabled={upsertSizeChartMutation.isPending}
+              data-testid="button-save-size-chart"
+            >
+              {upsertSizeChartMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Salvar"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

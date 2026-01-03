@@ -213,10 +213,6 @@ export default function LojaProdutoPage() {
           <p className="text-3xl font-bold text-black" data-testid="text-product-price">
             {formatCurrency(product.price)}
           </p>
-          <p className="text-sm text-gray-500">
-            {formatCurrency(product.price * 0.95)} a vista com desconto ou 2x de {formatCurrency(product.price / 2)} com juros
-          </p>
-          <button className="text-xs text-gray-400 underline">Mais informacoes</button>
         </div>
 
         {/* Size Selection */}
@@ -446,9 +442,6 @@ export default function LojaProdutoPage() {
                     <div className="p-3">
                       <h4 className="text-sm font-medium text-black line-clamp-2 mb-1">{item.name}</h4>
                       <p className="text-base font-bold text-black">{formatCurrency(item.price)}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatCurrency(item.price * 0.95)} a vista
-                      </p>
                     </div>
                   </div>
                 </Link>

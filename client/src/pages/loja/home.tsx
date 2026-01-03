@@ -155,39 +155,30 @@ export default function LojaHomePage() {
           <div className="grid grid-cols-2 gap-2">
             {categories.slice(0, 4).map((cat, index) => {
               const categoryItems = allItems?.filter(item => item.categoryId === cat.id && item.isAvailable) || [];
-              const previewImages = categoryItems.slice(0, 4).map(item => item.images?.[0]?.imageData).filter(Boolean);
+              const firstImage = categoryItems[0]?.images?.[0]?.imageData;
               const badge = categoryBadges[cat.name] || { label: cat.name.toUpperCase(), bgColor: index % 2 === 0 ? "bg-black" : "bg-yellow-400", textColor: index % 2 === 0 ? "text-white" : "text-black" };
               
               return (
                 <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
                   <div 
-                    className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100 shadow-sm cursor-pointer"
+                    className="relative aspect-[4/5] overflow-hidden bg-gray-100 cursor-pointer"
                     data-testid={`card-category-${cat.id}`}
                   >
-                    {/* Category Image Grid Background */}
-                    {previewImages.length > 0 ? (
-                      <div className="absolute inset-0 grid grid-cols-2 gap-0.5">
-                        {previewImages.slice(0, 4).map((img, imgIdx) => (
-                          <div key={imgIdx} className="overflow-hidden">
-                            <img
-                              src={img}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                        {previewImages.length < 4 && Array(4 - previewImages.length).fill(0).map((_, i) => (
-                          <div key={`empty-${i}`} className="bg-gray-200" />
-                        ))}
-                      </div>
+                    {/* Category Single Image Background */}
+                    {firstImage ? (
+                      <img
+                        src={firstImage}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
                         <Package className="h-12 w-12 text-gray-300" />
                       </div>
                     )}
                     
-                    {/* Category Badge */}
-                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-sm shadow-md`}>
+                    {/* Category Badge - Jesuscopy Style */}
+                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5`}>
                       {badge.label}
                     </div>
                   </div>

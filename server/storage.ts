@@ -68,6 +68,7 @@ import type {
   InsertShopItemImage,
   ShopItemSize,
   InsertShopItemSize,
+  ShopItemSizeChart,
   ShopCartItem,
   InsertShopCartItem,
   ShopOrder,
@@ -6577,6 +6578,55 @@ export class DatabaseStorage implements IStorage {
   async deleteShopItemSizesByItem(itemId: number): Promise<void> {
     await db.delete(schema.shopItemSizes)
       .where(eq(schema.shopItemSizes.itemId, itemId));
+  }
+
+  // ==================== SHOP ITEM SIZE CHARTS METHODS ====================
+
+  async getShopItemSizeCharts(itemId: number): Promise<ShopItemSizeChart[]> {
+    return db.select()
+      .from(schema.shopItemSizeCharts)
+      .where(eq(schema.shopItemSizeCharts.itemId, itemId));
+  }
+
+  async upsertShopItemSizeChart(
+    itemId: number, 
+    gender: string, 
+    size: string, 
+    dimensions: { width?: number | null; length?: number | null; sleeve?: number | null; shoulder?: number | null }
+  ): Promise<ShopItemSizeChart> {
+    const existing = await db.select()
+      .from(schema.shopItemSizeCharts)
+      .where(and(
+        eq(schema.shopItemSizeCharts.itemId, itemId),
+        eq(schema.shopItemSizeCharts.gender, gender),
+        eq(schema.shopItemSizeCharts.size, size)
+      ));
+    
+    if (existing.length > 0) {
+      const [chart] = await db.update(schema.shopItemSizeCharts)
+        .set({
+          width: dimensions.width,
+          length: dimensions.length,
+          sleeve: dimensions.sleeve,
+          shoulder: dimensions.shoulder,
+        })
+        .where(eq(schema.shopItemSizeCharts.id, existing[0].id))
+        .returning();
+      return chart;
+    } else {
+      const [chart] = await db.insert(schema.shopItemSizeCharts)
+        .values({
+          itemId,
+          gender,
+          size,
+          width: dimensions.width,
+          length: dimensions.length,
+          sleeve: dimensions.sleeve,
+          shoulder: dimensions.shoulder,
+        })
+        .returning();
+      return chart;
+    }
   }
 
   // ==================== SHOP CART METHODS ====================

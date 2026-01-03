@@ -160,9 +160,6 @@ export default function LojaPage() {
                       <span className="text-lg font-bold text-black">
                         {formatCurrency(item.price)}
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatCurrency(item.price * 0.95)} a vista
-                      </p>
                     </div>
                   </div>
                 </div>

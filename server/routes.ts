@@ -8384,6 +8384,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upsert size chart dimensions (admin)
+  app.post("/api/admin/shop/items/:id/size-charts", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { gender, size, width, length, sleeve, shoulder } = req.body;
+      if (!gender || !size) {
+        return res.status(400).json({ message: "Genero e tamanho obrigatorios" });
+      }
+      
+      const chart = await storage.upsertShopItemSizeChart(id, gender, size, {
+        width: width !== undefined ? Number(width) : null,
+        length: length !== undefined ? Number(length) : null,
+        sleeve: sleeve !== undefined ? Number(sleeve) : null,
+        shoulder: shoulder !== undefined ? Number(shoulder) : null,
+      });
+      
+      res.json(chart);
+    } catch (error) {
+      console.error("Upsert size chart error:", error);
+      res.status(500).json({ message: "Erro ao salvar dimensoes do tamanho" });
+    }
+  });
+
+  // Get size charts for an item (admin)
+  app.get("/api/admin/shop/items/:id/size-charts", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const charts = await storage.getShopItemSizeCharts(id);
+      res.json(charts);
+    } catch (error) {
+      console.error("Get size charts error:", error);
+      res.status(500).json({ message: "Erro ao buscar dimensoes" });
+    }
+  });
+
   // Listar pedidos da loja (admin)
   app.get("/api/admin/shop/orders", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {

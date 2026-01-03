@@ -317,7 +317,7 @@ export default function LojaPage() {
             </Link>
             
             <h1 className="text-xl font-bold tracking-tight text-black" style={{ fontFamily: 'system-ui' }} data-testid="text-loja-title">
-              LOJA UMP
+              Emaús Shop
             </h1>
             
             <div className="flex items-center gap-1">
@@ -329,23 +329,24 @@ export default function LojaPage() {
               >
                 <Search className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-black"
-                onClick={() => setIsCartOpen(true)}
-                data-testid="button-open-cart"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartItemCount > 0 && (
-                  <span 
-                    className="absolute -top-1 -right-1 h-5 w-5 bg-black text-white text-xs font-bold rounded-full flex items-center justify-center"
-                    data-testid="badge-cart-count"
-                  >
-                    {cartItemCount}
-                  </span>
-                )}
-              </Button>
+              <Link href="/loja/carrinho">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative text-black"
+                  data-testid="button-open-cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartItemCount > 0 && (
+                    <span 
+                      className="absolute -top-1 -right-1 h-5 w-5 bg-black text-white text-xs font-bold rounded-full flex items-center justify-center"
+                      data-testid="badge-cart-count"
+                    >
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
               <Link href="/meus-pedidos">
                 <Button
                   variant="ghost"
@@ -412,9 +413,9 @@ export default function LojaPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
               >
+                <Link href={`/loja/produto/${item.id}`}>
                 <div 
                   className="bg-gray-50 rounded-2xl overflow-hidden cursor-pointer"
-                  onClick={() => setViewingItem(item)}
                   data-testid={`card-item-${item.id}`}
                 >
                   <div className="aspect-square bg-gray-100 relative overflow-hidden">
@@ -449,6 +450,7 @@ export default function LojaPage() {
                     </div>
                   </div>
                 </div>
+                </Link>
               </motion.div>
             ))}
           </div>

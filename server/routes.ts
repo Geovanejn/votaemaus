@@ -8257,6 +8257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const gender = req.body.gender || "unissex";
       
       const processedImage = await sharp(req.file.buffer)
+        .rotate() // Auto-rotate based on EXIF orientation
         .resize(800, 800, { fit: "inside", withoutEnlargement: true })
         .jpeg({ quality: 85 })
         .toBuffer();

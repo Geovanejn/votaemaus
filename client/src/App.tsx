@@ -63,6 +63,8 @@ const EventLessonPage = lazy(() => import("@/pages/study/event-lesson"));
 const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
 const FinanceiroPage = lazy(() => import("@/pages/study/financeiro"));
 const LojaPage = lazy(() => import("@/pages/study/loja"));
+const LojaProdutoPage = lazy(() => import("@/pages/study/loja-produto"));
+const LojaCarrinhoPage = lazy(() => import("@/pages/study/loja-carrinho"));
 const MeusPedidosPage = lazy(() => import("@/pages/study/meus-pedidos"));
 const DeoGloryDashboard = lazy(() => import("@/pages/study/admin/DeoGloryDashboard"));
 const DeoGloryLicoes = lazy(() => import("@/pages/study/admin/DeoGloryLicoes"));
@@ -222,6 +224,8 @@ function Router() {
           {/* Painel Financeiro - Separate Panel */}
           <Route path="/financeiro" component={FinanceiroPage} />
           <Route path="/loja" component={LojaPage} />
+          <Route path="/loja/produto/:id" component={LojaProdutoPage} />
+          <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
           <Route path="/meus-pedidos" component={MeusPedidosPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
@@ -278,6 +282,8 @@ function Router() {
         {/* Painel Financeiro - Separate Panel */}
         <Route path="/financeiro" component={FinanceiroPage} />
         <Route path="/loja" component={LojaPage} />
+        <Route path="/loja/produto/:id" component={LojaProdutoPage} />
+        <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
         <Route path="/meus-pedidos" component={MeusPedidosPage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

@@ -1,27 +1,25 @@
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { BottomNav } from "@/components/study";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PixPaymentModal } from "@/components/PixPaymentModal";
+import { ShopHeader } from "@/components/shop/ShopHeader";
 import { useState } from "react";
 import { 
-  ChevronLeft,
   Package,
   Clock,
   CheckCircle,
   XCircle,
-  Loader2,
   Receipt,
   Copy,
-  QrCode
+  QrCode,
+  ShoppingBag
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
@@ -175,39 +173,30 @@ export default function MeusPedidosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <section className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 text-white py-6">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Link href="/loja">
-              <Button 
-                variant="ghost" 
-                className="mb-2 text-white/80 gap-2"
-                data-testid="button-back-shop"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Loja
-              </Button>
-            </Link>
-            <div className="flex items-center gap-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
-                <Receipt className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold" data-testid="text-orders-title">
-                  Meus Pedidos
-                </h1>
-                <p className="text-white/80">
-                  Acompanhe seus pedidos
-                </p>
-              </div>
-            </div>
-          </motion.div>
+    <div className="min-h-screen bg-white">
+      <ShopHeader />
+
+      {/* Breadcrumb */}
+      <nav className="px-4 py-2 text-xs text-gray-500">
+        <Link href="/loja" className="hover:text-black">Inicio</Link>
+        <span className="mx-1">&gt;</span>
+        <span className="text-black">Meus Pedidos</span>
+      </nav>
+
+      {/* Title */}
+      <div className="px-4 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+            <ShoppingBag className="h-5 w-5 text-gray-600" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-black" data-testid="text-orders-title">
+              Meus Pedidos
+            </h1>
+            <p className="text-sm text-gray-500">Acompanhe seus pedidos</p>
+          </div>
         </div>
-      </section>
+      </div>
 
       <section className="py-6">
         <div className="container mx-auto px-4 space-y-4">

@@ -2,38 +2,21 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Minus, Plus, Star, ShoppingCart, Check, Menu, Search, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingCart, Check, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
-import type { ShopItem, ShopItemImage, ShopItemSize } from "@shared/schema";
+import { ShopHeader } from "@/components/shop/ShopHeader";
+import type { ShopItem, ShopItemImage, ShopItemSize, ShopItemSizeChart } from "@shared/schema";
 
 interface ShopItemWithDetails extends ShopItem {
   images: ShopItemImage[];
   sizes: ShopItemSize[];
-}
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`h-4 w-4 ${
-            star <= Math.floor(rating)
-              ? "fill-yellow-400 text-yellow-400"
-              : star - 0.5 <= rating
-              ? "fill-yellow-400/50 text-yellow-400"
-              : "fill-gray-200 text-gray-200"
-          }`}
-        />
-      ))}
-      <span className="text-xs text-gray-500 ml-1">{rating}/5</span>
-    </div>
-  );
+  sizeCharts?: ShopItemSizeChart[];
+  category?: { id: number; name: string };
 }
 
 function formatCurrency(value: number) {
@@ -55,20 +38,14 @@ export default function LojaProdutoPage() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs">("details");
+  const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
 
   const { data: items, isLoading } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
   });
 
   const product = items?.find(item => item.id === productId);
-
-  const { data: cartItems } = useQuery<Array<{ id: number; itemId: number; quantity: number }>>({
-    queryKey: ["/api/shop/cart"],
-    enabled: !!user,
-  });
-
-  const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const relatedProducts = items?.filter(item => item.id !== productId && item.isAvailable).slice(0, 4) || [];
 
   const addToCartMutation = useMutation({
     mutationFn: async (data: { itemId: number; quantity: number; size?: string; gender?: string }) => {
@@ -79,7 +56,7 @@ export default function LojaProdutoPage() {
       toast({ title: "Adicionado ao carrinho", description: "O item foi adicionado com sucesso." });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Não foi possível adicionar ao carrinho.", variant: "destructive" });
+      toast({ title: "Erro", description: "Nao foi possivel adicionar ao carrinho.", variant: "destructive" });
     },
   });
 
@@ -99,7 +76,7 @@ export default function LojaProdutoPage() {
 
   const addToCart = () => {
     if (!product || !user) {
-      toast({ title: "Faça login", description: "Entre na sua conta para adicionar ao carrinho.", variant: "destructive" });
+      toast({ title: "Faca login", description: "Entre na sua conta para adicionar ao carrinho.", variant: "destructive" });
       return;
     }
     if (product.hasSize && !selectedSize) {
@@ -117,8 +94,8 @@ export default function LojaProdutoPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
+        <ShopHeader />
         <div className="p-4">
-          <Skeleton className="h-8 w-32 mb-4" />
           <Skeleton className="aspect-square w-full rounded-lg mb-4" />
           <Skeleton className="h-8 w-3/4 mb-2" />
           <Skeleton className="h-6 w-1/2" />
@@ -129,12 +106,15 @@ export default function LojaProdutoPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-medium text-gray-900 mb-2">Produto não encontrado</h2>
-          <Link href="/loja">
-            <Button variant="outline" data-testid="button-back-catalog">Voltar à loja</Button>
-          </Link>
+      <div className="min-h-screen bg-white">
+        <ShopHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <h2 className="text-xl font-medium text-gray-900 mb-2">Produto nao encontrado</h2>
+            <Link href="/loja">
+              <Button variant="outline" data-testid="button-back-catalog">Voltar a loja</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -142,49 +122,10 @@ export default function LojaProdutoPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header - SHOP.CO Style */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-black" data-testid="button-menu">
-              <Menu className="h-6 w-6" />
-            </Button>
-            <Link href="/loja">
-              <span className="text-xl font-bold text-black tracking-tight" data-testid="link-logo">Emaús Shop</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-black" data-testid="button-search">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Link href="/loja/carrinho">
-              <Button variant="ghost" size="icon" className="text-black relative" data-testid="button-cart">
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" className="text-black" data-testid="button-user">
-              <User className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Breadcrumb */}
-      <nav className="px-4 py-2 text-xs text-gray-500">
-        <Link href="/loja" className="hover:text-black">Início</Link>
-        <span className="mx-1">&gt;</span>
-        <Link href="/loja/catalogo" className="hover:text-black">Loja</Link>
-        <span className="mx-1">&gt;</span>
-        <span className="text-black">{product.name}</span>
-      </nav>
+      <ShopHeader />
 
       {/* Product Image Gallery */}
-      <div className="relative bg-gray-50">
+      <div className="relative bg-white">
         <div className="aspect-square relative">
           {currentImages.length > 0 ? (
             <>
@@ -199,24 +140,6 @@ export default function LojaProdutoPage() {
                   exit={{ opacity: 0 }}
                 />
               </AnimatePresence>
-              {currentImages.length > 1 && (
-                <>
-                  <button
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md"
-                    onClick={() => setCarouselIndex(i => (i - 1 + currentImages.length) % currentImages.length)}
-                    data-testid="button-carousel-prev"
-                  >
-                    <ChevronLeft className="h-5 w-5 text-black" />
-                  </button>
-                  <button
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md"
-                    onClick={() => setCarouselIndex(i => (i + 1) % currentImages.length)}
-                    data-testid="button-carousel-next"
-                  >
-                    <ChevronRight className="h-5 w-5 text-black" />
-                  </button>
-                </>
-              )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -225,20 +148,18 @@ export default function LojaProdutoPage() {
           )}
         </div>
 
-        {/* Thumbnails */}
+        {/* Dots indicator */}
         {currentImages.length > 1 && (
-          <div className="flex gap-2 p-3 overflow-x-auto">
-            {currentImages.map((img, idx) => (
+          <div className="flex justify-center gap-2 py-3">
+            {currentImages.map((_, idx) => (
               <button
-                key={img.id}
-                className={`w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                  idx === carouselIndex ? "border-black" : "border-transparent"
+                key={idx}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  idx === carouselIndex ? "bg-black" : "bg-gray-300"
                 }`}
                 onClick={() => setCarouselIndex(idx)}
-                data-testid={`button-thumbnail-${idx}`}
-              >
-                <img src={img.imageData} alt="" className="w-full h-full object-cover" />
-              </button>
+                data-testid={`button-dot-${idx}`}
+              />
             ))}
           </div>
         )}
@@ -246,216 +167,287 @@ export default function LojaProdutoPage() {
 
       {/* Product Info */}
       <div className="p-4 space-y-4">
-        {/* Title */}
-        <h1 className="text-xl font-bold text-black uppercase tracking-tight" data-testid="text-product-name">
-          {product.name}
-        </h1>
-
-        {/* Rating */}
-        <StarRating rating={4.5} />
-
-        {/* Price */}
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold text-black" data-testid="text-product-price">
-            {formatCurrency(product.price)}
-          </span>
+        {/* Badges */}
+        <div className="flex gap-2">
+          {product.isFeatured && (
+            <Badge className="bg-black text-white text-xs px-3 py-1">
+              DESTAQUE
+            </Badge>
+          )}
           {product.isPreOrder && (
-            <Badge className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              Pré-venda
+            <Badge className="bg-yellow-400 text-black text-xs px-3 py-1">
+              LANCAMENTO
             </Badge>
           )}
         </div>
 
-        {/* Description */}
-        {product.description && (
-          <p className="text-sm text-gray-600 leading-relaxed" data-testid="text-product-description">
-            {product.description}
+        {/* Title */}
+        <h1 className="text-xl font-bold text-black" data-testid="text-product-name">
+          {product.name}
+        </h1>
+
+        {/* Availability */}
+        <p className="text-sm text-gray-600">
+          Disponibilidade: <span className="text-black font-medium">{product.isAvailable ? "Imediata" : "Indisponivel"}</span>
+        </p>
+
+        {/* Price */}
+        <div className="space-y-1">
+          <p className="text-3xl font-bold text-black" data-testid="text-product-price">
+            {formatCurrency(product.price)}
           </p>
-        )}
-
-        <div className="border-t border-gray-100 pt-4 space-y-4">
-          {/* Gender Selection - Select Colors style */}
-          {product.genderType !== "unissex" && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">Selecionar Modelo</p>
-              <div className="flex gap-2">
-                {["masculino", "feminino"].map((gender) => (
-                  <button
-                    key={gender}
-                    onClick={() => {
-                      setSelectedGender(gender);
-                      setSelectedSize(null);
-                    }}
-                    className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedGender === gender
-                        ? "border-black"
-                        : "border-gray-200"
-                    } ${gender === "masculino" ? "bg-green-800" : "bg-blue-800"}`}
-                    data-testid={`button-gender-${gender}`}
-                  >
-                    {selectedGender === gender && (
-                      <Check className="h-4 w-4 text-white" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Size Selection - Choose Size style */}
-          {product.hasSize && availableSizes.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">Escolher Tamanho</p>
-              <div className="flex flex-wrap gap-2">
-                {availableSizes.map((sizeItem) => (
-                  <button
-                    key={sizeItem.id}
-                    onClick={() => setSelectedSize(sizeItem.size)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedSize === sizeItem.size
-                        ? "bg-black text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                    data-testid={`button-size-${sizeItem.size}`}
-                  >
-                    {sizeItem.size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quantity + Add to Cart */}
-          <div className="flex items-center gap-3 pt-2">
-            <div className="flex items-center bg-gray-100 rounded-full">
-              <button
-                className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                disabled={quantity <= 1}
-                data-testid="button-quantity-decrease"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-10 text-center font-medium text-black" data-testid="text-quantity">
-                {quantity}
-              </span>
-              <button
-                className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
-                onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                disabled={quantity >= 10}
-                data-testid="button-quantity-increase"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            <Button
-              className="flex-1 bg-black text-white hover:bg-gray-800 rounded-full h-12 text-sm font-medium"
-              onClick={addToCart}
-              disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize)}
-              data-testid="button-add-to-cart"
-            >
-              {addToCartMutation.isPending ? "Adicionando..." : "Adicionar ao Carrinho"}
-            </Button>
-          </div>
+          <p className="text-sm text-gray-500">
+            {formatCurrency(product.price * 0.95)} a vista com desconto ou 2x de {formatCurrency(product.price / 2)} com juros
+          </p>
+          <button className="text-xs text-gray-400 underline">Mais informacoes</button>
         </div>
 
-        {/* Tabs - Product Details, Rating & Reviews, FAQs */}
-        <div className="border-t border-gray-100 pt-4">
-          <div className="flex border-b border-gray-100">
+        {/* Size Selection */}
+        {product.hasSize && availableSizes.length > 0 && (
+          <div className="space-y-2 pt-4">
+            <p className="text-sm font-medium text-black">Tamanho:</p>
+            <div className="flex flex-wrap gap-2">
+              {availableSizes.map((sizeItem) => (
+                <button
+                  key={sizeItem.id}
+                  onClick={() => setSelectedSize(sizeItem.size)}
+                  className={`px-4 py-2 border text-sm font-medium transition-all ${
+                    selectedSize === sizeItem.size
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-gray-300 hover:border-black"
+                  }`}
+                  data-testid={`button-size-${sizeItem.size}`}
+                >
+                  {sizeItem.size}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gender Selection */}
+        {product.genderType !== "unissex" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-black">Modelo:</p>
+            <div className="flex gap-2">
+              {["masculino", "feminino"].map((gender) => (
+                <button
+                  key={gender}
+                  onClick={() => {
+                    setSelectedGender(gender);
+                    setSelectedSize(null);
+                  }}
+                  className={`px-4 py-2 border text-sm font-medium transition-all ${
+                    selectedGender === gender
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-gray-300 hover:border-black"
+                  }`}
+                  data-testid={`button-gender-${gender}`}
+                >
+                  {gender === "masculino" ? "Masculino" : "Feminino"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Quantity + Add to Cart */}
+        <div className="flex items-center gap-3 pt-4">
+          <div className="flex items-center border border-gray-300">
             <button
-              onClick={() => setActiveTab("details")}
+              className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              data-testid="button-quantity-decrease"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="w-12 text-center font-medium text-black" data-testid="text-quantity">
+              {quantity}
+            </span>
+            <button
+              className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
+              onClick={() => setQuantity(q => Math.min(10, q + 1))}
+              disabled={quantity >= 10}
+              data-testid="button-quantity-increase"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <Button
+            className="flex-1 bg-yellow-400 text-black hover:bg-yellow-500 h-12 text-base font-bold"
+            onClick={addToCart}
+            disabled={addToCartMutation.isPending || !product.isAvailable || (product.hasSize && !selectedSize)}
+            data-testid="button-add-to-cart"
+          >
+            {addToCartMutation.isPending ? "ADICIONANDO..." : "COMPRAR"}
+          </Button>
+        </div>
+
+        {/* Shipping Calculator */}
+        <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+          <Truck className="h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="00000-000"
+            className="flex-1 border border-gray-300 px-3 py-2 text-sm"
+            maxLength={9}
+          />
+          <Button variant="outline" className="bg-gray-800 text-white hover:bg-gray-900 border-gray-800">
+            Calcular
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <div className="pt-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("description")}
               className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all ${
-                activeTab === "details"
+                activeTab === "description"
                   ? "border-black text-black"
                   : "border-transparent text-gray-500"
               }`}
-              data-testid="tab-details"
+              data-testid="tab-description"
             >
-              Detalhes
+              Descricao
             </button>
             <button
-              onClick={() => setActiveTab("reviews")}
+              onClick={() => setActiveTab("specs")}
               className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all ${
-                activeTab === "reviews"
+                activeTab === "specs"
                   ? "border-black text-black"
                   : "border-transparent text-gray-500"
               }`}
-              data-testid="tab-reviews"
+              data-testid="tab-specs"
             >
-              Avaliações
+              Ficha Tecnica
             </button>
-            <button
-              onClick={() => setActiveTab("faqs")}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all ${
-                activeTab === "faqs"
-                  ? "border-black text-black"
-                  : "border-transparent text-gray-500"
-              }`}
-              data-testid="tab-faqs"
-            >
-              Perguntas
-            </button>
+            {product.hasSize && (
+              <button
+                onClick={() => setActiveTab("sizes")}
+                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all ${
+                  activeTab === "sizes"
+                    ? "border-black text-black"
+                    : "border-transparent text-gray-500"
+                }`}
+                data-testid="tab-sizes"
+              >
+                Medidas
+              </button>
+            )}
           </div>
 
           {/* Tab Content */}
           <div className="py-4">
-            {activeTab === "details" && (
-              <div className="text-sm text-gray-600 space-y-2">
-                {product.description ? (
-                  <p>{product.description}</p>
-                ) : (
-                  <p>Produto de alta qualidade da UMP Emaús.</p>
-                )}
-              </div>
-            )}
-
-            {activeTab === "reviews" && (
+            {activeTab === "description" && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-black">
-                    Todas as Avaliações <span className="text-gray-400">(45)</span>
-                  </h3>
-                  <Button variant="outline" size="sm" className="rounded-full text-xs">
-                    Escrever Avaliação
-                  </Button>
-                </div>
+                <h3 className="text-lg font-bold text-black">Descricao Geral</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {product.description || "Produto de alta qualidade da UMP Emaus. Confeccionado com materiais premium para garantir conforto e durabilidade."}
+                </p>
+              </div>
+            )}
 
-                {/* Sample Review */}
-                <div className="border-t border-gray-100 pt-4">
-                  <StarRating rating={5} />
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-sm font-medium text-black">Samantha D.</span>
-                    <span className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5 text-white" />
-                    </span>
+            {activeTab === "specs" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-black">Ficha Tecnica</h3>
+                <div className="divide-y divide-gray-100">
+                  <div className="flex py-3">
+                    <span className="w-1/3 text-sm text-gray-500">Codigo</span>
+                    <span className="flex-1 text-sm text-black">{product.id}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    "Adorei a camiseta! O design é único e o tecido é super confortável. 
-                    Como alguém exigente, eu aprecio a atenção aos detalhes. 
-                    Tornou-se minha peça favorita!"
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">Postado em Janeiro 3, 2026</p>
+                  {product.category && (
+                    <div className="flex py-3 bg-gray-50">
+                      <span className="w-1/3 text-sm text-gray-500 pl-2">Categoria</span>
+                      <span className="flex-1 text-sm text-black">{product.category.name}</span>
+                    </div>
+                  )}
+                  <div className="flex py-3">
+                    <span className="w-1/3 text-sm text-gray-500">Marca</span>
+                    <span className="flex-1 text-sm text-black">UMP Emaus</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {activeTab === "faqs" && (
-              <div className="space-y-3 text-sm">
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="font-medium text-black">Como funciona a entrega?</p>
-                  <p className="text-gray-600 mt-1">Os produtos são entregues nas reuniões da UMP.</p>
-                </div>
-                <div className="border-b border-gray-100 pb-3">
-                  <p className="font-medium text-black">Posso trocar o tamanho?</p>
-                  <p className="text-gray-600 mt-1">Sim, desde que o produto esteja em perfeitas condições.</p>
+            {activeTab === "sizes" && product.hasSize && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-black">Tabela de Medidas (cm)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="py-2 px-3 text-left font-medium text-gray-600">Tamanho</th>
+                        <th className="py-2 px-3 text-center font-medium text-gray-600">Largura</th>
+                        <th className="py-2 px-3 text-center font-medium text-gray-600">Comprimento</th>
+                        <th className="py-2 px-3 text-center font-medium text-gray-600">Manga</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {availableSizes.map((size) => {
+                        const chart = product.sizeCharts?.find(c => c.size === size.size && c.gender === size.gender);
+                        return (
+                          <tr key={size.id}>
+                            <td className="py-2 px-3 font-medium text-black">{size.size}</td>
+                            <td className="py-2 px-3 text-center text-gray-600">{chart?.width || "-"}</td>
+                            <td className="py-2 px-3 text-center text-gray-600">{chart?.length || "-"}</td>
+                            <td className="py-2 px-3 text-center text-gray-600">{chart?.sleeve || "-"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="pt-6 border-t border-gray-100">
+            <h3 className="text-xl font-bold text-black mb-4">Produtos relacionados</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {relatedProducts.map((item) => (
+                <Link key={item.id} href={`/loja/produto/${item.id}`}>
+                  <div className="bg-white rounded-lg overflow-hidden border border-gray-100">
+                    <div className="aspect-square bg-gray-50">
+                      {item.images?.[0]?.imageData ? (
+                        <img
+                          src={item.images[0].imageData}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ShoppingCart className="h-8 w-8 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h4 className="text-sm font-medium text-black line-clamp-2 mb-1">{item.name}</h4>
+                      <p className="text-base font-bold text-black">{formatCurrency(item.price)}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatCurrency(item.price * 0.95)} a vista
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-100 py-8 px-4 mt-8">
+        <div className="text-center space-y-4">
+          <p className="text-sm text-gray-500">UMP Emaus</p>
+          <p className="text-xs text-gray-400">Todos os direitos reservados</p>
+        </div>
+      </footer>
     </div>
   );
 }

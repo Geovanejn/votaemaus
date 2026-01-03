@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingCart, Menu, Search, User, ArrowRight, Tag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { PixPaymentModal } from "@/components/PixPaymentModal";
+import { ShopHeader } from "@/components/shop/ShopHeader";
 import type { ShopItem, ShopCartItem } from "@shared/schema";
 
 function formatCurrency(value: number) {
@@ -127,37 +129,7 @@ export default function LojaCarrinhoPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-black" data-testid="button-menu">
-              <Menu className="h-6 w-6" />
-            </Button>
-            <Link href="/loja">
-              <span className="text-xl font-bold text-black tracking-tight" data-testid="link-logo">Emaús Shop</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-black" data-testid="button-search">
-              <Search className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-black relative" data-testid="button-cart">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
-            <Link href="/loja/pedidos">
-              <Button variant="ghost" size="icon" className="text-black" data-testid="button-user">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <ShopHeader />
 
       {/* Breadcrumb */}
       <nav className="px-4 py-2 text-xs text-gray-500">

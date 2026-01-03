@@ -161,15 +161,15 @@ export default function LojaCarrinhoPage() {
 
       {/* Breadcrumb */}
       <nav className="px-4 py-2 text-xs text-gray-500">
-        <Link href="/loja" className="hover:text-black">Home</Link>
+        <Link href="/loja" className="hover:text-black">Início</Link>
         <span className="mx-1">&gt;</span>
-        <span className="text-black">Cart</span>
+        <span className="text-black">Carrinho</span>
       </nav>
 
       {/* Title */}
       <div className="px-4 py-4">
         <h1 className="text-2xl font-bold text-black uppercase tracking-tight" data-testid="text-cart-title">
-          YOUR CART
+          SEU CARRINHO
         </h1>
       </div>
 
@@ -298,7 +298,7 @@ export default function LojaCarrinhoPage() {
               <div className="flex-1 relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Add promo code"
+                  placeholder="Código promocional"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
                   className="pl-10 rounded-full border-gray-200 bg-gray-50"
@@ -306,7 +306,7 @@ export default function LojaCarrinhoPage() {
                 />
               </div>
               <Button variant="outline" className="rounded-full px-6 border-black text-black" data-testid="button-apply-promo">
-                Apply
+                Aplicar
               </Button>
             </div>
 
@@ -317,37 +317,12 @@ export default function LojaCarrinhoPage() {
               disabled={checkoutMutation.isPending}
               data-testid="button-checkout"
             >
-              {checkoutMutation.isPending ? "Processando..." : "Go to Checkout"}
+              {checkoutMutation.isPending ? "Processando..." : "Finalizar Compra"}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
-
-      {/* Newsletter Footer */}
-      <div className="bg-black text-white p-6 mt-8">
-        <h3 className="text-lg font-bold uppercase mb-4">
-          STAY UPTO DATE ABOUT OUR LATEST OFFERS
-        </h3>
-        <div className="relative">
-          <Input
-            type="email"
-            placeholder="Enter your email address"
-            className="bg-white text-black rounded-full px-4 py-3 text-sm pr-4"
-          />
-        </div>
-        <Button className="w-full mt-3 bg-white text-black hover:bg-gray-100 rounded-full">
-          Subscribe to Newsletter
-        </Button>
-      </div>
-
-      {/* Footer */}
-      <div className="bg-gray-50 p-6">
-        <h4 className="text-xl font-bold text-black mb-2">Emaús Shop</h4>
-        <p className="text-sm text-gray-600">
-          Produtos exclusivos da UMP Emaús para você.
-        </p>
-      </div>
 
       {/* PIX Payment Modal */}
       {pixPaymentData && (

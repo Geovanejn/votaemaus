@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useSearch } from "wouter";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,10 @@ import {
   Menu,
   Search,
   User,
-  Star
+  Star,
+  X
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ShopItemWithDetails {
   id: number;
@@ -30,7 +31,6 @@ interface ShopItemWithDetails {
   isFeatured: boolean;
   featuredOrder: number | null;
   images: { id: number; gender: string; imageData: string; sortOrder: number }[];
-  sizes: { id: number; gender: string; size: string; sortOrder: number }[];
 }
 
 interface ShopCategory {
@@ -38,7 +38,6 @@ interface ShopCategory {
   name: string;
   description: string | null;
 }
-
 
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
@@ -67,20 +66,23 @@ function StarRating({ rating = 4.5 }: { rating?: number }) {
   );
 }
 
-export default function LojaPage() {
+export default function LojaHomePage() {
   const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const searchString = useSearch();
-  const params = new URLSearchParams(searchString);
-  const categoryId = params.get("categoria");
+  const [heroIndex, setHeroIndex] = useState(0);
 
-  const { data: items, isLoading } = useQuery<ShopItemWithDetails[]>({
-    queryKey: ["/api/shop/items"],
+  const { data: featuredItems, isLoading: loadingFeatured } = useQuery<ShopItemWithDetails[]>({
+    queryKey: ["/api/shop/featured"],
     enabled: isAuthenticated,
   });
 
   const { data: categories } = useQuery<ShopCategory[]>({
     queryKey: ["/api/shop/categories"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: allItems, isLoading: loadingItems } = useQuery<ShopItemWithDetails[]>({
+    queryKey: ["/api/shop/items"],
     enabled: isAuthenticated,
   });
 
@@ -90,18 +92,12 @@ export default function LojaPage() {
   });
 
   const cartItemCount = serverCartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-  
-  const availableItems = items?.filter((item) => {
-    if (!item.isAvailable) return false;
-    if (categoryId) return item.categoryId === parseInt(categoryId);
-    return true;
-  }) || [];
-
-  const selectedCategory = categoryId ? categories?.find(c => c.id === parseInt(categoryId)) : null;
+  const newArrivals = allItems?.filter(item => item.isAvailable).slice(0, 4) || [];
+  const hasFeatured = featuredItems && featuredItems.length > 0;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header - SHOP.CO Style */}
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
@@ -167,13 +163,21 @@ export default function LojaPage() {
               </SheetContent>
             </Sheet>
             
-            <Link href="/loja">
-              <h1 className="text-xl font-bold tracking-tight text-black" style={{ fontFamily: 'system-ui' }} data-testid="text-loja-title">
-                Emaús Shop
-              </h1>
-            </Link>
+            <h1 className="text-xl font-bold tracking-tight text-black" style={{ fontFamily: 'system-ui' }} data-testid="text-loja-title">
+              Emaús Shop
+            </h1>
             
             <div className="flex items-center gap-1">
+              <Link href="/loja/catalogo">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-black"
+                  data-testid="button-search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </Link>
               <Link href="/loja/carrinho">
                 <Button
                   variant="ghost"
@@ -207,40 +211,95 @@ export default function LojaPage() {
         </div>
       </header>
 
-      {/* Breadcrumb */}
-      <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50">
-        <Link href="/loja" className="hover:text-black">Início</Link>
-        <ChevronRight className="inline h-3 w-3 mx-1" />
-        {selectedCategory ? (
-          <>
-            <Link href="/loja/catalogo" className="hover:text-black">Loja</Link>
-            <ChevronRight className="inline h-3 w-3 mx-1" />
-            <span className="text-black">{selectedCategory.name}</span>
-          </>
-        ) : (
-          <span className="text-black">Loja</span>
-        )}
-      </div>
-
-      {/* Category Title */}
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-black">
-              {selectedCategory ? selectedCategory.name : "Produtos"}
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Mostrando 1-{availableItems.length} de {availableItems.length} produtos
-            </p>
+      {/* Hero Banner */}
+      {loadingFeatured ? (
+        <Skeleton className="w-full aspect-[4/5] max-h-[500px] bg-gray-100" />
+      ) : hasFeatured ? (
+        <section className="relative bg-gray-100">
+          <div className="relative aspect-[4/5] max-h-[500px] overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={heroIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0"
+              >
+                {featuredItems[heroIndex]?.images?.[0]?.imageData ? (
+                  <img
+                    src={featuredItems[heroIndex].images[0].imageData}
+                    alt={featuredItems[heroIndex].name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                    <Package className="h-20 w-20 text-gray-400" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h2 className="text-2xl font-bold mb-2" data-testid="text-hero-title">
+                    {featuredItems[heroIndex].name}
+                  </h2>
+                  <p className="text-lg font-semibold mb-4">
+                    {formatCurrency(featuredItems[heroIndex].price)}
+                  </p>
+                  <Link href={`/loja/produto/${featuredItems[heroIndex].id}`}>
+                    <Button 
+                      className="bg-white text-black hover:bg-gray-100 rounded-full px-6"
+                      data-testid="button-hero-shop"
+                    >
+                      Comprar Agora
+                    </Button>
+                  </Link>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+            
+            {featuredItems.length > 1 && (
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                {featuredItems.map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      idx === heroIndex ? "bg-white w-4" : "bg-white/50"
+                    }`}
+                    onClick={() => setHeroIndex(idx)}
+                    data-testid={`button-hero-dot-${idx}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        </section>
+      ) : (
+        <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-12 px-6">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-2">Emaús Shop</h2>
+            <p className="text-gray-300 mb-6">Encontre produtos exclusivos da UMP</p>
+            <Link href="/loja/catalogo">
+              <Button className="bg-white text-black hover:bg-gray-100 rounded-full px-8">
+                Ver Produtos
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
 
-      {/* Products Grid - SHOP.CO Style */}
-      <section className="px-4 pb-8">
-        {isLoading ? (
+      {/* Novidades */}
+      <section className="px-4 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-black">Novidades</h2>
+          <Link href="/loja/catalogo">
+            <span className="text-sm text-gray-500 flex items-center gap-1">
+              Ver Todos <ChevronRight className="h-4 w-4" />
+            </span>
+          </Link>
+        </div>
+
+        {loadingItems ? (
           <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-gray-50 rounded-2xl overflow-hidden">
                 <Skeleton className="aspect-square w-full bg-gray-100" />
                 <div className="p-3 space-y-2">
@@ -251,65 +310,97 @@ export default function LojaPage() {
               </div>
             ))}
           </div>
-        ) : availableItems.length === 0 ? (
+        ) : newArrivals.length === 0 ? (
           <div className="bg-gray-50 rounded-2xl p-12 text-center">
             <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponivel</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponível</h3>
             <p className="text-gray-500">
               Aguarde novos produtos na loja.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {availableItems.map((item, index) => (
+            {newArrivals.map((item, index) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
+                transition={{ delay: index * 0.05 }}
               >
                 <Link href={`/loja/produto/${item.id}`}>
-                <div 
-                  className="bg-gray-50 rounded-2xl overflow-hidden cursor-pointer"
-                  data-testid={`card-item-${item.id}`}
-                >
-                  <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                    {item.images && item.images.length > 0 ? (
-                      <img
-                        src={item.images[0].imageData}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package className="h-12 w-12 text-gray-300" />
+                  <div 
+                    className="bg-gray-50 rounded-2xl overflow-hidden cursor-pointer"
+                    data-testid={`card-item-${item.id}`}
+                  >
+                    <div className="aspect-square bg-gray-100 relative overflow-hidden">
+                      {item.images && item.images.length > 0 ? (
+                        <img
+                          src={item.images[0].imageData}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-12 w-12 text-gray-300" />
+                        </div>
+                      )}
+                      {item.isPreOrder && (
+                        <Badge className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                          Pré-venda
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-medium text-sm text-black line-clamp-2 mb-1" data-testid={`text-item-name-${item.id}`}>
+                        {item.name}
+                      </h3>
+                      <StarRating rating={4.5} />
+                      <div className="mt-2">
+                        <span className="text-lg font-bold text-black">
+                          {formatCurrency(item.price)}
+                        </span>
                       </div>
-                    )}
-                    {item.isPreOrder && (
-                      <Badge 
-                        className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full"
-                      >
-                        Pre-venda
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-sm text-black line-clamp-2 mb-1" data-testid={`text-item-name-${item.id}`}>
-                      {item.name}
-                    </h3>
-                    <StarRating rating={4.5} />
-                    <div className="mt-2">
-                      <span className="text-lg font-bold text-black">
-                        {formatCurrency(item.price)}
-                      </span>
                     </div>
                   </div>
-                </div>
                 </Link>
               </motion.div>
             ))}
           </div>
         )}
+      </section>
+
+      {/* Categorias */}
+      {categories && categories.length > 0 && (
+        <section className="px-4 py-6 bg-gray-50">
+          <h2 className="text-xl font-bold text-black mb-4">Categorias</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {categories.map((cat) => (
+              <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
+                <div 
+                  className="bg-white rounded-2xl p-4 text-center hover:shadow-md transition-shadow cursor-pointer"
+                  data-testid={`card-category-${cat.id}`}
+                >
+                  <h3 className="font-medium text-black">{cat.name}</h3>
+                  {cat.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{cat.description}</p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Ver Mais */}
+      <section className="px-4 py-8 text-center">
+        <Link href="/loja/catalogo">
+          <Button 
+            className="bg-black text-white hover:bg-gray-800 rounded-full px-8"
+            data-testid="button-view-all"
+          >
+            Ver Todos os Produtos
+          </Button>
+        </Link>
       </section>
     </div>
   );

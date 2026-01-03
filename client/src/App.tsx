@@ -62,7 +62,8 @@ const EventDetailPage = lazy(() => import("@/pages/study/event-detail"));
 const EventLessonPage = lazy(() => import("@/pages/study/event-lesson"));
 const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
 const FinanceiroPage = lazy(() => import("@/pages/study/financeiro"));
-const LojaPage = lazy(() => import("@/pages/study/loja"));
+const LojaHomePage = lazy(() => import("@/pages/study/loja-home"));
+const LojaCatalogoPage = lazy(() => import("@/pages/study/loja"));
 const LojaProdutoPage = lazy(() => import("@/pages/study/loja-produto"));
 const LojaCarrinhoPage = lazy(() => import("@/pages/study/loja-carrinho"));
 const MeusPedidosPage = lazy(() => import("@/pages/study/meus-pedidos"));
@@ -219,11 +220,12 @@ function Router() {
           <Route path="/study/events/:id" component={EventDetailPage} />
           <Route path="/study/cards" component={CardsCollectionPage} />
           <Route path="/study/financeiro" component={FinanceiroPage} />
-          <Route path="/study/loja" component={LojaPage} />
+          <Route path="/study/loja" component={LojaHomePage} />
           <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
           {/* Painel Financeiro - Separate Panel */}
           <Route path="/financeiro" component={FinanceiroPage} />
-          <Route path="/loja" component={LojaPage} />
+          <Route path="/loja" component={LojaHomePage} />
+          <Route path="/loja/catalogo" component={LojaCatalogoPage} />
           <Route path="/loja/produto/:id" component={LojaProdutoPage} />
           <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
           <Route path="/meus-pedidos" component={MeusPedidosPage} />
@@ -277,11 +279,12 @@ function Router() {
         <Route path="/study/events/:id" component={EventDetailPage} />
         <Route path="/study/cards" component={CardsCollectionPage} />
         <Route path="/study/financeiro" component={FinanceiroPage} />
-        <Route path="/study/loja" component={LojaPage} />
+        <Route path="/study/loja" component={LojaHomePage} />
         <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
         {/* Painel Financeiro - Separate Panel */}
         <Route path="/financeiro" component={FinanceiroPage} />
-        <Route path="/loja" component={LojaPage} />
+        <Route path="/loja" component={LojaHomePage} />
+        <Route path="/loja/catalogo" component={LojaCatalogoPage} />
         <Route path="/loja/produto/:id" component={LojaProdutoPage} />
         <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
         <Route path="/meus-pedidos" component={MeusPedidosPage} />

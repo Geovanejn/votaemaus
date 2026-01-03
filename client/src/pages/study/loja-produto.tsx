@@ -176,9 +176,9 @@ export default function LojaProdutoPage() {
 
       {/* Breadcrumb */}
       <nav className="px-4 py-2 text-xs text-gray-500">
-        <Link href="/loja" className="hover:text-black">Home</Link>
+        <Link href="/loja" className="hover:text-black">Início</Link>
         <span className="mx-1">&gt;</span>
-        <Link href="/loja" className="hover:text-black">Shop</Link>
+        <Link href="/loja/catalogo" className="hover:text-black">Loja</Link>
         <span className="mx-1">&gt;</span>
         <span className="text-black">{product.name}</span>
       </nav>
@@ -261,7 +261,7 @@ export default function LojaProdutoPage() {
           </span>
           {product.isPreOrder && (
             <Badge className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              -40%
+              Pré-venda
             </Badge>
           )}
         </div>
@@ -277,7 +277,7 @@ export default function LojaProdutoPage() {
           {/* Gender Selection - Select Colors style */}
           {product.genderType !== "unissex" && (
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">Select Colors</p>
+              <p className="text-sm text-gray-600">Selecionar Modelo</p>
               <div className="flex gap-2">
                 {["masculino", "feminino"].map((gender) => (
                   <button
@@ -305,7 +305,7 @@ export default function LojaProdutoPage() {
           {/* Size Selection - Choose Size style */}
           {product.hasSize && availableSizes.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">Choose Size</p>
+              <p className="text-sm text-gray-600">Escolher Tamanho</p>
               <div className="flex flex-wrap gap-2">
                 {availableSizes.map((sizeItem) => (
                   <button
@@ -355,7 +355,7 @@ export default function LojaProdutoPage() {
               disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize)}
               data-testid="button-add-to-cart"
             >
-              {addToCartMutation.isPending ? "Adicionando..." : "Add to Cart"}
+              {addToCartMutation.isPending ? "Adicionando..." : "Adicionar ao Carrinho"}
             </Button>
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function LojaProdutoPage() {
               }`}
               data-testid="tab-details"
             >
-              Product Details
+              Detalhes
             </button>
             <button
               onClick={() => setActiveTab("reviews")}
@@ -383,7 +383,7 @@ export default function LojaProdutoPage() {
               }`}
               data-testid="tab-reviews"
             >
-              Rating & Reviews
+              Avaliações
             </button>
             <button
               onClick={() => setActiveTab("faqs")}
@@ -394,7 +394,7 @@ export default function LojaProdutoPage() {
               }`}
               data-testid="tab-faqs"
             >
-              FAQs
+              Perguntas
             </button>
           </div>
 
@@ -414,10 +414,10 @@ export default function LojaProdutoPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-black">
-                    All Reviews <span className="text-gray-400">(45)</span>
+                    Todas as Avaliações <span className="text-gray-400">(45)</span>
                   </h3>
                   <Button variant="outline" size="sm" className="rounded-full text-xs">
-                    Write a Review
+                    Escrever Avaliação
                   </Button>
                 </div>
 
@@ -456,22 +456,6 @@ export default function LojaProdutoPage() {
         </div>
       </div>
 
-      {/* Newsletter Footer */}
-      <div className="bg-black text-white p-6 mt-8">
-        <h3 className="text-lg font-bold uppercase mb-4">
-          FIQUE POR DENTRO DAS NOSSAS OFERTAS
-        </h3>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            placeholder="Digite seu email"
-            className="flex-1 bg-white text-black rounded-full px-4 py-3 text-sm"
-          />
-        </div>
-        <Button className="w-full mt-3 bg-white text-black hover:bg-gray-100 rounded-full">
-          Inscrever-se
-        </Button>
-      </div>
     </div>
   );
 }

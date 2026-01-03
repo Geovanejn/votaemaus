@@ -8485,6 +8485,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - MEMBER ====================
 
+  // Listar categorias da loja
+  app.get("/api/shop/categories", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const categories = await storage.getShopCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Get shop categories error:", error);
+      res.status(500).json({ message: "Erro ao buscar categorias" });
+    }
+  });
+
+  // Listar itens em destaque (para hero banner)
+  app.get("/api/shop/featured", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const items = await storage.getShopItems(true);
+      const featured = items.filter(item => item.isFeatured).sort((a, b) => 
+        (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)
+      );
+      
+      const featuredWithImages = await Promise.all(featured.map(async (item) => {
+        const images = await storage.getShopItemImages(item.id);
+        return { ...item, images };
+      }));
+      
+      res.json(featuredWithImages);
+    } catch (error) {
+      console.error("Get featured items error:", error);
+      res.status(500).json({ message: "Erro ao buscar itens em destaque" });
+    }
+  });
+
   // Listar itens disponíveis (catálogo público)
   app.get("/api/shop/items", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -8694,7 +8725,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const items = await storage.getShopOrderItems(order.id);
         const itemsWithProduct = await Promise.all(items.map(async (item) => {
           const product = await storage.getShopItemById(item.itemId);
-          return { ...item, product };
+          const images = product ? await storage.getShopItemImages(product.id) : [];
+          return { ...item, product: product ? { ...product, images } : null };
         }));
         return { ...order, items: itemsWithProduct };
       }));
@@ -8722,7 +8754,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const items = await storage.getShopOrderItems(order.id);
       const itemsWithProduct = await Promise.all(items.map(async (item) => {
         const product = await storage.getShopItemById(item.itemId);
-        return { ...item, product };
+        const images = product ? await storage.getShopItemImages(product.id) : [];
+        return { ...item, product: product ? { ...product, images } : null };
       }));
       
       res.json({ ...order, items: itemsWithProduct });

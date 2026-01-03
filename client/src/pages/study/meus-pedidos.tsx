@@ -30,6 +30,7 @@ interface OrderItemProduct {
   name: string;
   description: string | null;
   price: number;
+  images?: { id: number; gender: string; imageData: string; sortOrder: number }[];
 }
 
 interface OrderItem {
@@ -300,12 +301,31 @@ export default function MeusPedidosPage() {
                   </Badge>
                 </div>
 
-                <div className="border rounded-md p-3 space-y-2">
+                <div className="border rounded-md p-3 space-y-3">
                   <h4 className="font-medium text-sm">Itens do Pedido</h4>
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.quantity}x {item.product?.name || "Item"}</span>
-                      <span className="font-medium">
+                    <div key={item.id} className="flex gap-3 items-start">
+                      <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        {item.product?.images && item.product.images.length > 0 ? (
+                          <img
+                            src={item.product.images[0].imageData}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.product?.name || "Item"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.quantity}x {formatCurrency(item.unitPrice)}
+                          {item.size && ` - Tam: ${item.size}`}
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
                     </div>

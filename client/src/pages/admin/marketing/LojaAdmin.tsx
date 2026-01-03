@@ -172,7 +172,7 @@ export default function LojaAdmin() {
       isAvailable: true,
       isPreOrder: false,
       isFeatured: false,
-      featuredOrder: 0,
+      featuredOrder: undefined,
     },
   });
 
@@ -188,7 +188,7 @@ export default function LojaAdmin() {
         isAvailable: editingItem.isAvailable,
         isPreOrder: editingItem.isPreOrder,
         isFeatured: editingItem.isFeatured,
-        featuredOrder: editingItem.featuredOrder || 0,
+        featuredOrder: editingItem.featuredOrder ?? undefined,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -202,7 +202,7 @@ export default function LojaAdmin() {
         isAvailable: true,
         isPreOrder: false,
         isFeatured: false,
-        featuredOrder: 0,
+        featuredOrder: undefined,
       });
       setPriceDisplay("");
     }
@@ -328,10 +328,14 @@ export default function LojaAdmin() {
   ) || [];
 
   const onSubmit = (data: ItemFormValues) => {
+    const payload = {
+      ...data,
+      featuredOrder: data.isFeatured ? (data.featuredOrder ?? null) : null,
+    };
     if (editingItem) {
-      updateMutation.mutate({ ...data, id: editingItem.id });
+      updateMutation.mutate({ ...payload, id: editingItem.id });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -1003,8 +1007,11 @@ export default function LojaAdmin() {
                             type="number"
                             min="0"
                             placeholder="0"
-                            value={field.value || 0}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? undefined : parseInt(val, 10));
+                            }}
                             data-testid="input-featured-order"
                           />
                         </FormControl>

@@ -152,7 +152,7 @@ export default function LojaHomePage() {
                     </>
                   )}
                   <div className="pt-4 border-t mt-4">
-                    <Link href="/meus-pedidos" onClick={() => setMenuOpen(false)}>
+                    <Link href="/loja/pedidos" onClick={() => setMenuOpen(false)}>
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer" data-testid="link-menu-orders">
                         <span className="text-black">Meus Pedidos</span>
                         <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -196,7 +196,7 @@ export default function LojaHomePage() {
                   )}
                 </Button>
               </Link>
-              <Link href="/meus-pedidos">
+              <Link href="/loja/pedidos">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -344,8 +344,12 @@ export default function LojaHomePage() {
                           <Package className="h-12 w-12 text-gray-300" />
                         </div>
                       )}
-                      {item.isPreOrder && (
-                        <Badge className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                      {!item.isAvailable ? (
+                        <Badge className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">
+                          Esgotado
+                        </Badge>
+                      ) : item.isPreOrder && (
+                        <Badge className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full">
                           Pré-venda
                         </Badge>
                       )}

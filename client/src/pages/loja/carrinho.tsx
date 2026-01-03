@@ -84,7 +84,7 @@ export default function LojaCarrinhoPage() {
         setPixModalOpen(true);
       } else {
         toast({ title: "Pedido realizado!", description: "Seu pedido foi enviado. Acesse Meus Pedidos para pagar." });
-        setLocation("/meus-pedidos");
+        setLocation("/loja/pedidos");
       }
     },
     onError: (error: Error) => {
@@ -150,7 +150,7 @@ export default function LojaCarrinhoPage() {
                 </span>
               )}
             </Button>
-            <Link href="/meus-pedidos">
+            <Link href="/loja/pedidos">
               <Button variant="ghost" size="icon" className="text-black" data-testid="button-user">
                 <User className="h-5 w-5" />
               </Button>
@@ -332,7 +332,7 @@ export default function LojaCarrinhoPage() {
             if (!open) {
               setPixModalOpen(false);
               toast({ title: "Pedido realizado!", description: "Você pode pagar seu pedido em Meus Pedidos." });
-              setLocation("/meus-pedidos");
+              setLocation("/loja/pedidos");
             }
           }}
           entryId={pixPaymentData.entryId}

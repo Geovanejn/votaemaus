@@ -490,14 +490,13 @@ export default function LojaAdmin() {
                         </Badge>
                       )}
                       {!item.isAvailable && (
-                        <Badge variant="secondary" className="text-xs">
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          Oculto
+                        <Badge variant="destructive" className="text-xs">
+                          ESGOTADO
                         </Badge>
                       )}
                       {item.isPreOrder && (
                         <Badge variant="outline" className="text-xs bg-background">
-                          Pre-venda
+                          Pré-venda
                         </Badge>
                       )}
                     </div>
@@ -942,11 +941,13 @@ export default function LojaAdmin() {
                   control={form.control}
                   name="isAvailable"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-md border p-3">
+                    <FormItem className={`flex items-center justify-between rounded-md border p-3 ${!field.value ? "border-red-500/50 bg-red-500/10" : ""}`}>
                       <div>
-                        <FormLabel>Disponível na loja</FormLabel>
+                        <FormLabel className={!field.value ? "text-red-600 dark:text-red-400" : ""}>
+                          {!field.value ? "ESGOTADO" : "Disponível na loja"}
+                        </FormLabel>
                         <FormDescription className="text-xs">
-                          Exibir para compra
+                          {!field.value ? "Produto indisponível para compra" : "Exibir para compra"}
                         </FormDescription>
                       </div>
                       <FormControl>

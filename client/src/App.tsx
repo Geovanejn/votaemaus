@@ -222,12 +222,14 @@ function Router() {
           <Route path="/study/financeiro" component={FinanceiroPage} />
           <Route path="/study/loja" component={LojaHomePage} />
           <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
+          <Route path="/study/loja/pedidos" component={MeusPedidosPage} />
           {/* Painel Financeiro - Separate Panel */}
           <Route path="/financeiro" component={FinanceiroPage} />
           <Route path="/loja" component={LojaHomePage} />
           <Route path="/loja/catalogo" component={LojaCatalogoPage} />
           <Route path="/loja/produto/:id" component={LojaProdutoPage} />
           <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
+          <Route path="/loja/pedidos" component={MeusPedidosPage} />
           <Route path="/meus-pedidos" component={MeusPedidosPage} />
           {/* Site Institucional - Public Routes */}
           <Route path="/" component={SiteHomePage} />
@@ -281,12 +283,14 @@ function Router() {
         <Route path="/study/financeiro" component={FinanceiroPage} />
         <Route path="/study/loja" component={LojaHomePage} />
         <Route path="/study/meus-pedidos" component={MeusPedidosPage} />
+        <Route path="/study/loja/pedidos" component={MeusPedidosPage} />
         {/* Painel Financeiro - Separate Panel */}
         <Route path="/financeiro" component={FinanceiroPage} />
         <Route path="/loja" component={LojaHomePage} />
         <Route path="/loja/catalogo" component={LojaCatalogoPage} />
         <Route path="/loja/produto/:id" component={LojaProdutoPage} />
         <Route path="/loja/carrinho" component={LojaCarrinhoPage} />
+        <Route path="/loja/pedidos" component={MeusPedidosPage} />
         <Route path="/meus-pedidos" component={MeusPedidosPage} />
         {/* Secretaria Panels - Access controlled by backend */}
         <Route path="/admin/espiritualidade" component={EspiritualidadeDashboard} />

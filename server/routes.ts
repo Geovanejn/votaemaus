@@ -8197,7 +8197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
@@ -8208,6 +8208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (hasSize !== undefined) updates.hasSize = hasSize;
       if (isAvailable !== undefined) updates.isAvailable = isAvailable;
       if (isPreOrder !== undefined) updates.isPreOrder = isPreOrder;
+      if (isFeatured !== undefined) updates.isFeatured = isFeatured;
+      if (featuredOrder !== undefined) updates.featuredOrder = Number(featuredOrder);
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {
@@ -8540,8 +8542,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - MEMBER ====================
 
-  // Listar categorias da loja
-  app.get("/api/shop/categories", authenticateToken, async (req: AuthRequest, res) => {
+  // Listar categorias da loja (publico)
+  app.get("/api/shop/categories", async (req, res) => {
     try {
       const categories = await storage.getShopCategories();
       res.json(categories);
@@ -8551,13 +8553,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens em destaque (para hero banner)
-  app.get("/api/shop/featured", authenticateToken, async (req: AuthRequest, res) => {
+  // Listar itens em destaque (para hero banner - publico)
+  // Prioriza itens marcados como isFeatured, depois itens com bannerImageData
+  app.get("/api/shop/featured", async (req, res) => {
     try {
       const items = await storage.getShopItems(true);
-      const featured = items.filter(item => item.isFeatured).sort((a, b) => 
+      
+      // Primeiro os itens explicitamente marcados como featured
+      const explicitFeatured = items.filter(item => item.isFeatured).sort((a, b) => 
         (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)
       );
+      
+      // Se nao houver featured explicitos, usa itens com bannerImageData
+      const featured = explicitFeatured.length > 0 
+        ? explicitFeatured 
+        : items.filter(item => item.bannerImageData);
       
       const featuredWithImages = await Promise.all(featured.map(async (item) => {
         const images = await storage.getShopItemImages(item.id);
@@ -8571,8 +8581,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens disponíveis (catálogo público)
-  app.get("/api/shop/items", authenticateToken, async (req: AuthRequest, res) => {
+  // Listar itens disponiveis (catalogo publico)
+  app.get("/api/shop/items", async (req, res) => {
     try {
       const items = await storage.getShopItems(true);
       

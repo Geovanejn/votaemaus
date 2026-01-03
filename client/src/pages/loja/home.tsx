@@ -61,17 +61,14 @@ export default function LojaHomePage() {
 
   const { data: featuredItems, isLoading: loadingFeatured } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/featured"],
-    enabled: isAuthenticated,
   });
 
   const { data: categories } = useQuery<ShopCategory[]>({
     queryKey: ["/api/shop/categories"],
-    enabled: isAuthenticated,
   });
 
   const { data: allItems, isLoading: loadingItems } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
-    enabled: isAuthenticated,
   });
 
   const bannerItems = featuredItems?.filter(item => item.bannerImageData || (item.images && item.images.length > 0)).slice(0, 10) || [];

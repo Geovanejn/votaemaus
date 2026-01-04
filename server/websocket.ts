@@ -62,6 +62,8 @@ export function initializeWebSocket(server: HTTPServer): SocketIOServer {
     
     // Common production domains
     origins.push("https://emausump.onrender.com");
+    origins.push("https://umpemaus.com.br");
+    origins.push("https://www.umpemaus.com.br");
     
     // Filter empty strings
     return origins.filter(o => o.length > 0);

@@ -9682,87 +9682,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const yearParam = req.query.year;
       const year = yearParam ? parseInt(yearParam as string) : new Date().getFullYear();
       
-      // Get all event fees with amount > 0 or visitorAmount > 0
-      const allFees = await db.select().from(eventFees).where(
-        or(gt(eventFees.amount, 0), gt(eventFees.visitorAmount, 0))
-      );
-      const feeEventIds = allFees.map(f => f.eventId);
+      const data = await storage.getMemberEventConfirmationsWithFees(userId, year);
       
-      if (feeEventIds.length === 0) {
-        return res.json([]);
-      }
-      
-      // Get event confirmations for this user that have fees
-      const confirmations = await db.select()
-        .from(eventConfirmations)
-        .where(and(
-          eq(eventConfirmations.userId, userId),
-          inArray(eventConfirmations.eventId, feeEventIds)
-        ))
-        .orderBy(desc(eventConfirmations.confirmedAt));
-      
-      if (confirmations.length === 0) {
-        return res.json([]);
-      }
-      
-      const eventIds = confirmations.map(c => c.eventId);
-      const eventsData = await db.select().from(events).where(inArray(events.id, eventIds));
-      
-      // Filter events by year
-      const yearEvents = eventsData.filter(e => {
-        if (!e.date) return false;
-        return new Date(e.date).getFullYear() === year;
-      });
-      const yearEventIds = new Set(yearEvents.map(e => e.id));
-      const eventsMap = new Map(yearEvents.map(e => [e.id, e]));
-      
-      // Get event fees for year events
-      const feesData = allFees.filter(f => yearEventIds.has(f.eventId));
-      const feesMap = new Map(feesData.map(f => [f.eventId, f]));
-      
-      // Get payment entries for these confirmations
-      const yearConfirmations = confirmations.filter(c => yearEventIds.has(c.eventId));
-      const entryIds = yearConfirmations.filter(c => c.entryId).map(c => c.entryId!);
-      let entriesMap = new Map<number, typeof treasuryEntries.$inferSelect>();
-      if (entryIds.length > 0) {
-        const entriesData = await db.select().from(treasuryEntries).where(inArray(treasuryEntries.id, entryIds));
-        entriesMap = new Map(entriesData.map(e => [e.id, e]));
-      }
-      
-      const memberEvents = yearConfirmations
-        .map(conf => {
-          const event = eventsMap.get(conf.eventId);
-          const fee = feesMap.get(conf.eventId);
-          const entry = conf.entryId ? entriesMap.get(conf.entryId) : null;
-          
+      const memberEvents = data
+        .map(({ confirmation, event, fee, entry }) => {
           const baseAmount = fee?.amount || 0;
           const visitorAmount = fee?.visitorAmount || 0;
-          const totalAmount = baseAmount + ((conf.visitorCount || 0) * visitorAmount);
+          const totalAmount = baseAmount + ((confirmation.visitorCount || 0) * visitorAmount);
           
-          // Validate entry belongs to this year (use referenceYear or createdAt year)
           const entryYear = entry?.referenceYear || (entry?.createdAt ? new Date(entry.createdAt).getFullYear() : null);
           const isPaidThisYear = entry?.paymentStatus === "completed" && entryYear === year;
           
           return {
-            id: conf.id,
-            eventId: conf.eventId,
+            id: confirmation.id,
+            eventId: confirmation.eventId,
             eventName: event?.title || "Evento",
             eventDate: event?.date?.toISOString() || null,
             eventImageUrl: event?.imageUrl || null,
-            isVisitor: conf.isVisitor,
-            visitorCount: conf.visitorCount || 0,
-            confirmedAt: conf.confirmedAt?.toISOString() || null,
+            isVisitor: confirmation.isVisitor,
+            visitorCount: confirmation.visitorCount || 0,
+            confirmedAt: confirmation.confirmedAt?.toISOString() || null,
             totalAmount,
             hasFee: totalAmount > 0,
             isPaid: isPaidThisYear,
           };
         })
-        .filter(e => e.totalAmount > 0); // Only return events with owed amount
+        .filter(e => e.totalAmount > 0);
       
       res.json(memberEvents);
     } catch (error) {
       console.error("Get member events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos do membro" });
+    }
+  });
+
+  // Send manual treasury notification
+  app.post("/api/treasury/notifications/send", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { type, userIds, title, message } = req.body;
+      
+      if (!type || !userIds || !Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "Tipo e destinatários são obrigatórios" });
+      }
+      
+      const validTypes = ["percapta", "ump", "evento", "diversos"];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: "Tipo inválido" });
+      }
+      
+      let notificationTitle = title || "";
+      let notificationBody = message || "";
+      
+      if (!title) {
+        switch (type) {
+          case "percapta":
+            notificationTitle = "Lembrete: Taxa Percapta Pendente";
+            notificationBody = message || "Voce tem a Taxa Percapta pendente. Acesse o painel financeiro para regularizar.";
+            break;
+          case "ump":
+            notificationTitle = "Lembrete: Taxa UMP Pendente";
+            notificationBody = message || "Voce tem mensalidades da Taxa UMP pendentes. Acesse o painel financeiro para regularizar.";
+            break;
+          case "evento":
+            notificationTitle = "Lembrete: Taxa de Evento Pendente";
+            notificationBody = message || "Voce tem taxa de evento pendente. Acesse o painel financeiro para regularizar.";
+            break;
+          default:
+            notificationTitle = "Lembrete Financeiro";
+            notificationBody = message || "Voce tem pendencias financeiras. Acesse o painel financeiro para mais detalhes.";
+        }
+      }
+      
+      let sent = 0;
+      let failed = 0;
+      
+      for (const userId of userIds) {
+        try {
+          await storage.createNotification({
+            userId,
+            type: `treasury_${type}`,
+            title: notificationTitle,
+            body: notificationBody,
+            data: JSON.stringify({ type, isManual: true }),
+          });
+          
+          await sendPushToUser(userId, {
+            title: notificationTitle,
+            body: notificationBody,
+            url: '/study/financeiro',
+            tag: `treasury-manual-${type}-${userId}`,
+            icon: '/logo.png',
+          });
+          
+          sent++;
+        } catch (err) {
+          console.error(`Failed to send notification to user ${userId}:`, err);
+          failed++;
+        }
+      }
+      
+      res.json({ sent, failed, total: userIds.length });
+    } catch (error) {
+      console.error("Send manual notification error:", error);
+      res.status(500).json({ message: "Erro ao enviar notificações" });
+    }
+  });
+
+  // Get pending fee members for manual notifications
+  app.get("/api/treasury/notifications/pending-members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = new Date().getFullYear();
+      const allMembers = await storage.getAllMembers();
+      const settings = await storage.getTreasurySettings(year);
+      
+      if (!settings) {
+        return res.json([]);
+      }
+      
+      const pendingPercapta: Array<{ id: number; fullName: string; type: string }> = [];
+      const pendingUmp: Array<{ id: number; fullName: string; type: string }> = [];
+      
+      for (const member of allMembers) {
+        if (!member.status || member.status === "removed") continue;
+        
+        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
+        if (!percaptaPayment) {
+          pendingPercapta.push({ id: member.id, fullName: member.fullName, type: "percapta" });
+        }
+        
+        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        const currentMonth = new Date().getMonth() + 1;
+        const paidMonths = umpPayments.map(p => p.month);
+        const unpaidMonths = Array.from({ length: currentMonth }, (_, i) => i + 1)
+          .filter(m => !paidMonths.includes(m));
+        
+        if (unpaidMonths.length > 0) {
+          pendingUmp.push({ id: member.id, fullName: member.fullName, type: "ump" });
+        }
+      }
+      
+      res.json({ pendingPercapta, pendingUmp });
+    } catch (error) {
+      console.error("Get pending members error:", error);
+      res.status(500).json({ message: "Erro ao buscar membros pendentes" });
     }
   });
 
@@ -10509,11 +10571,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (entry.orderId) {
         await storage.updateShopOrder(entry.orderId, {
           paymentStatus: "paid",
-          orderStatus: "confirmed",
+          orderStatus: "paid",
           paidAt: now,
         });
 
-        // Note: Shop order notification can be added later
+        // Send notification for paid order
+        const order = await storage.getShopOrderById(entry.orderId);
+        if (order) {
+          await storage.createNotification({
+            userId: order.userId,
+            type: 'order_paid',
+            title: 'Pagamento Confirmado',
+            body: `O pagamento do pedido ${order.orderCode} foi confirmado! Aguarde a producao.`,
+            data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+          });
+          
+          await sendPushToUser(order.userId, {
+            title: 'Pagamento Confirmado',
+            body: `O pagamento do pedido ${order.orderCode} foi confirmado!`,
+            url: '/study/meus-pedidos',
+            tag: `order-paid-${order.id}`,
+            icon: '/logo.png',
+          });
+        }
+      }
+
+      // Handle event fee confirmation
+      if (entry.eventId && entry.userId) {
+        const confirmation = await storage.getEventConfirmation(entry.eventId, entry.userId);
+        if (confirmation && !confirmation.entryId) {
+          await storage.updateEventConfirmation(confirmation.id, {
+            entryId: entry.id,
+          });
+        }
       }
 
       // Handle loan installment

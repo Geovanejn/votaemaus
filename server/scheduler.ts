@@ -1438,6 +1438,61 @@ async function processMonthlyTreasurySummary(): Promise<void> {
   }
 }
 
+// ==================== EVENT FEE REMINDER SCHEDULER ====================
+
+async function processEventFeeReminders(): Promise<void> {
+  console.log('[Event Fee Scheduler] Processing event fee reminders...');
+  
+  try {
+    const daysToCheck = [5, 3, 1];
+    
+    for (const days of daysToCheck) {
+      const eventsWithPending = await storage.getEventsWithPendingFees(days);
+      
+      for (const { event, fee, unpaidConfirmations } of eventsWithPending) {
+        console.log(`[Event Fee Scheduler] Event "${event.title}" has ${unpaidConfirmations.length} unpaid confirmations, deadline in ${days} day(s)`);
+        
+        for (const confirmation of unpaidConfirmations) {
+          const baseAmount = fee.amount || 0;
+          const visitorAmount = fee.visitorAmount || 0;
+          const totalAmount = baseAmount + ((confirmation.visitorCount || 0) * visitorAmount);
+          
+          const title = days === 1 
+            ? `ULTIMO DIA: Taxa de ${event.title}` 
+            : `Lembrete: Taxa de ${event.title}`;
+          const body = days === 1
+            ? `Hoje e o ultimo dia para pagar R$${(totalAmount / 100).toFixed(2)} da taxa do evento ${event.title}. Acesse o painel financeiro.`
+            : `Faltam ${days} dias para pagar R$${(totalAmount / 100).toFixed(2)} da taxa do evento ${event.title}. Acesse o painel financeiro.`;
+          
+          try {
+            await storage.createNotification({
+              userId: confirmation.userId,
+              type: 'event_fee_reminder',
+              title,
+              body,
+              data: JSON.stringify({ eventId: event.id, deadline: fee.deadline, daysRemaining: days }),
+            });
+            
+            await sendPushToUser(confirmation.userId, {
+              title,
+              body,
+              url: '/study/financeiro',
+              tag: `event-fee-${event.id}-${days}`,
+              icon: '/logo.png',
+            });
+          } catch (err) {
+            console.error(`[Event Fee Scheduler] Error notifying user ${confirmation.userId}:`, err);
+          }
+        }
+      }
+    }
+    
+    console.log('[Event Fee Scheduler] Event fee reminders completed');
+  } catch (error) {
+    console.error('[Event Fee Scheduler] Error processing event fee reminders:', error);
+  }
+}
+
 export function initTreasurySchedulers(): void {
   // Day 5 reminder for pending taxes
   cron.schedule('0 9 5 * *', processTreasuryDay5Reminder, {
@@ -1457,6 +1512,12 @@ export function initTreasurySchedulers(): void {
   });
   console.log('[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
   
+  // Event fee reminders (daily at 08:00 - checks 5, 3, 1 days before deadline)
+  cron.schedule('0 8 * * *', processEventFeeReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
+  
   // Year rollover (Jan 1st at 00:05)
   cron.schedule('5 0 1 1 *', processYearRollover, {
     timezone: 'America/Sao_Paulo'
@@ -1470,4 +1531,4 @@ export function initTreasurySchedulers(): void {
   console.log('[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processYearRollover, processMonthlyTreasurySummary };
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders };

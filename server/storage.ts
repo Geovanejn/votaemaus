@@ -7181,6 +7181,97 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  async updateEventConfirmation(confirmationId: number, data: Partial<InsertEventConfirmation>): Promise<EventConfirmation | undefined> {
+    const [confirmation] = await db.update(schema.eventConfirmations)
+      .set(data)
+      .where(eq(schema.eventConfirmations.id, confirmationId))
+      .returning();
+    return confirmation;
+  }
+
+  async getMemberEventConfirmationsWithFees(userId: number, year: number): Promise<Array<{
+    confirmation: EventConfirmation;
+    event: SiteEvent | null;
+    fee: EventFee | null;
+    entry: TreasuryEntry | null;
+  }>> {
+    const confirmations = await db.select()
+      .from(schema.eventConfirmations)
+      .where(eq(schema.eventConfirmations.userId, userId))
+      .orderBy(desc(schema.eventConfirmations.confirmedAt));
+    
+    if (confirmations.length === 0) return [];
+    
+    const eventIds = confirmations.map(c => c.eventId);
+    const eventsData = await db.select().from(schema.siteEvents)
+      .where(inArray(schema.siteEvents.id, eventIds));
+    
+    const yearEvents = eventsData.filter(e => {
+      if (!e.date) return false;
+      return new Date(e.date).getFullYear() === year;
+    });
+    const yearEventIds = new Set(yearEvents.map(e => e.id));
+    const eventsMap = new Map(yearEvents.map(e => [e.id, e]));
+    
+    const allFees = await db.select().from(schema.eventFees)
+      .where(inArray(schema.eventFees.eventId, Array.from(yearEventIds)));
+    const feesMap = new Map(allFees.map(f => [f.eventId, f]));
+    
+    const yearConfirmations = confirmations.filter(c => yearEventIds.has(c.eventId));
+    const entryIds = yearConfirmations.filter(c => c.entryId).map(c => c.entryId!);
+    let entriesMap = new Map<number, TreasuryEntry>();
+    if (entryIds.length > 0) {
+      const entriesData = await db.select().from(schema.treasuryEntries)
+        .where(inArray(schema.treasuryEntries.id, entryIds));
+      entriesMap = new Map(entriesData.map(e => [e.id, e]));
+    }
+    
+    return yearConfirmations.map(conf => ({
+      confirmation: conf,
+      event: eventsMap.get(conf.eventId) || null,
+      fee: feesMap.get(conf.eventId) || null,
+      entry: conf.entryId ? entriesMap.get(conf.entryId) || null : null,
+    }));
+  }
+
+  async getEventsWithPendingFees(daysBeforeDeadline: number): Promise<Array<{
+    event: SiteEvent;
+    fee: EventFee;
+    unpaidConfirmations: Array<EventConfirmation & { user: User }>;
+  }>> {
+    const now = new Date();
+    const targetDate = new Date();
+    targetDate.setDate(now.getDate() + daysBeforeDeadline);
+    
+    const startOfTargetDay = new Date(targetDate);
+    startOfTargetDay.setHours(0, 0, 0, 0);
+    const endOfTargetDay = new Date(targetDate);
+    endOfTargetDay.setHours(23, 59, 59, 999);
+    
+    const eventsWithFees = await this.getEventsWithFees();
+    const result: Array<{
+      event: SiteEvent;
+      fee: EventFee;
+      unpaidConfirmations: Array<EventConfirmation & { user: User }>;
+    }> = [];
+    
+    for (const { event, fee } of eventsWithFees) {
+      if (!fee.deadline) continue;
+      const deadline = new Date(fee.deadline);
+      
+      if (deadline >= startOfTargetDay && deadline <= endOfTargetDay) {
+        const confirmations = await this.getEventConfirmationsWithUsers(event.id);
+        const unpaidConfirmations = confirmations.filter(c => !c.entryId);
+        
+        if (unpaidConfirmations.length > 0) {
+          result.push({ event, fee, unpaidConfirmations });
+        }
+      }
+    }
+    
+    return result;
+  }
+
   async getEventConfirmationCount(eventId: number): Promise<{ members: number; visitors: number }> {
     const confirmations = await this.getEventConfirmations(eventId);
     let members = 0;

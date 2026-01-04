@@ -8762,7 +8762,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const itemsWithDetails = await Promise.all(cartItems.map(async (cartItem) => {
         const item = await storage.getShopItemById(cartItem.itemId);
-        return { ...cartItem, item };
+        if (!item) return { ...cartItem, item: null };
+        const images = await storage.getShopItemImages(item.id);
+        return { ...cartItem, item: { ...item, images } };
       }));
       
       res.json(itemsWithDetails);

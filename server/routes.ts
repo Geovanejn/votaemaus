@@ -10062,6 +10062,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const membersWithPending = new Set<number>();
       
       for (const member of members) {
+        // Only send reminders to active members for percapta/UMP
+        if (!member.activeMember) {
+          continue;
+        }
+        
         const percapta = await storage.getMemberPercaptaPayment(member.id, year);
         const umpPayments = await storage.getMemberUmpPayments(member.id, year);
         

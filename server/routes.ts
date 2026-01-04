@@ -8772,20 +8772,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalAmount = 0;
       const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string }[] = [];
       
-      for (const cartItem of items) {
-        const item = await storage.getShopItemById(cartItem.itemId);
-        if (!item || !item.isAvailable) {
-          return res.status(400).json({ message: `Item ${cartItem.itemId} não disponível` });
+      // Get cart items for the user to map cartItemId to product data
+      const userCart = await storage.getCartItems(req.user!.id);
+      const cartMap = new Map(userCart.map(c => [c.id, c]));
+      
+      for (const requestItem of items) {
+        // Get cart item by cartItemId
+        const cartEntry = cartMap.get(requestItem.cartItemId);
+        if (!cartEntry) {
+          return res.status(400).json({ message: `Item do carrinho não encontrado` });
         }
         
-        const qty = Number(cartItem.quantity) || 1;
+        // Get the product using the itemId from the cart entry
+        const item = await storage.getShopItemById(cartEntry.itemId);
+        if (!item) {
+          return res.status(400).json({ message: `Produto "${cartEntry.itemId}" não encontrado` });
+        }
+        if (!item.isAvailable) {
+          return res.status(400).json({ message: `Produto "${item.name}" não disponível` });
+        }
+        
+        const qty = Number(cartEntry.quantity) || 1;
         totalAmount += item.price * qty;
         orderItems.push({
           itemId: item.id,
           quantity: qty,
           unitPrice: item.price,
-          gender: cartItem.gender,
-          size: cartItem.size,
+          gender: requestItem.gender || cartEntry.gender,
+          size: requestItem.size || cartEntry.size,
         });
       }
       

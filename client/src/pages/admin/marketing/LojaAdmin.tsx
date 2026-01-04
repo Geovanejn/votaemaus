@@ -28,7 +28,11 @@ import {
   X,
   Upload,
   FolderPlus,
-  Ruler
+  Ruler,
+  Tag,
+  Percent,
+  Calendar,
+  Hash
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -84,6 +88,20 @@ interface ShopItemAdmin {
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
+}
+
+interface PromoCode {
+  id: number;
+  code: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  categoryId: number | null;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  maxUses: number | null;
+  usedCount: number;
+  category?: ShopCategory | null;
 }
 
 const itemFormSchema = z.object({
@@ -163,6 +181,20 @@ export default function LojaAdmin() {
     hydrated: boolean; // Flag to track if data has been loaded
   } | null>(null);
 
+  // Promo code states
+  const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
+  const [promoForm, setPromoForm] = useState({
+    code: "",
+    discountType: "percentage" as "percentage" | "fixed",
+    discountValue: "",
+    categoryId: "",
+    startDate: "",
+    endDate: "",
+    isActive: true,
+    maxUses: "",
+  });
+
   const hasAccess = hasMarketingPanel;
 
   const { data: items, isLoading } = useQuery<ShopItemAdmin[]>({
@@ -172,6 +204,11 @@ export default function LojaAdmin() {
 
   const { data: categories } = useQuery<ShopCategory[]>({
     queryKey: ["/api/admin/shop/categories"],
+    enabled: hasAccess,
+  });
+
+  const { data: promoCodes, isLoading: isLoadingPromos } = useQuery<PromoCode[]>({
+    queryKey: ["/api/admin/shop/promo-codes"],
     enabled: hasAccess,
   });
 
@@ -333,6 +370,100 @@ export default function LojaAdmin() {
       toast({ title: "Erro", description: "Não foi possível criar a categoria.", variant: "destructive" });
     },
   });
+
+  const createPromoMutation = useMutation({
+    mutationFn: async (data: typeof promoForm) => {
+      return apiRequest("POST", "/api/admin/shop/promo-codes", {
+        code: data.code.toUpperCase(),
+        discountType: data.discountType,
+        discountValue: data.discountType === "percentage" 
+          ? parseFloat(data.discountValue) 
+          : parseCurrencyInput(data.discountValue),
+        categoryId: data.categoryId ? parseInt(data.categoryId) : null,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        isActive: data.isActive,
+        maxUses: data.maxUses ? parseInt(data.maxUses) : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/promo-codes"] });
+      setIsPromoOpen(false);
+      resetPromoForm();
+      toast({ title: "Cupom criado", description: "O código promocional foi adicionado." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível criar o cupom.", variant: "destructive" });
+    },
+  });
+
+  const updatePromoMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: typeof promoForm }) => {
+      return apiRequest("PATCH", `/api/admin/shop/promo-codes/${id}`, {
+        code: data.code.toUpperCase(),
+        discountType: data.discountType,
+        discountValue: data.discountType === "percentage" 
+          ? parseFloat(data.discountValue) 
+          : parseCurrencyInput(data.discountValue),
+        categoryId: data.categoryId ? parseInt(data.categoryId) : null,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        isActive: data.isActive,
+        maxUses: data.maxUses ? parseInt(data.maxUses) : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/promo-codes"] });
+      setEditingPromo(null);
+      resetPromoForm();
+      toast({ title: "Cupom atualizado", description: "As alterações foram salvas." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível atualizar o cupom.", variant: "destructive" });
+    },
+  });
+
+  const deletePromoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/promo-codes/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/promo-codes"] });
+      toast({ title: "Cupom excluído", description: "O código promocional foi removido." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível excluir o cupom.", variant: "destructive" });
+    },
+  });
+
+  const resetPromoForm = () => {
+    setPromoForm({
+      code: "",
+      discountType: "percentage",
+      discountValue: "",
+      categoryId: "",
+      startDate: "",
+      endDate: "",
+      isActive: true,
+      maxUses: "",
+    });
+  };
+
+  const openEditPromo = (promo: PromoCode) => {
+    setEditingPromo(promo);
+    setPromoForm({
+      code: promo.code,
+      discountType: promo.discountType,
+      discountValue: promo.discountType === "percentage" 
+        ? promo.discountValue.toString() 
+        : formatCurrencyInput(promo.discountValue),
+      categoryId: promo.categoryId?.toString() || "",
+      startDate: promo.startDate.split("T")[0],
+      endDate: promo.endDate.split("T")[0],
+      isActive: promo.isActive,
+      maxUses: promo.maxUses?.toString() || "",
+    });
+  };
 
   const uploadImageMutation = useMutation({
     mutationFn: async ({ itemId, gender, file }: { itemId: number; gender: string; file: File }) => {
@@ -705,6 +836,242 @@ export default function LojaAdmin() {
           )}
         </div>
       </section>
+
+      <section className="py-8 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                <Tag className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Cupons de Desconto</h2>
+                <p className="text-sm text-muted-foreground">Gerencie códigos promocionais</p>
+              </div>
+            </div>
+            <Button onClick={() => setIsPromoOpen(true)} className="gap-2" data-testid="button-add-promo">
+              <Plus className="h-4 w-4" />
+              Novo Cupom
+            </Button>
+          </div>
+
+          {isLoadingPromos ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32" />
+              ))}
+            </div>
+          ) : !promoCodes?.length ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Tag className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-medium mb-1">Nenhum cupom cadastrado</h3>
+                <p className="text-sm text-muted-foreground">Crie um cupom para oferecer descontos</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {promoCodes.map((promo) => {
+                const isExpired = new Date(promo.endDate) < new Date();
+                const isNotStarted = new Date(promo.startDate) > new Date();
+                return (
+                  <Card key={promo.id} className={!promo.isActive || isExpired ? "opacity-60" : ""}>
+                    <CardContent className="py-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={promo.isActive && !isExpired ? "default" : "secondary"}>
+                            {promo.code}
+                          </Badge>
+                          {isExpired && <Badge variant="destructive">Expirado</Badge>}
+                          {isNotStarted && <Badge variant="outline">Futuro</Badge>}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEditPromo(promo)} data-testid={`button-edit-promo-${promo.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => { if (confirm("Excluir este cupom?")) deletePromoMutation.mutate(promo.id); }}
+                            data-testid={`button-delete-promo-${promo.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {promo.discountType === "percentage" 
+                              ? `${promo.discountValue}% de desconto`
+                              : formatCurrency(promo.discountValue)}
+                          </span>
+                        </div>
+                        {promo.category && (
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span>Categoria: {promo.category.name}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{new Date(promo.startDate).toLocaleDateString("pt-BR")} - {new Date(promo.endDate).toLocaleDateString("pt-BR")}</span>
+                        </div>
+                        {promo.maxUses && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Hash className="h-4 w-4" />
+                            <span>Usado {promo.usedCount}/{promo.maxUses}x</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Dialog open={isPromoOpen || !!editingPromo} onOpenChange={(open) => { if (!open) { setIsPromoOpen(false); setEditingPromo(null); resetPromoForm(); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPromo ? "Editar Cupom" : "Novo Cupom"}</DialogTitle>
+            <DialogDescription>
+              {editingPromo ? "Atualize as informações do cupom" : "Crie um código promocional de desconto"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="promo-code">Código</Label>
+              <Input
+                id="promo-code"
+                placeholder="Ex: VERAO2026"
+                value={promoForm.code}
+                onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
+                data-testid="input-promo-code"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo de Desconto</Label>
+                <Select 
+                  value={promoForm.discountType} 
+                  onValueChange={(v) => setPromoForm({ ...promoForm, discountType: v as "percentage" | "fixed", discountValue: "" })}
+                >
+                  <SelectTrigger data-testid="select-promo-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                    <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="promo-value">
+                  {promoForm.discountType === "percentage" ? "Percentual" : "Valor"}
+                </Label>
+                <Input
+                  id="promo-value"
+                  placeholder={promoForm.discountType === "percentage" ? "Ex: 10" : "Ex: 10,00"}
+                  value={promoForm.discountValue}
+                  onChange={(e) => setPromoForm({ ...promoForm, discountValue: e.target.value })}
+                  data-testid="input-promo-value"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria (opcional)</Label>
+              <Select 
+                value={promoForm.categoryId} 
+                onValueChange={(v) => setPromoForm({ ...promoForm, categoryId: v })}
+              >
+                <SelectTrigger data-testid="select-promo-category">
+                  <SelectValue placeholder="Todas as categorias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as categorias</SelectItem>
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="promo-start">Data Início</Label>
+                <Input
+                  id="promo-start"
+                  type="date"
+                  value={promoForm.startDate}
+                  onChange={(e) => setPromoForm({ ...promoForm, startDate: e.target.value })}
+                  data-testid="input-promo-start"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="promo-end">Data Fim</Label>
+                <Input
+                  id="promo-end"
+                  type="date"
+                  value={promoForm.endDate}
+                  onChange={(e) => setPromoForm({ ...promoForm, endDate: e.target.value })}
+                  data-testid="input-promo-end"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promo-max-uses">Limite de Usos (opcional)</Label>
+              <Input
+                id="promo-max-uses"
+                type="number"
+                placeholder="Sem limite"
+                value={promoForm.maxUses}
+                onChange={(e) => setPromoForm({ ...promoForm, maxUses: e.target.value })}
+                data-testid="input-promo-max-uses"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="promo-active"
+                checked={promoForm.isActive}
+                onCheckedChange={(checked) => setPromoForm({ ...promoForm, isActive: checked })}
+                data-testid="switch-promo-active"
+              />
+              <Label htmlFor="promo-active">Cupom ativo</Label>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setIsPromoOpen(false); setEditingPromo(null); resetPromoForm(); }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingPromo) {
+                  updatePromoMutation.mutate({ id: editingPromo.id, data: promoForm });
+                } else {
+                  createPromoMutation.mutate(promoForm);
+                }
+              }}
+              disabled={
+                !promoForm.code.trim() || 
+                !promoForm.discountValue || 
+                !promoForm.startDate || 
+                !promoForm.endDate ||
+                createPromoMutation.isPending ||
+                updatePromoMutation.isPending
+              }
+              data-testid="button-save-promo"
+            >
+              {(createPromoMutation.isPending || updatePromoMutation.isPending) && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              {editingPromo ? "Salvar" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
         <DialogContent className="max-w-sm">

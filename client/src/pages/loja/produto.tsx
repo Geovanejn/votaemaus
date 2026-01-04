@@ -186,6 +186,11 @@ export default function LojaProdutoPage() {
       <div className="p-4 space-y-4">
         {/* Badges */}
         <div className="flex gap-2">
+          {!product.isAvailable && (
+            <Badge className="bg-red-600 text-white text-xs px-3 py-1" data-testid="badge-sold-out">
+              ESGOTADO
+            </Badge>
+          )}
           {product.isFeatured && (
             <Badge className="bg-black text-white text-xs px-3 py-1">
               DESTAQUE
@@ -289,12 +294,20 @@ export default function LojaProdutoPage() {
           </div>
 
           <Button
-            className="flex-1 bg-yellow-400 text-black hover:bg-yellow-500 h-12 text-base font-bold"
+            className={`flex-1 h-12 text-base font-bold ${
+              !product.isAvailable 
+                ? "bg-gray-400 text-white cursor-not-allowed" 
+                : "bg-yellow-400 text-black hover:bg-yellow-500"
+            }`}
             onClick={addToCart}
             disabled={addToCartMutation.isPending || !product.isAvailable || (product.hasSize && !selectedSize)}
             data-testid="button-add-to-cart"
           >
-            {addToCartMutation.isPending ? "ADICIONANDO..." : "COMPRAR"}
+            {!product.isAvailable 
+              ? "PRODUTO ESGOTADO" 
+              : addToCartMutation.isPending 
+                ? "ADICIONANDO..." 
+                : "COMPRAR"}
           </Button>
         </div>
 

@@ -10800,13 +10800,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Per spec: "Não pode pular meses (deve pagar em ordem)"
         const sortedRequestedMonths = [...unpaidMonths].sort((a, b) => a - b);
         
-        // Find the first unpaid month (next due month)
-        let firstUnpaidMonth = 1;
-        for (let m = 1; m <= 12; m++) {
+        // Calculate starting month based on Day 10 Rule:
+        // - If became active on day 1-10 of a month: pays from THAT month
+        // - If became active on day 11-31: pays from NEXT month
+        let startingMonth = 1;
+        if (user.activeMemberSince) {
+          const activeSince = new Date(user.activeMemberSince);
+          if (activeSince.getFullYear() === year) {
+            const dayOfMonth = activeSince.getDate();
+            const monthActive = activeSince.getMonth() + 1;
+            
+            if (dayOfMonth <= 10) {
+              startingMonth = monthActive; // Pays from this month
+            } else {
+              startingMonth = monthActive + 1; // Pays from next month
+            }
+          } else if (activeSince.getFullYear() > year) {
+            // Not active in this year - no months due
+            return res.status(400).json({ message: "Você não possui meses de UMP a pagar neste ano" });
+          }
+        }
+        
+        // Find the first unpaid month (next due month), starting from the member's starting month
+        let firstUnpaidMonth = startingMonth;
+        for (let m = startingMonth; m <= 12; m++) {
           if (!paidMonthNumbers.includes(m)) {
             firstUnpaidMonth = m;
             break;
           }
+        }
+        
+        // Validate that no requested months are before the member's starting month
+        if (sortedRequestedMonths[0] < startingMonth) {
+          const startMonthName = new Date(2000, startingMonth - 1, 1).toLocaleDateString("pt-BR", { month: "long" });
+          return res.status(400).json({ 
+            message: `Seu primeiro mês de UMP é ${startMonthName}. Meses anteriores não podem ser pagos.` 
+          });
         }
         
         // Check if requested months start from the first unpaid month

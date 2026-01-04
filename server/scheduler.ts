@@ -1569,11 +1569,11 @@ async function processEventFeeReminders(): Promise<void> {
 }
 
 export function initTreasurySchedulers(): void {
-  // Day 5 reminder for pending taxes
-  cron.schedule('0 9 5 * *', processTreasuryDay5Reminder, {
+  // Day 5 reminder for pending taxes (per spec: 08:00)
+  cron.schedule('0 8 5 * *', processTreasuryDay5Reminder, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 09:00 (America/Sao_Paulo)');
+  console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)');
   
   // Abandoned cart reminder (every hour to catch 2h/12h/24h/48h intervals)
   cron.schedule('0 * * * *', processAbandonedCartReminder, {

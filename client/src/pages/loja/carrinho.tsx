@@ -2,16 +2,24 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { ShopHeader } from "@/components/shop/ShopHeader";
 import type { ShopItem, ShopCartItem } from "@shared/schema";
+
+interface PromoValidation {
+  valid: boolean;
+  message: string;
+  discount?: number;
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
+  appliedItems?: number;
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -29,6 +37,7 @@ export default function LojaCarrinhoPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<PromoValidation | null>(null);
   const [observation, setObservation] = useState("");
 
   const { data: cartItems, isLoading } = useQuery<CartItemWithDetails[]>({
@@ -56,12 +65,37 @@ export default function LojaCarrinhoPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/cart"] });
+      setAppliedPromo(null);
+      setPromoCode("");
       toast({ title: "Item removido", description: "O item foi removido do carrinho." });
     },
   });
 
+  const validatePromoMutation = useMutation({
+    mutationFn: async (code: string) => {
+      if (!cartItems) throw new Error("Carrinho vazio");
+      const res = await apiRequest("POST", "/api/shop/validate-promo", { code });
+      return res.json();
+    },
+    onSuccess: (data: { valid: boolean; code: string; discountAmount: number; discountType: string; discountValue: number }) => {
+      if (data.valid) {
+        setAppliedPromo({
+          valid: true,
+          message: `Cupom ${data.code} aplicado com sucesso!`,
+          discount: data.discountAmount,
+          discountType: data.discountType as "percentage" | "fixed",
+          discountValue: data.discountValue,
+        });
+        toast({ title: "Cupom aplicado!", description: `Desconto de ${formatCurrency(data.discountAmount)} aplicado.` });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Cupom inválido", description: error.message || "Não foi possível validar o cupom.", variant: "destructive" });
+    },
+  });
+
   const checkoutMutation = useMutation({
-    mutationFn: async (data: { items: Array<{ cartItemId: number; gender: string; size?: string }>; observation?: string }) => {
+    mutationFn: async (data: { items: Array<{ cartItemId: number; gender: string; size?: string }>; observation?: string; promoCode?: string }) => {
       const res = await apiRequest("POST", "/api/shop/checkout", data);
       return res.json();
     },
@@ -84,7 +118,8 @@ export default function LojaCarrinhoPage() {
   });
 
   const subtotal = cartItems?.reduce((sum, item) => sum + (item.item.price * item.quantity), 0) || 0;
-  const total = subtotal;
+  const discount = appliedPromo?.discount || 0;
+  const total = Math.max(0, subtotal - discount);
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   const handleCheckout = () => {
@@ -96,7 +131,21 @@ export default function LojaCarrinhoPage() {
       size: c.size || undefined,
     }));
     
-    checkoutMutation.mutate({ items, observation: observation || undefined });
+    checkoutMutation.mutate({ 
+      items, 
+      observation: observation || undefined,
+      promoCode: appliedPromo?.valid ? promoCode : undefined,
+    });
+  };
+
+  const handleApplyPromo = () => {
+    if (!promoCode.trim()) return;
+    validatePromoMutation.mutate(promoCode.trim().toUpperCase());
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode("");
   };
 
   if (!user) {
@@ -236,13 +285,22 @@ export default function LojaCarrinhoPage() {
 
           {/* Order Summary */}
           <div className="border border-gray-100 rounded-xl p-4 mt-6">
-            <h2 className="text-lg font-bold text-black mb-4">Order Summary</h2>
+            <h2 className="text-lg font-bold text-black mb-4">Resumo do Pedido</h2>
             
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium text-black" data-testid="text-subtotal">{formatCurrency(subtotal)}</span>
               </div>
+              {appliedPromo && appliedPromo.discount && appliedPromo.discount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Desconto ({promoCode})
+                  </span>
+                  <span data-testid="text-discount">-{formatCurrency(appliedPromo.discount)}</span>
+                </div>
+              )}
               <div className="border-t border-gray-100 pt-3 flex justify-between">
                 <span className="font-medium text-black">Total</span>
                 <span className="font-bold text-lg text-black" data-testid="text-total">{formatCurrency(total)}</span>
@@ -250,21 +308,40 @@ export default function LojaCarrinhoPage() {
             </div>
 
             {/* Promo Code */}
-            <div className="flex gap-2 mt-4">
-              <div className="flex-1 relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Código promocional"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  className="pl-10 rounded-full border-gray-200 bg-gray-50"
-                  data-testid="input-promo-code"
-                />
+            {appliedPromo?.valid ? (
+              <div className="flex items-center justify-between mt-4 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                <div className="flex items-center gap-2 text-green-700 text-sm">
+                  <Check className="h-4 w-4" />
+                  <span>Cupom <strong>{promoCode}</strong> aplicado</span>
+                </div>
+                <button onClick={handleRemovePromo} className="text-green-700 hover:text-green-900" data-testid="button-remove-promo">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <Button variant="outline" className="rounded-full px-6 border-black text-black" data-testid="button-apply-promo">
-                Aplicar
-              </Button>
-            </div>
+            ) : (
+              <div className="flex gap-2 mt-4">
+                <div className="flex-1 relative">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Código promocional"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                    className="pl-10 rounded-full border-gray-200 bg-gray-50"
+                    data-testid="input-promo-code"
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="rounded-full px-6 border-black text-black" 
+                  onClick={handleApplyPromo}
+                  disabled={!promoCode.trim() || validatePromoMutation.isPending}
+                  data-testid="button-apply-promo"
+                >
+                  {validatePromoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                </Button>
+              </div>
+            )}
 
             {/* Checkout Button */}
             <Button

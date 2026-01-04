@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const reportTypes = [
   {
@@ -74,6 +75,7 @@ const months = [
 export default function TesourariaRelatorios() {
   const { hasTreasuryPanel } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
@@ -88,8 +90,72 @@ export default function TesourariaRelatorios() {
 
   const handleGenerateReport = async (reportId: string) => {
     setGeneratingReport(reportId);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setGeneratingReport(null);
+    const token = localStorage.getItem("token");
+    
+    try {
+      let url = "";
+      let filename = "";
+      
+      switch (reportId) {
+        case "monthly":
+          url = `/api/treasury/reports/excel?year=${selectedYear}&month=${selectedMonth}`;
+          filename = `relatorio-mensal-${selectedYear}-${selectedMonth.padStart(2, "0")}.xlsx`;
+          break;
+        case "annual":
+          url = `/api/treasury/reports/excel?year=${selectedYear}`;
+          filename = `relatorio-anual-${selectedYear}.xlsx`;
+          break;
+        case "members":
+          url = `/api/treasury/reports/member-payments?year=${selectedYear}`;
+          filename = `relatorio-membros-${selectedYear}.xlsx`;
+          break;
+        case "shop":
+          url = `/api/treasury/reports/excel?year=${selectedYear}&category=loja`;
+          filename = `relatorio-loja-${selectedYear}.xlsx`;
+          break;
+        case "loans":
+          url = `/api/treasury/reports/excel?year=${selectedYear}&category=emprestimo`;
+          filename = `relatorio-emprestimos-${selectedYear}.xlsx`;
+          break;
+        default:
+          throw new Error("Tipo de relatorio desconhecido");
+      }
+      
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      
+      const response = await fetch(url, {
+        headers,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Erro ao gerar relatorio");
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: "Relatorio gerado",
+        description: `O arquivo ${filename} foi baixado.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Nao foi possivel gerar o relatorio.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingReport(null);
+    }
   };
 
   return (
@@ -210,7 +276,7 @@ export default function TesourariaRelatorios() {
                       ) : (
                         <>
                           <Download className="h-4 w-4" />
-                          Gerar PDF
+                          Baixar Excel
                         </>
                       )}
                     </Button>

@@ -103,12 +103,34 @@ export default function FinanceiroPage() {
   } | null>(null);
 
   const { data: financial, isLoading, error, refetch } = useQuery<MemberFinancialStatus>({
-    queryKey: ["/api/treasury/member/status", currentYear],
+    queryKey: ["treasury-member-status", currentYear],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`/api/treasury/member/status?year=${currentYear}`, {
+        headers,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch financial status");
+      return res.json();
+    },
     enabled: isAuthenticated,
   });
 
   const { data: memberEvents, isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery<MemberEvent[]>({
-    queryKey: [`/api/treasury/member/events?year=${currentYear}`],
+    queryKey: ["treasury-member-events", currentYear],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`/api/treasury/member/events?year=${currentYear}`, {
+        headers,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch member events");
+      return res.json();
+    },
     enabled: isAuthenticated,
   });
 

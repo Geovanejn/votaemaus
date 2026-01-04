@@ -9562,14 +9562,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
       const monthParam = req.query.month as string;
       const month = monthParam ? parseInt(monthParam) : undefined;
+      const categoryParam = req.query.category as string;
       
       const entries = await storage.getTreasuryEntries({ year });
-      const filteredEntries = month 
+      let filteredEntries = month 
         ? entries.filter(e => {
             const entryDate = e.paidAt || e.createdAt;
             return entryDate && new Date(entryDate).getMonth() + 1 === month;
           })
         : entries;
+      
+      // Filter by category if specified
+      if (categoryParam === "loja") {
+        filteredEntries = filteredEntries.filter(e => e.category === "venda_loja" || e.category === "loja");
+      } else if (categoryParam === "emprestimo") {
+        filteredEntries = filteredEntries.filter(e => e.category === "emprestimo" || e.category === "emprestimo_parcela");
+      }
       
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "UMP Emaus - Tesouraria";

@@ -39,7 +39,7 @@
 - [x] Página principal do dashboard
 - [x] Componente de resumo financeiro
 - [x] Gráfico mensal (entradas vs saídas em barras)
-- [ ] Gráficos adicionais (pizza por categoria)
+- [x] Gráficos adicionais (pizza por categoria)
 - [x] Lista de transações com filtros
 - [x] Alertas de inadimplência
 - [x] Formulário de configurações (taxas, chave PIX)
@@ -49,10 +49,10 @@
 - [x] Página de relatórios
 - [x] Formulário de entrada manual (com tipos e categorias)
 - [x] Formulário de saída manual (integrado no mesmo formulário)
-- [ ] Gerenciamento de empréstimos (criar/editar)
-- [ ] Gerenciamento de parcelas
-- [ ] Envio de notificações manuais
-- [ ] Geração de relatórios (PDF/Excel)
+- [x] Gerenciamento de empréstimos (criar/editar)
+- [x] Gerenciamento de parcelas
+- [x] Envio de notificações manuais
+- [x] Geração de relatórios (PDF/Excel)
 
 ### Frontend - Painel Financeiro do Membro
 - [x] Página principal do painel financeiro (/study/financeiro)
@@ -60,7 +60,7 @@
 - [x] Status de Taxa UMP (meses pagos/pendentes)
 - [x] Histórico de pagamentos
 - [x] Histórico de pedidos da loja
-- [ ] Histórico de eventos
+- [x] Histórico de eventos
 - [x] Componente de pagamento PIX (QR Code) - PixPaymentModal.tsx
 - [x] Botão pagar Taxa UMP via PIX
 - [x] Botão pagar Taxa Percapta via PIX
@@ -89,8 +89,8 @@
 - [x] Modal de detalhes do pedido
 
 ### Frontend - Eventos com Taxa
-- [ ] Modificar página de evento para taxa
-- [ ] Fluxo de confirmação com pagamento
+- [x] Modificar página de evento para taxa
+- [x] Fluxo de confirmação com pagamento
 - [x] Contador de confirmados (API implementada)
 - [x] Pagamento para visitantes (API implementada)
 - [x] Botão pagar taxa de evento via PIX (na página financeiro)
@@ -121,7 +121,7 @@
 
 ### Sistema de Notificações
 - [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 09:00
-- [ ] Scheduler eventos (5, 3, 1 dia antes) - aguardando sistema de eventos com taxa
+- [x] Scheduler eventos (5, 3, 1 dia antes) - diário às 08:00
 - [x] Scheduler carrinho abandonado - diário às 10:00 (24-48h)
 - [x] Scheduler parcelas de empréstimo - diário às 08:00 (3 dias, 1 dia, no dia)
 - [x] Scheduler virada de ano - 1º de janeiro às 00:05

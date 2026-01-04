@@ -9496,6 +9496,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dados incompletos" });
       }
       
+      // CRITICAL: Only active members can pay percapta tax
+      const member = await storage.getUserById(userId);
+      if (!member) {
+        return res.status(404).json({ message: "Membro não encontrado" });
+      }
+      if (!member.activeMember) {
+        return res.status(403).json({ 
+          message: "Apenas membros ativos podem pagar taxa Percapta" 
+        });
+      }
+      
       // Criar entrada na tesouraria primeiro
       const entry = await storage.createTreasuryEntry({
         type: "income",
@@ -9541,6 +9552,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!userId || !year || !months || !amountPerMonth) {
         return res.status(400).json({ message: "Dados incompletos" });
+      }
+      
+      // CRITICAL: Only active members can pay UMP tax
+      const member = await storage.getUserById(userId);
+      if (!member) {
+        return res.status(404).json({ message: "Membro não encontrado" });
+      }
+      if (!member.activeMember) {
+        return res.status(403).json({ 
+          message: "Apenas membros ativos podem pagar taxa UMP" 
+        });
       }
       
       const payments = [];
@@ -9663,6 +9685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         memberId: userId,
         memberName: user.fullName,
+        isActiveMember: user.activeMember, // CRITICAL: Used to show/hide payment buttons
         year,
         percaptaStatus,
         umpStatus,
@@ -9686,8 +9709,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const memberEvents = data
         .map(({ confirmation, event, fee, entry }) => {
-          const baseAmount = fee?.amount || 0;
-          const visitorAmount = fee?.visitorAmount || 0;
+          const baseAmount = fee?.feeAmount || 0;
+          // Visitor amount is same as base amount per visitor (or could be different if specified)
+          const visitorAmount = baseAmount; // Same rate for visitors
           const totalAmount = baseAmount + ((confirmation.visitorCount || 0) * visitorAmount);
           
           const entryYear = entry?.referenceYear || (entry?.createdAt ? new Date(entry.createdAt).getFullYear() : null);
@@ -9697,7 +9721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: confirmation.id,
             eventId: confirmation.eventId,
             eventName: event?.title || "Evento",
-            eventDate: event?.date?.toISOString() || null,
+            eventDate: event?.startDate || null,
             eventImageUrl: event?.imageUrl || null,
             isVisitor: confirmation.isVisitor,
             visitorCount: confirmation.visitorCount || 0,
@@ -9803,7 +9827,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingUmp: Array<{ id: number; fullName: string; type: string }> = [];
       
       for (const member of allMembers) {
-        if (!member.status || member.status === "removed") continue;
+        // CRITICAL: Only active members should pay percapta and UMP
+        if (!member.activeMember) continue;
         
         const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
         if (!percaptaPayment) {
@@ -9999,7 +10024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID do membro invalido" });
       }
       
-      const member = await storage.getMemberById(parsedUserId);
+      const member = await storage.getUserById(parsedUserId);
       if (!member) {
         return res.status(404).json({ message: "Membro nao encontrado" });
       }
@@ -10008,7 +10033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? message.trim().substring(0, 500)
         : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para mais detalhes.";
       
-      const result = await notifications.sendPushToUser(parsedUserId, {
+      const result = await sendPushToUser(parsedUserId, {
         title: "Lembrete da Tesouraria",
         body: customMessage,
         icon: "/logo.png",
@@ -10063,12 +10088,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? message.trim().substring(0, 500)
         : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para regularizar.";
       
-      const result = await notifications.sendPushToUsers(memberIds, {
-        title: "Lembrete de Pagamentos Pendentes",
-        body: customMessage,
-        icon: "/logo.png",
-        data: { url: "/financeiro" },
-      });
+      let sentCount = 0;
+      for (const memberId of memberIds) {
+        try {
+          await sendPushToUser(memberId, {
+            title: "Lembrete de Pagamentos Pendentes",
+            body: customMessage,
+            url: "/study/financeiro",
+            tag: `treasury-bulk-${memberId}`,
+            icon: "/logo.png",
+          });
+          sentCount++;
+        } catch (err) {
+          console.error(`Failed to send to member ${memberId}:`, err);
+        }
+      }
+      const result = sentCount;
       
       res.json({ 
         success: true, 
@@ -10652,6 +10687,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      // CRITICAL: Only active members can pay percapta and UMP taxes
+      if (!user.activeMember) {
+        return res.status(403).json({ 
+          message: "Apenas membros ativos podem pagar taxas Percapta e UMP. Entre em contato com a liderança." 
+        });
       }
 
       let amount: number;

@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 interface MemberFinancialStatus {
   memberId: number;
   memberName: string;
+  isActiveMember: boolean; // CRITICAL: Only active members pay percapta/UMP
   year: number;
   percaptaStatus: {
     amount: number;
@@ -350,7 +351,7 @@ export default function FinanceiroPage() {
                         {formatCurrency(financial.percaptaStatus.amount)}
                       </span>
                     </div>
-                    {!financial.percaptaStatus.isPaid && (
+                    {!financial.percaptaStatus.isPaid && financial.isActiveMember && (
                       <Button 
                         className="w-full gap-2"
                         onClick={handlePayPercapta}
@@ -364,6 +365,11 @@ export default function FinanceiroPage() {
                         )}
                         Pagar via PIX
                       </Button>
+                    )}
+                    {!financial.isActiveMember && !financial.percaptaStatus.isPaid && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        Apenas membros ativos pagam esta taxa
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -439,19 +445,25 @@ export default function FinanceiroPage() {
                             {formatCurrency(financial.umpStatus.totalOwed)}
                           </span>
                         </div>
-                        <Button 
-                          className="w-full gap-2"
-                          onClick={handlePayUmp}
-                          disabled={createPaymentMutation.isPending}
-                          data-testid="button-pay-ump"
-                        >
-                          {createPaymentMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <QrCode className="h-4 w-4" />
-                          )}
-                          Pagar meses pendentes
-                        </Button>
+                        {financial.isActiveMember ? (
+                          <Button 
+                            className="w-full gap-2"
+                            onClick={handlePayUmp}
+                            disabled={createPaymentMutation.isPending}
+                            data-testid="button-pay-ump"
+                          >
+                            {createPaymentMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <QrCode className="h-4 w-4" />
+                            )}
+                            Pagar meses pendentes
+                          </Button>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-2">
+                            Apenas membros ativos pagam esta taxa
+                          </p>
+                        )}
                       </div>
                     )}
                   </CardContent>

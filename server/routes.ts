@@ -8583,6 +8583,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== PROMO CODES - ADMIN ====================
+
+  // Listar códigos promocionais
+  app.get("/api/admin/shop/promo-codes", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const codes = await storage.getPromoCodes();
+      const categories = await storage.getShopCategories();
+      const codesWithCategory = codes.map(code => ({
+        ...code,
+        category: code.categoryId ? categories.find(c => c.id === code.categoryId) : null,
+      }));
+      res.json(codesWithCategory);
+    } catch (error) {
+      console.error("Get promo codes error:", error);
+      res.status(500).json({ message: "Erro ao buscar códigos promocionais" });
+    }
+  });
+
+  // Criar código promocional
+  app.post("/api/admin/shop/promo-codes", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { code, discountType, discountValue, categoryId, startDate, endDate, isActive, maxUses } = req.body;
+      
+      if (!code || !discountValue || !startDate || !endDate) {
+        return res.status(400).json({ message: "Código, valor do desconto, data de início e fim são obrigatórios" });
+      }
+      
+      const existing = await storage.getPromoCodeByCode(code);
+      if (existing) {
+        return res.status(400).json({ message: "Este código já existe" });
+      }
+      
+      const promoCode = await storage.createPromoCode({
+        code,
+        discountType: discountType || "percentage",
+        discountValue: Number(discountValue),
+        categoryId: categoryId || null,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        isActive: isActive !== false,
+        maxUses: maxUses || null,
+      });
+      
+      res.json(promoCode);
+    } catch (error) {
+      console.error("Create promo code error:", error);
+      res.status(500).json({ message: "Erro ao criar código promocional" });
+    }
+  });
+
+  // Atualizar código promocional
+  app.patch("/api/admin/shop/promo-codes/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { code, discountType, discountValue, categoryId, startDate, endDate, isActive, maxUses } = req.body;
+      
+      const updateData: any = {};
+      if (code !== undefined) updateData.code = code;
+      if (discountType !== undefined) updateData.discountType = discountType;
+      if (discountValue !== undefined) updateData.discountValue = Number(discountValue);
+      if (categoryId !== undefined) updateData.categoryId = categoryId || null;
+      if (startDate !== undefined) updateData.startDate = new Date(startDate);
+      if (endDate !== undefined) updateData.endDate = new Date(endDate);
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (maxUses !== undefined) updateData.maxUses = maxUses || null;
+      
+      const promoCode = await storage.updatePromoCode(id, updateData);
+      if (!promoCode) {
+        return res.status(404).json({ message: "Código não encontrado" });
+      }
+      
+      res.json(promoCode);
+    } catch (error) {
+      console.error("Update promo code error:", error);
+      res.status(500).json({ message: "Erro ao atualizar código promocional" });
+    }
+  });
+
+  // Deletar código promocional
+  app.delete("/api/admin/shop/promo-codes/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deletePromoCode(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete promo code error:", error);
+      res.status(500).json({ message: "Erro ao deletar código promocional" });
+    }
+  });
+
   // ==================== SHOP ROUTES - MEMBER ====================
 
   // Listar categorias da loja (publico)
@@ -8760,17 +8850,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validar código promocional
+  app.post("/api/shop/validate-promo", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { code, cartItems } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ message: "Código obrigatório" });
+      }
+      
+      const promoCode = await storage.getPromoCodeByCode(code);
+      
+      if (!promoCode) {
+        return res.status(404).json({ message: "Código promocional não encontrado" });
+      }
+      
+      if (!promoCode.isActive) {
+        return res.status(400).json({ message: "Código promocional inativo" });
+      }
+      
+      const now = new Date();
+      if (now < new Date(promoCode.startDate)) {
+        return res.status(400).json({ message: "Código promocional ainda não está ativo" });
+      }
+      
+      if (now > new Date(promoCode.endDate)) {
+        return res.status(400).json({ message: "Código promocional expirado" });
+      }
+      
+      if (promoCode.maxUses && promoCode.usedCount >= promoCode.maxUses) {
+        return res.status(400).json({ message: "Código promocional atingiu o limite de usos" });
+      }
+      
+      // Calculate discount based on cart items
+      let applicableAmount = 0;
+      const userCart = await storage.getCartItems(req.user!.id);
+      
+      for (const cartItem of userCart) {
+        const product = await storage.getShopItemById(cartItem.itemId);
+        if (!product) continue;
+        
+        // Check if promo code applies to this product's category
+        if (promoCode.categoryId === null || product.categoryId === promoCode.categoryId) {
+          applicableAmount += product.price * cartItem.quantity;
+        }
+      }
+      
+      let discountAmount = 0;
+      if (promoCode.discountType === "percentage") {
+        discountAmount = Math.floor(applicableAmount * (promoCode.discountValue / 100));
+      } else {
+        discountAmount = Math.min(promoCode.discountValue, applicableAmount);
+      }
+      
+      const category = promoCode.categoryId ? await storage.getShopCategoryById(promoCode.categoryId) : null;
+      
+      res.json({
+        valid: true,
+        code: promoCode.code,
+        discountType: promoCode.discountType,
+        discountValue: promoCode.discountValue,
+        discountAmount,
+        categoryId: promoCode.categoryId,
+        categoryName: category?.name || null,
+        promoCodeId: promoCode.id,
+      });
+    } catch (error) {
+      console.error("Validate promo code error:", error);
+      res.status(500).json({ message: "Erro ao validar código promocional" });
+    }
+  });
+
   // Finalizar pedido (checkout)
   app.post("/api/shop/checkout", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { items, observation } = req.body;
+      const { items, observation, promoCode: promoCodeStr } = req.body;
       
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Itens obrigatórios" });
       }
       
       let totalAmount = 0;
-      const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string }[] = [];
+      let discountAmount = 0;
+      let promoCodeId: number | null = null;
+      const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string; categoryId?: number | null }[] = [];
       
       // Get cart items for the user to map cartItemId to product data
       const userCart = await storage.getCartItems(req.user!.id);
@@ -8800,8 +8963,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           unitPrice: item.price,
           gender: requestItem.gender || cartEntry.gender,
           size: requestItem.size || cartEntry.size,
+          categoryId: item.categoryId,
         });
       }
+      
+      // Apply promo code if provided
+      if (promoCodeStr) {
+        const promoCode = await storage.getPromoCodeByCode(promoCodeStr);
+        if (promoCode && promoCode.isActive) {
+          const now = new Date();
+          if (now >= new Date(promoCode.startDate) && now <= new Date(promoCode.endDate)) {
+            if (!promoCode.maxUses || promoCode.usedCount < promoCode.maxUses) {
+              // Calculate applicable amount
+              let applicableAmount = 0;
+              for (const oi of orderItems) {
+                if (promoCode.categoryId === null || oi.categoryId === promoCode.categoryId) {
+                  applicableAmount += oi.unitPrice * oi.quantity;
+                }
+              }
+              
+              if (promoCode.discountType === "percentage") {
+                discountAmount = Math.floor(applicableAmount * (promoCode.discountValue / 100));
+              } else {
+                discountAmount = Math.min(promoCode.discountValue, applicableAmount);
+              }
+              
+              promoCodeId = promoCode.id;
+            }
+          }
+        }
+      }
+      
+      const finalAmount = Math.max(0, totalAmount - discountAmount);
       
       const year = new Date().getFullYear();
       const existingOrders = await storage.getShopOrders();
@@ -8812,8 +9005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createShopOrder({
         orderCode,
         userId: req.user!.id,
-        totalAmount,
-        observation: observation || null,
+        totalAmount: finalAmount,
+        observation: observation ? (discountAmount > 0 ? `${observation} [Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : observation) : (discountAmount > 0 ? `[Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : null),
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
       });
@@ -8829,9 +9022,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Increment promo code usage
+      if (promoCodeId) {
+        await storage.incrementPromoCodeUsage(promoCodeId);
+      }
+      
       await storage.clearCart(req.user!.id);
       
-      res.json(order);
+      res.json({ ...order, originalAmount: totalAmount, discountAmount });
     } catch (error) {
       console.error("Checkout error:", error);
       res.status(500).json({ message: "Erro ao finalizar pedido" });

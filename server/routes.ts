@@ -9575,7 +9575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter by category if specified
       if (categoryParam === "loja") {
         filteredEntries = filteredEntries.filter(e => e.category === "venda_loja" || e.category === "loja");
-      } else if (categoryParam === "emprestimo") {
+      } else if (categoryParam === "emprestimo" || categoryParam === "emprestimos") {
         filteredEntries = filteredEntries.filter(e => e.category === "emprestimo" || e.category === "emprestimo_parcela");
       }
       

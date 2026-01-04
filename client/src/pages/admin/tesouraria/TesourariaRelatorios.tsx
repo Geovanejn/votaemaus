@@ -114,7 +114,7 @@ export default function TesourariaRelatorios() {
           filename = `relatorio-loja-${selectedYear}.xlsx`;
           break;
         case "loans":
-          url = `/api/treasury/reports/excel?year=${selectedYear}&category=emprestimo`;
+          url = `/api/treasury/reports/excel?year=${selectedYear}&category=emprestimos`;
           filename = `relatorio-emprestimos-${selectedYear}.xlsx`;
           break;
         default:

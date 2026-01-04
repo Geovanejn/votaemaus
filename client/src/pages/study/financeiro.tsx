@@ -105,14 +105,7 @@ export default function FinanceiroPage() {
   const { data: financial, isLoading, error, refetch } = useQuery<MemberFinancialStatus>({
     queryKey: ["treasury-member-status", currentYear],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`/api/treasury/member/status?year=${currentYear}`, {
-        headers,
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch financial status");
+      const res = await apiRequest("GET", `/api/treasury/member/status?year=${currentYear}`);
       return res.json();
     },
     enabled: isAuthenticated,
@@ -121,14 +114,7 @@ export default function FinanceiroPage() {
   const { data: memberEvents, isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery<MemberEvent[]>({
     queryKey: ["treasury-member-events", currentYear],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`/api/treasury/member/events?year=${currentYear}`, {
-        headers,
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch member events");
+      const res = await apiRequest("GET", `/api/treasury/member/events?year=${currentYear}`);
       return res.json();
     },
     enabled: isAuthenticated,
@@ -292,10 +278,14 @@ export default function FinanceiroPage() {
           ) : error ? (
             <Card>
               <CardContent className="py-8 text-center">
-                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  Não foi possível carregar suas informações financeiras.
+                <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
+                <h3 className="font-medium mb-2">Erro ao carregar dados</h3>
+                <p className="text-muted-foreground mb-4">
+                  Não foi possível carregar suas informações financeiras. Verifique sua conexão e tente novamente.
                 </p>
+                <Button onClick={() => { refetch(); refetchEvents(); }} data-testid="button-retry-financial">
+                  Tentar novamente
+                </Button>
               </CardContent>
             </Card>
           ) : financial ? (

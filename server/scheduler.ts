@@ -1234,70 +1234,76 @@ async function processAbandonedCartReminder(): Promise<void> {
       const orderDate = new Date(order.createdAt);
       const hoursElapsed = (now - orderDate.getTime()) / (1000 * 60 * 60);
       
-      // Check each interval and send notification if threshold passed
-      for (const interval of ABANDONED_CART_INTERVALS) {
-        const reminderKey = `${order.id}-${interval.hours}h`;
-        
-        // Skip if already sent this reminder
-        if (sentAbandonedCartReminders.has(reminderKey)) continue;
-        
-        // Only send if we've passed this threshold but not the next
-        if (hoursElapsed < interval.hours) continue;
-        
-        // Check next interval to avoid sending multiple reminders at once
-        const intervalIndex = ABANDONED_CART_INTERVALS.indexOf(interval);
-        const nextInterval = ABANDONED_CART_INTERVALS[intervalIndex + 1];
-        
-        // If we've passed the 48h threshold, order is too old
-        if (interval.hours === 48 && hoursElapsed > 72) continue;
-        
-        try {
-          let title = 'Pedido Pendente';
-          let body = '';
-          
-          switch (interval.urgency) {
-            case 'low':
-              title = 'Lembrete de Pagamento';
-              body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Conclua sua compra!`;
-              break;
-            case 'medium':
-              title = 'Pedido Aguardando';
-              body = `Nao esqueca: seu pedido #${order.orderCode} ainda nao foi pago. Complete sua compra!`;
-              break;
-            case 'high':
-              title = 'Ultima Chance!';
-              body = `Seu pedido #${order.orderCode} vai expirar em breve. Finalize o pagamento agora!`;
-              break;
-            case 'final':
-              title = 'Pedido Expirando!';
-              body = `URGENTE: Seu pedido #${order.orderCode} sera cancelado se nao for pago em breve!`;
-              break;
+      // Find the appropriate interval for this order based on elapsed time
+      // We only send the CURRENT interval notification, not skipped ones
+      let currentInterval = null;
+      for (let i = ABANDONED_CART_INTERVALS.length - 1; i >= 0; i--) {
+        const interval = ABANDONED_CART_INTERVALS[i];
+        if (hoursElapsed >= interval.hours) {
+          // Check if this is the right interval (not the next one)
+          const nextInterval = ABANDONED_CART_INTERVALS[i + 1];
+          if (!nextInterval || hoursElapsed < nextInterval.hours) {
+            currentInterval = interval;
+            break;
           }
-          
-          await storage.createNotification({
-            userId: order.userId,
-            type: 'abandoned_cart',
-            title,
-            body,
-            data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode, interval: interval.hours }),
-          });
-          
-          await sendPushToUser(order.userId, {
-            title,
-            body,
-            url: '/study/meus-pedidos',
-            tag: `abandoned-cart-${order.id}-${interval.hours}`,
-            icon: '/logo.png',
-          });
-          
-          sentAbandonedCartReminders.set(reminderKey, now);
-          notificationsSent++;
-          
-          // Only send one reminder per order per run
-          break;
-        } catch (orderError) {
-          console.error(`[Shop Scheduler] Error processing order ${order.id} for ${interval.label}:`, orderError);
         }
+      }
+      
+      if (!currentInterval) continue;
+      
+      // Skip if order is too old (past 72h)
+      if (hoursElapsed > 72) continue;
+      
+      const reminderKey = `${order.id}-${currentInterval.hours}h`;
+      
+      // Skip if already sent this reminder
+      if (sentAbandonedCartReminders.has(reminderKey)) continue;
+      
+      const interval = currentInterval;
+      
+      try {
+        let title = 'Pedido Pendente';
+        let body = '';
+        
+        switch (interval.urgency) {
+          case 'low':
+            title = 'Lembrete de Pagamento';
+            body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Conclua sua compra!`;
+            break;
+          case 'medium':
+            title = 'Pedido Aguardando';
+            body = `Nao esqueca: seu pedido #${order.orderCode} ainda nao foi pago. Complete sua compra!`;
+            break;
+          case 'high':
+            title = 'Ultima Chance!';
+            body = `Seu pedido #${order.orderCode} vai expirar em breve. Finalize o pagamento agora!`;
+            break;
+          case 'final':
+            title = 'Pedido Expirando!';
+            body = `URGENTE: Seu pedido #${order.orderCode} sera cancelado se nao for pago em breve!`;
+            break;
+        }
+        
+        await storage.createNotification({
+          userId: order.userId,
+          type: 'abandoned_cart',
+          title,
+          body,
+          data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode, interval: interval.hours }),
+        });
+        
+        await sendPushToUser(order.userId, {
+          title,
+          body,
+          url: '/study/meus-pedidos',
+          tag: `abandoned-cart-${order.id}-${interval.hours}`,
+          icon: '/logo.png',
+        });
+        
+        sentAbandonedCartReminders.set(reminderKey, now);
+        notificationsSent++;
+      } catch (orderError) {
+        console.error(`[Shop Scheduler] Error processing order ${order.id} for ${interval.label}:`, orderError);
       }
     }
     

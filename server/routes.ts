@@ -8434,8 +8434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = req.query.status as string | undefined;
       const orders = await storage.getShopOrders(status ? { status } : undefined);
       
-      // Check if user is treasurer to show financial data
-      const isTreasurer = req.user!.role === 'treasurer' || req.user!.role === 'admin';
+      // Check if user has treasurer permissions to show financial data
+      // Marketing and marketing_admin roles cannot see financial amounts (privilege separation)
+      const isTreasurer = req.user!.role === 'treasurer' || req.user!.role === 'admin' || req.user!.role === 'root';
       
       const ordersWithDetails = await Promise.all(orders.map(async (order) => {
         const items = await storage.getShopOrderItems(order.id);

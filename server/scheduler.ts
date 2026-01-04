@@ -1151,7 +1151,21 @@ async function processTreasuryDay5Reminder(): Promise<void> {
         const umpPayments = await storage.getMemberUmpPayments(member.id, currentYear);
         const paidMonths = umpPayments.filter(p => p.paidAt).map(p => p.month);
         const unpaidMonths: number[] = [];
-        for (let m = 1; m <= currentMonth; m++) {
+        
+        // Apply Day 10 Rule for starting month
+        let startingMonth = 1;
+        if (member.activeMemberSince) {
+          const activeSince = new Date(member.activeMemberSince);
+          if (activeSince.getFullYear() === currentYear) {
+            const dayOfMonth = activeSince.getDate();
+            const monthActive = activeSince.getMonth() + 1;
+            startingMonth = dayOfMonth <= 10 ? monthActive : monthActive + 1;
+          } else if (activeSince.getFullYear() > currentYear) {
+            startingMonth = 13; // Not active this year
+          }
+        }
+        
+        for (let m = startingMonth; m <= currentMonth; m++) {
           if (!paidMonths.includes(m)) unpaidMonths.push(m);
         }
         const hasPendingUmp = unpaidMonths.length > 0;

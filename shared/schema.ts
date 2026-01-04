@@ -2162,6 +2162,7 @@ export const treasuryEntries = pgTable("treasury_entries", {
   pixQrCodeBase64: text("pix_qr_code_base64"),
   pixExpiresAt: timestamp("pix_expires_at"),
   referenceMonth: integer("reference_month"),
+  referenceMonths: text("reference_months"), // JSON array for multi-month UMP payments
   referenceYear: integer("reference_year").notNull(),
   eventId: integer("event_id"),
   orderId: integer("order_id"),

@@ -9649,8 +9649,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentMonth = new Date().getMonth() + 1;
       const unpaidMonths: number[] = [];
       
-      // Only count months up to current month as unpaid (future months aren't due yet)
-      for (let m = 1; m <= currentMonth; m++) {
+      // Calculate starting month based on Day 10 Rule:
+      // - If became active on day 1-10 of a month: pays from THAT month
+      // - If became active on day 11-31: pays from NEXT month
+      let startingMonth = 1;
+      if (user.activeMemberSince) {
+        const activeSince = new Date(user.activeMemberSince);
+        if (activeSince.getFullYear() === year) {
+          const dayOfMonth = activeSince.getDate();
+          const monthActive = activeSince.getMonth() + 1;
+          
+          if (dayOfMonth <= 10) {
+            startingMonth = monthActive; // Pays from this month
+          } else {
+            startingMonth = monthActive + 1; // Pays from next month
+          }
+        } else if (activeSince.getFullYear() > year) {
+          // Not active in this year - no months due
+          startingMonth = 13; // No months will be added
+        }
+      }
+      
+      // Only count months from starting month up to current month as unpaid
+      for (let m = startingMonth; m <= currentMonth; m++) {
         if (!paidMonths.includes(m)) {
           unpaidMonths.push(m);
         }
@@ -10584,16 +10605,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const now = new Date();
 
-      // Handle UMP fee payment
-      if (entry.category === "taxa_ump" && entry.userId && entry.referenceMonth) {
-        await storage.createMemberUmpPayment({
-          userId: entry.userId,
-          year: entry.referenceYear,
-          month: entry.referenceMonth,
-          amount: entry.amount,
-          entryId: entry.id,
-          paidAt: now,
-        });
+      // Handle UMP fee payment (supports multiple months)
+      if (entry.category === "taxa_ump" && entry.userId) {
+        let monthsToPay: number[] = [];
+        
+        // Check for multiple months in referenceMonths field
+        if (entry.referenceMonths) {
+          try {
+            monthsToPay = JSON.parse(entry.referenceMonths);
+          } catch (e) {
+            console.error("Error parsing referenceMonths:", e);
+          }
+        }
+        
+        // Fallback to single month if no referenceMonths
+        if (monthsToPay.length === 0 && entry.referenceMonth) {
+          monthsToPay = [entry.referenceMonth];
+        }
+        
+        // Create payment record for each month
+        const settings = await storage.getTreasurySettings(entry.referenceYear);
+        const amountPerMonth = settings ? settings.umpMonthlyAmount : Math.floor(entry.amount / monthsToPay.length);
+        
+        for (const month of monthsToPay) {
+          try {
+            await storage.createMemberUmpPayment({
+              userId: entry.userId,
+              year: entry.referenceYear,
+              month,
+              amount: amountPerMonth,
+              entryId: entry.id,
+              paidAt: now,
+            });
+          } catch (err) {
+            console.error(`Error creating UMP payment for month ${month}:`, err);
+          }
+        }
       }
 
       // Handle Percapta payment
@@ -10730,8 +10777,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Todos os meses selecionados já foram pagos" });
         }
 
-        // For now, handle single month payment (can extend to batch later)
-        referenceMonth = unpaidMonths[0];
+        // Handle multiple months payment
+        referenceMonth = unpaidMonths[0]; // First month for backwards compatibility
         amount = settings.umpMonthlyAmount * unpaidMonths.length;
         const monthNames = unpaidMonths.map((m: number) => 
           new Date(2000, m - 1, 1).toLocaleDateString("pt-BR", { month: "short" })
@@ -10742,7 +10789,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tipo de taxa inválido" });
       }
 
-      // Create treasury entry
+      // For UMP, calculate unpaid months to store
+      let referenceMonthsJson: string | null = null;
+      if (type === "ump" && months) {
+        const paidMonthsCheck = await storage.getMemberUmpPayments(userId, year);
+        const paidMonthNumbers = paidMonthsCheck.map(p => p.month);
+        const unpaidMonthsToStore = months.filter((m: number) => !paidMonthNumbers.includes(m));
+        referenceMonthsJson = JSON.stringify(unpaidMonthsToStore);
+      }
+
+      // Create treasury entry with all months stored
       const entry = await storage.createTreasuryEntry({
         type: "income",
         category,
@@ -10751,6 +10807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         referenceYear: year,
         referenceMonth,
+        referenceMonths: referenceMonthsJson,
         paymentMethod: "pix",
         paymentStatus: "pending",
       });

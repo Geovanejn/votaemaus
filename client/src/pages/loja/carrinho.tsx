@@ -84,8 +84,7 @@ export default function LojaCarrinhoPage() {
   });
 
   const subtotal = cartItems?.reduce((sum, item) => sum + (item.item.price * item.quantity), 0) || 0;
-  const deliveryFee = 0;
-  const total = subtotal + deliveryFee;
+  const total = subtotal;
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   const handleCheckout = () => {
@@ -243,10 +242,6 @@ export default function LojaCarrinhoPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium text-black" data-testid="text-subtotal">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Delivery Fee</span>
-                <span className="font-medium text-black">Grátis</span>
               </div>
               <div className="border-t border-gray-100 pt-3 flex justify-between">
                 <span className="font-medium text-black">Total</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
-import { Minus, Plus, ShoppingCart, Truck } from "lucide-react";
+import { Minus, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -308,20 +308,6 @@ export default function LojaProdutoPage() {
               : addToCartMutation.isPending 
                 ? "ADICIONANDO..." 
                 : "COMPRAR"}
-          </Button>
-        </div>
-
-        {/* Shipping Calculator */}
-        <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-          <Truck className="h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="00000-000"
-            className="flex-1 border border-gray-300 px-3 py-2 text-sm"
-            maxLength={9}
-          />
-          <Button variant="outline" className="bg-gray-800 text-white hover:bg-gray-900 border-gray-800">
-            Calcular
           </Button>
         </div>
 

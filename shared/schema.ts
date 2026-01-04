@@ -19,8 +19,8 @@ export function generatePdfVerificationHash(electionId: number, electionName: st
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
-// Secretaria types - APENAS espiritualidade e marketing estão ativas
-export type Secretaria = "none" | "espiritualidade" | "marketing" | null;
+// Secretaria types - espiritualidade, marketing e tesouraria
+export type Secretaria = "none" | "espiritualidade" | "marketing" | "tesouraria" | null;
 
 // Users table
 export const users = pgTable("users", {

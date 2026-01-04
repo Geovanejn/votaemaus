@@ -120,9 +120,9 @@
 - [x] Expiração de 15 minutos para QR Codes
 
 ### Sistema de Notificações
-- [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 09:00
+- [x] Scheduler dia 5 (Taxa UMP/Percapta) - mensal às 08:00
 - [x] Scheduler eventos (5, 3, 1 dia antes) - diário às 08:00
-- [x] Scheduler carrinho abandonado - diário às 10:00 (24-48h)
+- [x] Scheduler carrinho abandonado - a cada hora (2h/12h/24h/48h)
 - [x] Scheduler parcelas de empréstimo - diário às 08:00 (3 dias, 1 dia, no dia)
 - [x] Scheduler virada de ano - 1º de janeiro às 00:05
 - [x] Scheduler resumo mensal - dia 1 às 08:00 (inclui alerta de saldo)

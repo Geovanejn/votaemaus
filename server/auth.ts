@@ -128,3 +128,18 @@ export function requireTreasurer(
   }
   next();
 }
+
+export function requireMarketingOrTreasurer(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const isMarketing = req.user?.secretaria === "marketing";
+  const isTreasurer = req.user?.isTreasurer;
+  const isAdmin = req.user?.isAdmin;
+  
+  if (!isAdmin && !isTreasurer && !isMarketing) {
+    return res.status(403).json({ message: "Acesso negado: apenas administradores, tesoureiro ou secretaria de marketing" });
+  }
+  next();
+}

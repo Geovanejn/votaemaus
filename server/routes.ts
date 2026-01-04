@@ -16,6 +16,7 @@ import {
   requireAdminOrEspiritualidade,
   requireMarketing,
   requireTreasurer,
+  requireMarketingOrTreasurer,
   type AuthRequest 
 } from "./auth";
 import { 
@@ -10258,8 +10259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== EVENT CONFIRMATIONS ====================
 
-  // Get confirmations for an event (admin/treasurer)
-  app.get("/api/treasury/event-confirmations/:eventId", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+  // Get confirmations for an event (admin/treasurer/marketing)
+  // Per spec: Marketing can see list of confirmed attendees
+  app.get("/api/treasury/event-confirmations/:eventId", authenticateToken, requireMarketingOrTreasurer, async (req: AuthRequest, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
       const confirmations = await storage.getEventConfirmationsWithUsers(eventId);
@@ -10794,10 +10796,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Todos os meses selecionados já foram pagos" });
         }
 
+        // CRITICAL: Validate sequential months rule - cannot skip months
+        // Per spec: "Não pode pular meses (deve pagar em ordem)"
+        const sortedRequestedMonths = [...unpaidMonths].sort((a, b) => a - b);
+        
+        // Find the first unpaid month (next due month)
+        let firstUnpaidMonth = 1;
+        for (let m = 1; m <= 12; m++) {
+          if (!paidMonthNumbers.includes(m)) {
+            firstUnpaidMonth = m;
+            break;
+          }
+        }
+        
+        // Check if requested months start from the first unpaid month
+        if (sortedRequestedMonths[0] !== firstUnpaidMonth) {
+          const monthName = new Date(2000, firstUnpaidMonth - 1, 1).toLocaleDateString("pt-BR", { month: "long" });
+          return res.status(400).json({ 
+            message: `Você precisa pagar primeiro o mês de ${monthName}. Não é permitido pular meses.` 
+          });
+        }
+        
+        // Check if requested months are sequential (no gaps)
+        for (let i = 1; i < sortedRequestedMonths.length; i++) {
+          if (sortedRequestedMonths[i] !== sortedRequestedMonths[i - 1] + 1) {
+            return res.status(400).json({ 
+              message: "Os meses selecionados devem ser sequenciais. Não é permitido pular meses." 
+            });
+          }
+        }
+
         // Handle multiple months payment
-        referenceMonth = unpaidMonths[0]; // First month for backwards compatibility
-        amount = settings.umpMonthlyAmount * unpaidMonths.length;
-        const monthNames = unpaidMonths.map((m: number) => 
+        referenceMonth = sortedRequestedMonths[0]; // First month for backwards compatibility
+        amount = settings.umpMonthlyAmount * sortedRequestedMonths.length;
+        const monthNames = sortedRequestedMonths.map((m: number) => 
           new Date(2000, m - 1, 1).toLocaleDateString("pt-BR", { month: "short" })
         ).join(", ");
         description = `Taxa UMP - ${monthNames}/${year}`;
@@ -10806,13 +10838,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tipo de taxa inválido" });
       }
 
-      // For UMP, calculate unpaid months to store
+      // For UMP, store the validated sequential months
       let referenceMonthsJson: string | null = null;
-      if (type === "ump" && months) {
+      if (type === "ump" && category === "taxa_ump") {
+        // Re-check paid months to get valid unpaid months
         const paidMonthsCheck = await storage.getMemberUmpPayments(userId, year);
-        const paidMonthNumbers = paidMonthsCheck.map(p => p.month);
-        const unpaidMonthsToStore = months.filter((m: number) => !paidMonthNumbers.includes(m));
-        referenceMonthsJson = JSON.stringify(unpaidMonthsToStore);
+        const paidMonthNumbersCheck = paidMonthsCheck.map(p => p.month);
+        const sortedMonths = [...months].filter((m: number) => !paidMonthNumbersCheck.includes(m)).sort((a, b) => a - b);
+        referenceMonthsJson = JSON.stringify(sortedMonths);
       }
 
       // Create treasury entry with all months stored

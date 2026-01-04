@@ -2401,6 +2401,30 @@ export const insertShopOrderItemSchema = createInsertSchema(shopOrderItems).omit
 export type InsertShopOrderItem = z.infer<typeof insertShopOrderItemSchema>;
 export type ShopOrderItem = typeof shopOrderItems.$inferSelect;
 
+// Códigos promocionais
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  discountType: text("discount_type").notNull().default("percentage"),
+  discountValue: integer("discount_value").notNull(),
+  categoryId: integer("category_id").references(() => shopCategories.id),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true,
+});
+
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
+
 // =====================================================
 // EVENTOS COM TAXA
 // =====================================================

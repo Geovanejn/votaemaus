@@ -91,6 +91,8 @@ import type {
   InsertEventFee,
   EventConfirmation,
   InsertEventConfirmation,
+  PromoCode,
+  InsertPromoCode,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -523,6 +525,15 @@ export interface IStorage {
   // Shop Order Items Methods
   getShopOrderItems(orderId: number): Promise<ShopOrderItem[]>;
   createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
+  
+  // Promo Codes Methods
+  getPromoCodes(): Promise<PromoCode[]>;
+  getPromoCodeById(id: number): Promise<PromoCode | null>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | null>;
+  createPromoCode(data: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode | null>;
+  deletePromoCode(id: number): Promise<void>;
+  incrementPromoCodeUsage(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7185,6 +7196,52 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { members, visitors };
+  }
+
+  // Promo Codes Methods
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return db.select().from(schema.promoCodes).orderBy(desc(schema.promoCodes.createdAt));
+  }
+
+  async getPromoCodeById(id: number): Promise<PromoCode | null> {
+    const [code] = await db.select().from(schema.promoCodes).where(eq(schema.promoCodes.id, id));
+    return code || null;
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | null> {
+    const [result] = await db.select().from(schema.promoCodes)
+      .where(eq(schema.promoCodes.code, code.toUpperCase()));
+    return result || null;
+  }
+
+  async createPromoCode(data: InsertPromoCode): Promise<PromoCode> {
+    const [code] = await db.insert(schema.promoCodes).values({
+      ...data,
+      code: data.code.toUpperCase(),
+    }).returning();
+    return code;
+  }
+
+  async updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode | null> {
+    const updateData = { ...data };
+    if (updateData.code) {
+      updateData.code = updateData.code.toUpperCase();
+    }
+    const [code] = await db.update(schema.promoCodes)
+      .set(updateData)
+      .where(eq(schema.promoCodes.id, id))
+      .returning();
+    return code || null;
+  }
+
+  async deletePromoCode(id: number): Promise<void> {
+    await db.delete(schema.promoCodes).where(eq(schema.promoCodes.id, id));
+  }
+
+  async incrementPromoCodeUsage(id: number): Promise<void> {
+    await db.update(schema.promoCodes)
+      .set({ usedCount: sql`${schema.promoCodes.usedCount} + 1` })
+      .where(eq(schema.promoCodes.id, id));
   }
 }
 

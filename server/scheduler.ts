@@ -1207,50 +1207,105 @@ async function processTreasuryDay5Reminder(): Promise<void> {
   }
 }
 
-const sentAbandonedCartReminders = new Set<number>();
+// Track abandoned cart reminders by orderId-interval key
+const sentAbandonedCartReminders = new Map<string, number>();
+
+// Abandoned cart reminder intervals per spec: 2h, 12h, 24h, 48h
+const ABANDONED_CART_INTERVALS = [
+  { hours: 2, label: '2h', urgency: 'low' },
+  { hours: 12, label: '12h', urgency: 'medium' },
+  { hours: 24, label: '24h', urgency: 'high' },
+  { hours: 48, label: '48h', urgency: 'final' },
+];
 
 async function processAbandonedCartReminder(): Promise<void> {
   console.log('[Shop Scheduler] Processing abandoned cart reminders...');
   
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    
+    const now = Date.now();
     const allOrders = await storage.getShopOrders({ status: 'awaiting_payment' });
-    const abandonedOrders = allOrders.filter((order) => {
-      if (!order.createdAt) return false;
-      if (order.orderStatus !== 'awaiting_payment') return false;
-      if (sentAbandonedCartReminders.has(order.id)) return false;
-      const orderDate = new Date(order.createdAt);
-      return orderDate < twentyFourHoursAgo && orderDate > fortyEightHoursAgo;
-    });
     
     let notificationsSent = 0;
     
-    for (const order of abandonedOrders) {
-      try {
-        const body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Complete sua compra antes que expire!`;
+    for (const order of allOrders) {
+      if (!order.createdAt) continue;
+      if (order.orderStatus !== 'awaiting_payment') continue;
+      
+      const orderDate = new Date(order.createdAt);
+      const hoursElapsed = (now - orderDate.getTime()) / (1000 * 60 * 60);
+      
+      // Check each interval and send notification if threshold passed
+      for (const interval of ABANDONED_CART_INTERVALS) {
+        const reminderKey = `${order.id}-${interval.hours}h`;
         
-        await storage.createNotification({
-          userId: order.userId,
-          type: 'abandoned_cart',
-          title: 'Pedido Pendente',
-          body,
-          data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
-        });
+        // Skip if already sent this reminder
+        if (sentAbandonedCartReminders.has(reminderKey)) continue;
         
-        await sendPushToUser(order.userId, {
-          title: 'Pedido Pendente',
-          body,
-          url: '/study/meus-pedidos',
-          tag: `abandoned-cart-${order.id}`,
-          icon: '/logo.png',
-        });
+        // Only send if we've passed this threshold but not the next
+        if (hoursElapsed < interval.hours) continue;
         
-        sentAbandonedCartReminders.add(order.id);
-        notificationsSent++;
-      } catch (orderError) {
-        console.error(`[Shop Scheduler] Error processing order ${order.id}:`, orderError);
+        // Check next interval to avoid sending multiple reminders at once
+        const intervalIndex = ABANDONED_CART_INTERVALS.indexOf(interval);
+        const nextInterval = ABANDONED_CART_INTERVALS[intervalIndex + 1];
+        
+        // If we've passed the 48h threshold, order is too old
+        if (interval.hours === 48 && hoursElapsed > 72) continue;
+        
+        try {
+          let title = 'Pedido Pendente';
+          let body = '';
+          
+          switch (interval.urgency) {
+            case 'low':
+              title = 'Lembrete de Pagamento';
+              body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Conclua sua compra!`;
+              break;
+            case 'medium':
+              title = 'Pedido Aguardando';
+              body = `Nao esqueca: seu pedido #${order.orderCode} ainda nao foi pago. Complete sua compra!`;
+              break;
+            case 'high':
+              title = 'Ultima Chance!';
+              body = `Seu pedido #${order.orderCode} vai expirar em breve. Finalize o pagamento agora!`;
+              break;
+            case 'final':
+              title = 'Pedido Expirando!';
+              body = `URGENTE: Seu pedido #${order.orderCode} sera cancelado se nao for pago em breve!`;
+              break;
+          }
+          
+          await storage.createNotification({
+            userId: order.userId,
+            type: 'abandoned_cart',
+            title,
+            body,
+            data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode, interval: interval.hours }),
+          });
+          
+          await sendPushToUser(order.userId, {
+            title,
+            body,
+            url: '/study/meus-pedidos',
+            tag: `abandoned-cart-${order.id}-${interval.hours}`,
+            icon: '/logo.png',
+          });
+          
+          sentAbandonedCartReminders.set(reminderKey, now);
+          notificationsSent++;
+          
+          // Only send one reminder per order per run
+          break;
+        } catch (orderError) {
+          console.error(`[Shop Scheduler] Error processing order ${order.id} for ${interval.label}:`, orderError);
+        }
+      }
+    }
+    
+    // Cleanup old reminders (orders older than 72h)
+    const cutoff = now - 72 * 60 * 60 * 1000;
+    for (const [key, timestamp] of sentAbandonedCartReminders.entries()) {
+      if (timestamp < cutoff) {
+        sentAbandonedCartReminders.delete(key);
       }
     }
     
@@ -1514,11 +1569,11 @@ export function initTreasurySchedulers(): void {
   });
   console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 09:00 (America/Sao_Paulo)');
   
-  // Abandoned cart reminder
-  cron.schedule('0 10 * * *', processAbandonedCartReminder, {
+  // Abandoned cart reminder (every hour to catch 2h/12h/24h/48h intervals)
+  cron.schedule('0 * * * *', processAbandonedCartReminder, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run daily at 10:00 (America/Sao_Paulo)');
+  console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo)');
   
   // Loan installment reminders (daily at 08:00)
   cron.schedule('0 8 * * *', processLoanInstallmentReminders, {

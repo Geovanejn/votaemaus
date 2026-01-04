@@ -8428,10 +8428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Listar pedidos da loja (admin)
+  // Note: Marketing role can see orders but financial amounts are hidden (privacy/privilege separation)
   app.get("/api/admin/shop/orders", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const status = req.query.status as string | undefined;
       const orders = await storage.getShopOrders(status ? { status } : undefined);
+      
+      // Check if user is treasurer to show financial data
+      const isTreasurer = req.user!.role === 'treasurer' || req.user!.role === 'admin';
       
       const ordersWithDetails = await Promise.all(orders.map(async (order) => {
         const items = await storage.getShopOrderItems(order.id);
@@ -8439,11 +8443,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const itemsWithProduct = await Promise.all(items.map(async (item) => {
           const product = await storage.getShopItemById(item.itemId);
-          return { ...item, product };
+          // Marketing can't see item prices
+          const sanitizedProduct = product ? {
+            ...product,
+            price: isTreasurer ? product.price : undefined,
+          } : null;
+          return { 
+            ...item, 
+            price: isTreasurer ? item.price : undefined,
+            product: sanitizedProduct 
+          };
         }));
         
         return {
           ...order,
+          // Hide financial data for marketing role
+          totalAmount: isTreasurer ? order.totalAmount : undefined,
+          discountAmount: isTreasurer ? order.discountAmount : undefined,
           user: user ? { id: user.id, fullName: user.fullName, email: user.email } : null,
           items: itemsWithProduct,
         };

@@ -15,7 +15,8 @@ import {
   CreditCard,
   Landmark,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ShoppingBag
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { TreasuryDashboardSummary } from "@shared/schema";
@@ -78,6 +79,14 @@ const menuItems = [
     icon: CreditCard,
     href: "/admin/tesouraria/taxas",
     color: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    id: "loja-pedidos",
+    title: "Loja - Pedidos",
+    description: "Gerenciar pedidos da loja virtual",
+    icon: ShoppingBag,
+    href: "/admin/marketing/pedidos",
+    color: "text-pink-600 dark:text-pink-400",
   },
   {
     id: "emprestimos",

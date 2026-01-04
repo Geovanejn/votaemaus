@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import type { TreasuryEntry } from "@shared/schema";
+import type { TreasuryEntry, User } from "@shared/schema";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -101,14 +101,24 @@ export default function TesourariaMovimentacoes() {
   const [formCategory, setFormCategory] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formAmount, setFormAmount] = useState("");
+  const [formMemberId, setFormMemberId] = useState<number | undefined>(undefined);
+  const [formReferenceMonth, setFormReferenceMonth] = useState<string>("");
 
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
     queryKey: ["/api/treasury/entries", currentYear],
     enabled: hasTreasuryPanel,
   });
 
+  const needsMemberSelection = formType === "income" && 
+    (formCategory === "taxa_percapta" || formCategory === "taxa_ump" || formCategory === "events");
+
+  const { data: members } = useQuery<User[]>({
+    queryKey: ["/api/admin/members"],
+    enabled: hasTreasuryPanel && needsMemberSelection,
+  });
+
   const createEntryMutation = useMutation({
-    mutationFn: async (data: { type: string; category: string; description: string; amount: number; paymentStatus: string; paymentMethod: string }) => {
+    mutationFn: async (data: { type: string; category: string; description: string; amount: number; paymentStatus: string; paymentMethod: string; userId?: number; referenceMonth?: number; referenceYear?: number }) => {
       return apiRequest("POST", "/api/treasury/entries", data);
     },
     onSuccess: () => {
@@ -130,6 +140,8 @@ export default function TesourariaMovimentacoes() {
     setFormCategory("");
     setFormDescription("");
     setFormAmount("");
+    setFormMemberId(undefined);
+    setFormReferenceMonth("");
   };
 
   const handleSubmit = () => {
@@ -151,6 +163,9 @@ export default function TesourariaMovimentacoes() {
       amount: amountCents,
       paymentStatus: "paid",
       paymentMethod: "manual",
+      userId: formMemberId,
+      referenceMonth: formReferenceMonth ? parseInt(formReferenceMonth) : undefined,
+      referenceYear: currentYear,
     });
   };
 
@@ -248,7 +263,7 @@ export default function TesourariaMovimentacoes() {
 
                     <div className="space-y-2">
                       <Label>Categoria *</Label>
-                      <Select value={formCategory} onValueChange={setFormCategory}>
+                      <Select value={formCategory} onValueChange={(v) => { setFormCategory(v); setFormMemberId(undefined); setFormReferenceMonth(""); }}>
                         <SelectTrigger data-testid="select-category">
                           <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
@@ -261,6 +276,55 @@ export default function TesourariaMovimentacoes() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {needsMemberSelection && members && (
+                      <div className="space-y-2">
+                        <Label>Membro *</Label>
+                        <Select
+                          value={formMemberId?.toString() || ""}
+                          onValueChange={(v) => setFormMemberId(parseInt(v))}
+                        >
+                          <SelectTrigger data-testid="select-member">
+                            <SelectValue placeholder="Selecione o membro" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {members.filter(m => formCategory === "events" || m.activeMember).map((m) => (
+                              <SelectItem key={m.id} value={m.id.toString()}>
+                                {m.fullName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {formCategory === "taxa_ump" && (
+                      <div className="space-y-2">
+                        <Label>Mes de Referencia</Label>
+                        <Select
+                          value={formReferenceMonth}
+                          onValueChange={setFormReferenceMonth}
+                        >
+                          <SelectTrigger data-testid="select-reference-month">
+                            <SelectValue placeholder="Selecione o mes" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Janeiro</SelectItem>
+                            <SelectItem value="2">Fevereiro</SelectItem>
+                            <SelectItem value="3">Marco</SelectItem>
+                            <SelectItem value="4">Abril</SelectItem>
+                            <SelectItem value="5">Maio</SelectItem>
+                            <SelectItem value="6">Junho</SelectItem>
+                            <SelectItem value="7">Julho</SelectItem>
+                            <SelectItem value="8">Agosto</SelectItem>
+                            <SelectItem value="9">Setembro</SelectItem>
+                            <SelectItem value="10">Outubro</SelectItem>
+                            <SelectItem value="11">Novembro</SelectItem>
+                            <SelectItem value="12">Dezembro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label>Valor (R$) *</Label>

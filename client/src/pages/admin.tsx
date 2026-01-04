@@ -73,6 +73,7 @@ export default function AdminPage() {
     photoUrl: "",
     birthdate: "",
     activeMember: false,
+    isTreasurer: false,
     secretaria: "" as string,
   });
   const [editingMember, setEditingMember] = useState<{
@@ -82,6 +83,7 @@ export default function AdminPage() {
     photoUrl?: string;
     birthdate?: string;
     activeMember?: boolean;
+    isTreasurer?: boolean;
     secretaria?: string;
   } | null>(null);
   
@@ -320,7 +322,7 @@ export default function AdminPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember: boolean; secretaria?: string }) => {
+    mutationFn: async (member: { fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember: boolean; isTreasurer?: boolean; secretaria?: string }) => {
       return await apiRequest("POST", "/api/admin/members", member);
     },
     onSuccess: () => {
@@ -330,7 +332,7 @@ export default function AdminPage() {
         description: "O membro foi cadastrado com sucesso",
       });
       setIsAddMemberOpen(false);
-      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: false, secretaria: "" });
+      setNewMember({ fullName: "", email: "", photoUrl: "", birthdate: "", activeMember: false, isTreasurer: false, secretaria: "" });
     },
     onError: (error: Error) => {
       toast({
@@ -362,7 +364,7 @@ export default function AdminPage() {
   });
 
   const updateMemberMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; secretaria?: string }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }> }) => {
       return await apiRequest("PATCH", `/api/admin/members/${id}`, data);
     },
     onSuccess: () => {
@@ -903,6 +905,7 @@ export default function AdminPage() {
       photoUrl: newMember.photoUrl || undefined,
       birthdate: newMember.birthdate || undefined,
       activeMember: newMember.activeMember,
+      isTreasurer: newMember.isTreasurer,
       secretaria: newMember.secretaria || undefined,
     });
   };
@@ -913,7 +916,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; secretaria?: string }) => {
+  const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }) => {
     setEditingMember(member);
     setIsEditMemberOpen(true);
   };
@@ -938,6 +941,7 @@ export default function AdminPage() {
         photoUrl: editingMember.photoUrl || undefined,
         birthdate: editingMember.birthdate || undefined,
         activeMember: editingMember.activeMember,
+        isTreasurer: editingMember.isTreasurer,
         secretaria: editingMember.secretaria || undefined,
       },
     });
@@ -1955,6 +1959,20 @@ export default function AdminPage() {
               </Label>
             </div>
 
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="member-treasurer"
+                checked={newMember.isTreasurer}
+                onCheckedChange={(checked) =>
+                  setNewMember({ ...newMember, isTreasurer: checked === true })
+                }
+                data-testid="checkbox-member-treasurer"
+              />
+              <Label htmlFor="member-treasurer" className="cursor-pointer">
+                Tesoureiro
+              </Label>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="member-secretaria">Secretaria (Opcional)</Label>
               <Select
@@ -1970,6 +1988,7 @@ export default function AdminPage() {
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="tesouraria">Tesouraria</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2072,6 +2091,20 @@ export default function AdminPage() {
               </Label>
             </div>
 
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-member-treasurer"
+                checked={editingMember?.isTreasurer ?? false}
+                onCheckedChange={(checked) =>
+                  setEditingMember(editingMember ? { ...editingMember, isTreasurer: checked === true } : null)
+                }
+                data-testid="checkbox-edit-member-treasurer"
+              />
+              <Label htmlFor="edit-member-treasurer" className="cursor-pointer">
+                Tesoureiro
+              </Label>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="edit-member-secretaria">Secretaria (Opcional)</Label>
               <Select
@@ -2087,6 +2120,7 @@ export default function AdminPage() {
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="tesouraria">Tesouraria</SelectItem>
                 </SelectContent>
               </Select>
             </div>

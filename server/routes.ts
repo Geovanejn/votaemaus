@@ -9292,6 +9292,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get settings by year (for frontend query format)
+  app.get("/api/treasury/settings/:year", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      if (isNaN(year)) {
+        return res.status(400).json({ message: "Ano inválido" });
+      }
+      
+      let settings = await storage.getTreasurySettings(year);
+      
+      if (!settings) {
+        settings = await storage.createTreasurySettings({
+          year,
+          percaptaAmount: 0,
+          umpMonthlyAmount: 0,
+          pixKey: null,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Get treasury settings by year error:", error);
+      res.status(500).json({ message: "Erro ao buscar configurações" });
+    }
+  });
+
+  // Get member tax status for treasury panel (shows ALL members for tracking)
+  app.get("/api/treasury/members/tax-status/:year", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      if (isNaN(year)) {
+        return res.status(400).json({ message: "Ano inválido" });
+      }
+      
+      const settings = await storage.getTreasurySettings(year);
+      const percaptaAmount = settings?.percaptaAmount ?? 0;
+      const umpMonthlyAmount = settings?.umpMonthlyAmount ?? 0;
+      
+      // Get ALL members (including inactive ones - activeMember field is just for filtering)
+      const allMembers = await storage.getAllMembers();
+      // Filter only sócio ativo (activeMember = true) for tax tracking
+      const activeMembers = allMembers.filter(m => m.activeMember === true);
+      
+      const currentMonth = new Date().getMonth() + 1;
+      
+      const memberStatuses = await Promise.all(activeMembers.map(async (member) => {
+        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
+        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        
+        const paidMonths = umpPayments.filter(p => p.paidAt).map(p => p.month);
+        const unpaidMonths = Array.from({ length: currentMonth }, (_, i) => i + 1)
+          .filter(m => !paidMonths.includes(m));
+        
+        const percaptaOwed = percaptaPayment?.paidAt ? 0 : percaptaAmount;
+        const umpOwed = unpaidMonths.length * umpMonthlyAmount;
+        
+        return {
+          userId: member.id,
+          fullName: member.fullName,
+          email: member.email,
+          photoUrl: member.photoUrl ?? null,
+          percaptaPaid: !!percaptaPayment?.paidAt,
+          umpMonthsPaid: paidMonths,
+          totalOwed: percaptaOwed + umpOwed,
+        };
+      }));
+      
+      res.json(memberStatuses);
+    } catch (error) {
+      console.error("Get member tax status error:", error);
+      res.status(500).json({ message: "Erro ao buscar status de taxas" });
+    }
+  });
+
   // Listar lançamentos da tesouraria
   app.get("/api/treasury/entries", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -9897,7 +9971,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate treasury report (Excel)
   app.get("/api/treasury/reports/excel", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
-      const ExcelJS = await import("exceljs");
+      const ExcelJSModule = await import("exceljs");
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
       const yearParam = req.query.year as string;
       const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
       const monthParam = req.query.month as string;
@@ -9974,7 +10049,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate member payments report (Excel)
   app.get("/api/treasury/reports/member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
-      const ExcelJS = await import("exceljs");
+      const ExcelJSModule = await import("exceljs");
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
       const yearParam = req.query.year as string;
       const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
       

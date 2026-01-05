@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, Search, ShoppingBag, ChevronRight } from "lucide-react";
+import storeLogo from "@assets/20260105_204033_0000_(1)_1767657107576.png";
 
 interface ShopCategory {
   id: number;
@@ -122,8 +123,11 @@ export function ShopHeader({ onSearch }: ShopHeaderProps) {
           {/* Logo */}
           <Link href="/loja">
             <div className="flex items-center gap-2" data-testid="link-logo">
-              <ShoppingBag className="h-6 w-6 text-yellow-500" />
-              <span className="text-xl font-bold text-black tracking-tight">Emaus Shop</span>
+              <img 
+                src={storeLogo} 
+                alt="Emaús Store" 
+                className="h-8 w-auto object-contain"
+              />
             </div>
           </Link>
 

@@ -304,21 +304,21 @@ export default function FinanceiroPage() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-10">
       <section className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white py-6">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Link href="/study/profile">
+            <Link href="/admin">
               <Button 
                 variant="ghost" 
                 className="mb-2 text-white/80 gap-2"
-                data-testid="button-back-profile"
+                data-testid="button-back-dashboard"
               >
                 <ChevronLeft className="h-4 w-4" />
-                Perfil
+                Painéis
               </Button>
             </Link>
             <div className="flex items-center gap-4">
@@ -749,8 +749,6 @@ export default function FinanceiroPage() {
           )}
         </div>
       </section>
-
-      <BottomNav />
 
       {pixPaymentData && (
         <PixPaymentModal

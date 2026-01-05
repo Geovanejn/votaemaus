@@ -113,7 +113,7 @@ export default function PedidosAdminPage() {
   const isMarketing = user?.secretaria === "marketing";
   
   const { data: orders, isLoading } = useQuery<ShopOrder[]>({
-    queryKey: ["/api/admin/shop/orders", statusFilter],
+    queryKey: ["/api/admin/shop/orders"],
     enabled: isAuthenticated && (user?.isAdmin || isMarketing),
   });
 
@@ -132,7 +132,8 @@ export default function PedidosAdminPage() {
 
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ orderIds, orderStatus }: { orderIds: number[]; orderStatus: string }) => {
-      return apiRequest("PATCH", "/api/admin/shop/orders/bulk-status", { orderIds, orderStatus }) as Promise<{ updated: number; orders: ShopOrder[] }>;
+      const response = await apiRequest("PATCH", "/api/admin/shop/orders/bulk-status", { orderIds, orderStatus });
+      return await response.json() as { updated: number; orders: ShopOrder[] };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders"] });

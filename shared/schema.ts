@@ -2515,3 +2515,17 @@ export const sentEventNotifications = pgTable("sent_event_notifications", {
 }));
 
 export type SentEventNotification = typeof sentEventNotifications.$inferSelect;
+
+// Sent Scheduler Reminders table - persists reminders across restarts (for Render deployments)
+export const sentSchedulerReminders = pgTable("sent_scheduler_reminders", {
+  id: serial("id").primaryKey(),
+  reminderKey: text("reminder_key").notNull().unique(),
+  reminderType: text("reminder_type").notNull(), // 'abandoned_cart', 'loan_installment', 'event_fee', 'treasury_day5'
+  relatedId: integer("related_id"), // orderId, loanId, eventId, etc
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+}, (table) => ({
+  keyIdx: index("sent_scheduler_reminders_key_idx").on(table.reminderKey),
+  typeIdx: index("sent_scheduler_reminders_type_idx").on(table.reminderType),
+}));
+
+export type SentSchedulerReminder = typeof sentSchedulerReminders.$inferSelect;

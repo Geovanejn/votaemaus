@@ -1196,9 +1196,6 @@ async function processTreasuryDay5Reminder(): Promise<void> {
   }
 }
 
-// Track abandoned cart reminders by orderId-interval key
-const sentAbandonedCartReminders = new Map<string, number>();
-
 // Abandoned cart reminder intervals per spec: 2h, 12h, 24h, 48h
 const ABANDONED_CART_INTERVALS = [
   { hours: 2, label: '2h', urgency: 'low' },
@@ -1243,10 +1240,11 @@ async function processAbandonedCartReminder(): Promise<void> {
       // Skip if order is too old (past 72h)
       if (hoursElapsed > 72) continue;
       
-      const reminderKey = `${order.id}-${currentInterval.hours}h`;
+      const reminderKey = `abandoned-cart-${order.id}-${currentInterval.hours}h`;
       
-      // Skip if already sent this reminder
-      if (sentAbandonedCartReminders.has(reminderKey)) continue;
+      // Skip if already sent this reminder (using persistent storage)
+      const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+      if (alreadySent) continue;
       
       const interval = currentInterval;
       
@@ -1289,20 +1287,16 @@ async function processAbandonedCartReminder(): Promise<void> {
           icon: '/logo.png',
         });
         
-        sentAbandonedCartReminders.set(reminderKey, now);
+        // Persist that this reminder was sent (survives restarts)
+        await storage.markSchedulerReminderSent(reminderKey, 'abandoned_cart', order.id);
         notificationsSent++;
       } catch (orderError) {
         console.error(`[Shop Scheduler] Error processing order ${order.id} for ${interval.label}:`, orderError);
       }
     }
     
-    // Cleanup old reminders (orders older than 72h)
-    const cutoff = now - 72 * 60 * 60 * 1000;
-    for (const [key, timestamp] of sentAbandonedCartReminders.entries()) {
-      if (timestamp < cutoff) {
-        sentAbandonedCartReminders.delete(key);
-      }
-    }
+    // Cleanup old reminders (older than 72h) from persistent storage
+    await storage.cleanOldSchedulerReminders(72);
     
     console.log(`[Shop Scheduler] Abandoned cart check completed. Sent ${notificationsSent} notification(s)`);
   } catch (error) {
@@ -1311,8 +1305,6 @@ async function processAbandonedCartReminder(): Promise<void> {
 }
 
 // ==================== LOAN INSTALLMENT REMINDERS ====================
-
-const sentLoanInstallmentReminders = new Map<string, number>();
 
 async function processLoanInstallmentReminders(): Promise<void> {
   console.log('[Treasury Scheduler] Processing loan installment reminders...');
@@ -1346,8 +1338,11 @@ async function processLoanInstallmentReminders(): Promise<void> {
       for (const threshold of thresholds) {
         if (daysUntilDue !== threshold.days) continue;
         
-        const reminderKey = `loan-${installment.id}-${threshold.days}`;
-        if (sentLoanInstallmentReminders.has(reminderKey)) continue;
+        const reminderKey = `loan-installment-${installment.id}-${threshold.days}d`;
+        
+        // Check persistent storage instead of in-memory Map
+        const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+        if (alreadySent) continue;
         
         const dueDateStr = dueDate.toLocaleDateString('pt-BR');
         const body = threshold.days === 0
@@ -1370,7 +1365,8 @@ async function processLoanInstallmentReminders(): Promise<void> {
           icon: '/logo.png',
         });
         
-        sentLoanInstallmentReminders.set(reminderKey, Date.now());
+        // Persist reminder in database (survives restarts)
+        await storage.markSchedulerReminderSent(reminderKey, 'loan_installment', installment.id);
         notificationsSent++;
         console.log(`[Treasury Scheduler] Sent ${threshold.label} reminder for installment ${installment.id}`);
       }

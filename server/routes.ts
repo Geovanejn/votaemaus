@@ -11004,6 +11004,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error(`Error creating UMP payment for month ${month}:`, err);
           }
         }
+        
+        // Send push notification for UMP payment confirmation
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const monthsText = monthsToPay.length === 1 
+          ? monthNames[monthsToPay[0] - 1]
+          : `${monthsToPay.length} meses`;
+        
+        await storage.createNotification({
+          userId: entry.userId,
+          type: 'payment_confirmed',
+          title: 'Pagamento UMP Confirmado',
+          body: `Seu pagamento da taxa UMP (${monthsText}/${entry.referenceYear}) foi confirmado!`,
+          data: JSON.stringify({ entryId: entry.id, category: 'taxa_ump' }),
+        });
+        
+        await sendPushToUser(entry.userId, {
+          title: 'Pagamento Confirmado',
+          body: `Taxa UMP (${monthsText}/${entry.referenceYear}) paga com sucesso!`,
+          url: '/membro/financeiro',
+          tag: `payment-ump-${entry.id}`,
+          icon: '/logo.png',
+        });
+        console.log(`[Payment] UMP payment notification sent to user ${entry.userId}`);
       }
 
       // Handle Percapta payment
@@ -11015,6 +11038,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           entryId: entry.id,
           paidAt: now,
         });
+        
+        // Send push notification for Percapta payment confirmation
+        await storage.createNotification({
+          userId: entry.userId,
+          type: 'payment_confirmed',
+          title: 'Pagamento Percapta Confirmado',
+          body: `Seu pagamento da taxa Percapta ${entry.referenceYear} foi confirmado!`,
+          data: JSON.stringify({ entryId: entry.id, category: 'taxa_percapta' }),
+        });
+        
+        await sendPushToUser(entry.userId, {
+          title: 'Pagamento Confirmado',
+          body: `Taxa Percapta ${entry.referenceYear} paga com sucesso!`,
+          url: '/membro/financeiro',
+          tag: `payment-percapta-${entry.id}`,
+          icon: '/logo.png',
+        });
+        console.log(`[Payment] Percapta payment notification sent to user ${entry.userId}`);
       }
 
       // Handle shop order
@@ -11054,6 +11095,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             entryId: entry.id,
           });
         }
+        
+        // Send push notification for event fee payment confirmation
+        const event = await storage.getSiteEventById(entry.eventId);
+        const eventName = event?.title || 'Evento';
+        
+        await storage.createNotification({
+          userId: entry.userId,
+          type: 'payment_confirmed',
+          title: 'Taxa de Evento Confirmada',
+          body: `Seu pagamento para ${eventName} foi confirmado!`,
+          data: JSON.stringify({ entryId: entry.id, eventId: entry.eventId }),
+        });
+        
+        await sendPushToUser(entry.userId, {
+          title: 'Pagamento Confirmado',
+          body: `Taxa de ${eventName} paga com sucesso!`,
+          url: '/membro/financeiro',
+          tag: `payment-event-${entry.id}`,
+          icon: '/logo.png',
+        });
+        console.log(`[Payment] Event fee notification sent to user ${entry.userId}`);
       }
 
       // Handle loan installment

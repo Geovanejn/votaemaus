@@ -534,6 +534,11 @@ export interface IStorage {
   updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode | null>;
   deletePromoCode(id: number): Promise<void>;
   incrementPromoCodeUsage(id: number): Promise<void>;
+  
+  // Scheduler Reminders Methods (for persistence across restarts)
+  hasSentSchedulerReminder(reminderKey: string): Promise<boolean>;
+  markSchedulerReminderSent(reminderKey: string, reminderType: string, relatedId?: number): Promise<void>;
+  cleanOldSchedulerReminders(maxAgeHours: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7376,6 +7381,30 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(schema.sentEventNotifications)
       .where(sql`${schema.sentEventNotifications.sentAt} < ${cutoffDate}`)
       .returning({ id: schema.sentEventNotifications.id });
+    return result.length;
+  }
+  
+  // ==================== SCHEDULER REMINDERS METHODS ====================
+  
+  async hasSentSchedulerReminder(reminderKey: string): Promise<boolean> {
+    const [existing] = await db.select({ id: schema.sentSchedulerReminders.id })
+      .from(schema.sentSchedulerReminders)
+      .where(eq(schema.sentSchedulerReminders.reminderKey, reminderKey))
+      .limit(1);
+    return !!existing;
+  }
+  
+  async markSchedulerReminderSent(reminderKey: string, reminderType: string, relatedId?: number): Promise<void> {
+    await db.insert(schema.sentSchedulerReminders)
+      .values({ reminderKey, reminderType, relatedId })
+      .onConflictDoNothing();
+  }
+  
+  async cleanOldSchedulerReminders(maxAgeHours: number): Promise<number> {
+    const cutoffDate = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+    const result = await db.delete(schema.sentSchedulerReminders)
+      .where(sql`${schema.sentSchedulerReminders.sentAt} < ${cutoffDate}`)
+      .returning({ id: schema.sentSchedulerReminders.id });
     return result.length;
   }
 }

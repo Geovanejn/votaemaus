@@ -5223,24 +5223,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const event = await storage.createSiteEvent({ ...req.body, createdBy: req.user!.id });
       
-      // If event has a price, create event_fee entry automatically
-      if (req.body.price) {
+      // If event has a price and valid date, create event_fee entry automatically
+      if (req.body.price && (req.body.startDate || req.body.endDate)) {
         const priceCentavos = parseBrazilianPrice(req.body.price);
         if (priceCentavos !== null && priceCentavos > 0) {
           // Calculate deadline: use endDate if exists, otherwise startDate at 23:59:59
-          const deadlineDate = req.body.endDate 
-            ? new Date(req.body.endDate + 'T23:59:59')
-            : new Date(req.body.startDate + 'T23:59:59');
+          const dateForDeadline = req.body.endDate || req.body.startDate;
+          const deadlineDate = new Date(dateForDeadline + 'T23:59:59');
           
-          try {
-            await storage.createEventFee({
-              eventId: event.id,
-              feeAmount: priceCentavos,
-              deadline: deadlineDate,
-            });
-            console.log(`[Events] Event fee created for event ${event.id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
-          } catch (feeError) {
-            console.error("[Events] Error creating event fee:", feeError);
+          // Only create fee if deadline is valid
+          if (!isNaN(deadlineDate.getTime())) {
+            try {
+              await storage.createEventFee({
+                eventId: event.id,
+                feeAmount: priceCentavos,
+                deadline: deadlineDate,
+              });
+              console.log(`[Events] Event fee created for event ${event.id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+            } catch (feeError) {
+              console.error("[Events] Error creating event fee:", feeError);
+            }
           }
         }
       }
@@ -5291,21 +5293,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const existingFee = await storage.getEventFee(id);
         
         if (priceCentavos !== null && priceCentavos > 0) {
-          // Calculate deadline from updated or existing dates
-          const deadlineDate = updated.endDate 
-            ? new Date(updated.endDate + 'T23:59:59')
-            : new Date(updated.startDate + 'T23:59:59');
-          
-          try {
-            if (existingFee) {
-              await storage.updateEventFee(id, { feeAmount: priceCentavos, deadline: deadlineDate });
-              console.log(`[Events] Event fee updated for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
-            } else {
-              await storage.createEventFee({ eventId: id, feeAmount: priceCentavos, deadline: deadlineDate });
-              console.log(`[Events] Event fee created for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+          // Calculate deadline from updated or existing dates (only if date exists)
+          const dateForDeadline = updated.endDate || updated.startDate;
+          if (dateForDeadline) {
+            const deadlineDate = new Date(dateForDeadline + 'T23:59:59');
+            
+            // Only sync if deadline is valid
+            if (!isNaN(deadlineDate.getTime())) {
+              try {
+                if (existingFee) {
+                  await storage.updateEventFee(id, { feeAmount: priceCentavos, deadline: deadlineDate });
+                  console.log(`[Events] Event fee updated for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+                } else {
+                  await storage.createEventFee({ eventId: id, feeAmount: priceCentavos, deadline: deadlineDate });
+                  console.log(`[Events] Event fee created for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+                }
+              } catch (feeError) {
+                console.error("[Events] Error syncing event fee:", feeError);
+              }
             }
-          } catch (feeError) {
-            console.error("[Events] Error syncing event fee:", feeError);
           }
         } else if (existingFee) {
           // Price removed, delete the fee
@@ -10643,8 +10649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (new Date() > fee.deadline) {
           return res.status(400).json({ message: "Prazo de confirmação encerrado" });
         }
-      } else if (event.price) {
+      } else if (event.price && event.startDate) {
         // Parse price from event using robust Brazilian format parser
+        // Only if startDate exists to avoid Invalid Date
         const priceCentavos = parseBrazilianPrice(event.price);
         if (priceCentavos !== null && priceCentavos > 0) {
           feeAmountCentavos = priceCentavos;
@@ -10759,7 +10766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (fee) {
         feeInfo = { amount: fee.feeAmount / 100, deadline: fee.deadline.toISOString() };
-      } else if (event?.price) {
+      } else if (event?.price && event?.startDate) {
+        // Only if startDate exists to avoid Invalid Date
         const priceCentavos = parseBrazilianPrice(event.price);
         if (priceCentavos !== null && priceCentavos > 0) {
           feeInfo = { 
@@ -10807,7 +10815,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let deadline = fee?.deadline || null;
       let feeAmount: number | null = fee ? fee.feeAmount / 100 : null;
       
-      if (!fee && event?.price) {
+      if (!fee && event?.price && event?.startDate) {
+        // Only if startDate exists to avoid Invalid Date
         const priceCentavos = parseBrazilianPrice(event.price);
         if (priceCentavos !== null && priceCentavos > 0) {
           hasFee = true;

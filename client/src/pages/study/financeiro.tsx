@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixPaymentModal } from "@/components/PixPaymentModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ChevronLeft,
   Wallet,
@@ -165,6 +172,10 @@ export default function FinanceiroPage() {
     createPaymentMutation.mutate({ type: "percapta" });
   };
 
+  // State for selecting which UMP months to pay
+  const [umpPaymentMode, setUmpPaymentMode] = useState<"single" | "all">("all");
+  const [selectedUmpMonth, setSelectedUmpMonth] = useState<string>("");
+
   const handlePayUmp = () => {
     if (!pixStatus?.configured) {
       toast({
@@ -176,6 +187,19 @@ export default function FinanceiroPage() {
     }
     if (!financial) return;
     createPaymentMutation.mutate({ type: "ump", months: financial.umpStatus.unpaidMonths });
+  };
+
+  const handlePaySingleUmpMonth = (month: number) => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!financial) return;
+    createPaymentMutation.mutate({ type: "ump", months: [month] });
   };
 
   const [payingEventId, setPayingEventId] = useState<number | null>(null);
@@ -239,9 +263,13 @@ export default function FinanceiroPage() {
           title: "Pagamento confirmado!",
           description: "Seu pagamento foi aprovado com sucesso.",
         });
-        // Invalidate caches to refresh data
-        queryClient.invalidateQueries({ queryKey: ["treasury-member-status"] });
-        queryClient.invalidateQueries({ queryKey: ["treasury-member-events"] });
+        // Invalidate all treasury-member caches using predicate
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0];
+            return typeof key === 'string' && key.startsWith('treasury-member');
+          }
+        });
         refetch();
         refetchEvents();
       } else if (data.status === "expired") {
@@ -484,7 +512,7 @@ export default function FinanceiroPage() {
                     </div>
 
                     {financial.umpStatus.totalOwed > 0 && (
-                      <div className="pt-2 space-y-2">
+                      <div className="pt-2 space-y-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Total pendente:</span>
                           <span className="font-medium text-amber-600 dark:text-amber-400">
@@ -492,19 +520,75 @@ export default function FinanceiroPage() {
                           </span>
                         </div>
                         {financial.isActiveMember ? (
-                          <Button 
-                            className="w-full gap-2"
-                            onClick={handlePayUmp}
-                            disabled={createPaymentMutation.isPending}
-                            data-testid="button-pay-ump"
-                          >
-                            {createPaymentMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                          <div className="space-y-3">
+                            <div className="flex gap-2">
+                              <Button
+                                variant={umpPaymentMode === "single" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setUmpPaymentMode("single")}
+                                className="flex-1"
+                                data-testid="button-ump-single"
+                              >
+                                Pagar 1 mes
+                              </Button>
+                              <Button
+                                variant={umpPaymentMode === "all" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setUmpPaymentMode("all")}
+                                className="flex-1"
+                                data-testid="button-ump-all"
+                              >
+                                Pagar todos ({financial.umpStatus.unpaidMonths.length})
+                              </Button>
+                            </div>
+
+                            {umpPaymentMode === "single" ? (
+                              <div className="space-y-2">
+                                <Select
+                                  value={selectedUmpMonth}
+                                  onValueChange={setSelectedUmpMonth}
+                                >
+                                  <SelectTrigger data-testid="select-ump-month">
+                                    <SelectValue placeholder="Selecione o mes" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {financial.umpStatus.unpaidMonths.map((month) => (
+                                      <SelectItem key={month} value={month.toString()}>
+                                        {monthNames[month - 1]} - {formatCurrency(financial.umpStatus.monthlyAmount)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button 
+                                  className="w-full gap-2"
+                                  onClick={() => selectedUmpMonth && handlePaySingleUmpMonth(parseInt(selectedUmpMonth))}
+                                  disabled={createPaymentMutation.isPending || !selectedUmpMonth}
+                                  data-testid="button-pay-single-ump"
+                                >
+                                  {createPaymentMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <QrCode className="h-4 w-4" />
+                                  )}
+                                  Pagar {selectedUmpMonth ? monthNames[parseInt(selectedUmpMonth) - 1] : "mes selecionado"}
+                                </Button>
+                              </div>
                             ) : (
-                              <QrCode className="h-4 w-4" />
+                              <Button 
+                                className="w-full gap-2"
+                                onClick={handlePayUmp}
+                                disabled={createPaymentMutation.isPending}
+                                data-testid="button-pay-ump"
+                              >
+                                {createPaymentMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <QrCode className="h-4 w-4" />
+                                )}
+                                Pagar {formatCurrency(financial.umpStatus.totalOwed)}
+                              </Button>
                             )}
-                            Pagar meses pendentes
-                          </Button>
+                          </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-2">
                             Apenas membros ativos pagam esta taxa

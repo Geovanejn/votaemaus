@@ -123,10 +123,13 @@ export default function TesourariaMovimentacoes() {
       return apiRequest("POST", "/api/treasury/entries", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/treasury/entries"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard/monthly"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/treasury/dashboard/summary"] });
+      // Invalidate all treasury queries using predicate to match any URL starting with the prefix
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === 'string' && key.startsWith('/api/treasury/');
+        }
+      });
       setDialogOpen(false);
       resetForm();
       toast({ title: "Movimentacao registrada com sucesso" });

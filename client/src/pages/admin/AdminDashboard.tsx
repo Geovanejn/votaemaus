@@ -47,6 +47,22 @@ const StaggerItem = ({ children }: { children: React.ReactNode }) => (
 
 const adminPanels = [
   {
+    id: "meu-financeiro",
+    title: "Meu Financeiro",
+    subtitle: "Status Financeiro",
+    description: "Consulte suas taxas, pagamentos e acompanhe sua situação financeira com a UMP.",
+    icon: Wallet,
+    color: "from-amber-500 to-orange-600",
+    buttonColor: "bg-amber-600 hover:bg-amber-700",
+    href: "/financeiro",
+    features: [
+      "Ver taxas Percapta e UMP",
+      "Acompanhar pagamentos",
+      "Pagar via PIX",
+    ],
+    forMember: true,
+  },
+  {
     id: "emaus-vota",
     title: "Eleições",
     subtitle: "Sistema de Votação",

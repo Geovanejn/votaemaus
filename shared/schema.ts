@@ -244,6 +244,7 @@ export const addMemberSchema = z.object({
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
   activeMember: z.boolean().default(true),
+  isTreasurer: z.boolean().optional(),
   secretaria: z.string().optional(),
 });
 
@@ -255,6 +256,7 @@ export const updateMemberSchema = z.object({
   photoUrl: z.string().optional(),
   birthdate: z.string().optional(),
   activeMember: z.boolean().optional(),
+  isTreasurer: z.boolean().optional(),
   secretaria: z.string().optional(),
 });
 

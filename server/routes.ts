@@ -9512,11 +9512,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Listar status de pagamentos de todos os membros (para painel do tesoureiro)
+  // IMPORTANT: Only "sócio ativo" (activeMember = true) pay taxes (Percapta/UMP)
   app.get("/api/treasury/member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const members = await storage.getAllMembers(true);
-      const activeMembers = members.filter(m => m.isMember);
+      // Filter by activeMember (sócio ativo checkbox), not isMember
+      const activeMembers = members.filter(m => m.activeMember === true);
       
       const memberPayments = await Promise.all(activeMembers.map(async (member) => {
         const percapta = await storage.getMemberPercaptaPayment(member.id, year);

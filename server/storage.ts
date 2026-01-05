@@ -6991,13 +6991,15 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    const activeMembers = await this.getAllMembers(true);
-    const activeMemberIds = activeMembers.filter(m => m.isMember).map(m => m.id);
+    // Only "sócio ativo" (activeMember = true) pay taxes, not just any isMember
+    const allMembers = await this.getAllMembers(true);
+    const activeMemberIds = allMembers.filter(m => m.activeMember === true).map(m => m.id);
     
     let paidMembers = 0;
     for (const memberId of activeMemberIds) {
       const percapta = await this.getMemberPercaptaPayment(memberId, year);
-      if (percapta?.isPaid) {
+      // Check paidAt instead of isPaid (paidAt is set when payment is confirmed)
+      if (percapta?.paidAt) {
         paidMembers++;
       }
     }

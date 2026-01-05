@@ -83,6 +83,7 @@ const expenseCategories = [
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pendente", variant: "secondary" },
   paid: { label: "Pago", variant: "default" },
+  completed: { label: "Pago", variant: "default" },
   expired: { label: "Expirado", variant: "destructive" },
   cancelled: { label: "Cancelado", variant: "outline" },
 };
@@ -105,7 +106,7 @@ export default function TesourariaMovimentacoes() {
   const [formReferenceMonth, setFormReferenceMonth] = useState<string>("");
 
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
-    queryKey: ["/api/treasury/entries", currentYear],
+    queryKey: [`/api/treasury/entries?year=${currentYear}`],
     enabled: hasTreasuryPanel,
   });
 

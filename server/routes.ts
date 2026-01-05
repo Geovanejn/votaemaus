@@ -9369,7 +9369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       entries.forEach(entry => {
-        if (entry.paymentStatus === 'paid' && entry.createdAt) {
+        // Status "completed" is set when PIX is confirmed via webhook or manual check
+        if ((entry.paymentStatus === 'paid' || entry.paymentStatus === 'completed') && entry.createdAt) {
           const month = new Date(entry.createdAt).getMonth();
           if (entry.type === 'income') {
             monthlyData[month].income += entry.amount;
@@ -9395,7 +9396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categoryMap = new Map<string, number>();
       
       entries.forEach(entry => {
-        if (entry.paymentStatus === "paid") {
+        // Status "completed" is set when PIX is confirmed via webhook or manual check
+        if (entry.paymentStatus === "paid" || entry.paymentStatus === "completed") {
           const current = categoryMap.get(entry.category) || 0;
           categoryMap.set(entry.category, current + entry.amount);
         }

@@ -67,7 +67,7 @@ export default function TesourariaTaxas() {
   const { toast } = useToast();
 
   const { data: members, isLoading } = useQuery<MemberTaxStatus[]>({
-    queryKey: ["/api/treasury/members/tax-status", currentYear],
+    queryKey: [`/api/treasury/members/tax-status/${currentYear}`],
     enabled: hasTreasuryPanel,
   });
 

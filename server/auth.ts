@@ -24,6 +24,7 @@ export function generateToken(user: Omit<User, "password">): string {
       email: user.email, 
       isAdmin: user.isAdmin,
       isMember: user.isMember,
+      isTreasurer: user.isTreasurer,
       secretaria: user.secretaria
     },
     JWT_SECRET,

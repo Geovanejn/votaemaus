@@ -406,35 +406,19 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
               <CardTitle>Inscricao e Publicacao</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preco (opcional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Gratuito ou R$ 50,00" {...field} data-testid="input-price" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="registrationUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link de Inscricao</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://forms.google.com/..." {...field} data-testid="input-registration" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preco (opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Gratuito ou R$ 50,00" {...field} data-testid="input-price" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField

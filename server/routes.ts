@@ -10859,14 +10859,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Webhook for Mercado Pago notifications
+  // Webhook verification endpoint (GET) - Mercado Pago may use this to verify URL
+  app.get("/api/pix/webhook", (req, res) => {
+    console.log("[Webhook] GET verification request received");
+    res.status(200).json({ status: "ok", message: "Webhook endpoint active" });
+  });
+
+  // Webhook for Mercado Pago notifications (POST)
   app.post("/api/pix/webhook", async (req, res) => {
+    console.log("[Webhook] POST received:", JSON.stringify(req.body));
+    
     try {
+      // Handle Mercado Pago's verification/test requests
+      if (!req.body || Object.keys(req.body).length === 0) {
+        console.log("[Webhook] Empty body - responding OK for verification");
+        return res.sendStatus(200);
+      }
+
+      // Handle action-based format (used in Mercado Pago tests)
+      if (req.body.action && req.body.data?.id) {
+        const { action, data } = req.body;
+        console.log(`[Webhook] Action-based notification: ${action}, ID: ${data.id}`);
+        
+        if (action === "payment.updated" || action === "payment.created") {
+          const paymentId = typeof data.id === "string" ? parseInt(data.id) : data.id;
+          
+          if (isMercadoPagoConfigured() && !isNaN(paymentId)) {
+            const result = await getPaymentStatus(paymentId);
+            
+            if (result.success && result.approved) {
+              const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
+              
+              if (entry && entry.paymentStatus !== "completed") {
+                await storage.updateTreasuryEntry(entry.id, {
+                  paymentStatus: "completed",
+                  paidAt: new Date(),
+                });
+                await processPaymentCompletion(entry);
+                console.log(`[Webhook] Payment ${paymentId} approved for entry ${entry.id}`);
+              }
+            }
+          }
+        }
+        
+        return res.sendStatus(200);
+      }
+
+      // Handle type-based format (standard webhook format)
       if (!isValidWebhookPayload(req.body)) {
-        return res.sendStatus(400);
+        console.log("[Webhook] Invalid payload format");
+        return res.sendStatus(200); // Return 200 anyway to prevent retries
       }
 
       const { type, data } = req.body;
+      console.log(`[Webhook] Type-based notification: ${type}, ID: ${data.id}`);
 
       if (type === "payment" || type === "payment.updated") {
         const paymentId = typeof data.id === "string" ? parseInt(data.id) : data.id;
@@ -10878,7 +10924,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await getPaymentStatus(paymentId);
 
         if (result.success && result.approved) {
-          // Find entry by pixTransactionId
           const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
 
           if (entry && entry.paymentStatus !== "completed") {
@@ -10895,8 +10940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.sendStatus(200);
     } catch (error) {
-      console.error("Webhook error:", error);
-      res.sendStatus(200);
+      console.error("[Webhook] Error processing:", error);
+      res.sendStatus(200); // Always return 200 to prevent retries
     }
   });
 

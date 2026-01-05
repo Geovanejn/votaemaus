@@ -92,9 +92,24 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
     };
   } catch (error: any) {
     console.error("[MercadoPago] Error creating PIX payment:", error);
+    
+    // Parse specific Mercado Pago errors to provide helpful messages
+    let userFriendlyError = "Erro ao criar pagamento PIX";
+    
+    if (error.message?.includes("Collector user without key enabled")) {
+      userFriendlyError = "A conta Mercado Pago não tem chave PIX cadastrada. O administrador precisa cadastrar uma chave PIX no painel do Mercado Pago.";
+    } else if (error.cause && Array.isArray(error.cause)) {
+      const causeCode = error.cause[0]?.code;
+      if (causeCode === 13253) {
+        userFriendlyError = "Cadastro do Mercado Pago incompleto. Complete todas as etapas de verificação no painel do Mercado Pago e cadastre uma chave PIX.";
+      }
+    } else if (error.message) {
+      userFriendlyError = error.message;
+    }
+    
     return {
       success: false,
-      error: error.message || "Erro ao criar pagamento PIX",
+      error: userFriendlyError,
     };
   }
 }

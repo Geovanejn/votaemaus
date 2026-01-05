@@ -518,35 +518,51 @@ export default function FinanceiroPage() {
                         {financial.isActiveMember ? (
                           <div className="space-y-3">
                             <div className="flex gap-2">
-                              <Button
-                                className="flex-1 gap-2"
-                                variant="outline"
-                                onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
-                                disabled={createPaymentMutation.isPending || financial.umpStatus.unpaidMonths.length === 0}
-                                data-testid="button-ump-single"
-                              >
-                                {createPaymentMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <QrCode className="h-4 w-4" />
-                                )}
-                                Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
-                              </Button>
-                              {financial.umpStatus.unpaidMonths.length > 1 && (
+                              {financial.umpStatus.unpaidMonths.length === 1 ? (
                                 <Button
                                   className="flex-1 gap-2"
-                                  onClick={handlePayUmp}
+                                  onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
                                   disabled={createPaymentMutation.isPending}
-                                  data-testid="button-ump-all"
+                                  data-testid="button-ump-single"
                                 >
                                   {createPaymentMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <QrCode className="h-4 w-4" />
                                   )}
-                                  Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}
+                                  Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
                                 </Button>
-                              )}
+                              ) : financial.umpStatus.unpaidMonths.length > 1 ? (
+                                <>
+                                  <Button
+                                    className="flex-1 gap-2"
+                                    variant="outline"
+                                    onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
+                                    disabled={createPaymentMutation.isPending}
+                                    data-testid="button-ump-single"
+                                  >
+                                    {createPaymentMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <QrCode className="h-4 w-4" />
+                                    )}
+                                    Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
+                                  </Button>
+                                  <Button
+                                    className="flex-1 gap-2"
+                                    onClick={handlePayUmp}
+                                    disabled={createPaymentMutation.isPending}
+                                    data-testid="button-ump-all"
+                                  >
+                                    {createPaymentMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <QrCode className="h-4 w-4" />
+                                    )}
+                                    Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}
+                                  </Button>
+                                </>
+                              ) : null}
                             </div>
                           </div>
                         ) : (

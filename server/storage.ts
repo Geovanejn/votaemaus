@@ -1727,11 +1727,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(schema.siteEvents.startDate));
   }
 
-  async createSiteEvent(data: { title: string; description?: string; imageUrl?: string; startDate: string; endDate?: string; time?: string; location?: string; isPublished?: boolean }): Promise<any> {
+  async createSiteEvent(data: { 
+    title: string; 
+    description?: string | null; 
+    shortDescription?: string | null;
+    imageUrl?: string | null; 
+    startDate: string; 
+    endDate?: string | null; 
+    time?: string | null; 
+    location?: string | null; 
+    locationUrl?: string | null;
+    price?: string | null;
+    registrationUrl?: string | null;
+    category?: string;
+    isPublished?: boolean;
+    isFeatured?: boolean;
+    isAllDay?: boolean;
+    createdBy?: number;
+  }): Promise<any> {
     const [event] = await db.insert(schema.siteEvents)
       .values({
         ...data,
         isPublished: data.isPublished ?? true,
+        category: data.category ?? "geral",
       })
       .returning();
     return event;

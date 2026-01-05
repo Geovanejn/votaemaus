@@ -659,6 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: false,
         isMember: true,
         activeMember: validatedData.activeMember,
+        isTreasurer: validatedData.isTreasurer ?? false,
         secretaria: validatedData.secretaria,
       } as any);
 

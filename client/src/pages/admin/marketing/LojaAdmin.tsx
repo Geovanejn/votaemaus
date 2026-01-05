@@ -32,7 +32,8 @@ import {
   Tag,
   Percent,
   Calendar,
-  Hash
+  Hash,
+  ShoppingBag
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -675,6 +676,16 @@ export default function LojaAdmin() {
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
+                <Link href="/admin/marketing/pedidos">
+                  <Button
+                    variant="outline"
+                    className="gap-2 bg-white/10 border-white/30 text-white"
+                    data-testid="button-manage-orders"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    Pedidos
+                  </Button>
+                </Link>
                 <Button
                   variant="outline"
                   onClick={() => setIsCategoryOpen(true)}

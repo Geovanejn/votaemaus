@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { 
   Calendar as CalendarIcon,
@@ -13,7 +13,9 @@ import {
   Grid,
   Loader2,
   X,
-  ExternalLink
+  ExternalLink,
+  CheckCircle2,
+  UserCheck
 } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -22,6 +24,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LocationLink } from "@/components/ui/location-link";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 import eventImg1 from "@assets/Eleição_2025_2026_Stories (23)_1762028290367.png";
 import eventImg2 from "@assets/Eleição_2025_2026_Stories (3)_1761781308477.png";
@@ -171,6 +176,8 @@ function SimpleCalendar({
 
 export default function AgendaPage() {
   const params = useParams<{ id?: string }>();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
@@ -179,6 +186,58 @@ export default function AgendaPage() {
     queryKey: ['/api/site/events'],
     staleTime: 5 * 60 * 1000,
     retry: 2,
+  });
+
+  // Query for event confirmation status
+  const { data: confirmationData, isLoading: isLoadingConfirmation } = useQuery<{
+    confirmed: boolean;
+    paymentStatus?: string;
+    fee?: { amount: number; deadline: string } | null;
+  }>({
+    queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'],
+    queryFn: async () => {
+      if (!selectedEvent?.id || !user) return { confirmed: false, fee: null };
+      const res = await fetch(`/api/events/${selectedEvent.id}/my-confirmation`, { credentials: 'include' });
+      if (!res.ok) return { confirmed: false, fee: null };
+      return res.json();
+    },
+    enabled: !!selectedEvent?.id && !!user,
+  });
+
+  // Mutation for confirming presence
+  const confirmMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      return apiRequest("POST", `/api/events/${eventId}/confirm`, { visitorCount: 0 });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'] });
+      toast({ title: "Presenca confirmada", description: "Sua presenca foi registrada com sucesso." });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao confirmar", 
+        description: error.message || "Nao foi possivel confirmar presenca.", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Mutation for cancelling confirmation
+  const cancelConfirmMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      return apiRequest("DELETE", `/api/events/${eventId}/confirm`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'] });
+      toast({ title: "Confirmacao cancelada", description: "Sua confirmacao foi removida." });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao cancelar", 
+        description: error.message || "Nao foi possivel cancelar a confirmacao.", 
+        variant: "destructive" 
+      });
+    },
   });
 
   useEffect(() => {
@@ -537,9 +596,61 @@ export default function AgendaPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-2">
+                {/* Confirmation Section for logged in users */}
+                {user && confirmationData?.fee && (
+                  <div className="pt-3 pb-1 border-t">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Taxa: </span>
+                        <span className="font-semibold">R$ {confirmationData.fee.amount.toFixed(2).replace('.', ',')}</span>
+                        <span className="text-muted-foreground ml-2">
+                          (ate {new Date(confirmationData.fee.deadline).toLocaleDateString('pt-BR')})
+                        </span>
+                      </div>
+                      {confirmationData.confirmed ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Presenca confirmada
+                          </span>
+                          {confirmationData.paymentStatus !== 'paid' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelConfirmMutation.mutate(selectedEvent.id)}
+                              disabled={cancelConfirmMutation.isPending}
+                              data-testid="button-cancel-confirmation"
+                            >
+                              {cancelConfirmMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Cancelar"
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => confirmMutation.mutate(selectedEvent.id)}
+                          disabled={confirmMutation.isPending || new Date() > new Date(confirmationData.fee.deadline)}
+                          data-testid="button-confirm-presence"
+                        >
+                          {confirmMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <UserCheck className="h-4 w-4 mr-2" />
+                          )}
+                          Confirmar Presenca
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
                   <Button
                     variant="default"
+                    className="flex-1 sm:flex-none"
                     onClick={async () => {
                       try {
                         const response = await fetch(`/api/site/events/${selectedEvent.id}/google-calendar-url`);
@@ -556,7 +667,7 @@ export default function AgendaPage() {
                     <SiGooglecalendar className="h-4 w-4 mr-2" />
                     Adicionar ao Google Agenda
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                  <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setSelectedEvent(null)}>
                     Fechar
                   </Button>
                 </div>

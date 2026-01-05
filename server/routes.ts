@@ -9467,14 +9467,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter only sócio ativo (activeMember = true) for tax tracking
       const activeMembers = allMembers.filter(m => m.activeMember === true);
       
-      const currentMonth = new Date().getMonth() + 1;
-      
+      // Calculate total annual debt (all 12 months, not just up to current month)
       const memberStatuses = await Promise.all(activeMembers.map(async (member) => {
         const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
         const umpPayments = await storage.getMemberUmpPayments(member.id, year);
         
         const paidMonths = umpPayments.filter(p => p.paidAt).map(p => p.month);
-        const unpaidMonths = Array.from({ length: currentMonth }, (_, i) => i + 1)
+        // Count all 12 months of the year for annual total
+        const unpaidMonths = Array.from({ length: 12 }, (_, i) => i + 1)
           .filter(m => !paidMonths.includes(m));
         
         const percaptaOwed = percaptaPayment?.paidAt ? 0 : percaptaAmount;

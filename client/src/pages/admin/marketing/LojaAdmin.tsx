@@ -996,14 +996,14 @@ export default function LojaAdmin() {
             <div className="space-y-2">
               <Label>Categoria (opcional)</Label>
               <Select 
-                value={promoForm.categoryId} 
-                onValueChange={(v) => setPromoForm({ ...promoForm, categoryId: v })}
+                value={promoForm.categoryId || "all"} 
+                onValueChange={(v) => setPromoForm({ ...promoForm, categoryId: v === "all" ? "" : v })}
               >
                 <SelectTrigger data-testid="select-promo-category">
                   <SelectValue placeholder="Todas as categorias" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as categorias</SelectItem>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
                   {categories?.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
                   ))}

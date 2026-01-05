@@ -4383,6 +4383,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== NOTIFICATION ENDPOINTS ====================
 
+  // Diagnostic endpoint to check push notification status (admin only)
+  app.get("/api/admin/push-status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const members = await storage.getAllMembers();
+      const results: Array<{ userId: number; fullName: string; subscriptionCount: number }> = [];
+      
+      for (const member of members) {
+        const subscriptions = await storage.getPushSubscriptionsByUserId(member.id);
+        results.push({
+          userId: member.id,
+          fullName: member.fullName,
+          subscriptionCount: subscriptions.length,
+        });
+      }
+      
+      const anonymousSubscriptions = await storage.getAllAnonymousPushSubscriptions();
+      
+      const vapidConfigured = Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+      const viteVapidConfigured = Boolean(process.env.VITE_VAPID_PUBLIC_KEY);
+      
+      res.json({
+        vapidConfigured,
+        viteVapidConfigured,
+        totalMembers: members.length,
+        membersWithPush: results.filter(r => r.subscriptionCount > 0).length,
+        membersWithoutPush: results.filter(r => r.subscriptionCount === 0).length,
+        anonymousSubscriptions: anonymousSubscriptions.length,
+        details: results,
+      });
+    } catch (error) {
+      console.error("Push status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status push" });
+    }
+  });
+
   // Subscribe to push notifications
   app.post("/api/notifications/subscribe", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -10161,6 +10196,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Membro nao encontrado" });
       }
       
+      // Check if member has push subscriptions
+      const subscriptions = await storage.getPushSubscriptionsByUserId(parsedUserId);
+      if (subscriptions.length === 0) {
+        return res.json({ 
+          success: false, 
+          sent: 0,
+          message: `${member.fullName} nao tem notificacoes push ativadas. O membro precisa ativar as notificacoes no app.` 
+        });
+      }
+      
       const customMessage = (message && typeof message === "string" && message.trim()) 
         ? message.trim().substring(0, 500)
         : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para mais detalhes.";
@@ -10171,6 +10216,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         icon: "/logo.png",
         data: { url: "/financeiro" },
       });
+      
+      if (result === 0) {
+        return res.json({ 
+          success: false, 
+          sent: 0,
+          message: `Falha ao enviar para ${member.fullName}. As subscricoes push podem estar expiradas.` 
+        });
+      }
       
       res.json({ 
         success: true, 

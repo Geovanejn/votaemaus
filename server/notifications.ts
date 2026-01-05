@@ -119,6 +119,7 @@ export async function sendPushToUser(
     const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
     
     if (subscriptions.length === 0) {
+      console.log(`[Push] User ${userId} has no push subscriptions registered`);
       return 0;
     }
     
@@ -137,6 +138,8 @@ export async function sendPushToUser(
 
     if (successCount > 0) {
       console.log(`[Push] Sent "${payload.title}" to user ${userId} (${successCount}/${subscriptions.length} success)`);
+    } else {
+      console.log(`[Push] All ${subscriptions.length} subscriptions failed for user ${userId}`);
     }
     return successCount;
   } catch (error) {

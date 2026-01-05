@@ -20,7 +20,8 @@ import {
   Calendar,
   TrendingUp,
   Loader2,
-  QrCode
+  QrCode,
+  RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -223,6 +224,46 @@ export default function FinanceiroPage() {
     setPixModalOpen(false);
     setPixPaymentData(null);
   };
+
+  // Mutation to manually verify PIX payment status
+  const [verifyingEntryId, setVerifyingEntryId] = useState<number | null>(null);
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async (entryId: number) => {
+      setVerifyingEntryId(entryId);
+      const res = await apiRequest("GET", `/api/pix/check/${entryId}`);
+      return res.json();
+    },
+    onSuccess: (data, entryId) => {
+      setVerifyingEntryId(null);
+      if (data.approved || data.status === "completed") {
+        toast({
+          title: "Pagamento confirmado!",
+          description: "Seu pagamento foi aprovado com sucesso.",
+        });
+        refetch();
+        refetchEvents();
+      } else if (data.status === "expired") {
+        toast({
+          title: "PIX expirado",
+          description: "O QR Code expirou. Gere um novo pagamento.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Pagamento pendente",
+          description: "O pagamento ainda nao foi confirmado. Tente novamente em alguns instantes.",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      setVerifyingEntryId(null);
+      toast({
+        title: "Erro ao verificar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   if (!isAuthenticated) {
     setLocation("/login");
@@ -502,13 +543,41 @@ export default function FinanceiroPage() {
                                 {formatDate(tx.createdAt)}
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-medium text-green-600 dark:text-green-400">
-                                {formatCurrency(tx.amount)}
-                              </p>
-                              <Badge variant="outline" className="text-xs">
-                                {tx.status === "completed" ? "Confirmado" : tx.status}
-                              </Badge>
+                            <div className="text-right flex items-center gap-2">
+                              <div>
+                                <p className={cn(
+                                  "font-medium",
+                                  tx.status === "completed" 
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-amber-600 dark:text-amber-400"
+                                )}>
+                                  {formatCurrency(tx.amount)}
+                                </p>
+                                <Badge 
+                                  variant={tx.status === "completed" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {tx.status === "completed" ? "Confirmado" : 
+                                   tx.status === "pending" ? "Pendente" : 
+                                   tx.status === "cancelled" ? "Cancelado" : tx.status}
+                                </Badge>
+                              </div>
+                              {tx.status === "pending" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => verifyPaymentMutation.mutate(tx.id)}
+                                  disabled={verifyingEntryId === tx.id}
+                                  title="Verificar pagamento"
+                                  data-testid={`button-verify-${tx.id}`}
+                                >
+                                  {verifyingEntryId === tx.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}

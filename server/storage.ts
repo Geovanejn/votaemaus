@@ -6980,7 +6980,8 @@ export class DatabaseStorage implements IStorage {
     let pendingPayments = 0;
     
     for (const entry of entries) {
-      if (entry.paymentStatus === "paid") {
+      // Status is "completed" when payment is confirmed via PIX webhook or manual check
+      if (entry.paymentStatus === "completed" || entry.paymentStatus === "paid") {
         if (entry.type === "income") {
           totalIncome += entry.amount;
         } else {

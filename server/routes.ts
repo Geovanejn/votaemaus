@@ -10325,8 +10325,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const percapta = await storage.getMemberPercaptaPayment(member.id, year);
         const umpPayments = await storage.getMemberUmpPayments(member.id, year);
         
-        const percaptaPending = percapta && !percapta.paidAt;
-        const umpPending = umpPayments.some(p => p.month <= currentMonth && !p.paidAt);
+        // Percapta: no record means NOT paid (record is created when payment is confirmed)
+        const percaptaPending = !percapta;
+        
+        // UMP: check which months should be paid but aren't
+        // umpPayments only contains months that were paid (created on payment confirmation)
+        const paidMonths = new Set(umpPayments.map(p => p.month));
+        const umpPending = Array.from({ length: currentMonth }, (_, i) => i + 1)
+          .some(month => !paidMonths.has(month));
         
         if (percaptaPending || umpPending) {
           membersWithPending.add(member.id);

@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Listar membros para admin/tesouraria
-  app.get("/api/admin/members", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/admin/members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers();
       const membersWithoutPasswords = members.map(({ password, ...user }) => user);

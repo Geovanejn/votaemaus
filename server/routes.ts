@@ -5223,6 +5223,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const event = await storage.createSiteEvent({ ...req.body, createdBy: req.user!.id });
       
+      // If event has a price, create event_fee entry automatically
+      if (req.body.price) {
+        const priceCentavos = parseBrazilianPrice(req.body.price);
+        if (priceCentavos !== null && priceCentavos > 0) {
+          // Calculate deadline: use endDate if exists, otherwise startDate at 23:59:59
+          const deadlineDate = req.body.endDate 
+            ? new Date(req.body.endDate + 'T23:59:59')
+            : new Date(req.body.startDate + 'T23:59:59');
+          
+          try {
+            await storage.createEventFee({
+              eventId: event.id,
+              feeAmount: priceCentavos,
+              deadline: deadlineDate,
+            });
+            console.log(`[Events] Event fee created for event ${event.id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+          } catch (feeError) {
+            console.error("[Events] Error creating event fee:", feeError);
+          }
+        }
+      }
+      
       // Audit log
       await logAuditAction(req.user?.id, "create", "event", event.id, `Criado: ${req.body.title}`, req);
       
@@ -5261,6 +5283,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updateSiteEvent(id, validatedData);
       if (!updated) {
         return res.status(404).json({ message: "Evento nao encontrado" });
+      }
+      
+      // Handle event fee sync when price is updated
+      if ('price' in validatedData) {
+        const priceCentavos = parseBrazilianPrice(validatedData.price || null);
+        const existingFee = await storage.getEventFee(id);
+        
+        if (priceCentavos !== null && priceCentavos > 0) {
+          // Calculate deadline from updated or existing dates
+          const deadlineDate = updated.endDate 
+            ? new Date(updated.endDate + 'T23:59:59')
+            : new Date(updated.startDate + 'T23:59:59');
+          
+          try {
+            if (existingFee) {
+              await storage.updateEventFee(id, { feeAmount: priceCentavos, deadline: deadlineDate });
+              console.log(`[Events] Event fee updated for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+            } else {
+              await storage.createEventFee({ eventId: id, feeAmount: priceCentavos, deadline: deadlineDate });
+              console.log(`[Events] Event fee created for event ${id}: R$ ${(priceCentavos / 100).toFixed(2)}`);
+            }
+          } catch (feeError) {
+            console.error("[Events] Error syncing event fee:", feeError);
+          }
+        } else if (existingFee) {
+          // Price removed, delete the fee
+          try {
+            await storage.deleteEventFee(id);
+            console.log(`[Events] Event fee deleted for event ${id}`);
+          } catch (feeError) {
+            console.error("[Events] Error deleting event fee:", feeError);
+          }
+        }
       }
       
       // Send notification if event is being published for the first time
@@ -8558,16 +8613,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar pedidos da loja (admin)
-  // Note: Marketing role can see orders but financial amounts are hidden (privacy/privilege separation)
+  // Listar pedidos da loja (admin/marketing)
+  // Marketing needs to see order values for logistics management
   app.get("/api/admin/shop/orders", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const status = req.query.status as string | undefined;
       const orders = await storage.getShopOrders(status ? { status } : undefined);
-      
-      // Check if user has treasurer permissions to show financial data
-      // Marketing and marketing_admin roles cannot see financial amounts (privilege separation)
-      const isTreasurer = req.user!.role === 'treasurer' || req.user!.role === 'admin' || req.user!.role === 'root';
       
       const ordersWithDetails = await Promise.all(orders.map(async (order) => {
         const items = await storage.getShopOrderItems(order.id);
@@ -8575,24 +8626,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const itemsWithProduct = await Promise.all(items.map(async (item) => {
           const product = await storage.getShopItemById(item.itemId);
-          // Marketing can't see item prices
-          const sanitizedProduct = product ? {
-            ...product,
-            price: isTreasurer ? product.price : undefined,
-          } : null;
           return { 
             ...item, 
-            price: isTreasurer ? item.price : undefined,
-            product: sanitizedProduct 
+            unitPrice: item.unitPrice, // Include unit price for logistics
+            product: product ? {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+            } : null 
           };
         }));
         
         return {
           ...order,
-          // Hide financial data for marketing role
-          totalAmount: isTreasurer ? order.totalAmount : undefined,
-          discountAmount: isTreasurer ? order.discountAmount : undefined,
-          user: user ? { id: user.id, fullName: user.fullName, email: user.email } : null,
+          totalAmount: order.totalAmount || 0,
+          user: user ? { 
+            id: user.id, 
+            fullName: user.fullName, 
+            email: user.email,
+          } : null,
           items: itemsWithProduct,
         };
       }));
@@ -9981,11 +10033,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const memberEvents = data
         .map(({ confirmation, event, fee, entry }) => {
-          const baseAmount = fee?.feeAmount || 0;
-          // Visitor amount is same as base amount per visitor (or could be different if specified)
-          const visitorAmount = baseAmount; // Same rate for visitors
+          // Use fee from eventFees table, or parse from event.price as fallback
+          let baseAmount = 0;
+          if (fee?.feeAmount) {
+            baseAmount = fee.feeAmount;
+          } else if (event?.price) {
+            // Parse price from event using robust Brazilian format parser
+            const priceCentavos = parseBrazilianPrice(event.price);
+            if (priceCentavos !== null && priceCentavos > 0) {
+              baseAmount = priceCentavos;
+            }
+          }
+          
+          // Visitor amount is same as base amount per visitor
+          const visitorAmount = baseAmount;
           const totalAmount = baseAmount + ((confirmation.visitorCount || 0) * visitorAmount);
           
+          // Check if paid - either via entry or via entryId on confirmation
           const entryYear = entry?.referenceYear || (entry?.createdAt ? new Date(entry.createdAt).getFullYear() : null);
           const isPaidThisYear = entry?.paymentStatus === "completed" && entryYear === year;
           
@@ -10001,6 +10065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             totalAmount,
             hasFee: totalAmount > 0,
             isPaid: isPaidThisYear,
+            entryId: confirmation.entryId || null,
           };
         })
         .filter(e => e.totalAmount > 0);

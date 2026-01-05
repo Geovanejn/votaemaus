@@ -35,6 +35,7 @@ interface OrderUser {
   id: number;
   fullName: string;
   email: string;
+  phone?: string | null;
 }
 
 interface OrderItemProduct {
@@ -59,6 +60,7 @@ interface ShopOrder {
   orderCode: string;
   userId: number;
   totalAmount: number;
+  discountAmount?: number;
   observation: string | null;
   paymentStatus: string;
   orderStatus: string;
@@ -417,60 +419,137 @@ export default function PedidosAdminPage() {
       </section>
 
       <Dialog open={!!detailsOrder} onOpenChange={() => setDetailsOrder(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Pedido #{detailsOrder?.orderCode}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Pedido #{detailsOrder?.orderCode}
+              {detailsOrder && (
+                <Badge className={cn("text-xs", getStatusInfo(detailsOrder.orderStatus).color)}>
+                  {getStatusInfo(detailsOrder.orderStatus).label}
+                </Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>
-              Detalhes do pedido
+              Detalhes completos para logistica
             </DialogDescription>
           </DialogHeader>
           
           {detailsOrder && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Cliente</h4>
-                <div className="text-sm text-muted-foreground">
-                  <p>{detailsOrder.user?.fullName}</p>
-                  <p>{detailsOrder.user?.email}</p>
-                </div>
-              </div>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Dados do Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nome:</span>
+                    <span className="font-medium">{detailsOrder.user?.fullName || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Email:</span>
+                    <span>{detailsOrder.user?.email || "N/A"}</span>
+                  </div>
+                  {detailsOrder.user?.phone && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Telefone:</span>
+                      <span className="font-medium">{detailsOrder.user.phone}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Itens do Pedido</h4>
-                <div className="space-y-2">
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Informacoes do Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Data do pedido:</span>
+                    <span>{formatDate(detailsOrder.createdAt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pagamento:</span>
+                    <Badge variant={detailsOrder.paymentStatus === "paid" ? "default" : "secondary"}>
+                      {detailsOrder.paymentStatus === "paid" ? "Pago" : 
+                       detailsOrder.paymentStatus === "pending" ? "Pendente" : detailsOrder.paymentStatus}
+                    </Badge>
+                  </div>
+                  {detailsOrder.paidAt && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pago em:</span>
+                      <span>{formatDate(detailsOrder.paidAt)}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Itens do Pedido ({detailsOrder.items.reduce((acc, i) => acc + i.quantity, 0)} unidades)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 space-y-2">
                   {detailsOrder.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-start p-2 bg-muted rounded-md">
-                      <div>
-                        <p className="font-medium text-sm">{item.product?.name || "Produto não encontrado"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.gender && `${item.gender === "male" ? "Masculino" : item.gender === "female" ? "Feminino" : "Unissex"}`}
-                          {item.size && ` - Tam: ${item.size}`}
-                          {` - Qtd: ${item.quantity}`}
-                        </p>
+                    <div key={item.id} className="flex justify-between items-start p-3 bg-muted/50 rounded-md border">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{item.product?.name || "Produto nao encontrado"}</p>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {item.gender && (
+                            <Badge variant="outline" className="text-xs">
+                              {item.gender === "male" ? "Masculino" : item.gender === "female" ? "Feminino" : "Unissex"}
+                            </Badge>
+                          )}
+                          {item.size && (
+                            <Badge variant="outline" className="text-xs font-bold">
+                              Tam: {item.size}
+                            </Badge>
+                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            Qtd: {item.quantity}
+                          </Badge>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium whitespace-nowrap">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="font-medium">Total</span>
-                <span className="font-bold text-lg">{formatCurrency(detailsOrder.totalAmount)}</span>
-              </div>
+                </CardContent>
+              </Card>
 
               {detailsOrder.observation && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Observação</h4>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                    {detailsOrder.observation}
-                  </p>
-                </div>
+                <Card className="border-amber-200 dark:border-amber-800">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm text-amber-700 dark:text-amber-400">Observacao do Cliente</CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-2">
+                    <p className="text-sm">{detailsOrder.observation}</p>
+                  </CardContent>
+                </Card>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2 border-t">
+                {detailsOrder.discountAmount && detailsOrder.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Desconto aplicado:</span>
+                    <span>-{formatCurrency(detailsOrder.discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total do Pedido</span>
+                  <span className="font-bold text-xl">{formatCurrency(detailsOrder.totalAmount)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t">
                 <h4 className="font-medium text-sm">Atualizar Status</h4>
                 <Select
                   value={detailsOrder.orderStatus}

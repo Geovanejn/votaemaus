@@ -4,6 +4,17 @@ const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 const PIX_EXPIRATION_MINUTES = 15;
 const PIX_FEE_PERCENTAGE = 0.99;
 
+// Webhook URL can be configured via env var, or falls back to apex domain
+// IMPORTANT: Use apex domain (without www) to avoid 307 redirects on Render
+const WEBHOOK_URL = process.env.MERCADO_PAGO_WEBHOOK_URL || 
+  (process.env.NODE_ENV === "production" ? "https://umpemaus.com.br/api/pix/webhook" : null);
+
+if (WEBHOOK_URL) {
+  console.log("[MercadoPago] Webhook URL configured:", WEBHOOK_URL);
+} else {
+  console.log("[MercadoPago] No webhook URL configured - webhooks will use Mercado Pago dashboard settings");
+}
+
 let client: MercadoPagoConfig | null = null;
 let paymentAPI: Payment | null = null;
 
@@ -61,19 +72,27 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
     const expirationDate = new Date();
     expirationDate.setMinutes(expirationDate.getMinutes() + PIX_EXPIRATION_MINUTES);
 
-    const payment = await paymentAPI.create({
-      body: {
-        transaction_amount: params.amountCentavos / 100,
-        description: params.description,
-        payment_method_id: "pix",
-        date_of_expiration: expirationDate.toISOString(),
-        payer: {
-          email: params.payerEmail,
-          first_name: params.payerName?.split(" ")[0],
-          last_name: params.payerName?.split(" ").slice(1).join(" ") || undefined,
-        },
-        external_reference: params.externalReference,
+    const paymentBody: any = {
+      transaction_amount: params.amountCentavos / 100,
+      description: params.description,
+      payment_method_id: "pix",
+      date_of_expiration: expirationDate.toISOString(),
+      payer: {
+        email: params.payerEmail,
+        first_name: params.payerName?.split(" ")[0],
+        last_name: params.payerName?.split(" ").slice(1).join(" ") || undefined,
       },
+      external_reference: params.externalReference,
+    };
+    
+    // Add notification URL for webhook (uses apex domain to avoid 307 redirects)
+    if (WEBHOOK_URL) {
+      paymentBody.notification_url = WEBHOOK_URL;
+      console.log("[MercadoPago] Using notification_url:", WEBHOOK_URL);
+    }
+
+    const payment = await paymentAPI.create({
+      body: paymentBody,
       requestOptions: {
         idempotencyKey: `${params.externalReference || Date.now()}-${params.payerEmail}`,
       },

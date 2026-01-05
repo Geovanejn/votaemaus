@@ -152,6 +152,7 @@ interface StudyEvent {
   lessonsCount: number | null;
   xpMultiplier: number | null;
   durationLabel?: string | null;
+  confirmationCount?: { members: number; visitors: number }; // Confirmation counts
 }
 
 function getMonthLabel(startDate: string): string {
@@ -504,9 +505,18 @@ function EventCard({ event }: { event: StudyEvent }) {
           </div>
 
           {event.description && (
-            <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-4 leading-relaxed">
+            <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-3 leading-relaxed">
               {event.description}
             </p>
+          )}
+
+          {event.confirmationCount && (event.confirmationCount.members > 0 || event.confirmationCount.visitors > 0) && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3" data-testid={`text-confirmation-count-${event.id}`}>
+              <Users className="h-4 w-4 text-primary" />
+              <span>
+                {event.confirmationCount.members + event.confirmationCount.visitors} {event.confirmationCount.members + event.confirmationCount.visitors === 1 ? 'pessoa confirmou' : 'pessoas confirmaram'}
+              </span>
+            </div>
           )}
 
           <div className="flex items-center justify-between mt-auto gap-3">

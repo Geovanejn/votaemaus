@@ -7900,11 +7900,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === ROTAS MEMBROS - EVENTOS ESPECIAIS ===
 
-  // Listar eventos ativos para membros
+  // Listar eventos ativos para membros (with confirmation counts)
   app.get("/api/study/events", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getActiveStudyEvents();
-      res.json(events);
+      
+      // Fetch confirmation counts in parallel for all events
+      const eventsWithCounts = await Promise.all(events.map(async (event) => {
+        const counts = await storage.getEventConfirmationCount(event.id);
+        return {
+          ...event,
+          confirmationCount: counts,
+        };
+      }));
+      
+      res.json(eventsWithCounts);
     } catch (error) {
       console.error("Get active events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });

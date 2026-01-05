@@ -834,30 +834,19 @@ export function initEventScheduler(): void {
 
 // ==================== EVENT DEADLINE NOTIFICATION SCHEDULER ====================
 
-// Cache to track which deadline notifications have been sent (eventId-threshold)
-const sentDeadlineNotifications = new Map<string, number>();
+// Now using database persistence instead of in-memory Map
+// This prevents notifications from being sent multiple times after server restarts
 
-// Reference to cleanup interval to prevent duplicates on hot reloads
-let deadlineCacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-// Clean old entries from cache (keep entries for 48 hours max)
-function cleanDeadlineNotificationsCache(): void {
-  const now = Date.now();
-  const maxAge = 48 * 60 * 60 * 1000; // 48 hours in ms
-  Array.from(sentDeadlineNotifications.entries()).forEach(([key, timestamp]) => {
-    if (now - timestamp > maxAge) {
-      sentDeadlineNotifications.delete(key);
+// Clean old entries from database (keep entries for 48 hours max)
+async function cleanDeadlineNotificationsCache(): Promise<void> {
+  try {
+    const deleted = await storage.cleanOldEventNotifications(48);
+    if (deleted > 0) {
+      console.log(`[Event Deadline Scheduler] Cleaned ${deleted} old notification cache entries`);
     }
-  });
-}
-
-// Start cache cleanup interval (call once at init, clears previous interval)
-function startDeadlineCacheCleanup(): void {
-  if (deadlineCacheCleanupInterval) {
-    clearInterval(deadlineCacheCleanupInterval);
+  } catch (error) {
+    console.error('[Event Deadline Scheduler] Error cleaning notification cache:', error);
   }
-  // Clean cache every hour
-  deadlineCacheCleanupInterval = setInterval(cleanDeadlineNotificationsCache, 60 * 60 * 1000);
 }
 
 async function processEventDeadlineNotifications(): Promise<void> {
@@ -907,12 +896,12 @@ async function processEventDeadlineNotifications(): Promise<void> {
         // Cache key prevents duplicate notifications
         if (hoursUntilStart > 0 && hoursUntilStart <= 24) {
           const startCacheKey = `${event.id}-start-24h`;
-          const alreadySentStart = sentDeadlineNotifications.has(startCacheKey);
+          const alreadySentStart = await storage.hasEventNotificationBeenSent(startCacheKey);
           
           if (!alreadySentStart) {
             try {
               await notifyEventStartingSoon(event.id, event.title);
-              sentDeadlineNotifications.set(startCacheKey, Date.now());
+              await storage.markEventNotificationSent(startCacheKey, event.id, 'start-24h');
               notificationsSent++;
               console.log(`[Event Deadline Scheduler] Sent 24h before start notification for event "${event.title}" (${hoursUntilStart.toFixed(1)}h until start)`);
             } catch (notifyError) {
@@ -942,14 +931,14 @@ async function processEventDeadlineNotifications(): Promise<void> {
           
           // Check if we should send this notification:
           // - Time remaining is within threshold range (crossed upper limit but above lower bound)
-          // - Haven't sent this notification before
+          // - Haven't sent this notification before (now using database persistence)
           const isInRange = hoursRemaining <= threshold.hours && hoursRemaining > threshold.lowerBound;
-          const alreadySent = sentDeadlineNotifications.has(cacheKey);
+          const alreadySent = await storage.hasEventNotificationBeenSent(cacheKey);
           
           if (isInRange && !alreadySent) {
             try {
               await notifyEventDeadline(event.id, event.title, threshold.label);
-              sentDeadlineNotifications.set(cacheKey, Date.now());
+              await storage.markEventNotificationSent(cacheKey, event.id, `end-${threshold.hours}h`);
               notificationsSent++;
               console.log(`[Event Deadline Scheduler] Sent ${threshold.label} deadline notification for event "${event.title}" (${hoursRemaining.toFixed(1)}h remaining)`);
             } catch (notifyError) {
@@ -970,13 +959,13 @@ async function processEventDeadlineNotifications(): Promise<void> {
 }
 
 export function initEventDeadlineScheduler(): void {
-  // Start the cache cleanup interval (prevents duplicates on hot reloads)
-  startDeadlineCacheCleanup();
+  // Clean old entries from database on startup
+  cleanDeadlineNotificationsCache();
   
   cron.schedule('0 * * * *', processEventDeadlineNotifications, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo)');
+  console.log('[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence');
 }
 
 // Marketing Event Reminder Scheduler

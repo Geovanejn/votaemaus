@@ -7337,6 +7337,29 @@ export class DatabaseStorage implements IStorage {
       .set({ usedCount: sql`${schema.promoCodes.usedCount} + 1` })
       .where(eq(schema.promoCodes.id, id));
   }
+
+  // Sent Event Notifications - persists notification cache in database
+  async hasEventNotificationBeenSent(cacheKey: string): Promise<boolean> {
+    const result = await db.select({ id: schema.sentEventNotifications.id })
+      .from(schema.sentEventNotifications)
+      .where(eq(schema.sentEventNotifications.cacheKey, cacheKey))
+      .limit(1);
+    return result.length > 0;
+  }
+
+  async markEventNotificationSent(cacheKey: string, eventId: number, notificationType: string): Promise<void> {
+    await db.insert(schema.sentEventNotifications)
+      .values({ cacheKey, eventId, notificationType })
+      .onConflictDoNothing();
+  }
+
+  async cleanOldEventNotifications(maxAgeHours: number): Promise<number> {
+    const cutoffDate = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+    const result = await db.delete(schema.sentEventNotifications)
+      .where(sql`${schema.sentEventNotifications.sentAt} < ${cutoffDate}`)
+      .returning({ id: schema.sentEventNotifications.id });
+    return result.length;
+  }
 }
 
 export const storage = new DatabaseStorage();

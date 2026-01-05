@@ -2501,3 +2501,17 @@ export type MemberFinancialStatus = {
   umpMonthlyAmount: number;
   totalOwed: number;
 };
+
+// Sent Event Notifications table - persists notification cache across restarts
+export const sentEventNotifications = pgTable("sent_event_notifications", {
+  id: serial("id").primaryKey(),
+  cacheKey: text("cache_key").notNull().unique(),
+  eventId: integer("event_id").notNull(),
+  notificationType: text("notification_type").notNull(),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+}, (table) => ({
+  cacheKeyIdx: index("sent_event_notifications_cache_key_idx").on(table.cacheKey),
+  eventIdx: index("sent_event_notifications_event_idx").on(table.eventId),
+}));
+
+export type SentEventNotification = typeof sentEventNotifications.$inferSelect;

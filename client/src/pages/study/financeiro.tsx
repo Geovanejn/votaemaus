@@ -172,10 +172,6 @@ export default function FinanceiroPage() {
     createPaymentMutation.mutate({ type: "percapta" });
   };
 
-  // State for selecting which UMP months to pay
-  const [umpPaymentMode, setUmpPaymentMode] = useState<"single" | "all">("all");
-  const [selectedUmpMonth, setSelectedUmpMonth] = useState<string>("");
-
   const handlePayUmp = () => {
     if (!pixStatus?.configured) {
       toast({
@@ -523,71 +519,35 @@ export default function FinanceiroPage() {
                           <div className="space-y-3">
                             <div className="flex gap-2">
                               <Button
-                                variant={umpPaymentMode === "single" ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setUmpPaymentMode("single")}
-                                className="flex-1"
+                                className="flex-1 gap-2"
+                                variant="outline"
+                                onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
+                                disabled={createPaymentMutation.isPending || financial.umpStatus.unpaidMonths.length === 0}
                                 data-testid="button-ump-single"
-                              >
-                                Pagar 1 mes
-                              </Button>
-                              <Button
-                                variant={umpPaymentMode === "all" ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setUmpPaymentMode("all")}
-                                className="flex-1"
-                                data-testid="button-ump-all"
-                              >
-                                Pagar todos ({financial.umpStatus.unpaidMonths.length})
-                              </Button>
-                            </div>
-
-                            {umpPaymentMode === "single" ? (
-                              <div className="space-y-2">
-                                <Select
-                                  value={selectedUmpMonth}
-                                  onValueChange={setSelectedUmpMonth}
-                                >
-                                  <SelectTrigger data-testid="select-ump-month">
-                                    <SelectValue placeholder="Selecione o mes" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {financial.umpStatus.unpaidMonths.map((month) => (
-                                      <SelectItem key={month} value={month.toString()}>
-                                        {monthNames[month - 1]} - {formatCurrency(financial.umpStatus.monthlyAmount)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button 
-                                  className="w-full gap-2"
-                                  onClick={() => selectedUmpMonth && handlePaySingleUmpMonth(parseInt(selectedUmpMonth))}
-                                  disabled={createPaymentMutation.isPending || !selectedUmpMonth}
-                                  data-testid="button-pay-single-ump"
-                                >
-                                  {createPaymentMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <QrCode className="h-4 w-4" />
-                                  )}
-                                  Pagar {selectedUmpMonth ? monthNames[parseInt(selectedUmpMonth) - 1] : "mes selecionado"}
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button 
-                                className="w-full gap-2"
-                                onClick={handlePayUmp}
-                                disabled={createPaymentMutation.isPending}
-                                data-testid="button-pay-ump"
                               >
                                 {createPaymentMutation.isPending ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <QrCode className="h-4 w-4" />
                                 )}
-                                Pagar {formatCurrency(financial.umpStatus.totalOwed)}
+                                Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
                               </Button>
-                            )}
+                              {financial.umpStatus.unpaidMonths.length > 1 && (
+                                <Button
+                                  className="flex-1 gap-2"
+                                  onClick={handlePayUmp}
+                                  disabled={createPaymentMutation.isPending}
+                                  data-testid="button-ump-all"
+                                >
+                                  {createPaymentMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <QrCode className="h-4 w-4" />
+                                  )}
+                                  Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-2">

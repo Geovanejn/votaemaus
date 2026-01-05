@@ -640,6 +640,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Listar membros para admin/tesouraria
+  app.get("/api/admin/members", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const members = await storage.getAllMembers();
+      const membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      res.json(membersWithoutPasswords);
+    } catch (error) {
+      console.error("Get admin members error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Erro ao buscar membros" 
+      });
+    }
+  });
+
   app.post("/api/admin/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const validatedData = addMemberSchema.parse(req.body);

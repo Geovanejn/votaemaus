@@ -89,6 +89,7 @@ export default function TesourariaTaxas() {
 
   const upToDateCount = members?.filter(m => m.totalOwed === 0).length ?? 0;
   const overdueCount = members?.filter(m => m.totalOwed > 0).length ?? 0;
+  const totalDebt = members?.reduce((sum, m) => sum + m.totalOwed, 0) ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,7 +134,7 @@ export default function TesourariaTaxas() {
 
       <section className="py-6 bg-background">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -181,6 +182,23 @@ export default function TesourariaTaxas() {
                   <div>
                     <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
                     <p className="text-sm text-muted-foreground">Pendentes</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <Card>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <CreditCard className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-amber-600">{formatCurrency(totalDebt)}</div>
+                    <p className="text-sm text-muted-foreground">Total em Debito</p>
                   </div>
                 </CardContent>
               </Card>

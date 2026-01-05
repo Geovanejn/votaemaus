@@ -60,6 +60,16 @@ const categoryColors: Record<string, string> = {
   "Estudo": "bg-amber-500",
 };
 
+// Helper to parse date strings without timezone issues
+// When parsing "2026-01-10", add T12:00:00 to avoid UTC interpretation
+function parseEventDate(dateStr: string): Date {
+  // If it's just a date (YYYY-MM-DD), add noon time to avoid timezone shift
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T12:00:00');
+  }
+  return new Date(dateStr);
+}
+
 function getCategory(title: string): string {
   const lowerTitle = title.toLowerCase();
   if (lowerTitle.includes('culto')) return 'Culto';
@@ -188,7 +198,7 @@ export default function AgendaPage() {
     retry: 2,
   });
 
-  // Query for event confirmation status
+  // Query for event confirmation status (user-specific)
   const { data: confirmationData, isLoading: isLoadingConfirmation } = useQuery<{
     confirmed: boolean;
     paymentStatus?: string;
@@ -204,6 +214,17 @@ export default function AgendaPage() {
     enabled: !!selectedEvent?.id && !!user,
   });
 
+  // Query for event confirmation count (public)
+  const { data: confirmationCount } = useQuery<{
+    total: number;
+    confirmed: number;
+    hasFee: boolean;
+    deadline: string | null;
+  }>({
+    queryKey: ['/api/events', selectedEvent?.id, 'confirmation-count'],
+    enabled: !!selectedEvent?.id,
+  });
+
   // Mutation for confirming presence
   const confirmMutation = useMutation({
     mutationFn: async (eventId: number) => {
@@ -211,6 +232,7 @@ export default function AgendaPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'confirmation-count'] });
       toast({ title: "Presenca confirmada", description: "Sua presenca foi registrada com sucesso." });
     },
     onError: (error: any) => {
@@ -229,6 +251,7 @@ export default function AgendaPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'confirmation-count'] });
       toast({ title: "Confirmacao cancelada", description: "Sua confirmacao foi removida." });
     },
     onError: (error: any) => {
@@ -252,7 +275,7 @@ export default function AgendaPage() {
 
   const processedEvents = (eventsData || []).map((event, index) => ({
     ...event,
-    date: new Date(event.startDate + 'T00:00:00'),
+    date: parseEventDate(event.startDate),
     category: getCategory(event.title),
     organizer: 'UMP Emaus',
     image: event.imageUrl && !event.imageUrl.includes('placeholder') 
@@ -554,7 +577,7 @@ export default function AgendaPage() {
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-primary" />
                     <span>
-                      {new Date(selectedEvent.startDate).toLocaleDateString("pt-BR", {
+                      {parseEventDate(selectedEvent.startDate).toLocaleDateString("pt-BR", {
                         weekday: "long",
                         day: "numeric",
                         month: "long",
@@ -596,43 +619,45 @@ export default function AgendaPage() {
                   </div>
                 )}
 
+                {/* Confirmation count (public) */}
+                {confirmationCount && confirmationCount.confirmed > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>{confirmationCount.confirmed} presenca(s) confirmada(s)</span>
+                  </div>
+                )}
+
                 {/* Confirmation Section for logged in users */}
-                {user && confirmationData?.fee && (
+                {user && (
                   <div className="pt-3 pb-1 border-t">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="text-sm">
+                    {/* Show fee info if event has fee */}
+                    {confirmationData?.fee && (
+                      <div className="text-sm mb-3">
                         <span className="text-muted-foreground">Taxa: </span>
                         <span className="font-semibold">R$ {confirmationData.fee.amount.toFixed(2).replace('.', ',')}</span>
                         <span className="text-muted-foreground ml-2">
                           (ate {new Date(confirmationData.fee.deadline).toLocaleDateString('pt-BR')})
                         </span>
                       </div>
-                      {confirmationData.confirmed ? (
-                        <div className="flex items-center gap-2">
+                    )}
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      {confirmationData?.confirmed ? (
+                        <div className="flex flex-col gap-1">
                           <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
                             <CheckCircle2 className="h-4 w-4" />
                             Presenca confirmada
                           </span>
-                          {confirmationData.paymentStatus !== 'paid' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => cancelConfirmMutation.mutate(selectedEvent.id)}
-                              disabled={cancelConfirmMutation.isPending}
-                              data-testid="button-cancel-confirmation"
-                            >
-                              {cancelConfirmMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Cancelar"
-                              )}
-                            </Button>
+                          {confirmationData.fee && confirmationData.paymentStatus !== 'paid' && (
+                            <span className="text-xs text-muted-foreground">
+                              Efetue o pagamento em Membro &gt; Meu Financeiro
+                            </span>
                           )}
                         </div>
                       ) : (
                         <Button
                           onClick={() => confirmMutation.mutate(selectedEvent.id)}
-                          disabled={confirmMutation.isPending || new Date() > new Date(confirmationData.fee.deadline)}
+                          disabled={confirmMutation.isPending || !!(confirmationData?.fee && new Date() > new Date(confirmationData.fee.deadline))}
                           data-testid="button-confirm-presence"
                         >
                           {confirmMutation.isPending ? (
@@ -643,7 +668,32 @@ export default function AgendaPage() {
                           Confirmar Presenca
                         </Button>
                       )}
+                      
+                      {confirmationData?.confirmed && confirmationData.paymentStatus !== 'paid' && !confirmationData.fee && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelConfirmMutation.mutate(selectedEvent.id)}
+                          disabled={cancelConfirmMutation.isPending}
+                          data-testid="button-cancel-confirmation"
+                        >
+                          {cancelConfirmMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Cancelar"
+                          )}
+                        </Button>
+                      )}
                     </div>
+                  </div>
+                )}
+                
+                {/* Show login prompt for non-logged users */}
+                {!user && (
+                  <div className="pt-3 pb-1 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      Faca login para confirmar sua presenca neste evento.
+                    </p>
                   </div>
                 )}
 

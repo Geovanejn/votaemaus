@@ -15,8 +15,10 @@ import {
   User,
   Bell
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Tabs,
   TabsContent,
@@ -62,10 +64,31 @@ export default function TesourariaTaxas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "uptodate" | "overdue">("all");
   const currentYear = new Date().getFullYear();
+  const { toast } = useToast();
 
   const { data: members, isLoading } = useQuery<MemberTaxStatus[]>({
     queryKey: ["/api/treasury/members/tax-status", currentYear],
     enabled: hasTreasuryPanel,
+  });
+
+  const sendRemindersMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/treasury/notifications/bulk-reminder", { year: currentYear });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Lembretes enviados",
+        description: data.message || `${data.sent ?? 0} lembrete(s) enviado(s)`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao enviar lembretes",
+        description: error.message || "Nao foi possivel enviar os lembretes",
+        variant: "destructive",
+      });
+    },
   });
 
   if (!hasTreasuryPanel) {
@@ -123,9 +146,18 @@ export default function TesourariaTaxas() {
                   </p>
                 </div>
               </div>
-              <Button className="gap-2 bg-white/20" data-testid="button-send-reminders">
-                <Bell className="h-4 w-4" />
-                Enviar Lembretes
+              <Button 
+                className="gap-2 bg-white/20" 
+                data-testid="button-send-reminders"
+                onClick={() => sendRemindersMutation.mutate()}
+                disabled={sendRemindersMutation.isPending || overdueCount === 0}
+              >
+                {sendRemindersMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="h-4 w-4" />
+                )}
+                {sendRemindersMutation.isPending ? "Enviando..." : "Enviar Lembretes"}
               </Button>
             </div>
           </motion.div>

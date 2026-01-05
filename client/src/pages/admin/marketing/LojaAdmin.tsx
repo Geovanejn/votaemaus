@@ -1508,7 +1508,6 @@ export default function LojaAdmin() {
                         <SelectItem value="unissex">Unissex</SelectItem>
                         <SelectItem value="masculino">Masculino</SelectItem>
                         <SelectItem value="feminino">Feminino</SelectItem>
-                        <SelectItem value="masculino_feminino">Masculino e Feminino</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

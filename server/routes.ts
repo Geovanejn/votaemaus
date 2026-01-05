@@ -156,6 +156,76 @@ async function logAuditAction(
     console.error("[Audit Log] Failed to create log:", error);
   }
 }
+
+// ==================== BRAZILIAN PRICE PARSING HELPER ====================
+
+/**
+ * Parses Brazilian price format to cents.
+ * Handles formats like: "25,00", "R$ 25,00", "R$ 1.234,56", "25.00", "1234.56", "R$ 1.234"
+ * Brazilian format uses period as thousands separator and comma as decimal separator.
+ * @returns price in centavos (integer), or null if parsing fails
+ */
+function parseBrazilianPrice(priceStr: string | null | undefined): number | null {
+  if (!priceStr) return null;
+  
+  // Remove currency symbol, spaces, and other non-numeric characters except . and ,
+  let cleaned = priceStr.replace(/[R$\s]/gi, '').trim();
+  
+  if (!cleaned) return null;
+  
+  // Determine format by analyzing the string
+  // Brazilian: 1.234,56 (period=thousands, comma=decimal)
+  // American: 1,234.56 (comma=thousands, period=decimal)
+  
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastPeriod = cleaned.lastIndexOf('.');
+  
+  let normalizedValue: number;
+  
+  if (lastComma > lastPeriod) {
+    // Brazilian format: period is thousands separator, comma is decimal
+    // Remove thousands separators (periods) and replace comma with period
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    normalizedValue = parseFloat(cleaned);
+  } else if (lastPeriod > lastComma && lastComma >= 0) {
+    // American format with both separators: comma is thousands, period is decimal
+    // Remove commas (thousands separators)
+    cleaned = cleaned.replace(/,/g, '');
+    normalizedValue = parseFloat(cleaned);
+  } else if (lastComma >= 0 && lastPeriod < 0) {
+    // Only comma present - treat as decimal separator (Brazilian simple format)
+    cleaned = cleaned.replace(',', '.');
+    normalizedValue = parseFloat(cleaned);
+  } else if (lastPeriod >= 0 && lastComma < 0) {
+    // Only period present - need to determine if it's thousands separator or decimal
+    // Check if digits after last period are exactly 3 (thousands separator pattern)
+    const afterPeriod = cleaned.substring(lastPeriod + 1);
+    const beforePeriod = cleaned.substring(0, lastPeriod);
+    
+    // If exactly 3 digits after period AND digits before period form valid thousands pattern,
+    // it's likely a Brazilian thousands separator (e.g., "1.234" = 1234, "12.345" = 12345)
+    // If 1-2 digits after period, it's likely a decimal (e.g., "25.5" = 25.50, "25.00" = 25.00)
+    if (afterPeriod.length === 3 && /^\d+$/.test(afterPeriod) && /^\d+$/.test(beforePeriod)) {
+      // Brazilian thousands separator - remove all periods
+      cleaned = cleaned.replace(/\./g, '');
+      normalizedValue = parseFloat(cleaned);
+    } else {
+      // American decimal format
+      normalizedValue = parseFloat(cleaned);
+    }
+  } else {
+    // No decimal separator - treat as whole number
+    normalizedValue = parseFloat(cleaned);
+  }
+  
+  if (isNaN(normalizedValue) || normalizedValue <= 0) {
+    return null;
+  }
+  
+  // Convert to centavos (multiply by 100 and round to avoid floating point issues)
+  return Math.round(normalizedValue * 100);
+}
+
 import { PDFParse } from "pdf-parse";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<{ text: string }> {
@@ -10441,41 +10511,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Evento não encontrado" });
       }
       
-      // Check if fee exists
-      const fee = await storage.getEventFee(eventId);
-      if (!fee) {
-        return res.status(400).json({ message: "Este evento não requer confirmação com taxa" });
-      }
-      
-      // Check deadline
-      if (new Date() > fee.deadline) {
-        return res.status(400).json({ message: "Prazo de confirmação encerrado" });
-      }
-      
       // Check if already confirmed
       const existing = await storage.getEventConfirmation(eventId, userId);
       if (existing) {
         return res.status(400).json({ message: "Você já confirmou presença neste evento" });
       }
       
-      // Calculate total amount in centavos (member + visitors)
-      const memberFee = fee.feeAmount; // already in centavos
-      const visitorsFee = visitorCount * fee.feeAmount;
-      const totalAmount = memberFee + visitorsFee; // in centavos
+      // Check if fee exists in event_fees table
+      const fee = await storage.getEventFee(eventId);
       
-      // Create treasury entry for the fee
+      // Determine fee amount: use event_fee if exists, otherwise parse from event.price
+      let feeAmountCentavos = 0;
+      let hasFee = false;
+      let deadline: Date | null = null;
+      
+      if (fee) {
+        // Use existing event_fee
+        feeAmountCentavos = fee.feeAmount;
+        hasFee = true;
+        deadline = fee.deadline;
+        
+        // Check deadline
+        if (new Date() > fee.deadline) {
+          return res.status(400).json({ message: "Prazo de confirmação encerrado" });
+        }
+      } else if (event.price) {
+        // Parse price from event using robust Brazilian format parser
+        const priceCentavos = parseBrazilianPrice(event.price);
+        if (priceCentavos !== null && priceCentavos > 0) {
+          feeAmountCentavos = priceCentavos;
+          hasFee = true;
+          // Default deadline: event start date
+          deadline = new Date(event.startDate + 'T23:59:59');
+        }
+      }
+      
       const year = new Date().getFullYear();
-      const entry = await storage.createTreasuryEntry({
-        type: "income",
-        category: "taxa_evento",
-        description: `Taxa do evento: ${event.title}${visitorCount > 0 ? ` (+${visitorCount} visitante(s))` : ''}`,
-        amount: totalAmount,
-        userId,
-        referenceYear: year,
-        paymentMethod: "pix",
-        paymentStatus: "pending",
-        eventId: eventId,
-      });
+      let entryId: number | null = null;
+      let totalAmount = 0;
+      
+      if (hasFee && feeAmountCentavos > 0) {
+        // Calculate total amount in centavos (member + visitors)
+        const memberFee = feeAmountCentavos;
+        const visitorsFee = visitorCount * feeAmountCentavos;
+        totalAmount = memberFee + visitorsFee;
+        
+        // Create treasury entry for the fee
+        const entry = await storage.createTreasuryEntry({
+          type: "income",
+          category: "taxa_evento",
+          description: `Taxa do evento: ${event.title}${visitorCount > 0 ? ` (+${visitorCount} visitante(s))` : ''}`,
+          amount: totalAmount,
+          userId,
+          referenceYear: year,
+          paymentMethod: "pix",
+          paymentStatus: "pending",
+          eventId: eventId,
+        });
+        entryId = entry.id;
+      }
       
       // Create confirmation
       const confirmation = await storage.createEventConfirmation({
@@ -10483,15 +10577,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         isVisitor: false,
         visitorCount,
-        entryId: entry.id,
+        entryId: entryId,
       });
       
-      res.status(201).json({
-        confirmation,
-        entry,
-        totalAmount: totalAmount / 100,
-        message: "Presença confirmada! Realize o pagamento para completar sua inscrição.",
-      });
+      if (hasFee && totalAmount > 0) {
+        res.status(201).json({
+          confirmation,
+          entryId,
+          totalAmount: totalAmount / 100,
+          hasFee: true,
+          message: "Presença confirmada! Realize o pagamento em Meu Financeiro para completar sua inscrição.",
+        });
+      } else {
+        res.status(201).json({
+          confirmation,
+          hasFee: false,
+          message: "Presença confirmada com sucesso!",
+        });
+      }
     } catch (error) {
       console.error("Confirm event attendance error:", error);
       res.status(500).json({ message: "Erro ao confirmar presença" });
@@ -10541,11 +10644,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const confirmation = await storage.getEventConfirmation(eventId, userId);
       const fee = await storage.getEventFee(eventId);
+      const event = await storage.getSiteEventById(eventId);
+      
+      // Determine fee info: use event_fee if exists, otherwise parse from event.price
+      let feeInfo: { amount: number; deadline: string } | null = null;
+      
+      if (fee) {
+        feeInfo = { amount: fee.feeAmount / 100, deadline: fee.deadline.toISOString() };
+      } else if (event?.price) {
+        const priceCentavos = parseBrazilianPrice(event.price);
+        if (priceCentavos !== null && priceCentavos > 0) {
+          feeInfo = { 
+            amount: priceCentavos / 100, 
+            deadline: new Date(event.startDate + 'T23:59:59').toISOString() 
+          };
+        }
+      }
       
       if (!confirmation) {
         return res.json({
           confirmed: false,
-          fee: fee ? { amount: fee.feeAmount / 100, deadline: fee.deadline } : null,
+          fee: feeInfo,
         });
       }
       
@@ -10559,7 +10678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         confirmed: true,
         confirmation,
         paymentStatus,
-        fee: fee ? { amount: fee.feeAmount / 100, deadline: fee.deadline } : null,
+        fee: feeInfo,
       });
     } catch (error) {
       console.error("Get my confirmation error:", error);
@@ -10573,11 +10692,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eventId = parseInt(req.params.eventId);
       const counts = await storage.getEventConfirmationCount(eventId);
       const fee = await storage.getEventFee(eventId);
+      const event = await storage.getSiteEventById(eventId);
+      
+      // Determine if event has fee
+      let hasFee = !!fee;
+      let deadline = fee?.deadline || null;
+      let feeAmount: number | null = fee ? fee.feeAmount / 100 : null;
+      
+      if (!fee && event?.price) {
+        const priceCentavos = parseBrazilianPrice(event.price);
+        if (priceCentavos !== null && priceCentavos > 0) {
+          hasFee = true;
+          feeAmount = priceCentavos / 100;
+          deadline = new Date(event.startDate + 'T23:59:59');
+        }
+      }
       
       res.json({
         ...counts,
-        hasFee: !!fee,
-        deadline: fee?.deadline || null,
+        hasFee,
+        feeAmount,
+        deadline,
       });
     } catch (error) {
       console.error("Get confirmation count error:", error);

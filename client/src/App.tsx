@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { VisitorNotificationPrompt } from "@/components/visitor-notification-prompt";
 import { MemberNotificationPrompt } from "@/components/member-notification-prompt";
+import { NotificationMandatoryPrompt } from "@/components/notification-mandatory-prompt";
 
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
@@ -248,6 +249,7 @@ function Router() {
           </Route>
         </Switch>
         <MemberNotificationPrompt />
+        <NotificationMandatoryPrompt />
       </Suspense>
     );
   }
@@ -332,6 +334,7 @@ function Router() {
       </Switch>
     </Suspense>
     <MemberNotificationPrompt />
+    <NotificationMandatoryPrompt />
   </>
 );
 }

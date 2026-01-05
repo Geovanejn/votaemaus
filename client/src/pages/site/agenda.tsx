@@ -658,6 +658,8 @@ export default function AgendaPage() {
                         <Button
                           onClick={() => confirmMutation.mutate(selectedEvent.id)}
                           disabled={confirmMutation.isPending || !!(confirmationData?.fee && new Date() > new Date(confirmationData.fee.deadline))}
+                          variant="secondary"
+                          className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
                           data-testid="button-confirm-presence"
                         >
                           {confirmMutation.isPending ? (

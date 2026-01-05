@@ -233,13 +233,15 @@ export default function FinanceiroPage() {
       const res = await apiRequest("GET", `/api/pix/check/${entryId}`);
       return res.json();
     },
-    onSuccess: (data, entryId) => {
-      setVerifyingEntryId(null);
+    onSuccess: (data) => {
       if (data.approved || data.status === "completed") {
         toast({
           title: "Pagamento confirmado!",
           description: "Seu pagamento foi aprovado com sucesso.",
         });
+        // Invalidate caches to refresh data
+        queryClient.invalidateQueries({ queryKey: ["treasury-member-status"] });
+        queryClient.invalidateQueries({ queryKey: ["treasury-member-events"] });
         refetch();
         refetchEvents();
       } else if (data.status === "expired") {
@@ -256,12 +258,15 @@ export default function FinanceiroPage() {
       }
     },
     onError: (error: Error) => {
-      setVerifyingEntryId(null);
       toast({
         title: "Erro ao verificar",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always reset spinner state when mutation completes (success or error)
+      setVerifyingEntryId(null);
     },
   });
 

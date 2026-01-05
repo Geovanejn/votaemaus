@@ -6993,8 +6993,10 @@ export class DatabaseStorage implements IStorage {
     totalExpense: number;
     balance: number;
     pendingPayments: number;
-    paidMembers: number;
-    pendingMembers: number;
+    membersUpToDate: number;
+    membersOverdue: number;
+    pendingLoans: number;
+    pendingInstallments: number;
   }> {
     const entries = await this.getTreasuryEntries({ year });
     
@@ -7019,22 +7021,32 @@ export class DatabaseStorage implements IStorage {
     const allMembers = await this.getAllMembers(true);
     const activeMemberIds = allMembers.filter(m => m.activeMember === true).map(m => m.id);
     
-    let paidMembers = 0;
+    let membersUpToDate = 0;
     for (const memberId of activeMemberIds) {
       const percapta = await this.getMemberPercaptaPayment(memberId, year);
       // Check paidAt instead of isPaid (paidAt is set when payment is confirmed)
       if (percapta?.paidAt) {
-        paidMembers++;
+        membersUpToDate++;
       }
     }
+    
+    // Get pending loans count
+    const loans = await this.getTreasuryLoans();
+    const pendingLoans = loans.filter(l => l.status === 'active').length;
+    
+    // Get pending installments count
+    const unpaidInstallments = await this.getAllUnpaidLoanInstallments();
+    const pendingInstallments = unpaidInstallments.length;
     
     return {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
       pendingPayments,
-      paidMembers,
-      pendingMembers: activeMemberIds.length - paidMembers,
+      membersUpToDate,
+      membersOverdue: activeMemberIds.length - membersUpToDate,
+      pendingLoans,
+      pendingInstallments,
     };
   }
 
@@ -7233,8 +7245,8 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(schema.siteEvents.id, eventIds));
     
     const yearEvents = eventsData.filter(e => {
-      if (!e.date) return false;
-      return new Date(e.date).getFullYear() === year;
+      if (!e.startDate) return false;
+      return new Date(e.startDate).getFullYear() === year;
     });
     const yearEventIds = new Set(yearEvents.map(e => e.id));
     const eventsMap = new Map(yearEvents.map(e => [e.id, e]));

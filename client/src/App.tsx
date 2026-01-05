@@ -226,6 +226,7 @@ function Router() {
           <Route path="/study/loja/pedidos" component={MeusPedidosPage} />
           {/* Painel Financeiro - Separate Panel */}
           <Route path="/financeiro" component={FinanceiroPage} />
+          <Route path="/membro/financeiro" component={FinanceiroPage} />
           <Route path="/loja" component={LojaHomePage} />
           <Route path="/loja/catalogo" component={LojaCatalogoPage} />
           <Route path="/loja/produto/:id" component={LojaProdutoPage} />
@@ -288,6 +289,7 @@ function Router() {
         <Route path="/study/loja/pedidos" component={MeusPedidosPage} />
         {/* Painel Financeiro - Separate Panel */}
         <Route path="/financeiro" component={FinanceiroPage} />
+        <Route path="/membro/financeiro" component={FinanceiroPage} />
         <Route path="/loja" component={LojaHomePage} />
         <Route path="/loja/catalogo" component={LojaCatalogoPage} />
         <Route path="/loja/produto/:id" component={LojaProdutoPage} />

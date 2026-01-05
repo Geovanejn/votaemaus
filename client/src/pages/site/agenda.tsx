@@ -53,11 +53,21 @@ interface EventData {
 }
 
 const categoryColors: Record<string, string> = {
-  "Culto": "bg-blue-500",
-  "Retiro": "bg-green-500",
-  "Confraternizacao": "bg-pink-500",
-  "Ensaio": "bg-purple-500",
-  "Estudo": "bg-amber-500",
+  "culto": "bg-blue-500",
+  "retiro": "bg-green-500",
+  "confraternizacao": "bg-pink-500",
+  "social": "bg-purple-500",
+  "estudo": "bg-amber-500",
+  "geral": "bg-gray-500",
+};
+
+const categoryLabels: Record<string, string> = {
+  "culto": "Culto",
+  "retiro": "Retiro",
+  "confraternizacao": "Confraternizacao",
+  "social": "Social",
+  "estudo": "Estudo Biblico",
+  "geral": "Geral",
 };
 
 // Helper to parse date strings without timezone issues
@@ -70,14 +80,14 @@ function parseEventDate(dateStr: string): Date {
   return new Date(dateStr);
 }
 
-function getCategory(title: string): string {
-  const lowerTitle = title.toLowerCase();
-  if (lowerTitle.includes('culto')) return 'Culto';
-  if (lowerTitle.includes('retiro')) return 'Retiro';
-  if (lowerTitle.includes('natal') || lowerTitle.includes('confrat')) return 'Confraternizacao';
-  if (lowerTitle.includes('ensaio')) return 'Ensaio';
-  if (lowerTitle.includes('estudo')) return 'Estudo';
-  return 'Culto';
+function getCategoryLabel(category: string | undefined): string {
+  if (!category) return "Geral";
+  return categoryLabels[category.toLowerCase()] || category;
+}
+
+function getCategoryColor(category: string | undefined): string {
+  if (!category) return "bg-gray-500";
+  return categoryColors[category.toLowerCase()] || "bg-gray-500";
 }
 
 function SimpleCalendar({ 
@@ -276,7 +286,8 @@ export default function AgendaPage() {
   const processedEvents = (eventsData || []).map((event, index) => ({
     ...event,
     date: parseEventDate(event.startDate),
-    category: getCategory(event.title),
+    categoryLabel: getCategoryLabel(event.category),
+    categoryColor: getCategoryColor(event.category),
     organizer: 'UMP Emaus',
     image: event.imageUrl && !event.imageUrl.includes('placeholder') 
       ? event.imageUrl 
@@ -443,10 +454,10 @@ export default function AgendaPage() {
                                       <div>
                                         <div className="flex items-center gap-2 mb-2">
                                           <span 
-                                            className={`w-2 h-2 rounded-full ${categoryColors[event.category] || "bg-gray-500"}`} 
+                                            className={`w-2 h-2 rounded-full ${event.categoryColor}`} 
                                           />
                                           <span className="text-xs text-muted-foreground">
-                                            {event.category}
+                                            {event.categoryLabel}
                                           </span>
                                         </div>
                                         <h3 className="text-lg font-semibold" data-testid={`event-title-${event.id}`}>

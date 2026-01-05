@@ -8622,6 +8622,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status inválido" });
       }
       
+      // Get current order to validate status transition
+      const currentOrder = await storage.getShopOrderById(id);
+      if (!currentOrder) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      // Security: Prevent changing from paid/producing/ready/delivered to awaiting_payment
+      const paidStatuses = ["paid", "producing", "ready", "delivered"];
+      if (paidStatuses.includes(currentOrder.orderStatus) && orderStatus === "awaiting_payment") {
+        return res.status(400).json({ message: "Não é permitido reverter um pedido pago para aguardando pagamento" });
+      }
+      
       const order = await storage.updateShopOrder(id, { orderStatus });
       if (!order) {
         return res.status(404).json({ message: "Pedido não encontrado" });
@@ -8682,6 +8694,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validStatuses = ["awaiting_payment", "paid", "producing", "ready", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         return res.status(400).json({ message: "Status inválido" });
+      }
+      
+      // Security: For bulk updates, if target is awaiting_payment, check all orders
+      const paidStatuses = ["paid", "producing", "ready", "delivered"];
+      if (orderStatus === "awaiting_payment") {
+        for (const orderId of orderIds) {
+          const currentOrder = await storage.getShopOrderById(orderId);
+          if (currentOrder && paidStatuses.includes(currentOrder.orderStatus)) {
+            return res.status(400).json({ 
+              message: `Pedido ${currentOrder.orderCode || orderId} já foi pago e não pode ser revertido para aguardando pagamento` 
+            });
+          }
+        }
       }
       
       const updatedOrders = [];

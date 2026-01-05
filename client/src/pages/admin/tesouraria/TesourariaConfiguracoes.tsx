@@ -83,7 +83,7 @@ export default function TesourariaConfiguracoes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/treasury/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/settings", currentYear] });
       toast({
         title: "Configurações salvas",
         description: "As configurações foram atualizadas com sucesso.",

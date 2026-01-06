@@ -15,7 +15,23 @@ export function NotificationToggle() {
   }, []);
 
   const requestPermission = async () => {
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window)) {
+      toast({
+        title: "Não suportado",
+        description: "Seu navegador não suporta notificações push.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      toast({
+        title: "Permissão Negada",
+        description: "As notificações foram bloqueadas nas configurações do seu navegador. Para ativar, clique no ícone de cadeado na barra de endereços (ao lado da URL) e altere a permissão de Notificações para 'Permitir'.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {

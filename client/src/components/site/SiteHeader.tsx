@@ -161,7 +161,7 @@ export function SiteHeader() {
                     ))}
                   </div>
 
-                  <div className="mt-6 pt-6 border-t space-y-3">
+                  <div className="mt-6 pt-6 border-t space-y-6">
                     <NotificationToggle />
                     <Link href="/membro" onClick={() => setIsMenuOpen(false)}>
                       <Button className="w-full" data-testid="mobile-button-member-area">

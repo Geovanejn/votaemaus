@@ -44,7 +44,7 @@ export default function LojaHomePage() {
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, dragFree: false },
-    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+    [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: false })]
   );
 
   const onSelect = useCallback(() => {
@@ -75,10 +75,10 @@ export default function LojaHomePage() {
   const newArrivals = allItems?.filter(item => item.isAvailable).slice(0, 6) || [];
 
   const categoryBadges: { [key: string]: { label: string; bgColor: string; textColor: string } } = {
-    "Camisetas": { label: "CAMISETAS", bgColor: "bg-black", textColor: "text-white" },
-    "Biblias": { label: "BIBLIAS", bgColor: "bg-yellow-400", textColor: "text-black" },
-    "Agendas": { label: "NOVAS AGENDAS", bgColor: "bg-yellow-400", textColor: "text-black" },
-    "Livros": { label: "OS MAIS PEDIDOS", bgColor: "bg-black", textColor: "text-white" },
+    "Acessórios": { label: "ACESSÓRIOS", bgColor: "bg-yellow-400", textColor: "text-black" },
+    "Kit UMP": { label: "KIT UMP", bgColor: "bg-yellow-400", textColor: "text-black" },
+    "Vestuários": { label: "VESTUÁRIOS", bgColor: "bg-yellow-400", textColor: "text-black" },
+    "Os Mais Pedidos": { label: "OS MAIS PEDIDOS", bgColor: "bg-yellow-400", textColor: "text-black" },
   };
 
   return (
@@ -178,7 +178,7 @@ export default function LojaHomePage() {
                     )}
                     
                     {/* Category Badge - Jesuscopy Style */}
-                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5`}>
+                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-md shadow-sm`}>
                       {badge.label}
                     </div>
                   </div>

@@ -156,7 +156,7 @@ export default function LojaHomePage() {
             {categories.slice(0, 4).map((cat, index) => {
               const categoryItems = allItems?.filter(item => item.categoryId === cat.id && item.isAvailable) || [];
               const firstImage = categoryItems[0]?.images?.[0]?.imageData;
-              const badge = { label: cat.name.toUpperCase(), bgColor: "bg-yellow-400", textColor: "text-black" };
+              const badge = { label: cat.name.toUpperCase(), bgColor: "bg-primary", textColor: "text-black" };
               
               return (
                 <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>

@@ -714,7 +714,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers();
-      const membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      // Filter out admin users from the treasury member list
+      const membersWithoutPasswords = members
+        .filter(user => user.role !== "admin")
+        .map(({ password, ...user }) => user);
       res.json(membersWithoutPasswords);
     } catch (error) {
       console.error("Get admin members error:", error);

@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface EspiritualidadeStats {
   devotionals: {
@@ -19,8 +21,29 @@ interface EspiritualidadeStats {
 
 export default function EspiritualidadeDashboard() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const { data: stats, isLoading } = useQuery<EspiritualidadeStats>({
     queryKey: ["/api/espiritualidade/stats"],
+  });
+
+  const testPushMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/devotionals/test-push");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Notificação de versículo enviada para todos os inscritos.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar",
+        description: error.message || "Não foi possível enviar a notificação de teste.",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -43,6 +66,15 @@ export default function EspiritualidadeDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={() => testPushMutation.mutate()} 
+            disabled={testPushMutation.isPending}
+            data-testid="button-test-push"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {testPushMutation.isPending ? "Enviando..." : "Testar Notificação Push"}
+          </Button>
           <Link href="/admin/espiritualidade/devocionais/novo">
             <Button data-testid="button-new-devotional">
               <Plus className="h-4 w-4 mr-2" />

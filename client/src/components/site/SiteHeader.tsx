@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronRight, Sparkles } from "lucide-react";
+import { NotificationToggle } from "@/components/NotificationToggle";
+import { Menu, X, ChevronRight, Sparkles, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -160,7 +161,8 @@ export function SiteHeader() {
                     ))}
                   </div>
 
-                  <div className="mt-6 pt-6 border-t">
+                  <div className="mt-6 pt-6 border-t space-y-3">
+                    <NotificationToggle />
                     <Link href="/membro" onClick={() => setIsMenuOpen(false)}>
                       <Button className="w-full" data-testid="mobile-button-member-area">
                         Área do Membro

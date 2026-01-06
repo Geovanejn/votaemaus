@@ -811,19 +811,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Trigger birthday emails manually for today
-  app.post("/api/admin/trigger-birthday-emails", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/devotionals/test-push", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
-      const { sendBirthdayEmails } = await import("./scheduler");
-      await sendBirthdayEmails();
-      res.json({ message: "E-mails de aniversário disparados com sucesso para hoje" });
+      const { notifyDailyVerse } = await import("./notifications");
+      await notifyDailyVerse();
+      res.json({ message: "Notificação de teste enviada com sucesso" });
     } catch (error) {
-      console.error("Trigger birthday emails error:", error);
+      console.error("Test push error:", error);
       res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Erro ao disparar e-mails de aniversário" 
+        message: error instanceof Error ? error.message : "Erro ao enviar notificação de teste" 
       });
     }
   });
+
+  // Trigger birthday emails manually for today
 
   app.post("/api/elections", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

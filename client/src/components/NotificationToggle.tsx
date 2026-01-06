@@ -24,6 +24,15 @@ export function NotificationToggle() {
       return;
     }
 
+    if (Notification.permission === "denied") {
+      toast({
+        title: "Permissão Negada",
+        description: "As notificações foram bloqueadas nas configurações do seu navegador. Para ativar, clique no ícone de cadeado na barra de endereços (ao lado da URL) e altere a permissão de Notificações para 'Permitir'.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await Notification.requestPermission();
@@ -32,12 +41,6 @@ export function NotificationToggle() {
         toast({
           title: "Sucesso!",
           description: "Notificações ativadas com sucesso.",
-        });
-      } else if (result === "denied") {
-        toast({
-          title: "Permissão Negada",
-          description: "Você bloqueou as notificações. Ative-as nas configurações do seu navegador.",
-          variant: "destructive",
         });
       }
     } catch (error) {

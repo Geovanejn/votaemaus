@@ -814,7 +814,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/devotionals/test-push", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const { notifyDailyVerse } = await import("./notifications");
-      await notifyDailyVerse();
+      // Use a sample verse for the test
+      await notifyDailyVerse("Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito...", "João 3:16");
       res.json({ message: "Notificação de teste enviada com sucesso" });
     } catch (error) {
       console.error("Test push error:", error);
@@ -9550,7 +9551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const umpMonthlyAmount = settings?.umpMonthlyAmount ?? 0;
       
       // Get ALL members (including inactive ones - activeMember field is just for filtering)
-      const allMembers = await storage.getAllMembers();
+      const allMembers = await storage.getAllMembers(true);
       // Filter only sócio ativo (activeMember = true) for tax tracking
       const activeMembers = allMembers.filter(m => m.activeMember === true);
       

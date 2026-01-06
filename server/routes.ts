@@ -4532,9 +4532,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/notifications/subscribe", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      const { endpoint, p256dh, auth } = req.body;
-      
+      const { endpoint, p256dh, auth, syncOnly } = req.body;
+      const anonSubId = req.headers['x-anonymous-subscription-id'] as string;
+
+      console.log(`[Push] Subscribe sync: userId=${userId}, anonSubId=${anonSubId}, syncOnly=${syncOnly}, bodyKeys=${Object.keys(req.body)}`);
+
+      if (anonSubId) {
+        try {
+          const subId = parseInt(anonSubId);
+          console.log(`[Push] Attempting database link: anonSubId=${subId} -> userId=${userId}`);
+          
+          // Verify if the anonymous subscription exists before linking
+          const allAnon = await storage.getAllAnonymousPushSubscriptions();
+          const targetAnon = allAnon.find(a => a.id === subId);
+          
+          if (targetAnon) {
+            console.log(`[Push] Found anonymous sub ${subId}, linking...`);
+            await storage.linkAnonymousSubscriptionToUser(subId, userId);
+            console.log(`[Push] Database link successful for user ${userId}`);
+          } else {
+            console.warn(`[Push] Anonymous sub ${subId} not found in database`);
+          }
+          
+          if (syncOnly) {
+            return res.json({ message: "Subscription linked successfully" });
+          }
+        } catch (err) {
+          console.error("[Push] Database link failed:", err);
+          if (syncOnly) {
+            return res.status(500).json({ message: "Error linking subscription" });
+          }
+        }
+      }
+
       if (!endpoint || !p256dh || !auth) {
+        if (syncOnly) {
+           return res.json({ message: "Sync attempt finished (no data provided)" });
+        }
         console.error("[Push] Missing required subscription fields:", { 
           endpoint: !!endpoint, 
           p256dh: !!p256dh, 

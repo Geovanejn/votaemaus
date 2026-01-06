@@ -91,9 +91,9 @@ export async function sendPushNotification(
         tag: payload.tag,
       })
     ).then(() => {
-      console.log(`[Push] Successfully sent notification to member user ${subscription.userId || 'anonymous'}`);
+      console.log(`[Push] Successfully sent notification to ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}`);
     }).catch(err => {
-      console.error(`[Push] WebPush delivery error for user ${subscription.userId || 'anonymous'}:`, err.message || err);
+      console.error(`[Push] WebPush delivery error for ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}:`, err.message || err);
       throw err;
     });
 
@@ -241,9 +241,9 @@ export async function sendAnonymousPushNotification(
         tag: payload.tag,
       })
     ).then(() => {
-      console.log(`[Push] Successfully sent notification to member user ${subscription.userId || 'anonymous'}`);
+      console.log(`[Push] Successfully sent notification to ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}`);
     }).catch(err => {
-      console.error(`[Push] WebPush delivery error for user ${subscription.userId || 'anonymous'}:`, err.message || err);
+      console.error(`[Push] WebPush delivery error for ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}:`, err.message || err);
       throw err;
     });
 

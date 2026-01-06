@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (anonSubId) {
       console.log('[Push] Login: Syncing anonymous subscription:', anonSubId);
       try {
-        await fetch('/api/notifications/subscribe', {
+        const syncResponse = await fetch('/api/notifications/subscribe', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -102,11 +102,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             'x-anonymous-subscription-id': anonSubId
           },
           body: JSON.stringify({
-            // The server will use x-anonymous-subscription-id to link
-            // but we need to trigger the endpoint
+            syncOnly: true // Flag to indicate we're just linking
           })
         });
-        localStorage.removeItem('anonymous_push_subscription_id');
+        
+        if (syncResponse.ok) {
+          console.log('[Push] Login: Subscription sync request successful');
+          localStorage.removeItem('anonymous_push_subscription_id');
+        } else {
+          const errorText = await syncResponse.text();
+          console.error('[Push] Login: Subscription sync request failed:', syncResponse.status, errorText);
+        }
       } catch (err) {
         console.error('[Push] Login: Error syncing subscription:', err);
       }

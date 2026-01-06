@@ -67,11 +67,14 @@ export function usePushNotifications() {
         const subscription = await registration.pushManager.getSubscription();
         isSubscribed = subscription !== null;
         
+        console.log('[Push] Subscription status:', isSubscribed ? 'Subscribed' : 'Not subscribed');
+
         if (subscription && permission === 'granted' && token) {
           const subscriptionJson = subscription.toJSON();
           
           if (subscriptionJson.keys?.p256dh && subscriptionJson.keys?.auth) {
             try {
+              console.log('[Push] Syncing subscription with server...');
               const response = await fetch('/api/notifications/subscribe', {
                 method: 'POST',
                 headers: {
@@ -87,17 +90,20 @@ export function usePushNotifications() {
               
               if (response.ok) {
                 isSubscribedOnServer = true;
-                console.log('[Push] Subscription synced with server');
+                console.log('[Push] Subscription synced with server successfully');
               } else {
-                console.log('[Push] Server sync failed:', response.status);
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[Push] Server sync failed:', response.status, errorData);
               }
             } catch (syncError) {
-              console.log('[Push] Error syncing subscription:', syncError);
+              console.error('[Push] Error syncing subscription:', syncError);
             }
+          } else {
+            console.warn('[Push] Subscription keys missing from JSON');
           }
         }
       } catch (error) {
-        console.log('[Push] Error checking subscription:', error);
+        console.error('[Push] Error checking subscription:', error);
       }
 
       setState(prev => ({
@@ -156,17 +162,20 @@ export function usePushNotifications() {
     try {
       const permissionGranted = state.permission === 'granted' || await requestPermission();
       if (!permissionGranted) {
-        setState(prev => ({ ...prev, isLoading: false }));
+        console.error('[Push] Permission not granted for subscription');
+        setState(prev => ({ ...prev, isLoading: false, error: 'Permission not granted' }));
         return false;
       }
 
+      console.log('[Push] Requesting Service Worker ready...');
       const registration = await navigator.serviceWorker.ready;
       
+      console.log('[Push] Checking existing subscription...');
       let subscription = await registration.pushManager.getSubscription();
       
       if (!subscription) {
         if (!VAPID_PUBLIC_KEY) {
-          console.log('[Push] VAPID public key not configured');
+          console.error('[Push] VAPID public key not configured in environment');
           setState(prev => ({ 
             ...prev, 
             isLoading: false,
@@ -175,20 +184,23 @@ export function usePushNotifications() {
           return false;
         }
 
+        console.log('[Push] Creating new subscription with key:', VAPID_PUBLIC_KEY.substring(0, 10) + '...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
 
+      console.log('[Push] Subscription obtained, sending to server...');
       const subscriptionJson = subscription.toJSON();
       
-      await apiRequest('POST', '/api/notifications/subscribe', {
+      const response = await apiRequest('POST', '/api/notifications/subscribe', {
         endpoint: subscription.endpoint,
         p256dh: subscriptionJson.keys?.p256dh || '',
         auth: subscriptionJson.keys?.auth || '',
       });
 
+      console.log('[Push] Server response received');
       setState(prev => ({ 
         ...prev, 
         isSubscribed: true, 

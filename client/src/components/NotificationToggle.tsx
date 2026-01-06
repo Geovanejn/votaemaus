@@ -35,14 +35,88 @@ export function NotificationToggle() {
 
     setLoading(true);
     try {
+      console.log('[Push] Requesting permission via toggle...');
       const result = await Notification.requestPermission();
       setPermission(result);
+      
+      if (result === "granted") {
+        console.log('[Push] Permission granted, checking service worker...');
+        const registration = await navigator.serviceWorker.ready;
+        console.log('[Push] Service worker ready, checking subscription...');
+        let subscription = await registration.pushManager.getSubscription();
+        
+        if (!subscription) {
+          console.log('[Push] No subscription found, creating new one...');
+          const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+          if (!VAPID_PUBLIC_KEY) {
+            throw new Error('VAPID public key not configured');
+          }
+          
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        }
+        
+        console.log('[Push] Sending subscription to server...');
+        const subscriptionJson = subscription.toJSON();
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('/api/notifications/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            p256dh: subscriptionJson.keys?.p256dh,
+            auth: subscriptionJson.keys?.auth,
+          }),
+        });
+        
+        if (response.ok) {
+          toast({
+            title: "Sucesso!",
+            description: "Notificações ativadas com sucesso.",
+          });
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('[Push] Server subscription failed:', response.status, errorData);
+          toast({
+            title: "Erro",
+            description: "Não foi possível registrar as notificações no servidor.",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       console.error("Error requesting notification permission:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao ativar as notificações.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
 
   if (permission === "granted") {
     return (

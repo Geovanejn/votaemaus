@@ -249,6 +249,7 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       data = { ...data, ...event.data.json() };
+      console.log('[SW] Push data parsed:', data);
     } catch (e) {
       console.log('[SW] Error parsing push data:', e);
       data.body = event.data.text();
@@ -269,6 +270,8 @@ self.addEventListener('push', (event) => {
   
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .then(() => console.log('[SW] Notification shown'))
+      .catch(err => console.error('[SW] Notification error:', err))
   );
 });
 

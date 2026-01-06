@@ -4500,6 +4500,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { endpoint, p256dh, auth } = req.body;
       
       if (!endpoint || !p256dh || !auth) {
+        console.error("[Push] Missing required subscription fields:", { 
+          endpoint: !!endpoint, 
+          p256dh: !!p256dh, 
+          auth: !!auth,
+          userId 
+        });
         return res.status(400).json({ message: "Dados de inscricao invalidos" });
       }
       
@@ -4511,10 +4517,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
       }
       
-      console.log(`[Push] Subscription saved for user ${userId}`);
+      console.log(`[Push] Subscription saved for user ${userId}. Keys present: p256dh=${!!p256dh}, auth=${!!auth}`);
       res.json({ message: "Inscrito para notificacoes com sucesso" });
     } catch (error) {
-      console.error("Subscribe push error:", error);
+      console.error("[Push] Subscribe push error:", error);
       res.status(500).json({ message: "Erro ao inscrever para notificacoes" });
     }
   });

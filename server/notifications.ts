@@ -90,7 +90,12 @@ export async function sendPushNotification(
         },
         tag: payload.tag,
       })
-    );
+    ).then(() => {
+      console.log(`[Push] Successfully sent notification to member user ${subscription.userId}`);
+    }).catch(err => {
+      console.error(`[Push] WebPush delivery error for member user ${subscription.userId}:`, err.message || err);
+      throw err;
+    });
 
     await storage.updatePushSubscriptionLastUsed(subscription.id);
     return true;
@@ -235,7 +240,12 @@ export async function sendAnonymousPushNotification(
         },
         tag: payload.tag,
       })
-    );
+    ).then(() => {
+      console.log(`[Push] Successfully sent notification to member user ${subscription.userId}`);
+    }).catch(err => {
+      console.error(`[Push] WebPush delivery error for member user ${subscription.userId}:`, err.message || err);
+      throw err;
+    });
 
     await storage.updateAnonymousPushSubscriptionLastUsed(subscription.id);
     return true;

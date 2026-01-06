@@ -714,9 +714,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers();
-      // Filter out admin users from the treasury member list
+      // Filter out admin users from the treasury member list and total counts
       const membersWithoutPasswords = members
-        .filter(user => user.role !== "admin")
+        .filter(user => user.role !== "admin" && user.isAdmin !== true)
         .map(({ password, ...user }) => user);
       res.json(membersWithoutPasswords);
     } catch (error) {

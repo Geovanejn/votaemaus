@@ -524,6 +524,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userWithoutPassword } = user;
       const token = generateToken(userWithoutPassword);
 
+      // Link any existing anonymous push subscriptions to this user
+      const anonymousSubscriptionId = req.headers['x-anonymous-subscription-id'] as string;
+      if (anonymousSubscriptionId) {
+        try {
+          await (storage as any).linkAnonymousSubscriptionToUser(parseInt(anonymousSubscriptionId), user.id);
+          console.log(`[Push] Linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
+        } catch (linkError) {
+          console.error("[Push] Failed to link anonymous subscription:", linkError);
+        }
+      }
+
       const response: AuthResponse = {
         user: userWithoutPassword,
         token,
@@ -610,6 +621,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { password, ...userWithoutPassword } = user;
       const token = generateToken(userWithoutPassword);
+
+      // Link any existing anonymous push subscriptions to this user
+      const anonymousSubscriptionId = req.headers['x-anonymous-subscription-id'] as string;
+      if (anonymousSubscriptionId) {
+        try {
+          await (storage as any).linkAnonymousSubscriptionToUser(parseInt(anonymousSubscriptionId), user.id);
+          console.log(`[Push] Linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
+        } catch (linkError) {
+          console.error("[Push] Failed to link anonymous subscription:", linkError);
+        }
+      }
 
       const response: AuthResponse = {
         user: userWithoutPassword,

@@ -7419,6 +7419,39 @@ export class DatabaseStorage implements IStorage {
       .returning({ id: schema.sentSchedulerReminders.id });
     return result.length;
   }
+  async linkAnonymousSubscriptionToUser(anonymousSubscriptionId: number, userId: number): Promise<void> {
+    const [subscription] = await db
+      .select()
+      .from(schema.anonymousPushSubscriptions)
+      .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
+
+    if (subscription) {
+      // Check if this subscription already exists for this user to avoid duplicates
+      const [existing] = await db
+        .select()
+        .from(schema.pushSubscriptions)
+        .where(
+          and(
+            eq(schema.pushSubscriptions.userId, userId),
+            eq(schema.pushSubscriptions.endpoint, subscription.endpoint)
+          )
+        );
+
+      if (!existing) {
+        await db.insert(schema.pushSubscriptions).values({
+          userId,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        });
+      }
+      
+      // Optionally delete the anonymous subscription after linking
+      await db
+        .delete(schema.anonymousPushSubscriptions)
+        .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

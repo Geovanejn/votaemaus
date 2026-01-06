@@ -204,9 +204,15 @@ function LoginForm() {
   const onVerifyCode = async (data: VerifyCodeData) => {
     setIsLoading(true);
     try {
+      const anonymousSubscriptionId = localStorage.getItem('anonymous_push_subscription_id');
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (anonymousSubscriptionId) {
+        headers['x-anonymous-subscription-id'] = anonymousSubscriptionId;
+      }
+
       const response = await fetch("/api/auth/verify-code", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(data),
       });
 
@@ -251,9 +257,15 @@ function LoginForm() {
   const onPasswordLogin = async (data: PasswordLoginData) => {
     setIsLoading(true);
     try {
+      const anonymousSubscriptionId = localStorage.getItem('anonymous_push_subscription_id');
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (anonymousSubscriptionId) {
+        headers['x-anonymous-subscription-id'] = anonymousSubscriptionId;
+      }
+
       const response = await fetch("/api/auth/login-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(data),
       });
 

@@ -101,11 +101,16 @@ export function VisitorNotificationPrompt({ className }: VisitorNotificationProm
       
       const subscriptionJson = subscription.toJSON();
       
-      await apiRequest('POST', '/api/notifications/subscribe-anonymous', {
+      const response = await apiRequest('POST', '/api/notifications/subscribe-anonymous', {
         endpoint: subscription.endpoint,
         p256dh: subscriptionJson.keys?.p256dh || '',
         auth: subscriptionJson.keys?.auth || '',
       });
+      
+      const data = await response.json();
+      if (data.id) {
+        localStorage.setItem('anonymous_push_subscription_id', data.id.toString());
+      }
       
       localStorage.setItem(SUBSCRIBED_KEY, 'true');
       setIsVisible(false);

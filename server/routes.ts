@@ -528,10 +528,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const anonymousSubscriptionId = req.headers['x-anonymous-subscription-id'] as string;
       if (anonymousSubscriptionId) {
         try {
+          console.log(`[Push] Login: Attempting to link anonymous subscription ID ${anonymousSubscriptionId} to user ${user.id}`);
           await storage.linkAnonymousSubscriptionToUser(parseInt(anonymousSubscriptionId), user.id);
-          console.log(`[Push] Linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
+          console.log(`[Push] Login: Successfully linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
         } catch (linkError) {
-          console.error("[Push] Failed to link anonymous subscription:", linkError);
+          console.error("[Push] Login: Failed to link anonymous subscription:", linkError);
         }
       }
 
@@ -722,10 +723,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const anonymousSubscriptionId = req.headers['x-anonymous-subscription-id'] as string;
       if (anonymousSubscriptionId) {
         try {
+          console.log(`[Push] Login: Attempting to link anonymous subscription ID ${anonymousSubscriptionId} to user ${user.id}`);
           await storage.linkAnonymousSubscriptionToUser(parseInt(anonymousSubscriptionId), user.id);
-          console.log(`[Push] Linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
+          console.log(`[Push] Login: Successfully linked anonymous subscription ${anonymousSubscriptionId} to user ${user.id}`);
         } catch (linkError) {
-          console.error("[Push] Failed to link anonymous subscription:", linkError);
+          console.error("[Push] Login: Failed to link anonymous subscription:", linkError);
         }
       }
 

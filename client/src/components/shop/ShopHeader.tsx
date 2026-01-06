@@ -153,7 +153,7 @@ export function ShopHeader({ onSearch }: ShopHeaderProps) {
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
                   <span 
-                    className="absolute -top-1 -right-1 h-5 w-5 bg-yellow-400 text-black text-xs font-bold rounded-full flex items-center justify-center"
+                    className="absolute -top-1 -right-1 h-5 w-5 bg-primary text-black text-xs font-bold rounded-full flex items-center justify-center"
                     data-testid="badge-cart-count"
                   >
                     {cartCount}
@@ -183,7 +183,7 @@ export function ShopHeader({ onSearch }: ShopHeaderProps) {
             />
             <Button 
               onClick={handleSearch} 
-              className="bg-yellow-400 text-black hover:bg-yellow-500" 
+              className="bg-primary text-black hover:bg-primary/90" 
               data-testid="button-search-submit"
             >
               Buscar

@@ -136,7 +136,7 @@ export default function LojaHomePage() {
           )}
         </section>
       ) : (
-        <section className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black py-12 px-6">
+        <section className="bg-gradient-to-br from-primary to-primary text-black py-12 px-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">Emaus Shop</h2>
             <p className="text-black/70 mb-6">Encontre produtos exclusivos da UMP</p>

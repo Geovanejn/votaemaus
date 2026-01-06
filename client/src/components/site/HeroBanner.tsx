@@ -89,7 +89,8 @@ type BannerSlide = {
 };
 
 function formatEventDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Use T12:00:00 to avoid timezone shifts to previous day
+  const date = new Date(dateString + 'T12:00:00');
   const day = date.getDate();
   const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const month = months[date.getMonth()];

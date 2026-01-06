@@ -161,13 +161,13 @@ export function SiteHeader() {
                     ))}
                   </div>
 
-                  <div className="mt-8 pt-6 border-t flex flex-col gap-8">
-                    <NotificationToggle />
+                  <div className="mt-8 pt-6 border-t flex flex-col gap-4">
                     <Link href="/membro" onClick={() => setIsMenuOpen(false)}>
                       <Button className="w-full" data-testid="mobile-button-member-area">
                         Área do Membro
                       </Button>
                     </Link>
+                    <NotificationToggle />
                   </div>
                 </nav>
 

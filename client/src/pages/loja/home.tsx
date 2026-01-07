@@ -149,6 +149,52 @@ export default function LojaHomePage() {
         </section>
       )}
 
+      {/* Marquee Separator */}
+      <div className="bg-primary py-3 overflow-hidden" data-testid="marquee-separator">
+        <div className="animate-marquee whitespace-nowrap flex">
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            UMP Emaús
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Alegres na Esperança
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Fortes na Fé
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Dedicados no Amor
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Unidos no Trabalho
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            UMP Emaús
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Alegres na Esperança
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Fortes na Fé
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Dedicados no Amor
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-sm font-semibold text-primary-foreground">
+            Unidos no Trabalho
+          </span>
+          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+        </div>
+      </div>
+
       {/* Categories Grid 2x2 - Jesuscopy Style */}
       {categories && categories.length > 0 && (
         <section className="px-3 py-4">

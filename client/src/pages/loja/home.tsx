@@ -87,7 +87,7 @@ export default function LojaHomePage() {
 
       {/* Banner Carousel - Swipeable */}
       {loadingFeatured ? (
-        <Skeleton className="w-full aspect-[3/4] bg-gray-100" />
+        <Skeleton className="w-full aspect-square bg-gray-100" />
       ) : bannerItems.length > 0 ? (
         <section className="relative bg-gray-100">
           <div className="overflow-hidden" ref={emblaRef}>
@@ -97,7 +97,7 @@ export default function LojaHomePage() {
                 return (
                   <div 
                     key={item.id} 
-                    className="flex-[0_0_100%] min-w-0 relative aspect-[3/4]"
+                    className="flex-[0_0_100%] min-w-0 relative aspect-square"
                   >
                     <Link href={`/loja/produto/${item.id}`}>
                       {bannerImage ? (

@@ -9511,7 +9511,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const orderIds = orders.map(o => o.id);
-      const orderItemsMap = await storage.getShopOrderItemsByOrderIds(orderIds);
+      
+      // Batch fetch all related data in parallel
+      const [orderItemsMap, installmentsMap] = await Promise.all([
+        storage.getShopOrderItemsByOrderIds(orderIds),
+        storage.getShopInstallmentsByOrderIds(orderIds),
+      ]);
       
       const allItems = Array.from(orderItemsMap.values()).flat();
       const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
@@ -9524,12 +9529,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const ordersWithItems = orders.map(order => {
         const items = orderItemsMap.get(order.id) || [];
+        const installments = installmentsMap.get(order.id) || [];
         const itemsWithProduct = items.map(item => {
           const product = productsMap.get(item.itemId);
           const images = product ? (imagesMap.get(product.id) || []) : [];
           return { ...item, product: product ? { ...product, images } : null };
         });
-        return { ...order, items: itemsWithProduct };
+        return { ...order, items: itemsWithProduct, installments };
       });
       
       res.json(ordersWithItems);
@@ -9552,14 +9558,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pedido não encontrado" });
       }
       
-      const items = await storage.getShopOrderItems(order.id);
-      const itemsWithProduct = await Promise.all(items.map(async (item) => {
-        const product = await storage.getShopItemById(item.itemId);
-        const images = product ? await storage.getShopItemImages(product.id) : [];
-        return { ...item, product: product ? { ...product, images } : null };
-      }));
+      // Batch fetch items and installments in parallel
+      const [items, installments] = await Promise.all([
+        storage.getShopOrderItems(order.id),
+        storage.getShopInstallments(order.id),
+      ]);
       
-      res.json({ ...order, items: itemsWithProduct });
+      // Batch fetch products and images
+      const productIds = Array.from(new Set(items.map(i => i.itemId)));
+      const [products, imagesMap] = await Promise.all([
+        storage.getShopItemsByIds(productIds),
+        storage.getShopItemImagesByItemIds(productIds),
+      ]);
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const itemsWithProduct = items.map(item => {
+        const product = productsMap.get(item.itemId);
+        const images = product ? (imagesMap.get(product.id) || []) : [];
+        return { ...item, product: product ? { ...product, images } : null };
+      });
+      
+      res.json({ ...order, items: itemsWithProduct, installments });
     } catch (error) {
       console.error("Get order error:", error);
       res.status(500).json({ message: "Erro ao buscar pedido" });

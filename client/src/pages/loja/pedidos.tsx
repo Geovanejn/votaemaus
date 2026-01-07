@@ -43,6 +43,20 @@ interface OrderItem {
   product: OrderItemProduct | null;
 }
 
+interface Installment {
+  id: number;
+  orderId: number;
+  installmentNumber: number;
+  amount: number;
+  dueDate: string;
+  status: "pending" | "paid" | "overdue";
+  paymentId: string | null;
+  pixCode: string | null;
+  pixQrCodeBase64: string | null;
+  pixExpiresAt: string | null;
+  paidAt: string | null;
+}
+
 interface Order {
   id: number;
   orderCode: string;
@@ -56,6 +70,7 @@ interface Order {
   observation: string | null;
   createdAt: string;
   items: OrderItem[];
+  installments?: Installment[];
 }
 
 function formatCurrency(cents: number): string {
@@ -85,10 +100,16 @@ const paymentStatusLabels: Record<string, { label: string; variant: "default" | 
 const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
   paid: { label: "Pago", variant: "default" },
-  producing: { label: "Em Producao", variant: "outline" },
+  producing: { label: "Em Produção", variant: "outline" },
   ready: { label: "Pronto para Retirada", variant: "default" },
   delivered: { label: "Entregue", variant: "default" },
   cancelled: { label: "Cancelado", variant: "destructive" },
+};
+
+const installmentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  pending: { label: "Pendente", variant: "secondary" },
+  paid: { label: "Paga", variant: "default" },
+  overdue: { label: "Atrasada", variant: "destructive" },
 };
 
 export default function MeusPedidosPage() {
@@ -97,6 +118,7 @@ export default function MeusPedidosPage() {
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [generatingInstallmentId, setGeneratingInstallmentId] = useState<number | null>(null);
   const [pixPaymentData, setPixPaymentData] = useState<{
     entryId: number;
     amount: number;
@@ -137,6 +159,33 @@ export default function MeusPedidosPage() {
     },
   });
 
+  const generateInstallmentPixMutation = useMutation({
+    mutationFn: async (installmentId: number) => {
+      setGeneratingInstallmentId(installmentId);
+      const res = await apiRequest("POST", `/api/pix/shop-installment/${installmentId}`);
+      return res.json();
+    },
+    onSuccess: (data, installmentId) => {
+      const installment = selectedOrder?.installments?.find(i => i.id === installmentId);
+      setPixPaymentData({
+        entryId: data.entryId,
+        amount: data.amount,
+        description: `Pedido #${selectedOrder?.orderCode} - Parcela ${installment?.installmentNumber || ''}`,
+      });
+      setSelectedOrder(null);
+      setPixModalOpen(true);
+      setGeneratingInstallmentId(null);
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao gerar PIX",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+      setGeneratingInstallmentId(null);
+    },
+  });
+
   const handlePixPaymentComplete = () => {
     setPixModalOpen(false);
     setPixPaymentData(null);
@@ -156,7 +205,7 @@ export default function MeusPedidosPage() {
     try {
       await navigator.clipboard.writeText(code);
       toast({
-        title: "Codigo copiado",
+        title: "Código copiado",
         description: "Cole no app do seu banco para pagar.",
       });
     } catch {
@@ -213,7 +262,7 @@ export default function MeusPedidosPage() {
                 <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Nenhum pedido</h3>
                 <p className="text-muted-foreground mb-4">
-                  Voce ainda nao fez nenhum pedido.
+                  Você ainda não fez nenhum pedido.
                 </p>
                 <Link href="/loja">
                   <Button data-testid="button-go-shop">
@@ -325,7 +374,97 @@ export default function MeusPedidosPage() {
                   </div>
                 </div>
 
-                {selectedOrder.paymentStatus === "pending" && (
+                {/* Seção de Parcelas */}
+                {selectedOrder.installments && selectedOrder.installments.length > 0 && (
+                  <div className="border rounded-md p-3 space-y-3">
+                    <h4 className="font-medium text-sm flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Parcelas ({selectedOrder.installments.length}x)
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedOrder.installments.map((inst) => {
+                        const isInstExpired = inst.pixExpiresAt ? new Date(inst.pixExpiresAt) < new Date() : true;
+                        const needsNewPix = inst.status === "pending" && (!inst.pixCode || isInstExpired);
+                        
+                        return (
+                          <div 
+                            key={inst.id} 
+                            className="flex flex-col gap-2 p-2 bg-muted/50 rounded-md"
+                            data-testid={`installment-row-${inst.id}`}
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {inst.installmentNumber}ª Parcela
+                                </span>
+                                <Badge 
+                                  variant={installmentStatusLabels[inst.status]?.variant || "secondary"}
+                                  className="text-xs"
+                                >
+                                  {installmentStatusLabels[inst.status]?.label || inst.status}
+                                </Badge>
+                              </div>
+                              <span className="text-sm font-bold">
+                                {formatCurrency(inst.amount)}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
+                              <span>
+                                Vencimento: {new Date(inst.dueDate).toLocaleDateString("pt-BR")}
+                              </span>
+                              {inst.paidAt && (
+                                <span className="text-green-600">
+                                  Pago em: {new Date(inst.paidAt).toLocaleDateString("pt-BR")}
+                                </span>
+                              )}
+                            </div>
+
+                            {inst.status === "pending" && pixStatus?.configured && (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {needsNewPix ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => generateInstallmentPixMutation.mutate(inst.id)}
+                                    disabled={generatingInstallmentId === inst.id}
+                                    className="gap-1 flex-1 min-w-0"
+                                    data-testid={`button-generate-pix-installment-${inst.id}`}
+                                  >
+                                    {generatingInstallmentId === inst.id ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span className="truncate">Gerando...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <QrCode className="h-3 w-3" />
+                                        <span className="truncate">Gerar PIX</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => copyPixCode(inst.pixCode!)}
+                                    className="gap-1 flex-1 min-w-0"
+                                    data-testid={`button-copy-pix-installment-${inst.id}`}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                    <span className="truncate">Copiar PIX</span>
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Seção de Pagamento PIX (para pedidos sem parcelamento) */}
+                {selectedOrder.paymentStatus === "pending" && (!selectedOrder.installments || selectedOrder.installments.length === 0) && (
                   <div className="border rounded-md p-3 space-y-3">
                     <h4 className="font-medium text-sm flex items-center gap-2">
                       <QrCode className="h-4 w-4" />
@@ -373,7 +512,7 @@ export default function MeusPedidosPage() {
 
                         <div className="space-y-2">
                           <p className="text-xs text-muted-foreground">
-                            Ou copie o codigo PIX:
+                            Ou copie o código PIX:
                           </p>
                           <div className="flex gap-2">
                             <code className="flex-1 p-2 bg-muted rounded text-xs break-all">

@@ -539,6 +539,7 @@ export interface IStorage {
   // Shop Installments Methods
   getShopInstallments(orderId: number): Promise<ShopInstallment[]>;
   getShopInstallmentsByOrderId(orderId: number): Promise<ShopInstallment[]>;
+  getShopInstallmentsByOrderIds(orderIds: number[]): Promise<Map<number, ShopInstallment[]>>;
   getShopInstallmentById(id: number): Promise<ShopInstallment | null>;
   getShopInstallmentByPixId(pixId: string): Promise<ShopInstallment | null>;
   getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]>;
@@ -6895,6 +6896,20 @@ export class DatabaseStorage implements IStorage {
 
   async getShopInstallmentsByOrderId(orderId: number): Promise<ShopInstallment[]> {
     return this.getShopInstallments(orderId);
+  }
+
+  async getShopInstallmentsByOrderIds(orderIds: number[]): Promise<Map<number, ShopInstallment[]>> {
+    if (orderIds.length === 0) return new Map();
+    const installments = await db.select()
+      .from(schema.shopInstallments)
+      .where(inArray(schema.shopInstallments.orderId, orderIds))
+      .orderBy(asc(schema.shopInstallments.installmentNumber));
+    const map = new Map<number, ShopInstallment[]>();
+    for (const inst of installments) {
+      if (!map.has(inst.orderId)) map.set(inst.orderId, []);
+      map.get(inst.orderId)!.push(inst);
+    }
+    return map;
   }
 
   async getShopInstallmentById(id: number): Promise<ShopInstallment | null> {

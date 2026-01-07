@@ -56,7 +56,7 @@ export default function LojaProdutoPage() {
       toast({ title: "Adicionado ao carrinho", description: "O item foi adicionado com sucesso." });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Nao foi possivel adicionar ao carrinho.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível adicionar ao carrinho.", variant: "destructive" });
     },
   });
 
@@ -126,7 +126,7 @@ export default function LojaProdutoPage() {
         <ShopHeader />
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <h2 className="text-xl font-medium text-gray-900 mb-2">Produto nao encontrado</h2>
+            <h2 className="text-xl font-medium text-gray-900 mb-2">Produto não encontrado</h2>
             <Link href="/loja">
               <Button variant="outline" data-testid="button-back-catalog">Voltar a loja</Button>
             </Link>
@@ -324,7 +324,7 @@ export default function LojaProdutoPage() {
               }`}
               data-testid="tab-description"
             >
-              Descricao
+              Descrição
             </button>
             <button
               onClick={() => setActiveTab("specs")}
@@ -335,7 +335,7 @@ export default function LojaProdutoPage() {
               }`}
               data-testid="tab-specs"
             >
-              Ficha Tecnica
+              Ficha Técnica
             </button>
             {product.hasSize && (
               <button
@@ -356,7 +356,7 @@ export default function LojaProdutoPage() {
           <div className="py-4">
             {activeTab === "description" && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-black">Descricao Geral</h3>
+                <h3 className="text-lg font-bold text-black">Descrição Geral</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {product.description || "Produto de alta qualidade da UMP Emaus. Confeccionado com materiais premium para garantir conforto e durabilidade."}
                 </p>
@@ -365,10 +365,10 @@ export default function LojaProdutoPage() {
 
             {activeTab === "specs" && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-black">Ficha Tecnica</h3>
+                <h3 className="text-lg font-bold text-black">Ficha Técnica</h3>
                 <div className="divide-y divide-gray-100">
                   <div className="flex py-3">
-                    <span className="w-1/3 text-sm text-gray-500">Codigo</span>
+                    <span className="w-1/3 text-sm text-gray-500">Código</span>
                     <span className="flex-1 text-sm text-black">{product.id}</span>
                   </div>
                   {product.category && (

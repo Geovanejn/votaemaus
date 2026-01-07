@@ -355,7 +355,7 @@ export default function FinanceiroPage() {
       } else {
         toast({
           title: "Pagamento pendente",
-          description: "O pagamento ainda nao foi confirmado. Tente novamente em alguns instantes.",
+          description: "O pagamento ainda não foi confirmado. Tente novamente em alguns instantes.",
         });
       }
     },
@@ -595,49 +595,49 @@ export default function FinanceiroPage() {
                         </div>
                         {financial.isActiveMember ? (
                           <div className="space-y-3">
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                               {financial.umpStatus.unpaidMonths.length === 1 ? (
                                 <Button
-                                  className="flex-1 gap-2"
+                                  className="flex-1 gap-2 min-w-0"
                                   onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
                                   disabled={createPaymentMutation.isPending}
                                   data-testid="button-ump-single"
                                 >
                                   {createPaymentMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                                   ) : (
-                                    <QrCode className="h-4 w-4" />
+                                    <QrCode className="h-4 w-4 flex-shrink-0" />
                                   )}
-                                  Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
+                                  <span className="truncate">Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})</span>
                                 </Button>
                               ) : financial.umpStatus.unpaidMonths.length > 1 ? (
                                 <>
                                   <Button
-                                    className="flex-1 gap-2"
+                                    className="flex-1 gap-2 min-w-0"
                                     variant="outline"
                                     onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
                                     disabled={createPaymentMutation.isPending}
                                     data-testid="button-ump-single"
                                   >
                                     {createPaymentMutation.isPending ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                                     ) : (
-                                      <QrCode className="h-4 w-4" />
+                                      <QrCode className="h-4 w-4 flex-shrink-0" />
                                     )}
-                                    Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})
+                                    <span className="truncate">Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})</span>
                                   </Button>
                                   <Button
-                                    className="flex-1 gap-2"
+                                    className="flex-1 gap-2 min-w-0"
                                     onClick={handlePayUmp}
                                     disabled={createPaymentMutation.isPending}
                                     data-testid="button-ump-all"
                                   >
                                     {createPaymentMutation.isPending ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                                     ) : (
-                                      <QrCode className="h-4 w-4" />
+                                      <QrCode className="h-4 w-4 flex-shrink-0" />
                                     )}
-                                    Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}
+                                    <span className="truncate">Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}</span>
                                   </Button>
                                 </>
                               ) : null}
@@ -984,7 +984,7 @@ export default function FinanceiroPage() {
             )}
             {installmentPixData.qrCode && (
               <div className="mb-4">
-                <p className="text-xs text-muted-foreground text-center mb-2">Ou copie o codigo:</p>
+                <p className="text-xs text-muted-foreground text-center mb-2">Ou copie o código:</p>
                 <div className="bg-muted p-2 rounded text-xs break-all max-h-20 overflow-y-auto">
                   {installmentPixData.qrCode}
                 </div>
@@ -994,10 +994,10 @@ export default function FinanceiroPage() {
                   className="w-full mt-2"
                   onClick={() => {
                     navigator.clipboard.writeText(installmentPixData.qrCode);
-                    toast({ title: "Codigo copiado!", description: "Cole no app do seu banco." });
+                    toast({ title: "Código copiado!", description: "Cole no app do seu banco." });
                   }}
                 >
-                  Copiar Codigo PIX
+                  Copiar Código PIX
                 </Button>
               </div>
             )}

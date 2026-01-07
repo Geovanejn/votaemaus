@@ -15,7 +15,8 @@ import {
   X,
   ExternalLink,
   CheckCircle2,
-  UserCheck
+  UserCheck,
+  Banknote
 } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -50,6 +51,8 @@ interface EventData {
   isPublished?: boolean;
   organizer?: string;
   category?: string;
+  feeAmount?: number | null;
+  feeDeadline?: string | null;
 }
 
 const categoryColors: Record<string, string> = {
@@ -601,6 +604,25 @@ export default function AgendaPage() {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
                       <span>{selectedEvent.time}</span>
+                      {selectedEvent.feeAmount && selectedEvent.feeAmount > 0 && (
+                        <>
+                          <span className="text-muted-foreground mx-2">|</span>
+                          <Banknote className="h-4 w-4 text-primary" />
+                          <span className="font-medium">
+                            R$ {(selectedEvent.feeAmount / 100).toFixed(2).replace('.', ',')}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Show fee even if no time is set */}
+                  {!selectedEvent.time && selectedEvent.feeAmount && selectedEvent.feeAmount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Banknote className="h-4 w-4 text-primary" />
+                      <span className="font-medium">
+                        Taxa: R$ {(selectedEvent.feeAmount / 100).toFixed(2).replace('.', ',')}
+                      </span>
                     </div>
                   )}
                   

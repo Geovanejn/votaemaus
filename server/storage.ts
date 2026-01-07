@@ -1731,7 +1731,31 @@ export class DatabaseStorage implements IStorage {
   // Site Events
   async getUpcomingEvents(limit?: number): Promise<any[]> {
     const today = getTodayBrazilDate();
-    let query = db.select().from(schema.siteEvents)
+    let query = db.select({
+      id: schema.siteEvents.id,
+      title: schema.siteEvents.title,
+      description: schema.siteEvents.description,
+      shortDescription: schema.siteEvents.shortDescription,
+      imageUrl: schema.siteEvents.imageUrl,
+      startDate: schema.siteEvents.startDate,
+      endDate: schema.siteEvents.endDate,
+      time: schema.siteEvents.time,
+      location: schema.siteEvents.location,
+      locationUrl: schema.siteEvents.locationUrl,
+      price: schema.siteEvents.price,
+      registrationUrl: schema.siteEvents.registrationUrl,
+      category: schema.siteEvents.category,
+      isPublished: schema.siteEvents.isPublished,
+      isFeatured: schema.siteEvents.isFeatured,
+      isAllDay: schema.siteEvents.isAllDay,
+      createdBy: schema.siteEvents.createdBy,
+      createdAt: schema.siteEvents.createdAt,
+      updatedAt: schema.siteEvents.updatedAt,
+      feeAmount: schema.eventFees.feeAmount,
+      feeDeadline: schema.eventFees.deadline,
+    })
+      .from(schema.siteEvents)
+      .leftJoin(schema.eventFees, eq(schema.siteEvents.id, schema.eventFees.eventId))
       .where(and(
         eq(schema.siteEvents.isPublished, true),
         gte(schema.siteEvents.startDate, today)

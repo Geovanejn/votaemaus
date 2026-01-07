@@ -150,48 +150,48 @@ export default function LojaHomePage() {
       )}
 
       {/* Marquee Separator */}
-      <div className="bg-primary py-3 overflow-hidden" data-testid="marquee-separator">
-        <div className="animate-marquee whitespace-nowrap flex">
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            UMP Emaús
+      <div className="mt-4 mb-4 bg-black py-3 overflow-hidden" data-testid="marquee-separator">
+        <div className="animate-marquee whitespace-nowrap flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            UMP EMAÚS
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Alegres na Esperança
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            ALEGRES NA ESPERANÇA
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Fortes na Fé
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            FORTES NA FÉ
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Dedicados no Amor
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            DEDICADOS NO AMOR
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Unidos no Trabalho
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            UNIDOS NO TRABALHO
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            UMP Emaús
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            UMP EMAÚS
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Alegres na Esperança
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            ALEGRES NA ESPERANÇA
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Fortes na Fé
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            FORTES NA FÉ
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Dedicados no Amor
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            DEDICADOS NO AMOR
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
-          <span className="mx-4 text-sm font-semibold text-primary-foreground">
-            Unidos no Trabalho
+          <span className="mx-4 text-base text-primary font-bold">•</span>
+          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+            UNIDOS NO TRABALHO
           </span>
-          <span className="mx-4 text-sm text-primary-foreground opacity-80">•</span>
+          <span className="mx-4 text-base text-primary font-bold">•</span>
         </div>
       </div>
 

@@ -516,7 +516,7 @@ export default function LojaAdmin() {
   const uploadBannerMutation = useMutation({
     mutationFn: async ({ itemId, file }: { itemId: number; file: File }) => {
       const formData = new FormData();
-      formData.append("bannerImage", file);
+      formData.append("file", file); // Changed from bannerImage to file to match /api/upload
       
       const token = localStorage.getItem("token");
       const headers: Record<string, string> = {};
@@ -524,7 +524,7 @@ export default function LojaAdmin() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const response = await fetch(`/api/admin/shop/items/${itemId}/banner`, {
+      const response = await fetch(`/api/upload?uploadType=banner`, {
         method: "POST",
         body: formData,
         headers,
@@ -535,14 +535,19 @@ export default function LojaAdmin() {
         const error = await response.json().catch(() => ({ message: "Upload failed" }));
         throw new Error(error.message || "Upload failed");
       }
-      return response.json();
+      const data = await response.json();
+      
+      // After uploading the file, update the item's bannerImageData
+      return apiRequest("PATCH", `/api/admin/shop/items/${itemId}`, {
+        bannerImageData: data.url
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
       toast({ title: "Banner enviado", description: "A imagem de banner foi atualizada." });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Nao foi possivel enviar o banner.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível enviar o banner.", variant: "destructive" });
     },
   });
 

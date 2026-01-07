@@ -12,6 +12,7 @@ interface ImageUploadProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  uploadType?: string;
 }
 
 export function ImageUpload({
@@ -21,6 +22,7 @@ export function ImageUpload({
   placeholder = "Selecionar Imagem",
   className,
   disabled = false,
+  uploadType,
 }: ImageUploadProps) {
   const { toast } = useToast();
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -60,7 +62,7 @@ export function ImageUpload({
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch(`/api/upload${uploadType ? `?uploadType=${uploadType}` : ''}`, {
         method: "POST",
         body: formData,
         credentials: "include",

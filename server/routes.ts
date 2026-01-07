@@ -391,7 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Para banners da loja, preservamos o arquivo original sem conversão
         // ou qualquer processamento que possa reduzir a qualidade
-        const isBanner = req.body.type === 'banner' || req.query.type === 'banner';
+        const isBanner = req.body.uploadType === 'banner' || req.query.uploadType === 'banner';
 
         if (isBanner) {
           const base64 = req.file.buffer.toString('base64');

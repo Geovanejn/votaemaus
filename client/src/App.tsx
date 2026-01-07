@@ -8,9 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { VisitorNotificationPrompt } from "@/components/visitor-notification-prompt";
-import { MemberNotificationPrompt } from "@/components/member-notification-prompt";
-import { NotificationMandatoryPrompt } from "@/components/notification-mandatory-prompt";
+import { UnifiedNotificationPrompt } from "@/components/unified-notification-prompt";
 
 import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
@@ -153,7 +151,6 @@ function Router() {
             </Route>
           </Switch>
         </Suspense>
-        <VisitorNotificationPrompt />
       </>
     );
   }
@@ -249,8 +246,6 @@ function Router() {
             <Redirect to="/" />
           </Route>
         </Switch>
-        <MemberNotificationPrompt />
-        <NotificationMandatoryPrompt />
       </Suspense>
     );
   }
@@ -335,8 +330,6 @@ function Router() {
         </Route>
       </Switch>
     </Suspense>
-    <MemberNotificationPrompt />
-    <NotificationMandatoryPrompt />
   </>
 );
 }
@@ -348,6 +341,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
+            <UnifiedNotificationPrompt />
             <Router />
           </TooltipProvider>
         </AuthProvider>

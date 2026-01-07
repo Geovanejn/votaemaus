@@ -38,6 +38,55 @@ function formatCurrency(cents: number): string {
   });
 }
 
+const marqueeTexts = [
+  "UMP EMAÚS",
+  "ALEGRES NA ESPERANÇA",
+  "FORTES NA FÉ",
+  "DEDICADOS NO AMOR",
+  "UNIDOS NO TRABALHO",
+];
+
+function MarqueeSeparator() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+        setIsAnimating(false);
+      }, 400);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
+      <div 
+        className="flex items-center justify-center gap-4"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        <span className="text-base text-primary font-bold">•</span>
+        <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
+          <span
+            className={`text-base font-semibold text-black uppercase tracking-wider transition-all duration-400 ease-in-out ${
+              isAnimating 
+                ? "transform -translate-x-full opacity-0" 
+                : "transform translate-x-0 opacity-100"
+            }`}
+            style={{ transitionDuration: "400ms" }}
+          >
+            {marqueeTexts[currentIndex]}
+          </span>
+        </div>
+        <span className="text-base text-primary font-bold">•</span>
+      </div>
+    </div>
+  );
+}
+
 export default function LojaHomePage() {
   const { isAuthenticated } = useAuth();
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -149,36 +198,8 @@ export default function LojaHomePage() {
         </section>
       )}
 
-      {/* Marquee Separator - Infinite scroll */}
-      <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
-        <style>{`
-          @keyframes scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .marquee-track {
-            display: flex;
-            width: max-content;
-            animation: scroll 30s linear infinite;
-          }
-        `}</style>
-        <div className="marquee-track" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {[0, 1].map((i) => (
-            <div key={i} className="flex items-center whitespace-nowrap">
-              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
-              <span className="mx-4 text-base text-primary font-bold">•</span>
-              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
-              <span className="mx-4 text-base text-primary font-bold">•</span>
-              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
-              <span className="mx-4 text-base text-primary font-bold">•</span>
-              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
-              <span className="mx-4 text-base text-primary font-bold">•</span>
-              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
-              <span className="mx-4 text-base text-primary font-bold">•</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Marquee Separator - Static texts with slide animation */}
+      <MarqueeSeparator />
 
       {/* Categories Grid 2x2 - Jesuscopy Style */}
       {categories && categories.length > 0 && (

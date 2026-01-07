@@ -9129,10 +9129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      const images = await storage.getShopItemImages(id);
-      const sizes = await storage.getShopItemSizes(id);
+      const [images, sizes, sizeCharts] = await Promise.all([
+        storage.getShopItemImages(id),
+        storage.getShopItemSizes(id),
+        storage.getShopItemSizeCharts(id)
+      ]);
       
-      res.json({ ...item, images, sizes });
+      res.json({ ...item, images, sizes, sizeCharts });
     } catch (error) {
       console.error("Get shop item error:", error);
       res.status(500).json({ message: "Erro ao buscar item" });

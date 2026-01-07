@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PixPaymentModal } from "@/components/PixPaymentModal";
 import { ShopHeader } from "@/components/shop/ShopHeader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Package,
   Clock,
@@ -90,9 +90,9 @@ function formatDate(date: string): string {
   });
 }
 
-const paymentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const paymentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   pending: { label: "Aguardando Pagamento", variant: "secondary" },
-  paid: { label: "Pago", variant: "default" },
+  paid: { label: "Pago", variant: "default", className: "bg-green-600 hover:bg-green-700 text-white" },
   cancelled: { label: "Cancelado", variant: "destructive" },
   refunded: { label: "Estornado", variant: "outline" },
 };
@@ -106,9 +106,9 @@ const orderStatusLabels: Record<string, { label: string; variant: "default" | "s
   cancelled: { label: "Cancelado", variant: "destructive" },
 };
 
-const installmentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const installmentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   pending: { label: "Pendente", variant: "secondary" },
-  paid: { label: "Paga", variant: "default" },
+  paid: { label: "Paga", variant: "default", className: "bg-green-600 hover:bg-green-700 text-white" },
   overdue: { label: "Atrasada", variant: "destructive" },
 };
 
@@ -124,6 +124,17 @@ export default function MeusPedidosPage() {
     amount: number;
     description: string;
   } | null>(null);
+  
+  const [installmentPixData, setInstallmentPixData] = useState<{
+    qrCode: string;
+    qrCodeBase64: string;
+    amount: number;
+    expiresAt: string;
+    description: string;
+    installmentId: number;
+  } | null>(null);
+  
+  const [installmentPaymentStatus, setInstallmentPaymentStatus] = useState<"pending" | "approved">("pending");
 
   const { data: orders, isLoading, refetch } = useQuery<Order[]>({
     queryKey: ["/api/shop/my-orders"],
@@ -167,13 +178,16 @@ export default function MeusPedidosPage() {
     },
     onSuccess: (data, installmentId) => {
       const installment = selectedOrder?.installments?.find(i => i.id === installmentId);
-      setPixPaymentData({
-        entryId: data.entryId,
+      setInstallmentPixData({
+        qrCode: data.qrCode,
+        qrCodeBase64: data.qrCodeBase64,
         amount: data.amount,
+        expiresAt: data.expiresAt,
         description: `Pedido #${selectedOrder?.orderCode} - Parcela ${installment?.installmentNumber || ''}`,
+        installmentId: installmentId,
       });
+      setInstallmentPaymentStatus("pending");
       setSelectedOrder(null);
-      setPixModalOpen(true);
       setGeneratingInstallmentId(null);
     },
     onError: () => {
@@ -195,6 +209,57 @@ export default function MeusPedidosPage() {
       description: "Seu pedido foi pago com sucesso.",
     });
   };
+
+  useEffect(() => {
+    if (!installmentPixData || installmentPaymentStatus !== "pending") return;
+    
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    
+    const checkInstallmentStatus = async () => {
+      if (!isMounted) return;
+      
+      try {
+        const res = await apiRequest("GET", `/api/shop/my-orders`);
+        if (!isMounted) return;
+        
+        const updatedOrders: Order[] = await res.json();
+        const foundOrder = updatedOrders.find(o => 
+          o.installments?.some(i => i.id === installmentPixData.installmentId && i.status === "paid")
+        );
+        
+        if (foundOrder && isMounted) {
+          setInstallmentPaymentStatus("approved");
+          toast({
+            title: "Pagamento confirmado!",
+            description: "Sua parcela foi paga com sucesso.",
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/shop/my-orders"] });
+          queryClient.invalidateQueries({ queryKey: ["treasury-member-status"] });
+          queryClient.invalidateQueries({ queryKey: ["treasury-member-shop-orders"] });
+          timeoutId = setTimeout(() => {
+            if (isMounted) {
+              setInstallmentPixData(null);
+            }
+          }, 2000);
+        } else if (isMounted) {
+          timeoutId = setTimeout(checkInstallmentStatus, 5000);
+        }
+      } catch (error) {
+        console.error("Error checking installment status:", error);
+        if (isMounted) {
+          timeoutId = setTimeout(checkInstallmentStatus, 5000);
+        }
+      }
+    };
+    
+    timeoutId = setTimeout(checkInstallmentStatus, 5000);
+    
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [installmentPixData, installmentPaymentStatus, toast]);
 
   if (!isAuthenticated) {
     setLocation("/login");
@@ -289,7 +354,10 @@ export default function MeusPedidosPage() {
                       <CardTitle className="text-base">
                         Pedido #{order.id}
                       </CardTitle>
-                      <Badge variant={paymentStatusLabels[order.paymentStatus]?.variant || "secondary"}>
+                      <Badge 
+                        variant={paymentStatusLabels[order.paymentStatus]?.variant || "secondary"}
+                        className={paymentStatusLabels[order.paymentStatus]?.className}
+                      >
                         {paymentStatusLabels[order.paymentStatus]?.label || order.paymentStatus}
                       </Badge>
                     </div>
@@ -317,7 +385,7 @@ export default function MeusPedidosPage() {
       </section>
 
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           {selectedOrder && (
             <>
               <DialogHeader>
@@ -328,8 +396,11 @@ export default function MeusPedidosPage() {
               </DialogHeader>
 
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Badge variant={paymentStatusLabels[selectedOrder.paymentStatus]?.variant || "secondary"}>
+                <div className="flex flex-wrap gap-2">
+                  <Badge 
+                    variant={paymentStatusLabels[selectedOrder.paymentStatus]?.variant || "secondary"}
+                    className={paymentStatusLabels[selectedOrder.paymentStatus]?.className}
+                  >
                     Pagamento: {paymentStatusLabels[selectedOrder.paymentStatus]?.label}
                   </Badge>
                   <Badge variant={orderStatusLabels[selectedOrder.orderStatus]?.variant || "secondary"}>
@@ -340,28 +411,29 @@ export default function MeusPedidosPage() {
                 <div className="border rounded-md p-3 space-y-3">
                   <h4 className="font-medium text-sm">Itens do Pedido</h4>
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex gap-3 items-start">
-                      <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div key={item.id} className="flex gap-2 sm:gap-3 items-start">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                         {item.product?.images && item.product.images.length > 0 ? (
                           <img
                             src={item.product.images[0].imageData}
                             alt={item.product.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-5 w-5 text-muted-foreground" />
+                            <Package className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.product?.name || "Item"}</p>
+                        <p className="text-xs sm:text-sm font-medium line-clamp-2">{item.product?.name || "Item"}</p>
                         <p className="text-xs text-muted-foreground">
                           {item.quantity}x {formatCurrency(item.unitPrice)}
-                          {item.size && ` - Tam: ${item.size}`}
+                          {item.size && ` - ${item.size}`}
                         </p>
                       </div>
-                      <span className="text-sm font-medium">
+                      <span className="text-xs sm:text-sm font-medium flex-shrink-0">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
                     </div>
@@ -399,7 +471,7 @@ export default function MeusPedidosPage() {
                                 </span>
                                 <Badge 
                                   variant={installmentStatusLabels[inst.status]?.variant || "secondary"}
-                                  className="text-xs"
+                                  className={`text-xs ${installmentStatusLabels[inst.status]?.className || ''}`}
                                 >
                                   {installmentStatusLabels[inst.status]?.label || inst.status}
                                 </Badge>
@@ -554,6 +626,93 @@ export default function MeusPedidosPage() {
           description={pixPaymentData.description}
           onPaymentComplete={handlePixPaymentComplete}
         />
+      )}
+
+      {installmentPixData && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" 
+          onClick={() => {
+            setInstallmentPixData(null);
+            setInstallmentPaymentStatus("pending");
+            refetch();
+          }}
+        >
+          <div 
+            className="bg-background rounded-lg p-4 sm:p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto" 
+            onClick={e => e.stopPropagation()}
+          >
+            {installmentPaymentStatus === "approved" ? (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <div className="rounded-full bg-green-100 dark:bg-green-900 p-4">
+                  <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold">Pagamento Confirmado!</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(installmentPixData.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-center mb-2">
+                  Pagar Parcela via PIX
+                </h3>
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  {installmentPixData.description}
+                </p>
+                <div className="text-center mb-4">
+                  <p className="text-2xl font-bold">
+                    {(installmentPixData.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                </div>
+                {installmentPixData.qrCodeBase64 && (
+                  <div className="flex justify-center mb-4">
+                    <img 
+                      src={`data:image/png;base64,${installmentPixData.qrCodeBase64}`} 
+                      alt="QR Code PIX" 
+                      className="w-40 h-40 sm:w-48 sm:h-48"
+                    />
+                  </div>
+                )}
+                {installmentPixData.qrCode && (
+                  <div className="mb-4">
+                    <p className="text-xs text-muted-foreground text-center mb-2">Ou copie o codigo:</p>
+                    <div className="bg-muted p-2 rounded text-xs break-all max-h-16 overflow-y-auto">
+                      {installmentPixData.qrCode.substring(0, 80)}...
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full mt-2 gap-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(installmentPixData.qrCode);
+                        toast({ title: "Codigo copiado!", description: "Cole no app do seu banco." });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar Codigo PIX
+                    </Button>
+                  </div>
+                )}
+                <div className="flex items-center justify-center gap-2 mb-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Aguardando pagamento...</span>
+                </div>
+              </>
+            )}
+            <Button 
+              className="w-full" 
+              onClick={() => {
+                setInstallmentPixData(null);
+                setInstallmentPaymentStatus("pending");
+                refetch();
+              }}
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

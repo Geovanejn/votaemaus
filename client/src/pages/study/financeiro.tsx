@@ -483,6 +483,7 @@ export default function FinanceiroPage() {
                       <CardTitle className="text-base">Taxa Percapta</CardTitle>
                       <Badge 
                         variant={financial.percaptaStatus.isPaid ? "default" : "secondary"}
+                        className={financial.percaptaStatus.isPaid ? "bg-green-600 hover:bg-green-700 text-white" : ""}
                         data-testid="badge-percapta-status"
                       >
                         {financial.percaptaStatus.isPaid ? "Pago" : "Pendente"}
@@ -534,6 +535,7 @@ export default function FinanceiroPage() {
                       <CardTitle className="text-base">Taxa UMP Emaús</CardTitle>
                       <Badge 
                         variant={financial.umpStatus.unpaidMonths.length === 0 ? "default" : "secondary"}
+                        className={financial.umpStatus.unpaidMonths.length === 0 ? "bg-green-600 hover:bg-green-700 text-white" : ""}
                         data-testid="badge-ump-status"
                       >
                         {financial.umpStatus.paidMonths.length}/12 meses
@@ -779,7 +781,7 @@ export default function FinanceiroPage() {
                                     </p>
                                     <Badge 
                                       variant={event.isPaid ? "default" : "secondary"}
-                                      className="text-xs"
+                                      className={`text-xs ${event.isPaid ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                                     >
                                       {event.isPaid ? "Pago" : "Pendente"}
                                     </Badge>
@@ -861,7 +863,7 @@ export default function FinanceiroPage() {
                                 <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
                                 <Badge 
                                   variant={order.paymentStatus === "paid" ? "default" : "secondary"}
-                                  className="text-xs"
+                                  className={`text-xs ${order.paymentStatus === "paid" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                                 >
                                   {order.paymentStatus === "paid" ? "Pago" : 
                                    order.paymentStatus === "partial" ? "Parcial" : "Pendente"}
@@ -886,23 +888,23 @@ export default function FinanceiroPage() {
                                 {order.installments.map((inst) => (
                                   <div 
                                     key={inst.id}
-                                    className="flex items-center justify-between py-1 text-sm"
+                                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 text-sm border-b last:border-0"
                                     data-testid={`installment-${inst.id}`}
                                   >
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-xs font-medium">
                                         {inst.installmentNumber}ª parcela
                                       </span>
                                       <span className="text-xs text-muted-foreground">
                                         Venc: {formatDate(inst.dueDate)}
                                       </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
                                       <span className="text-sm font-medium">
                                         {formatCurrency(inst.amount)}
                                       </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       {inst.status === "paid" ? (
-                                        <Badge variant="default" className="text-xs">
+                                        <Badge className="text-xs bg-green-600 hover:bg-green-700 text-white">
                                           <CheckCircle className="h-3 w-3 mr-1" />
                                           Pago
                                         </Badge>

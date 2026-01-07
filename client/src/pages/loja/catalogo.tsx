@@ -137,6 +137,8 @@ export default function LojaPage() {
                         src={item.images[0].imageData}
                         alt={item.name}
                         className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

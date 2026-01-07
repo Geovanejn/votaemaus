@@ -152,6 +152,8 @@ export default function LojaProdutoPage() {
                       src={img.imageData}
                       alt={`${product.name} - ${idx + 1}`}
                       className="w-full h-full object-cover"
+                      loading={idx === 0 ? "eager" : "lazy"}
+                      decoding="async"
                       data-testid={`product-image-${idx}`}
                     />
                   </div>

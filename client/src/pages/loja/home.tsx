@@ -168,6 +168,8 @@ export default function LojaHomePage() {
                           src={bannerImage}
                           alt={item.name}
                           className="w-full h-full object-cover cursor-pointer"
+                          loading={index === 0 ? "eager" : "lazy"}
+                          decoding="async"
                           data-testid={`banner-image-${index}`}
                         />
                       ) : (
@@ -236,6 +238,8 @@ export default function LojaHomePage() {
                         src={firstImage}
                         alt={cat.name}
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -293,6 +297,8 @@ export default function LojaHomePage() {
                         src={item.images[0].imageData}
                         alt={item.name}
                         className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

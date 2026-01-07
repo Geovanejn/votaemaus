@@ -15,7 +15,13 @@ import {
   TrendingDown,
   Search,
   Calendar,
-  Loader2
+  Loader2,
+  ShoppingBag,
+  CreditCard,
+  User as UserIcon,
+  CheckCircle,
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -37,6 +43,18 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
@@ -88,6 +106,45 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   cancelled: { label: "Cancelado", variant: "outline" },
 };
 
+const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
+  paid: { label: "Pago", variant: "default" },
+  producing: { label: "Em Producao", variant: "outline" },
+  ready: { label: "Pronto", variant: "default" },
+  delivered: { label: "Entregue", variant: "default" },
+  cancelled: { label: "Cancelado", variant: "destructive" },
+};
+
+interface ShopOrderWithDetails {
+  id: number;
+  orderCode: string;
+  userId: number;
+  totalAmount: number;
+  paymentStatus: string;
+  orderStatus: string;
+  installmentCount: number | null;
+  createdAt: string;
+  paidAt: string | null;
+  user: { id: number; fullName: string; email: string; phone: string | null } | null;
+  items: Array<{
+    id: number;
+    quantity: number;
+    gender: string | null;
+    size: string | null;
+    unitPrice: number;
+    product: { id: number; name: string; price: number } | null;
+  }>;
+  installments: Array<{
+    id: number;
+    installmentNumber: number;
+    amount: number;
+    dueDate: string;
+    status: string;
+    paidAt: string | null;
+    isOverdue: boolean;
+  }>;
+}
+
 export default function TesourariaMovimentacoes() {
   const { hasTreasuryPanel } = useAuth();
   const [, setLocation] = useLocation();
@@ -95,6 +152,9 @@ export default function TesourariaMovimentacoes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("movimentacoes");
+  const [shopSearchTerm, setShopSearchTerm] = useState("");
+  const [shopStatusFilter, setShopStatusFilter] = useState<string>("all");
   const currentYear = new Date().getFullYear();
   
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -108,6 +168,24 @@ export default function TesourariaMovimentacoes() {
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
     queryKey: [`/api/treasury/entries?year=${currentYear}`],
     enabled: hasTreasuryPanel,
+  });
+
+  const { data: shopOrders, isLoading: shopOrdersLoading } = useQuery<ShopOrderWithDetails[]>({
+    queryKey: ["/api/treasury/shop/orders"],
+    enabled: hasTreasuryPanel && activeTab === "loja",
+  });
+
+  const markInstallmentPaidMutation = useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      return apiRequest("PATCH", `/api/treasury/shop/installments/${id}`, { status: "paid" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/shop/orders"] });
+      toast({ title: "Parcela marcada como paga" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
+    },
   });
 
   const needsMemberSelection = formType === "income" && 
@@ -185,6 +263,15 @@ export default function TesourariaMovimentacoes() {
     const matchesType = typeFilter === "all" || entry.type === typeFilter;
     const matchesStatus = statusFilter === "all" || entry.paymentStatus === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
+  }) ?? [];
+
+  const filteredShopOrders = shopOrders?.filter((order) => {
+    const matchesSearch = !shopSearchTerm || 
+      order.orderCode.toLowerCase().includes(shopSearchTerm.toLowerCase()) ||
+      order.user?.fullName.toLowerCase().includes(shopSearchTerm.toLowerCase()) ||
+      order.user?.email.toLowerCase().includes(shopSearchTerm.toLowerCase());
+    const matchesStatus = shopStatusFilter === "all" || order.paymentStatus === shopStatusFilter;
+    return matchesSearch && matchesStatus;
   }) ?? [];
 
   const categories = formType === "income" ? incomeCategories : expenseCategories;
@@ -376,129 +463,361 @@ export default function TesourariaMovimentacoes() {
 
       <section className="py-6 bg-background">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-6"
-          >
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por descricao ou pagador..."
-                      className="pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      data-testid="input-search-entries"
-                    />
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | "income" | "expense")}>
-                      <SelectTrigger className="w-[140px]" data-testid="select-type-filter">
-                        <SelectValue placeholder="Tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="income">Entradas</SelectItem>
-                        <SelectItem value="expense">Saidas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="paid">Pago</SelectItem>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="expired">Expirado</SelectItem>
-                        <SelectItem value="cancelled">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="movimentacoes" className="gap-2" data-testid="tab-movimentacoes">
+                <Receipt className="h-4 w-4" />
+                Movimentacoes
+              </TabsTrigger>
+              <TabsTrigger value="loja" className="gap-2" data-testid="tab-loja">
+                <ShoppingBag className="h-4 w-4" />
+                Pagamentos Loja
+              </TabsTrigger>
+            </TabsList>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredEntries.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {entries?.length === 0 
-                    ? "Nenhuma movimentacao registrada" 
-                    : "Nenhuma movimentacao encontrada com os filtros aplicados"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {filteredEntries.map((entry, index) => (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * Math.min(index, 10) }}
-                >
-                  <Card className="hover-elevate cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${
-                          entry.type === "income" 
-                            ? "bg-green-100 dark:bg-green-900/30" 
-                            : "bg-red-100 dark:bg-red-900/30"
-                        }`}>
-                          {entry.type === "income" ? (
-                            <TrendingUp className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <TrendingDown className="h-5 w-5 text-red-600" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium truncate">
-                              {entry.description || categoryLabels[entry.category] || entry.category}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {categoryLabels[entry.category] || entry.category}
-                            </Badge>
+            <TabsContent value="movimentacoes">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mb-6"
+              >
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar por descricao ou pagador..."
+                          className="pl-10"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          data-testid="input-search-entries"
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | "income" | "expense")}>
+                          <SelectTrigger className="w-[140px]" data-testid="select-type-filter">
+                            <SelectValue placeholder="Tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="income">Entradas</SelectItem>
+                            <SelectItem value="expense">Saidas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="paid">Pago</SelectItem>
+                            <SelectItem value="pending">Pendente</SelectItem>
+                            <SelectItem value="expired">Expirado</SelectItem>
+                            <SelectItem value="cancelled">Cancelado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredEntries.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      {entries?.length === 0 
+                        ? "Nenhuma movimentacao registrada" 
+                        : "Nenhuma movimentacao encontrada com os filtros aplicados"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {filteredEntries.map((entry, index) => (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 * Math.min(index, 10) }}
+                    >
+                      <Card className="hover-elevate cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-full ${
+                              entry.type === "income" 
+                                ? "bg-green-100 dark:bg-green-900/30" 
+                                : "bg-red-100 dark:bg-red-900/30"
+                            }`}>
+                              {entry.type === "income" ? (
+                                <TrendingUp className="h-5 w-5 text-green-600" />
+                              ) : (
+                                <TrendingDown className="h-5 w-5 text-red-600" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium truncate">
+                                  {entry.description || categoryLabels[entry.category] || entry.category}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryLabels[entry.category] || entry.category}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                {entry.createdAt && format(new Date(entry.createdAt), "dd MMM yyyy", { locale: ptBR })}
+                                {entry.externalPayerName && (
+                                  <span>- {entry.externalPayerName}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-semibold ${
+                                entry.type === "income" ? "text-green-600" : "text-red-600"
+                              }`}>
+                                {entry.type === "income" ? "+" : "-"}{formatCurrency(entry.amount)}
+                              </div>
+                              <Badge 
+                                variant={statusLabels[entry.paymentStatus]?.variant ?? "secondary"}
+                                className="text-xs"
+                              >
+                                {statusLabels[entry.paymentStatus]?.label ?? entry.paymentStatus}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {entry.createdAt && format(new Date(entry.createdAt), "dd MMM yyyy", { locale: ptBR })}
-                            {entry.externalPayerName && (
-                              <span>- {entry.externalPayerName}</span>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="loja">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mb-6"
+              >
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar por codigo do pedido, nome ou email..."
+                          className="pl-10"
+                          value={shopSearchTerm}
+                          onChange={(e) => setShopSearchTerm(e.target.value)}
+                          data-testid="input-search-shop-orders"
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Select value={shopStatusFilter} onValueChange={setShopStatusFilter}>
+                          <SelectTrigger className="w-[180px]" data-testid="select-shop-status-filter">
+                            <SelectValue placeholder="Status Pagamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="pending">Pendente</SelectItem>
+                            <SelectItem value="paid">Pago</SelectItem>
+                            <SelectItem value="cancelled">Cancelado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {shopOrdersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredShopOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      {shopOrders?.length === 0 
+                        ? "Nenhum pedido registrado" 
+                        : "Nenhum pedido encontrado com os filtros aplicados"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Accordion type="single" collapsible className="space-y-3">
+                  {filteredShopOrders.map((order, index) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 * Math.min(index, 10) }}
+                    >
+                      <AccordionItem value={`order-${order.id}`} className="border rounded-md overflow-visible">
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                          <div className="flex items-center gap-4 w-full">
+                            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                              <ShoppingBag className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium">#{order.orderCode}</span>
+                                <Badge 
+                                  variant={orderStatusLabels[order.orderStatus]?.variant ?? "secondary"}
+                                  className="text-xs"
+                                >
+                                  {orderStatusLabels[order.orderStatus]?.label ?? order.orderStatus}
+                                </Badge>
+                                {order.installmentCount && order.installmentCount > 1 && (
+                                  <Badge variant="outline" className="text-xs gap-1">
+                                    <CreditCard className="h-3 w-3" />
+                                    {order.installmentCount}x
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <UserIcon className="h-3 w-3" />
+                                {order.user?.fullName || "Usuario desconhecido"}
+                                <span>-</span>
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(order.createdAt), "dd MMM yyyy", { locale: ptBR })}
+                              </div>
+                            </div>
+                            <div className="text-right mr-4">
+                              <div className="font-semibold text-green-600">
+                                {formatCurrency(order.totalAmount)}
+                              </div>
+                              <Badge 
+                                variant={order.paymentStatus === "paid" ? "default" : order.paymentStatus === "pending" ? "secondary" : "destructive"}
+                                className="text-xs"
+                              >
+                                {order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "pending" ? "Pendente" : "Cancelado"}
+                              </Badge>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          <div className="space-y-4 pt-2">
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Card>
+                                <CardContent className="p-4">
+                                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                                    <UserIcon className="h-4 w-4" />
+                                    Dados do Membro
+                                  </h4>
+                                  <div className="text-sm space-y-1">
+                                    <p><strong>Nome:</strong> {order.user?.fullName || "-"}</p>
+                                    <p><strong>Email:</strong> {order.user?.email || "-"}</p>
+                                    <p><strong>Telefone:</strong> {order.user?.phone || "-"}</p>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-4">
+                                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                                    <ShoppingBag className="h-4 w-4" />
+                                    Itens do Pedido
+                                  </h4>
+                                  <div className="text-sm space-y-1">
+                                    {order.items.map((item) => (
+                                      <p key={item.id}>
+                                        {item.quantity}x {item.product?.name || "Produto"} 
+                                        {item.size && ` (${item.size})`}
+                                        {item.gender && ` - ${item.gender}`}
+                                        <span className="text-muted-foreground ml-2">
+                                          {formatCurrency(item.unitPrice * item.quantity)}
+                                        </span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {order.installments.length > 0 && (
+                              <Card>
+                                <CardContent className="p-4">
+                                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                                    <CreditCard className="h-4 w-4" />
+                                    Parcelas PIX ({order.installments.length}x)
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {order.installments.map((inst) => (
+                                      <div 
+                                        key={inst.id} 
+                                        className={`flex items-center justify-between p-3 rounded-md border ${
+                                          inst.isOverdue 
+                                            ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800" 
+                                            : inst.status === "paid" 
+                                              ? "border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800" 
+                                              : "border-border"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          {inst.status === "paid" ? (
+                                            <CheckCircle className="h-5 w-5 text-green-600" />
+                                          ) : inst.isOverdue ? (
+                                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                                          ) : (
+                                            <Clock className="h-5 w-5 text-muted-foreground" />
+                                          )}
+                                          <div>
+                                            <p className="font-medium">Parcela {inst.installmentNumber}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                              Vencimento: {format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}
+                                              {inst.paidAt && (
+                                                <span className="ml-2 text-green-600">
+                                                  - Pago em {format(new Date(inst.paidAt), "dd/MM/yyyy", { locale: ptBR })}
+                                                </span>
+                                              )}
+                                              {inst.isOverdue && (
+                                                <span className="ml-2 text-red-600 font-medium">VENCIDA</span>
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <span className="font-semibold">{formatCurrency(inst.amount)}</span>
+                                          {inst.status !== "paid" && (
+                                            <Button
+                                              size="sm"
+                                              onClick={() => markInstallmentPaidMutation.mutate({ id: inst.id })}
+                                              disabled={markInstallmentPaidMutation.isPending}
+                                              data-testid={`button-mark-paid-${inst.id}`}
+                                            >
+                                              {markInstallmentPaidMutation.isPending ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                "Marcar Pago"
+                                              )}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
                             )}
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`font-semibold ${
-                            entry.type === "income" ? "text-green-600" : "text-red-600"
-                          }`}>
-                            {entry.type === "income" ? "+" : "-"}{formatCurrency(entry.amount)}
-                          </div>
-                          <Badge 
-                            variant={statusLabels[entry.paymentStatus]?.variant ?? "secondary"}
-                            className="text-xs"
-                          >
-                            {statusLabels[entry.paymentStatus]?.label ?? entry.paymentStatus}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </motion.div>
+                  ))}
+                </Accordion>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
     </div>

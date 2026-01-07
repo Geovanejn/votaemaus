@@ -10776,6 +10776,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SHOP PAYMENTS (TREASURER) ====================
+  
+  // List all shop orders with payment details for treasurer
+  app.get("/api/treasury/shop/orders", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const orders = await storage.getShopOrders(status ? { status } : undefined);
+      
+      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
+        const items = await storage.getShopOrderItems(order.id);
+        const user = await storage.getUserById(order.userId);
+        const installments = await storage.getShopInstallments(order.id);
+        
+        const itemsWithProduct = await Promise.all(items.map(async (item) => {
+          const product = await storage.getShopItemById(item.itemId);
+          return { 
+            ...item, 
+            product: product ? {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+            } : null 
+          };
+        }));
+        
+        return {
+          ...order,
+          user: user ? { 
+            id: user.id, 
+            fullName: user.fullName, 
+            email: user.email,
+            phone: user.phone,
+          } : null,
+          items: itemsWithProduct,
+          installments: installments.map(inst => ({
+            ...inst,
+            isOverdue: inst.status === 'pending' && new Date(inst.dueDate) < new Date(),
+          })),
+        };
+      }));
+      
+      res.json(ordersWithDetails);
+    } catch (error) {
+      console.error("Get treasury shop orders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos da loja" });
+    }
+  });
+
+  // List all shop installments for treasurer
+  app.get("/api/treasury/shop/installments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const allOrders = await storage.getShopOrders();
+      
+      const allInstallments = [];
+      for (const order of allOrders) {
+        const installments = await storage.getShopInstallments(order.id);
+        const user = await storage.getUserById(order.userId);
+        
+        for (const inst of installments) {
+          if (status && inst.status !== status) continue;
+          
+          allInstallments.push({
+            ...inst,
+            orderCode: order.orderCode,
+            isOverdue: inst.status === 'pending' && new Date(inst.dueDate) < new Date(),
+            user: user ? {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              phone: user.phone,
+            } : null,
+          });
+        }
+      }
+      
+      // Sort by due date
+      allInstallments.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      
+      res.json(allInstallments);
+    } catch (error) {
+      console.error("Get treasury shop installments error:", error);
+      res.status(500).json({ message: "Erro ao buscar parcelas" });
+    }
+  });
+
+  // Update installment payment status (treasurer manually marks as paid)
+  app.patch("/api/treasury/shop/installments/:id", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const installment = await storage.getShopInstallmentById(id);
+      if (!installment) {
+        return res.status(404).json({ message: "Parcela nao encontrada" });
+      }
+      
+      const { status, paidAt } = req.body;
+      const updates: Partial<typeof installment> = {};
+      
+      if (status) updates.status = status;
+      if (status === 'paid' && !installment.paidAt) {
+        updates.paidAt = paidAt ? new Date(paidAt) : new Date();
+      }
+      
+      const updated = await storage.updateShopInstallment(id, updates);
+      
+      // Check if all installments are paid to update order status
+      if (status === 'paid') {
+        const order = await storage.getShopOrderById(installment.orderId);
+        if (order) {
+          const allInstallments = await storage.getShopInstallments(order.id);
+          const allPaid = allInstallments.every(inst => inst.id === id ? true : inst.status === 'paid');
+          
+          if (allPaid) {
+            await storage.updateShopOrder(order.id, { 
+              paymentStatus: 'paid',
+              paidAt: new Date(),
+            });
+          }
+        }
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update shop installment error:", error);
+      res.status(500).json({ message: "Erro ao atualizar parcela" });
+    }
+  });
+
   // ==================== EVENT CONFIRMATIONS ====================
 
   // Get confirmations for an event (admin/treasurer/marketing)

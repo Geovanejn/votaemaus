@@ -8554,10 +8554,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const processedImage = await sharp(req.file.buffer)
         .rotate() // Auto-rotate based on EXIF orientation
-        .png({ quality: 100, compressionLevel: 0 })
+        .jpeg({ quality: 95 })
         .toBuffer();
       
-      const base64Image = `data:image/png;base64,${processedImage.toString("base64")}`;
+      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
       
       const existingImages = await storage.getShopItemImages(id);
       const sortOrder = existingImages.length;
@@ -8609,13 +8609,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Imagem obrigatoria" });
       }
       
-      // Process banner image - full quality for home carousel
+      // Process banner image - high quality JPEG for home carousel
       const processedImage = await sharp(req.file.buffer)
         .rotate()
-        .png({ quality: 100, compressionLevel: 0 })
+        .jpeg({ quality: 95 })
         .toBuffer();
       
-      const base64Image = `data:image/png;base64,${processedImage.toString("base64")}`;
+      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
       
       const updatedItem = await storage.updateShopItem(id, { bannerImageData: base64Image });
       res.json(updatedItem);

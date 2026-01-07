@@ -64,10 +64,10 @@ function MarqueeSeparator() {
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
       <style>{`
         @keyframes marqueeCycle {
-          0% { transform: translateX(100%); }
-          9% { transform: translateX(0); }
-          91% { transform: translateX(0); }
-          100% { transform: translateX(-100%); }
+          0% { transform: translateX(110%); }
+          8.5% { transform: translateX(0); }
+          88.5% { transform: translateX(0); }
+          100% { transform: translateX(-110%); }
         }
       `}</style>
       <div 
@@ -80,7 +80,8 @@ function MarqueeSeparator() {
             key={animationKey}
             className="text-base font-semibold text-black uppercase tracking-wider absolute"
             style={{
-              animation: 'marqueeCycle 6100ms ease-in-out forwards'
+              transform: 'translateX(110%)',
+              animation: 'marqueeCycle 6100ms linear forwards'
             }}
           >
             {marqueeTexts[currentIndex]}

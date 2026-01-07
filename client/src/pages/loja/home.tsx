@@ -48,19 +48,14 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [phase, setPhase] = useState<'visible' | 'exiting' | 'entering'>('visible');
+  const [animationKey, setAnimationKey] = useState(0);
 
   useEffect(() => {
+    const cycleDuration = 6100;
     const interval = setInterval(() => {
-      setPhase('exiting');
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-        setPhase('entering');
-        setTimeout(() => {
-          setPhase('visible');
-        }, 550);
-      }, 550);
-    }, 5000);
+      setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+      setAnimationKey((prev) => prev + 1);
+    }, cycleDuration);
 
     return () => clearInterval(interval);
   }, []);
@@ -68,13 +63,11 @@ function MarqueeSeparator() {
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
       <style>{`
-        @keyframes slideInFromRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        @keyframes slideOutToLeft {
-          from { transform: translateX(0); }
-          to { transform: translateX(-100%); }
+        @keyframes marqueeCycle {
+          0% { transform: translateX(100%); }
+          9% { transform: translateX(0); }
+          91% { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
         }
       `}</style>
       <div 
@@ -84,14 +77,10 @@ function MarqueeSeparator() {
         <span className="text-base text-primary font-bold">•</span>
         <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
           <span
+            key={animationKey}
             className="text-base font-semibold text-black uppercase tracking-wider absolute"
             style={{
-              animation: phase === 'exiting' 
-                ? 'slideOutToLeft 550ms ease-in-out forwards' 
-                : phase === 'entering'
-                ? 'slideInFromRight 550ms ease-in-out forwards'
-                : 'none',
-              transform: phase === 'visible' ? 'translateX(0)' : undefined
+              animation: 'marqueeCycle 6100ms ease-in-out forwards'
             }}
           >
             {marqueeTexts[currentIndex]}

@@ -411,16 +411,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Process image: resize, compress, and convert to WebP for smaller size
         const processedBuffer = await sharp(req.file.buffer)
-          .resize(width, height, { fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 80 })
+          .webp({ quality: 100, lossless: true })
           .toBuffer();
 
         const compressedSizeKB = processedBuffer.length / 1024;
         
-        // Check if image is too large (max 2MB after compression)
-        if (processedBuffer.length > 2 * 1024 * 1024) {
+        // Check if image is too large (max 10MB after processing)
+        if (processedBuffer.length > 10 * 1024 * 1024) {
           return res.status(400).json({ 
-            message: `Imagem muito grande (${compressedSizeKB.toFixed(0)}KB). Máximo permitido: 2MB após compressão.` 
+            message: `Imagem muito grande (${compressedSizeKB.toFixed(0)}KB). Máximo permitido: 10MB após processamento.` 
           });
         }
 

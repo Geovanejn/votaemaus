@@ -141,7 +141,13 @@ export default function LojaCarrinhoPage() {
     return max;
   }, [cartItems]);
 
-  const installmentValue = selectedInstallments > 1 ? Math.ceil(total / selectedInstallments) : total;
+  const installmentBreakdown = useMemo(() => {
+    if (selectedInstallments <= 1) return { base: total, first: total, remainder: 0 };
+    const base = Math.floor(total / selectedInstallments);
+    const remainder = total - (base * selectedInstallments);
+    const first = base + remainder;
+    return { base, first, remainder };
+  }, [total, selectedInstallments]);
 
   const handleCheckout = () => {
     if (!cartItems || cartItems.length === 0) return;
@@ -356,7 +362,10 @@ export default function LojaCarrinhoPage() {
                 </Select>
                 {selectedInstallments > 1 && (
                   <p className="text-xs text-blue-600 mt-2">
-                    {selectedInstallments}x de {formatCurrency(installmentValue)} - Vencimento todo dia 10
+                    {installmentBreakdown.remainder > 0 
+                      ? `1x ${formatCurrency(installmentBreakdown.first)} + ${selectedInstallments - 1}x ${formatCurrency(installmentBreakdown.base)}`
+                      : `${selectedInstallments}x de ${formatCurrency(installmentBreakdown.base)}`
+                    } - Vencimento dia 10
                   </p>
                 )}
               </div>

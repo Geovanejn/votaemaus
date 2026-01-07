@@ -533,6 +533,7 @@ export interface IStorage {
   
   // Shop Order Items Methods
   getShopOrderItems(orderId: number): Promise<ShopOrderItem[]>;
+  getShopOrderItemsByOrderIds(orderIds: number[]): Promise<Map<number, ShopOrderItem[]>>;
   createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
   
   // Shop Installments Methods
@@ -6835,6 +6836,19 @@ export class DatabaseStorage implements IStorage {
     return db.select()
       .from(schema.shopOrderItems)
       .where(eq(schema.shopOrderItems.orderId, orderId));
+  }
+
+  async getShopOrderItemsByOrderIds(orderIds: number[]): Promise<Map<number, ShopOrderItem[]>> {
+    if (orderIds.length === 0) return new Map();
+    const items = await db.select()
+      .from(schema.shopOrderItems)
+      .where(inArray(schema.shopOrderItems.orderId, orderIds));
+    const map = new Map<number, ShopOrderItem[]>();
+    for (const item of items) {
+      if (!map.has(item.orderId)) map.set(item.orderId, []);
+      map.get(item.orderId)!.push(item);
+    }
+    return map;
   }
 
   async createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem> {

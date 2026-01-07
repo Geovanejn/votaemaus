@@ -8740,22 +8740,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = req.query.status as string | undefined;
       const orders = await storage.getShopOrders(status ? { status } : undefined);
       
-      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
-        const items = await storage.getShopOrderItems(order.id);
-        const user = await storage.getUserById(order.userId);
+      if (orders.length === 0) {
+        return res.json([]);
+      }
+      
+      const orderIds = orders.map(o => o.id);
+      const userIds = Array.from(new Set(orders.map(o => o.userId)));
+      
+      const [orderItemsMap, usersMap] = await Promise.all([
+        storage.getShopOrderItemsByOrderIds(orderIds),
+        storage.getUsersByIds(userIds),
+      ]);
+      
+      const allItems = Array.from(orderItemsMap.values()).flat();
+      const itemProductIds = Array.from(new Set(allItems.map(i => i.itemId)));
+      const products = await storage.getShopItemsByIds(itemProductIds);
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const ordersWithDetails = orders.map(order => {
+        const items = orderItemsMap.get(order.id) || [];
+        const user = usersMap.get(order.userId);
         
-        const itemsWithProduct = await Promise.all(items.map(async (item) => {
-          const product = await storage.getShopItemById(item.itemId);
+        const itemsWithProduct = items.map(item => {
+          const product = productsMap.get(item.itemId);
           return { 
             ...item, 
-            unitPrice: item.unitPrice, // Include unit price for logistics
+            unitPrice: item.unitPrice,
             product: product ? {
               id: product.id,
               name: product.name,
               price: product.price,
             } : null 
           };
-        }));
+        });
         
         return {
           ...order,
@@ -8767,7 +8784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : null,
           items: itemsWithProduct,
         };
-      }));
+      });
       
       res.json(ordersWithDetails);
     } catch (error) {
@@ -9489,15 +9506,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orders = await storage.getShopOrders({ userId: req.user!.id });
       
-      const ordersWithItems = await Promise.all(orders.map(async (order) => {
-        const items = await storage.getShopOrderItems(order.id);
-        const itemsWithProduct = await Promise.all(items.map(async (item) => {
-          const product = await storage.getShopItemById(item.itemId);
-          const images = product ? await storage.getShopItemImages(product.id) : [];
+      if (orders.length === 0) {
+        return res.json([]);
+      }
+      
+      const orderIds = orders.map(o => o.id);
+      const orderItemsMap = await storage.getShopOrderItemsByOrderIds(orderIds);
+      
+      const allItems = Array.from(orderItemsMap.values()).flat();
+      const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
+      
+      const [products, imagesMap] = await Promise.all([
+        storage.getShopItemsByIds(productIds),
+        storage.getShopItemImagesByItemIds(productIds),
+      ]);
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const ordersWithItems = orders.map(order => {
+        const items = orderItemsMap.get(order.id) || [];
+        const itemsWithProduct = items.map(item => {
+          const product = productsMap.get(item.itemId);
+          const images = product ? (imagesMap.get(product.id) || []) : [];
           return { ...item, product: product ? { ...product, images } : null };
-        }));
+        });
         return { ...order, items: itemsWithProduct };
-      }));
+      });
       
       res.json(ordersWithItems);
     } catch (error) {

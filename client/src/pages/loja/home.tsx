@@ -48,57 +48,52 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
+  const [isVisible, setIsVisible] = useState(true);
   const cycleDuration = 7320;
 
   useEffect(() => {
-    const runAnimation = () => {
-      if (containerRef.current && textRef.current) {
-        const container = containerRef.current;
-        const text = textRef.current;
-        const containerWidth = container.offsetWidth;
-        const textWidth = text.offsetWidth;
-        const totalDistance = containerWidth + textWidth;
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+        setIsVisible(true);
+      }, 50);
+    }, cycleDuration);
 
-        const animation = text.animate([
-          { transform: `translateX(${containerWidth}px)` },
-          { transform: 'translateX(0)', offset: 0.085 },
-          { transform: 'translateX(0)', offset: 0.885 },
-          { transform: `translateX(-${totalDistance}px)` }
-        ], {
-          duration: cycleDuration,
-          easing: 'linear',
-          fill: 'forwards'
-        });
-
-        animation.onfinish = () => {
-          setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-        };
-      }
-    };
-
-    runAnimation();
+    return () => clearTimeout(timer);
   }, [currentIndex]);
 
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
+      <style>{`
+        @keyframes marqueeSlide {
+          0% { transform: translate3d(300px, 0, 0); }
+          8% { transform: translate3d(0, 0, 0); }
+          92% { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-300px, 0, 0); }
+        }
+        .marquee-text {
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          transform: translate3d(300px, 0, 0);
+          animation: marqueeSlide 7320ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+      `}</style>
       <div 
         className="flex items-center justify-center gap-4"
         style={{ fontFamily: "'Poppins', sans-serif" }}
       >
         <span className="text-base text-primary font-bold">•</span>
-        <div 
-          ref={containerRef}
-          className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center"
-        >
-          <span
-            ref={textRef}
-            className="text-base font-semibold text-black uppercase tracking-wider absolute whitespace-nowrap"
-            style={{ transform: 'translateX(100vw)' }}
-          >
-            {marqueeTexts[currentIndex]}
-          </span>
+        <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
+          {isVisible && (
+            <span
+              key={currentIndex}
+              className="marquee-text text-base font-semibold text-black uppercase tracking-wider absolute whitespace-nowrap"
+            >
+              {marqueeTexts[currentIndex]}
+            </span>
+          )}
         </div>
         <span className="text-base text-primary font-bold">•</span>
       </div>

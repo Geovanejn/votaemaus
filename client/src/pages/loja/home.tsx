@@ -48,21 +48,22 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [phase, setPhase] = useState<'visible' | 'exiting' | 'entering'>('visible');
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsTransitioning(true);
+      setPhase('exiting');
       setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-        setIsTransitioning(false);
+        setPhase('entering');
+        setTimeout(() => {
+          setPhase('visible');
+        }, 550);
       }, 550);
     }, 5000);
 
     return () => clearInterval(interval);
   }, []);
-
-  const nextIndex = (currentIndex + 1) % marqueeTexts.length;
 
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
@@ -85,22 +86,16 @@ function MarqueeSeparator() {
           <span
             className="text-base font-semibold text-black uppercase tracking-wider absolute"
             style={{
-              animation: isTransitioning ? 'slideOutToLeft 550ms ease-in-out forwards' : 'none',
-              transform: isTransitioning ? undefined : 'translateX(0)'
+              animation: phase === 'exiting' 
+                ? 'slideOutToLeft 550ms ease-in-out forwards' 
+                : phase === 'entering'
+                ? 'slideInFromRight 550ms ease-in-out forwards'
+                : 'none',
+              transform: phase === 'visible' ? 'translateX(0)' : undefined
             }}
           >
             {marqueeTexts[currentIndex]}
           </span>
-          {isTransitioning && (
-            <span
-              className="text-base font-semibold text-black uppercase tracking-wider absolute"
-              style={{
-                animation: 'slideInFromRight 550ms ease-in-out forwards'
-              }}
-            >
-              {marqueeTexts[nextIndex]}
-            </span>
-          )}
         </div>
         <span className="text-base text-primary font-bold">•</span>
       </div>

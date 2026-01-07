@@ -48,19 +48,24 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [nextIndex, setNextIndex] = useState(1);
+  const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle');
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsAnimating(true);
+      setPhase('exit');
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-        setIsAnimating(false);
-      }, 400);
+        setNextIndex((currentIndex + 1) % marqueeTexts.length);
+        setPhase('enter');
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+          setPhase('idle');
+        }, 550);
+      }, 550);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [currentIndex]);
 
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
@@ -70,19 +75,45 @@ function MarqueeSeparator() {
       >
         <span className="text-base text-primary font-bold">•</span>
         <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
-          <span
-            className={`text-base font-semibold text-black uppercase tracking-wider transition-all duration-400 ease-in-out ${
-              isAnimating 
-                ? "transform -translate-x-full opacity-0" 
-                : "transform translate-x-0 opacity-100"
-            }`}
-            style={{ transitionDuration: "400ms" }}
-          >
-            {marqueeTexts[currentIndex]}
-          </span>
+          {phase === 'idle' && (
+            <span className="text-base font-semibold text-black uppercase tracking-wider">
+              {marqueeTexts[currentIndex]}
+            </span>
+          )}
+          {phase === 'exit' && (
+            <span 
+              className="text-base font-semibold text-black uppercase tracking-wider absolute transition-all ease-out"
+              style={{ 
+                transform: 'translateX(-100%)', 
+                opacity: 0,
+                transitionDuration: '550ms'
+              }}
+            >
+              {marqueeTexts[currentIndex]}
+            </span>
+          )}
+          {phase === 'enter' && (
+            <span 
+              className="text-base font-semibold text-black uppercase tracking-wider transition-all ease-out"
+              style={{ 
+                transform: 'translateX(0)',
+                opacity: 1,
+                transitionDuration: '550ms',
+                animation: 'slideFromRight 550ms ease-out forwards'
+              }}
+            >
+              {marqueeTexts[nextIndex]}
+            </span>
+          )}
         </div>
         <span className="text-base text-primary font-bold">•</span>
       </div>
+      <style>{`
+        @keyframes slideFromRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

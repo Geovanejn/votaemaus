@@ -54,8 +54,7 @@ export default function LojaPage() {
     enabled: isAuthenticated,
   });
 
-  const availableItems = items?.filter((item) => {
-    if (!item.isAvailable) return false;
+  const filteredItems = items?.filter((item) => {
     if (categoryId) return item.categoryId === parseInt(categoryId);
     return true;
   }) || [];
@@ -89,7 +88,7 @@ export default function LojaPage() {
               {selectedCategory ? selectedCategory.name : "Produtos"}
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Mostrando 1-{availableItems.length} de {availableItems.length} produtos
+              Mostrando 1-{filteredItems.length} de {filteredItems.length} produtos
             </p>
           </div>
         </div>
@@ -110,17 +109,17 @@ export default function LojaPage() {
               </div>
             ))}
           </div>
-        ) : availableItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="bg-gray-50 rounded-2xl p-12 text-center">
             <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponivel</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponível</h3>
             <p className="text-gray-500">
               Aguarde novos produtos na loja.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {availableItems.map((item, index) => (
+            {filteredItems.map((item, index) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -129,7 +128,7 @@ export default function LojaPage() {
               >
                 <Link href={`/loja/produto/${item.id}`}>
                 <div 
-                  className="bg-gray-50 rounded-2xl overflow-hidden cursor-pointer"
+                  className={`bg-gray-50 rounded-2xl overflow-hidden cursor-pointer relative ${!item.isAvailable ? 'opacity-75' : ''}`}
                   data-testid={`card-item-${item.id}`}
                 >
                   <div className="aspect-square bg-gray-100 relative overflow-hidden">
@@ -137,18 +136,24 @@ export default function LojaPage() {
                       <img
                         src={item.images[0].imageData}
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="h-12 w-12 text-gray-300" />
                       </div>
                     )}
-                    {item.isPreOrder && (
+                    {!item.isAvailable ? (
+                      <Badge 
+                        className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold"
+                      >
+                        ESGOTADO
+                      </Badge>
+                    ) : item.isPreOrder && (
                       <Badge 
                         className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full"
                       >
-                        Pre-venda
+                        Pré-venda
                       </Badge>
                     )}
                   </div>
@@ -157,7 +162,7 @@ export default function LojaPage() {
                       {item.name}
                     </h3>
                     <div className="mt-2">
-                      <span className="text-lg font-bold text-black">
+                      <span className={`text-lg font-bold ${!item.isAvailable ? 'text-gray-400' : 'text-black'}`}>
                         {formatCurrency(item.price)}
                       </span>
                     </div>

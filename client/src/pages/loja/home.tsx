@@ -72,7 +72,7 @@ export default function LojaHomePage() {
   });
 
   const bannerItems = featuredItems?.filter(item => item.bannerImageData || (item.images && item.images.length > 0)).slice(0, 10) || [];
-  const newArrivals = allItems?.filter(item => item.isAvailable).slice(0, 6) || [];
+  const newArrivals = allItems?.slice(0, 6) || [];
 
   const categoryBadges: { [key: string]: { label: string; bgColor: string; textColor: string } } = {
     "Acessórios": { label: "ACESSÓRIOS", bgColor: "bg-yellow-400", textColor: "text-black" },
@@ -154,7 +154,7 @@ export default function LojaHomePage() {
         <section className="px-3 py-4">
           <div className="grid grid-cols-2 gap-2">
             {categories.slice(0, 4).map((cat, index) => {
-              const categoryItems = allItems?.filter(item => item.categoryId === cat.id && item.isAvailable) || [];
+              const categoryItems = allItems?.filter(item => item.categoryId === cat.id) || [];
               const firstImage = categoryItems[0]?.images?.[0]?.imageData;
               const badge = { label: cat.name.toUpperCase(), bgColor: "bg-primary", textColor: "text-black" };
               
@@ -218,7 +218,7 @@ export default function LojaHomePage() {
             {newArrivals.map((item) => (
               <Link key={item.id} href={`/loja/produto/${item.id}`}>
                 <div 
-                  className="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-pointer"
+                  className={`bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm cursor-pointer relative ${!item.isAvailable ? 'opacity-75' : ''}`}
                   data-testid={`card-item-${item.id}`}
                 >
                   <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
@@ -226,11 +226,16 @@ export default function LojaHomePage() {
                       <img
                         src={item.images[0].imageData}
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${!item.isAvailable ? 'grayscale' : ''}`}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="h-12 w-12 text-gray-300" />
+                      </div>
+                    )}
+                    {!item.isAvailable && (
+                      <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                        ESGOTADO
                       </div>
                     )}
                   </div>
@@ -238,7 +243,7 @@ export default function LojaHomePage() {
                     <h3 className="font-normal text-sm text-black line-clamp-2 mb-1" data-testid={`text-item-name-${item.id}`}>
                       {item.name}
                     </h3>
-                    <p className="text-base font-bold text-black" data-testid={`text-item-price-${item.id}`}>
+                    <p className={`text-base font-bold ${!item.isAvailable ? 'text-gray-400' : 'text-black'}`} data-testid={`text-item-price-${item.id}`}>
                       {formatCurrency(item.price)}
                     </p>
                   </div>

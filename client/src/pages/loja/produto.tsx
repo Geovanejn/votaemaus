@@ -209,9 +209,16 @@ export default function LojaProdutoPage() {
         </h1>
 
         {/* Availability */}
-        <p className="text-sm text-gray-600">
-          Disponibilidade: <span className="text-black font-medium">{product.isAvailable ? "Imediata" : "Indisponivel"}</span>
-        </p>
+        {!product.isAvailable ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-600 font-bold text-lg" data-testid="text-unavailable">Produto Indisponível</p>
+            <p className="text-red-500 text-sm mt-1">Este produto está temporariamente esgotado.</p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">
+            Disponibilidade: <span className="text-green-600 font-medium">Imediata</span>
+          </p>
+        )}
 
         {/* Price */}
         <div className="space-y-1">
@@ -221,7 +228,7 @@ export default function LojaProdutoPage() {
         </div>
 
         {/* Size Selection */}
-        {product.hasSize && availableSizes.length > 0 && (
+        {product.hasSize && availableSizes.length > 0 && product.isAvailable && (
           <div className="space-y-2 pt-4">
             <p className="text-sm font-medium text-black">Tamanho:</p>
             <div className="flex flex-wrap gap-2">
@@ -243,7 +250,7 @@ export default function LojaProdutoPage() {
           </div>
         )}
 
-        {/* Gender Selection */}
+        {/* Gender Selection - Show for browsing even if product unavailable */}
         {product.genderType !== "unissex" && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-black">Modelo:</p>
@@ -269,47 +276,41 @@ export default function LojaProdutoPage() {
           </div>
         )}
 
-        {/* Quantity + Add to Cart */}
-        <div className="flex items-center gap-3 pt-4">
-          <div className="flex items-center border border-gray-300">
-            <button
-              className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
-              onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              disabled={quantity <= 1}
-              data-testid="button-quantity-decrease"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="w-12 text-center font-medium text-black" data-testid="text-quantity">
-              {quantity}
-            </span>
-            <button
-              className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
-              onClick={() => setQuantity(q => Math.min(10, q + 1))}
-              disabled={quantity >= 10}
-              data-testid="button-quantity-increase"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
+        {/* Quantity + Add to Cart - Only show if product is available */}
+        {product.isAvailable ? (
+          <div className="flex items-center gap-3 pt-4">
+            <div className="flex items-center border border-gray-300">
+              <button
+                className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                data-testid="button-quantity-decrease"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-12 text-center font-medium text-black" data-testid="text-quantity">
+                {quantity}
+              </span>
+              <button
+                className="p-3 text-gray-600 hover:text-black disabled:opacity-50"
+                onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                disabled={quantity >= 10}
+                data-testid="button-quantity-increase"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
 
-          <Button
-            className={`flex-1 h-12 text-base font-bold ${
-              !product.isAvailable 
-                ? "bg-gray-400 text-white cursor-not-allowed" 
-                : "bg-yellow-400 text-black hover:bg-yellow-500"
-            }`}
-            onClick={addToCart}
-            disabled={addToCartMutation.isPending || !product.isAvailable || (product.hasSize && !selectedSize)}
-            data-testid="button-add-to-cart"
-          >
-            {!product.isAvailable 
-              ? "PRODUTO ESGOTADO" 
-              : addToCartMutation.isPending 
-                ? "ADICIONANDO..." 
-                : "COMPRAR"}
-          </Button>
-        </div>
+            <Button
+              className="flex-1 h-12 text-base font-bold bg-yellow-400 text-black hover:bg-yellow-500"
+              onClick={addToCart}
+              disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize)}
+              data-testid="button-add-to-cart"
+            >
+              {addToCartMutation.isPending ? "ADICIONANDO..." : "COMPRAR"}
+            </Button>
+          </div>
+        ) : null}
 
         {/* Tabs */}
         <div className="pt-6">

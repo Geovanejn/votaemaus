@@ -10908,6 +10908,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send push notification to all members with overdue installments
+  app.post("/api/treasury/shop/notify-overdue", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const allOrders = await storage.getShopOrders();
+      const now = new Date();
+      
+      // Aggregate all overdue installments per user
+      const userOverdueMap = new Map<number, { count: number; total: number }>();
+      
+      for (const order of allOrders) {
+        if (order.paymentStatus === 'paid' || order.paymentStatus === 'cancelled') continue;
+        
+        const installments = await storage.getShopInstallments(order.id);
+        const overdueInstallments = installments.filter(inst => 
+          inst.status === 'pending' && new Date(inst.dueDate) < now
+        );
+        
+        if (overdueInstallments.length > 0) {
+          const existing = userOverdueMap.get(order.userId) || { count: 0, total: 0 };
+          existing.count += overdueInstallments.length;
+          existing.total += overdueInstallments.reduce((sum, inst) => sum + inst.amount, 0);
+          userOverdueMap.set(order.userId, existing);
+        }
+      }
+      
+      // Send notifications to each user with aggregated totals
+      let totalNotifications = 0;
+      for (const [userId, data] of userOverdueMap) {
+        const user = await storage.getUserById(userId);
+        if (user) {
+          const count = await sendPushToUser(userId, {
+            title: "Parcela(s) Vencida(s) - Loja UMP",
+            body: `Ola ${user.fullName.split(' ')[0]}, voce tem ${data.count} parcela(s) vencida(s) no valor total de R$ ${(data.total / 100).toFixed(2).replace('.', ',')}. Regularize seu pagamento.`,
+            url: "/membro/financeiro",
+          });
+          totalNotifications += count;
+        }
+      }
+      
+      res.json({ 
+        message: `Notificacoes enviadas para ${userOverdueMap.size} membro(s)`,
+        usersNotified: userOverdueMap.size,
+        notificationsSent: totalNotifications,
+      });
+    } catch (error) {
+      console.error("Notify overdue installments error:", error);
+      res.status(500).json({ message: "Erro ao enviar notificacoes" });
+    }
+  });
+
   // ==================== EVENT CONFIRMATIONS ====================
 
   // Get confirmations for an event (admin/treasurer/marketing)

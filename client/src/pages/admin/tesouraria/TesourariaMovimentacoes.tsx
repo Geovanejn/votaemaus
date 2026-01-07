@@ -21,7 +21,8 @@ import {
   User as UserIcon,
   CheckCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Bell
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -185,6 +186,22 @@ export default function TesourariaMovimentacoes() {
     },
     onError: () => {
       toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
+    },
+  });
+
+  const notifyOverdueMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/treasury/shop/notify-overdue", {});
+      return res.json() as Promise<{ usersNotified: number; notificationsSent: number }>;
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Notificacoes enviadas",
+        description: `${data.usersNotified} membro(s) notificado(s)`,
+      });
+    },
+    onError: () => {
+      toast({ title: "Erro ao enviar notificacoes", variant: "destructive" });
     },
   });
 
@@ -633,6 +650,19 @@ export default function TesourariaMovimentacoes() {
                             <SelectItem value="cancelled">Cancelado</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="outline"
+                          onClick={() => notifyOverdueMutation.mutate()}
+                          disabled={notifyOverdueMutation.isPending}
+                          data-testid="button-notify-overdue"
+                        >
+                          {notifyOverdueMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Bell className="h-4 w-4 mr-2" />
+                          )}
+                          Notificar Vencidos
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

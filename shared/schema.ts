@@ -2418,6 +2418,7 @@ export const shopInstallments = pgTable("shop_installments", {
   paymentId: text("payment_id"),
   pixCode: text("pix_code"),
   pixQrCodeBase64: text("pix_qr_code_base64"),
+  pixExpiresAt: timestamp("pix_expires_at"),
   paidAt: timestamp("paid_at"),
   entryId: integer("entry_id").references(() => treasuryEntries.id),
   createdAt: timestamp("created_at").defaultNow(),

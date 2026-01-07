@@ -10382,7 +10382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dueDate: inst.dueDate,
             status: inst.status,
             paidAt: inst.paidAt,
-            pixTransactionId: inst.pixTransactionId,
+            paymentId: inst.paymentId,
           })),
           hasInstallments: installments.length > 1,
         };
@@ -10420,12 +10420,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if there's existing valid PIX for this installment
-      if (installment.pixQrCode && installment.pixExpiresAt && 
+      if (installment.pixCode && installment.paymentId && installment.pixExpiresAt &&
           new Date(installment.pixExpiresAt) > new Date()) {
         return res.json({
           installmentId: installment.id,
-          paymentId: installment.pixTransactionId,
-          qrCode: installment.pixQrCode,
+          paymentId: installment.paymentId,
+          qrCode: installment.pixCode,
           qrCodeBase64: installment.pixQrCodeBase64,
           expiresAt: installment.pixExpiresAt,
           amount: installment.amount / 100,
@@ -10451,8 +10451,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update installment with PIX data
       await storage.updateShopInstallment(installment.id, {
-        pixTransactionId: pixResult.paymentId?.toString(),
-        pixQrCode: pixResult.qrCode,
+        paymentId: pixResult.paymentId?.toString(),
+        pixCode: pixResult.qrCode,
         pixQrCodeBase64: pixResult.qrCodeBase64,
         pixExpiresAt: pixResult.expiresAt,
       });
@@ -11575,6 +11575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const result = await getPaymentStatus(paymentId);
             
             if (result.success && result.approved) {
+              // First, check treasury entries
               const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
               
               if (entry && entry.paymentStatus !== "completed") {
@@ -11584,6 +11585,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
                 await processPaymentCompletion(entry);
                 console.log(`[Webhook] Payment ${paymentId} approved for entry ${entry.id}`);
+              }
+              
+              // Also check shop installments
+              const installment = await storage.getShopInstallmentByPixId(paymentId.toString());
+              if (installment) {
+                // Skip if already paid - prevents duplicate processing on retries
+                if (installment.status === "paid") {
+                  console.log(`[Webhook Action-based] Installment ${installment.id} already paid, skipping`);
+                } else {
+                  const order = await storage.getShopOrderById(installment.orderId);
+                  if (order) {
+                    // Reuse existing entry: first check installment link, then earlier lookup
+                    let entryId = installment.entryId;
+                    if (!entryId && entry) {
+                      // Reuse the entry found earlier by pixId lookup
+                      entryId = entry.id;
+                    }
+                    if (!entryId) {
+                      // Only create a new entry if no existing one found
+                      const newEntry = await storage.createTreasuryEntry({
+                        type: "income",
+                        category: "loja",
+                        description: `Pedido ${order.orderCode} - Parcela ${installment.installmentNumber}`,
+                        amount: installment.amount,
+                        userId: order.userId,
+                        referenceYear: new Date().getFullYear(),
+                        paymentMethod: "pix",
+                        paymentStatus: "completed",
+                        orderId: order.id,
+                        pixTransactionId: paymentId.toString(),
+                        paidAt: new Date(),
+                      });
+                      entryId = newEntry.id;
+                    }
+                    
+                    // Update installment with paid status and entry link
+                    await storage.updateShopInstallment(installment.id, {
+                      status: "paid",
+                      paidAt: new Date(),
+                      entryId: entryId,
+                    });
+                    
+                    // Check if all installments are paid (re-fetch to get fresh status)
+                    const allInstallments = await storage.getShopInstallmentsByOrderId(installment.orderId);
+                    const allPaid = allInstallments.every((inst: { status: string }) => 
+                      inst.status === "paid"
+                    );
+                    
+                    if (allPaid) {
+                      await storage.updateShopOrder(installment.orderId, {
+                        paymentStatus: "paid",
+                        orderStatus: "paid",
+                        paidAt: new Date(),
+                      });
+                    }
+                    
+                    // Send notification
+                    await storage.createNotification({
+                      userId: order.userId,
+                      type: 'payment_confirmed',
+                      title: 'Parcela Paga',
+                      body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
+                      data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
+                    });
+                    
+                    await sendPushToUser(order.userId, {
+                      title: 'Parcela Paga',
+                      body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} confirmada!`,
+                      url: '/membro/financeiro',
+                      tag: `installment-paid-${installment.id}`,
+                      icon: '/logo.png',
+                    });
+                    
+                    console.log(`[Webhook] Installment ${installment.id} paid for order ${order.id}`);
+                  }
+                }
               }
             }
           }
@@ -11621,6 +11698,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             await processPaymentCompletion(entry);
             console.log(`[Webhook] Payment ${paymentId} approved for entry ${entry.id}`);
+          }
+          
+          // Also check shop installments (same logic as action-based)
+          const installment = await storage.getShopInstallmentByPixId(paymentId.toString());
+          if (installment) {
+            // Skip if already paid - prevents duplicate processing on retries
+            if (installment.status === "paid") {
+              console.log(`[Webhook Type-based] Installment ${installment.id} already paid, skipping`);
+            } else {
+              const order = await storage.getShopOrderById(installment.orderId);
+              if (order) {
+                // Reuse existing entry: first check installment, then earlier lookup
+                let entryId = installment.entryId;
+                if (!entryId && entry) {
+                  entryId = entry.id;
+                }
+                if (!entryId) {
+                  const newEntry = await storage.createTreasuryEntry({
+                    type: "income",
+                    category: "loja",
+                    description: `Pedido ${order.orderCode} - Parcela ${installment.installmentNumber}`,
+                    amount: installment.amount,
+                    userId: order.userId,
+                    referenceYear: new Date().getFullYear(),
+                    paymentMethod: "pix",
+                    paymentStatus: "completed",
+                    orderId: order.id,
+                    pixTransactionId: paymentId.toString(),
+                    paidAt: new Date(),
+                  });
+                  entryId = newEntry.id;
+                }
+                
+                await storage.updateShopInstallment(installment.id, {
+                  status: "paid",
+                  paidAt: new Date(),
+                  entryId: entryId,
+                });
+                
+                const allInstallments = await storage.getShopInstallmentsByOrderId(installment.orderId);
+                const allPaid = allInstallments.every((inst: { status: string }) => inst.status === "paid");
+                
+                if (allPaid) {
+                  await storage.updateShopOrder(installment.orderId, {
+                    paymentStatus: "paid",
+                    orderStatus: "paid",
+                    paidAt: new Date(),
+                  });
+                }
+                
+                await storage.createNotification({
+                  userId: order.userId,
+                  type: 'payment_confirmed',
+                  title: 'Parcela Paga',
+                  body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
+                  data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
+                });
+                
+                await sendPushToUser(order.userId, {
+                  title: 'Parcela Paga',
+                  body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} confirmada!`,
+                  url: '/membro/financeiro',
+                  tag: `installment-paid-${installment.id}`,
+                  icon: '/logo.png',
+                });
+                
+                console.log(`[Webhook Type-based] Installment ${installment.id} paid for order ${order.id}`);
+              }
+            }
           }
         }
       }
@@ -12046,6 +12192,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Pedido já pago" });
       }
 
+      // Check if order has installments - if so, redirect to first installment payment
+      const installments = await storage.getShopInstallmentsByOrderId(orderId);
+      if (installments && installments.length > 1) {
+        // Find first unpaid installment
+        const firstUnpaidInstallment = installments.find((inst: { status: string }) => inst.status !== "paid");
+        if (firstUnpaidInstallment) {
+          // Check if there's existing valid PIX for this installment
+          if (firstUnpaidInstallment.pixCode && firstUnpaidInstallment.paymentId &&
+              firstUnpaidInstallment.pixExpiresAt && new Date(firstUnpaidInstallment.pixExpiresAt) > new Date()) {
+            return res.json({
+              installmentId: firstUnpaidInstallment.id,
+              paymentId: firstUnpaidInstallment.paymentId,
+              qrCode: firstUnpaidInstallment.pixCode,
+              qrCodeBase64: firstUnpaidInstallment.pixQrCodeBase64,
+              expiresAt: firstUnpaidInstallment.pixExpiresAt,
+              amount: firstUnpaidInstallment.amount / 100,
+              isInstallment: true,
+              installmentNumber: firstUnpaidInstallment.installmentNumber,
+              totalInstallments: installments.length,
+            });
+          }
+
+          // Generate new PIX for first installment
+          const user = await storage.getUserById(userId);
+          if (!user) {
+            return res.status(404).json({ message: "Usuário não encontrado" });
+          }
+
+          const pixResult = await createPixPayment({
+            amountCentavos: firstUnpaidInstallment.amount,
+            description: `Pedido ${order.orderCode} - Parcela ${firstUnpaidInstallment.installmentNumber}/${installments.length}`,
+            payerEmail: user.email,
+            payerName: user.fullName,
+            externalReference: `shop_installment_${firstUnpaidInstallment.id}`,
+          });
+
+          if (!pixResult.success) {
+            return res.status(500).json({ message: pixResult.error });
+          }
+
+          await storage.updateShopInstallment(firstUnpaidInstallment.id, {
+            paymentId: pixResult.paymentId?.toString(),
+            pixCode: pixResult.qrCode,
+            pixQrCodeBase64: pixResult.qrCodeBase64,
+            pixExpiresAt: pixResult.expiresAt,
+          });
+
+          return res.json({
+            installmentId: firstUnpaidInstallment.id,
+            paymentId: pixResult.paymentId,
+            qrCode: pixResult.qrCode,
+            qrCodeBase64: pixResult.qrCodeBase64,
+            expiresAt: pixResult.expiresAt,
+            amount: firstUnpaidInstallment.amount / 100,
+            isInstallment: true,
+            installmentNumber: firstUnpaidInstallment.installmentNumber,
+            totalInstallments: installments.length,
+          });
+        }
+      }
+
+      // Non-installment order - generate PIX for full amount
       // Check if there's an existing valid entry with PIX
       if (order.entryId) {
         const existingEntry = await storage.getTreasuryEntryById(order.entryId);
@@ -12077,7 +12285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entry = await storage.createTreasuryEntry({
           type: "income",
           category: "loja",
-          description: `Pedido #${order.orderCode}`,
+          description: `Pedido ${order.orderCode}`,
           amount: order.totalAmount,
           userId,
           referenceYear: new Date().getFullYear(),
@@ -12092,7 +12300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate PIX
       const result = await createPixPayment({
         amountCentavos: order.totalAmount,
-        description: `Pedido #${order.orderCode} - Loja UMP`,
+        description: `Pedido ${order.orderCode} - Loja UMP`,
         payerEmail: user.email,
         payerName: user.fullName,
         externalReference: `order-${orderId}`,

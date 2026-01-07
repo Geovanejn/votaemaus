@@ -538,7 +538,9 @@ export interface IStorage {
   
   // Shop Installments Methods
   getShopInstallments(orderId: number): Promise<ShopInstallment[]>;
+  getShopInstallmentsByOrderId(orderId: number): Promise<ShopInstallment[]>;
   getShopInstallmentById(id: number): Promise<ShopInstallment | null>;
+  getShopInstallmentByPixId(pixId: string): Promise<ShopInstallment | null>;
   getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]>;
   createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment>;
   updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
@@ -6891,10 +6893,22 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(schema.shopInstallments.installmentNumber));
   }
 
+  async getShopInstallmentsByOrderId(orderId: number): Promise<ShopInstallment[]> {
+    return this.getShopInstallments(orderId);
+  }
+
   async getShopInstallmentById(id: number): Promise<ShopInstallment | null> {
     const [installment] = await db.select()
       .from(schema.shopInstallments)
       .where(eq(schema.shopInstallments.id, id))
+      .limit(1);
+    return installment || null;
+  }
+
+  async getShopInstallmentByPixId(pixId: string): Promise<ShopInstallment | null> {
+    const [installment] = await db.select()
+      .from(schema.shopInstallments)
+      .where(eq(schema.shopInstallments.paymentId, pixId))
       .limit(1);
     return installment || null;
   }

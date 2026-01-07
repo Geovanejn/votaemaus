@@ -159,7 +159,7 @@ export default function LojaHomePage() {
           .marquee-track {
             display: flex;
             width: max-content;
-            animation: scroll 22s linear infinite;
+            animation: scroll 30s linear infinite;
           }
         `}</style>
         <div className="marquee-track" style={{ fontFamily: "'Poppins', sans-serif" }}>

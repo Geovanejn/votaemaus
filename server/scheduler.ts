@@ -1378,6 +1378,80 @@ async function processLoanInstallmentReminders(): Promise<void> {
   }
 }
 
+// ==================== SHOP INSTALLMENT REMINDERS ====================
+
+async function processShopInstallmentReminders(): Promise<void> {
+  console.log('[Shop Scheduler] Processing shop installment reminders...');
+  
+  try {
+    const thresholds = [
+      { days: 5, label: '5 dias' },
+      { days: 3, label: '3 dias' },
+      { days: 1, label: '1 dia' },
+      { days: 0, label: 'hoje' },
+    ];
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    let notificationsSent = 0;
+    
+    // Get installments due within 5 days
+    const pendingInstallments = await storage.getShopInstallmentsDueSoon(5);
+    
+    for (const installment of pendingInstallments) {
+      if (!installment.dueDate) continue;
+      
+      const order = await storage.getShopOrderById(installment.orderId);
+      if (!order) continue;
+      
+      const dueDate = new Date(installment.dueDate);
+      const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      const daysUntilDue = Math.round((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      for (const threshold of thresholds) {
+        if (daysUntilDue !== threshold.days) continue;
+        
+        const reminderKey = `shop-installment-${installment.id}-${threshold.days}d`;
+        
+        const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+        if (alreadySent) continue;
+        
+        const dueDateStr = dueDate.toLocaleDateString('pt-BR');
+        const amountStr = `R$ ${(installment.amount / 100).toFixed(2).replace('.', ',')}`;
+        
+        const body = threshold.days === 0
+          ? `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} (${amountStr}) vence HOJE!`
+          : `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} (${amountStr}) vence em ${threshold.label} (${dueDateStr}).`;
+        
+        await storage.createNotification({
+          userId: order.userId,
+          type: 'shop_installment_due',
+          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          body,
+          data: JSON.stringify({ installmentId: installment.id, orderId: order.id }),
+        });
+        
+        await sendPushToUser(order.userId, {
+          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          body,
+          url: '/study/meus-pedidos',
+          tag: reminderKey,
+          icon: '/logo.png',
+        });
+        
+        await storage.markSchedulerReminderSent(reminderKey, 'shop_installment', installment.id);
+        notificationsSent++;
+        console.log(`[Shop Scheduler] Sent ${threshold.label} reminder for installment ${installment.id}`);
+      }
+    }
+    
+    console.log(`[Shop Scheduler] Shop installment check completed. Sent ${notificationsSent} notification(s)`);
+  } catch (error) {
+    console.error('[Shop Scheduler] Error during shop installment check:', error);
+  }
+}
+
 // ==================== YEAR ROLLOVER SCHEDULER ====================
 
 async function processYearRollover(): Promise<void> {
@@ -1572,6 +1646,12 @@ export function initTreasurySchedulers(): void {
   });
   console.log('[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
   
+  // Shop installment reminders (daily at 08:00 - 5, 3, 1, 0 days before due date)
+  cron.schedule('0 8 * * *', processShopInstallmentReminders, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
+  
   // Event fee reminders (daily at 08:00 - checks 5, 3, 1 days before deadline)
   cron.schedule('0 8 * * *', processEventFeeReminders, {
     timezone: 'America/Sao_Paulo'
@@ -1591,4 +1671,4 @@ export function initTreasurySchedulers(): void {
   console.log('[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders };
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders };

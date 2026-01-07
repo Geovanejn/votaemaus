@@ -86,6 +86,8 @@ interface ShopItemAdmin {
   isFeatured: boolean;
   featuredOrder: number | null;
   bannerImageData: string | null;
+  allowInstallments: boolean;
+  maxInstallments: number | null;
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
@@ -116,6 +118,8 @@ const itemFormSchema = z.object({
   isPreOrder: z.boolean(),
   isFeatured: z.boolean(),
   featuredOrder: z.number().optional(),
+  allowInstallments: z.boolean(),
+  maxInstallments: z.number().min(1).max(12).optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -215,13 +219,7 @@ export default function LojaAdmin() {
 
   // Query for size charts when managing item (not when modal opens)
   const { data: sizeCharts } = useQuery<{ id: number; itemId: number; gender: string; size: string; width: number | null; length: number | null; sleeve: number | null; shoulder: number | null }[]>({
-    queryKey: ["size-charts", managingItem?.id],
-    queryFn: async () => {
-      if (!managingItem?.id) return [];
-      const res = await fetch(`/api/admin/shop/items/${managingItem.id}/size-charts`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch size charts");
-      return res.json();
-    },
+    queryKey: ["/api/admin/shop/items", managingItem?.id, "size-charts"],
     enabled: !!managingItem?.id,
   });
 
@@ -280,6 +278,8 @@ export default function LojaAdmin() {
       isPreOrder: false,
       isFeatured: false,
       featuredOrder: undefined,
+      allowInstallments: false,
+      maxInstallments: 3,
     },
   });
 
@@ -296,6 +296,8 @@ export default function LojaAdmin() {
         isPreOrder: editingItem.isPreOrder,
         isFeatured: editingItem.isFeatured,
         featuredOrder: editingItem.featuredOrder ?? undefined,
+        allowInstallments: editingItem.allowInstallments ?? false,
+        maxInstallments: editingItem.maxInstallments ?? 3,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -310,6 +312,8 @@ export default function LojaAdmin() {
         isPreOrder: false,
         isFeatured: false,
         featuredOrder: undefined,
+        allowInstallments: false,
+        maxInstallments: 3,
       });
       setPriceDisplay("");
     }
@@ -588,7 +592,7 @@ export default function LojaAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
       // Also invalidate size-charts query to refresh cached data
       if (managingItem) {
-        queryClient.invalidateQueries({ queryKey: ["size-charts", managingItem.id] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "size-charts"] });
       }
       setSizeChartModal(null);
       toast({ title: "Dimensoes salvas", description: "As dimensoes do tamanho foram salvas." });
@@ -609,9 +613,11 @@ export default function LojaAdmin() {
 
   const onSubmit = (data: ItemFormValues) => {
     const featuredOrder = data.isFeatured ? (data.featuredOrder ?? undefined) : undefined;
+    const maxInstallments = data.allowInstallments ? (data.maxInstallments ?? 3) : 1;
     const payload = {
       ...data,
       featuredOrder,
+      maxInstallments,
     };
     if (editingItem) {
       updateMutation.mutate({ ...payload, id: editingItem.id });
@@ -1633,6 +1639,57 @@ export default function LojaAdmin() {
                         </FormControl>
                         <FormDescription className="text-xs">
                           Menor numero aparece primeiro
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="allowInstallments"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-3 border-blue-500/30 bg-blue-500/5">
+                      <div>
+                        <FormLabel className="text-blue-600 dark:text-blue-400">Permitir Parcelamento PIX</FormLabel>
+                        <FormDescription className="text-xs">
+                          Cliente pode pagar em parcelas
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-allow-installments"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("allowInstallments") && (
+                  <FormField
+                    control={form.control}
+                    name="maxInstallments"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maximo de Parcelas</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="2"
+                            max="12"
+                            placeholder="3"
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? undefined : parseInt(val, 10));
+                            }}
+                            data-testid="input-max-installments"
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          De 2 a 12 parcelas (vencimento dia 10)
                         </FormDescription>
                       </FormItem>
                     )}

@@ -8459,7 +8459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar item da loja (admin)
   app.post("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments } = req.body;
       
       if (!name || price === undefined || !categoryId || !genderType) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
@@ -8474,6 +8474,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasSize: hasSize ?? true,
         isAvailable: isAvailable ?? true,
         isPreOrder: isPreOrder ?? false,
+        allowInstallments: allowInstallments ?? false,
+        maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
       });
       
       res.json(item);
@@ -8491,7 +8493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
@@ -8504,6 +8506,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isPreOrder !== undefined) updates.isPreOrder = isPreOrder;
       if (isFeatured !== undefined) updates.isFeatured = isFeatured;
       if (featuredOrder !== undefined) updates.featuredOrder = Number(featuredOrder);
+      if (bannerImageData !== undefined) updates.bannerImageData = bannerImageData;
+      if (allowInstallments !== undefined) updates.allowInstallments = allowInstallments;
+      if (maxInstallments !== undefined) updates.maxInstallments = Number(maxInstallments);
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {
@@ -8914,6 +8919,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SHOP INSTALLMENTS - ADMIN ====================
+
+  // Listar parcelas de um pedido
+  app.get("/api/admin/shop/orders/:orderId/installments", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const installments = await storage.getShopInstallments(orderId);
+      res.json(installments);
+    } catch (error) {
+      console.error("Get shop installments error:", error);
+      res.status(500).json({ message: "Erro ao buscar parcelas" });
+    }
+  });
+
+  // Listar parcelas do membro (área do membro)
+  app.get("/api/shop/meus-pedidos/:orderId/installments", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const order = await storage.getShopOrderById(orderId);
+      
+      if (!order || order.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      const installments = await storage.getShopInstallments(orderId);
+      res.json(installments);
+    } catch (error) {
+      console.error("Get member shop installments error:", error);
+      res.status(500).json({ message: "Erro ao buscar parcelas" });
+    }
+  });
+
   // ==================== PROMO CODES - ADMIN ====================
 
   // Listar códigos promocionais
@@ -9033,9 +9070,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? explicitFeatured 
         : items.filter(item => item.bannerImageData);
       
-      const featuredWithImages = await Promise.all(featured.map(async (item) => {
-        const images = await storage.getShopItemImages(item.id);
-        return { ...item, images };
+      if (featured.length === 0) {
+        return res.json([]);
+      }
+      
+      const featuredIds = featured.map(item => item.id);
+      const imagesMap = await storage.getShopItemImagesByItemIds(featuredIds);
+      
+      const featuredWithImages = featured.map(item => ({
+        ...item,
+        images: imagesMap.get(item.id) || []
       }));
       
       res.json(featuredWithImages);
@@ -9045,15 +9089,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens disponiveis (catalogo publico)
+  // Listar itens disponiveis (catalogo publico) - otimizado com batch queries
   app.get("/api/shop/items", async (req, res) => {
     try {
       const items = await storage.getShopItems(true);
+      if (items.length === 0) {
+        return res.json([]);
+      }
       
-      const itemsWithDetails = await Promise.all(items.map(async (item) => {
-        const images = await storage.getShopItemImages(item.id);
-        const sizes = await storage.getShopItemSizes(item.id);
-        return { ...item, images, sizes };
+      const itemIds = items.map(item => item.id);
+      const [imagesMap, sizesMap] = await Promise.all([
+        storage.getShopItemImagesByItemIds(itemIds),
+        storage.getShopItemSizesByItemIds(itemIds)
+      ]);
+      
+      const itemsWithDetails = items.map(item => ({
+        ...item,
+        images: imagesMap.get(item.id) || [],
+        sizes: sizesMap.get(item.id) || []
       }));
       
       res.json(itemsWithDetails);
@@ -9257,7 +9310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Finalizar pedido (checkout)
   app.post("/api/shop/checkout", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { items, observation, promoCode: promoCodeStr } = req.body;
+      const { items, observation, promoCode: promoCodeStr, installmentCount: reqInstallmentCount } = req.body;
       
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Itens obrigatórios" });
@@ -9266,6 +9319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalAmount = 0;
       let discountAmount = 0;
       let promoCodeId: number | null = null;
+      let maxAllowedInstallments = 1;
       const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string; categoryId?: number | null }[] = [];
       
       // Get cart items for the user to map cartItemId to product data
@@ -9298,6 +9352,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: requestItem.size || cartEntry.size,
           categoryId: item.categoryId,
         });
+        
+        // Track max installments allowed based on products
+        if (item.allowInstallments && item.maxInstallments && item.maxInstallments > maxAllowedInstallments) {
+          maxAllowedInstallments = item.maxInstallments;
+        }
       }
       
       // Apply promo code if provided
@@ -9329,6 +9388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const finalAmount = Math.max(0, totalAmount - discountAmount);
       
+      // Validate installment count
+      const installmentCount = Math.min(Math.max(1, reqInstallmentCount || 1), maxAllowedInstallments);
+      
       const year = new Date().getFullYear();
       const existingOrders = await storage.getShopOrders();
       const yearOrders = existingOrders.filter(o => o.orderCode.startsWith(`#${year}-`));
@@ -9342,6 +9404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         observation: observation ? (discountAmount > 0 ? `${observation} [Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : observation) : (discountAmount > 0 ? `[Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : null),
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
+        installmentCount,
       });
       
       for (const oi of orderItems) {
@@ -9360,9 +9423,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.incrementPromoCodeUsage(promoCodeId);
       }
       
+      // Create installments if order is being paid in installments
+      if (installmentCount > 1) {
+        const installmentAmount = Math.floor(finalAmount / installmentCount);
+        const remainder = finalAmount - (installmentAmount * installmentCount);
+        
+        for (let i = 1; i <= installmentCount; i++) {
+          const dueDate = new Date();
+          dueDate.setMonth(dueDate.getMonth() + i - 1);
+          dueDate.setDate(10);
+          dueDate.setHours(23, 59, 59, 999);
+          
+          const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
+          
+          await storage.createShopInstallment({
+            orderId: order.id,
+            installmentNumber: i,
+            amount,
+            dueDate,
+            status: "pending",
+          });
+        }
+      }
+      
       await storage.clearCart(req.user!.id);
       
-      res.json({ ...order, originalAmount: totalAmount, discountAmount });
+      res.json({ ...order, originalAmount: totalAmount, discountAmount, installmentCount });
     } catch (error) {
       console.error("Checkout error:", error);
       res.status(500).json({ message: "Erro ao finalizar pedido" });

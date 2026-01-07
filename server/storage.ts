@@ -75,6 +75,8 @@ import type {
   InsertShopOrder,
   ShopOrderItem,
   InsertShopOrderItem,
+  ShopInstallment,
+  InsertShopInstallment,
   TreasurySettings,
   InsertTreasurySettings,
   TreasuryEntry,
@@ -499,11 +501,13 @@ export interface IStorage {
   
   // Shop Item Images Methods
   getShopItemImages(itemId: number): Promise<ShopItemImage[]>;
+  getShopItemImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemImage[]>>;
   createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage>;
   deleteShopItemImage(id: number): Promise<void>;
   
   // Shop Item Sizes Methods
   getShopItemSizes(itemId: number): Promise<ShopItemSize[]>;
+  getShopItemSizesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemSize[]>>;
   createShopItemSize(data: InsertShopItemSize): Promise<ShopItemSize>;
   deleteShopItemSize(id: number): Promise<void>;
   deleteShopItemSizesByItem(itemId: number): Promise<void>;
@@ -525,6 +529,13 @@ export interface IStorage {
   // Shop Order Items Methods
   getShopOrderItems(orderId: number): Promise<ShopOrderItem[]>;
   createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
+  
+  // Shop Installments Methods
+  getShopInstallments(orderId: number): Promise<ShopInstallment[]>;
+  getShopInstallmentById(id: number): Promise<ShopInstallment | null>;
+  getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]>;
+  createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment>;
+  updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
   
   // Promo Codes Methods
   getPromoCodes(): Promise<PromoCode[]>;
@@ -6583,6 +6594,20 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(schema.shopItemImages.sortOrder));
   }
 
+  async getShopItemImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemImage[]>> {
+    if (itemIds.length === 0) return new Map();
+    const images = await db.select()
+      .from(schema.shopItemImages)
+      .where(inArray(schema.shopItemImages.itemId, itemIds))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+    const map = new Map<number, ShopItemImage[]>();
+    for (const img of images) {
+      if (!map.has(img.itemId)) map.set(img.itemId, []);
+      map.get(img.itemId)!.push(img);
+    }
+    return map;
+  }
+
   async createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage> {
     const [image] = await db.insert(schema.shopItemImages)
       .values(data)
@@ -6602,6 +6627,20 @@ export class DatabaseStorage implements IStorage {
       .from(schema.shopItemSizes)
       .where(eq(schema.shopItemSizes.itemId, itemId))
       .orderBy(asc(schema.shopItemSizes.sortOrder));
+  }
+
+  async getShopItemSizesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemSize[]>> {
+    if (itemIds.length === 0) return new Map();
+    const sizes = await db.select()
+      .from(schema.shopItemSizes)
+      .where(inArray(schema.shopItemSizes.itemId, itemIds))
+      .orderBy(asc(schema.shopItemSizes.sortOrder));
+    const map = new Map<number, ShopItemSize[]>();
+    for (const size of sizes) {
+      if (!map.has(size.itemId)) map.set(size.itemId, []);
+      map.get(size.itemId)!.push(size);
+    }
+    return map;
   }
 
   async createShopItemSize(data: InsertShopItemSize): Promise<ShopItemSize> {
@@ -6778,6 +6817,55 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return item;
+  }
+
+  // ==================== SHOP INSTALLMENTS METHODS ====================
+
+  async getShopInstallments(orderId: number): Promise<ShopInstallment[]> {
+    return db.select()
+      .from(schema.shopInstallments)
+      .where(eq(schema.shopInstallments.orderId, orderId))
+      .orderBy(asc(schema.shopInstallments.installmentNumber));
+  }
+
+  async getShopInstallmentById(id: number): Promise<ShopInstallment | null> {
+    const [installment] = await db.select()
+      .from(schema.shopInstallments)
+      .where(eq(schema.shopInstallments.id, id))
+      .limit(1);
+    return installment || null;
+  }
+
+  async getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]> {
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+    
+    return db.select()
+      .from(schema.shopInstallments)
+      .where(
+        and(
+          eq(schema.shopInstallments.status, "pending"),
+          gte(schema.shopInstallments.dueDate, now),
+          lte(schema.shopInstallments.dueDate, futureDate)
+        )
+      )
+      .orderBy(asc(schema.shopInstallments.dueDate));
+  }
+
+  async createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment> {
+    const [installment] = await db.insert(schema.shopInstallments)
+      .values(data)
+      .returning();
+    return installment;
+  }
+
+  async updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null> {
+    const [installment] = await db.update(schema.shopInstallments)
+      .set(data)
+      .where(eq(schema.shopInstallments.id, id))
+      .returning();
+    return installment || null;
   }
 
   // ==================== TREASURY SETTINGS METHODS ====================

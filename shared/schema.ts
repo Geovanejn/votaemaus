@@ -2278,6 +2278,8 @@ export const shopItems = pgTable("shop_items", {
   isFeatured: boolean("is_featured").notNull().default(false),
   featuredOrder: integer("featured_order").default(0),
   bannerImageData: text("banner_image_data"),
+  allowInstallments: boolean("allow_installments").notNull().default(false),
+  maxInstallments: integer("max_installments").default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2371,6 +2373,7 @@ export const shopOrders = pgTable("shop_orders", {
   paymentStatus: text("payment_status").notNull().default("pending"),
   orderStatus: text("order_status").notNull().default("awaiting_payment"),
   entryId: integer("entry_id").references(() => treasuryEntries.id),
+  installmentCount: integer("installment_count").default(1),
   createdAt: timestamp("created_at").defaultNow(),
   paidAt: timestamp("paid_at"),
 }, (table) => ({
@@ -2403,6 +2406,33 @@ export const insertShopOrderItemSchema = createInsertSchema(shopOrderItems).omit
 
 export type InsertShopOrderItem = z.infer<typeof insertShopOrderItemSchema>;
 export type ShopOrderItem = typeof shopOrderItems.$inferSelect;
+
+// Parcelas do pedido (para pagamento parcelado via PIX)
+export const shopInstallments = pgTable("shop_installments", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => shopOrders.id, { onDelete: "cascade" }),
+  installmentNumber: integer("installment_number").notNull(),
+  amount: integer("amount").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  status: text("status").notNull().default("pending"),
+  paymentId: text("payment_id"),
+  pixCode: text("pix_code"),
+  pixQrCodeBase64: text("pix_qr_code_base64"),
+  paidAt: timestamp("paid_at"),
+  entryId: integer("entry_id").references(() => treasuryEntries.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  orderIdIdx: index("shop_installments_order_id_idx").on(table.orderId),
+  dueDateIdx: index("shop_installments_due_date_idx").on(table.dueDate),
+}));
+
+export const insertShopInstallmentSchema = createInsertSchema(shopInstallments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShopInstallment = z.infer<typeof insertShopInstallmentSchema>;
+export type ShopInstallment = typeof shopInstallments.$inferSelect;
 
 // Códigos promocionais
 export const promoCodes = pgTable("promo_codes", {

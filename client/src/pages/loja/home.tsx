@@ -87,7 +87,7 @@ export default function LojaHomePage() {
 
       {/* Banner Carousel - Swipeable */}
       {loadingFeatured ? (
-        <Skeleton className="w-full aspect-[4/5] max-h-[500px] bg-gray-100" />
+        <Skeleton className="w-full aspect-[3/4] bg-gray-100" />
       ) : bannerItems.length > 0 ? (
         <section className="relative bg-gray-100">
           <div className="overflow-hidden" ref={emblaRef}>
@@ -97,7 +97,7 @@ export default function LojaHomePage() {
                 return (
                   <div 
                     key={item.id} 
-                    className="flex-[0_0_100%] min-w-0 relative aspect-[4/5] max-h-[500px]"
+                    className="flex-[0_0_100%] min-w-0 relative aspect-[3/4]"
                   >
                     <Link href={`/loja/produto/${item.id}`}>
                       {bannerImage ? (
@@ -150,45 +150,45 @@ export default function LojaHomePage() {
       )}
 
       {/* Marquee Separator */}
-      <div className="mt-4 mb-4 bg-black py-3 overflow-hidden" data-testid="marquee-separator">
+      <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
         <div className="animate-marquee whitespace-nowrap flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             UMP EMAÚS
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             ALEGRES NA ESPERANÇA
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             FORTES NA FÉ
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             DEDICADOS NO AMOR
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             UNIDOS NO TRABALHO
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             UMP EMAÚS
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             ALEGRES NA ESPERANÇA
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             FORTES NA FÉ
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             DEDICADOS NO AMOR
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-white uppercase tracking-wider">
+          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">
             UNIDOS NO TRABALHO
           </span>
           <span className="mx-4 text-base text-primary font-bold">•</span>
@@ -197,7 +197,7 @@ export default function LojaHomePage() {
 
       {/* Categories Grid 2x2 - Jesuscopy Style */}
       {categories && categories.length > 0 && (
-        <section className="px-3 py-4">
+        <section className="px-3 pt-0 pb-4">
           <div className="grid grid-cols-2 gap-2">
             {categories.slice(0, 4).map((cat, index) => {
               const categoryItems = allItems?.filter(item => item.categoryId === cat.id) || [];

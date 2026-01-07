@@ -389,6 +389,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const originalSizeKB = req.file.size / 1024;
       
       try {
+        // Para banners da loja, preservamos o arquivo original sem conversão
+        // ou qualquer processamento que possa reduzir a qualidade
+        const isBanner = req.body.type === 'banner' || req.query.type === 'banner';
+
+        if (isBanner) {
+          const base64 = req.file.buffer.toString('base64');
+          const mimeType = req.file.mimetype || 'image/jpeg';
+          const dataUrl = `data:${mimeType};base64,${base64}`;
+          
+          console.log(`[Upload] Pure banner upload: ${originalSizeKB.toFixed(1)}KB, mimeType: ${mimeType}`);
+          return res.json({ url: dataUrl, fileName: `banner_${Date.now()}` });
+        }
+
         // Get image metadata
         const metadata = await sharp(req.file.buffer).metadata();
         const originalWidth = metadata.width || 0;

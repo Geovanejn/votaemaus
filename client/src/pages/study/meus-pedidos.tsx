@@ -28,9 +28,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 interface OrderItemProduct {
   id: number;
   name: string;
-  description: string | null;
   price: number;
-  images?: { id: number; gender: string; imageData: string; sortOrder: number }[];
+  firstImage: string | null;
 }
 
 interface OrderItem {
@@ -306,11 +305,12 @@ export default function MeusPedidosPage() {
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex gap-3 items-start">
                       <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                        {item.product?.images && item.product.images.length > 0 ? (
+                        {item.product?.firstImage ? (
                           <img
-                            src={item.product.images[0].imageData}
+                            src={item.product.firstImage}
                             alt={item.product.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">

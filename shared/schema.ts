@@ -2300,7 +2300,9 @@ export const shopItemImages = pgTable("shop_item_images", {
   gender: text("gender").notNull(),
   imageData: text("image_data").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-});
+}, (table) => ({
+  itemIdIdx: index("shop_item_images_item_id_idx").on(table.itemId),
+}));
 
 export const insertShopItemImageSchema = createInsertSchema(shopItemImages).omit({
   id: true,
@@ -2398,7 +2400,10 @@ export const shopOrderItems = pgTable("shop_order_items", {
   gender: text("gender"),
   size: text("size"),
   unitPrice: integer("unit_price").notNull(),
-});
+}, (table) => ({
+  orderIdIdx: index("shop_order_items_order_id_idx").on(table.orderId),
+  itemIdIdx: index("shop_order_items_item_id_idx").on(table.itemId),
+}));
 
 export const insertShopOrderItemSchema = createInsertSchema(shopOrderItems).omit({
   id: true,

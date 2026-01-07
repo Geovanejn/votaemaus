@@ -9629,7 +9629,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const itemsWithProduct = items.map(item => {
           const product = productsMap.get(item.itemId);
           const images = product ? (imagesMap.get(product.id) || []) : [];
-          return { ...item, product: product ? { ...product, images } : null };
+          const firstImage = images[0]?.imageData || null;
+          return { 
+            ...item, 
+            product: product ? { 
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              firstImage,
+            } : null 
+          };
         });
         return { ...order, items: itemsWithProduct, installments };
       });

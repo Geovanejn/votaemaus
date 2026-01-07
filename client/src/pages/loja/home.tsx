@@ -48,62 +48,37 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
+  const cycleDuration = 7320;
 
   useEffect(() => {
-    const cycleDuration = 6100;
-    const interval = setInterval(() => {
-      setIsAnimating(true);
-    }, cycleDuration);
+    const runAnimation = () => {
+      if (containerRef.current && textRef.current) {
+        const container = containerRef.current;
+        const text = textRef.current;
+        const containerWidth = container.offsetWidth;
+        const textWidth = text.offsetWidth;
+        const totalDistance = containerWidth + textWidth;
 
-    return () => clearInterval(interval);
-  }, []);
+        const animation = text.animate([
+          { transform: `translateX(${containerWidth}px)` },
+          { transform: 'translateX(0)', offset: 0.085 },
+          { transform: 'translateX(0)', offset: 0.885 },
+          { transform: `translateX(-${totalDistance}px)` }
+        ], {
+          duration: cycleDuration,
+          easing: 'linear',
+          fill: 'forwards'
+        });
 
-  useEffect(() => {
-    if (isAnimating && containerRef.current && textRef.current) {
-      const container = containerRef.current;
-      const text = textRef.current;
-      const containerWidth = container.offsetWidth;
-      const textWidth = text.offsetWidth;
-      const totalDistance = containerWidth + textWidth;
+        animation.onfinish = () => {
+          setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+        };
+      }
+    };
 
-      text.animate([
-        { transform: `translateX(${containerWidth}px)` },
-        { transform: 'translateX(0)', offset: 0.085 },
-        { transform: 'translateX(0)', offset: 0.885 },
-        { transform: `translateX(-${totalDistance}px)` }
-      ], {
-        duration: 6100,
-        easing: 'linear',
-        fill: 'forwards'
-      }).onfinish = () => {
-        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-        setIsAnimating(false);
-      };
-    }
-  }, [isAnimating]);
-
-  useEffect(() => {
-    if (!isAnimating && containerRef.current && textRef.current) {
-      const container = containerRef.current;
-      const text = textRef.current;
-      const containerWidth = container.offsetWidth;
-      const textWidth = text.offsetWidth;
-      const totalDistance = containerWidth + textWidth;
-
-      text.animate([
-        { transform: `translateX(${containerWidth}px)` },
-        { transform: 'translateX(0)', offset: 0.085 },
-        { transform: 'translateX(0)', offset: 0.885 },
-        { transform: `translateX(-${totalDistance}px)` }
-      ], {
-        duration: 6100,
-        easing: 'linear',
-        fill: 'forwards'
-      });
-    }
+    runAnimation();
   }, [currentIndex]);
 
   return (

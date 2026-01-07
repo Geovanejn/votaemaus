@@ -149,53 +149,34 @@ export default function LojaHomePage() {
         </section>
       )}
 
-      {/* Marquee Separator */}
+      {/* Marquee Separator - Infinite scroll */}
       <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
-        <div className="animate-marquee whitespace-nowrap flex items-center" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {/* First set */}
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          {/* Second set (duplicate for seamless loop) */}
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          {/* Third set (extra for wider screens) */}
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          {/* Fourth set (extra for wider screens) */}
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
-          <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
-          <span className="mx-4 text-base text-primary font-bold">•</span>
+        <style>{`
+          @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: scroll 8s linear infinite;
+          }
+        `}</style>
+        <div className="marquee-track" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center whitespace-nowrap">
+              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UMP EMAÚS</span>
+              <span className="mx-4 text-base text-primary font-bold">•</span>
+              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">ALEGRES NA ESPERANÇA</span>
+              <span className="mx-4 text-base text-primary font-bold">•</span>
+              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">FORTES NA FÉ</span>
+              <span className="mx-4 text-base text-primary font-bold">•</span>
+              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">DEDICADOS NO AMOR</span>
+              <span className="mx-4 text-base text-primary font-bold">•</span>
+              <span className="mx-4 text-base font-semibold text-black uppercase tracking-wider">UNIDOS NO TRABALHO</span>
+              <span className="mx-4 text-base text-primary font-bold">•</span>
+            </div>
+          ))}
         </div>
       </div>
 

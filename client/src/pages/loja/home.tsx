@@ -48,58 +48,54 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [nextIndex, setNextIndex] = useState(1);
-  const [phase, setPhase] = useState<'idle' | 'exit' | 'enter'>('idle');
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setPhase('exit');
+      setIsTransitioning(true);
       setTimeout(() => {
-        setNextIndex((currentIndex + 1) % marqueeTexts.length);
-        setPhase('enter');
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-          setPhase('idle');
-        }, 550);
+        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+        setIsTransitioning(false);
       }, 550);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [currentIndex]);
+  }, []);
+
+  const nextIndex = (currentIndex + 1) % marqueeTexts.length;
 
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
+      <style>{`
+        @keyframes slideInFromRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes slideOutToLeft {
+          from { transform: translateX(0); }
+          to { transform: translateX(-100%); }
+        }
+      `}</style>
       <div 
         className="flex items-center justify-center gap-4"
         style={{ fontFamily: "'Poppins', sans-serif" }}
       >
         <span className="text-base text-primary font-bold">•</span>
         <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
-          {phase === 'idle' && (
-            <span className="text-base font-semibold text-black uppercase tracking-wider">
-              {marqueeTexts[currentIndex]}
-            </span>
-          )}
-          {phase === 'exit' && (
-            <span 
-              className="text-base font-semibold text-black uppercase tracking-wider absolute transition-all ease-out"
-              style={{ 
-                transform: 'translateX(-100%)', 
-                opacity: 0,
-                transitionDuration: '550ms'
-              }}
-            >
-              {marqueeTexts[currentIndex]}
-            </span>
-          )}
-          {phase === 'enter' && (
-            <span 
-              className="text-base font-semibold text-black uppercase tracking-wider transition-all ease-out"
-              style={{ 
-                transform: 'translateX(0)',
-                opacity: 1,
-                transitionDuration: '550ms',
-                animation: 'slideFromRight 550ms ease-out forwards'
+          <span
+            className="text-base font-semibold text-black uppercase tracking-wider absolute"
+            style={{
+              animation: isTransitioning ? 'slideOutToLeft 550ms ease-in-out forwards' : 'none',
+              transform: isTransitioning ? undefined : 'translateX(0)'
+            }}
+          >
+            {marqueeTexts[currentIndex]}
+          </span>
+          {isTransitioning && (
+            <span
+              className="text-base font-semibold text-black uppercase tracking-wider absolute"
+              style={{
+                animation: 'slideInFromRight 550ms ease-in-out forwards'
               }}
             >
               {marqueeTexts[nextIndex]}
@@ -108,12 +104,6 @@ function MarqueeSeparator() {
         </div>
         <span className="text-base text-primary font-bold">•</span>
       </div>
-      <style>{`
-        @keyframes slideFromRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

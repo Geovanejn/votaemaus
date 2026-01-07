@@ -8563,16 +8563,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers['host'] || 'localhost:5000';
       const baseUrl = `${protocol}://${host}`;
       
-      // Get all active members for notifications
+      // Get all members for notifications (push for everyone, email for those with addresses)
       const allMembers = await storage.getAllMembers();
-      const activeMembers = allMembers.filter(m => m.activeMember);
-      const membersWithEmail = activeMembers.filter(m => m.email);
+      const membersWithEmail = allMembers.filter(m => m.email);
       
       let pushSent = 0;
       let emailsQueued = 0;
       
-      // Send push and in-app notifications to ALL active members (regardless of email)
-      for (const member of activeMembers) {
+      // Send push and in-app notifications to ALL members (regardless of active status or email)
+      for (const member of allMembers) {
         try {
           // Create in-app notification
           await storage.createNotification({

@@ -10331,6 +10331,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get member's shop orders with installments for financial panel
+  app.get("/api/treasury/member/shop-orders", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const orders = await storage.getShopOrders({ userId });
+      
+      if (orders.length === 0) {
+        return res.json([]);
+      }
+      
+      const orderIds = orders.map(o => o.id);
+      const [orderItemsMap, installmentsResults] = await Promise.all([
+        storage.getShopOrderItemsByOrderIds(orderIds),
+        Promise.all(orderIds.map(id => storage.getShopInstallments(id))),
+      ]);
+      
+      const installmentsMap = new Map<number, typeof installmentsResults[0]>();
+      orderIds.forEach((id, idx) => installmentsMap.set(id, installmentsResults[idx]));
+      
+      const allItems = Array.from(orderItemsMap.values()).flat();
+      const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
+      const products = productIds.length > 0 ? await storage.getShopItemsByIds(productIds) : [];
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const ordersWithDetails = orders.map(order => {
+        const items = orderItemsMap.get(order.id) || [];
+        const installments = installmentsMap.get(order.id) || [];
+        
+        const itemsWithProduct = items.map(item => {
+          const product = productsMap.get(item.itemId);
+          return { 
+            ...item, 
+            productName: product?.name || "Produto",
+          };
+        });
+        
+        return {
+          id: order.id,
+          orderCode: order.orderCode,
+          totalAmount: order.totalAmount || 0,
+          paymentStatus: order.paymentStatus,
+          orderStatus: order.orderStatus,
+          createdAt: order.createdAt,
+          items: itemsWithProduct,
+          installments: installments.map(inst => ({
+            id: inst.id,
+            installmentNumber: inst.installmentNumber,
+            amount: inst.amount,
+            dueDate: inst.dueDate,
+            status: inst.status,
+            paidAt: inst.paidAt,
+            pixTransactionId: inst.pixTransactionId,
+          })),
+          hasInstallments: installments.length > 1,
+        };
+      });
+      
+      res.json(ordersWithDetails);
+    } catch (error) {
+      console.error("Get member shop orders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos da loja" });
+    }
+  });
+
+  // Generate PIX for specific shop installment (with reuse)
+  app.post("/api/pix/shop-installment/:installmentId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const installmentId = parseInt(req.params.installmentId);
+      const userId = req.user!.id;
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      const installment = await storage.getShopInstallmentById(installmentId);
+      if (!installment) {
+        return res.status(404).json({ message: "Parcela não encontrada" });
+      }
+
+      const order = await storage.getShopOrderById(installment.orderId);
+      if (!order || order.userId !== userId) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (installment.status === "paid") {
+        return res.status(400).json({ message: "Parcela já paga" });
+      }
+
+      // Check if there's existing valid PIX for this installment
+      if (installment.pixQrCode && installment.pixExpiresAt && 
+          new Date(installment.pixExpiresAt) > new Date()) {
+        return res.json({
+          installmentId: installment.id,
+          paymentId: installment.pixTransactionId,
+          qrCode: installment.pixQrCode,
+          qrCodeBase64: installment.pixQrCodeBase64,
+          expiresAt: installment.pixExpiresAt,
+          amount: installment.amount / 100,
+        });
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const pixResult = await createPixPayment({
+        amountCentavos: installment.amount,
+        description: `Pedido #${order.orderCode} - Parcela ${installment.installmentNumber}`,
+        payerEmail: user.email,
+        payerName: user.fullName,
+        externalReference: `shop_installment_${installment.id}`,
+      });
+
+      if (!pixResult.success) {
+        return res.status(500).json({ message: pixResult.error || "Erro ao gerar PIX" });
+      }
+
+      // Update installment with PIX data
+      await storage.updateShopInstallment(installment.id, {
+        pixTransactionId: pixResult.paymentId?.toString(),
+        pixQrCode: pixResult.qrCode,
+        pixQrCodeBase64: pixResult.qrCodeBase64,
+        pixExpiresAt: pixResult.expiresAt,
+      });
+
+      res.json({
+        installmentId: installment.id,
+        paymentId: pixResult.paymentId,
+        qrCode: pixResult.qrCode,
+        qrCodeBase64: pixResult.qrCodeBase64,
+        expiresAt: pixResult.expiresAt,
+        amount: installment.amount / 100,
+      });
+    } catch (error) {
+      console.error("Generate PIX for installment error:", error);
+      res.status(500).json({ message: "Erro ao gerar PIX da parcela" });
+    }
+  });
+
   // Send manual treasury notification
   app.post("/api/treasury/notifications/send", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -11699,6 +11839,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user.activeMember) {
         return res.status(403).json({ 
           message: "Apenas membros ativos podem pagar taxas Percapta e UMP. Entre em contato com a liderança." 
+        });
+      }
+
+      // PIX REUSE: Check for existing pending entry with valid PIX before creating new one
+      let targetCategory = type === "percapta" ? "taxa_percapta" : "taxa_ump";
+      const pendingEntries = await storage.getTreasuryEntriesByUserAndCategory(userId, targetCategory, year);
+      const validPendingEntry = pendingEntries.find(e => 
+        e.paymentStatus === "pending" && 
+        e.pixQrCode && 
+        e.pixExpiresAt && 
+        new Date(e.pixExpiresAt) > new Date()
+      );
+      
+      if (validPendingEntry) {
+        // Return existing valid PIX instead of creating duplicate
+        return res.json({
+          entryId: validPendingEntry.id,
+          paymentId: validPendingEntry.pixTransactionId,
+          qrCode: validPendingEntry.pixQrCode,
+          qrCodeBase64: validPendingEntry.pixQrCodeBase64,
+          expiresAt: validPendingEntry.pixExpiresAt,
+          amount: validPendingEntry.amount / 100,
         });
       }
 

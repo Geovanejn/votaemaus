@@ -6983,6 +6983,20 @@ export class DatabaseStorage implements IStorage {
     return entry || null;
   }
 
+  async getTreasuryEntriesByUserAndCategory(userId: number, category: string, year?: number): Promise<TreasuryEntry[]> {
+    const conditions = [
+      eq(schema.treasuryEntries.userId, userId),
+      eq(schema.treasuryEntries.category, category as any),
+    ];
+    if (year) {
+      conditions.push(eq(schema.treasuryEntries.referenceYear, year));
+    }
+    return db.select()
+      .from(schema.treasuryEntries)
+      .where(and(...conditions))
+      .orderBy(desc(schema.treasuryEntries.createdAt));
+  }
+
   async createTreasuryEntry(data: InsertTreasuryEntry): Promise<TreasuryEntry> {
     const [entry] = await db.insert(schema.treasuryEntries)
       .values(data)

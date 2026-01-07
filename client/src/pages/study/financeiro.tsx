@@ -78,6 +78,28 @@ interface MemberEvent {
   isPaid: boolean;
 }
 
+interface ShopInstallment {
+  id: number;
+  installmentNumber: number;
+  amount: number;
+  dueDate: string;
+  status: string;
+  paidAt: string | null;
+  pixTransactionId: string | null;
+}
+
+interface MemberShopOrder {
+  id: number;
+  orderCode: string;
+  totalAmount: number;
+  paymentStatus: string;
+  orderStatus: string;
+  createdAt: string;
+  items: { productName: string; quantity: number }[];
+  installments: ShopInstallment[];
+  hasInstallments: boolean;
+}
+
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",
@@ -124,6 +146,15 @@ export default function FinanceiroPage() {
     queryKey: ["treasury-member-events", currentYear],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/treasury/member/events?year=${currentYear}`);
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const { data: shopOrders, isLoading: isLoadingShopOrders, refetch: refetchShopOrders } = useQuery<MemberShopOrder[]>({
+    queryKey: ["treasury-member-shop-orders"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/treasury/member/shop-orders");
       return res.json();
     },
     enabled: isAuthenticated,
@@ -241,8 +272,55 @@ export default function FinanceiroPage() {
   const handlePaymentComplete = () => {
     refetch();
     refetchEvents();
+    refetchShopOrders();
     setPixModalOpen(false);
     setPixPaymentData(null);
+  };
+
+  // Mutation for shop installment PIX payment
+  const [payingInstallmentId, setPayingInstallmentId] = useState<number | null>(null);
+  const [installmentPixData, setInstallmentPixData] = useState<{
+    qrCode: string;
+    qrCodeBase64: string;
+    amount: number;
+    expiresAt: string;
+  } | null>(null);
+
+  const createInstallmentPaymentMutation = useMutation({
+    mutationFn: async (installmentId: number) => {
+      setPayingInstallmentId(installmentId);
+      const res = await apiRequest("POST", `/api/pix/shop-installment/${installmentId}`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setInstallmentPixData({
+        qrCode: data.qrCode,
+        qrCodeBase64: data.qrCodeBase64,
+        amount: data.amount,
+        expiresAt: data.expiresAt,
+      });
+      setPayingInstallmentId(null);
+    },
+    onError: (error: Error) => {
+      setPayingInstallmentId(null);
+      toast({
+        title: "Erro ao gerar PIX",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePayInstallment = (installmentId: number) => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createInstallmentPaymentMutation.mutate(installmentId);
   };
 
   // Mutation to manually verify PIX payment status
@@ -736,6 +814,143 @@ export default function FinanceiroPage() {
                   </CardContent>
                 </Card>
               </motion.div>
+
+              {/* Shop Orders Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Pedidos da Loja
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Acompanhe seus pedidos e parcelas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingShopOrders ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                      </div>
+                    ) : !shopOrders || shopOrders.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Nenhum pedido realizado</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {shopOrders.map((order) => (
+                          <div 
+                            key={order.id}
+                            className="border rounded-md p-3"
+                            data-testid={`shop-order-${order.id}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-sm">Pedido #{order.orderCode}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(order.createdAt)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
+                                <Badge 
+                                  variant={order.paymentStatus === "paid" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {order.paymentStatus === "paid" ? "Pago" : 
+                                   order.paymentStatus === "partial" ? "Parcial" : "Pendente"}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            {/* Items summary */}
+                            <div className="text-xs text-muted-foreground mb-2">
+                              {order.items.map((item, idx) => (
+                                <span key={idx}>
+                                  {item.quantity}x {item.productName}
+                                  {idx < order.items.length - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Installments */}
+                            {order.hasInstallments && order.installments.length > 0 ? (
+                              <div className="space-y-2 mt-3 pt-2 border-t">
+                                <p className="text-xs font-medium text-muted-foreground">Parcelas:</p>
+                                {order.installments.map((inst) => (
+                                  <div 
+                                    key={inst.id}
+                                    className="flex items-center justify-between py-1 text-sm"
+                                    data-testid={`installment-${inst.id}`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs">
+                                        {inst.installmentNumber}ª parcela
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Venc: {formatDate(inst.dueDate)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium">
+                                        {formatCurrency(inst.amount)}
+                                      </span>
+                                      {inst.status === "paid" ? (
+                                        <Badge variant="default" className="text-xs">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Pago
+                                        </Badge>
+                                      ) : (
+                                        <>
+                                          <Badge variant="secondary" className="text-xs">
+                                            <Clock className="h-3 w-3 mr-1" />
+                                            Pendente
+                                          </Badge>
+                                          {pixStatus?.configured && (
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handlePayInstallment(inst.id)}
+                                              disabled={payingInstallmentId === inst.id}
+                                              className="gap-1"
+                                              data-testid={`button-pay-installment-${inst.id}`}
+                                            >
+                                              {payingInstallmentId === inst.id ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                              ) : (
+                                                <QrCode className="h-3 w-3" />
+                                              )}
+                                              PIX
+                                            </Button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : order.paymentStatus !== "paid" && pixStatus?.configured && (
+                              <div className="mt-2 pt-2 border-t">
+                                <Link href={`/loja/pedidos`}>
+                                  <Button size="sm" className="gap-1 w-full">
+                                    <QrCode className="h-3 w-3" />
+                                    Ver Pedido para Pagar
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </>
           ) : (
             <Card>
@@ -749,6 +964,55 @@ export default function FinanceiroPage() {
           )}
         </div>
       </section>
+
+      {/* PIX Modal for installments - inline since we have qrCode directly */}
+      {installmentPixData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setInstallmentPixData(null)}>
+          <div className="bg-background rounded-lg p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-center mb-4">Pagar Parcela via PIX</h3>
+            <div className="text-center mb-4">
+              <p className="text-2xl font-bold">{formatCurrency(installmentPixData.amount * 100)}</p>
+            </div>
+            {installmentPixData.qrCodeBase64 && (
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={`data:image/png;base64,${installmentPixData.qrCodeBase64}`} 
+                  alt="QR Code PIX" 
+                  className="w-48 h-48"
+                />
+              </div>
+            )}
+            {installmentPixData.qrCode && (
+              <div className="mb-4">
+                <p className="text-xs text-muted-foreground text-center mb-2">Ou copie o codigo:</p>
+                <div className="bg-muted p-2 rounded text-xs break-all max-h-20 overflow-y-auto">
+                  {installmentPixData.qrCode}
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full mt-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(installmentPixData.qrCode);
+                    toast({ title: "Codigo copiado!", description: "Cole no app do seu banco." });
+                  }}
+                >
+                  Copiar Codigo PIX
+                </Button>
+              </div>
+            )}
+            <Button 
+              className="w-full" 
+              onClick={() => {
+                setInstallmentPixData(null);
+                refetchShopOrders();
+              }}
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {pixPaymentData && (
         <PixPaymentModal

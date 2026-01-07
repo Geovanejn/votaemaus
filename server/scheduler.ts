@@ -53,6 +53,45 @@ function getTodayDateString(): string {
   return `${month}-${day}`;
 }
 
+// Calculate the 5th business day of a given month (excludes weekends)
+function getFifthBusinessDay(year: number, month: number): number {
+  let businessDays = 0;
+  let day = 1;
+  
+  while (businessDays < 5) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    // 0 = Sunday, 6 = Saturday - skip weekends
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      businessDays++;
+    }
+    if (businessDays < 5) {
+      day++;
+    }
+  }
+  
+  return day;
+}
+
+// Check if today is the 5th business day of the month
+function isFifthBusinessDayToday(): boolean {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '2026');
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '1');
+  const today = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+  
+  const fifthBusinessDay = getFifthBusinessDay(year, month);
+  return today === fifthBusinessDay;
+}
+
 async function sendBirthdayEmails(): Promise<void> {
   console.log('[Birthday Scheduler] Running daily birthday check...');
   
@@ -1627,12 +1666,46 @@ async function processEventFeeReminders(): Promise<void> {
   }
 }
 
+// Check if today is calendar day 5
+function isCalendarDay5Today(): boolean {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    day: 'numeric'
+  });
+  const today = parseInt(formatter.format(now));
+  return today === 5;
+}
+
+// Wrapper to run reminder on 5th business day only if it's NOT also calendar day 5 (to avoid duplicates)
+async function processFifthBusinessDayReminder(): Promise<void> {
+  const is5thBusinessDay = isFifthBusinessDayToday();
+  const isDay5 = isCalendarDay5Today();
+  
+  // Skip if today is ALSO calendar day 5 (since the other cron will handle it)
+  if (is5thBusinessDay && isDay5) {
+    console.log('[Treasury Scheduler] 5th business day coincides with calendar day 5 - skipping to avoid duplicate');
+    return;
+  }
+  
+  if (is5thBusinessDay) {
+    console.log('[Treasury Scheduler] Today is the 5th business day - running tax reminder...');
+    await processTreasuryDay5Reminder();
+  }
+}
+
 export function initTreasurySchedulers(): void {
-  // Day 5 reminder for pending taxes (per spec: 08:00)
+  // Day 5 (calendar) reminder for pending taxes (per spec: 08:00)
   cron.schedule('0 8 5 * *', processTreasuryDay5Reminder, {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)');
+  
+  // 5th business day reminder (runs on weekdays, skips if coincides with day 5 to avoid duplicates)
+  cron.schedule('0 8 * * 1-5', processFifthBusinessDayReminder, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)');
   
   // Abandoned cart reminder (every hour to catch 2h/12h/24h/48h intervals)
   cron.schedule('0 * * * *', processAbandonedCartReminder, {

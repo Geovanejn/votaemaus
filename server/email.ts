@@ -1387,3 +1387,126 @@ export async function sendSeasonRankingEmail(
     return false;
   }
 }
+
+// Shop logo buffer (same as main logo for now)
+let shopLogoBuffer: Buffer | null = logoBuffer;
+
+export async function sendNewProductEmail(
+  recipientEmail: string,
+  recipientName: string,
+  productName: string,
+  productSlug: string,
+  productImageBase64: string | null,
+  productPrice: number,
+  productDescription: string | null,
+  baseUrl: string
+): Promise<boolean> {
+  if (!resend) {
+    console.log(`[EMAIL DISABLED] New product notification for ${recipientEmail}: ${productName}`);
+    return false;
+  }
+
+  try {
+    const formattedName = getFirstAndLastName(recipientName);
+    const formattedPrice = productPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const productUrl = `${baseUrl}/loja/produto/${productSlug}`;
+    const shortDescription = productDescription ? productDescription.substring(0, 150) + (productDescription.length > 150 ? '...' : '') : '';
+
+    const emailPayload: any = {
+      from: "Loja UMP Emaús <suporte@emausvota.com.br>",
+      to: recipientEmail,
+      subject: `Novidade na Loja! ${productName}`,
+      html: `
+        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header with Shop Logo -->
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            ${shopLogoBuffer ? `<img src="cid:shop-logo" style="max-width: 60px; height: auto; margin-bottom: 10px;" />` : ''}
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">Loja UMP Emaus</h1>
+            <p style="color: #ffffff; opacity: 0.9; margin: 5px 0 0 0; font-size: 14px;">Novidade disponivel!</p>
+          </div>
+
+          <!-- Product Image -->
+          ${productImageBase64 ? `
+          <div style="text-align: center; padding: 0;">
+            <img src="cid:product-image" style="width: 100%; max-height: 300px; object-fit: cover;" alt="${productName}" />
+          </div>
+          ` : ''}
+
+          <!-- Main Content -->
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333; margin-bottom: 15px;">
+              Ola, <strong>${formattedName}</strong>!
+            </p>
+            
+            <p style="font-size: 15px; color: #555; line-height: 1.6;">
+              Temos uma novidade na nossa loja que voce vai adorar!
+            </p>
+
+            <!-- Product Card -->
+            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #e9ecef;">
+              <h2 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${productName}</h2>
+              ${shortDescription ? `<p style="font-size: 14px; color: #666; line-height: 1.5; margin: 0 0 15px 0;">${shortDescription}</p>` : ''}
+              <p style="margin: 0; font-size: 24px; font-weight: bold; color: #FFA500;">${formattedPrice}</p>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${productUrl}" style="display: inline-block; background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); color: #ffffff; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);">
+                CONFIRA
+              </a>
+            </div>
+
+            <p style="font-size: 14px; color: #888; text-align: center; margin-top: 20px;">
+              Aproveite antes que acabe!
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
+            ${shopLogoBuffer ? `<img src="cid:footer-logo" style="max-width: 50px; height: auto; margin-bottom: 10px;" />` : ''}
+            <p style="color: #888; font-size: 12px; margin: 0;">Loja UMP Emaus</p>
+            <p style="color: #aaa; font-size: 11px; margin: 5px 0 0 0;">
+              <a href="${baseUrl}/loja" style="color: #FFA500; text-decoration: none;">Visite nossa loja</a>
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    // Build attachments array
+    const attachments: any[] = [];
+
+    if (shopLogoBuffer) {
+      attachments.push({
+        content: shopLogoBuffer.toString('base64'),
+        filename: 'shop-logo.png',
+        contentId: 'shop-logo',
+      });
+      attachments.push({
+        content: shopLogoBuffer.toString('base64'),
+        filename: 'footer-logo.png',
+        contentId: 'footer-logo',
+      });
+    }
+
+    if (productImageBase64) {
+      // Remove data URL prefix if present
+      const cleanBase64 = productImageBase64.replace(/^data:image\/\w+;base64,/, '');
+      attachments.push({
+        content: cleanBase64,
+        filename: 'product-image.jpg',
+        contentId: 'product-image',
+      });
+    }
+
+    if (attachments.length > 0) {
+      emailPayload.attachments = attachments;
+    }
+
+    await resend.emails.send(emailPayload);
+    return true;
+  } catch (error) {
+    console.error("Error sending new product email:", error);
+    return false;
+  }
+}

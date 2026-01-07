@@ -55,7 +55,7 @@ function isZodError(error: unknown): error is ZodError {
   return error instanceof ZodError || (error as any)?.name === 'ZodError';
 }
 import type { AuthResponse } from "@shared/schema";
-import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail, sendNewProductEmail } from "./email";
 import { 
   generateStudyContentFromText,
   generateEventContentFromText, 
@@ -8528,6 +8528,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update shop item error:", error);
       res.status(500).json({ message: "Erro ao atualizar item" });
+    }
+  });
+
+  // Publicar item da loja e enviar notificações (admin)
+  app.post("/api/admin/shop/items/:id/publish", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const item = await storage.getShopItemById(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      
+      // Mark as available if not already
+      if (!item.isAvailable) {
+        await storage.updateShopItem(id, { isAvailable: true });
+      }
+      
+      // Get product image (prefer banner, then first gallery image)
+      let productImageBase64: string | null = item.bannerImageData;
+      if (!productImageBase64) {
+        const images = await storage.getShopItemImages(id);
+        if (images.length > 0) {
+          productImageBase64 = images[0].imageData;
+        }
+      }
+      
+      // Get base URL from request
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['host'] || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      // Get all active members for notifications
+      const allMembers = await storage.getAllMembers();
+      const activeMembers = allMembers.filter(m => m.activeMember);
+      const membersWithEmail = activeMembers.filter(m => m.email);
+      
+      let pushSent = 0;
+      let emailsQueued = 0;
+      
+      // Send push and in-app notifications to ALL active members (regardless of email)
+      for (const member of activeMembers) {
+        try {
+          // Create in-app notification
+          await storage.createNotification({
+            userId: member.id,
+            type: 'shop_new_product',
+            title: 'Novidade na Loja!',
+            body: `${item.name} agora disponível na loja!`,
+            data: JSON.stringify({ itemId: item.id, slug: item.slug }),
+          });
+          
+          // Send push notification
+          await sendPushToUser(member.id, {
+            title: 'Novidade na Loja!',
+            body: `${item.name} - Confira agora!`,
+            url: `/loja/produto/${item.slug}`,
+            tag: `shop-product-${item.id}`,
+            icon: '/logo.png',
+          });
+          pushSent++;
+        } catch (pushError) {
+          console.error(`[Shop] Push error for user ${member.id}:`, pushError);
+        }
+      }
+      
+      // Send emails only to members with email addresses (async, don't block)
+      for (const member of membersWithEmail) {
+        sendNewProductEmail(
+          member.email!,
+          member.fullName || 'Membro',
+          item.name,
+          item.slug || `${item.id}`,
+          productImageBase64,
+          item.price,
+          item.description,
+          baseUrl
+        ).catch(err => {
+          console.error(`[Shop] Email error for ${member.email}:`, err);
+        });
+        emailsQueued++;
+      }
+      
+      console.log(`[Shop] Product ${item.name} published. Push: ${pushSent}, Emails queued: ${emailsQueued}`);
+      
+      res.json({ 
+        success: true, 
+        message: `Produto publicado! ${pushSent} notificações enviadas.`,
+        pushSent,
+        emailsQueued: activeMembers.filter(m => m.email).length
+      });
+    } catch (error) {
+      console.error("Publish shop item error:", error);
+      res.status(500).json({ message: "Erro ao publicar item" });
     }
   });
 

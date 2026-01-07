@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag, Check, X, Loader2 } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag, Check, X, Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -29,7 +30,11 @@ function formatCurrency(value: number) {
 }
 
 interface CartItemWithDetails extends ShopCartItem {
-  item: ShopItem & { images?: Array<{ id: number; imageData: string; gender: string }> };
+  item: ShopItem & { 
+    images?: Array<{ id: number; imageData: string; gender: string }>;
+    allowInstallments?: boolean;
+    maxInstallments?: number | null;
+  };
 }
 
 export default function LojaCarrinhoPage() {
@@ -39,6 +44,7 @@ export default function LojaCarrinhoPage() {
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<PromoValidation | null>(null);
   const [observation, setObservation] = useState("");
+  const [selectedInstallments, setSelectedInstallments] = useState<number>(1);
 
   const { data: cartItems, isLoading } = useQuery<CartItemWithDetails[]>({
     queryKey: ["/api/shop/cart"],
@@ -95,7 +101,7 @@ export default function LojaCarrinhoPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (data: { items: Array<{ cartItemId: number; gender: string; size?: string }>; observation?: string; promoCode?: string }) => {
+    mutationFn: async (data: { items: Array<{ cartItemId: number; gender: string; size?: string }>; observation?: string; promoCode?: string; installmentCount?: number }) => {
       const res = await apiRequest("POST", "/api/shop/checkout", data);
       return res.json();
     },
@@ -122,6 +128,21 @@ export default function LojaCarrinhoPage() {
   const total = Math.max(0, subtotal - discount);
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
+  const maxAllowedInstallments = useMemo(() => {
+    if (!cartItems || cartItems.length === 0) return 1;
+    let max = 1;
+    for (const cartItem of cartItems) {
+      if (cartItem.item.allowInstallments && cartItem.item.maxInstallments) {
+        if (cartItem.item.maxInstallments > max) {
+          max = cartItem.item.maxInstallments;
+        }
+      }
+    }
+    return max;
+  }, [cartItems]);
+
+  const installmentValue = selectedInstallments > 1 ? Math.ceil(total / selectedInstallments) : total;
+
   const handleCheckout = () => {
     if (!cartItems || cartItems.length === 0) return;
     
@@ -135,6 +156,7 @@ export default function LojaCarrinhoPage() {
       items, 
       observation: observation || undefined,
       promoCode: appliedPromo?.valid ? promoCode : undefined,
+      installmentCount: selectedInstallments > 1 ? selectedInstallments : undefined,
     });
   };
 
@@ -306,6 +328,39 @@ export default function LojaCarrinhoPage() {
                 <span className="font-bold text-lg text-black" data-testid="text-total">{formatCurrency(total)}</span>
               </div>
             </div>
+
+            {/* Installment Selection */}
+            {maxAllowedInstallments > 1 && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Parcelamento PIX</span>
+                </div>
+                <Select
+                  value={selectedInstallments.toString()}
+                  onValueChange={(val) => setSelectedInstallments(parseInt(val, 10))}
+                >
+                  <SelectTrigger className="w-full bg-white" data-testid="select-installments">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">
+                      A vista - {formatCurrency(total)}
+                    </SelectItem>
+                    {Array.from({ length: maxAllowedInstallments - 1 }, (_, i) => i + 2).map((n) => (
+                      <SelectItem key={n} value={n.toString()}>
+                        {n}x de {formatCurrency(Math.ceil(total / n))} (venc. dia 10)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedInstallments > 1 && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    {selectedInstallments}x de {formatCurrency(installmentValue)} - Vencimento todo dia 10
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Promo Code */}
             {appliedPromo?.valid ? (

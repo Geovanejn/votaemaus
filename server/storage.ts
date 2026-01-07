@@ -495,6 +495,7 @@ export interface IStorage {
   // Shop Items Methods
   getShopItems(onlyAvailable?: boolean): Promise<ShopItem[]>;
   getShopItemById(id: number): Promise<ShopItem | null>;
+  getShopItemsByIds(ids: number[]): Promise<ShopItem[]>;
   createShopItem(data: InsertShopItem): Promise<ShopItem>;
   updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
   deleteShopItem(id: number): Promise<void>;
@@ -511,6 +512,10 @@ export interface IStorage {
   createShopItemSize(data: InsertShopItemSize): Promise<ShopItemSize>;
   deleteShopItemSize(id: number): Promise<void>;
   deleteShopItemSizesByItem(itemId: number): Promise<void>;
+  
+  // Shop Item Size Charts Methods
+  getShopItemSizeCharts(itemId: number): Promise<ShopItemSizeChart[]>;
+  getShopItemSizeChartsByItemIds(itemIds: number[]): Promise<Map<number, ShopItemSizeChart[]>>;
   
   // Shop Cart Methods
   getCartItems(userId: number): Promise<ShopCartItem[]>;
@@ -6565,6 +6570,13 @@ export class DatabaseStorage implements IStorage {
     return item || null;
   }
 
+  async getShopItemsByIds(ids: number[]): Promise<ShopItem[]> {
+    if (ids.length === 0) return [];
+    return db.select()
+      .from(schema.shopItems)
+      .where(inArray(schema.shopItems.id, ids));
+  }
+
   async createShopItem(data: InsertShopItem): Promise<ShopItem> {
     const [item] = await db.insert(schema.shopItems)
       .values(data)
@@ -6666,6 +6678,19 @@ export class DatabaseStorage implements IStorage {
     return db.select()
       .from(schema.shopItemSizeCharts)
       .where(eq(schema.shopItemSizeCharts.itemId, itemId));
+  }
+
+  async getShopItemSizeChartsByItemIds(itemIds: number[]): Promise<Map<number, ShopItemSizeChart[]>> {
+    if (itemIds.length === 0) return new Map();
+    const charts = await db.select()
+      .from(schema.shopItemSizeCharts)
+      .where(inArray(schema.shopItemSizeCharts.itemId, itemIds));
+    const map = new Map<number, ShopItemSizeChart[]>();
+    for (const chart of charts) {
+      if (!map.has(chart.itemId)) map.set(chart.itemId, []);
+      map.get(chart.itemId)!.push(chart);
+    }
+    return map;
   }
 
   async upsertShopItemSizeChart(

@@ -1676,14 +1676,19 @@ export default function LojaAdmin() {
                         <FormLabel>Maximo de Parcelas</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min="2"
-                            max="12"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             placeholder="3"
-                            value={field.value ?? ""}
+                            value={field.value?.toString() ?? ""}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              field.onChange(val === "" ? undefined : parseInt(val, 10));
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              if (val === "") {
+                                field.onChange(undefined);
+                              } else {
+                                const num = parseInt(val, 10);
+                                field.onChange(Math.min(12, Math.max(2, num)));
+                              }
                             }}
                             data-testid="input-max-installments"
                           />

@@ -8431,22 +8431,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens da loja (admin - todos os itens)
+  // Listar itens da loja (admin - todos os itens) - otimizado com batch queries
   app.get("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const items = await storage.getShopItems(false);
-      const categories = await storage.getShopCategories();
-      const categoryMap = new Map(categories.map(c => [c.id, c]));
+      const [items, categories] = await Promise.all([
+        storage.getShopItems(false),
+        storage.getShopCategories()
+      ]);
       
-      const itemsWithDetails = await Promise.all(items.map(async (item) => {
-        const images = await storage.getShopItemImages(item.id);
-        const sizes = await storage.getShopItemSizes(item.id);
-        return {
-          ...item,
-          category: categoryMap.get(item.categoryId) || null,
-          images,
-          sizes,
-        };
+      if (items.length === 0) {
+        return res.json([]);
+      }
+      
+      const categoryMap = new Map(categories.map(c => [c.id, c]));
+      const itemIds = items.map(item => item.id);
+      
+      const [imagesMap, sizesMap] = await Promise.all([
+        storage.getShopItemImagesByItemIds(itemIds),
+        storage.getShopItemSizesByItemIds(itemIds)
+      ]);
+      
+      const itemsWithDetails = items.map(item => ({
+        ...item,
+        category: categoryMap.get(item.categoryId) || null,
+        images: imagesMap.get(item.id) || [],
+        sizes: sizesMap.get(item.id) || [],
       }));
       
       res.json(itemsWithDetails);
@@ -9098,15 +9107,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const itemIds = items.map(item => item.id);
-      const [imagesMap, sizesMap] = await Promise.all([
+      const [imagesMap, sizesMap, sizeChartsMap] = await Promise.all([
         storage.getShopItemImagesByItemIds(itemIds),
-        storage.getShopItemSizesByItemIds(itemIds)
+        storage.getShopItemSizesByItemIds(itemIds),
+        storage.getShopItemSizeChartsByItemIds(itemIds)
       ]);
       
       const itemsWithDetails = items.map(item => ({
         ...item,
         images: imagesMap.get(item.id) || [],
-        sizes: sizesMap.get(item.id) || []
+        sizes: sizesMap.get(item.id) || [],
+        sizeCharts: sizeChartsMap.get(item.id) || []
       }));
       
       res.json(itemsWithDetails);
@@ -9146,13 +9157,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const cartItems = await storage.getCartItems(req.user!.id);
+      if (cartItems.length === 0) {
+        return res.json([]);
+      }
       
-      const itemsWithDetails = await Promise.all(cartItems.map(async (cartItem) => {
-        const item = await storage.getShopItemById(cartItem.itemId);
+      const itemIds = Array.from(new Set(cartItems.map(c => c.itemId)));
+      const [items, imagesMap] = await Promise.all([
+        storage.getShopItemsByIds(itemIds),
+        storage.getShopItemImagesByItemIds(itemIds)
+      ]);
+      const itemsMap = new Map(items.map((item: ShopItem) => [item.id, item]));
+      
+      const itemsWithDetails = cartItems.map(cartItem => {
+        const item = itemsMap.get(cartItem.itemId);
         if (!item) return { ...cartItem, item: null };
-        const images = await storage.getShopItemImages(item.id);
-        return { ...cartItem, item: { ...item, images } };
-      }));
+        return { 
+          ...cartItem, 
+          item: { 
+            ...item, 
+            images: imagesMap.get(item.id) || [],
+          } 
+        };
+      });
       
       res.json(itemsWithDetails);
     } catch (error) {

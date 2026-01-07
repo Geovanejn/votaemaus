@@ -76,7 +76,7 @@ function formatDate(date: string): string {
 }
 
 const paymentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Aguardando", variant: "secondary" },
+  pending: { label: "Aguardando Pagamento", variant: "secondary" },
   paid: { label: "Pago", variant: "default" },
   cancelled: { label: "Cancelado", variant: "destructive" },
   refunded: { label: "Estornado", variant: "outline" },
@@ -258,9 +258,6 @@ export default function MeusPedidosPage() {
                           {formatCurrency(order.totalAmount)}
                         </p>
                       </div>
-                      <Badge variant={orderStatusLabels[order.orderStatus]?.variant || "secondary"}>
-                        {orderStatusLabels[order.orderStatus]?.label || order.orderStatus}
-                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

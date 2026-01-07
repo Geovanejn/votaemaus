@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -48,41 +48,79 @@ const marqueeTexts = [
 
 function MarqueeSeparator() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [animationKey, setAnimationKey] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const cycleDuration = 6100;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
-      setAnimationKey((prev) => prev + 1);
+      setIsAnimating(true);
     }, cycleDuration);
 
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (isAnimating && containerRef.current && textRef.current) {
+      const container = containerRef.current;
+      const text = textRef.current;
+      const containerWidth = container.offsetWidth;
+      const textWidth = text.offsetWidth;
+      const totalDistance = containerWidth + textWidth;
+
+      text.animate([
+        { transform: `translateX(${containerWidth}px)` },
+        { transform: 'translateX(0)', offset: 0.085 },
+        { transform: 'translateX(0)', offset: 0.885 },
+        { transform: `translateX(-${totalDistance}px)` }
+      ], {
+        duration: 6100,
+        easing: 'linear',
+        fill: 'forwards'
+      }).onfinish = () => {
+        setCurrentIndex((prev) => (prev + 1) % marqueeTexts.length);
+        setIsAnimating(false);
+      };
+    }
+  }, [isAnimating]);
+
+  useEffect(() => {
+    if (!isAnimating && containerRef.current && textRef.current) {
+      const container = containerRef.current;
+      const text = textRef.current;
+      const containerWidth = container.offsetWidth;
+      const textWidth = text.offsetWidth;
+      const totalDistance = containerWidth + textWidth;
+
+      text.animate([
+        { transform: `translateX(${containerWidth}px)` },
+        { transform: 'translateX(0)', offset: 0.085 },
+        { transform: 'translateX(0)', offset: 0.885 },
+        { transform: `translateX(-${totalDistance}px)` }
+      ], {
+        duration: 6100,
+        easing: 'linear',
+        fill: 'forwards'
+      });
+    }
+  }, [currentIndex]);
+
   return (
     <div className="py-3 overflow-hidden bg-white" data-testid="marquee-separator">
-      <style>{`
-        @keyframes marqueeCycle {
-          0% { transform: translateX(110%); }
-          8.5% { transform: translateX(0); }
-          88.5% { transform: translateX(0); }
-          100% { transform: translateX(-110%); }
-        }
-      `}</style>
       <div 
         className="flex items-center justify-center gap-4"
         style={{ fontFamily: "'Poppins', sans-serif" }}
       >
         <span className="text-base text-primary font-bold">•</span>
-        <div className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center">
+        <div 
+          ref={containerRef}
+          className="relative h-6 overflow-hidden min-w-[280px] flex items-center justify-center"
+        >
           <span
-            key={animationKey}
-            className="text-base font-semibold text-black uppercase tracking-wider absolute"
-            style={{
-              transform: 'translateX(110%)',
-              animation: 'marqueeCycle 6100ms linear forwards'
-            }}
+            ref={textRef}
+            className="text-base font-semibold text-black uppercase tracking-wider absolute whitespace-nowrap"
+            style={{ transform: 'translateX(100vw)' }}
           >
             {marqueeTexts[currentIndex]}
           </span>

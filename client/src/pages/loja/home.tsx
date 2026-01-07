@@ -207,7 +207,7 @@ export default function LojaHomePage() {
               return (
                 <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
                   <div 
-                    className="relative aspect-[4/5] overflow-hidden bg-gray-100 cursor-pointer"
+                    className="relative aspect-square overflow-hidden bg-gray-100 cursor-pointer"
                     data-testid={`card-category-${cat.id}`}
                   >
                     {/* Category Single Image Background */}

@@ -1835,7 +1835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const profile = await storage.getOrCreateStudyProfile(req.user.id);
       res.json(profile);
@@ -1849,13 +1849,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/profile/stats", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const stats = await storage.getUserProfileStats(req.user.id);
       res.json(stats);
     } catch (error) {
       console.error("Get user stats error:", error);
-      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+      res.status(500).json({ message: "Erro ao buscar estatísticas" });
     }
   });
 
@@ -1863,7 +1863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/profile/activities", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const activities = await storage.getUserRecentActivities(req.user.id, 10);
       res.json(activities);
@@ -1889,7 +1889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/weeks/bulk", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const userId = req.user.id;
       const weekIds = (req.query.ids as string || '').split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
@@ -1911,7 +1911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/weeks/:weekId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const weekId = parseInt(req.params.weekId);
       if (isNaN(weekId)) {
@@ -1933,7 +1933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/lessons/:lessonId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
       const lesson = await storage.getLessonById(lessonId);
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...lesson, units: unitsWithParsedContent, progress });
     } catch (error) {
       console.error("Get lesson error:", error);
-      res.status(500).json({ message: "Erro ao buscar licao" });
+      res.status(500).json({ message: "Erro ao buscar lição" });
     }
   });
 
@@ -1957,14 +1957,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/lessons/:lessonId/start", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
       const profile = await storage.getOrCreateStudyProfile(req.user.id);
       
       if (profile.hearts <= 0) {
         return res.status(400).json({ 
-          message: "Voce nao tem vidas suficientes. Leia versiculos biblicos para recuperar.",
+          message: "Você não tem vidas suficientes. Leia versículos bíblicos para recuperar.",
           heartsNeeded: true
         });
       }
@@ -1973,7 +1973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (result.alreadyCompleted) {
         return res.status(400).json({ 
-          message: "Esta licao ja foi concluida. Nao e possivel refaze-la.",
+          message: "Esta lição já foi concluída. Não é possível refazê-la.",
           alreadyCompleted: true,
           progress: result.progress
         });
@@ -1982,7 +1982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       console.error("Start lesson error:", error);
-      res.status(500).json({ message: "Erro ao iniciar licao" });
+      res.status(500).json({ message: "Erro ao iniciar lição" });
     }
   });
 
@@ -1990,7 +1990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/units/:unitId/answer", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const unitId = parseInt(req.params.unitId);
       const { answer } = req.body;
@@ -2020,7 +2020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/units/:unitId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const unitId = parseInt(req.params.unitId);
       
@@ -2044,7 +2044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/lessons/:lessonId/complete-stage", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
       const { stage } = req.body;
@@ -2093,7 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/lessons/:lessonId/complete", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
       const { xpEarned, mistakesCount, timeSpentSeconds } = req.body;
@@ -2217,7 +2217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/verses", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const verses = await storage.getUnreadVersesForUser(req.user.id);
       res.json(verses);
@@ -2231,7 +2231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/verses/:verseId/read", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const verseId = parseInt(req.params.verseId);
       const verse = await storage.getBibleVerseById(verseId);
@@ -2279,7 +2279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/verses/recovery-progress", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const progress = await storage.getVerseRecoveryProgress(req.user.id);
       res.json(progress);
@@ -2293,7 +2293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/achievements", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const allAchievements = await storage.getAllAchievements();
       const userAchievements = await storage.getUserAchievements(req.user.id);
@@ -2358,7 +2358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/dashboard", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       const userId = req.user.id;
       const weekKey = getCurrentWeekKey();
@@ -2426,7 +2426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/online-status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       await storage.updateUserOnlineStatus(req.user.id, true);
@@ -2441,7 +2441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/online-users", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const onlineUserIds = await storage.getOnlineUserIds();
@@ -2456,7 +2456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/member/:userId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const targetUserId = parseInt(req.params.userId);
@@ -2480,7 +2480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/member/:userId/achievement/:achievementId/like", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const targetUserId = parseInt(req.params.userId);
@@ -2519,7 +2519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/study/member/:userId/achievement/:achievementId/like", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const targetUserId = parseInt(req.params.userId);
@@ -2597,7 +2597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/member/:userId/encourage", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const receiverId = parseInt(req.params.userId);
@@ -2636,7 +2636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/encouragement-messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const { PREDEFINED_ENCOURAGEMENT_MESSAGES } = await import('@shared/schema');
@@ -2658,7 +2658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/encouragements", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const limit = parseInt(req.query.limit as string) || 20;
@@ -2728,7 +2728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/crystals", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const balance = await storage.getCrystalBalance(req.user.id);
@@ -2750,7 +2750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/crystals/history", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const limit = parseInt(req.query.limit as string) || 50;
@@ -2766,7 +2766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/study/streak/freeze/purchase", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const result = await storage.purchaseStreakFreeze(req.user.id);
@@ -2793,7 +2793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/streak/freeze/history", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const history = await storage.getStreakFreezeHistory(req.user.id);
@@ -2808,7 +2808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/streak/milestones", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       const profile = await storage.getStudyProfile(req.user.id);
@@ -2835,7 +2835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/practice-exercises", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: "Nao autenticado" });
+        return res.status(401).json({ message: "Não autenticado" });
       }
       
       // Get all completed lessons for this user
@@ -5191,7 +5191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Get marketing stats error:", error);
-      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+      res.status(500).json({ message: "Erro ao buscar estatísticas" });
     }
   });
 
@@ -7318,7 +7318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Get espiritualidade stats error:", error);
-      res.status(500).json({ message: "Erro ao buscar estatisticas" });
+      res.status(500).json({ message: "Erro ao buscar estatísticas" });
     }
   });
 
@@ -8233,7 +8233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ lesson, progress });
     } catch (error) {
       console.error("Get event lesson error:", error);
-      res.status(500).json({ message: "Erro ao buscar licao" });
+      res.status(500).json({ message: "Erro ao buscar lição" });
     }
   });
 

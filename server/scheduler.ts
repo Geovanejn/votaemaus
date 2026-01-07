@@ -84,8 +84,8 @@ async function sendBirthdayEmails(): Promise<void> {
     for (const member of birthdayMembers) {
       try {
         await sendPushToUser(member.id, {
-          title: 'Feliz Aniversario!',
-          body: `Parabens, ${member.fullName.split(' ')[0]}! A UMP Emaus deseja um dia muito especial para voce!`,
+          title: 'Feliz Aniversário!',
+          body: `Parabéns, ${member.fullName.split(' ')[0]}! A UMP Emaús deseja um dia muito especial para você!`,
           url: '/study/profile',
           tag: `birthday-${member.id}`,
           icon: "/logo.png",
@@ -111,11 +111,11 @@ async function sendBirthdayEmails(): Promise<void> {
     // Send ONE consolidated announcement to all members about today's birthdays
     const birthdayNames = birthdayMembers.map(m => m.fullName.split(' ')[0]).join(', ');
     const announcementBody = birthdayMembers.length === 1
-      ? `Hoje e aniversario de ${birthdayMembers[0].fullName}! Envie uma mensagem de parabens!`
-      : `Hoje temos ${birthdayMembers.length} aniversariantes: ${birthdayNames}! Envie mensagens de parabens!`;
+      ? `Hoje é aniversário de ${birthdayMembers[0].fullName}! Envie uma mensagem de parabéns!`
+      : `Hoje temos ${birthdayMembers.length} aniversariantes: ${birthdayNames}! Envie mensagens de parabéns!`;
     
     const birthdayPayload = {
-      title: birthdayMembers.length === 1 ? 'Aniversario de Membro!' : 'Aniversariantes do Dia!',
+      title: birthdayMembers.length === 1 ? 'Aniversário de Membro!' : 'Aniversariantes do Dia!',
       body: announcementBody,
       url: '/diretoria',
       tag: `birthday-announcement-${todayDateString}`,
@@ -649,7 +649,7 @@ async function processEventLessonsRelease(): Promise<void> {
         try {
           const pushPayload = {
             title: 'Novo Evento Especial!',
-            body: `O evento "${event.title}" comecou! Participe e ganhe cards exclusivos.`,
+            body: `O evento "${event.title}" começou! Participe e ganhe cards exclusivos.`,
             url: `/study/events/${event.id}`,
             tag: `event-${event.id}-start`,
             icon: "/logo.png",
@@ -781,10 +781,10 @@ async function processEventCardsDistribution(): Promise<void> {
         
         // Send personalized push to card winners
         for (const { userId, rarity } of cardsAwarded) {
-          const rarityLabel = rarity === 'legendary' ? 'Lendario' : rarity === 'epic' ? 'Epico' : rarity === 'rare' ? 'Raro' : 'Comum';
+          const rarityLabel = rarity === 'legendary' ? 'Lendário' : rarity === 'epic' ? 'Épico' : rarity === 'rare' ? 'Raro' : 'Comum';
           await sendPushToUser(userId, {
-            title: 'Parabens! Voce ganhou um card!',
-            body: `Voce completou o evento "${event.title}" e ganhou um card ${rarityLabel}!`,
+            title: 'Parabéns! Você ganhou um card!',
+            body: `Você completou o evento "${event.title}" e ganhou um card ${rarityLabel}!`,
             url: `/study/profile`,
             tag: `card-${event.id}-${userId}`,
             icon: "/logo.png",
@@ -795,9 +795,9 @@ async function processEventCardsDistribution(): Promise<void> {
         const activeMembers = await storage.getActiveMembers();
         for (const member of activeMembers) {
           const cardInfo = cardsAwarded.find(c => c.userId === member.id);
-          const rarityLabel = cardInfo?.rarity === 'legendary' ? 'Lendario' : cardInfo?.rarity === 'epic' ? 'Epico' : cardInfo?.rarity === 'rare' ? 'Raro' : 'Comum';
+          const rarityLabel = cardInfo?.rarity === 'legendary' ? 'Lendário' : cardInfo?.rarity === 'epic' ? 'Épico' : cardInfo?.rarity === 'rare' ? 'Raro' : 'Comum';
           const body = cardInfo 
-            ? `O evento "${event.title}" foi encerrado! Voce ganhou um card ${rarityLabel}!`
+            ? `O evento "${event.title}" foi encerrado! Você ganhou um card ${rarityLabel}!`
             : `O evento "${event.title}" foi encerrado.`;
           
           await storage.createNotification({
@@ -1255,19 +1255,19 @@ async function processAbandonedCartReminder(): Promise<void> {
         switch (interval.urgency) {
           case 'low':
             title = 'Lembrete de Pagamento';
-            body = `Seu pedido #${order.orderCode} esta aguardando pagamento. Conclua sua compra!`;
+            body = `Seu pedido #${order.orderCode} está aguardando pagamento. Conclua sua compra!`;
             break;
           case 'medium':
             title = 'Pedido Aguardando';
-            body = `Nao esqueca: seu pedido #${order.orderCode} ainda nao foi pago. Complete sua compra!`;
+            body = `Não esqueça: seu pedido #${order.orderCode} ainda não foi pago. Complete sua compra!`;
             break;
           case 'high':
-            title = 'Ultima Chance!';
+            title = 'Última Chance!';
             body = `Seu pedido #${order.orderCode} vai expirar em breve. Finalize o pagamento agora!`;
             break;
           case 'final':
             title = 'Pedido Expirando!';
-            body = `URGENTE: Seu pedido #${order.orderCode} sera cancelado se nao for pago em breve!`;
+            body = `URGENTE: Seu pedido #${order.orderCode} será cancelado se não for pago em breve!`;
             break;
         }
         
@@ -1397,18 +1397,18 @@ async function processYearRollover(): Promise<void> {
     
     for (const member of activeMembers) {
       try {
-        const body = `Feliz Ano Novo! O periodo fiscal de ${newYear} comecou. Suas taxas Percapta e UMP foram renovadas. Acesse seu painel financeiro para mais detalhes.`;
+        const body = `Feliz Ano Novo! O período fiscal de ${newYear} começou. Suas taxas Percapta e UMP foram renovadas. Acesse seu painel financeiro para mais detalhes.`;
         
         await storage.createNotification({
           userId: member.id,
           type: 'year_rollover',
-          title: `Novo Periodo Fiscal ${newYear}`,
+          title: `Novo Período Fiscal ${newYear}`,
           body,
           data: JSON.stringify({ year: newYear }),
         });
         
         await sendPushToUser(member.id, {
-          title: `Novo Periodo Fiscal ${newYear}`,
+          title: `Novo Período Fiscal ${newYear}`,
           body,
           url: '/study/financeiro',
           tag: `year-rollover-${newYear}`,
@@ -1443,7 +1443,7 @@ async function processMonthlyTreasurySummary(): Promise<void> {
     const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth();
     const summaryYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
     const currentYear = now.getFullYear();
-    const monthNames = ['', 'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     
     // Get summary for just the last month
     const monthSummary = await storage.getTreasuryMonthSummary(summaryYear, lastMonth);
@@ -1451,7 +1451,7 @@ async function processMonthlyTreasurySummary(): Promise<void> {
     // Get overall balance (year to date) for balance alert
     const yearSummary = await storage.getTreasuryDashboardSummary(currentYear);
     
-    const body = `Resumo de ${monthNames[lastMonth]}/${summaryYear}: Entradas R$${monthSummary.totalIncome.toFixed(2)}, Saidas R$${monthSummary.totalExpense.toFixed(2)}, Resultado R$${monthSummary.balance.toFixed(2)}. Saldo atual: R$${yearSummary.balance.toFixed(2)}.`;
+    const body = `Resumo de ${monthNames[lastMonth]}/${summaryYear}: Entradas R$${monthSummary.totalIncome.toFixed(2)}, Saídas R$${monthSummary.totalExpense.toFixed(2)}, Resultado R$${monthSummary.balance.toFixed(2)}. Saldo atual: R$${yearSummary.balance.toFixed(2)}.`;
     
     await storage.createNotification({
       userId: treasurer.id,
@@ -1472,8 +1472,8 @@ async function processMonthlyTreasurySummary(): Promise<void> {
     // Check for negative/zero balance and alert (using current year balance)
     if (yearSummary.balance <= 0) {
       const alertBody = yearSummary.balance < 0
-        ? `ALERTA: O saldo da tesouraria esta NEGATIVO: R$${yearSummary.balance.toFixed(2)}. Atencao urgente necessaria!`
-        : `AVISO: O saldo da tesouraria esta ZERADO. Considere revisar as financas.`;
+        ? `ALERTA: O saldo da tesouraria está NEGATIVO: R$${yearSummary.balance.toFixed(2)}. Atenção urgente necessária!`
+        : `AVISO: O saldo da tesouraria está ZERADO. Considere revisar as finanças.`;
       
       await storage.createNotification({
         userId: treasurer.id,

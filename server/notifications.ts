@@ -435,8 +435,8 @@ export async function notifyNewPrayerRequest(
   console.log(`[Notifications] notifyNewPrayerRequest STARTED for request ${requestId} from "${requesterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Pedido de Oracao",
-    body: `${requesterName} enviou um pedido de oracao.`,
+    title: "Novo Pedido de Oração",
+    body: `${requesterName} enviou um pedido de oração.`,
     url: "/oracao",
     tag: `prayer-${requestId}`,
     icon: "/logo.png",
@@ -479,8 +479,8 @@ export async function notifyPrayerApproved(
   console.log(`[Notifications] notifyPrayerApproved STARTED for user ${userId}, request ${prayerRequestId}`);
   
   const payload: NotificationPayload = {
-    title: "Pedido de Oracao Aprovado",
-    body: "Seu pedido de oracao foi aprovado e esta no Mural da Oracao!",
+    title: "Pedido de Oração Aprovado",
+    body: "Seu pedido de oração foi aprovado e está no Mural da Oração!",
     url: "/oracao",
     tag: `prayer-approved-${prayerRequestId}`,
     icon: "/logo.png",
@@ -507,7 +507,7 @@ export async function notifyPrayerLiked(
   
   const payload: NotificationPayload = {
     title: "Curtida no seu Pedido",
-    body: `${likerName} curtiu seu pedido de oracao`,
+    body: `${likerName} curtiu seu pedido de oração`,
     url: "/oracao",
     tag: `prayer-like-${Date.now()}`,
     icon: "/logo.png",
@@ -534,7 +534,7 @@ export async function notifyDevotionalComment(
   console.log(`[Notifications] notifyDevotionalComment for user ${authorUserId} from "${commenterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Comentario",
+    title: "Novo Comentário",
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: `/devocionais/${devotionalId}`,
     tag: `devotional-comment-${Date.now()}`,
@@ -562,7 +562,7 @@ export async function notifyNewComment(
   console.log(`[Notifications] notifyNewComment STARTED for devotional ${devotionalId} from "${commenterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Comentario",
+    title: "Novo Comentário",
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: "/admin/espiritualidade/comentarios",
     tag: `comment-${devotionalId}`,
@@ -603,7 +603,7 @@ export async function notifySeasonPublished(
   
   const payload: NotificationPayload = {
     title: "Nova Revista DeoGlory!",
-    body: `"${seasonTitle}" esta disponivel. Comece a estudar agora!`,
+    body: `"${seasonTitle}" está disponível. Comece a estudar agora!`,
     url: "/study",
     tag: `season-${seasonId}`,
     icon: "/logo.png",
@@ -666,7 +666,7 @@ export async function notifyNewStudyEvent(
   
   const payload: NotificationPayload = {
     title: "Novo Evento Especial!",
-    body: `"${title}" esta disponivel no DeoGlory. Participe agora!`,
+    body: `"${title}" está disponível no DeoGlory. Participe agora!`,
     url: `/study/events/${eventId}`,
     tag: `study-event-${eventId}`,
     icon: "/logo.png",
@@ -738,8 +738,8 @@ export async function notifyLessonAvailable(
   console.log(`[Notifications] notifyLessonAvailable STARTED for user ${userId}: "${lessonTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Nova Licao Disponivel!",
-    body: `"${lessonTitle}" de "${seasonTitle}" esta liberada.`,
+    title: "Nova Lição Disponível!",
+    body: `"${lessonTitle}" de "${seasonTitle}" está liberada.`,
     url: "/study",
     tag: "lesson-available",
     icon: "/logo.png",
@@ -803,9 +803,9 @@ export async function notifyStreakReminder(
     message = customMessage;
   } else {
     const messages = [
-      `Sua ofensiva de ${currentStreak} dias esta em risco!`,
-      `Nao perca sua ofensiva! ${currentStreak} dias de dedicacao.`,
-      `So uma licao rapida para manter sua ofensiva de ${currentStreak} dias!`,
+      `Sua ofensiva de ${currentStreak} dias está em risco!`,
+      `Não perca sua ofensiva! ${currentStreak} dias de dedicação.`,
+      `Só uma lição rápida para manter sua ofensiva de ${currentStreak} dias!`,
     ];
     message = messages[Math.floor(Math.random() * messages.length)];
   }
@@ -850,12 +850,12 @@ export async function notifyInactivity(
   daysSinceLastAccess: number
 ): Promise<void> {
   const messages: Record<number, string> = {
-    2: "Sentimos sua falta! Seu streak esta em risco.",
-    3: "Opa! Ja faz 3 dias. Volte para continuar crescendo!",
-    5: "Nao desista! 5 dias longe, mas nunca e tarde para voltar.",
+    2: "Sentimos sua falta! Seu streak está em risco.",
+    3: "Opa! Já faz 3 dias. Volte para continuar crescendo!",
+    5: "Não desista! 5 dias longe, mas nunca é tarde para voltar.",
     7: "Uma semana sem estudar? Vamos retomar juntos!",
-    10: "10 dias! Sua jornada espiritual precisa de voce.",
-    15: "15 dias longe... Que tal um novo comeco hoje?",
+    10: "10 dias! Sua jornada espiritual precisa de você.",
+    15: "15 dias longe... Que tal um novo começo hoje?",
   };
 
   const message = messages[daysSinceLastAccess];
@@ -971,8 +971,8 @@ export async function notifyEventStartingSoon(
   console.log(`[Notifications] notifyEventStartingSoon STARTED for event ${eventId}: "${eventTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Evento Comeca Amanha!",
-    body: `"${eventTitle}" comeca em 24 horas. Prepare-se!`,
+    title: "Evento Começa Amanhã!",
+    body: `"${eventTitle}" começa em 24 horas. Prepare-se!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-starting-${eventId}`,
     icon: "/logo.png",
@@ -991,7 +991,7 @@ export async function notifyEventDeadline(
   
   const payload: NotificationPayload = {
     title: "Evento Terminando!",
-    body: `"${eventTitle}" termina em ${timeRemaining}. Nao perca!`,
+    body: `"${eventTitle}" termina em ${timeRemaining}. Não perca!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-deadline-${eventId}`,
     icon: "/logo.png",
@@ -1021,7 +1021,7 @@ export async function notifyEventEnded(
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {
   const payload: NotificationPayload = {
-    title: "Versiculo do Dia",
+    title: "Versículo do Dia",
     body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
     url: "/study",
     tag: "daily-verse",
@@ -1048,10 +1048,10 @@ export async function notifyMarketingEventReminder(
 ): Promise<void> {
   console.log(`[Notifications] notifyMarketingEventReminder STARTED for event ${eventId}: "${eventTitle}" - ${timeLabel}`);
   
-  const timeInfo = eventTime ? ` as ${eventTime}` : '';
+  const timeInfo = eventTime ? ` às ${eventTime}` : '';
   const payload: NotificationPayload = {
     title: `Lembrete: ${eventTitle}`,
-    body: `O evento acontece em ${timeLabel}${timeInfo}. Nao esqueca!`,
+    body: `O evento acontece em ${timeLabel}${timeInfo}. Não esqueça!`,
     url: `/agenda/${eventId}`,
     tag: `marketing-event-reminder-${eventId}-${timeLabel}`,
     icon: "/logo.png",

@@ -159,7 +159,7 @@ export function UnifiedNotificationPrompt() {
       console.log('[UnifiedNotification] Permission result:', permission);
       
       if (permission !== 'granted') {
-        setErrorMessage('Permissao negada. Habilite nas configuracoes do navegador.');
+        setErrorMessage('Permissão negada. Habilite nas configurações do navegador.');
         setTimeout(() => {
           handleDismiss();
         }, 2000);
@@ -247,7 +247,7 @@ export function UnifiedNotificationPrompt() {
             <div className="p-3 rounded-full bg-primary/10">
               <Bell className="h-6 w-6 text-primary" />
             </div>
-            <DialogTitle className="text-xl">Ative as notificacoes</DialogTitle>
+            <DialogTitle className="text-xl">Ative as notificações</DialogTitle>
           </div>
           <DialogDescription className="text-base">
             Receba avisos sobre novos devocionais, eventos, estudos e muito mais diretamente no seu dispositivo.
@@ -267,7 +267,7 @@ export function UnifiedNotificationPrompt() {
             className="w-full"
             data-testid="button-activate-notifications"
           >
-            {isLoading ? 'Ativando...' : 'Ativar notificacoes'}
+            {isLoading ? 'Ativando...' : 'Ativar notificações'}
           </Button>
           <Button
             variant="ghost"
@@ -276,7 +276,7 @@ export function UnifiedNotificationPrompt() {
             className="w-full"
             data-testid="button-dismiss-notifications"
           >
-            Agora nao
+            Agora não
           </Button>
         </div>
       </DialogContent>

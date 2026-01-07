@@ -92,7 +92,7 @@ export default function LojaProdutoPage() {
 
   const addToCart = () => {
     if (!product || !user) {
-      toast({ title: "Faca login", description: "Entre na sua conta para adicionar ao carrinho.", variant: "destructive" });
+      toast({ title: "Faça login", description: "Entre na sua conta para adicionar ao carrinho.", variant: "destructive" });
       return;
     }
     if (product.hasSize && !selectedSize) {

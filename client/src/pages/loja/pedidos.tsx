@@ -228,7 +228,7 @@ export default function MeusPedidosPage() {
 
       {/* Breadcrumb */}
       <nav className="px-4 py-2 text-xs text-gray-500">
-        <Link href="/loja" className="hover:text-black">Inicio</Link>
+        <Link href="/loja" className="hover:text-black">Início</Link>
         <span className="mx-1">&gt;</span>
         <span className="text-black">Meus Pedidos</span>
       </nav>

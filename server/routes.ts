@@ -11953,7 +11953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Handle loan installment
-      if (entry.loanId) {
+      if (entry.loanId && entry.userId) {
         const loan = await storage.getTreasuryLoanById(entry.loanId);
         if (loan) {
           const installments = await storage.getTreasuryLoanInstallments(entry.loanId);
@@ -11972,6 +11972,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (allPaid) {
               await storage.updateTreasuryLoan(entry.loanId, { status: "paid" });
             }
+            
+            // Send push notification for loan payment confirmation
+            const paidCount = installments.filter(i => i.status === "paid").length + 1;
+            const totalCount = installments.length;
+            const isFullyPaid = allPaid;
+            
+            await storage.createNotification({
+              userId: entry.userId,
+              type: 'payment_confirmed',
+              title: isFullyPaid ? 'Empréstimo Quitado' : 'Parcela de Empréstimo Paga',
+              body: isFullyPaid 
+                ? `Seu empréstimo foi quitado! Todas as ${totalCount} parcelas foram pagas.`
+                : `Parcela ${paidCount}/${totalCount} do empréstimo paga com sucesso!`,
+              data: JSON.stringify({ entryId: entry.id, loanId: entry.loanId, installmentId: pendingInstallment.id }),
+            });
+            
+            await sendPushToUser(entry.userId, {
+              title: isFullyPaid ? 'Empréstimo Quitado' : 'Parcela Paga',
+              body: isFullyPaid 
+                ? `Seu empréstimo foi totalmente quitado!`
+                : `Parcela ${paidCount}/${totalCount} do empréstimo confirmada!`,
+              url: '/membro/financeiro',
+              tag: `payment-loan-${entry.id}`,
+              icon: '/logo.png',
+            });
+            console.log(`[Payment] Loan payment notification sent to user ${entry.userId}`);
           }
         }
       }

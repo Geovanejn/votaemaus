@@ -4630,15 +4630,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { endpoint, p256dh, auth } = req.body;
       
+      console.log(`[Push Anonymous] Subscribe request received, endpoint: ${endpoint?.substring(0, 50)}...`);
+      
       if (!endpoint || !p256dh || !auth) {
+        console.log(`[Push Anonymous] Invalid subscription data: endpoint=${!!endpoint}, p256dh=${!!p256dh}, auth=${!!auth}`);
         return res.status(400).json({ message: "Dados de inscricao invalidos" });
       }
       
-      await storage.saveAnonymousPushSubscription(endpoint, p256dh, auth);
+      const result = await storage.saveAnonymousPushSubscription(endpoint, p256dh, auth);
       
-      res.json({ message: "Inscrito para notificacoes com sucesso" });
+      console.log(`[Push Anonymous] Subscription saved successfully, id: ${result.id}, isNew: ${result.isNew}`);
+      console.log(`[Push Anonymous] IMPORTANT: Frontend should save this ID (${result.id}) to localStorage as 'anonymous_push_subscription_id'`);
+      
+      res.json({ 
+        message: "Inscrito para notificacoes com sucesso", 
+        id: result.id,
+        isNew: result.isNew 
+      });
     } catch (error) {
-      console.error("Subscribe anonymous push error:", error);
+      console.error("[Push Anonymous] Subscribe error:", error);
       res.status(500).json({ message: "Erro ao inscrever para notificacoes" });
     }
   });

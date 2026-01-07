@@ -302,7 +302,7 @@ export interface IStorage {
   checkAndAwardLessonCrystals(userId: number, isPerfect: boolean): Promise<{ crystalsAwarded: number; rewards: Array<{ type: string; amount: number; description: string }> }>;
   
   // Anonymous Push Subscription Methods (for visitors)
-  saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
+  saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<{ id: number; isNew: boolean }>;
   removeAnonymousPushSubscription(endpoint: string): Promise<void>;
   getAllAnonymousPushSubscriptions(): Promise<AnonymousPushSubscription[]>;
   updateAnonymousPushSubscriptionLastUsed(subscriptionId: number): Promise<void>;
@@ -5360,21 +5360,28 @@ export class DatabaseStorage implements IStorage {
 
   // ==================== ANONYMOUS PUSH SUBSCRIPTION METHODS ====================
 
-  async saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void> {
+  async saveAnonymousPushSubscription(endpoint: string, p256dh: string, auth: string): Promise<{ id: number; isNew: boolean }> {
+    console.log(`[Push Storage] Saving anonymous subscription, endpoint: ${endpoint.substring(0, 50)}...`);
+    
     const [existing] = await db.select().from(schema.anonymousPushSubscriptions)
       .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint))
       .limit(1);
     
     if (existing) {
+      console.log(`[Push Storage] Existing anonymous subscription found with id: ${existing.id}, updating...`);
       await db.update(schema.anonymousPushSubscriptions)
         .set({ p256dh, auth, lastUsed: new Date() })
         .where(eq(schema.anonymousPushSubscriptions.id, existing.id));
+      return { id: existing.id, isNew: false };
     } else {
-      await db.insert(schema.anonymousPushSubscriptions).values({
+      console.log(`[Push Storage] No existing subscription, creating new one...`);
+      const [inserted] = await db.insert(schema.anonymousPushSubscriptions).values({
         endpoint,
         p256dh,
         auth,
-      });
+      }).returning({ id: schema.anonymousPushSubscriptions.id });
+      console.log(`[Push Storage] New anonymous subscription created with id: ${inserted.id}`);
+      return { id: inserted.id, isNew: true };
     }
   }
 
@@ -7420,37 +7427,50 @@ export class DatabaseStorage implements IStorage {
     return result.length;
   }
   async linkAnonymousSubscriptionToUser(anonymousSubscriptionId: number, userId: number): Promise<void> {
+    console.log(`[Push Storage] linkAnonymousSubscriptionToUser called: anonSubId=${anonymousSubscriptionId}, userId=${userId}`);
+    
     const [subscription] = await db
       .select()
       .from(schema.anonymousPushSubscriptions)
       .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
 
-    if (subscription) {
-      // Check if this subscription already exists for this user to avoid duplicates
-      const [existing] = await db
-        .select()
-        .from(schema.pushSubscriptions)
-        .where(
-          and(
-            eq(schema.pushSubscriptions.userId, userId),
-            eq(schema.pushSubscriptions.endpoint, subscription.endpoint)
-          )
-        );
-
-      if (!existing) {
-        await db.insert(schema.pushSubscriptions).values({
-          userId,
-          endpoint: subscription.endpoint,
-          p256dh: subscription.p256dh,
-          auth: subscription.auth,
-        });
-      }
-      
-      // Optionally delete the anonymous subscription after linking
-      await db
-        .delete(schema.anonymousPushSubscriptions)
-        .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
+    if (!subscription) {
+      console.log(`[Push Storage] Anonymous subscription ${anonymousSubscriptionId} NOT FOUND in database`);
+      return;
     }
+    
+    console.log(`[Push Storage] Found anonymous subscription: id=${subscription.id}, endpoint=${subscription.endpoint.substring(0, 50)}...`);
+    
+    // Check if this subscription already exists for this user to avoid duplicates
+    const [existing] = await db
+      .select()
+      .from(schema.pushSubscriptions)
+      .where(
+        and(
+          eq(schema.pushSubscriptions.userId, userId),
+          eq(schema.pushSubscriptions.endpoint, subscription.endpoint)
+        )
+      );
+
+    if (existing) {
+      console.log(`[Push Storage] User ${userId} already has this endpoint registered, skipping duplicate insert`);
+    } else {
+      console.log(`[Push Storage] Creating new push subscription for user ${userId}...`);
+      await db.insert(schema.pushSubscriptions).values({
+        userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      });
+      console.log(`[Push Storage] Push subscription created successfully for user ${userId}`);
+    }
+    
+    // Delete the anonymous subscription after linking
+    console.log(`[Push Storage] Deleting anonymous subscription ${anonymousSubscriptionId} after linking...`);
+    await db
+      .delete(schema.anonymousPushSubscriptions)
+      .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
+    console.log(`[Push Storage] Anonymous subscription ${anonymousSubscriptionId} deleted, link complete for user ${userId}`);
   }
 }
 

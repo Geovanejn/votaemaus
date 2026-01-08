@@ -249,7 +249,7 @@ export default function LojaHomePage() {
                       </div>
                     )}
                     
-                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-md shadow-sm`}>
+                    <div className={`absolute top-2 left-1/2 -translate-x-1/2 ${badge.bgColor} ${badge.textColor} text-[10px] font-bold px-2 py-1 rounded-md shadow-sm`}>
                       {badge.label}
                     </div>
                   </div>

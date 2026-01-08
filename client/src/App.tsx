@@ -10,18 +10,17 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { UnifiedNotificationPrompt } from "@/components/unified-notification-prompt";
 
-import LoginPage from "@/pages/login";
-import VerifyPage from "@/pages/verify";
-
-import SiteHomePage from "@/pages/site/home";
-import DevocionaisPage from "@/pages/site/devocionais";
-import DevocionalDetailPage from "@/pages/site/devocional-detail";
-import AgendaPage from "@/pages/site/agenda";
-import QuemSomosPage from "@/pages/site/quem-somos";
-import DiretoriaPage from "@/pages/site/diretoria";
-import OracaoPage from "@/pages/site/oracao";
-import MembroPage from "@/pages/site/membro";
-import PoliticaPrivacidadePage from "@/pages/site/politica-privacidade";
+const LoginPage = lazy(() => import("@/pages/login"));
+const VerifyPage = lazy(() => import("@/pages/verify"));
+const SiteHomePage = lazy(() => import("@/pages/site/home"));
+const DevocionaisPage = lazy(() => import("@/pages/site/devocionais"));
+const DevocionalDetailPage = lazy(() => import("@/pages/site/devocional-detail"));
+const AgendaPage = lazy(() => import("@/pages/site/agenda"));
+const QuemSomosPage = lazy(() => import("@/pages/site/quem-somos"));
+const DiretoriaPage = lazy(() => import("@/pages/site/diretoria"));
+const OracaoPage = lazy(() => import("@/pages/site/oracao"));
+const MembroPage = lazy(() => import("@/pages/site/membro"));
+const PoliticaPrivacidadePage = lazy(() => import("@/pages/site/politica-privacidade"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminEmausVota = lazy(() => import("@/pages/admin"));

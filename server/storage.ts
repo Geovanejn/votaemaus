@@ -129,6 +129,7 @@ export interface IStorage {
   getPresentCount(electionId: number): Promise<number>;
   getPresentCountForPosition(electionPositionId: number): Promise<number>;
   isMemberPresent(electionId: number, memberId: number): Promise<boolean>;
+  getMemberPresenceByUserIds(electionId: number, userIds: number[]): Promise<Map<number, boolean>>;
   setMemberAttendance(electionId: number, memberId: number, isPresent: boolean): Promise<void>;
   initializeAttendance(electionId: number): Promise<void>;
   createAttendanceSnapshot(electionPositionId: number): Promise<void>;
@@ -788,6 +789,26 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return !!attendance;
+  }
+
+  async getMemberPresenceByUserIds(electionId: number, userIds: number[]): Promise<Map<number, boolean>> {
+    const result = new Map<number, boolean>();
+    if (userIds.length === 0) return result;
+    
+    const attendances = await db.select()
+      .from(schema.electionAttendance)
+      .where(and(
+        eq(schema.electionAttendance.electionId, electionId),
+        inArray(schema.electionAttendance.memberId, userIds),
+        eq(schema.electionAttendance.isPresent, true),
+        isNull(schema.electionAttendance.electionPositionId)
+      ));
+    
+    const presentUserIds = new Set(attendances.map(a => a.memberId));
+    for (const userId of userIds) {
+      result.set(userId, presentUserIds.has(userId));
+    }
+    return result;
   }
 
   async setMemberAttendance(electionId: number, memberId: number, isPresent: boolean): Promise<void> {

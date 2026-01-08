@@ -1327,8 +1327,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "A votação para este cargo ainda não foi aberta" });
       }
 
-      const winners = await storage.getElectionWinners(electionId);
-      const existingCandidates = await storage.getCandidatesByPosition(positionId, electionId);
+      // OPTIMIZED: Batch fetch all data upfront to avoid N+1 queries
+      const userIds = candidates.filter(c => c.userId).map(c => c.userId);
+      
+      // Short-circuit if no valid userIds
+      if (userIds.length === 0) {
+        return res.status(400).json({ message: "Nenhum candidato válido fornecido" });
+      }
+      
+      const [winners, existingCandidatesDb, usersMap, presenceMap] = await Promise.all([
+        storage.getElectionWinners(electionId),
+        storage.getCandidatesByPosition(positionId, electionId),
+        storage.getUsersByIds(userIds),
+        storage.getMemberPresenceByUserIds(electionId, userIds),
+      ]);
+      
+      // Track already added userIds (from DB + current batch) to prevent duplicates
+      const processedUserIds = new Set(existingCandidatesDb.map(c => c.userId));
       const createdCandidates = [];
       const errors = [];
 
@@ -1339,7 +1354,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const user = await storage.getUserById(candidate.userId);
+          // Check for duplicates in DB or current batch
+          if (processedUserIds.has(candidate.userId)) {
+            errors.push(`${candidate.name} já foi adicionado para este cargo`);
+            continue;
+          }
+
+          const user = usersMap.get(candidate.userId);
           if (!user) {
             errors.push(`Usuário ${candidate.name} não encontrado`);
             continue;
@@ -1350,7 +1371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const isPresent = await storage.isMemberPresent(electionId, candidate.userId);
+          const isPresent = presenceMap.get(candidate.userId) || false;
           if (!isPresent) {
             errors.push(`${candidate.name} não está presente`);
             continue;
@@ -1362,11 +1383,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const isDuplicate = existingCandidates.some(c => c.userId === candidate.userId);
-          if (isDuplicate) {
-            errors.push(`${candidate.name} já foi adicionado para este cargo`);
-            continue;
-          }
+          // Mark as processed before creating to prevent race conditions in same batch
+          processedUserIds.add(candidate.userId);
 
           const created = await storage.createCandidate({
             name: candidate.name,
@@ -1377,7 +1395,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           createdCandidates.push(created);
-          existingCandidates.push(created);
         } catch (error) {
           errors.push(`Erro ao adicionar ${candidate.name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
         }

@@ -10,12 +10,13 @@ import {
   GraduationCap, 
   ArrowRight, 
   LogOut,
-  Sparkles,
   Settings,
   Wallet,
   ShoppingBag,
-  Store
+  Store,
+  Home
 } from "lucide-react";
+import emauStoreLogo from "@assets/Logo eMauStore_1767549645915.png";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <motion.div
@@ -46,11 +47,112 @@ const StaggerItem = ({ children }: { children: React.ReactNode }) => (
 );
 
 const adminPanels = [
+  // === ELECTIONS GROUP (Green) ===
+  {
+    id: "emaus-vota",
+    title: "Eleicoes",
+    subtitle: "Sistema de Votacao",
+    description: "Participe das eleicoes e acompanhe os resultados em tempo real.",
+    icon: Vote,
+    color: "from-green-500 to-emerald-600",
+    buttonColor: "bg-green-600 hover:bg-green-700",
+    href: "/vote",
+    features: [
+      "Votar em eleicoes ativas",
+      "Ver resultados",
+      "Acompanhar votacoes",
+    ],
+    forMember: true,
+  },
+  {
+    id: "emaus-vota-admin",
+    title: "Painel de Eleicoes",
+    subtitle: "Gerenciamento de Votacoes",
+    description: "Gerencie eleicoes, candidatos, membros e acompanhe votacoes em tempo real.",
+    icon: Vote,
+    color: "from-green-500 to-emerald-600",
+    buttonColor: "bg-green-600 hover:bg-green-700",
+    href: "/admin/emaus-vota",
+    features: [
+      "Criar e gerenciar eleicoes",
+      "Cadastrar membros e candidatos",
+      "Controlar lista de presenca",
+    ],
+    forAdmin: true,
+  },
+  // === DEOGLORY GROUP (Blue) ===
+  {
+    id: "deoglory-study",
+    title: "DeoGlory",
+    subtitle: "Plataforma de Estudos",
+    description: "Estude a Biblia de forma gamificada, ganhe conquistas e suba no ranking.",
+    icon: GraduationCap,
+    color: "from-blue-500 to-indigo-600",
+    buttonColor: "bg-blue-600 hover:bg-blue-700",
+    href: "/study",
+    features: [
+      "Estudos biblicos interativos",
+      "Conquistas e recompensas",
+      "Ranking entre membros",
+    ],
+    forMember: true,
+  },
+  {
+    id: "deoglory-admin",
+    title: "DeoGlory Admin",
+    subtitle: "Gerenciamento de Estudos",
+    description: "Gerencie temporadas, licoes e conteudo do sistema de estudos gamificado.",
+    icon: GraduationCap,
+    color: "from-blue-500 to-indigo-600",
+    buttonColor: "bg-blue-600 hover:bg-blue-700",
+    href: "/admin/study",
+    features: [
+      "Criar temporadas e licoes",
+      "Gerenciar conquistas",
+      "Acompanhar progresso",
+    ],
+    forAdmin: true,
+  },
+  // === SHOP GROUP (Purple) ===
+  {
+    id: "loja",
+    title: "Loja UMP",
+    subtitle: "Produtos e Acessorios",
+    description: "Adquira camisetas, kits, livros e outros produtos da UMP Emaus.",
+    icon: ShoppingBag,
+    color: "from-purple-500 to-violet-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    href: "/loja",
+    features: [
+      "Catalogo de produtos",
+      "Pagamento via PIX",
+      "Acompanhe seus pedidos",
+    ],
+    forMember: true,
+    isShop: true,
+  },
+  {
+    id: "loja-admin",
+    title: "Gestao da Loja",
+    subtitle: "Administracao de Produtos",
+    description: "Gerencie produtos, categorias e pedidos da loja virtual da UMP.",
+    icon: Store,
+    color: "from-purple-500 to-violet-600",
+    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    href: "/admin/loja",
+    features: [
+      "Cadastrar e editar produtos",
+      "Gerenciar categorias",
+      "Acompanhar pedidos",
+    ],
+    forMarketing: true,
+  },
+  // === TREASURY GROUP (Amber/Orange) ===
   {
     id: "meu-financeiro",
     title: "Meu Financeiro",
     subtitle: "Status Financeiro",
-    description: "Consulte suas taxas, pagamentos e acompanhe sua situação financeira com a UMP.",
+    description: "Consulte suas taxas, pagamentos e acompanhe sua situacao financeira com a UMP.",
     icon: Wallet,
     color: "from-amber-500 to-orange-600",
     buttonColor: "bg-amber-600 hover:bg-amber-700",
@@ -63,75 +165,27 @@ const adminPanels = [
     forMember: true,
   },
   {
-    id: "emaus-vota",
-    title: "Eleições",
-    subtitle: "Sistema de Votação",
-    description: "Participe das eleições e acompanhe os resultados em tempo real.",
-    icon: Vote,
-    color: "from-green-500 to-emerald-600",
-    buttonColor: "bg-green-600 hover:bg-green-700",
-    href: "/vote",
+    id: "tesouraria",
+    title: "Tesouraria",
+    subtitle: "Gestao Financeira",
+    description: "Gerencie pagamentos, taxas, emprestimos e acompanhe as financas da UMP.",
+    icon: Wallet,
+    color: "from-amber-500 to-orange-600",
+    buttonColor: "bg-amber-600 hover:bg-amber-700",
+    href: "/admin/tesouraria",
     features: [
-      "Votar em eleições ativas",
-      "Ver resultados",
-      "Acompanhar votações",
+      "Controle de entradas e saidas",
+      "Gerenciar taxas e emprestimos",
+      "Loja virtual e relatorios",
     ],
-    forMember: true,
+    forTreasurer: true,
   },
-  {
-    id: "emaus-vota-admin",
-    title: "Painel de Eleições",
-    subtitle: "Gerenciamento de Votações",
-    description: "Gerencie eleições, candidatos, membros e acompanhe votações em tempo real.",
-    icon: Vote,
-    color: "from-green-500 to-emerald-600",
-    buttonColor: "bg-green-600 hover:bg-green-700",
-    href: "/admin/emaus-vota",
-    features: [
-      "Criar e gerenciar eleições",
-      "Cadastrar membros e candidatos",
-      "Controlar lista de presença",
-      "Histórico de eleições",
-    ],
-    forAdmin: true,
-  },
-  {
-    id: "deoglory-study",
-    title: "DeoGlory",
-    subtitle: "Plataforma de Estudos",
-    description: "Estude a Bíblia de forma gamificada, ganhe conquistas e suba no ranking.",
-    icon: GraduationCap,
-    color: "from-blue-500 to-indigo-600",
-    buttonColor: "bg-blue-600 hover:bg-blue-700",
-    href: "/study",
-    features: [
-      "Estudos bíblicos interativos",
-      "Conquistas e recompensas",
-      "Ranking entre membros",
-    ],
-    forMember: true,
-  },
-  {
-    id: "espiritualidade",
-    title: "Painel Espiritualidade",
-    subtitle: "Gerenciamento Devocional",
-    description: "Gerencie devocionais, pedidos de oração e conteúdo espiritual da UMP.",
-    icon: Heart,
-    color: "from-purple-500 to-purple-600",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
-    href: "/admin/espiritualidade",
-    features: [
-      "Criar e editar devocionais",
-      "Moderar pedidos de oração",
-      "Gerenciar comentários",
-    ],
-    forSecretaria: "espiritualidade",
-  },
+  // === MARKETING & SPIRITUALITY GROUP (Cyan/Purple) ===
   {
     id: "marketing",
     title: "Painel Marketing",
-    subtitle: "Eventos e Comunicação",
-    description: "Gerencie eventos, diretoria e a comunicação visual da UMP.",
+    subtitle: "Eventos e Comunicacao",
+    description: "Gerencie eventos, diretoria e a comunicacao visual da UMP.",
     icon: Megaphone,
     color: "from-cyan-500 to-cyan-600",
     buttonColor: "bg-cyan-600 hover:bg-cyan-700",
@@ -139,73 +193,25 @@ const adminPanels = [
     features: [
       "Criar e gerenciar eventos",
       "Editar membros da diretoria",
-      "Gerenciar página Quem Somos",
+      "Gerenciar pagina Quem Somos",
     ],
     forSecretaria: "marketing",
   },
   {
-    id: "deoglory-admin",
-    title: "DeoGlory Admin",
-    subtitle: "Gerenciamento de Estudos",
-    description: "Gerencie temporadas, lições e conteúdo do sistema de estudos gamificado.",
-    icon: GraduationCap,
-    color: "from-blue-500 to-indigo-600",
-    buttonColor: "bg-blue-600 hover:bg-blue-700",
-    href: "/admin/study",
+    id: "espiritualidade",
+    title: "Painel Espiritualidade",
+    subtitle: "Gerenciamento Devocional",
+    description: "Gerencie devocionais, pedidos de oracao e conteudo espiritual da UMP.",
+    icon: Heart,
+    color: "from-rose-500 to-pink-600",
+    buttonColor: "bg-rose-600 hover:bg-rose-700",
+    href: "/admin/espiritualidade",
     features: [
-      "Criar temporadas e lições",
-      "Gerenciar conquistas",
-      "Acompanhar progresso",
+      "Criar e editar devocionais",
+      "Moderar pedidos de oracao",
+      "Gerenciar comentarios",
     ],
-    forAdmin: true,
-  },
-  {
-    id: "tesouraria",
-    title: "Tesouraria",
-    subtitle: "Gestão Financeira",
-    description: "Gerencie pagamentos, taxas, empréstimos e acompanhe as finanças da UMP.",
-    icon: Wallet,
-    color: "from-amber-500 to-orange-600",
-    buttonColor: "bg-amber-600 hover:bg-amber-700",
-    href: "/admin/tesouraria",
-    features: [
-      "Controle de entradas e saídas",
-      "Gerenciar taxas e empréstimos",
-      "Loja virtual e relatórios",
-    ],
-    forTreasurer: true,
-  },
-  {
-    id: "loja",
-    title: "Loja UMP",
-    subtitle: "Produtos e Acessórios",
-    description: "Adquira camisetas, kits, livros e outros produtos da UMP Emaús.",
-    icon: ShoppingBag,
-    color: "from-purple-500 to-violet-600",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
-    href: "/loja",
-    features: [
-      "Catálogo de produtos",
-      "Pagamento via PIX",
-      "Acompanhe seus pedidos",
-    ],
-    forMember: true,
-  },
-  {
-    id: "loja-admin",
-    title: "Gestão da Loja",
-    subtitle: "Administração de Produtos",
-    description: "Gerencie produtos, categorias e pedidos da loja virtual da UMP.",
-    icon: Store,
-    color: "from-pink-500 to-rose-600",
-    buttonColor: "bg-pink-600 hover:bg-pink-700",
-    href: "/admin/loja",
-    features: [
-      "Cadastrar e editar produtos",
-      "Gerenciar categorias",
-      "Acompanhar pedidos",
-    ],
-    forMarketing: true,
+    forSecretaria: "espiritualidade",
   },
 ];
 
@@ -255,6 +261,15 @@ export default function AdminDashboard() {
 
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto mb-6">
+            <Link href="/">
+              <Button variant="outline" className="gap-2" data-testid="button-go-home">
+                <Home className="h-4 w-4" />
+                Ir para o Site
+              </Button>
+            </Link>
+          </div>
+          
           <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {filteredPanels.map((panel) => (
               <StaggerItem key={panel.id}>
@@ -263,12 +278,15 @@ export default function AdminDashboard() {
                   transition={{ duration: 0.3 }}
                   className="h-full"
                 >
-                  <Card className="h-full overflow-hidden">
+                  <Card className={`h-full overflow-hidden ${panel.isShop ? 'ring-2 ring-purple-500/30' : ''}`}>
                     <CardContent className="p-0">
                       <div className={`bg-gradient-to-br ${panel.color} p-6 text-white`}>
                         <div className="flex items-center justify-between mb-4">
-                          <panel.icon className="h-10 w-10" />
-                          <Sparkles className="h-5 w-5 opacity-50" />
+                          {panel.isShop ? (
+                            <img src={emauStoreLogo} alt="Emaustore" className="h-10 w-auto" />
+                          ) : (
+                            <panel.icon className="h-10 w-10" />
+                          )}
                         </div>
                         <h2 className="text-xl font-bold mb-1" data-testid={`panel-title-${panel.id}`}>
                           {panel.title}

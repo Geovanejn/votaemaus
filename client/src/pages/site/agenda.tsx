@@ -220,7 +220,15 @@ export default function AgendaPage() {
     
     const checkPaymentStatus = async () => {
       try {
-        const res = await fetch(`/api/treasury/entries/${pixData.entryId}/status`, { credentials: 'include' });
+        const token = localStorage.getItem('auth_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(`/api/treasury/entries/${pixData.entryId}/status`, { 
+          credentials: 'include',
+          headers 
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.paymentStatus === 'paid' || data.paymentStatus === 'completed') {
@@ -246,6 +254,47 @@ export default function AgendaPage() {
     
     return () => clearInterval(interval);
   }, [showPixModal, pixData?.entryId, pixPaymentConfirmed]);
+  
+  // Manual payment check function
+  const handleManualPaymentCheck = async () => {
+    if (!pixData?.entryId) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/treasury/entries/${pixData.entryId}/status`, { 
+        credentials: 'include',
+        headers 
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.paymentStatus === 'paid' || data.paymentStatus === 'completed') {
+          setPixPaymentConfirmed(true);
+          toast({ 
+            title: "Pagamento confirmado!", 
+            description: "Sua taxa foi paga com sucesso." 
+          });
+          setTimeout(() => {
+            handleClosePixModal();
+          }, 2000);
+        } else {
+          toast({ 
+            title: "Pagamento ainda nao confirmado", 
+            description: "Aguarde alguns instantes e tente novamente.",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      toast({ 
+        title: "Erro ao verificar pagamento", 
+        description: "Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+    }
+  };
   
   // Centralized handler for closing PIX modal
   const handleClosePixModal = () => {
@@ -970,6 +1019,15 @@ export default function AgendaPage() {
               <p className="text-sm text-muted-foreground text-center">
                 Apos o pagamento, aguarde alguns segundos para a confirmacao automatica.
               </p>
+              
+              <Button 
+                onClick={handleManualPaymentCheck}
+                className="w-full"
+                data-testid="button-check-payment"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Ja Paguei
+              </Button>
               
               <Button 
                 variant="outline" 

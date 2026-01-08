@@ -8728,7 +8728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         message: `Produto publicado! ${pushSent} notificações enviadas.`,
         pushSent,
-        emailsQueued: activeMembers.filter(m => m.email).length
+        emailsQueued
       });
     } catch (error) {
       console.error("Publish shop item error:", error);

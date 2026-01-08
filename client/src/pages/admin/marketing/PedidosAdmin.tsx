@@ -195,14 +195,14 @@ export default function PedidosAdminPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Link href="/admin/marketing">
+            <Link href="/admin/loja">
               <Button 
                 variant="ghost" 
                 className="mb-2 text-white/80 gap-2"
-                data-testid="button-back-marketing"
+                data-testid="button-back-loja"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Marketing
+                Gestao da Loja
               </Button>
             </Link>
             <div className="flex items-center gap-4">

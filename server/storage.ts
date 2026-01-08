@@ -7168,6 +7168,20 @@ export class DatabaseStorage implements IStorage {
     return entry;
   }
 
+  // Treasury receipt storage (for comprovantes)
+  async createTreasuryReceipt(data: { id: string; mimeType: string; data: string }): Promise<void> {
+    await db.insert(schema.treasuryReceipts)
+      .values(data)
+      .onConflictDoNothing();
+  }
+
+  async getTreasuryReceipt(id: string): Promise<{ mimeType: string; data: string } | null> {
+    const [receipt] = await db.select({ mimeType: schema.treasuryReceipts.mimeType, data: schema.treasuryReceipts.data })
+      .from(schema.treasuryReceipts)
+      .where(eq(schema.treasuryReceipts.id, id));
+    return receipt || null;
+  }
+
   async updateTreasuryEntry(id: number, data: Partial<InsertTreasuryEntry>): Promise<TreasuryEntry | null> {
     const [entry] = await db.update(schema.treasuryEntries)
       .set(data)

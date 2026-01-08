@@ -165,6 +165,8 @@ export default function TesourariaMovimentacoes() {
   const [formAmount, setFormAmount] = useState("");
   const [formMemberId, setFormMemberId] = useState<number | undefined>(undefined);
   const [formReferenceMonth, setFormReferenceMonth] = useState<string>("");
+  const [formReceipt, setFormReceipt] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
     queryKey: [`/api/treasury/entries?year=${currentYear}`],
@@ -241,9 +243,10 @@ export default function TesourariaMovimentacoes() {
     setFormAmount("");
     setFormMemberId(undefined);
     setFormReferenceMonth("");
+    setFormReceipt(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formCategory || !formAmount) {
       toast({ title: "Preencha todos os campos obrigatorios", variant: "destructive" });
       return;
@@ -253,6 +256,35 @@ export default function TesourariaMovimentacoes() {
     if (isNaN(amountCents) || amountCents <= 0) {
       toast({ title: "Valor invalido", variant: "destructive" });
       return;
+    }
+
+    let receiptUrl: string | undefined;
+
+    // Upload receipt if provided
+    if (formReceipt) {
+      setUploadingReceipt(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", formReceipt);
+        
+        const uploadRes = await fetch("/api/treasury/upload-receipt", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        
+        if (uploadRes.ok) {
+          const data = await uploadRes.json();
+          receiptUrl = data.url;
+        } else {
+          toast({ title: "Erro ao enviar comprovante", variant: "destructive" });
+        }
+      } catch (err) {
+        console.error("Receipt upload error:", err);
+        toast({ title: "Erro ao enviar comprovante", variant: "destructive" });
+      } finally {
+        setUploadingReceipt(false);
+      }
     }
 
     createEntryMutation.mutate({
@@ -265,6 +297,7 @@ export default function TesourariaMovimentacoes() {
       userId: formMemberId,
       referenceMonth: formReferenceMonth ? parseInt(formReferenceMonth) : undefined,
       referenceYear: currentYear,
+      receiptUrl,
     });
   };
 
@@ -457,6 +490,22 @@ export default function TesourariaMovimentacoes() {
                         data-testid="input-description"
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Comprovante (opcional)</Label>
+                      <Input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setFormReceipt(e.target.files?.[0] || null)}
+                        data-testid="input-receipt"
+                        className="cursor-pointer"
+                      />
+                      {formReceipt && (
+                        <p className="text-xs text-muted-foreground">
+                          Arquivo selecionado: {formReceipt.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)}>
@@ -464,11 +513,11 @@ export default function TesourariaMovimentacoes() {
                     </Button>
                     <Button 
                       onClick={handleSubmit}
-                      disabled={createEntryMutation.isPending}
+                      disabled={createEntryMutation.isPending || uploadingReceipt}
                       data-testid="button-submit-entry"
                     >
-                      {createEntryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                      Registrar
+                      {(createEntryMutation.isPending || uploadingReceipt) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      {uploadingReceipt ? "Enviando..." : "Registrar"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

@@ -2147,6 +2147,16 @@ export const insertTreasuryLoanInstallmentSchema = createInsertSchema(treasuryLo
 export type InsertTreasuryLoanInstallment = z.infer<typeof insertTreasuryLoanInstallmentSchema>;
 export type TreasuryLoanInstallment = typeof treasuryLoanInstallments.$inferSelect;
 
+// Arquivos de comprovante (receipts)
+export const treasuryReceipts = pgTable("treasury_receipts", {
+  id: text("id").primaryKey(), // UUID/hash
+  mimeType: text("mime_type").notNull(),
+  data: text("data").notNull(), // Base64 encoded
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type TreasuryReceipt = typeof treasuryReceipts.$inferSelect;
+
 // Entradas e saídas da tesouraria
 export const treasuryEntries = pgTable("treasury_entries", {
   id: serial("id").primaryKey(),

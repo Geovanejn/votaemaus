@@ -131,6 +131,11 @@ export default function TesourariaDashboard() {
     enabled: hasTreasuryPanel,
   });
 
+  const { data: incomeData, isLoading: isLoadingIncome } = useQuery<CategoryExpense[]>({
+    queryKey: ["/api/treasury/dashboard/category-income"],
+    enabled: hasTreasuryPanel,
+  });
+
   if (!hasTreasuryPanel) {
     setLocation("/admin");
     return null;
@@ -366,63 +371,136 @@ export default function TesourariaDashboard() {
             </Card>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mb-8"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Despesas por Categoria</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingCategory ? (
-                  <div className="flex items-center justify-center h-[200px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : !categoryData || categoryData.length === 0 ? (
-                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                    Sem despesas registradas
-                  </div>
-                ) : (
-                  <div className="h-[250px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={80}
-                          paddingAngle={2}
-                          dataKey="amount"
-                          nameKey="category"
-                          label={({ category, percent }) => 
-                            `${categoryLabels[category] || category} ${(percent * 100).toFixed(0)}%`
-                          }
-                          labelLine={false}
-                        >
-                          {categoryData.map((_, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} 
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          formatter={(value: number) => 
-                            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
-                          }
-                          labelFormatter={(label) => categoryLabels[label] || label}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+          {/* Income and Expense Charts - Side by side on desktop, stacked on mobile */}
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            {/* Income by Category */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    Entradas por Categoria
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingIncome ? (
+                    <div className="flex items-center justify-center h-[200px]">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !incomeData || incomeData.length === 0 ? (
+                    <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+                      Sem entradas registradas
+                    </div>
+                  ) : (
+                    <div className="h-[220px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={incomeData}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={30}
+                            outerRadius={60}
+                            paddingAngle={2}
+                            dataKey="amount"
+                            nameKey="category"
+                          >
+                            {incomeData.map((_, index) => (
+                              <Cell 
+                                key={`cell-income-${index}`} 
+                                fill={["#22c55e", "#16a34a", "#15803d", "#166534", "#14532d", "#84cc16", "#65a30d"][index % 7]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => 
+                              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+                            }
+                            labelFormatter={(label) => categoryLabels[label] || label}
+                          />
+                          <Legend 
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            align="center"
+                            formatter={(value) => categoryLabels[value] || value}
+                            wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Expenses by Category */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingDown className="h-5 w-5 text-red-500" />
+                    Despesas por Categoria
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingCategory ? (
+                    <div className="flex items-center justify-center h-[200px]">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !categoryData || categoryData.length === 0 ? (
+                    <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+                      Sem despesas registradas
+                    </div>
+                  ) : (
+                    <div className="h-[220px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={categoryData}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={30}
+                            outerRadius={60}
+                            paddingAngle={2}
+                            dataKey="amount"
+                            nameKey="category"
+                          >
+                            {categoryData.map((_, index) => (
+                              <Cell 
+                                key={`cell-expense-${index}`} 
+                                fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => 
+                              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
+                            }
+                            labelFormatter={(label) => categoryLabels[label] || label}
+                          />
+                          <Legend 
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            align="center"
+                            formatter={(value) => categoryLabels[value] || value}
+                            wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {menuItems.map((item, index) => (

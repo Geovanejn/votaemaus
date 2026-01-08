@@ -209,13 +209,49 @@ export default function AgendaPage() {
     qrCodeBase64?: string;
     amount?: number;
     expiresAt?: string;
+    entryId?: number;
   } | null>(null);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [pixPaymentConfirmed, setPixPaymentConfirmed] = useState(false);
+  
+  // PIX payment polling - check status every 5 seconds while modal is open
+  useEffect(() => {
+    if (!showPixModal || !pixData?.entryId || pixPaymentConfirmed) return;
+    
+    const checkPaymentStatus = async () => {
+      try {
+        const res = await fetch(`/api/treasury/entries/${pixData.entryId}/status`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paymentStatus === 'paid' || data.paymentStatus === 'completed') {
+            setPixPaymentConfirmed(true);
+            toast({ 
+              title: "Pagamento confirmado!", 
+              description: "Sua taxa foi paga com sucesso." 
+            });
+            // Close modal after a brief delay to show confirmation
+            setTimeout(() => {
+              handleClosePixModal();
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+      }
+    };
+    
+    // Check immediately and then every 5 seconds
+    checkPaymentStatus();
+    const interval = setInterval(checkPaymentStatus, 5000);
+    
+    return () => clearInterval(interval);
+  }, [showPixModal, pixData?.entryId, pixPaymentConfirmed]);
   
   // Centralized handler for closing PIX modal
   const handleClosePixModal = () => {
     setShowPixModal(false);
     setPixData(null);
+    setPixPaymentConfirmed(false);
     // Refresh confirmation status when closing modal
     if (selectedEvent?.id) {
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent.id, 'my-confirmation'] });
@@ -332,6 +368,20 @@ export default function AgendaPage() {
     }
   }, [params.id, eventsData]);
 
+  // Query for all event confirmation counts (batch)
+  const eventIds = (eventsData || []).map(e => e.id);
+  const { data: allConfirmationCounts } = useQuery<Record<number, { members: number; visitors: number }>>({
+    queryKey: ['/api/site/events/confirmation-counts', eventIds.join(',')],
+    queryFn: async () => {
+      if (eventIds.length === 0) return {};
+      const res = await fetch(`/api/site/events/confirmation-counts?ids=${eventIds.join(',')}`);
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: eventIds.length > 0,
+    staleTime: 30000,
+  });
+
   const processedEvents = (eventsData || []).map((event, index) => ({
     ...event,
     date: parseEventDate(event.startDate),
@@ -341,6 +391,7 @@ export default function AgendaPage() {
     image: event.imageUrl && !event.imageUrl.includes('placeholder') 
       ? event.imageUrl 
       : fallbackImages[index % fallbackImages.length],
+    confirmationCount: allConfirmationCounts?.[event.id] || { members: 0, visitors: 0 },
   }));
 
   const eventDates = processedEvents.map(e => e.date.toDateString());
@@ -535,6 +586,11 @@ export default function AgendaPage() {
                                       <span className="flex items-center gap-1">
                                         <Users className="h-4 w-4 text-primary" />
                                         {event.organizer}
+                                        {event.confirmationCount.members > 0 && (
+                                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-1">
+                                            {event.confirmationCount.members + event.confirmationCount.visitors} confirmado(s)
+                                          </span>
+                                        )}
                                       </span>
                                     </div>
                                     <div className="mt-4">

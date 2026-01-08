@@ -4863,6 +4863,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get confirmation counts for multiple events (batch)
+  app.get("/api/site/events/confirmation-counts", async (req, res) => {
+    try {
+      const idsParam = req.query.ids as string;
+      if (!idsParam) {
+        return res.json({});
+      }
+      
+      const eventIds = idsParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      if (eventIds.length === 0) {
+        return res.json({});
+      }
+      
+      const result: Record<number, { members: number; visitors: number }> = {};
+      
+      // Batch fetch all confirmations
+      for (const eventId of eventIds) {
+        const counts = await storage.getEventConfirmationCount(eventId);
+        result[eventId] = counts;
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Get confirmation counts batch error:", error);
+      res.status(500).json({ message: "Erro ao buscar contagens" });
+    }
+  });
+
   // Get instagram posts
   app.get("/api/site/instagram", async (req, res) => {
     try {
@@ -10072,6 +10100,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get income breakdown by category
+  app.get("/api/treasury/dashboard/category-income", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const entries = await storage.getTreasuryEntries({ year, type: "income" });
+      
+      const categoryMap = new Map<string, number>();
+      
+      entries.forEach(entry => {
+        if (entry.paymentStatus === "paid" || entry.paymentStatus === "completed") {
+          const current = categoryMap.get(entry.category) || 0;
+          categoryMap.set(entry.category, current + entry.amount);
+        }
+      });
+      
+      const categoryData = Array.from(categoryMap.entries())
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount);
+      
+      res.json(categoryData);
+    } catch (error) {
+      console.error("Get category income error:", error);
+      res.status(500).json({ message: "Erro ao buscar dados de entrada por categoria" });
+    }
+  });
+
   // Get settings by year (for frontend query format)
   app.get("/api/treasury/settings/:year", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -10143,6 +10197,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get member tax status error:", error);
       res.status(500).json({ message: "Erro ao buscar status de taxas" });
+    }
+  });
+
+  // Upload de comprovante (stores in database as compressed base64)
+  app.post("/api/treasury/upload-receipt", authenticateToken, requireTreasurer, imageUpload.single("file"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum arquivo enviado" });
+      }
+      
+      // Validate file type strictly
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: "Tipo de arquivo nao permitido. Use imagens (JPEG, PNG, WebP, GIF) ou PDF." });
+      }
+      
+      // Enforce max size (5MB for images, 2MB for PDFs)
+      const maxSize = req.file.mimetype === "application/pdf" ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ 
+          message: req.file.mimetype === "application/pdf" 
+            ? "PDF muito grande. Maximo 2MB." 
+            : "Imagem muito grande. Maximo 5MB." 
+        });
+      }
+      
+      const sharp = (await import("sharp")).default;
+      const crypto = (await import("crypto")).default;
+      
+      let fileBuffer = req.file.buffer;
+      let mimeType = req.file.mimetype;
+      
+      // Compress images to reduce storage size
+      if (mimeType.startsWith("image/")) {
+        fileBuffer = await sharp(req.file.buffer)
+          .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality: 70 })
+          .toBuffer();
+        mimeType = "image/jpeg";
+      }
+      
+      // Generate unique ID and store in database
+      const fileId = crypto.randomBytes(16).toString("hex");
+      const base64 = fileBuffer.toString("base64");
+      
+      await storage.createTreasuryReceipt({ id: fileId, mimeType, data: base64 });
+      
+      // Return URL that can be used to retrieve the file
+      res.json({ url: `/api/treasury/receipts/${fileId}` });
+    } catch (error) {
+      console.error("Upload receipt error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload do comprovante" });
+    }
+  });
+
+  // Serve uploaded receipts
+  app.get("/api/treasury/receipts/:id", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const receipt = await storage.getTreasuryReceipt(id);
+      
+      if (!receipt) {
+        return res.status(404).json({ message: "Comprovante nao encontrado" });
+      }
+      
+      const buffer = Buffer.from(receipt.data, "base64");
+      res.set("Content-Type", receipt.mimeType);
+      res.set("Cache-Control", "private, max-age=86400");
+      res.send(buffer);
+    } catch (error) {
+      console.error("Get receipt error:", error);
+      res.status(500).json({ message: "Erro ao buscar comprovante" });
     }
   });
 
@@ -11192,6 +11318,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Send bulk treasury reminder error:", error);
       res.status(500).json({ message: "Erro ao enviar notificacoes" });
+    }
+  });
+
+  // ==================== TREASURY ENTRY STATUS (for PIX polling) ====================
+  
+  // Get treasury entry payment status (for PIX modal polling)
+  app.get("/api/treasury/entries/:entryId/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user!.id;
+      
+      const entry = await storage.getTreasuryEntryById(entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Entry not found" });
+      }
+      
+      // Verify user owns this entry (for event fee, shop order, etc.)
+      if (entry.userId && entry.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      res.json({ 
+        paymentStatus: entry.paymentStatus,
+        paidAt: entry.paidAt,
+      });
+    } catch (error) {
+      console.error("Get entry status error:", error);
+      res.status(500).json({ message: "Erro ao buscar status" });
     }
   });
 

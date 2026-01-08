@@ -10,7 +10,6 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { UnifiedNotificationPrompt } from "@/components/unified-notification-prompt";
 
-import LoginPage from "@/pages/login";
 import VerifyPage from "@/pages/verify";
 import SiteHomePage from "@/pages/site/home";
 
@@ -145,7 +144,9 @@ function Router() {
             <Route path="/oracao" component={OracaoPage} />
             <Route path="/membro" component={MembroPage} />
             <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
-            <Route path="/login" component={LoginPage} />
+            <Route path="/login">
+              <Redirect to="/membro" />
+            </Route>
             <Route>
               <Redirect to="/" />
             </Route>
@@ -241,7 +242,9 @@ function Router() {
           <Route path="/oracao" component={OracaoPage} />
           <Route path="/membro" component={MembroPage} />
           <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
-          <Route path="/login" component={LoginPage} />
+          <Route path="/login">
+            <Redirect to="/membro" />
+          </Route>
           <Route>
             <Redirect to="/" />
           </Route>
@@ -324,7 +327,9 @@ function Router() {
         <Route path="/oracao" component={OracaoPage} />
         <Route path="/membro" component={MembroPage} />
         <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
-        <Route path="/login" component={LoginPage} />
+        <Route path="/login">
+          <Redirect to="/membro" />
+        </Route>
         <Route>
           <Redirect to="/" />
         </Route>

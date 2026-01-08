@@ -10,9 +10,10 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { UnifiedNotificationPrompt } from "@/components/unified-notification-prompt";
 
-const LoginPage = lazy(() => import("@/pages/login"));
-const VerifyPage = lazy(() => import("@/pages/verify"));
-const SiteHomePage = lazy(() => import("@/pages/site/home"));
+import LoginPage from "@/pages/login";
+import VerifyPage from "@/pages/verify";
+import SiteHomePage from "@/pages/site/home";
+
 const DevocionaisPage = lazy(() => import("@/pages/site/devocionais"));
 const DevocionalDetailPage = lazy(() => import("@/pages/site/devocional-detail"));
 const AgendaPage = lazy(() => import("@/pages/site/agenda"));

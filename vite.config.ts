@@ -43,17 +43,14 @@ export default defineConfig({
             if (id.includes('framer-motion')) {
               return 'animation-vendor';
             }
-            if (id.includes('@radix-ui') || id.includes('cmdk')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('@tanstack')) {
-              return 'tanstack-vendor';
-            }
             if (id.includes('@tiptap') || id.includes('prosemirror')) {
               return 'editor-vendor';
             }
-            if (id.includes('lucide-react')) {
-              return 'icons-vendor';
+            if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('exceljs')) {
+              return 'pdf-vendor';
+            }
+            if (id.includes('date-fns') || id.includes('zod') || id.includes('@tanstack')) {
+              return 'utils-vendor';
             }
             return 'vendor';
           }

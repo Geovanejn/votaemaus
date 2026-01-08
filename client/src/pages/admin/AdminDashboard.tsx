@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                             }}
                           />
                           <div className="relative z-10">
-                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-6 w-auto drop-shadow-lg mb-3" />
+                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-8 w-auto drop-shadow-lg mb-3" />
                             <h2 className="text-xl font-bold text-white mb-1" data-testid={`panel-title-${panel.id}`}>
                               {panel.title}
                             </h2>

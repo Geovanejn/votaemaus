@@ -780,7 +780,7 @@ export default function LojaAdmin() {
             </Link>
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-8 w-auto drop-shadow-lg mb-2" />
+                <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-11 w-auto drop-shadow-lg mb-2" />
                 <h1 className="text-2xl md:text-3xl font-bold" data-testid="text-shop-admin-title">
                   Gestão da Loja
                 </h1>

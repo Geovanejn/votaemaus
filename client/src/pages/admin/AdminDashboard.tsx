@@ -49,33 +49,33 @@ const adminPanels = [
   // === ELECTIONS GROUP (Green) ===
   {
     id: "emaus-vota",
-    title: "Eleicoes",
-    subtitle: "Sistema de Votacao",
-    description: "Participe das eleicoes e acompanhe os resultados em tempo real.",
+    title: "Eleições",
+    subtitle: "Sistema de Votação",
+    description: "Participe das eleições e acompanhe os resultados em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",
     buttonColor: "bg-green-600 hover:bg-green-700",
     href: "/vote",
     features: [
-      "Votar em eleicoes ativas",
+      "Votar em eleições ativas",
       "Ver resultados",
-      "Acompanhar votacoes",
+      "Acompanhar votações",
     ],
     forMember: true,
   },
   {
     id: "emaus-vota-admin",
-    title: "Painel de Eleicoes",
-    subtitle: "Gerenciamento de Votacoes",
-    description: "Gerencie eleicoes, candidatos, membros e acompanhe votacoes em tempo real.",
+    title: "Painel de Eleições",
+    subtitle: "Gerenciamento de Votações",
+    description: "Gerencie eleições, candidatos, membros e acompanhe votações em tempo real.",
     icon: Vote,
     color: "from-green-500 to-emerald-600",
     buttonColor: "bg-green-600 hover:bg-green-700",
     href: "/admin/emaus-vota",
     features: [
-      "Criar e gerenciar eleicoes",
+      "Criar e gerenciar eleições",
       "Cadastrar membros e candidatos",
-      "Controlar lista de presenca",
+      "Controlar lista de presença",
     ],
     forAdmin: true,
   },
@@ -84,13 +84,13 @@ const adminPanels = [
     id: "deoglory-study",
     title: "DeoGlory",
     subtitle: "Plataforma de Estudos",
-    description: "Estude a Biblia de forma gamificada, ganhe conquistas e suba no ranking.",
+    description: "Estude a Bíblia de forma gamificada, ganhe conquistas e suba no ranking.",
     icon: GraduationCap,
     color: "from-blue-500 to-indigo-600",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
     href: "/study",
     features: [
-      "Estudos biblicos interativos",
+      "Estudos bíblicos interativos",
       "Conquistas e recompensas",
       "Ranking entre membros",
     ],
@@ -100,13 +100,13 @@ const adminPanels = [
     id: "deoglory-admin",
     title: "DeoGlory Admin",
     subtitle: "Gerenciamento de Estudos",
-    description: "Gerencie temporadas, licoes e conteudo do sistema de estudos gamificado.",
+    description: "Gerencie temporadas, lições e conteúdo do sistema de estudos gamificado.",
     icon: GraduationCap,
     color: "from-blue-500 to-indigo-600",
     buttonColor: "bg-blue-600 hover:bg-blue-700",
     href: "/admin/study",
     features: [
-      "Criar temporadas e licoes",
+      "Criar temporadas e lições",
       "Gerenciar conquistas",
       "Acompanhar progresso",
     ],
@@ -152,7 +152,7 @@ const adminPanels = [
     id: "meu-financeiro",
     title: "Meu Financeiro",
     subtitle: "Status Financeiro",
-    description: "Consulte suas taxas, pagamentos e acompanhe sua situacao financeira com a UMP.",
+    description: "Consulte suas taxas, pagamentos e acompanhe sua situação financeira com a UMP.",
     icon: Wallet,
     color: "from-amber-500 to-orange-600",
     buttonColor: "bg-amber-600 hover:bg-amber-700",
@@ -167,16 +167,16 @@ const adminPanels = [
   {
     id: "tesouraria",
     title: "Tesouraria",
-    subtitle: "Gestao Financeira",
-    description: "Gerencie pagamentos, taxas, emprestimos e acompanhe as financas da UMP.",
+    subtitle: "Gestão Financeira",
+    description: "Gerencie pagamentos, taxas, empréstimos e acompanhe as finanças da UMP.",
     icon: Wallet,
     color: "from-amber-500 to-orange-600",
     buttonColor: "bg-amber-600 hover:bg-amber-700",
     href: "/admin/tesouraria",
     features: [
-      "Controle de entradas e saidas",
-      "Gerenciar taxas e emprestimos",
-      "Loja virtual e relatorios",
+      "Controle de entradas e saídas",
+      "Gerenciar taxas e empréstimos",
+      "Loja virtual e relatórios",
     ],
     forTreasurer: true,
   },
@@ -184,8 +184,8 @@ const adminPanels = [
   {
     id: "marketing",
     title: "Painel Marketing",
-    subtitle: "Eventos e Comunicacao",
-    description: "Gerencie eventos, diretoria e a comunicacao visual da UMP.",
+    subtitle: "Eventos e Comunicação",
+    description: "Gerencie eventos, diretoria e a comunicação visual da UMP.",
     icon: Megaphone,
     color: "from-cyan-500 to-cyan-600",
     buttonColor: "bg-cyan-600 hover:bg-cyan-700",
@@ -193,7 +193,7 @@ const adminPanels = [
     features: [
       "Criar e gerenciar eventos",
       "Editar membros da diretoria",
-      "Gerenciar pagina Quem Somos",
+      "Gerenciar página Quem Somos",
     ],
     forSecretaria: "marketing",
   },
@@ -201,15 +201,15 @@ const adminPanels = [
     id: "espiritualidade",
     title: "Painel Espiritualidade",
     subtitle: "Gerenciamento Devocional",
-    description: "Gerencie devocionais, pedidos de oracao e conteudo espiritual da UMP.",
+    description: "Gerencie devocionais, pedidos de oração e conteúdo espiritual da UMP.",
     icon: Heart,
     color: "from-rose-500 to-pink-600",
     buttonColor: "bg-rose-600 hover:bg-rose-700",
     href: "/admin/espiritualidade",
     features: [
       "Criar e editar devocionais",
-      "Moderar pedidos de oracao",
-      "Gerenciar comentarios",
+      "Moderar pedidos de oração",
+      "Gerenciar comentários",
     ],
     forSecretaria: "espiritualidade",
   },
@@ -282,7 +282,7 @@ export default function AdminDashboard() {
                     <Card className="h-full overflow-hidden ring-2 ring-orange-400/50 shadow-lg">
                       <CardContent className="p-0">
                         <div 
-                          className="relative p-6 overflow-hidden"
+                          className="relative pt-3 px-6 pb-6 overflow-hidden"
                           style={{
                             background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 50%, #1a1a1a 100%)',
                           }}
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                             }}
                           />
                           <div className="relative z-10">
-                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-8 w-auto drop-shadow-lg mb-3" />
+                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-6 w-auto drop-shadow-lg mb-3" />
                             <h2 className="text-xl font-bold text-white mb-1" data-testid={`panel-title-${panel.id}`}>
                               {panel.title}
                             </h2>

@@ -232,7 +232,7 @@ export default function LojaHomePage() {
                 <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
                   <div 
                     className="relative aspect-square overflow-hidden bg-gray-100 cursor-pointer flex-shrink-0 snap-start rounded-lg"
-                    style={{ width: 'calc((100vw - 1.5rem - 0.5rem) / 2)' }}
+                    style={{ width: 'calc((100vw - 1.5rem - 1rem) / 3)' }}
                     data-testid={`card-category-${cat.id}`}
                   >
                     {categoryImage ? (

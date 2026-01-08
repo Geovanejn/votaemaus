@@ -7262,6 +7262,23 @@ export class DatabaseStorage implements IStorage {
     return installment || null;
   }
 
+  // OPTIMIZED: Batch fetch loan installments by loan IDs
+  async getTreasuryLoanInstallmentsByLoanIds(loanIds: number[]): Promise<Map<number, TreasuryLoanInstallment[]>> {
+    if (loanIds.length === 0) return new Map();
+    const installments = await db.select()
+      .from(schema.treasuryLoanInstallments)
+      .where(inArray(schema.treasuryLoanInstallments.loanId, loanIds))
+      .orderBy(asc(schema.treasuryLoanInstallments.dueDate));
+    
+    const map = new Map<number, TreasuryLoanInstallment[]>();
+    for (const inst of installments) {
+      const existing = map.get(inst.loanId) || [];
+      existing.push(inst);
+      map.set(inst.loanId, existing);
+    }
+    return map;
+  }
+
   // ==================== MEMBER PERCAPTA PAYMENTS METHODS ====================
 
   async getMemberPercaptaPayment(userId: number, year: number): Promise<MemberPercaptaPayment | null> {
@@ -7699,6 +7716,35 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { members, visitors };
+  }
+
+  // OPTIMIZED: Batch fetch event confirmation counts by event IDs
+  async getEventConfirmationCountsByEventIds(eventIds: number[]): Promise<Map<number, { members: number; visitors: number }>> {
+    if (eventIds.length === 0) return new Map();
+    
+    const confirmations = await db.select()
+      .from(schema.eventConfirmations)
+      .where(inArray(schema.eventConfirmations.eventId, eventIds));
+    
+    const map = new Map<number, { members: number; visitors: number }>();
+    
+    // Initialize all event IDs with zero counts
+    for (const eventId of eventIds) {
+      map.set(eventId, { members: 0, visitors: 0 });
+    }
+    
+    // Count confirmations per event
+    for (const c of confirmations) {
+      const counts = map.get(c.eventId)!;
+      if (c.isVisitor) {
+        counts.visitors += (c.visitorCount || 1);
+      } else {
+        counts.members++;
+        counts.visitors += (c.visitorCount || 0);
+      }
+    }
+    
+    return map;
   }
 
   // Promo Codes Methods

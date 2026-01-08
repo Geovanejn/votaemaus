@@ -8117,18 +8117,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === ROTAS MEMBROS - EVENTOS ESPECIAIS ===
 
-  // Listar eventos ativos para membros (with confirmation counts)
+  // OPTIMIZED: Listar eventos ativos para membros - batch confirmation counts
   app.get("/api/study/events", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getActiveStudyEvents();
       
-      // Fetch confirmation counts in parallel for all events
-      const eventsWithCounts = await Promise.all(events.map(async (event) => {
-        const counts = await storage.getEventConfirmationCount(event.id);
-        return {
-          ...event,
-          confirmationCount: counts,
-        };
+      if (events.length === 0) {
+        return res.json([]);
+      }
+      
+      // OPTIMIZED: Batch fetch all confirmation counts in one query
+      const eventIds = events.map(e => e.id);
+      const countsMap = await storage.getEventConfirmationCountsByEventIds(eventIds);
+      
+      const eventsWithCounts = events.map(event => ({
+        ...event,
+        confirmationCount: countsMap.get(event.id) || { members: 0, visitors: 0 },
       }));
       
       res.json(eventsWithCounts);
@@ -10362,7 +10366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get member tax status for treasury panel (shows ALL members for tracking)
+  // OPTIMIZED: Get member tax status for treasury panel - batch queries
   app.get("/api/treasury/members/tax-status/:year", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const year = parseInt(req.params.year);
@@ -10370,22 +10374,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Ano inválido" });
       }
       
-      const settings = await storage.getTreasurySettings(year);
+      // Batch fetch settings and members in parallel
+      const [settings, allMembers] = await Promise.all([
+        storage.getTreasurySettings(year),
+        storage.getAllMembers(true),
+      ]);
+      
       const percaptaAmount = settings?.percaptaAmount ?? 0;
       const umpMonthlyAmount = settings?.umpMonthlyAmount ?? 0;
       
-      // Get ALL members (including inactive ones - activeMember field is just for filtering)
-      const allMembers = await storage.getAllMembers(true);
       // Filter only sócio ativo (activeMember = true) for tax tracking
       const activeMembers = allMembers.filter(m => m.activeMember === true);
       
-      // Calculate total annual debt (all 12 months, not just up to current month)
-      const memberStatuses = await Promise.all(activeMembers.map(async (member) => {
-        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
-        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+      // OPTIMIZED: Batch fetch all percapta and ump payments in one query each
+      const [percaptaMap, umpMap] = await Promise.all([
+        storage.getAllMemberPercaptaPayments(year),
+        storage.getAllMemberUmpPayments(year),
+      ]);
+      
+      // Calculate total annual debt using batch data
+      const memberStatuses = activeMembers.map(member => {
+        const percaptaPayment = percaptaMap.get(member.id);
+        const umpPayments = umpMap.get(member.id) || [];
         
         const paidMonths = umpPayments.filter(p => p.paidAt).map(p => p.month);
-        // Count all 12 months of the year for annual total
         const unpaidMonths = Array.from({ length: 12 }, (_, i) => i + 1)
           .filter(m => !paidMonths.includes(m));
         
@@ -10401,7 +10413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           umpMonthsPaid: paidMonths,
           totalOwed: percaptaOwed + umpOwed,
         };
-      }));
+      });
       
       res.json(memberStatuses);
     } catch (error) {
@@ -10530,14 +10542,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar empréstimos
+  // OPTIMIZED: Listar empréstimos - batch installments
   app.get("/api/treasury/loans", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const loans = await storage.getTreasuryLoans();
       
-      const loansWithInstallments = await Promise.all(loans.map(async (loan) => {
-        const installments = await storage.getTreasuryLoanInstallments(loan.id);
-        return { ...loan, installments };
+      if (loans.length === 0) {
+        return res.json([]);
+      }
+      
+      // OPTIMIZED: Batch fetch all installments in one query
+      const loanIds = loans.map(l => l.id);
+      const installmentsMap = await storage.getTreasuryLoanInstallmentsByLoanIds(loanIds);
+      
+      const loansWithInstallments = loans.map(loan => ({
+        ...loan,
+        installments: installmentsMap.get(loan.id) || [],
       }));
       
       res.json(loansWithInstallments);
@@ -10627,7 +10647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar status de pagamentos de todos os membros (para painel do tesoureiro)
+  // OPTIMIZED: Listar status de pagamentos de todos os membros - batch queries
   // IMPORTANT: Only "sócio ativo" (activeMember = true) pay taxes (Percapta/UMP)
   app.get("/api/treasury/member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -10636,9 +10656,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter by activeMember (sócio ativo checkbox), not isMember
       const activeMembers = members.filter(m => m.activeMember === true);
       
-      const memberPayments = await Promise.all(activeMembers.map(async (member) => {
-        const percapta = await storage.getMemberPercaptaPayment(member.id, year);
-        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+      // OPTIMIZED: Batch fetch all percapta and ump payments in one query each
+      const [percaptaMap, umpMap] = await Promise.all([
+        storage.getAllMemberPercaptaPayments(year),
+        storage.getAllMemberUmpPayments(year),
+      ]);
+      
+      const memberPayments = activeMembers.map(member => {
+        const percapta = percaptaMap.get(member.id);
+        const umpPayments = umpMap.get(member.id) || [];
         
         return {
           member: {
@@ -10652,7 +10678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           umpPaidMonths: umpPayments.length,
           umpTotalMonths: 12,
         };
-      }));
+      });
       
       res.json(memberPayments);
     } catch (error) {
@@ -10663,21 +10689,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== MEMBER FINANCIAL PANEL ROUTES ====================
 
-  // Obter meu painel financeiro
+  // OPTIMIZED: Obter meu painel financeiro - parallel + batch queries
   app.get("/api/my-finances", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const userId = req.user!.id;
       
-      const settings = await storage.getTreasurySettings(year);
-      const percapta = await storage.getMemberPercaptaPayment(userId, year);
-      const umpPayments = await storage.getMemberUmpPayments(userId, year);
+      // OPTIMIZED: Parallel fetch all data
+      const [settings, percapta, umpPayments, orders] = await Promise.all([
+        storage.getTreasurySettings(year),
+        storage.getMemberPercaptaPayment(userId, year),
+        storage.getMemberUmpPayments(userId, year),
+        storage.getShopOrders({ userId }),
+      ]);
       
-      const orders = await storage.getShopOrders({ userId });
-      const ordersWithItems = await Promise.all(orders.map(async (order) => {
-        const items = await storage.getShopOrderItems(order.id);
-        return { ...order, items };
-      }));
+      // OPTIMIZED: Batch fetch order items if there are orders
+      let ordersWithItems: Array<typeof orders[0] & { items: any[] }> = [];
+      if (orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const orderItemsMap = await storage.getShopOrderItemsByOrderIds(orderIds);
+        ordersWithItems = orders.map(order => ({
+          ...order,
+          items: orderItemsMap.get(order.id) || [],
+        }));
+      }
       
       res.json({
         year,
@@ -10984,7 +11019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get member's shop orders with installments for financial panel
+  // OPTIMIZED: Get member's shop orders with installments - batch all queries
   app.get("/api/treasury/member/shop-orders", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
@@ -10995,13 +11030,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const orderIds = orders.map(o => o.id);
-      const [orderItemsMap, installmentsResults] = await Promise.all([
+      // OPTIMIZED: Batch fetch items and installments in parallel (single query each)
+      const [orderItemsMap, installmentsMap] = await Promise.all([
         storage.getShopOrderItemsByOrderIds(orderIds),
-        Promise.all(orderIds.map(id => storage.getShopInstallments(id))),
+        storage.getShopInstallmentsByOrderIds(orderIds),
       ]);
-      
-      const installmentsMap = new Map<number, typeof installmentsResults[0]>();
-      orderIds.forEach((id, idx) => installmentsMap.set(id, installmentsResults[idx]));
       
       const allItems = Array.from(orderItemsMap.values()).flat();
       const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
@@ -11196,31 +11229,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get pending fee members for manual notifications
+  // OPTIMIZED: Get pending fee members for manual notifications - batch queries
   app.get("/api/treasury/notifications/pending-members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const year = new Date().getFullYear();
-      const allMembers = await storage.getAllMembers();
-      const settings = await storage.getTreasurySettings(year);
+      const [allMembers, settings] = await Promise.all([
+        storage.getAllMembers(),
+        storage.getTreasurySettings(year),
+      ]);
       
       if (!settings) {
         return res.json([]);
       }
       
+      // OPTIMIZED: Batch fetch all percapta and ump payments
+      const [percaptaMap, umpMap] = await Promise.all([
+        storage.getAllMemberPercaptaPayments(year),
+        storage.getAllMemberUmpPayments(year),
+      ]);
+      
       const pendingPercapta: Array<{ id: number; fullName: string; type: string }> = [];
       const pendingUmp: Array<{ id: number; fullName: string; type: string }> = [];
+      const currentMonth = new Date().getMonth() + 1;
       
       for (const member of allMembers) {
         // CRITICAL: Only active members should pay percapta and UMP
         if (!member.activeMember) continue;
         
-        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
+        const percaptaPayment = percaptaMap.get(member.id);
         if (!percaptaPayment) {
           pendingPercapta.push({ id: member.id, fullName: member.fullName, type: "percapta" });
         }
         
-        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
-        const currentMonth = new Date().getMonth() + 1;
+        const umpPayments = umpMap.get(member.id) || [];
         const paidMonths = umpPayments.map(p => p.month);
         const unpaidMonths = Array.from({ length: currentMonth }, (_, i) => i + 1)
           .filter(m => !paidMonths.includes(m));
@@ -11640,19 +11681,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // List all events with fees
+  // OPTIMIZED: List all events with fees - batch confirmation counts
   app.get("/api/treasury/events-with-fees", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const eventsWithFees = await storage.getEventsWithFees();
       
-      // Add confirmation counts
-      const result = await Promise.all(eventsWithFees.map(async ({ event, fee }) => {
-        const counts = await storage.getEventConfirmationCount(event.id);
-        return {
-          event,
-          fee,
-          confirmationCount: counts,
-        };
+      if (eventsWithFees.length === 0) {
+        return res.json([]);
+      }
+      
+      // OPTIMIZED: Batch fetch all confirmation counts in one query
+      const eventIds = eventsWithFees.map(e => e.event.id);
+      const countsMap = await storage.getEventConfirmationCountsByEventIds(eventIds);
+      
+      const result = eventsWithFees.map(({ event, fee }) => ({
+        event,
+        fee,
+        confirmationCount: countsMap.get(event.id) || { members: 0, visitors: 0 },
       }));
       
       res.json(result);
@@ -11664,19 +11709,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP PAYMENTS (TREASURER) ====================
   
-  // List all shop orders with payment details for treasurer
+  // OPTIMIZED: List all shop orders with payment details for treasurer - batch all queries
   app.get("/api/treasury/shop/orders", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const status = req.query.status as string | undefined;
       const orders = await storage.getShopOrders(status ? { status } : undefined);
       
-      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
-        const items = await storage.getShopOrderItems(order.id);
-        const user = await storage.getUserById(order.userId);
-        const installments = await storage.getShopInstallments(order.id);
+      if (orders.length === 0) {
+        return res.json([]);
+      }
+      
+      // OPTIMIZED: Collect all IDs for batch fetching
+      const orderIds = orders.map(o => o.id);
+      const userIds = Array.from(new Set(orders.map(o => o.userId)));
+      
+      // OPTIMIZED: Batch fetch all related data in parallel
+      const [orderItemsMap, usersMap, installmentsMap] = await Promise.all([
+        storage.getShopOrderItemsByOrderIds(orderIds),
+        storage.getUsersByIds(userIds),
+        storage.getShopInstallmentsByOrderIds(orderIds),
+      ]);
+      
+      // Collect all product IDs from items
+      const allItems = Array.from(orderItemsMap.values()).flat();
+      const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
+      
+      // OPTIMIZED: Batch fetch all products
+      const products = productIds.length > 0 ? await storage.getShopItemsByIds(productIds) : [];
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const ordersWithDetails = orders.map(order => {
+        const items = orderItemsMap.get(order.id) || [];
+        const user = usersMap.get(order.userId);
+        const installments = installmentsMap.get(order.id) || [];
         
-        const itemsWithProduct = await Promise.all(items.map(async (item) => {
-          const product = await storage.getShopItemById(item.itemId);
+        const itemsWithProduct = items.map(item => {
+          const product = productsMap.get(item.itemId);
           return { 
             ...item, 
             product: product ? {
@@ -11685,7 +11753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               price: product.price,
             } : null 
           };
-        }));
+        });
         
         // Extract manual customer name from observation
         let manualCustomerName: string | null = null;
@@ -11704,7 +11772,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: user.id, 
             fullName: user.fullName, 
             email: user.email,
-            phone: user.phone,
           } : null,
           items: itemsWithProduct,
           installments: installments.map(inst => ({
@@ -11714,7 +11781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           manualCustomerName,
           isManualOrder,
         };
-      }));
+      });
       
       res.json(ordersWithDetails);
     } catch (error) {

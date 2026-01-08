@@ -54,6 +54,8 @@ import {
 interface ShopCategory {
   id: number;
   name: string;
+  imageData: string | null;
+  hasImage: boolean;
   isDefault: boolean;
 }
 
@@ -164,7 +166,11 @@ export default function LojaAdmin() {
   const [editingItem, setEditingItem] = useState<ShopItemAdmin | null>(null);
   const [priceDisplay, setPriceDisplay] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ShopCategory | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryImage, setNewCategoryImage] = useState<string | null>(null);
+  const [categoryImageChanged, setCategoryImageChanged] = useState(false);
+  const categoryImageInputRef = useRef<HTMLInputElement>(null);
   const [managingItem, setManagingItem] = useState<ShopItemAdmin | null>(null);
   const [manageTab, setManageTab] = useState<"images" | "sizes">("images");
   const [uploadingGender, setUploadingGender] = useState<string>("unissex");
@@ -362,17 +368,45 @@ export default function LojaAdmin() {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      return apiRequest("POST", "/api/admin/shop/categories", { name });
+    mutationFn: async (data: { name: string; imageData: string | null }) => {
+      return apiRequest("POST", "/api/admin/shop/categories", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/categories"] });
       setIsCategoryOpen(false);
-      setNewCategoryName("");
+      resetCategoryForm();
       toast({ title: "Categoria criada", description: "A nova categoria foi adicionada." });
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível criar a categoria.", variant: "destructive" });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { name?: string; imageData?: string | null } }) => {
+      return apiRequest("PATCH", `/api/admin/shop/categories/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/categories"] });
+      setIsCategoryOpen(false);
+      resetCategoryForm();
+      toast({ title: "Categoria atualizada", description: "As alterações foram salvas." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível atualizar a categoria.", variant: "destructive" });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/categories"] });
+      toast({ title: "Categoria excluída", description: "A categoria foi removida." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível excluir a categoria. Verifique se não há produtos vinculados.", variant: "destructive" });
     },
   });
 
@@ -452,6 +486,55 @@ export default function LojaAdmin() {
       isActive: true,
       maxUses: "",
     });
+  };
+
+  const resetCategoryForm = () => {
+    setNewCategoryName("");
+    setNewCategoryImage(null);
+    setCategoryImageChanged(false);
+    setEditingCategory(null);
+  };
+
+  const openEditCategory = (category: ShopCategory) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCategoryImage(category.imageData);
+    setCategoryImageChanged(false);
+    setIsCategoryOpen(true);
+  };
+
+  const handleCategoryImageUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
+    try {
+      const response = await fetch(`/api/upload?uploadType=banner`, {
+        method: "POST",
+        body: formData,
+        headers,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+      const data = await response.json();
+      setNewCategoryImage(data.url);
+      setCategoryImageChanged(true);
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível processar a imagem.", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveCategoryImage = () => {
+    setNewCategoryImage(null);
+    setCategoryImageChanged(true);
   };
 
   const openEditPromo = (promo: PromoCode) => {
@@ -722,6 +805,64 @@ export default function LojaAdmin() {
 
       <section className="py-8 bg-background">
         <div className="container mx-auto px-4">
+          {/* Categories Section */}
+          {categories && categories.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <FolderPlus className="h-5 w-5" />
+                Categorias ({categories.length})
+              </h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {categories.map((cat) => (
+                  <Card key={cat.id} className="flex-shrink-0 w-40 overflow-hidden">
+                    <div className="aspect-square bg-muted relative flex items-center justify-center">
+                      {cat.imageData ? (
+                        <img 
+                          src={cat.imageData}
+                          alt={cat.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Package className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <CardContent className="p-2">
+                      <p className="font-medium text-sm truncate mb-2" data-testid={`text-category-name-${cat.id}`}>
+                        {cat.name}
+                      </p>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1"
+                          onClick={() => openEditCategory(cat)}
+                          data-testid={`button-edit-category-${cat.id}`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="gap-1"
+                          onClick={() => {
+                            if (confirm(`Deseja excluir a categoria "${cat.name}"?`)) {
+                              deleteCategoryMutation.mutate(cat.id);
+                            }
+                          }}
+                          disabled={deleteCategoryMutation.isPending}
+                          data-testid={`button-delete-category-${cat.id}`}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1095,12 +1236,12 @@ export default function LojaAdmin() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={isCategoryOpen} onOpenChange={(open) => { if (!open) resetCategoryForm(); setIsCategoryOpen(open); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogTitle>{editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
             <DialogDescription>
-              Crie uma nova categoria para organizar os produtos
+              {editingCategory ? "Edite as informações da categoria" : "Crie uma nova categoria para organizar os produtos"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1114,18 +1255,88 @@ export default function LojaAdmin() {
                 data-testid="input-category-name"
               />
             </div>
+            
+            <div className="space-y-2">
+              <Label>Imagem da categoria (1:1)</Label>
+              <p className="text-xs text-muted-foreground">
+                Aparece no grid de categorias da home. Recomendado: 400x400px
+              </p>
+              <input
+                ref={categoryImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleCategoryImageUpload(file);
+                  }
+                  if (categoryImageInputRef.current) {
+                    categoryImageInputRef.current.value = "";
+                  }
+                }}
+              />
+              <div className="flex gap-2 items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => categoryImageInputRef.current?.click()}
+                  data-testid="button-upload-category-image"
+                >
+                  <Upload className="h-4 w-4" />
+                  {newCategoryImage ? "Trocar imagem" : "Enviar imagem"}
+                </Button>
+                {newCategoryImage && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveCategoryImage}
+                    data-testid="button-remove-category-image"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {newCategoryImage && (
+                <div className="relative aspect-square w-32 rounded-md overflow-hidden bg-muted mt-2">
+                  <img
+                    src={newCategoryImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsCategoryOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsCategoryOpen(false); resetCategoryForm(); }}>
               Cancelar
             </Button>
             <Button
-              onClick={() => createCategoryMutation.mutate(newCategoryName)}
-              disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
+              onClick={() => {
+                if (editingCategory) {
+                  const updateData: { name?: string; imageData?: string | null } = { name: newCategoryName };
+                  if (categoryImageChanged) {
+                    updateData.imageData = newCategoryImage;
+                  }
+                  updateCategoryMutation.mutate({ 
+                    id: editingCategory.id, 
+                    data: updateData 
+                  });
+                } else {
+                  createCategoryMutation.mutate({ name: newCategoryName, imageData: newCategoryImage });
+                }
+              }}
+              disabled={!newCategoryName.trim() || createCategoryMutation.isPending || updateCategoryMutation.isPending}
               data-testid="button-save-category"
             >
-              {createCategoryMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Criar
+              {(createCategoryMutation.isPending || updateCategoryMutation.isPending) && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              {editingCategory ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>

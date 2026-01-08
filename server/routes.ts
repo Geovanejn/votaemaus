@@ -8983,9 +8983,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
         
+        // Extract manual customer name from observation if present
+        let manualCustomerName: string | null = null;
+        if (order.observation?.includes('Pedido manual - Cliente:')) {
+          const match = order.observation.match(/Pedido manual - Cliente:\s*(.+)/);
+          if (match) {
+            manualCustomerName = match[1].trim();
+          }
+        }
+        
         return {
           ...order,
           totalAmount: order.totalAmount || 0,
+          manualCustomerName,
           user: user ? { 
             id: user.id, 
             fullName: user.fullName, 
@@ -9254,10 +9264,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Create order - for manual orders without member, use the admin user id
+      // For external customers without memberId, use the system admin user
+      let orderUserId = userId;
+      if (!orderUserId) {
+        const admins = await storage.getAdminUsers();
+        const systemAdmin = admins.find(a => a.isAdmin === true) || admins[0];
+        if (!systemAdmin) {
+          return res.status(500).json({ message: "Administrador do sistema nao encontrado" });
+        }
+        orderUserId = systemAdmin.id;
+      }
+      
+      // Create order
       const order = await storage.createShopOrder({
         orderCode,
-        userId: userId || req.user!.id,
+        userId: orderUserId,
         totalAmount,
         observation: manualName ? `Pedido manual - Cliente: ${manualName}` : 'Pedido criado manualmente',
         paymentStatus: "pending",

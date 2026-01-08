@@ -84,7 +84,15 @@ interface ShopOrder {
   createdAt: string;
   paidAt: string | null;
   user: OrderUser | null;
+  manualCustomerName: string | null;
   items: OrderItem[];
+}
+
+function getCustomerName(order: ShopOrder): string {
+  if (order.manualCustomerName) {
+    return `${order.manualCustomerName} (externo)`;
+  }
+  return order.user?.fullName || 'Cliente desconhecido';
 }
 
 const ORDER_STATUSES = [
@@ -216,9 +224,10 @@ export default function PedidosAdminPage() {
 
   const filteredOrders = orders?.filter(order => {
     const matchesStatus = statusFilter === "all" || order.orderStatus === statusFilter;
+    const customerName = getCustomerName(order).toLowerCase();
     const matchesSearch = searchQuery === "" || 
       order.orderCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user?.fullName.toLowerCase().includes(searchQuery.toLowerCase());
+      customerName.includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   }) || [];
 
@@ -429,7 +438,7 @@ export default function PedidosAdminPage() {
                             <div className="space-y-1 text-sm">
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <User className="h-3 w-3" />
-                                <span>{order.user?.fullName || "Usuário não encontrado"}</span>
+                                <span>{getCustomerName(order)}</span>
                               </div>
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
@@ -517,16 +526,25 @@ export default function PedidosAdminPage() {
                 <CardContent className="py-2 space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nome:</span>
-                    <span className="font-medium">{detailsOrder.user?.fullName || "N/A"}</span>
+                    <span className="font-medium">{getCustomerName(detailsOrder)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span>{detailsOrder.user?.email || "N/A"}</span>
-                  </div>
-                  {detailsOrder.user?.phone && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Telefone:</span>
-                      <span className="font-medium">{detailsOrder.user.phone}</span>
+                  {!detailsOrder.manualCustomerName && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Email:</span>
+                        <span>{detailsOrder.user?.email || "N/A"}</span>
+                      </div>
+                      {detailsOrder.user?.phone && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Telefone:</span>
+                          <span className="font-medium">{detailsOrder.user.phone}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {detailsOrder.manualCustomerName && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                      Cliente externo - sem cadastro no sistema
                     </div>
                   )}
                 </CardContent>

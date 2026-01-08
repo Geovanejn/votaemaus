@@ -850,29 +850,7 @@ export default function MembroPage() {
 
   return (
     <SiteLayout>
-      <section className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-6">
-              <User className="h-8 w-8" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Área do Membro
-            </h1>
-            <p className="text-lg opacity-90 max-w-2xl mx-auto">
-              {isAuthenticated 
-                ? "Escolha o sistema que deseja acessar" 
-                : "Faça login para acessar os sistemas"}
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-background">
+      <section className="py-16 bg-background min-h-[70vh] flex items-center">
         <div className="container mx-auto px-4">
           {isLoading ? (
             <div className="flex justify-center py-12">

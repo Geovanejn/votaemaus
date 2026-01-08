@@ -10000,27 +10000,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         installmentCount,
       });
       
-      for (const oi of orderItems) {
-        await storage.createShopOrderItem({
-          orderId: order.id,
-          itemId: oi.itemId,
-          quantity: oi.quantity,
-          gender: oi.gender || null,
-          size: oi.size || null,
-          unitPrice: oi.unitPrice,
-        });
-      }
+      // OPTIMIZED: Batch insert all order items in a single query
+      const orderItemsData = orderItems.map(oi => ({
+        orderId: order.id,
+        itemId: oi.itemId,
+        quantity: oi.quantity,
+        gender: oi.gender || null,
+        size: oi.size || null,
+        unitPrice: oi.unitPrice,
+      }));
+      await storage.createShopOrderItemsBatch(orderItemsData);
       
       // Increment promo code usage
       if (promoCodeId) {
         await storage.incrementPromoCodeUsage(promoCodeId);
       }
       
-      // Create installments if order is being paid in installments
+      // OPTIMIZED: Batch insert all installments in a single query
       if (installmentCount > 1) {
         const installmentAmount = Math.floor(finalAmount / installmentCount);
         const remainder = finalAmount - (installmentAmount * installmentCount);
         
+        const installmentsData = [];
         for (let i = 1; i <= installmentCount; i++) {
           const dueDate = new Date();
           dueDate.setMonth(dueDate.getMonth() + i - 1);
@@ -10029,14 +10030,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
           
-          await storage.createShopInstallment({
+          installmentsData.push({
             orderId: order.id,
             installmentNumber: i,
             amount,
             dueDate,
-            status: "pending",
+            status: "pending" as const,
           });
         }
+        await storage.createShopInstallmentsBatch(installmentsData);
       }
       
       await storage.clearCart(req.user!.id);
@@ -11211,19 +11213,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // OPTIMIZED: Batch insert all notifications in a single query
+      const notificationsData = userIds.map(userId => ({
+        userId,
+        type: `treasury_${type}`,
+        title: notificationTitle,
+        body: notificationBody,
+        data: JSON.stringify({ type, isManual: true }),
+      }));
+      
+      await storage.createNotificationsBatch(notificationsData);
+      
+      // Push notifications must be sent individually (transport-level requirement)
       let sent = 0;
       let failed = 0;
       
       for (const userId of userIds) {
         try {
-          await storage.createNotification({
-            userId,
-            type: `treasury_${type}`,
-            title: notificationTitle,
-            body: notificationBody,
-            data: JSON.stringify({ type, isManual: true }),
-          });
-          
           await sendPushToUser(userId, {
             title: notificationTitle,
             body: notificationBody,
@@ -11231,10 +11237,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tag: `treasury-manual-${type}-${userId}`,
             icon: '/logo.png',
           });
-          
           sent++;
         } catch (err) {
-          console.error(`Failed to send notification to user ${userId}:`, err);
+          console.error(`Failed to send push to user ${userId}:`, err);
           failed++;
         }
       }

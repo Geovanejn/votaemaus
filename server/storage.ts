@@ -284,6 +284,7 @@ export interface IStorage {
   getAdminUsers(): Promise<User[]>;
   getActiveMembers(): Promise<User[]>;
   createNotification(data: { userId: number; type: string; title: string; body: string; data?: string | null }): Promise<Notification>;
+  createNotificationsBatch(notifications: Array<{ userId: number; type: string; title: string; body: string; data?: string | null }>): Promise<Notification[]>;
   
   // DeoGlory Scheduler Methods
   getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]>;
@@ -544,6 +545,7 @@ export interface IStorage {
   getShopOrderItems(orderId: number): Promise<ShopOrderItem[]>;
   getShopOrderItemsByOrderIds(orderIds: number[]): Promise<Map<number, ShopOrderItem[]>>;
   createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
+  createShopOrderItemsBatch(items: InsertShopOrderItem[]): Promise<ShopOrderItem[]>;
   
   // Shop Installments Methods
   getShopInstallments(orderId: number): Promise<ShopInstallment[]>;
@@ -553,6 +555,7 @@ export interface IStorage {
   getShopInstallmentByPixId(pixId: string): Promise<ShopInstallment | null>;
   getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]>;
   createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment>;
+  createShopInstallmentsBatch(installments: InsertShopInstallment[]): Promise<ShopInstallment[]>;
   updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
   
   // Promo Codes Methods
@@ -5388,6 +5391,20 @@ export class DatabaseStorage implements IStorage {
     return notification;
   }
 
+  async createNotificationsBatch(notifications: Array<{ userId: number; type: string; title: string; body: string; data?: string | null }>): Promise<Notification[]> {
+    if (notifications.length === 0) return [];
+    const created = await db.insert(schema.notifications)
+      .values(notifications.map(n => ({
+        userId: n.userId,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        data: n.data || null,
+      })))
+      .returning();
+    return created;
+  }
+
   async getUsersWithActiveStreakNotStudiedToday(): Promise<{ userId: number; currentStreak: number }[]> {
     const today = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo',
@@ -7034,6 +7051,14 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
+  async createShopOrderItemsBatch(items: InsertShopOrderItem[]): Promise<ShopOrderItem[]> {
+    if (items.length === 0) return [];
+    const created = await db.insert(schema.shopOrderItems)
+      .values(items)
+      .returning();
+    return created;
+  }
+
   // ==================== SHOP INSTALLMENTS METHODS ====================
 
   async getShopInstallments(orderId: number): Promise<ShopInstallment[]> {
@@ -7099,6 +7124,14 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return installment;
+  }
+
+  async createShopInstallmentsBatch(installments: InsertShopInstallment[]): Promise<ShopInstallment[]> {
+    if (installments.length === 0) return [];
+    const created = await db.insert(schema.shopInstallments)
+      .values(installments)
+      .returning();
+    return created;
   }
 
   async updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null> {

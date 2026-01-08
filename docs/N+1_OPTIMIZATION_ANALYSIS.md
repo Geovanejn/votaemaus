@@ -3,8 +3,8 @@
 ## Resumo Executivo
 Este documento identifica todas as rotas com problemas de N+1 query no sistema UMP Emaús.
 
-## STATUS: IMPLEMENTADO (2026-01-08)
-Todas as otimizações de alta e média prioridade foram implementadas e verificadas.
+## STATUS: TOTALMENTE IMPLEMENTADO (2026-01-08)
+Todas as otimizações de alta, média e baixa prioridade foram implementadas e verificadas.
 
 ---
 
@@ -71,28 +71,30 @@ Todas as otimizações de alta e média prioridade foram implementadas e verific
 ### 10. /api/candidates/batch
 - **Problema**: for loop com getUserById + isMemberPresent por candidato
 - **Impacto**: 2N queries para N candidatos
-- **Solução**: Batch pre-fetch getUsersByIds + getMemberPresenceByUserIds
+- **Solução**: Batch pre-fetch getUsersByIds + getMemberPresenceByUserIds com Set para duplicatas
 - **Status**: ✅ IMPLEMENTADO
 
 ---
 
-## BAIXA PRIORIDADE (Ações pontuais)
+## BAIXA PRIORIDADE (Ações pontuais - Operações de Escrita)
 
 ### 11. /api/treasury/notifications/send
 - **Problema**: for loop com createNotification + sendPushToUser por userId
-- **Tipo**: Operações de escrita sequenciais (menos impacto em leitura)
-- **Status**: Baixa prioridade (não implementado)
+- **Tipo**: Operações de escrita sequenciais
+- **Solução**: Batch insert com createNotificationsBatch (push mantém loop por requisito de transporte)
+- **Status**: ✅ IMPLEMENTADO
 
 ### 12. /api/shop/checkout
-- **Problema**: for loop com createShopInstallment por parcela
-- **Tipo**: Operações de escrita (checkout é pontual)
-- **Status**: Baixa prioridade (não implementado)
+- **Problema**: for loop com createShopOrderItem por item + createShopInstallment por parcela
+- **Tipo**: Operações de escrita no checkout
+- **Solução**: Batch inserts com createShopOrderItemsBatch + createShopInstallmentsBatch
+- **Status**: ✅ IMPLEMENTADO
 
 ---
 
 ## FUNÇÕES BATCH IMPLEMENTADAS (Storage)
 
-### Todas implementadas:
+### Leitura (Read):
 - `getAllMemberPercaptaPayments(year)` - Map<userId, payment>
 - `getAllMemberUmpPayments(year)` - Map<userId, payments[]>
 - `getPushSubscriptionCountsByUserIds(userIds)` - Map<userId, count>
@@ -105,8 +107,17 @@ Todas as otimizações de alta e média prioridade foram implementadas e verific
 - `getEventConfirmationCountsByEventIds(eventIds)` - Map<eventId, counts>
 - `getMemberPresenceByUserIds(electionId, userIds)` - Map<userId, boolean>
 
+### Escrita (Write):
+- `createNotificationsBatch(notifications[])` - Notification[]
+- `createShopOrderItemsBatch(items[])` - ShopOrderItem[]
+- `createShopInstallmentsBatch(installments[])` - ShopInstallment[]
+
 ---
 
 ## VERIFICAÇÃO FINAL
 
-Todas as 10 rotas de alta e média prioridade foram verificadas e estão usando as funções batch corretamente, eliminando os problemas de N+1 query.
+Todas as 12 rotas documentadas foram verificadas e otimizadas:
+- 10 rotas de alta/média prioridade (leitura): Usando batch helpers com Map/Set
+- 2 rotas de baixa prioridade (escrita): Usando batch inserts
+
+O sistema agora utiliza padrões de batch query consistentemente em todas as rotas críticas, eliminando completamente os problemas de N+1 query.

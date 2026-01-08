@@ -277,11 +277,15 @@ export default function AdminDashboard() {
                   transition={{ duration: 0.3 }}
                   className="h-full"
                 >
-                  <Card className="h-full overflow-hidden">
+                  <Card className={`h-full overflow-hidden ${panel.isShop ? 'ring-2 ring-purple-500/30' : ''}`}>
                     <CardContent className="p-0">
                       <div className={`bg-gradient-to-br ${panel.color} p-6 text-white`}>
                         <div className="flex items-center justify-between mb-4">
-                          <panel.icon className="h-10 w-10" />
+                          {panel.isShop ? (
+                            <img src="/emaustore-logo.png" alt="Emaustore" className="h-10 w-auto" />
+                          ) : (
+                            <panel.icon className="h-10 w-10" />
+                          )}
                         </div>
                         <h2 className="text-xl font-bold mb-1" data-testid={`panel-title-${panel.id}`}>
                           {panel.title}

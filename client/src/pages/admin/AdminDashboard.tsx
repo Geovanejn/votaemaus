@@ -261,11 +261,11 @@ export default function AdminDashboard() {
 
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto mb-6">
+          <div className="max-w-6xl mx-auto mb-8 flex justify-center">
             <Link href="/">
-              <Button variant="outline" className="gap-2" data-testid="button-go-home">
-                <Home className="h-4 w-4" />
-                Ir para o Site
+              <Button variant="default" size="lg" className="gap-3 text-base font-semibold px-8" data-testid="button-go-home">
+                <Home className="h-5 w-5" />
+                Voltar para o Site
               </Button>
             </Link>
           </div>

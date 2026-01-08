@@ -487,7 +487,9 @@ export interface IStorage {
   
   // Shop Categories Methods
   getShopCategories(): Promise<ShopCategory[]>;
+  getShopCategoriesLight(): Promise<Omit<ShopCategory, 'imageData'>[]>;
   getShopCategoryById(id: number): Promise<ShopCategory | null>;
+  getShopCategoryImageData(id: number): Promise<string | null>;
   createShopCategory(data: InsertShopCategory): Promise<ShopCategory>;
   updateShopCategory(id: number, data: Partial<InsertShopCategory>): Promise<ShopCategory | null>;
   deleteShopCategory(id: number): Promise<void>;
@@ -6555,6 +6557,25 @@ export class DatabaseStorage implements IStorage {
     return db.select()
       .from(schema.shopCategories)
       .orderBy(asc(schema.shopCategories.name));
+  }
+
+  async getShopCategoriesLight(): Promise<Omit<ShopCategory, 'imageData'>[]> {
+    return db.select({
+      id: schema.shopCategories.id,
+      name: schema.shopCategories.name,
+      isDefault: schema.shopCategories.isDefault,
+      createdAt: schema.shopCategories.createdAt,
+    })
+      .from(schema.shopCategories)
+      .orderBy(asc(schema.shopCategories.name));
+  }
+
+  async getShopCategoryImageData(id: number): Promise<string | null> {
+    const [result] = await db.select({ imageData: schema.shopCategories.imageData })
+      .from(schema.shopCategories)
+      .where(eq(schema.shopCategories.id, id))
+      .limit(1);
+    return result?.imageData || null;
   }
 
   async getShopCategoryById(id: number): Promise<ShopCategory | null> {

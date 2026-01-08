@@ -8425,29 +8425,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - ADMIN (MARKETING) ====================
 
-  // Listar categorias da loja (admin)
+  // Listar categorias da loja (admin) - retorna URLs para imagens
   app.get("/api/admin/shop/categories", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const categories = await storage.getShopCategories();
-      res.json(categories);
+      // Return URLs instead of base64 for display
+      const categoriesWithUrls = categories.map(cat => ({
+        ...cat,
+        imageData: cat.imageData ? `/api/shop/images/category/${cat.id}` : null,
+        hasImage: !!cat.imageData,
+      }));
+      res.json(categoriesWithUrls);
     } catch (error) {
       console.error("Get shop categories error:", error);
       res.status(500).json({ message: "Erro ao buscar categorias" });
     }
   });
 
-  // Criar categoria (admin)
+  // Criar categoria (admin) - suporta imageData
   app.post("/api/admin/shop/categories", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const { name } = req.body;
+      const { name, imageData } = req.body;
       if (!name || typeof name !== "string") {
         return res.status(400).json({ message: "Nome obrigatório" });
       }
-      const category = await storage.createShopCategory({ name, isDefault: false });
-      res.json(category);
+      const category = await storage.createShopCategory({ 
+        name, 
+        imageData: imageData || null,
+        isDefault: false 
+      });
+      // Return URL instead of base64
+      res.json({
+        ...category,
+        imageData: category.imageData ? `/api/shop/images/category/${category.id}` : null,
+        hasImage: !!category.imageData,
+      });
     } catch (error) {
       console.error("Create shop category error:", error);
       res.status(500).json({ message: "Erro ao criar categoria" });
+    }
+  });
+
+  // Atualizar categoria (admin)
+  app.patch("/api/admin/shop/categories/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const { name, imageData } = req.body;
+      const updateData: { name?: string; imageData?: string | null } = {};
+      
+      if (name !== undefined) updateData.name = name;
+      if (imageData !== undefined) updateData.imageData = imageData;
+      
+      const category = await storage.updateShopCategory(id, updateData);
+      if (!category) {
+        return res.status(404).json({ message: "Categoria não encontrada" });
+      }
+      
+      // Return URL instead of base64
+      res.json({
+        ...category,
+        imageData: category.imageData ? `/api/shop/images/category/${category.id}` : null,
+        hasImage: !!category.imageData,
+      });
+    } catch (error) {
+      console.error("Update shop category error:", error);
+      res.status(500).json({ message: "Erro ao atualizar categoria" });
+    }
+  });
+
+  // Deletar categoria (admin)
+  app.delete("/api/admin/shop/categories/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      await storage.deleteShopCategory(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete shop category error:", error);
+      res.status(500).json({ message: "Erro ao deletar categoria" });
     }
   });
 
@@ -9252,11 +9313,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar categorias da loja (publico)
+  // Proxy de imagem de categoria (lazy loading)
+  app.get("/api/shop/images/category/:categoryId", async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.categoryId);
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const imageData = await storage.getShopCategoryImageData(categoryId);
+      if (!imageData) {
+        return res.status(404).json({ message: "Imagem não encontrada" });
+      }
+      
+      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ message: "Formato de imagem inválido" });
+      }
+      
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      res.set({
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Length': buffer.length,
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error("Get category image error:", error);
+      res.status(500).json({ message: "Erro ao buscar imagem" });
+    }
+  });
+
+  // Listar categorias da loja (publico) - OTIMIZADO sem Base64
   app.get("/api/shop/categories", async (req, res) => {
     try {
       const categories = await storage.getShopCategories();
-      res.json(categories);
+      // Return URLs instead of base64 for lazy loading
+      const categoriesWithUrls = categories.map(cat => ({
+        ...cat,
+        imageData: cat.imageData ? `/api/shop/images/category/${cat.id}` : null,
+      }));
+      res.json(categoriesWithUrls);
     } catch (error) {
       console.error("Get shop categories error:", error);
       res.status(500).json({ message: "Erro ao buscar categorias" });

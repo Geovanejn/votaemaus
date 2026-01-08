@@ -204,6 +204,23 @@ export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+  const [pixData, setPixData] = useState<{
+    qrCode?: string;
+    qrCodeBase64?: string;
+    amount?: number;
+    expiresAt?: string;
+  } | null>(null);
+  const [showPixModal, setShowPixModal] = useState(false);
+  
+  // Centralized handler for closing PIX modal
+  const handleClosePixModal = () => {
+    setShowPixModal(false);
+    setPixData(null);
+    // Refresh confirmation status when closing modal
+    if (selectedEvent?.id) {
+      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent.id, 'my-confirmation'] });
+    }
+  };
 
   const { data: eventsData, isLoading, isError } = useQuery<EventData[]>({
     queryKey: ['/api/site/events'],
@@ -272,6 +289,26 @@ export default function AgendaPage() {
         title: "Erro ao cancelar", 
         description: error.message || "Nao foi possivel cancelar a confirmacao.", 
         variant: "destructive" 
+      });
+    },
+  });
+
+  // Mutation for generating PIX payment
+  const generatePixMutation = useMutation({
+    mutationFn: async (eventId: number) => {
+      const res = await apiRequest("POST", `/api/events/${eventId}/generate-pix`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setPixData(data);
+      setShowPixModal(true);
+      // Query invalidation happens on modal close via handleClosePixModal
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao gerar PIX",
+        description: error.message || "Nao foi possivel gerar o pagamento PIX.",
+        variant: "destructive"
       });
     },
   });
@@ -676,14 +713,31 @@ export default function AgendaPage() {
                     
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       {confirmationData?.confirmed ? (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-2">
                           <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
                             <CheckCircle2 className="h-4 w-4" />
                             Presenca confirmada
                           </span>
                           {confirmationData.fee && confirmationData.paymentStatus !== 'paid' && (
-                            <span className="text-xs text-muted-foreground">
-                              Efetue o pagamento em Membro &gt; Meu Financeiro
+                            <Button
+                              onClick={() => generatePixMutation.mutate(selectedEvent.id)}
+                              disabled={generatePixMutation.isPending}
+                              variant="default"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              data-testid="button-pay-pix"
+                            >
+                              {generatePixMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Banknote className="h-4 w-4 mr-2" />
+                              )}
+                              Pagar Taxa via PIX
+                            </Button>
+                          )}
+                          {confirmationData.fee && confirmationData.paymentStatus === 'paid' && (
+                            <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Pagamento confirmado
                             </span>
                           )}
                         </div>
@@ -758,6 +812,82 @@ export default function AgendaPage() {
                 </div>
               </div>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PIX Payment Modal */}
+      <Dialog open={showPixModal} onOpenChange={(open) => !open && handleClosePixModal()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Pagamento PIX</DialogTitle>
+          </DialogHeader>
+          
+          {pixData && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-center">
+                <span className="text-2xl font-bold text-primary">
+                  R$ {(pixData.amount || 0).toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              
+              {pixData.qrCodeBase64 && (
+                <div className="p-4 bg-white rounded-lg">
+                  <img 
+                    src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                    alt="QR Code PIX"
+                    className="w-48 h-48"
+                  />
+                </div>
+              )}
+              
+              {pixData.qrCode && (
+                <div className="w-full">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">
+                    Ou copie o codigo PIX:
+                  </p>
+                  <div className="relative">
+                    <textarea
+                      readOnly
+                      value={pixData.qrCode}
+                      className="w-full h-20 p-2 text-xs bg-muted rounded border resize-none"
+                      data-testid="textarea-pix-code"
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute bottom-2 right-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(pixData.qrCode || '');
+                        toast({ title: "Copiado!", description: "Codigo PIX copiado para a area de transferencia." });
+                      }}
+                      data-testid="button-copy-pix"
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {pixData.expiresAt && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Valido ate: {new Date(pixData.expiresAt).toLocaleString('pt-BR')}
+                </p>
+              )}
+              
+              <p className="text-sm text-muted-foreground text-center">
+                Apos o pagamento, aguarde alguns segundos para a confirmacao automatica.
+              </p>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleClosePixModal}
+                className="w-full"
+                data-testid="button-close-pix-modal"
+              >
+                Fechar
+              </Button>
+            </div>
           )}
         </DialogContent>
       </Dialog>

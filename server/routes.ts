@@ -9246,7 +9246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar itens em destaque (para hero banner - publico) - OTIMIZADO
   app.get("/api/shop/featured", async (req, res) => {
     try {
-      const items = await storage.getShopItemsLight(true);
+      const items = await storage.getShopItemsLight(false);
       
       // Primeiro os itens explicitamente marcados como featured
       const explicitFeatured = items.filter(item => item.isFeatured).sort((a, b) => 
@@ -9282,7 +9282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar itens disponiveis (catalogo publico) - OTIMIZADO sem Base64
   app.get("/api/shop/items", async (req, res) => {
     try {
-      const items = await storage.getShopItemsLight(true);
+      const items = await storage.getShopItemsLight(false);
       if (items.length === 0) {
         return res.json([]);
       }
@@ -11566,6 +11566,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get my confirmation error:", error);
       res.status(500).json({ message: "Erro ao buscar confirmação" });
+    }
+  });
+
+  // Generate PIX payment for event fee (member)
+  app.post("/api/events/:eventId/generate-pix", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      // Check if confirmation exists
+      const confirmation = await storage.getEventConfirmation(eventId, userId);
+      if (!confirmation) {
+        return res.status(400).json({ message: "Você precisa confirmar presença primeiro" });
+      }
+      
+      if (!confirmation.entryId) {
+        return res.status(400).json({ message: "Este evento não possui taxa" });
+      }
+      
+      // Get the treasury entry
+      const entry = await storage.getTreasuryEntryById(confirmation.entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Entrada de pagamento não encontrada" });
+      }
+      
+      // Check if already paid
+      if (entry.paymentStatus === "completed" || entry.paymentStatus === "paid") {
+        return res.status(400).json({ message: "Pagamento já foi realizado" });
+      }
+      
+      // Check if there's an existing valid PIX with QR data
+      if (entry.pixTransactionId && entry.pixExpiresAt && new Date(entry.pixExpiresAt) > new Date() && entry.pixQrCode && entry.pixQrCodeBase64) {
+        // Return existing PIX data only if QR code is available
+        return res.json({
+          entryId: entry.id,
+          amount: entry.amount / 100,
+          qrCode: entry.pixQrCode,
+          qrCodeBase64: entry.pixQrCodeBase64,
+          expiresAt: entry.pixExpiresAt,
+          paymentId: entry.pixTransactionId,
+        });
+      }
+      
+      // Check if Mercado Pago is configured
+      if (!isMercadoPagoConfigured()) {
+        return res.status(400).json({ message: "Sistema de pagamento PIX não configurado" });
+      }
+      
+      // Get event details
+      const event = await storage.getSiteEventById(eventId);
+      const eventName = event?.title || "Evento";
+      
+      // Create new PIX payment
+      const result = await createPixPayment({
+        amountCentavos: entry.amount,
+        description: `Taxa: ${eventName}`,
+        payerEmail: user.email || `user${userId}@umpemaus.com.br`,
+        payerName: user.fullName || user.username,
+        externalReference: `event-fee-${entry.id}`,
+      });
+      
+      if (!result.success) {
+        console.error("PIX payment creation failed:", result.error);
+        return res.status(500).json({ message: result.error || "Erro ao gerar PIX" });
+      }
+      
+      // Save PIX data to treasury entry
+      await storage.updateTreasuryEntry(entry.id, {
+        pixTransactionId: result.paymentId?.toString(),
+        pixQrCode: result.qrCode,
+        pixQrCodeBase64: result.qrCodeBase64,
+        pixExpiresAt: result.expiresAt,
+      });
+      
+      res.json({
+        entryId: entry.id,
+        amount: entry.amount / 100,
+        qrCode: result.qrCode,
+        qrCodeBase64: result.qrCodeBase64,
+        expiresAt: result.expiresAt,
+        paymentId: result.paymentId,
+      });
+    } catch (error) {
+      console.error("Generate event PIX error:", error);
+      res.status(500).json({ message: "Erro ao gerar pagamento PIX" });
     }
   });
 

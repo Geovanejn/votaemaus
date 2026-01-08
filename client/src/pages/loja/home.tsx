@@ -259,10 +259,10 @@ export default function LojaHomePage() {
         </section>
       )}
 
-      {/* Lancamentos Section */}
+      {/* Lançamentos Section */}
       <section className="px-4 py-6">
         <h2 className="text-2xl font-bold text-black mb-4" style={{ fontFamily: 'Georgia, serif' }}>
-          Lancamentos!
+          Lançamentos!
         </h2>
 
         {loadingItems ? (

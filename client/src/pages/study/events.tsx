@@ -217,7 +217,7 @@ function EventCard({ event }: { event: StudyEvent }) {
   const daysUntilEnd = differenceInCalendarDaysBrazil(endDate, now);
 
   const handleClick = () => {
-    if (!isLocked) {
+    if (!isLocked && !isEnded) {
       setLocation(`/study/events/${event.id}`);
     }
   };
@@ -399,7 +399,12 @@ function EventCard({ event }: { event: StudyEvent }) {
       );
     }
     if (isLocked) {
-      return null;
+      return (
+        <Badge className="bg-amber-100 text-amber-700 border-amber-200 px-3 py-1 rounded-full font-medium shrink-0">
+          <Lock className="h-3 w-3 mr-1" />
+          Próximo
+        </Badge>
+      );
     }
     if (isEnded) {
       return (
@@ -531,13 +536,13 @@ function EventCard({ event }: { event: StudyEvent }) {
                   ? "bg-[#2D5A27] hover:bg-[#23471F] text-white" 
                   : isLocked 
                     ? "bg-slate-400 hover:bg-slate-500 text-white" 
-                    : "bg-slate-300 text-slate-600"
+                    : "bg-slate-300 text-slate-600 cursor-not-allowed"
               }`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleClick();
               }}
-              disabled={isLocked}
+              disabled={isLocked || isEnded}
               data-testid={`button-participate-${event.id}`}
             >
               {getButtonContent()}

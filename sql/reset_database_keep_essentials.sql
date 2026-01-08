@@ -1,51 +1,33 @@
-# SQL para Reset do Banco de Dados
-
-**Data de criação:** Janeiro 2026  
-**Objetivo:** Recriar todas as tabelas mantendo dados específicos
-
-## Dados que serão PRESERVADOS
-
-1. **Membros (users)** - Cadastro completo de todos os membros
-2. **Sistema de Estudos DeoGlory:**
-   - Temporadas (`seasons`)
-   - Semanas de estudo (`study_weeks`)
-   - Lições (`study_lessons`)
-   - Unidades das lições (`study_units`)
-   - Eventos de estudo (`study_events`)
-   - Lições de eventos (`study_event_lessons`)
-   - Cards colecionáveis (`collectible_cards`)
-3. **Loja:**
-   - Categorias (`shop_categories`)
-   - Produtos (`shop_items`)
-   - Imagens dos produtos (`shop_item_images`)
-   - Tamanhos (`shop_item_sizes`)
-   - Tabela de medidas (`shop_item_size_charts`)
-
-## Dados que serão LIMPOS
-
-- Eleições, votos, candidatos
-- Códigos de verificação
-- Devocionais e comentários
-- Eventos do site e confirmações
-- Posts do Instagram e banners
-- Pedidos de oração
-- Progresso de usuários no estudo
-- Missões diárias e atividades
-- Conquistas de usuários
-- Rankings e XP
-- Tesouraria (entradas, pagamentos, empréstimos)
-- Pedidos da loja
-- Carrinho de compras
-- Notificações e logs
-
----
-
-## SQL Completo
-
-```sql
 -- ============================================================
 -- SQL PARA RESET DO BANCO DE DADOS - UMP EMAÚS
--- Preserva: membros, lições, study events, produtos da loja
+-- Data: Janeiro 2026
+-- ============================================================
+-- 
+-- PRESERVA:
+--   - Membros (users)
+--   - Temporadas (seasons)
+--   - Revistas/Semanas de estudo (study_weeks)
+--   - Lições (study_lessons)
+--   - Unidades das lições (study_units)
+--   - Eventos de estudo (study_events)
+--   - Lições de eventos (study_event_lessons)
+--   - Cards colecionáveis (collectible_cards)
+--   - Categorias da loja (shop_categories)
+--   - Produtos (shop_items)
+--   - Imagens dos produtos (shop_item_images)
+--   - Tamanhos (shop_item_sizes)
+--   - Tabela de medidas (shop_item_size_charts)
+--
+-- LIMPA:
+--   - Eleições, votos, candidatos
+--   - Devocionais e comentários
+--   - Eventos do site
+--   - Tesouraria (pagamentos, empréstimos)
+--   - Pedidos da loja e carrinho
+--   - Progresso de usuários no estudo
+--   - Rankings e XP
+--   - Notificações e logs
+--
 -- ============================================================
 
 -- DESABILITA VERIFICAÇÃO DE FK TEMPORARIAMENTE
@@ -254,14 +236,7 @@ ALTER SEQUENCE IF EXISTS pdf_verifications_id_seq RESTART WITH 1;
 ALTER SEQUENCE IF EXISTS verification_codes_id_seq RESTART WITH 1;
 
 -- ============================================================
--- PARTE 3: RESETAR SENHAS DOS USUÁRIOS (opcional)
--- Descomente se quiser resetar todas as senhas
--- ============================================================
-
--- UPDATE users SET password = '', has_password = false;
-
--- ============================================================
--- PARTE 4: CRIAR CATEGORIAS PADRÃO DE DESPESAS
+-- PARTE 3: CRIAR CATEGORIAS PADRÃO DE DESPESAS
 -- ============================================================
 
 INSERT INTO treasury_expense_categories (name, is_default) VALUES
@@ -272,7 +247,7 @@ INSERT INTO treasury_expense_categories (name, is_default) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
--- PARTE 5: CRIAR POSIÇÕES PADRÃO PARA ELEIÇÕES
+-- PARTE 4: CRIAR POSIÇÕES PADRÃO PARA ELEIÇÕES
 -- ============================================================
 
 INSERT INTO positions (name) VALUES
@@ -303,28 +278,3 @@ SELECT 'Imagens de produtos:', COUNT(*) FROM shop_item_images;
 SELECT 'Tamanhos:', COUNT(*) FROM shop_item_sizes;
 
 SELECT 'Reset concluído com sucesso!' as resultado;
-```
-
----
-
-## Como usar
-
-1. Acesse o console do Neon Database
-2. Abra o SQL Editor
-3. Cole todo o SQL acima
-4. Execute
-5. Verifique os resultados no final
-
-## Notas importantes
-
-- Este script usa `TRUNCATE CASCADE` que remove dados respeitando foreign keys
-- Os IDs das tabelas limpas são resetados para começar do 1
-- Os dados de membros, lições, eventos de estudo e produtos da loja são **preservados**
-- Categorias padrão de despesas e posições de eleição são recriadas automaticamente
-
-## Backup recomendado
-
-Antes de executar, faça um backup completo do banco pelo painel do Neon:
-1. Acesse o projeto no Neon
-2. Vá em Settings > Backups
-3. Crie um backup manual

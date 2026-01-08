@@ -8679,6 +8679,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let pushSent = 0;
       let emailsQueued = 0;
       
+      // Product identifier for URLs (use ID since slug doesn't exist)
+      const productIdentifier = `${item.id}`;
+      
       // Send push and in-app notifications to ALL members (regardless of active status or email)
       for (const member of allMembers) {
         try {
@@ -8687,15 +8690,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: member.id,
             type: 'shop_new_product',
             title: 'Novidade na Loja!',
-            body: `${item.name} agora disponível na loja!`,
-            data: JSON.stringify({ itemId: item.id, slug: item.slug }),
+            body: `${item.name} agora disponivel na loja!`,
+            data: JSON.stringify({ itemId: item.id }),
           });
           
           // Send push notification
           await sendPushToUser(member.id, {
             title: 'Novidade na Loja!',
             body: `${item.name} - Confira agora!`,
-            url: `/loja/produto/${item.slug}`,
+            url: `/loja/produto/${productIdentifier}`,
             tag: `shop-product-${item.id}`,
             icon: '/logo.png',
           });
@@ -8711,7 +8714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           member.email!,
           member.fullName || 'Membro',
           item.name,
-          item.slug || `${item.id}`,
+          productIdentifier,
           productImageBase64,
           item.price,
           item.description,

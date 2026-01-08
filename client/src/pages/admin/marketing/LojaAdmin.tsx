@@ -779,16 +779,16 @@ export default function LojaAdmin() {
               </Button>
             </Link>
             <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-14 w-auto drop-shadow-lg" />
-                <div>
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-8 w-auto drop-shadow-lg" />
                   <h1 className="text-2xl md:text-3xl font-bold" data-testid="text-shop-admin-title">
                     Gestão da Loja
                   </h1>
-                  <p className="text-orange-300">
-                    Marketing - Gerenciar produtos e categorias
-                  </p>
                 </div>
+                <p className="text-orange-300">
+                  Marketing - Gerenciar produtos e categorias
+                </p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Link href="/admin/marketing/pedidos">

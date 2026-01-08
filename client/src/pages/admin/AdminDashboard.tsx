@@ -306,12 +306,12 @@ export default function AdminDashboard() {
                             }}
                           />
                           <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-4">
-                              <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-14 w-auto drop-shadow-lg" />
+                            <div className="flex items-center gap-3 mb-2">
+                              <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-7 w-auto drop-shadow-lg" />
+                              <h2 className="text-xl font-bold text-white" data-testid={`panel-title-${panel.id}`}>
+                                {panel.title}
+                              </h2>
                             </div>
-                            <h2 className="text-xl font-bold mb-1 text-white" data-testid={`panel-title-${panel.id}`}>
-                              {panel.title}
-                            </h2>
                             <p className="text-orange-300 text-sm font-medium">
                               {panel.subtitle}
                             </p>

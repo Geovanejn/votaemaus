@@ -2252,6 +2252,7 @@ export type TreasuryNotificationLog = typeof treasuryNotificationsLog.$inferSele
 export const shopCategories = pgTable("shop_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  imageData: text("image_data"),
   isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

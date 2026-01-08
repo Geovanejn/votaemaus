@@ -8828,10 +8828,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Imagem obrigatoria" });
       }
       
-      // Process banner image - high quality for home carousel (larger size, better quality)
+      // Process banner image - high quality 1:1 for home carousel
       const processedImage = await sharp(req.file.buffer)
         .rotate()
-        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 90, mozjpeg: true })
         .toBuffer();
       

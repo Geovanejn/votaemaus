@@ -21,6 +21,7 @@ import {
   ShoppingBag
 } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import logoAnimated from "@assets/logo-animated.webp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -340,6 +341,16 @@ function LoginForm() {
 
   return (
     <>
+      <div className="flex justify-center mb-6">
+        <img 
+          src={logoAnimated}
+          alt="UMP Emaús Logo"
+          className="w-32 h-auto object-contain"
+          loading="eager"
+          decoding="async"
+          data-testid="logo-animated"
+        />
+      </div>
       <Card className="border-border shadow-md max-w-md mx-auto">
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">

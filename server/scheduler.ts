@@ -1235,9 +1235,10 @@ async function processTreasuryDay5Reminder(): Promise<void> {
   }
 }
 
-// Abandoned cart reminder intervals per spec: 2h, 12h, 24h, 48h
+// Abandoned cart reminder intervals per spec: 1h, 12h, 24h, 48h
+// After 48h, order is automatically cancelled
 const ABANDONED_CART_INTERVALS = [
-  { hours: 2, label: '2h', urgency: 'low' },
+  { hours: 1, label: '1h', urgency: 'low' },
   { hours: 12, label: '12h', urgency: 'medium' },
   { hours: 24, label: '24h', urgency: 'high' },
   { hours: 48, label: '48h', urgency: 'final' },
@@ -1276,13 +1277,30 @@ async function processAbandonedCartReminder(): Promise<void> {
       
       if (!currentInterval) continue;
       
-      // Skip if order is too old (past 72h)
-      if (hoursElapsed > 72) continue;
-      
       const reminderKey = `abandoned-cart-${order.id}-${currentInterval.hours}h`;
       
-      // Skip if already sent this reminder (using persistent storage)
+      // Check if we already sent this reminder (using persistent storage)
       const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+      
+      // Special handling for orders past 48h: auto-cancel if 48h reminder was already sent
+      if (hoursElapsed >= 48) {
+        const finalReminderKey = `abandoned-cart-${order.id}-48h`;
+        const finalReminderSent = await storage.hasSentSchedulerReminder(finalReminderKey);
+        
+        if (finalReminderSent) {
+          // 48h reminder was sent, cancel the order
+          try {
+            await storage.updateShopOrderStatus(order.id, 'cancelled');
+            console.log(`[Shop Scheduler] Auto-cancelled order ${order.orderCode} after 48h`);
+          } catch (cancelError) {
+            console.error(`[Shop Scheduler] Error cancelling order ${order.id}:`, cancelError);
+          }
+          continue; // Order cancelled, no more notifications
+        }
+        // 48h reminder not sent yet, fall through to send it
+      }
+      
+      // Skip if already sent this reminder
       if (alreadySent) continue;
       
       const interval = currentInterval;
@@ -1334,8 +1352,8 @@ async function processAbandonedCartReminder(): Promise<void> {
       }
     }
     
-    // Cleanup old reminders (older than 72h) from persistent storage
-    await storage.cleanOldSchedulerReminders(72);
+    // Cleanup old reminders (older than 48h) from persistent storage
+    await storage.cleanOldSchedulerReminders(48);
     
     console.log(`[Shop Scheduler] Abandoned cart check completed. Sent ${notificationsSent} notification(s)`);
   } catch (error) {
@@ -1707,11 +1725,11 @@ export function initTreasurySchedulers(): void {
   });
   console.log('[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)');
   
-  // Abandoned cart reminder (every hour to catch 2h/12h/24h/48h intervals)
+  // Abandoned cart reminder (every hour to catch 1h/12h/24h/48h intervals, auto-cancel after 48h)
   cron.schedule('0 * * * *', processAbandonedCartReminder, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo)');
+  console.log('[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h');
   
   // Loan installment reminders (daily at 08:00)
   cron.schedule('0 8 * * *', processLoanInstallmentReminders, {

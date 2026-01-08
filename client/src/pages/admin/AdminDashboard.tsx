@@ -305,11 +305,8 @@ export default function AdminDashboard() {
                               background: 'radial-gradient(circle, #f97316 0%, transparent 60%)',
                             }}
                           />
-                          <div className="relative z-10 flex flex-col items-center text-center">
-                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-6 w-auto drop-shadow-lg mb-6" />
-                            <h2 className="text-xl font-bold text-white mb-1" data-testid={`panel-title-${panel.id}`}>
-                              {panel.title}
-                            </h2>
+                          <div className="relative z-10 flex flex-col items-center justify-center text-center h-full min-h-[80px]">
+                            <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-6 w-auto drop-shadow-lg mb-2" />
                             <p className="text-orange-300 text-sm font-medium">
                               {panel.subtitle}
                             </p>

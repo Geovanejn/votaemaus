@@ -112,18 +112,18 @@ const adminPanels = [
     ],
     forAdmin: true,
   },
-  // === SHOP GROUP (Purple) ===
+  // === SHOP GROUP (White/Orange/Black - Urban Style) ===
   {
     id: "loja",
-    title: "Loja UMP",
-    subtitle: "Produtos e Acessorios",
-    description: "Adquira camisetas, kits, livros e outros produtos da UMP Emaus.",
+    title: "Emaustore",
+    subtitle: "Moda Jovem Crista",
+    description: "Camisetas, acessorios e produtos exclusivos da UMP Emaus.",
     icon: ShoppingBag,
-    color: "from-purple-500 to-violet-600",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    color: "shop-urban",
+    buttonColor: "bg-orange-500 hover:bg-orange-600",
     href: "/loja",
     features: [
-      "Catalogo de produtos",
+      "Catalogo exclusivo",
       "Pagamento via PIX",
       "Acompanhe seus pedidos",
     ],
@@ -134,10 +134,10 @@ const adminPanels = [
     id: "loja-admin",
     title: "Gestao da Loja",
     subtitle: "Administracao de Produtos",
-    description: "Gerencie produtos, categorias e pedidos da loja virtual da UMP.",
+    description: "Gerencie produtos, categorias e pedidos da loja virtual.",
     icon: Store,
-    color: "from-purple-500 to-violet-600",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    color: "shop-urban",
+    buttonColor: "bg-orange-500 hover:bg-orange-600",
     href: "/admin/loja",
     features: [
       "Cadastrar e editar produtos",
@@ -145,6 +145,7 @@ const adminPanels = [
       "Acompanhar pedidos",
     ],
     forMarketing: true,
+    isShop: true,
   },
   // === TREASURY GROUP (Amber/Orange) ===
   {
@@ -277,53 +278,125 @@ export default function AdminDashboard() {
                   transition={{ duration: 0.3 }}
                   className="h-full"
                 >
-                  <Card className={`h-full overflow-hidden ${panel.isShop ? 'ring-2 ring-purple-500/30' : ''}`}>
-                    <CardContent className="p-0">
-                      <div className={`bg-gradient-to-br ${panel.color} p-6 text-white`}>
-                        <div className="flex items-center justify-between mb-4">
-                          {panel.isShop ? (
-                            <img src="/emaustore-logo.png" alt="Emaustore" className="h-10 w-auto" />
-                          ) : (
-                            <panel.icon className="h-10 w-10" />
-                          )}
+                  {panel.isShop ? (
+                    <Card className="h-full overflow-hidden ring-2 ring-orange-400/50 shadow-lg">
+                      <CardContent className="p-0">
+                        <div 
+                          className="relative p-6 overflow-hidden"
+                          style={{
+                            background: 'linear-gradient(135deg, #ffffff 0%, #f8f8f8 50%, #ffffff 100%)',
+                          }}
+                        >
+                          <div 
+                            className="absolute inset-0 opacity-[0.08]"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                            }}
+                          />
+                          <div 
+                            className="absolute top-0 right-0 w-32 h-32 opacity-20"
+                            style={{
+                              background: 'radial-gradient(circle, #f97316 0%, transparent 70%)',
+                            }}
+                          />
+                          <div 
+                            className="absolute bottom-0 left-0 w-24 h-24 opacity-15"
+                            style={{
+                              background: 'radial-gradient(circle, #f97316 0%, transparent 70%)',
+                            }}
+                          />
+                          <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-4">
+                              <img src="/emaustore-logo.png" alt="Emaustore" className="h-12 w-auto drop-shadow-sm" />
+                            </div>
+                            <h2 className="text-xl font-bold mb-1 text-gray-900" data-testid={`panel-title-${panel.id}`}>
+                              {panel.title}
+                            </h2>
+                            <p className="text-gray-600 text-sm font-medium">
+                              {panel.subtitle}
+                            </p>
+                          </div>
+                          <div className="absolute bottom-2 right-2 flex gap-1">
+                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                            <span className="w-2 h-2 rounded-full bg-gray-800"></span>
+                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                          </div>
                         </div>
-                        <h2 className="text-xl font-bold mb-1" data-testid={`panel-title-${panel.id}`}>
-                          {panel.title}
-                        </h2>
-                        <p className="opacity-90 text-sm">
-                          {panel.subtitle}
-                        </p>
-                      </div>
-                      
-                      <div className="p-5">
-                        <p className="text-muted-foreground text-sm mb-4">
-                          {panel.description}
-                        </p>
                         
-                        <ul className="space-y-1.5 mb-5">
-                          {panel.features.map((feature, index) => (
-                            <li 
-                              key={index}
-                              className="flex items-center gap-2 text-xs text-muted-foreground"
-                            >
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="p-5 bg-white dark:bg-gray-900">
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                            {panel.description}
+                          </p>
+                          
+                          <ul className="space-y-1.5 mb-5">
+                            {panel.features.map((feature, index) => (
+                              <li 
+                                key={index}
+                                className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
+                              >
+                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
 
-                        <Link href={panel.href}>
-                          <Button 
-                            className={`w-full gap-2 ${panel.buttonColor} text-white`}
-                            data-testid={`button-access-${panel.id}`}
-                          >
-                            Acessar Painel
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <Link href={panel.href}>
+                            <Button 
+                              className={`w-full gap-2 ${panel.buttonColor} text-white`}
+                              data-testid={`button-access-${panel.id}`}
+                            >
+                              Acessar
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="h-full overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className={`bg-gradient-to-br ${panel.color} p-6 text-white`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <panel.icon className="h-10 w-10" />
+                          </div>
+                          <h2 className="text-xl font-bold mb-1" data-testid={`panel-title-${panel.id}`}>
+                            {panel.title}
+                          </h2>
+                          <p className="opacity-90 text-sm">
+                            {panel.subtitle}
+                          </p>
+                        </div>
+                        
+                        <div className="p-5">
+                          <p className="text-muted-foreground text-sm mb-4">
+                            {panel.description}
+                          </p>
+                          
+                          <ul className="space-y-1.5 mb-5">
+                            {panel.features.map((feature, index) => (
+                              <li 
+                                key={index}
+                                className="flex items-center gap-2 text-xs text-muted-foreground"
+                              >
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+
+                          <Link href={panel.href}>
+                            <Button 
+                              className={`w-full gap-2 ${panel.buttonColor} text-white`}
+                              data-testid={`button-access-${panel.id}`}
+                            >
+                              Acessar Painel
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </motion.div>
               </StaggerItem>
             ))}

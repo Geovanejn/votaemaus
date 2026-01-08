@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -23,13 +24,29 @@ import {
   XCircle,
   RefreshCw,
   Eye,
-  Filter
+  Filter,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+interface Member {
+  id: number;
+  fullName: string;
+  email: string;
+}
+
+interface ShopProduct {
+  id: number;
+  name: string;
+  price: number;
+  sizes?: string | null;
+  hasGenderOption?: boolean;
+}
 
 interface OrderUser {
   id: number;
@@ -111,12 +128,56 @@ export default function PedidosAdminPage() {
   const [detailsOrder, setDetailsOrder] = useState<ShopOrder | null>(null);
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [newBulkStatus, setNewBulkStatus] = useState("");
+  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
+  const [manualOrderMemberId, setManualOrderMemberId] = useState<string>("");
+  const [manualOrderName, setManualOrderName] = useState("");
+  const [manualOrderItems, setManualOrderItems] = useState<Array<{
+    itemId: number;
+    quantity: number;
+    size: string;
+    gender: string;
+  }>>([]);
+  const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
 
   const isMarketing = user?.secretaria === "marketing";
   
   const { data: orders, isLoading } = useQuery<ShopOrder[]>({
     queryKey: ["/api/admin/shop/orders"],
     enabled: isAuthenticated && (user?.isAdmin || isMarketing),
+  });
+
+  const { data: members } = useQuery<Member[]>({
+    queryKey: ["/api/admin/shop/members"],
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+  });
+
+  const { data: products } = useQuery<ShopProduct[]>({
+    queryKey: ["/api/admin/shop/items"],
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+  });
+
+  const createManualOrderMutation = useMutation({
+    mutationFn: async (data: {
+      memberId?: number;
+      manualName?: string;
+      items: Array<{ itemId: number; quantity: number; size?: string; gender?: string }>;
+      installmentCount: number;
+    }) => {
+      const response = await apiRequest("POST", "/api/admin/shop/orders/manual", data);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders"] });
+      setManualOrderDialogOpen(false);
+      setManualOrderMemberId("");
+      setManualOrderName("");
+      setManualOrderItems([]);
+      setManualOrderInstallments("1");
+      toast({ title: data.message || "Pedido criado com sucesso!" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao criar pedido", variant: "destructive" });
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -205,18 +266,28 @@ export default function PedidosAdminPage() {
                 Gestao da Loja
               </Button>
             </Link>
-            <div className="flex items-center gap-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
-                <ShoppingBag className="h-6 w-6" />
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                  <ShoppingBag className="h-6 w-6" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold" data-testid="text-pedidos-title">
+                    Gestão de Pedidos
+                  </h1>
+                  <p className="text-white/80">
+                    {orders?.length || 0} pedidos no total
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold" data-testid="text-pedidos-title">
-                  Gestão de Pedidos
-                </h1>
-                <p className="text-white/80">
-                  {orders?.length || 0} pedidos no total
-                </p>
-              </div>
+              <Button
+                onClick={() => setManualOrderDialogOpen(true)}
+                className="bg-white text-rose-600 gap-2"
+                data-testid="button-create-manual-order"
+              >
+                <Plus className="h-4 w-4" />
+                Criar Pedido
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -600,6 +671,270 @@ export default function PedidosAdminPage() {
             >
               {bulkUpdateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={manualOrderDialogOpen} onOpenChange={setManualOrderDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Pedido Manual</DialogTitle>
+            <DialogDescription>
+              Crie um pedido para um membro ou cliente externo
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Select 
+                    value={manualOrderMemberId} 
+                    onValueChange={(value) => {
+                      setManualOrderMemberId(value);
+                      if (value) setManualOrderName("");
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-manual-member">
+                      <SelectValue placeholder="Selecionar membro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members?.map(member => (
+                        <SelectItem key={member.id} value={member.id.toString()}>
+                          {member.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Ou digite o nome do cliente"
+                    value={manualOrderName}
+                    onChange={(e) => {
+                      setManualOrderName(e.target.value);
+                      if (e.target.value) setManualOrderMemberId("");
+                    }}
+                    disabled={!!manualOrderMemberId}
+                    data-testid="input-manual-name"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Itens do Pedido</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "" }])}
+                  className="gap-1"
+                  data-testid="button-add-item"
+                >
+                  <Plus className="h-3 w-3" />
+                  Adicionar
+                </Button>
+              </div>
+              
+              {manualOrderItems.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum item adicionado. Clique em "Adicionar" para incluir produtos.
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {manualOrderItems.map((item, index) => {
+                  const selectedProduct = products?.find(p => p.id === item.itemId);
+                  const availableSizes = selectedProduct?.sizes ? selectedProduct.sizes.split(',').map(s => s.trim()) : [];
+                  
+                  return (
+                    <div key={index} className="flex flex-wrap gap-2 items-end p-3 border rounded-md bg-muted/30">
+                      <div className="flex-1 min-w-[200px] space-y-1">
+                        <Label className="text-xs">Produto</Label>
+                        <Select
+                          value={item.itemId ? item.itemId.toString() : ""}
+                          onValueChange={(value) => {
+                            const newItems = [...manualOrderItems];
+                            newItems[index] = { ...item, itemId: parseInt(value), size: "", gender: "" };
+                            setManualOrderItems(newItems);
+                          }}
+                        >
+                          <SelectTrigger data-testid={`select-item-${index}`}>
+                            <SelectValue placeholder="Selecionar produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products?.map(product => (
+                              <SelectItem key={product.id} value={product.id.toString()}>
+                                {product.name} - {formatCurrency(product.price)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="w-20 space-y-1">
+                        <Label className="text-xs">Qtd</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newItems = [...manualOrderItems];
+                            newItems[index] = { ...item, quantity: parseInt(e.target.value) || 1 };
+                            setManualOrderItems(newItems);
+                          }}
+                          data-testid={`input-quantity-${index}`}
+                        />
+                      </div>
+
+                      {availableSizes.length > 0 && (
+                        <div className="w-24 space-y-1">
+                          <Label className="text-xs">Tamanho</Label>
+                          <Select
+                            value={item.size}
+                            onValueChange={(value) => {
+                              const newItems = [...manualOrderItems];
+                              newItems[index] = { ...item, size: value };
+                              setManualOrderItems(newItems);
+                            }}
+                          >
+                            <SelectTrigger data-testid={`select-size-${index}`}>
+                              <SelectValue placeholder="Tam" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSizes.map(size => (
+                                <SelectItem key={size} value={size}>{size}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {selectedProduct?.hasGenderOption && (
+                        <div className="w-28 space-y-1">
+                          <Label className="text-xs">Modelo</Label>
+                          <Select
+                            value={item.gender}
+                            onValueChange={(value) => {
+                              const newItems = [...manualOrderItems];
+                              newItems[index] = { ...item, gender: value };
+                              setManualOrderItems(newItems);
+                            }}
+                          >
+                            <SelectTrigger data-testid={`select-gender-${index}`}>
+                              <SelectValue placeholder="Modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="masculino">Masculino</SelectItem>
+                              <SelectItem value="feminino">Feminino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newItems = manualOrderItems.filter((_, i) => i !== index);
+                          setManualOrderItems(newItems);
+                        }}
+                        className="text-destructive"
+                        data-testid={`button-remove-item-${index}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parcelamento</Label>
+              <Select value={manualOrderInstallments} onValueChange={setManualOrderInstallments}>
+                <SelectTrigger data-testid="select-installments">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n === 1 ? "A vista" : `${n}x`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {manualOrderItems.length > 0 && (
+              <div className="p-3 bg-muted rounded-md">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total</span>
+                  <span className="text-lg font-bold">
+                    {formatCurrency(
+                      manualOrderItems.reduce((sum, item) => {
+                        const product = products?.find(p => p.id === item.itemId);
+                        return sum + (product?.price || 0) * item.quantity;
+                      }, 0)
+                    )}
+                  </span>
+                </div>
+                {parseInt(manualOrderInstallments) > 1 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {manualOrderInstallments}x de {formatCurrency(
+                      Math.floor(
+                        manualOrderItems.reduce((sum, item) => {
+                          const product = products?.find(p => p.id === item.itemId);
+                          return sum + (product?.price || 0) * item.quantity;
+                        }, 0) / parseInt(manualOrderInstallments)
+                      )
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setManualOrderDialogOpen(false);
+                setManualOrderMemberId("");
+                setManualOrderName("");
+                setManualOrderItems([]);
+                setManualOrderInstallments("1");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (manualOrderItems.length === 0) {
+                  toast({ title: "Adicione pelo menos um item", variant: "destructive" });
+                  return;
+                }
+                if (!manualOrderMemberId && !manualOrderName) {
+                  toast({ title: "Selecione um membro ou informe um nome", variant: "destructive" });
+                  return;
+                }
+                createManualOrderMutation.mutate({
+                  memberId: manualOrderMemberId ? parseInt(manualOrderMemberId) : undefined,
+                  manualName: manualOrderName || undefined,
+                  items: manualOrderItems.filter(i => i.itemId > 0),
+                  installmentCount: parseInt(manualOrderInstallments),
+                });
+              }}
+              disabled={createManualOrderMutation.isPending || manualOrderItems.length === 0}
+              data-testid="button-submit-manual-order"
+            >
+              {createManualOrderMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Criar Pedido
             </Button>
           </DialogFooter>
         </DialogContent>

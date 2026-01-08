@@ -9154,6 +9154,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar membros para criação manual de pedidos (marketing)
+  app.get("/api/admin/shop/members", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const members = await storage.getAllMembers();
+      const simplifiedMembers = members
+        .filter(user => user.role !== "admin" && user.isAdmin !== true)
+        .map(user => ({
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        }));
+      res.json(simplifiedMembers);
+    } catch (error) {
+      console.error("Get shop members error:", error);
+      res.status(500).json({ message: "Erro ao buscar membros" });
+    }
+  });
+
+  // Criar pedido manualmente (admin/marketing)
+  const manualOrderSchema = z.object({
+    memberId: z.number().optional(),
+    manualName: z.string().optional(),
+    items: z.array(z.object({
+      itemId: z.number(),
+      quantity: z.number().min(1).default(1),
+      size: z.string().optional(),
+      gender: z.string().optional(),
+    })).min(1, "Pelo menos um item e obrigatorio"),
+    installmentCount: z.number().min(1).max(12).default(1),
+  }).refine(data => data.memberId || data.manualName, {
+    message: "Selecione um membro ou informe um nome",
+  });
+
+  app.post("/api/admin/shop/orders/manual", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const parseResult = manualOrderSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          message: parseResult.error.errors[0]?.message || "Dados invalidos" 
+        });
+      }
+      
+      const { memberId, manualName, items, installmentCount } = parseResult.data;
+      
+      // Validate items and calculate total
+      let totalAmount = 0;
+      const validatedItems: Array<{
+        itemId: number;
+        quantity: number;
+        size: string | null;
+        gender: string | null;
+        unitPrice: number;
+      }> = [];
+      
+      for (const item of items) {
+        const shopItem = await storage.getShopItemById(item.itemId);
+        if (!shopItem) {
+          return res.status(400).json({ message: `Produto ${item.itemId} nao encontrado` });
+        }
+        
+        // Validate size if product has sizes
+        if (shopItem.sizes && shopItem.sizes.length > 0 && !item.size) {
+          return res.status(400).json({ message: `Tamanho obrigatorio para ${shopItem.name}` });
+        }
+        
+        // Validate gender if product requires it
+        if (shopItem.hasGenderOption && !item.gender) {
+          return res.status(400).json({ message: `Modelo (M/F) obrigatorio para ${shopItem.name}` });
+        }
+        
+        const quantity = item.quantity || 1;
+        const unitPrice = shopItem.price;
+        totalAmount += unitPrice * quantity;
+        
+        validatedItems.push({
+          itemId: item.itemId,
+          quantity,
+          size: item.size || null,
+          gender: item.gender || null,
+          unitPrice,
+        });
+      }
+      
+      // Generate order code
+      const year = new Date().getFullYear();
+      const orders = await storage.getShopOrders();
+      const yearOrders = orders.filter(o => o.orderCode?.includes(`${year}`));
+      const nextNumber = String(yearOrders.length + 1).padStart(4, '0');
+      const orderCode = `#${year}-${nextNumber}`;
+      
+      // If using memberId, verify member exists
+      let userId = memberId;
+      let memberRecord = null;
+      if (memberId) {
+        memberRecord = await storage.getUserById(memberId);
+        if (!memberRecord) {
+          return res.status(400).json({ message: "Membro nao encontrado" });
+        }
+      }
+      
+      // Create order - for manual orders without member, use the admin user id
+      const order = await storage.createShopOrder({
+        orderCode,
+        userId: userId || req.user!.id,
+        totalAmount,
+        observation: manualName ? `Pedido manual - Cliente: ${manualName}` : 'Pedido criado manualmente',
+        paymentStatus: "pending",
+        orderStatus: "awaiting_payment",
+        installmentCount: installmentCount || 1,
+      });
+      
+      // Create order items
+      for (const oi of validatedItems) {
+        await storage.createShopOrderItem({
+          orderId: order.id,
+          itemId: oi.itemId,
+          quantity: oi.quantity,
+          gender: oi.gender,
+          size: oi.size,
+          unitPrice: oi.unitPrice,
+        });
+      }
+      
+      // Create installments if applicable
+      const finalInstallmentCount = installmentCount || 1;
+      if (finalInstallmentCount > 1) {
+        const installmentAmount = Math.floor(totalAmount / finalInstallmentCount);
+        const remainder = totalAmount - (installmentAmount * finalInstallmentCount);
+        
+        for (let i = 1; i <= finalInstallmentCount; i++) {
+          const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
+          const dueDate = new Date();
+          dueDate.setMonth(dueDate.getMonth() + i);
+          dueDate.setDate(10);
+          
+          await storage.createShopInstallment({
+            orderId: order.id,
+            installmentNumber: i,
+            amount,
+            dueDate,
+            status: 'pending',
+          });
+        }
+      }
+      
+      // Create treasury entry for all manual orders (member or external customer)
+      const settings = await storage.getTreasurySettings(new Date().getFullYear());
+      if (settings) {
+        const treasuryEntry = await storage.createTreasuryEntry({
+          userId: memberId || null,
+          externalPayerName: manualName || null,
+          category: 'loja',
+          referenceYear: new Date().getFullYear(),
+          referenceMonth: new Date().getMonth() + 1,
+          type: 'income',
+          description: `Pedido ${orderCode}${manualName ? ` - Cliente: ${manualName}` : ''}`,
+          amount: totalAmount,
+          paymentMethod: 'manual',
+          paymentStatus: 'pending',
+          orderId: order.id,
+        });
+        
+        // Link entry to order
+        await storage.updateShopOrder(order.id, { entryId: treasuryEntry.id });
+      }
+      
+      console.log(`[Shop] Manual order ${orderCode} created by ${req.user!.fullName}`);
+      
+      res.json({ 
+        success: true, 
+        order,
+        message: `Pedido ${orderCode} criado com sucesso!`
+      });
+    } catch (error) {
+      console.error("Create manual order error:", error);
+      res.status(500).json({ message: "Erro ao criar pedido manual" });
+    }
+  });
+
   // ==================== SHOP INSTALLMENTS - ADMIN ====================
 
   // Listar parcelas de um pedido

@@ -1044,14 +1044,29 @@ export async function notifyMarketingEventReminder(
   eventTitle: string,
   eventDate: string,
   eventTime: string | null,
-  timeLabel: string
+  timeLabel: string,
+  hoursUntilEvent?: number
 ): Promise<void> {
-  console.log(`[Notifications] notifyMarketingEventReminder STARTED for event ${eventId}: "${eventTitle}" - ${timeLabel}`);
+  console.log(`[Notifications] notifyMarketingEventReminder STARTED for event ${eventId}: "${eventTitle}" - ${timeLabel} (${hoursUntilEvent?.toFixed(1)}h remaining)`);
+  
+  // Compute humanized time text dynamically based on actual remaining hours
+  let humanizedTime = timeLabel;
+  if (hoursUntilEvent !== undefined && hoursUntilEvent > 0) {
+    if (hoursUntilEvent >= 24) {
+      const days = Math.round(hoursUntilEvent / 24);
+      humanizedTime = days === 1 ? '1 dia' : `${days} dias`;
+    } else if (hoursUntilEvent >= 1) {
+      const hours = Math.round(hoursUntilEvent);
+      humanizedTime = hours === 1 ? '1 hora' : `${hours} horas`;
+    } else {
+      humanizedTime = 'alguns minutos';
+    }
+  }
   
   const timeInfo = eventTime ? ` às ${eventTime}` : '';
   const payload: NotificationPayload = {
     title: `Lembrete: ${eventTitle}`,
-    body: `O evento acontece em ${timeLabel}${timeInfo}. Não esqueça!`,
+    body: `O evento acontece em ${humanizedTime}${timeInfo}. Não esqueça!`,
     url: `/agenda/${eventId}`,
     tag: `marketing-event-reminder-${eventId}-${timeLabel}`,
     icon: "/logo.png",

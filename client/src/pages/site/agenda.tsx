@@ -257,13 +257,22 @@ export default function AgendaPage() {
 
   // Mutation for confirming presence
   const confirmMutation = useMutation({
-    mutationFn: async (eventId: number) => {
-      return apiRequest("POST", `/api/events/${eventId}/confirm`, { visitorCount: 0 });
+    mutationFn: async ({ eventId, hasFee }: { eventId: number; hasFee: boolean }) => {
+      const res = await apiRequest("POST", `/api/events/${eventId}/confirm`, { visitorCount: 0 });
+      return { response: res, hasFee, eventId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'my-confirmation'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent?.id, 'confirmation-count'] });
-      toast({ title: "Presenca confirmada", description: "Sua presenca foi registrada com sucesso." });
+    onSuccess: async ({ hasFee, eventId }) => {
+      // Use eventId from response to avoid relying on selectedEvent state during async resolution
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'my-confirmation'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'confirmation-count'] });
+      
+      if (hasFee) {
+        // For paid events, immediately generate PIX after confirmation
+        toast({ title: "Presenca confirmada", description: "Gerando pagamento PIX..." });
+        generatePixMutation.mutate(eventId);
+      } else {
+        toast({ title: "Presenca confirmada", description: "Sua presenca foi registrada com sucesso." });
+      }
     },
     onError: (error: any) => {
       toast({ 
@@ -638,7 +647,7 @@ export default function AgendaPage() {
                   </div>
                   
                   {selectedEvent.time && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Clock className="h-4 w-4 text-primary" />
                       <span>{selectedEvent.time}</span>
                       {selectedEvent.feeAmount && selectedEvent.feeAmount > 0 && (
@@ -650,16 +659,40 @@ export default function AgendaPage() {
                           </span>
                         </>
                       )}
+                      {/* Confirmation count inline after fee */}
+                      {confirmationCount && confirmationCount.confirmed > 0 && (
+                        <>
+                          <span className="text-muted-foreground mx-2">|</span>
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{confirmationCount.confirmed} confirmado(s)</span>
+                        </>
+                      )}
                     </div>
                   )}
 
                   {/* Show fee even if no time is set */}
                   {!selectedEvent.time && selectedEvent.feeAmount && selectedEvent.feeAmount > 0 && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Banknote className="h-4 w-4 text-primary" />
                       <span className="font-medium">
                         Taxa: R$ {(selectedEvent.feeAmount / 100).toFixed(2).replace('.', ',')}
                       </span>
+                      {/* Confirmation count inline after fee */}
+                      {confirmationCount && confirmationCount.confirmed > 0 && (
+                        <>
+                          <span className="text-muted-foreground mx-2">|</span>
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{confirmationCount.confirmed} confirmado(s)</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Show confirmation count when no time and no fee */}
+                  {!selectedEvent.time && !(selectedEvent.feeAmount && selectedEvent.feeAmount > 0) && confirmationCount && confirmationCount.confirmed > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{confirmationCount.confirmed} presenca(s) confirmada(s)</span>
                     </div>
                   )}
                   
@@ -686,14 +719,6 @@ export default function AgendaPage() {
                       url={selectedEvent.locationUrl}
                       variant="card"
                     />
-                  </div>
-                )}
-
-                {/* Confirmation count (public) */}
-                {confirmationCount && confirmationCount.confirmed > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{confirmationCount.confirmed} presenca(s) confirmada(s)</span>
                   </div>
                 )}
 
@@ -743,13 +768,17 @@ export default function AgendaPage() {
                         </div>
                       ) : (
                         <Button
-                          onClick={() => confirmMutation.mutate(selectedEvent.id)}
-                          disabled={confirmMutation.isPending || !!(confirmationData?.fee && new Date() > new Date(confirmationData.fee.deadline))}
+                          onClick={() => {
+                            // Confirm presence - for paid events, PIX modal opens automatically after confirmation
+                            const hasFee = !!(selectedEvent.feeAmount && selectedEvent.feeAmount > 0);
+                            confirmMutation.mutate({ eventId: selectedEvent.id, hasFee });
+                          }}
+                          disabled={confirmMutation.isPending || generatePixMutation.isPending || !!(confirmationData?.fee && new Date() > new Date(confirmationData.fee.deadline))}
                           variant="secondary"
-                          className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           data-testid="button-confirm-presence"
                         >
-                          {confirmMutation.isPending ? (
+                          {(confirmMutation.isPending || generatePixMutation.isPending) ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : (
                             <UserCheck className="h-4 w-4 mr-2" />

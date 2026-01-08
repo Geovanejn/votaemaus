@@ -1008,34 +1008,8 @@ export function initEventDeadlineScheduler(): void {
 }
 
 // Marketing Event Reminder Scheduler
-// Sends reminders: 1 week, 24 hours, and 2 hours before marketing events
-const sentMarketingReminders = new Map<string, number>();
-let marketingCacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-function cleanupMarketingRemindersCache(): void {
-  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  
-  for (const [key, timestamp] of sentMarketingReminders.entries()) {
-    if (now - timestamp > ONE_WEEK_MS) {
-      sentMarketingReminders.delete(key);
-    }
-  }
-}
-
-function startMarketingRemindersCacheCleanup(): void {
-  if (marketingCacheCleanupInterval) {
-    clearInterval(marketingCacheCleanupInterval);
-  }
-  marketingCacheCleanupInterval = setInterval(cleanupMarketingRemindersCache, 60 * 60 * 1000);
-}
-
-function stopMarketingRemindersCacheCleanup(): void {
-  if (marketingCacheCleanupInterval) {
-    clearInterval(marketingCacheCleanupInterval);
-    marketingCacheCleanupInterval = null;
-  }
-}
+// Sends reminders: 5 days, 3 days, 1 day, day-of at 08:00, 1 hour before event
+// Uses database persistence (sent_scheduler_reminders table) to survive server restarts
 
 // Convert event date string (YYYY-MM-DD) and time (HH:MM) in Sao Paulo timezone to UTC Date
 // Sao Paulo is UTC-3 (Brazil no longer uses daylight saving time since 2019)
@@ -1055,13 +1029,31 @@ function parseEventDateInSaoPaulo(dateStr: string, timeStr: string | null): Date
   return new Date(isoString);
 }
 
+// Get current date in Sao Paulo timezone as YYYY-MM-DD
+function getSaoPauloDateString(): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(new Date());
+}
+
+// Get current hour in Sao Paulo timezone
+function getSaoPauloHour(): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    hour12: false
+  });
+  return parseInt(formatter.format(new Date()));
+}
+
 async function processMarketingEventReminders(): Promise<void> {
   console.log('[Marketing Reminder Scheduler] Processing marketing event reminders...');
   
   try {
-    // Clean old cache entries at the start of each check
-    cleanupMarketingRemindersCache();
-    
     const upcomingEvents = await storage.getUpcomingEvents(50);
     
     if (upcomingEvents.length === 0) {
@@ -1069,8 +1061,9 @@ async function processMarketingEventReminders(): Promise<void> {
       return;
     }
 
-    // Use current time in UTC for comparison (event times are also converted to UTC)
     const now = new Date();
+    const todayStr = getSaoPauloDateString();
+    const currentHour = getSaoPauloHour();
     let notificationsSent = 0;
 
     for (const event of upcomingEvents) {
@@ -1089,35 +1082,69 @@ async function processMarketingEventReminders(): Promise<void> {
         // Skip events that already started
         if (hoursUntilEvent <= 0) continue;
 
-        // Reminder thresholds (in hours before event)
-        // Each threshold has a lower bound to prevent duplicate notifications
+        // Reminder thresholds: 5 days, 3 days, 1 day, 1 hour before
+        // Each threshold has a range to avoid missing and to prevent duplicates
         const thresholds = [
-          { hours: 168, lowerBound: 24, label: '1 semana' },   // 7 days = 168h, valid range: 168h > remaining > 24h
-          { hours: 24, lowerBound: 2, label: '24 horas' },     // 24h > remaining > 2h
-          { hours: 2, lowerBound: 0, label: '2 horas' },       // 2h > remaining > 0h
+          { hours: 120, lowerBound: 72, label: '5-dias', key: '5d' },   // 5 days (120h), range: 120h > remaining > 72h
+          { hours: 72, lowerBound: 24, label: '3-dias', key: '3d' },    // 3 days (72h), range: 72h > remaining > 24h
+          { hours: 24, lowerBound: 1, label: '1-dia', key: '1d' },      // 1 day (24h), range: 24h > remaining > 1h
+          { hours: 1, lowerBound: 0, label: '1-hora', key: '1h' },      // 1 hour, range: 1h > remaining > 0h
         ];
 
         for (const threshold of thresholds) {
-          const cacheKey = `marketing-${event.id}-${threshold.hours}h`;
+          const reminderKey = `marketing_event:${event.id}:${threshold.key}`;
 
           // Check if we should send this notification
           const isInRange = hoursUntilEvent <= threshold.hours && hoursUntilEvent > threshold.lowerBound;
-          const alreadySent = sentMarketingReminders.has(cacheKey);
+          
+          if (isInRange) {
+            // Check database for persistence (survives server restarts)
+            const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+            
+            if (!alreadySent) {
+              try {
+                await notifyMarketingEventReminder(
+                  event.id,
+                  event.title,
+                  event.startDate,
+                  event.time || null,
+                  threshold.label,
+                  hoursUntilEvent
+                );
+                await storage.markSchedulerReminderSent(reminderKey, 'marketing_event', event.id);
+                notificationsSent++;
+                console.log(`[Marketing Reminder Scheduler] Sent ${threshold.label} reminder for "${event.title}" (${hoursUntilEvent.toFixed(1)}h until event)`);
+              } catch (notifyError) {
+                console.error(`[Marketing Reminder Scheduler] Error sending notification for event ${event.id}:`, notifyError);
+              }
+            }
+          }
+        }
 
-          if (isInRange && !alreadySent) {
+        // Special case: Day-of 08:00 notification
+        // Only send if it's the event day and current hour is 8 (between 08:00 and 08:59)
+        const isEventDay = event.startDate === todayStr;
+        const is8AMHour = currentHour === 8;
+        
+        if (isEventDay && is8AMHour) {
+          const dayOfReminderKey = `marketing_event:${event.id}:day-of-8am`;
+          const dayOfAlreadySent = await storage.hasSentSchedulerReminder(dayOfReminderKey);
+          
+          if (!dayOfAlreadySent) {
             try {
               await notifyMarketingEventReminder(
                 event.id,
                 event.title,
                 event.startDate,
                 event.time || null,
-                threshold.label
+                'dia-do-evento',
+                hoursUntilEvent
               );
-              sentMarketingReminders.set(cacheKey, Date.now());
+              await storage.markSchedulerReminderSent(dayOfReminderKey, 'marketing_event', event.id);
               notificationsSent++;
-              console.log(`[Marketing Reminder Scheduler] Sent ${threshold.label} reminder for "${event.title}" (${hoursUntilEvent.toFixed(1)}h until event)`);
+              console.log(`[Marketing Reminder Scheduler] Sent day-of 08:00 reminder for "${event.title}" (${hoursUntilEvent.toFixed(1)}h until event)`);
             } catch (notifyError) {
-              console.error(`[Marketing Reminder Scheduler] Error sending notification for event ${event.id}:`, notifyError);
+              console.error(`[Marketing Reminder Scheduler] Error sending day-of notification for event ${event.id}:`, notifyError);
             }
           }
         }
@@ -1133,15 +1160,11 @@ async function processMarketingEventReminders(): Promise<void> {
 }
 
 export function initMarketingReminderScheduler(): void {
-  // Stop any existing cleanup interval before starting a new one (prevents duplicates on hot reload)
-  stopMarketingRemindersCacheCleanup();
-  startMarketingRemindersCacheCleanup();
-  
   // Run every hour at :30 to avoid overlapping with other schedulers
   cron.schedule('30 * * * *', processMarketingEventReminders, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo)');
+  console.log('[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence');
 }
 
 // ==================== TREASURY SCHEDULERS ====================

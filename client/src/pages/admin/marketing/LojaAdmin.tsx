@@ -739,8 +739,31 @@ export default function LojaAdmin() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 text-white py-8">
-        <div className="container mx-auto px-4">
+      <section 
+        className="relative text-white py-8 overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 50%, #1a1a1a 100%)',
+        }}
+      >
+        <div 
+          className="absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f97316' stroke-width='1.5'%3E%3Cpath d='M10 10 L25 5 L35 18 L28 25 Z' opacity='0.5'/%3E%3Cpath d='M80 15 L100 10 L95 35 L75 30 Z' opacity='0.4'/%3E%3Cpath d='M45 70 L65 62 L72 85 L52 90 Z' opacity='0.45'/%3E%3Cpath d='M15 90 L30 82 L38 100 L22 108 Z' opacity='0.35'/%3E%3Cpath d='M85 80 L105 72 L112 95 L92 102 Z' opacity='0.4'/%3E%3Ccircle cx='60' cy='35' r='4' fill='%23f97316' opacity='0.3'/%3E%3Ccircle cx='25' cy='55' r='3' fill='%23f97316' opacity='0.35'/%3E%3Ccircle cx='95' cy='50' r='3' fill='%23f97316' opacity='0.3'/%3E%3Cpath d='M5 45 Q20 38 40 45 T75 45' stroke='%23f97316' opacity='0.25'/%3E%3Cpath d='M60 105 Q80 98 105 105' stroke='%23f97316' opacity='0.3'/%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+        <div 
+          className="absolute top-0 right-0 w-64 h-64 opacity-20"
+          style={{
+            background: 'radial-gradient(circle, #f97316 0%, transparent 60%)',
+          }}
+        />
+        <div 
+          className="absolute bottom-0 left-0 w-48 h-48 opacity-15"
+          style={{
+            background: 'radial-gradient(circle, #f97316 0%, transparent 60%)',
+          }}
+        />
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -757,14 +780,12 @@ export default function LojaAdmin() {
             </Link>
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
-                  <Store className="h-6 w-6" />
-                </div>
+                <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-14 w-auto drop-shadow-lg" />
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold" data-testid="text-shop-admin-title">
                     Gestão da Loja
                   </h1>
-                  <p className="text-white/80">
+                  <p className="text-orange-300">
                     Marketing - Gerenciar produtos e categorias
                   </p>
                 </div>
@@ -773,7 +794,7 @@ export default function LojaAdmin() {
                 <Link href="/admin/marketing/pedidos">
                   <Button
                     variant="outline"
-                    className="gap-2 bg-white/10 border-white/30 text-white"
+                    className="gap-2 bg-white/10 border-orange-400/50 text-white"
                     data-testid="button-manage-orders"
                   >
                     <ShoppingBag className="h-4 w-4" />
@@ -783,7 +804,7 @@ export default function LojaAdmin() {
                 <Button
                   variant="outline"
                   onClick={() => setIsCategoryOpen(true)}
-                  className="gap-2 bg-white/10 border-white/30 text-white"
+                  className="gap-2 bg-white/10 border-orange-400/50 text-white"
                   data-testid="button-add-category"
                 >
                   <FolderPlus className="h-4 w-4" />
@@ -791,7 +812,7 @@ export default function LojaAdmin() {
                 </Button>
                 <Button
                   onClick={() => setIsCreateOpen(true)}
-                  className="gap-2"
+                  className="gap-2 bg-orange-500 hover:bg-orange-600"
                   data-testid="button-add-item"
                 >
                   <Plus className="h-4 w-4" />

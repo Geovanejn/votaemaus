@@ -112,18 +112,18 @@ const adminPanels = [
     ],
     forAdmin: true,
   },
-  // === SHOP GROUP (White/Orange/Black - Urban Style) ===
+  // === SHOP GROUP (Black/Orange - Urban Graffiti Style) ===
   {
     id: "loja",
-    title: "Emaustore",
-    subtitle: "Moda Jovem Crista",
-    description: "Camisetas, acessorios e produtos exclusivos da UMP Emaus.",
+    title: "Loja da UMP",
+    subtitle: "Moda Jovem Cristã",
+    description: "Camisetas, acessórios e produtos exclusivos da UMP Emaús.",
     icon: ShoppingBag,
     color: "shop-urban",
     buttonColor: "bg-orange-500 hover:bg-orange-600",
     href: "/loja",
     features: [
-      "Catalogo exclusivo",
+      "Catálogo exclusivo",
       "Pagamento via PIX",
       "Acompanhe seus pedidos",
     ],
@@ -132,8 +132,8 @@ const adminPanels = [
   },
   {
     id: "loja-admin",
-    title: "Gestao da Loja",
-    subtitle: "Administracao de Produtos",
+    title: "Gestão da Loja",
+    subtitle: "Administração de Produtos",
     description: "Gerencie produtos, categorias e pedidos da loja virtual.",
     icon: Store,
     color: "shop-urban",
@@ -284,47 +284,47 @@ export default function AdminDashboard() {
                         <div 
                           className="relative p-6 overflow-hidden"
                           style={{
-                            background: 'linear-gradient(135deg, #ffffff 0%, #f8f8f8 50%, #ffffff 100%)',
+                            background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 50%, #1a1a1a 100%)',
                           }}
                         >
                           <div 
-                            className="absolute inset-0 opacity-[0.08]"
+                            className="absolute inset-0 opacity-[0.15]"
                             style={{
-                              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f97316' stroke-width='1'%3E%3Cpath d='M10 10 L20 5 L30 15 L25 20 Z' opacity='0.6'/%3E%3Cpath d='M70 20 L85 15 L80 30 L65 25 Z' opacity='0.4'/%3E%3Cpath d='M40 60 L55 55 L60 70 L45 75 Z' opacity='0.5'/%3E%3Cpath d='M15 80 L25 75 L30 85 L20 90 Z' opacity='0.3'/%3E%3Cpath d='M75 70 L90 65 L95 80 L80 85 Z' opacity='0.4'/%3E%3Ccircle cx='50' cy='30' r='3' fill='%23f97316' opacity='0.3'/%3E%3Ccircle cx='20' cy='50' r='2' fill='%23f97316' opacity='0.4'/%3E%3Ccircle cx='80' cy='45' r='2' fill='%23f97316' opacity='0.3'/%3E%3Cpath d='M5 40 Q15 35 25 40 T45 40' stroke='%23f97316' opacity='0.2'/%3E%3Cpath d='M55 85 Q70 80 85 85' stroke='%23f97316' opacity='0.3'/%3E%3C/g%3E%3C/svg%3E")`,
                             }}
                           />
                           <div 
-                            className="absolute top-0 right-0 w-32 h-32 opacity-20"
+                            className="absolute top-0 right-0 w-40 h-40 opacity-25"
                             style={{
-                              background: 'radial-gradient(circle, #f97316 0%, transparent 70%)',
+                              background: 'radial-gradient(circle, #f97316 0%, transparent 60%)',
                             }}
                           />
                           <div 
-                            className="absolute bottom-0 left-0 w-24 h-24 opacity-15"
+                            className="absolute bottom-0 left-0 w-32 h-32 opacity-20"
                             style={{
-                              background: 'radial-gradient(circle, #f97316 0%, transparent 70%)',
+                              background: 'radial-gradient(circle, #f97316 0%, transparent 60%)',
                             }}
                           />
                           <div className="relative z-10">
                             <div className="flex items-center justify-between mb-4">
-                              <img src="/emaustore-logo.png" alt="Emaustore" className="h-12 w-auto drop-shadow-sm" />
+                              <img src="/emaustore-logo-dark.png" alt="Emaústore" className="h-14 w-auto drop-shadow-lg" />
                             </div>
-                            <h2 className="text-xl font-bold mb-1 text-gray-900" data-testid={`panel-title-${panel.id}`}>
+                            <h2 className="text-xl font-bold mb-1 text-white" data-testid={`panel-title-${panel.id}`}>
                               {panel.title}
                             </h2>
-                            <p className="text-gray-600 text-sm font-medium">
+                            <p className="text-orange-300 text-sm font-medium">
                               {panel.subtitle}
                             </p>
                           </div>
                           <div className="absolute bottom-2 right-2 flex gap-1">
-                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-                            <span className="w-2 h-2 rounded-full bg-gray-800"></span>
-                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span className="w-2 h-2 rounded-full bg-white/60"></span>
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
                           </div>
                         </div>
                         
-                        <div className="p-5 bg-white dark:bg-gray-900">
-                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                        <div className="p-5 bg-gray-950 dark:bg-gray-950">
+                          <p className="text-gray-400 text-sm mb-4">
                             {panel.description}
                           </p>
                           
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
                             {panel.features.map((feature, index) => (
                               <li 
                                 key={index}
-                                className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
+                                className="flex items-center gap-2 text-xs text-gray-400"
                               >
                                 <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                                 {feature}

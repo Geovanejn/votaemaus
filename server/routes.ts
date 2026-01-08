@@ -4506,22 +4506,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== NOTIFICATION ENDPOINTS ====================
 
-  // Diagnostic endpoint to check push notification status (admin only)
+  // OPTIMIZED: Diagnostic endpoint to check push notification status (admin only) - batch query
   app.get("/api/admin/push-status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers();
-      const results: Array<{ userId: number; fullName: string; subscriptionCount: number }> = [];
       
-      for (const member of members) {
-        const subscriptions = await storage.getPushSubscriptionsByUserId(member.id);
-        results.push({
-          userId: member.id,
-          fullName: member.fullName,
-          subscriptionCount: subscriptions.length,
-        });
-      }
+      // OPTIMIZED: Batch fetch all subscription counts in one query
+      const memberIds = members.map(m => m.id);
+      const [subscriptionCountsMap, anonymousSubscriptions] = await Promise.all([
+        storage.getPushSubscriptionCountsByUserIds(memberIds),
+        storage.getAllAnonymousPushSubscriptions(),
+      ]);
       
-      const anonymousSubscriptions = await storage.getAllAnonymousPushSubscriptions();
+      const results = members.map(member => ({
+        userId: member.id,
+        fullName: member.fullName,
+        subscriptionCount: subscriptionCountsMap.get(member.id) || 0,
+      }));
       
       const vapidConfigured = Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
       const viteVapidConfigured = Boolean(process.env.VITE_VAPID_PUBLIC_KEY);
@@ -4863,7 +4864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get confirmation counts for multiple events (batch)
+  // OPTIMIZED: Get confirmation counts for multiple events (parallel)
   app.get("/api/site/events/confirmation-counts", async (req, res) => {
     try {
       const idsParam = req.query.ids as string;
@@ -4876,11 +4877,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({});
       }
       
-      const result: Record<number, { members: number; visitors: number }> = {};
+      // OPTIMIZED: Parallel fetch all confirmation counts using Promise.all
+      const countsPromises = eventIds.map(async (eventId) => ({
+        eventId,
+        counts: await storage.getEventConfirmationCount(eventId),
+      }));
       
-      // Batch fetch all confirmations
-      for (const eventId of eventIds) {
-        const counts = await storage.getEventConfirmationCount(eventId);
+      const countsResults = await Promise.all(countsPromises);
+      
+      const result: Record<number, { members: number; visitors: number }> = {};
+      for (const { eventId, counts } of countsResults) {
         result[eventId] = counts;
       }
       
@@ -11341,9 +11347,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         width: i === 0 ? 30 : 12,
       }));
       
+      // OPTIMIZED: Batch fetch all payments instead of N+1
+      const [percaptaMap, umpPaymentsMap] = await Promise.all([
+        storage.getAllMemberPercaptaPayments(year),
+        storage.getAllMemberUmpPayments(year),
+      ]);
+      
       for (const member of members) {
-        const percaptaPayment = await storage.getMemberPercaptaPayment(member.id, year);
-        const umpPayments = await storage.getMemberUmpPayments(member.id, year);
+        const percaptaPayment = percaptaMap.get(member.id);
+        const umpPayments = umpPaymentsMap.get(member.id) || [];
         const paidMonths = new Set(umpPayments.filter(p => p.paidAt).map(p => p.month));
         
         const row: Record<string, string> = {
@@ -11875,16 +11887,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // List all shop installments for treasurer
+  // OPTIMIZED: List all shop installments for treasurer - batch queries
   app.get("/api/treasury/shop/installments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const status = req.query.status as string | undefined;
       const allOrders = await storage.getShopOrders();
       
+      if (allOrders.length === 0) {
+        return res.json([]);
+      }
+      
+      // Batch fetch all installments and users
+      const orderIds = allOrders.map(o => o.id);
+      const userIds = Array.from(new Set(allOrders.map(o => o.userId)));
+      
+      const [installmentsMap, usersMap] = await Promise.all([
+        storage.getShopInstallmentsByOrderIds(orderIds),
+        storage.getUsersByIds(userIds),
+      ]);
+      
       const allInstallments = [];
       for (const order of allOrders) {
-        const installments = await storage.getShopInstallments(order.id);
-        const user = await storage.getUserById(order.userId);
+        const installments = installmentsMap.get(order.id) || [];
+        const user = usersMap.get(order.userId);
         
         for (const inst of installments) {
           if (status && inst.status !== status) continue;
@@ -11959,19 +11984,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send push notification to all members with overdue installments
+  // OPTIMIZED: Send push notification to all members with overdue installments - batch queries
   app.post("/api/treasury/shop/notify-overdue", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
       const allOrders = await storage.getShopOrders();
       const now = new Date();
       
+      // Filter pending orders only
+      const pendingOrders = allOrders.filter(o => 
+        o.paymentStatus !== 'paid' && o.paymentStatus !== 'cancelled'
+      );
+      
+      if (pendingOrders.length === 0) {
+        return res.json({ 
+          message: "Nenhum pedido pendente encontrado",
+          usersNotified: 0,
+          notificationsSent: 0,
+        });
+      }
+      
+      // Batch fetch all installments
+      const orderIds = pendingOrders.map(o => o.id);
+      const installmentsMap = await storage.getShopInstallmentsByOrderIds(orderIds);
+      
       // Aggregate all overdue installments per user
       const userOverdueMap = new Map<number, { count: number; total: number }>();
       
-      for (const order of allOrders) {
-        if (order.paymentStatus === 'paid' || order.paymentStatus === 'cancelled') continue;
-        
-        const installments = await storage.getShopInstallments(order.id);
+      for (const order of pendingOrders) {
+        const installments = installmentsMap.get(order.id) || [];
         const overdueInstallments = installments.filter(inst => 
           inst.status === 'pending' && new Date(inst.dueDate) < now
         );
@@ -11984,10 +12024,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Batch fetch all users at once
+      const userIds = Array.from(userOverdueMap.keys());
+      const usersMap = await storage.getUsersByIds(userIds);
+      
       // Send notifications to each user with aggregated totals
       let totalNotifications = 0;
-      for (const [userId, data] of userOverdueMap) {
-        const user = await storage.getUserById(userId);
+      for (const [userId, data] of Array.from(userOverdueMap)) {
+        const user = usersMap.get(userId);
         if (user) {
           const count = await sendPushToUser(userId, {
             title: "Parcela(s) Vencida(s) - Loja UMP",

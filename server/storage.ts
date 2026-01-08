@@ -5301,6 +5301,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.pushSubscriptions.userId, userId));
   }
 
+  // OPTIMIZED: Batch fetch push subscriptions for multiple users
+  async getPushSubscriptionCountsByUserIds(userIds: number[]): Promise<Map<number, number>> {
+    if (userIds.length === 0) return new Map();
+    
+    const subscriptions = await db.select()
+      .from(schema.pushSubscriptions)
+      .where(inArray(schema.pushSubscriptions.userId, userIds));
+    
+    const countMap = new Map<number, number>();
+    for (const sub of subscriptions) {
+      if (sub.userId) {
+        countMap.set(sub.userId, (countMap.get(sub.userId) || 0) + 1);
+      }
+    }
+    return countMap;
+  }
+
   async updatePushSubscriptionLastUsed(subscriptionId: number): Promise<void> {
     await db.update(schema.pushSubscriptions)
       .set({ lastUsed: new Date() })
@@ -7312,6 +7329,35 @@ export class DatabaseStorage implements IStorage {
     return payment || null;
   }
 
+  // OPTIMIZED: Batch fetch all percapta payments for a year
+  async getAllMemberPercaptaPayments(year: number): Promise<Map<number, MemberPercaptaPayment>> {
+    const payments = await db.select()
+      .from(schema.memberPercaptaPayments)
+      .where(eq(schema.memberPercaptaPayments.year, year));
+    
+    const map = new Map<number, MemberPercaptaPayment>();
+    for (const payment of payments) {
+      map.set(payment.userId, payment);
+    }
+    return map;
+  }
+
+  // OPTIMIZED: Batch fetch all UMP payments for a year
+  async getAllMemberUmpPayments(year: number): Promise<Map<number, MemberUmpPayment[]>> {
+    const payments = await db.select()
+      .from(schema.memberUmpPayments)
+      .where(eq(schema.memberUmpPayments.year, year))
+      .orderBy(asc(schema.memberUmpPayments.month));
+    
+    const map = new Map<number, MemberUmpPayment[]>();
+    for (const payment of payments) {
+      const existing = map.get(payment.userId) || [];
+      existing.push(payment);
+      map.set(payment.userId, existing);
+    }
+    return map;
+  }
+
   // ==================== TREASURY DASHBOARD METHODS ====================
 
   async getTreasuryDashboardSummary(year: number): Promise<{
@@ -7347,9 +7393,11 @@ export class DatabaseStorage implements IStorage {
     const allMembers = await this.getAllMembers(true);
     const activeMemberIds = allMembers.filter(m => m.activeMember === true).map(m => m.id);
     
+    // OPTIMIZED: Batch fetch all percapta payments instead of N+1
+    const percaptaMap = await this.getAllMemberPercaptaPayments(year);
     let membersUpToDate = 0;
     for (const memberId of activeMemberIds) {
-      const percapta = await this.getMemberPercaptaPayment(memberId, year);
+      const percapta = percaptaMap.get(memberId);
       // Check paidAt instead of isPaid (paidAt is set when payment is confirmed)
       if (percapta?.paidAt) {
         membersUpToDate++;

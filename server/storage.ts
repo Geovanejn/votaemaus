@@ -6282,15 +6282,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveStudyEvents(): Promise<StudyEvent[]> {
-    // Return only published and ended events for user display
+    // Return published, ended, and completed events for user display
     // Draft events are hidden from users until admin publishes them
     // "published" events with future dates appear as "upcoming/locked" to users
+    // "completed" events are auto-ended by scheduler (cards distributed)
+    // "ended" events are manually ended by admin
     return db.select()
       .from(schema.studyEvents)
       .where(
         or(
           eq(schema.studyEvents.status, "published"),
-          eq(schema.studyEvents.status, "ended")
+          eq(schema.studyEvents.status, "ended"),
+          eq(schema.studyEvents.status, "completed")
         )
       )
       .orderBy(asc(schema.studyEvents.startDate));

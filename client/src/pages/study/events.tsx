@@ -162,8 +162,8 @@ function getMonthLabel(startDate: string): string {
 }
 
 function getEventStatus(event: StudyEvent): "upcoming" | "active" | "ended" {
-  // Check if manually ended by admin
-  if (event.status === "ended") return "ended";
+  // Check if manually ended by admin or auto-completed by scheduler
+  if (event.status === "ended" || event.status === "completed") return "ended";
 
   const now = new Date();
   const start = new Date(event.startDate);
@@ -640,7 +640,7 @@ export default function EventsPage() {
     return !isDateReached && !isForceUnlocked;
   }) || [];
   
-  const endedEvents = events?.filter(e => e.status === "ended" || getEventStatus(e) === "ended") || [];
+  const endedEvents = events?.filter(e => e.status === "ended" || e.status === "completed" || getEventStatus(e) === "ended") || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] dark:bg-background">

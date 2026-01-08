@@ -99,7 +99,7 @@ export default function LojaPage() {
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-gray-50 rounded-2xl overflow-hidden">
+              <div key={i} className="bg-gray-50 rounded-lg overflow-hidden">
                 <Skeleton className="aspect-square w-full bg-gray-100" />
                 <div className="p-3 space-y-2">
                   <Skeleton className="h-4 w-3/4 bg-gray-100" />
@@ -110,7 +110,7 @@ export default function LojaPage() {
             ))}
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="bg-gray-50 rounded-2xl p-12 text-center">
+          <div className="bg-gray-50 rounded-lg p-12 text-center">
             <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto disponível</h3>
             <p className="text-gray-500">
@@ -128,7 +128,7 @@ export default function LojaPage() {
               >
                 <Link href={`/loja/produto/${item.id}`}>
                 <div 
-                  className={`bg-gray-50 rounded-2xl overflow-hidden cursor-pointer relative ${!item.isAvailable ? 'opacity-75' : ''}`}
+                  className={`bg-gray-50 rounded-lg overflow-hidden cursor-pointer relative ${!item.isAvailable ? 'opacity-75' : ''}`}
                   data-testid={`card-item-${item.id}`}
                 >
                   <div className="aspect-square bg-gray-100 relative overflow-hidden">

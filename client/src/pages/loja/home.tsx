@@ -217,84 +217,46 @@ export default function LojaHomePage() {
       {/* Marquee Separator - Static texts with slide animation */}
       <MarqueeSeparator />
 
-      {/* Categories Grid - Jesuscopy Style with horizontal scroll for >4 categories */}
+      {/* Categories - 2 per row, horizontal scroll for more */}
       {categories && categories.length > 0 && (
         <section className="px-3 pt-0 pb-4">
-          {categories.length <= 4 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((cat) => {
-                const categoryImage = cat.imageData || (allItems?.find(item => item.categoryId === cat.id)?.images?.[0]?.imageData);
-                const badge = { label: cat.name.toUpperCase(), bgColor: "bg-primary", textColor: "text-black" };
-                
-                return (
-                  <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
-                    <div 
-                      className="relative aspect-square overflow-hidden bg-gray-100 cursor-pointer"
-                      data-testid={`card-category-${cat.id}`}
-                    >
-                      {categoryImage ? (
-                        <img
-                          src={categoryImage}
-                          alt={cat.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <Package className="h-12 w-12 text-gray-300" />
-                        </div>
-                      )}
-                      
-                      <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-md shadow-sm`}>
-                        {badge.label}
+          <div 
+            className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-2"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
+            {categories.map((cat) => {
+              const categoryImage = cat.imageData || (allItems?.find(item => item.categoryId === cat.id)?.images?.[0]?.imageData);
+              const badge = { label: cat.name.toUpperCase(), bgColor: "bg-primary", textColor: "text-black" };
+              
+              return (
+                <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
+                  <div 
+                    className="relative aspect-square overflow-hidden bg-gray-100 cursor-pointer flex-shrink-0 snap-start rounded-lg"
+                    style={{ width: 'calc((100vw - 1.5rem - 0.5rem) / 2)' }}
+                    data-testid={`card-category-${cat.id}`}
+                  >
+                    {categoryImage ? (
+                      <img
+                        src={categoryImage}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg">
+                        <Package className="h-12 w-12 text-gray-300" />
                       </div>
+                    )}
+                    
+                    <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-md shadow-sm`}>
+                      {badge.label}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div 
-              className="flex gap-2 overflow-x-auto snap-x snap-mandatory pb-2"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-            >
-              <style>{`
-                .categories-scroll::-webkit-scrollbar { display: none; }
-              `}</style>
-              {categories.map((cat) => {
-                const categoryImage = cat.imageData || (allItems?.find(item => item.categoryId === cat.id)?.images?.[0]?.imageData);
-                const badge = { label: cat.name.toUpperCase(), bgColor: "bg-primary", textColor: "text-black" };
-                
-                return (
-                  <Link key={cat.id} href={`/loja/catalogo?categoria=${cat.id}`}>
-                    <div 
-                      className="relative w-40 aspect-square overflow-hidden bg-gray-100 cursor-pointer flex-shrink-0 snap-start"
-                      data-testid={`card-category-${cat.id}`}
-                    >
-                      {categoryImage ? (
-                        <img
-                          src={categoryImage}
-                          alt={cat.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <Package className="h-12 w-12 text-gray-300" />
-                        </div>
-                      )}
-                      
-                      <div className={`absolute top-3 left-3 ${badge.bgColor} ${badge.textColor} text-xs font-bold px-3 py-1.5 rounded-md shadow-sm`}>
-                        {badge.label}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </section>
       )}
 

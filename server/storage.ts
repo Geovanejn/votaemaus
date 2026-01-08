@@ -494,8 +494,12 @@ export interface IStorage {
   
   // Shop Items Methods
   getShopItems(onlyAvailable?: boolean): Promise<ShopItem[]>;
+  getShopItemsLight(onlyAvailable?: boolean): Promise<Omit<ShopItem, 'bannerImageData'>[]>;
   getShopItemById(id: number): Promise<ShopItem | null>;
   getShopItemsByIds(ids: number[]): Promise<ShopItem[]>;
+  getShopItemsByIdsLight(ids: number[]): Promise<Pick<ShopItem, 'id' | 'name' | 'price'>[]>;
+  getShopItemBannerImage(id: number): Promise<string | null>;
+  getShopItemImageData(imageId: number): Promise<string | null>;
   createShopItem(data: InsertShopItem): Promise<ShopItem>;
   updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
   deleteShopItem(id: number): Promise<void>;
@@ -503,6 +507,8 @@ export interface IStorage {
   // Shop Item Images Methods
   getShopItemImages(itemId: number): Promise<ShopItemImage[]>;
   getShopItemImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemImage[]>>;
+  getShopItemImagesLight(itemId: number): Promise<Omit<ShopItemImage, 'imageData'>[]>;
+  getShopItemImagesByItemIdsLight(itemIds: number[]): Promise<Map<number, Omit<ShopItemImage, 'imageData'>[]>>;
   createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage>;
   deleteShopItemImage(id: number): Promise<void>;
   
@@ -6605,6 +6611,58 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(schema.shopItems.id, ids));
   }
 
+  async getShopItemsLight(onlyAvailable: boolean = false): Promise<Omit<ShopItem, 'bannerImageData'>[]> {
+    const query = db.select({
+      id: schema.shopItems.id,
+      name: schema.shopItems.name,
+      description: schema.shopItems.description,
+      price: schema.shopItems.price,
+      categoryId: schema.shopItems.categoryId,
+      genderType: schema.shopItems.genderType,
+      hasSize: schema.shopItems.hasSize,
+      isAvailable: schema.shopItems.isAvailable,
+      isPreOrder: schema.shopItems.isPreOrder,
+      isFeatured: schema.shopItems.isFeatured,
+      featuredOrder: schema.shopItems.featuredOrder,
+      allowInstallments: schema.shopItems.allowInstallments,
+      maxInstallments: schema.shopItems.maxInstallments,
+      createdAt: schema.shopItems.createdAt,
+      updatedAt: schema.shopItems.updatedAt,
+    }).from(schema.shopItems);
+    
+    if (onlyAvailable) {
+      return query.where(eq(schema.shopItems.isAvailable, true))
+        .orderBy(desc(schema.shopItems.createdAt));
+    }
+    return query.orderBy(desc(schema.shopItems.createdAt));
+  }
+
+  async getShopItemsByIdsLight(ids: number[]): Promise<Pick<ShopItem, 'id' | 'name' | 'price'>[]> {
+    if (ids.length === 0) return [];
+    return db.select({
+      id: schema.shopItems.id,
+      name: schema.shopItems.name,
+      price: schema.shopItems.price,
+    }).from(schema.shopItems)
+      .where(inArray(schema.shopItems.id, ids));
+  }
+
+  async getShopItemBannerImage(id: number): Promise<string | null> {
+    const [item] = await db.select({ bannerImageData: schema.shopItems.bannerImageData })
+      .from(schema.shopItems)
+      .where(eq(schema.shopItems.id, id))
+      .limit(1);
+    return item?.bannerImageData || null;
+  }
+
+  async getShopItemImageData(imageId: number): Promise<string | null> {
+    const [image] = await db.select({ imageData: schema.shopItemImages.imageData })
+      .from(schema.shopItemImages)
+      .where(eq(schema.shopItemImages.id, imageId))
+      .limit(1);
+    return image?.imageData || null;
+  }
+
   async createShopItem(data: InsertShopItem): Promise<ShopItem> {
     const [item] = await db.insert(schema.shopItems)
       .values(data)
@@ -6641,6 +6699,35 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(schema.shopItemImages.itemId, itemIds))
       .orderBy(asc(schema.shopItemImages.sortOrder));
     const map = new Map<number, ShopItemImage[]>();
+    for (const img of images) {
+      if (!map.has(img.itemId)) map.set(img.itemId, []);
+      map.get(img.itemId)!.push(img);
+    }
+    return map;
+  }
+
+  async getShopItemImagesLight(itemId: number): Promise<Omit<ShopItemImage, 'imageData'>[]> {
+    return db.select({
+      id: schema.shopItemImages.id,
+      itemId: schema.shopItemImages.itemId,
+      gender: schema.shopItemImages.gender,
+      sortOrder: schema.shopItemImages.sortOrder,
+    }).from(schema.shopItemImages)
+      .where(eq(schema.shopItemImages.itemId, itemId))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+  }
+
+  async getShopItemImagesByItemIdsLight(itemIds: number[]): Promise<Map<number, Omit<ShopItemImage, 'imageData'>[]>> {
+    if (itemIds.length === 0) return new Map();
+    const images = await db.select({
+      id: schema.shopItemImages.id,
+      itemId: schema.shopItemImages.itemId,
+      gender: schema.shopItemImages.gender,
+      sortOrder: schema.shopItemImages.sortOrder,
+    }).from(schema.shopItemImages)
+      .where(inArray(schema.shopItemImages.itemId, itemIds))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+    const map = new Map<number, Omit<ShopItemImage, 'imageData'>[]>();
     for (const img of images) {
       if (!map.has(img.itemId)) map.set(img.itemId, []);
       map.get(img.itemId)!.push(img);

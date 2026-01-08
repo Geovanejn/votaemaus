@@ -9165,6 +9165,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - MEMBER ====================
 
+  // Proxy de imagens - serve imagens sob demanda (lazy loading)
+  app.get("/api/shop/images/banner/:itemId", async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const imageData = await storage.getShopItemBannerImage(itemId);
+      if (!imageData) {
+        return res.status(404).json({ message: "Imagem não encontrada" });
+      }
+      
+      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ message: "Formato de imagem inválido" });
+      }
+      
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      res.set({
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Length': buffer.length,
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error("Get banner image error:", error);
+      res.status(500).json({ message: "Erro ao buscar imagem" });
+    }
+  });
+
+  app.get("/api/shop/images/item/:imageId", async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const imageData = await storage.getShopItemImageData(imageId);
+      if (!imageData) {
+        return res.status(404).json({ message: "Imagem não encontrada" });
+      }
+      
+      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ message: "Formato de imagem inválido" });
+      }
+      
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      res.set({
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Length': buffer.length,
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error("Get item image error:", error);
+      res.status(500).json({ message: "Erro ao buscar imagem" });
+    }
+  });
+
   // Listar categorias da loja (publico)
   app.get("/api/shop/categories", async (req, res) => {
     try {
@@ -9176,32 +9243,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens em destaque (para hero banner - publico)
-  // Prioriza itens marcados como isFeatured, depois itens com bannerImageData
+  // Listar itens em destaque (para hero banner - publico) - OTIMIZADO
   app.get("/api/shop/featured", async (req, res) => {
     try {
-      const items = await storage.getShopItems(true);
+      const items = await storage.getShopItemsLight(true);
       
       // Primeiro os itens explicitamente marcados como featured
       const explicitFeatured = items.filter(item => item.isFeatured).sort((a, b) => 
         (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)
       );
       
-      // Se nao houver featured explicitos, usa itens com bannerImageData
-      const featured = explicitFeatured.length > 0 
-        ? explicitFeatured 
-        : items.filter(item => item.bannerImageData);
+      // Todos os itens featured (fallback para todos se nenhum estiver marcado)
+      const featured = explicitFeatured.length > 0 ? explicitFeatured : items.slice(0, 5);
       
       if (featured.length === 0) {
         return res.json([]);
       }
       
       const featuredIds = featured.map(item => item.id);
-      const imagesMap = await storage.getShopItemImagesByItemIds(featuredIds);
+      const imagesMap = await storage.getShopItemImagesByItemIdsLight(featuredIds);
       
       const featuredWithImages = featured.map(item => ({
         ...item,
-        images: imagesMap.get(item.id) || []
+        bannerImageData: `/api/shop/images/banner/${item.id}`,
+        images: (imagesMap.get(item.id) || []).map(img => ({
+          ...img,
+          imageData: `/api/shop/images/item/${img.id}`,
+        }))
       }));
       
       res.json(featuredWithImages);
@@ -9211,24 +9279,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens disponiveis (catalogo publico) - otimizado com batch queries
+  // Listar itens disponiveis (catalogo publico) - OTIMIZADO sem Base64
   app.get("/api/shop/items", async (req, res) => {
     try {
-      const items = await storage.getShopItems(true);
+      const items = await storage.getShopItemsLight(true);
       if (items.length === 0) {
         return res.json([]);
       }
       
       const itemIds = items.map(item => item.id);
       const [imagesMap, sizesMap, sizeChartsMap] = await Promise.all([
-        storage.getShopItemImagesByItemIds(itemIds),
+        storage.getShopItemImagesByItemIdsLight(itemIds),
         storage.getShopItemSizesByItemIds(itemIds),
         storage.getShopItemSizeChartsByItemIds(itemIds)
       ]);
       
       const itemsWithDetails = items.map(item => ({
         ...item,
-        images: imagesMap.get(item.id) || [],
+        bannerImageData: `/api/shop/images/banner/${item.id}`,
+        images: (imagesMap.get(item.id) || []).map(img => ({
+          ...img,
+          imageData: `/api/shop/images/item/${img.id}`,
+        })),
         sizes: sizesMap.get(item.id) || [],
         sizeCharts: sizeChartsMap.get(item.id) || []
       }));
@@ -9597,7 +9669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar meus pedidos
+  // Listar meus pedidos - OTIMIZADO sem Base64
   app.get("/api/shop/my-orders", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orders = await storage.getShopOrders({ userId: req.user!.id });
@@ -9617,9 +9689,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allItems = Array.from(orderItemsMap.values()).flat();
       const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
       
+      // Usar versão otimizada que traz apenas id, name, price
       const [products, imagesMap] = await Promise.all([
-        storage.getShopItemsByIds(productIds),
-        storage.getShopItemImagesByItemIds(productIds),
+        storage.getShopItemsByIdsLight(productIds),
+        storage.getShopItemImagesByItemIdsLight(productIds),
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
@@ -9629,14 +9702,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const itemsWithProduct = items.map(item => {
           const product = productsMap.get(item.itemId);
           const images = product ? (imagesMap.get(product.id) || []) : [];
-          const firstImage = images[0]?.imageData || null;
+          const firstImageId = images[0]?.id || null;
           return { 
             ...item, 
             product: product ? { 
               id: product.id,
               name: product.name,
               price: product.price,
-              firstImage,
+              firstImage: firstImageId ? `/api/shop/images/item/${firstImageId}` : null,
             } : null 
           };
         });

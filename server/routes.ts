@@ -8828,10 +8828,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Imagem obrigatoria" });
       }
       
-      // Process banner image - high quality JPEG for home carousel
+      // Process banner image - high quality for home carousel (larger size, better quality)
       const processedImage = await sharp(req.file.buffer)
         .rotate()
-        .jpeg({ quality: 95 })
+        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 90, mozjpeg: true })
         .toBuffer();
       
       const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;

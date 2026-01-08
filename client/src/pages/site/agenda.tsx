@@ -252,9 +252,13 @@ export default function AgendaPage() {
     setShowPixModal(false);
     setPixData(null);
     setPixPaymentConfirmed(false);
-    // Refresh confirmation status when closing modal
+    // Force immediate refetch of confirmation status when closing modal
     if (selectedEvent?.id) {
       queryClient.invalidateQueries({ queryKey: ['/api/events', selectedEvent.id, 'my-confirmation'] });
+      // Also force an immediate refetch
+      setTimeout(() => {
+        refetchConfirmation();
+      }, 100);
     }
   };
 
@@ -265,7 +269,7 @@ export default function AgendaPage() {
   });
 
   // Query for event confirmation status (user-specific)
-  const { data: confirmationData, isLoading: isLoadingConfirmation } = useQuery<{
+  const { data: confirmationData, isLoading: isLoadingConfirmation, refetch: refetchConfirmation } = useQuery<{
     confirmed: boolean;
     paymentStatus?: string;
     fee?: { amount: number; deadline: string } | null;
@@ -278,6 +282,9 @@ export default function AgendaPage() {
       return res.json();
     },
     enabled: !!selectedEvent?.id && !!user,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch to get latest status
   });
 
   // Query for event confirmation count (public)

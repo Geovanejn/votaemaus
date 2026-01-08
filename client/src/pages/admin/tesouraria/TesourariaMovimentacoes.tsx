@@ -22,7 +22,12 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Bell
+  Bell,
+  QrCode,
+  Copy,
+  Check,
+  Hand,
+  ExternalLink
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -143,7 +148,25 @@ interface ShopOrderWithDetails {
     status: string;
     paidAt: string | null;
     isOverdue: boolean;
+    pixCode?: string | null;
+    pixExpiresAt?: string | null;
   }>;
+  manualCustomerName?: string | null;
+  isManualOrder?: boolean;
+}
+
+interface PixData {
+  type: "total" | "installment";
+  orderId?: number;
+  installmentId?: number;
+  installmentNumber?: number;
+  amount: number;
+  qrCode: string;
+  qrCodeBase64: string;
+  expiresAt: string;
+  customerName: string;
+  customerEmail?: string;
+  isExternalCustomer: boolean;
 }
 
 export default function TesourariaMovimentacoes() {
@@ -167,6 +190,11 @@ export default function TesourariaMovimentacoes() {
   const [formReferenceMonth, setFormReferenceMonth] = useState<string>("");
   const [formReceipt, setFormReceipt] = useState<File | null>(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  
+  const [pixDialogOpen, setPixDialogOpen] = useState(false);
+  const [pixData, setPixData] = useState<PixData | null>(null);
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pixCopied, setPixCopied] = useState(false);
 
   const { data: entries, isLoading } = useQuery<TreasuryEntry[]>({
     queryKey: [`/api/treasury/entries?year=${currentYear}`],
@@ -206,6 +234,43 @@ export default function TesourariaMovimentacoes() {
       toast({ title: "Erro ao enviar notificacoes", variant: "destructive" });
     },
   });
+
+  const generatePix = async (orderId: number, installmentId?: number) => {
+    setPixLoading(true);
+    setPixCopied(false);
+    try {
+      const res = await apiRequest("POST", `/api/treasury/shop/orders/${orderId}/generate-pix`, {
+        installmentId,
+      });
+      const data = await res.json() as PixData;
+      setPixData(data);
+      setPixDialogOpen(true);
+    } catch (error) {
+      toast({ 
+        title: "Erro ao gerar PIX", 
+        description: error instanceof Error ? error.message : "Tente novamente",
+        variant: "destructive" 
+      });
+    } finally {
+      setPixLoading(false);
+    }
+  };
+
+  const copyPixCode = async () => {
+    if (pixData?.qrCode) {
+      await navigator.clipboard.writeText(pixData.qrCode);
+      setPixCopied(true);
+      toast({ title: "Codigo PIX copiado!" });
+      setTimeout(() => setPixCopied(false), 3000);
+    }
+  };
+
+  const getCustomerDisplayName = (order: ShopOrderWithDetails): string => {
+    if (order.manualCustomerName) {
+      return order.manualCustomerName;
+    }
+    return order.user?.fullName || "Cliente";
+  };
 
   const needsMemberSelection = formType === "income" && 
     (formCategory === "taxa_percapta" || formCategory === "taxa_ump" || formCategory === "events");
@@ -316,10 +381,12 @@ export default function TesourariaMovimentacoes() {
   }) ?? [];
 
   const filteredShopOrders = shopOrders?.filter((order) => {
+    const searchLower = shopSearchTerm.toLowerCase();
     const matchesSearch = !shopSearchTerm || 
-      order.orderCode.toLowerCase().includes(shopSearchTerm.toLowerCase()) ||
-      order.user?.fullName.toLowerCase().includes(shopSearchTerm.toLowerCase()) ||
-      order.user?.email.toLowerCase().includes(shopSearchTerm.toLowerCase());
+      order.orderCode.toLowerCase().includes(searchLower) ||
+      order.user?.fullName?.toLowerCase().includes(searchLower) ||
+      order.user?.email?.toLowerCase().includes(searchLower) ||
+      order.manualCustomerName?.toLowerCase().includes(searchLower);
     const matchesStatus = shopStatusFilter === "all" || order.paymentStatus === shopStatusFilter;
     return matchesSearch && matchesStatus;
   }) ?? [];
@@ -757,6 +824,12 @@ export default function TesourariaMovimentacoes() {
                                 >
                                   {orderStatusLabels[order.orderStatus]?.label ?? order.orderStatus}
                                 </Badge>
+                                {order.isManualOrder && (
+                                  <Badge variant="outline" className="text-xs gap-1 border-amber-500 text-amber-600 dark:text-amber-400">
+                                    <Hand className="h-3 w-3" />
+                                    Manual
+                                  </Badge>
+                                )}
                                 {order.installmentCount && order.installmentCount > 1 && (
                                   <Badge variant="outline" className="text-xs gap-1">
                                     <CreditCard className="h-3 w-3" />
@@ -764,12 +837,17 @@ export default function TesourariaMovimentacoes() {
                                   </Badge>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <UserIcon className="h-3 w-3" />
-                                {order.user?.fullName || "Usuario desconhecido"}
-                                <span>-</span>
-                                <Calendar className="h-3 w-3" />
-                                {format(new Date(order.createdAt), "dd MMM yyyy", { locale: ptBR })}
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                                <UserIcon className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate max-w-[150px] sm:max-w-none">
+                                  {getCustomerDisplayName(order)}
+                                  {order.manualCustomerName && (
+                                    <span className="text-amber-600 dark:text-amber-400 ml-1">(externo)</span>
+                                  )}
+                                </span>
+                                <span className="hidden sm:inline">-</span>
+                                <Calendar className="h-3 w-3 flex-shrink-0 hidden sm:block" />
+                                <span className="hidden sm:inline">{format(new Date(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</span>
                               </div>
                             </div>
                             <div className="text-right mr-4">
@@ -792,13 +870,25 @@ export default function TesourariaMovimentacoes() {
                                 <CardContent className="p-4">
                                   <h4 className="font-medium mb-2 flex items-center gap-2">
                                     <UserIcon className="h-4 w-4" />
-                                    Dados do Membro
+                                    {order.manualCustomerName ? "Cliente Externo" : "Dados do Membro"}
                                   </h4>
-                                  <div className="text-sm space-y-1">
-                                    <p><strong>Nome:</strong> {order.user?.fullName || "-"}</p>
-                                    <p><strong>Email:</strong> {order.user?.email || "-"}</p>
-                                    <p><strong>Telefone:</strong> {order.user?.phone || "-"}</p>
-                                  </div>
+                                  {order.manualCustomerName ? (
+                                    <div className="text-sm space-y-2">
+                                      <p><strong>Nome:</strong> {order.manualCustomerName}</p>
+                                      <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                                        Cliente externo - sem cadastro no sistema
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>Nome:</strong> {order.user?.fullName || "-"}</p>
+                                      <p><strong>Email:</strong> {order.user?.email || "-"}</p>
+                                      <p><strong>Telefone:</strong> {order.user?.phone || "-"}</p>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-2 sm:hidden">
+                                    Criado em: {format(new Date(order.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                                  </p>
                                 </CardContent>
                               </Card>
                               <Card>
@@ -823,6 +913,37 @@ export default function TesourariaMovimentacoes() {
                               </Card>
                             </div>
 
+                            {order.isManualOrder && order.paymentStatus !== "paid" && order.installments.length === 0 && (
+                              <Card>
+                                <CardContent className="p-4">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                    <div>
+                                      <h4 className="font-medium flex items-center gap-2">
+                                        <QrCode className="h-4 w-4" />
+                                        Pagamento PIX
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        Gere o QR Code para pagamento do valor total
+                                      </p>
+                                    </div>
+                                    <Button
+                                      onClick={() => generatePix(order.id)}
+                                      disabled={pixLoading}
+                                      data-testid={`button-generate-pix-total-${order.id}`}
+                                    >
+                                      {pixLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      ) : (
+                                        <QrCode className="h-4 w-4 mr-2" />
+                                      )}
+                                      <span className="hidden sm:inline">Gerar PIX</span>
+                                      <span className="sm:hidden">PIX</span>
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+
                             {order.installments.length > 0 && (
                               <Card>
                                 <CardContent className="p-4">
@@ -834,7 +955,7 @@ export default function TesourariaMovimentacoes() {
                                     {order.installments.map((inst) => (
                                       <div 
                                         key={inst.id} 
-                                        className={`flex items-center justify-between p-3 rounded-md border ${
+                                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-md border gap-3 ${
                                           inst.isOverdue 
                                             ? "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800" 
                                             : inst.status === "paid" 
@@ -844,42 +965,63 @@ export default function TesourariaMovimentacoes() {
                                       >
                                         <div className="flex items-center gap-3">
                                           {inst.status === "paid" ? (
-                                            <CheckCircle className="h-5 w-5 text-green-600" />
+                                            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                                           ) : inst.isOverdue ? (
-                                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                                            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
                                           ) : (
-                                            <Clock className="h-5 w-5 text-muted-foreground" />
+                                            <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                           )}
-                                          <div>
+                                          <div className="min-w-0">
                                             <p className="font-medium">Parcela {inst.installmentNumber}</p>
                                             <p className="text-sm text-muted-foreground">
-                                              Vencimento: {format(new Date(inst.dueDate), "dd/MM/yyyy", { locale: ptBR })}
+                                              Venc: {format(new Date(inst.dueDate), "dd/MM/yy", { locale: ptBR })}
                                               {inst.paidAt && (
-                                                <span className="ml-2 text-green-600">
-                                                  - Pago em {format(new Date(inst.paidAt), "dd/MM/yyyy", { locale: ptBR })}
+                                                <span className="ml-1 text-green-600">
+                                                  - Pago {format(new Date(inst.paidAt), "dd/MM", { locale: ptBR })}
                                                 </span>
                                               )}
                                               {inst.isOverdue && (
-                                                <span className="ml-2 text-red-600 font-medium">VENCIDA</span>
+                                                <span className="ml-1 text-red-600 font-medium">VENCIDA</span>
                                               )}
                                             </p>
                                           </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
                                           <span className="font-semibold">{formatCurrency(inst.amount)}</span>
                                           {inst.status !== "paid" && (
-                                            <Button
-                                              size="sm"
-                                              onClick={() => markInstallmentPaidMutation.mutate({ id: inst.id })}
-                                              disabled={markInstallmentPaidMutation.isPending}
-                                              data-testid={`button-mark-paid-${inst.id}`}
-                                            >
-                                              {markInstallmentPaidMutation.isPending ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                              ) : (
-                                                "Marcar Pago"
+                                            <div className="flex gap-1 sm:gap-2">
+                                              {order.isManualOrder && (
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => generatePix(order.id, inst.id)}
+                                                  disabled={pixLoading}
+                                                  data-testid={`button-generate-pix-installment-${inst.id}`}
+                                                >
+                                                  {pixLoading ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                  ) : (
+                                                    <QrCode className="h-4 w-4" />
+                                                  )}
+                                                  <span className="hidden sm:inline ml-1">PIX</span>
+                                                </Button>
                                               )}
-                                            </Button>
+                                              <Button
+                                                size="sm"
+                                                onClick={() => markInstallmentPaidMutation.mutate({ id: inst.id })}
+                                                disabled={markInstallmentPaidMutation.isPending}
+                                                data-testid={`button-mark-paid-${inst.id}`}
+                                              >
+                                                {markInstallmentPaidMutation.isPending ? (
+                                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                  <>
+                                                    <CheckCircle className="h-4 w-4 sm:hidden" />
+                                                    <span className="hidden sm:inline">Marcar Pago</span>
+                                                  </>
+                                                )}
+                                              </Button>
+                                            </div>
                                           )}
                                         </div>
                                       </div>
@@ -899,6 +1041,127 @@ export default function TesourariaMovimentacoes() {
           </Tabs>
         </div>
       </section>
+
+      <Dialog open={pixDialogOpen} onOpenChange={(open) => {
+        setPixDialogOpen(open);
+        if (!open) {
+          queryClient.invalidateQueries({ queryKey: ["/api/treasury/shop/orders"] });
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Pagamento PIX
+            </DialogTitle>
+          </DialogHeader>
+          
+          {pixData && (
+            <div className="space-y-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {pixData.type === "installment" 
+                    ? `Parcela ${pixData.installmentNumber}` 
+                    : "Valor Total"}
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3">
+                {pixData.qrCodeBase64 && (
+                  <div className="p-3 bg-white rounded-lg border">
+                    <img 
+                      src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                      alt="QR Code PIX"
+                      className="w-48 h-48 mx-auto"
+                    />
+                  </div>
+                )}
+                
+                <div className="w-full space-y-2">
+                  <Label className="text-sm text-muted-foreground">Codigo PIX Copia e Cola:</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      readOnly 
+                      value={pixData.qrCode} 
+                      className="font-mono text-xs"
+                      data-testid="input-pix-code"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={copyPixCode}
+                      data-testid="button-copy-pix"
+                    >
+                      {pixCopied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-sm space-y-2 p-3 bg-muted/30 rounded-lg">
+                <p className="flex items-center gap-2">
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                  <strong>Cliente:</strong> {pixData.customerName}
+                  {pixData.isExternalCustomer && (
+                    <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                      Externo
+                    </Badge>
+                  )}
+                </p>
+                {pixData.customerEmail && (
+                  <p className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    <strong>Email:</strong> {pixData.customerEmail}
+                  </p>
+                )}
+                <p className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <strong>Expira em:</strong> {format(new Date(pixData.expiresAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+
+              {pixData.isExternalCustomer && (
+                <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded">
+                  <strong>Cliente externo:</strong> Envie o QR Code ou codigo PIX diretamente ao cliente via WhatsApp ou outro canal.
+                </div>
+              )}
+
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setPixDialogOpen(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Fechar
+                </Button>
+                <Button 
+                  onClick={copyPixCode}
+                  className="w-full sm:w-auto"
+                >
+                  {pixCopied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar Codigo
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

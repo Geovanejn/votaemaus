@@ -11675,6 +11675,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }));
         
+        // Extract manual customer name from observation
+        let manualCustomerName: string | null = null;
+        let isManualOrder = false;
+        if (order.observation) {
+          const manualMatch = order.observation.match(/\[PEDIDO MANUAL\] Cliente: ([^|]+)/);
+          if (manualMatch) {
+            manualCustomerName = manualMatch[1].trim();
+            isManualOrder = true;
+          }
+        }
+        
         return {
           ...order,
           user: user ? { 
@@ -11688,6 +11699,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...inst,
             isOverdue: inst.status === 'pending' && new Date(inst.dueDate) < new Date(),
           })),
+          manualCustomerName,
+          isManualOrder,
         };
       }));
       
@@ -11695,6 +11708,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get treasury shop orders error:", error);
       res.status(500).json({ message: "Erro ao buscar pedidos da loja" });
+    }
+  });
+  
+  // Generate PIX for manual shop order (total or installment)
+  app.post("/api/treasury/shop/orders/:orderId/generate-pix", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const { installmentId } = req.body; // optional: if provided, generate for specific installment
+      
+      const order = await storage.getShopOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      // Check if Mercado Pago is configured
+      if (!isMercadoPagoConfigured()) {
+        return res.status(400).json({ message: "Sistema de pagamento PIX não configurado" });
+      }
+      
+      // Get user info for email (if member)
+      const user = await storage.getUserById(order.userId);
+      
+      // Determine if this is an external customer
+      let customerName = user?.fullName || "Cliente";
+      let customerEmail = user?.email;
+      let isExternalCustomer = false;
+      
+      if (order.observation) {
+        const manualMatch = order.observation.match(/\[PEDIDO MANUAL\] Cliente: ([^|]+)/);
+        if (manualMatch) {
+          customerName = manualMatch[1].trim();
+          isExternalCustomer = true;
+          customerEmail = undefined; // External customers don't have email in system
+        }
+      }
+      
+      if (installmentId) {
+        // Generate PIX for specific installment
+        const installments = await storage.getShopInstallments(orderId);
+        const installment = installments.find(i => i.id === installmentId);
+        
+        if (!installment) {
+          return res.status(404).json({ message: "Parcela não encontrada" });
+        }
+        
+        if (installment.status === "paid") {
+          return res.status(400).json({ message: "Parcela já foi paga" });
+        }
+        
+        // Check if there's an existing valid PIX
+        if (installment.pixCode && installment.pixExpiresAt && new Date(installment.pixExpiresAt) > new Date()) {
+          return res.json({
+            type: "installment",
+            installmentId: installment.id,
+            installmentNumber: installment.installmentNumber,
+            amount: installment.amount / 100,
+            qrCode: installment.pixCode,
+            qrCodeBase64: installment.pixQrCodeBase64,
+            expiresAt: installment.pixExpiresAt,
+            customerName,
+            customerEmail,
+            isExternalCustomer,
+          });
+        }
+        
+        // Create new PIX payment for installment
+        const result = await createPixPayment({
+          amountCentavos: installment.amount,
+          description: `Loja Emaustore - Pedido #${order.orderCode} - Parcela ${installment.installmentNumber}`,
+          payerEmail: customerEmail || `pedido${orderId}@umpemaus.com.br`,
+          payerName: customerName,
+          externalReference: `shop-installment-${installment.id}`,
+        });
+        
+        if (!result.success) {
+          console.error("PIX payment creation failed:", result.error);
+          return res.status(500).json({ message: result.error || "Erro ao gerar PIX" });
+        }
+        
+        // Save PIX data to installment
+        await storage.updateShopInstallment(installment.id, {
+          pixCode: result.qrCode,
+          pixQrCodeBase64: result.qrCodeBase64,
+          pixExpiresAt: result.expiresAt,
+          paymentId: result.paymentId?.toString(),
+        });
+        
+        res.json({
+          type: "installment",
+          installmentId: installment.id,
+          installmentNumber: installment.installmentNumber,
+          amount: installment.amount / 100,
+          qrCode: result.qrCode,
+          qrCodeBase64: result.qrCodeBase64,
+          expiresAt: result.expiresAt,
+          paymentId: result.paymentId,
+          customerName,
+          customerEmail,
+          isExternalCustomer,
+        });
+      } else {
+        // Generate PIX for total amount (single payment orders or full payment)
+        if (order.paymentStatus === "paid") {
+          return res.status(400).json({ message: "Pedido já foi pago" });
+        }
+        
+        // Get treasury entry if exists
+        let entry = order.entryId ? await storage.getTreasuryEntryById(order.entryId) : null;
+        
+        // Check if there's an existing valid PIX on the entry
+        if (entry?.pixQrCode && entry?.pixExpiresAt && new Date(entry.pixExpiresAt) > new Date()) {
+          return res.json({
+            type: "total",
+            orderId: order.id,
+            amount: order.totalAmount / 100,
+            qrCode: entry.pixQrCode,
+            qrCodeBase64: entry.pixQrCodeBase64,
+            expiresAt: entry.pixExpiresAt,
+            customerName,
+            customerEmail,
+            isExternalCustomer,
+          });
+        }
+        
+        // Create new PIX payment
+        const result = await createPixPayment({
+          amountCentavos: order.totalAmount,
+          description: `Loja Emaustore - Pedido #${order.orderCode}`,
+          payerEmail: customerEmail || `pedido${orderId}@umpemaus.com.br`,
+          payerName: customerName,
+          externalReference: `shop-order-${order.id}`,
+        });
+        
+        if (!result.success) {
+          console.error("PIX payment creation failed:", result.error);
+          return res.status(500).json({ message: result.error || "Erro ao gerar PIX" });
+        }
+        
+        // Save PIX data to treasury entry if exists
+        if (entry) {
+          await storage.updateTreasuryEntry(entry.id, {
+            pixTransactionId: result.paymentId?.toString(),
+            pixQrCode: result.qrCode,
+            pixQrCodeBase64: result.qrCodeBase64,
+            pixExpiresAt: result.expiresAt,
+          });
+        }
+        
+        res.json({
+          type: "total",
+          orderId: order.id,
+          amount: order.totalAmount / 100,
+          qrCode: result.qrCode,
+          qrCodeBase64: result.qrCodeBase64,
+          expiresAt: result.expiresAt,
+          paymentId: result.paymentId,
+          customerName,
+          customerEmail,
+          isExternalCustomer,
+        });
+      }
+    } catch (error) {
+      console.error("Generate shop order PIX error:", error);
+      res.status(500).json({ message: "Erro ao gerar pagamento PIX" });
     }
   });
 

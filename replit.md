@@ -39,7 +39,7 @@ The front-end is built with React and features a responsive design. The DeoGlory
 - **Environment Configuration**: Utilizes environment variables for sensitive data.
 - **Root Administrator**: Automatic creation of a root admin user.
 - **Deployment**: Optimized for Render, including lazy database initialization.
-- **Performance Optimizations**: Extensive use of batch queries (e.g., `LEFT JOIN LATERAL`, `Promise.all`, `inArray()`), caching, and data projection to reduce N+1 queries and improve response times for leaderboards, weekly goals, and lesson progress. HTTP compression (Gzip) is enabled. Database indexes are applied to frequently queried fields.
+- **Performance Optimizations**: Extensive use of batch queries (e.g., `LEFT JOIN LATERAL`, `Promise.all`, `inArray()`), caching, and data projection to reduce N+1 queries and improve response times for leaderboards, weekly goals, and lesson progress. HTTP compression (Gzip) is enabled. Database indexes are applied to frequently queried fields. **Shop API Optimization**: Shop endpoints (`/api/shop/items`, `/api/shop/featured`, `/api/shop/my-orders`) use lightweight storage functions that exclude Base64 image data. Images are served via proxy routes (`/api/shop/images/banner/:itemId`, `/api/shop/images/item/:imageId`) with `Cache-Control: public, max-age=86400` headers for browser caching and lazy loading.
 - **Admin API Validation**: Strict Zod schemas for all admin UPDATE endpoints to prevent privilege escalation.
 - **Error Handling**: Centralized error handling with `AppError` and logger.
 

@@ -89,6 +89,7 @@ import {
   notifySeasonPublished,
   notifyNewLessonToAll,
   notifyNewStudyEvent,
+  notifyEventEnded,
   sendPushToUser
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
@@ -7572,11 +7573,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
       
-      // Check if status is being changed to 'published'
+      // Check if status is being changed to 'published' or 'ended'/'completed'
       const previousEvent = await storage.getStudyEventById(id);
       const isBeingPublished = previousEvent && 
         previousEvent.status !== 'published' && 
         validatedData.status === 'published';
+      const isBeingEnded = previousEvent &&
+        previousEvent.status !== 'ended' && previousEvent.status !== 'completed' &&
+        (validatedData.status === 'ended' || validatedData.status === 'completed');
       
       const event = await storage.updateStudyEvent(id, validatedData);
       if (!event) {
@@ -7597,6 +7601,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           event.endDate.toISOString(),
           event.imageUrl
         ).catch(err => console.error("[Event Publish] Notification error:", err));
+      }
+      
+      // If event was just ended, send notification to all members
+      if (isBeingEnded) {
+        console.log(`[Event End] Event "${event.title}" ended via PATCH.`);
+        notifyEventEnded(event.id, event.title)
+          .catch(err => console.error("[Event End] Notification error:", err));
       }
       
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
@@ -7638,6 +7649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
+      
+      // Check if already ended to avoid duplicate notifications
+      const wasAlreadyEnded = event.status === 'ended' || event.status === 'completed';
       
       // Update event end date to now
       await storage.updateStudyEvent(id, {
@@ -7692,6 +7706,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log(`[Admin Event End] Distributed ${cardsDistributed} cards for event ${id}`);
+      }
+      
+      // Send notification to all members about event ending (only if not already ended)
+      if (!wasAlreadyEnded) {
+        notifyEventEnded(event.id, event.title)
+          .catch(err => console.error("[Admin Event End] Notification error:", err));
       }
       
       await logAuditAction(req.user?.id, "update", "study_event", id, "Evento encerrado manualmente", req);

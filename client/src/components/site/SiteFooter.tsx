@@ -118,7 +118,7 @@ export function SiteFooter() {
             <div className="pt-4">
               <h4 className="font-semibold text-lg mb-2">Contato</h4>
               <p className="text-gray-400 text-sm">
-                contato@umpemaus.org.br
+                marketingumpemaus@gmail.com
               </p>
             </div>
           </div>

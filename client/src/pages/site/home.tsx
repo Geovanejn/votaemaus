@@ -443,8 +443,7 @@ export default function HomePage() {
               Precisa de oração?
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Compartilhe seu pedido conosco. Nossa equipe de espiritualidade 
-              estará orando por você.
+              Compartilhe suas necessidades. Iremos orar uns pelos outros.
             </p>
             <Link href="/oracao">
               <Button 

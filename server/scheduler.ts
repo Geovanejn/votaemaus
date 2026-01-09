@@ -123,7 +123,7 @@ async function sendBirthdayEmails(): Promise<void> {
     for (const member of birthdayMembers) {
       try {
         await sendPushToUser(member.id, {
-          title: 'Feliz Aniversário!',
+          title: '🎂 Feliz Aniversário!',
           body: `Parabéns, ${member.fullName.split(' ')[0]}! A UMP Emaús deseja um dia muito especial para você!`,
           url: '/study/profile',
           tag: `birthday-${member.id}`,
@@ -154,7 +154,7 @@ async function sendBirthdayEmails(): Promise<void> {
       : `Hoje temos ${birthdayMembers.length} aniversariantes: ${birthdayNames}! Envie mensagens de parabéns!`;
     
     const birthdayPayload = {
-      title: birthdayMembers.length === 1 ? 'Aniversário de Membro!' : 'Aniversariantes do Dia!',
+      title: birthdayMembers.length === 1 ? '🎉 Aniversário de Membro!' : '🎉 Aniversariantes do Dia!',
       body: announcementBody,
       url: '/diretoria',
       tag: `birthday-announcement-${todayDateString}`,
@@ -733,7 +733,7 @@ async function processEventLessonsRelease(): Promise<void> {
         // Send push notifications for new event
         try {
           const pushPayload = {
-            title: 'Novo Evento Especial!',
+            title: '🎯 Novo Evento Especial!',
             body: `O evento "${event.title}" começou! Participe e ganhe cards exclusivos.`,
             url: `/study/events/${event.id}`,
             tag: `event-${event.id}-start`,
@@ -855,7 +855,7 @@ async function processEventCardsDistribution(): Promise<void> {
       try {
         // First, send push to all members announcing event completion
         const generalPayload = {
-          title: 'Evento Encerrado',
+          title: '🏁 Evento Encerrado',
           body: `O evento "${event.title}" foi encerrado!`,
           url: `/study/events`,
           tag: `event-${event.id}-end`,
@@ -868,7 +868,7 @@ async function processEventCardsDistribution(): Promise<void> {
         for (const { userId, rarity } of cardsAwarded) {
           const rarityLabel = rarity === 'legendary' ? 'Lendário' : rarity === 'epic' ? 'Épico' : rarity === 'rare' ? 'Raro' : 'Comum';
           await sendPushToUser(userId, {
-            title: 'Parabéns! Você ganhou um card!',
+            title: '🃏 Parabéns! Você ganhou um card!',
             body: `Você completou o evento "${event.title}" e ganhou um card ${rarityLabel}!`,
             url: `/study/profile`,
             tag: `card-${event.id}-${userId}`,
@@ -888,7 +888,7 @@ async function processEventCardsDistribution(): Promise<void> {
           await storage.createNotification({
             userId: member.id,
             type: 'event_completed',
-            title: 'Evento Encerrado',
+            title: '🏁 Evento Encerrado',
             body,
             data: JSON.stringify({ link: `/study/profile` }),
           });
@@ -985,7 +985,7 @@ async function processEventDeadlineNotifications(): Promise<void> {
           
           if (!alreadySentStart) {
             try {
-              await notifyEventStartingSoon(event.id, event.title);
+              await notifyEventStartingSoon(event.id, event.title, hoursUntilStart);
               await storage.markEventNotificationSent(startCacheKey, event.id, 'start-24h');
               notificationsSent++;
               console.log(`[Event Deadline Scheduler] Sent 24h before start notification for event "${event.title}" (${hoursUntilStart.toFixed(1)}h until start)`);
@@ -1277,13 +1277,13 @@ async function processTreasuryDay5Reminder(): Promise<void> {
           await storage.createNotification({
             userId: member.id,
             type: 'treasury_reminder',
-            title: 'Lembrete de Taxas',
+            title: '💰 Lembrete de Taxas',
             body,
             data: JSON.stringify({ year: currentYear, month: currentMonth }),
           });
           
           await sendPushToUser(member.id, {
-            title: 'Lembrete de Taxas',
+            title: '💰 Lembrete de Taxas',
             body,
             url: '/study/financeiro',
             tag: `treasury-reminder-${currentYear}-${currentMonth}`,
@@ -1375,24 +1375,24 @@ async function processAbandonedCartReminder(): Promise<void> {
       const interval = currentInterval;
       
       try {
-        let title = 'Pedido Pendente';
+        let title = '🛒 Pedido Pendente';
         let body = '';
         
         switch (interval.urgency) {
           case 'low':
-            title = 'Lembrete de Pagamento';
+            title = '🛒 Lembrete de Pagamento';
             body = `Seu pedido #${order.orderCode} está aguardando pagamento. Conclua sua compra!`;
             break;
           case 'medium':
-            title = 'Pedido Aguardando';
+            title = '⏳ Pedido Aguardando';
             body = `Não esqueça: seu pedido #${order.orderCode} ainda não foi pago. Complete sua compra!`;
             break;
           case 'high':
-            title = 'Última Chance!';
+            title = '⚠️ Última Chance!';
             body = `Seu pedido #${order.orderCode} vai expirar em breve. Finalize o pagamento agora!`;
             break;
           case 'final':
-            title = 'Pedido Expirando!';
+            title = '🚨 Pedido Expirando!';
             body = `URGENTE: Seu pedido #${order.orderCode} será cancelado se não for pago em breve!`;
             break;
         }
@@ -1478,13 +1478,13 @@ async function processLoanInstallmentReminders(): Promise<void> {
         await storage.createNotification({
           userId: treasurer.id,
           type: 'loan_installment_due',
-          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          title: threshold.days === 0 ? '🔴 Parcela Vence Hoje!' : '💳 Lembrete de Parcela',
           body,
           data: JSON.stringify({ installmentId: installment.id, loanId: installment.loanId }),
         });
         
         await sendPushToUser(treasurer.id, {
-          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          title: threshold.days === 0 ? '🔴 Parcela Vence Hoje!' : '💳 Lembrete de Parcela',
           body,
           url: '/admin/tesouraria/emprestimos',
           tag: reminderKey,
@@ -1553,13 +1553,13 @@ async function processShopInstallmentReminders(): Promise<void> {
         await storage.createNotification({
           userId: order.userId,
           type: 'shop_installment_due',
-          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          title: threshold.days === 0 ? '🔴 Parcela Vence Hoje!' : '💳 Lembrete de Parcela',
           body,
           data: JSON.stringify({ installmentId: installment.id, orderId: order.id }),
         });
         
         await sendPushToUser(order.userId, {
-          title: threshold.days === 0 ? 'Parcela Vence Hoje!' : 'Lembrete de Parcela',
+          title: threshold.days === 0 ? '🔴 Parcela Vence Hoje!' : '💳 Lembrete de Parcela',
           body,
           url: '/study/meus-pedidos',
           tag: reminderKey,
@@ -1602,13 +1602,13 @@ async function processYearRollover(): Promise<void> {
         await storage.createNotification({
           userId: member.id,
           type: 'year_rollover',
-          title: `Novo Período Fiscal ${newYear}`,
+          title: `🎊 Novo Período Fiscal ${newYear}`,
           body,
           data: JSON.stringify({ year: newYear }),
         });
         
         await sendPushToUser(member.id, {
-          title: `Novo Período Fiscal ${newYear}`,
+          title: `🎊 Novo Período Fiscal ${newYear}`,
           body,
           url: '/study/financeiro',
           tag: `year-rollover-${newYear}`,
@@ -1656,13 +1656,13 @@ async function processMonthlyTreasurySummary(): Promise<void> {
     await storage.createNotification({
       userId: treasurer.id,
       type: 'monthly_summary',
-      title: `Resumo Mensal - ${monthNames[lastMonth]}`,
+      title: `📊 Resumo Mensal - ${monthNames[lastMonth]}`,
       body,
       data: JSON.stringify({ month: lastMonth, year: summaryYear, ...monthSummary, currentBalance: yearSummary.balance }),
     });
     
     await sendPushToUser(treasurer.id, {
-      title: `Resumo Mensal - ${monthNames[lastMonth]}`,
+      title: `📊 Resumo Mensal - ${monthNames[lastMonth]}`,
       body,
       url: '/admin/tesouraria',
       tag: `monthly-summary-${summaryYear}-${lastMonth}`,
@@ -1678,13 +1678,13 @@ async function processMonthlyTreasurySummary(): Promise<void> {
       await storage.createNotification({
         userId: treasurer.id,
         type: 'balance_alert',
-        title: yearSummary.balance < 0 ? 'Saldo Negativo!' : 'Saldo Zerado',
+        title: yearSummary.balance < 0 ? '🚨 Saldo Negativo!' : '⚠️ Saldo Zerado',
         body: alertBody,
         data: JSON.stringify({ balance: yearSummary.balance }),
       });
       
       await sendPushToUser(treasurer.id, {
-        title: yearSummary.balance < 0 ? 'Saldo Negativo!' : 'Saldo Zerado',
+        title: yearSummary.balance < 0 ? '🚨 Saldo Negativo!' : '⚠️ Saldo Zerado',
         body: alertBody,
         url: '/admin/tesouraria',
         tag: `balance-alert-${summaryYear}-${lastMonth}`,
@@ -1717,8 +1717,8 @@ async function processEventFeeReminders(): Promise<void> {
           const totalAmount = baseAmount;
           
           const title = days === 1 
-            ? `ULTIMO DIA: Taxa de ${event.title}` 
-            : `Lembrete: Taxa de ${event.title}`;
+            ? `🚨 ULTIMO DIA: Taxa de ${event.title}` 
+            : `📌 Lembrete: Taxa de ${event.title}`;
           const body = days === 1
             ? `Hoje e o ultimo dia para pagar R$${(totalAmount / 100).toFixed(2)} da taxa do evento ${event.title}. Acesse o painel financeiro.`
             : `Faltam ${days} dias para pagar R$${(totalAmount / 100).toFixed(2)} da taxa do evento ${event.title}. Acesse o painel financeiro.`;

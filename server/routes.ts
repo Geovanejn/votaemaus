@@ -8830,14 +8830,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createNotification({
             userId: member.id,
             type: 'shop_new_product',
-            title: 'Novidade na Loja!',
+            title: '🛍️ Novidade na Loja!',
             body: `${item.name} agora disponivel na loja!`,
             data: JSON.stringify({ itemId: item.id }),
           });
           
           // Send push notification
           await sendPushToUser(member.id, {
-            title: 'Novidade na Loja!',
+            title: '🛍️ Novidade na Loja!',
             body: `${item.name} - Confira agora!`,
             url: `/loja/produto/${productIdentifier}`,
             tag: `shop-product-${item.id}`,
@@ -9203,13 +9203,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createNotification({
             userId: order.userId,
             type: 'order_ready',
-            title: 'Pedido Pronto para Retirada',
+            title: '📦 Pedido Pronto para Retirada',
             body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
             data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
           });
           
           await sendPushToUser(order.userId, {
-            title: 'Pedido Pronto para Retirada',
+            title: '📦 Pedido Pronto para Retirada',
             body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
             url: '/study/meus-pedidos',
             tag: `order-ready-${order.id}`,
@@ -9279,13 +9279,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createNotification({
                 userId: order.userId,
                 type: 'order_ready',
-                title: 'Pedido Pronto para Retirada',
+                title: '📦 Pedido Pronto para Retirada',
                 body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
                 data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
               });
               
               await sendPushToUser(order.userId, {
-                title: 'Pedido Pronto para Retirada',
+                title: '📦 Pedido Pronto para Retirada',
                 body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
                 url: '/study/meus-pedidos',
                 tag: `order-ready-${order.id}`,
@@ -12847,13 +12847,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     await storage.createNotification({
                       userId: order.userId,
                       type: 'payment_confirmed',
-                      title: 'Parcela Paga',
+                      title: '✅ Parcela Paga',
                       body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
                       data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
                     });
                     
                     await sendPushToUser(order.userId, {
-                      title: 'Parcela Paga',
+                      title: '✅ Parcela Paga',
                       body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} confirmada!`,
                       url: '/membro/financeiro',
                       tag: `installment-paid-${installment.id}`,
@@ -12953,13 +12953,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 await storage.createNotification({
                   userId: order.userId,
                   type: 'payment_confirmed',
-                  title: 'Parcela Paga',
+                  title: '✅ Parcela Paga',
                   body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
                   data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
                 });
                 
                 await sendPushToUser(order.userId, {
-                  title: 'Parcela Paga',
+                  title: '✅ Parcela Paga',
                   body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} confirmada!`,
                   url: '/membro/financeiro',
                   tag: `installment-paid-${installment.id}`,
@@ -13031,13 +13031,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createNotification({
           userId: entry.userId,
           type: 'payment_confirmed',
-          title: 'Pagamento UMP Confirmado',
+          title: '✅ Pagamento UMP Confirmado',
           body: `Seu pagamento da taxa UMP (${monthsText}/${entry.referenceYear}) foi confirmado!`,
           data: JSON.stringify({ entryId: entry.id, category: 'taxa_ump' }),
         });
         
         await sendPushToUser(entry.userId, {
-          title: 'Pagamento Confirmado',
+          title: '✅ Pagamento Confirmado',
           body: `Taxa UMP (${monthsText}/${entry.referenceYear}) paga com sucesso!`,
           url: '/membro/financeiro',
           tag: `payment-ump-${entry.id}`,
@@ -13060,13 +13060,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createNotification({
           userId: entry.userId,
           type: 'payment_confirmed',
-          title: 'Pagamento Percapta Confirmado',
+          title: '✅ Pagamento Percapta Confirmado',
           body: `Seu pagamento da taxa Percapta ${entry.referenceYear} foi confirmado!`,
           data: JSON.stringify({ entryId: entry.id, category: 'taxa_percapta' }),
         });
         
         await sendPushToUser(entry.userId, {
-          title: 'Pagamento Confirmado',
+          title: '✅ Pagamento Confirmado',
           body: `Taxa Percapta ${entry.referenceYear} paga com sucesso!`,
           url: '/membro/financeiro',
           tag: `payment-percapta-${entry.id}`,
@@ -13089,13 +13089,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createNotification({
             userId: order.userId,
             type: 'order_paid',
-            title: 'Pagamento Confirmado',
+            title: '✅ Pagamento Confirmado',
             body: `O pagamento do pedido ${order.orderCode} foi confirmado! Aguarde a producao.`,
             data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
           });
           
           await sendPushToUser(order.userId, {
-            title: 'Pagamento Confirmado',
+            title: '✅ Pagamento Confirmado',
             body: `O pagamento do pedido ${order.orderCode} foi confirmado!`,
             url: '/study/meus-pedidos',
             tag: `order-paid-${order.id}`,
@@ -13120,13 +13120,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createNotification({
           userId: entry.userId,
           type: 'payment_confirmed',
-          title: 'Taxa de Evento Confirmada',
+          title: '✅ Taxa de Evento Confirmada',
           body: `Seu pagamento para ${eventName} foi confirmado!`,
           data: JSON.stringify({ entryId: entry.id, eventId: entry.eventId }),
         });
         
         await sendPushToUser(entry.userId, {
-          title: 'Pagamento Confirmado',
+          title: '✅ Pagamento Confirmado',
           body: `Taxa de ${eventName} paga com sucesso!`,
           url: '/membro/financeiro',
           tag: `payment-event-${entry.id}`,
@@ -13164,7 +13164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createNotification({
               userId: entry.userId,
               type: 'payment_confirmed',
-              title: isFullyPaid ? 'Empréstimo Quitado' : 'Parcela de Empréstimo Paga',
+              title: isFullyPaid ? '🎉 Empréstimo Quitado' : '✅ Parcela de Empréstimo Paga',
               body: isFullyPaid 
                 ? `Seu empréstimo foi quitado! Todas as ${totalCount} parcelas foram pagas.`
                 : `Parcela ${paidCount}/${totalCount} do empréstimo paga com sucesso!`,
@@ -13172,7 +13172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             await sendPushToUser(entry.userId, {
-              title: isFullyPaid ? 'Empréstimo Quitado' : 'Parcela Paga',
+              title: isFullyPaid ? '🎉 Empréstimo Quitado' : '✅ Parcela Paga',
               body: isFullyPaid 
                 ? `Seu empréstimo foi totalmente quitado!`
                 : `Parcela ${paidCount}/${totalCount} do empréstimo confirmada!`,

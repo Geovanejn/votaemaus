@@ -977,13 +977,30 @@ export async function notifyEncouragement(
 
 export async function notifyEventStartingSoon(
   eventId: number,
-  eventTitle: string
+  eventTitle: string,
+  hoursRemaining?: number
 ): Promise<void> {
-  console.log(`[Notifications] notifyEventStartingSoon STARTED for event ${eventId}: "${eventTitle}"`);
+  console.log(`[Notifications] notifyEventStartingSoon STARTED for event ${eventId}: "${eventTitle}" (${hoursRemaining?.toFixed(1)}h remaining)`);
+  
+  // Calculate humanized time text based on actual remaining hours
+  let timeText = "em breve";
+  if (hoursRemaining !== undefined && hoursRemaining > 0) {
+    if (hoursRemaining >= 24) {
+      timeText = "amanhã";
+    } else if (hoursRemaining >= 2) {
+      const hours = Math.round(hoursRemaining);
+      timeText = `em ${hours} horas`;
+    } else if (hoursRemaining >= 1) {
+      timeText = "em 1 hora";
+    } else {
+      const minutes = Math.round(hoursRemaining * 60);
+      timeText = minutes > 1 ? `em ${minutes} minutos` : "em alguns minutos";
+    }
+  }
   
   const payload: NotificationPayload = {
-    title: "⏰ Evento Começa Amanhã!",
-    body: `"${eventTitle}" começa em 24 horas. Prepare-se!`,
+    title: "⏰ Evento Começa em Breve!",
+    body: `"${eventTitle}" começa ${timeText}. Prepare-se!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-starting-${eventId}`,
     icon: "/logo.png",

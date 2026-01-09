@@ -979,7 +979,11 @@ export default function LojaAdmin() {
                       <Package className="h-12 w-12 text-muted-foreground" />
                     )}
                     <div className="absolute top-2 right-2 flex gap-1">
-                      {!item.isPublished && (
+                      {item.isPublished ? (
+                        <Badge className="text-xs bg-green-500 text-white hover:bg-green-600">
+                          Publicado
+                        </Badge>
+                      ) : (
                         <Badge variant="secondary" className="text-xs">
                           Rascunho
                         </Badge>

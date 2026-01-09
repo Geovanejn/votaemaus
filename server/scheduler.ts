@@ -385,6 +385,15 @@ async function sendDailyVerse(): Promise<void> {
   }
 }
 
+function getCurrentHourInSaoPaulo(): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    hour12: false
+  });
+  return parseInt(formatter.format(new Date()), 10);
+}
+
 export function initDailyVerseScheduler(): void {
   cron.schedule('0 7 * * *', sendDailyVerse, {
     timezone: 'America/Sao_Paulo'
@@ -393,6 +402,15 @@ export function initDailyVerseScheduler(): void {
   
   setTimeout(async () => {
     try {
+      const currentHour = getCurrentHourInSaoPaulo();
+      
+      // If deploy is BEFORE 7:00 AM, skip startup check - let the cron do it at 7:00
+      if (currentHour < 7) {
+        console.log(`[Daily Verse Scheduler] Startup at ${currentHour}:xx (before 07:00), skipping - cron will send at 07:00`);
+        return;
+      }
+      
+      // If deploy is AFTER 7:00 AM, check database to see if already sent today
       console.log('[Daily Verse Scheduler] Running initial check at startup...');
       await sendDailyVerse();
     } catch (error) {
@@ -1341,7 +1359,7 @@ async function processAbandonedCartReminder(): Promise<void> {
         if (finalReminderSent) {
           // 48h reminder was sent, cancel the order
           try {
-            await storage.updateShopOrderStatus(order.id, 'cancelled');
+            await storage.updateShopOrder(order.id, { orderStatus: 'cancelled' });
             console.log(`[Shop Scheduler] Auto-cancelled order ${order.orderCode} after 48h`);
           } catch (cancelError) {
             console.error(`[Shop Scheduler] Error cancelling order ${order.id}:`, cancelError);
@@ -1695,9 +1713,8 @@ async function processEventFeeReminders(): Promise<void> {
         console.log(`[Event Fee Scheduler] Event "${event.title}" has ${unpaidConfirmations.length} unpaid confirmations, deadline in ${days} day(s)`);
         
         for (const confirmation of unpaidConfirmations) {
-          const baseAmount = fee.amount || 0;
-          const visitorAmount = fee.visitorAmount || 0;
-          const totalAmount = baseAmount + ((confirmation.visitorCount || 0) * visitorAmount);
+          const baseAmount = fee.feeAmount || 0;
+          const totalAmount = baseAmount;
           
           const title = days === 1 
             ? `ULTIMO DIA: Taxa de ${event.title}` 

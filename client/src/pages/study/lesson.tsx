@@ -526,17 +526,27 @@ export default function LessonPage() {
     }
   }, [user?.id, lessonId, progressCheckDone]);
 
-  // Clear saved progress only after successfully resuming (has hearts and lesson started)
-  useEffect(() => {
-    if (progressRestored && lessonStarted && serverHearts !== undefined && serverHearts > 0 && user?.id) {
-      clearSavedProgress(lessonId, user.id);
-      setProgressRestored(false);
-    }
-  }, [progressRestored, lessonStarted, serverHearts, lessonId, user?.id]);
+  // Keep progress in localStorage even after hearts are recovered
+  // This ensures returning via device back button restores the correct state
+  // Progress is only cleared when lesson is completed (line 551-555)
 
-  // Save progress when running out of hearts (only ONCE per depletion)
   // Use stageOverride if available, otherwise use URL param
   const activeStage = stageOverride ?? stageParam;
+  
+  // CRITICAL FIX: Save progress continuously during the lesson (not just when hearts deplete)
+  // This ensures the device back button can restore the correct state
+  // Save even when on hearts recovery screen (lessonStarted may be false but we still need to persist)
+  useEffect(() => {
+    if (user?.id && lessonData && !isCompleted) {
+      // Only save if we have meaningful progress (not at the very start)
+      // Save regardless of lessonStarted or noHeartsError to handle device back navigation
+      if (activeStage || currentUnitIndex > 0 || currentRespondaQuestionIndex > 0) {
+        saveProgress(lessonId, user.id, currentUnitIndex, activeStage, false, currentRespondaQuestionIndex, displayXp, respondaCorrectAnswers);
+      }
+    }
+  }, [user?.id, lessonId, currentUnitIndex, activeStage, currentRespondaQuestionIndex, displayXp, respondaCorrectAnswers, lessonData, isCompleted]);
+
+  // Save progress with depletion flag when running out of hearts
   useEffect(() => {
     if (user?.id && 
         (noHeartsError || (serverHearts !== undefined && serverHearts <= 0)) && 

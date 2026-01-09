@@ -115,11 +115,11 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limiter para envio de codigos (3 req/hora)
+// Rate limiter para envio de códigos (3 req/hora)
 const codeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 3, // limite de 3 envios por hora
-  message: { message: "Muitos codigos solicitados. Tente novamente em 1 hora." },
+  message: { message: "Muitos códigos solicitados. Tente novamente em 1 hora." },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -2131,7 +2131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const xpToAward = STAGE_XP[stage as keyof typeof STAGE_XP];
       if (!xpToAward) {
-        return res.status(400).json({ message: "Stage invalido" });
+        return res.status(400).json({ message: "Stage inválido" });
       }
       
       await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
@@ -2159,7 +2159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Complete stage error:", error);
       res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Erro ao completar secao" 
+        message: error instanceof Error ? error.message : "Erro ao completar seção" 
       });
     }
   });
@@ -2312,7 +2312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verse = await storage.getBibleVerseById(verseId);
       
       if (!verse) {
-        return res.status(404).json({ message: "Versiculo nao encontrado" });
+        return res.status(404).json({ message: "Versículo não encontrado" });
       }
 
       const result = await storage.readVerseAndRecoverHeart(req.user.id, verseId);
@@ -2530,12 +2530,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const targetUserId = parseInt(req.params.userId);
       if (isNaN(targetUserId)) {
-        return res.status(400).json({ message: "ID de usuario invalido" });
+        return res.status(400).json({ message: "ID de usuário inválido" });
       }
       
       const profile = await storage.getPublicMemberProfile(targetUserId, req.user.id);
       if (!profile) {
-        return res.status(404).json({ message: "Membro nao encontrado" });
+        return res.status(404).json({ message: "Membro não encontrado" });
       }
       
       res.json(profile);
@@ -2556,11 +2556,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const achievementId = parseInt(req.params.achievementId);
       
       if (isNaN(targetUserId) || isNaN(achievementId)) {
-        return res.status(400).json({ message: "IDs invalidos" });
+        return res.status(400).json({ message: "IDs inválidos" });
       }
       
       if (targetUserId === req.user.id) {
-        return res.status(400).json({ message: "Voce nao pode curtir suas proprias conquistas" });
+        return res.status(400).json({ message: "Você não pode curtir suas próprias conquistas" });
       }
       
       const success = await storage.likeAchievement(req.user.id, targetUserId, achievementId);
@@ -2595,7 +2595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const achievementId = parseInt(req.params.achievementId);
       
       if (isNaN(targetUserId) || isNaN(achievementId)) {
-        return res.status(400).json({ message: "IDs invalidos" });
+        return res.status(400).json({ message: "IDs inválidos" });
       }
       
       const success = await storage.unlikeAchievement(req.user.id, targetUserId, achievementId);
@@ -2673,15 +2673,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { messageKey, messageText } = req.body;
       
       if (isNaN(receiverId)) {
-        return res.status(400).json({ message: "ID de usuario invalido" });
+        return res.status(400).json({ message: "ID de usuário inválido" });
       }
       
       if (receiverId === req.user.id) {
-        return res.status(400).json({ message: "Voce nao pode enviar mensagem para si mesmo" });
+        return res.status(400).json({ message: "Você não pode enviar mensagem para si mesmo" });
       }
       
       if (!messageKey || !messageText) {
-        return res.status(400).json({ message: "Mensagem invalida" });
+        return res.status(400).json({ message: "Mensagem inválida" });
       }
       
       // Save encouragement
@@ -2777,7 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send push notification to ALL members (including inactive)
       const { sendPushToAllMembersIncludingInactive } = await import('./notifications');
       const pushResult = await sendPushToAllMembersIncludingInactive({
-        title: "Mensagem da UMP Emaus",
+        title: "📣 Mensagem da UMP Emaus",
         body: messageText,
         url: "/study",
         tag: `admin-encouragement-${Date.now()}`,
@@ -3651,7 +3651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         configured: isAIConfigured(),
         message: isAIConfigured() 
           ? "IA configurada e pronta para uso" 
-          : "Chave de API do Gemini nao configurada"
+          : "Chave de API do Gemini não configurada"
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao verificar status da IA" });
@@ -3667,10 +3667,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check AI configuration based on provider
       if (aiProvider === "gemini" && !isAIConfigured()) {
-        return res.status(503).json({ message: "IA nao configurada. Adicione a chave GEMINI_API_KEY." });
+        return res.status(503).json({ message: "IA não configurada. Adicione a chave GEMINI_API_KEY." });
       }
       if (aiProvider === "openai" && !process.env.OPENAI_API_KEY) {
-        return res.status(503).json({ message: "OpenAI nao configurada. Adicione a chave OPENAI_API_KEY." });
+        return res.status(503).json({ message: "OpenAI não configurada. Adicione a chave OPENAI_API_KEY." });
       }
 
       if (!req.file) {
@@ -3681,18 +3681,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const year = parseInt(req.body.year);
 
       if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 53) {
-        return res.status(400).json({ message: "Numero da semana invalido. Deve ser entre 1 e 53." });
+        return res.status(400).json({ message: "Número da semana inválido. Deve ser entre 1 e 53." });
       }
 
       if (isNaN(year) || year < 2020 || year > 2100) {
-        return res.status(400).json({ message: "Ano invalido. Deve ser entre 2020 e 2100." });
+        return res.status(400).json({ message: "Ano inválido. Deve ser entre 2020 e 2100." });
       }
 
       // Check if week already exists
       const existingWeek = await storage.getStudyWeekByNumber(weekNumber, year);
       if (existingWeek) {
         return res.status(409).json({ 
-          message: `Ja existe conteudo para a semana ${weekNumber} de ${year}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
+          message: `Já existe conteúdo para a semana ${weekNumber} de ${year}. Delete a semana existente primeiro ou escolha outra semana/ano.`,
           existingWeek
         });
       }
@@ -3702,7 +3702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfText = pdfData.text;
 
       if (!pdfText || pdfText.trim().length < 100) {
-        return res.status(400).json({ message: "PDF muito curto ou sem texto legivel. Forneca pelo menos 100 caracteres de conteudo." });
+        return res.status(400).json({ message: "PDF muito curto ou sem texto legível. Forneça pelo menos 100 caracteres de conteúdo." });
       }
 
       // Generate content with AI using selected provider and key
@@ -11323,20 +11323,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!title) {
         switch (type) {
           case "percapta":
-            notificationTitle = "Lembrete: Taxa Percapta Pendente";
-            notificationBody = message || "Voce tem a Taxa Percapta pendente. Acesse o painel financeiro para regularizar.";
+            notificationTitle = "💰 Lembrete: Taxa Percapta Pendente";
+            notificationBody = message || "Você tem a Taxa Percapta pendente. Acesse o painel financeiro para regularizar.";
             break;
           case "ump":
-            notificationTitle = "Lembrete: Taxa UMP Pendente";
-            notificationBody = message || "Voce tem mensalidades da Taxa UMP pendentes. Acesse o painel financeiro para regularizar.";
+            notificationTitle = "💰 Lembrete: Taxa UMP Pendente";
+            notificationBody = message || "Você tem mensalidades da Taxa UMP pendentes. Acesse o painel financeiro para regularizar.";
             break;
           case "evento":
-            notificationTitle = "Lembrete: Taxa de Evento Pendente";
-            notificationBody = message || "Voce tem taxa de evento pendente. Acesse o painel financeiro para regularizar.";
+            notificationTitle = "📌 Lembrete: Taxa de Evento Pendente";
+            notificationBody = message || "Você tem taxa de evento pendente. Acesse o painel financeiro para regularizar.";
             break;
           default:
-            notificationTitle = "Lembrete Financeiro";
-            notificationBody = message || "Voce tem pendencias financeiras. Acesse o painel financeiro para mais detalhes.";
+            notificationTitle = "💰 Lembrete Financeiro";
+            notificationBody = message || "Você tem pendências financeiras. Acesse o painel financeiro para mais detalhes.";
         }
       }
       
@@ -11623,10 +11623,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const customMessage = (message && typeof message === "string" && message.trim()) 
         ? message.trim().substring(0, 500)
-        : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para mais detalhes.";
+        : "Você tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para mais detalhes.";
       
       const result = await sendPushToUser(parsedUserId, {
-        title: "Lembrete da Tesouraria",
+        title: "💰 Lembrete da Tesouraria",
         body: customMessage,
         icon: "/logo.png",
         data: { url: "/financeiro" },
@@ -11697,13 +11697,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const customMessage = (message && typeof message === "string" && message.trim()) 
         ? message.trim().substring(0, 500)
-        : "Voce tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para regularizar.";
+        : "Você tem pagamentos pendentes na tesouraria. Acesse seu painel financeiro para regularizar.";
       
       let sentCount = 0;
       for (const memberId of memberIds) {
         try {
           await sendPushToUser(memberId, {
-            title: "Lembrete de Pagamentos Pendentes",
+            title: "💰 Lembrete de Pagamentos Pendentes",
             body: customMessage,
             url: "/study/financeiro",
             tag: `treasury-bulk-${memberId}`,
@@ -12250,8 +12250,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = usersMap.get(userId);
         if (user) {
           const count = await sendPushToUser(userId, {
-            title: "Parcela(s) Vencida(s) - Loja UMP",
-            body: `Ola ${user.fullName.split(' ')[0]}, voce tem ${data.count} parcela(s) vencida(s) no valor total de R$ ${(data.total / 100).toFixed(2).replace('.', ',')}. Regularize seu pagamento.`,
+            title: "🔴 Parcela(s) Vencida(s) - Loja UMP",
+            body: `Olá ${user.fullName.split(' ')[0]}, você tem ${data.count} parcela(s) vencida(s) no valor total de R$ ${(data.total / 100).toFixed(2).replace('.', ',')}. Regularize seu pagamento.`,
             url: "/membro/financeiro",
           });
           totalNotifications += count;

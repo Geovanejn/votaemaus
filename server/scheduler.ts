@@ -1268,7 +1268,7 @@ async function processTreasuryDay5Reminder(): Promise<void> {
         const hasPendingUmp = unpaidMonths.length > 0;
         
         if (hasPendingPercapta || hasPendingUmp) {
-          let body = 'Voce possui taxas pendentes: ';
+          let body = 'Você possui taxas pendentes: ';
           const pending: string[] = [];
           if (hasPendingPercapta) pending.push('Percapta anual');
           if (hasPendingUmp) pending.push(`Taxa UMP (${unpaidMonths.length} meses)`);
@@ -1472,8 +1472,8 @@ async function processLoanInstallmentReminders(): Promise<void> {
         
         const dueDateStr = dueDate.toLocaleDateString('pt-BR');
         const body = threshold.days === 0
-          ? `Parcela de R$${installment.amount.toFixed(2)} do emprestimo "${installment.loanDescription || 'Emprestimo'}" vence HOJE (${dueDateStr})!`
-          : `Parcela de R$${installment.amount.toFixed(2)} do emprestimo "${installment.loanDescription || 'Emprestimo'}" vence em ${threshold.label} (${dueDateStr}).`;
+          ? `Parcela de R$${installment.amount.toFixed(2)} do empréstimo "${installment.loanDescription || 'Empréstimo'}" vence HOJE (${dueDateStr})!`
+          : `Parcela de R$${installment.amount.toFixed(2)} do empréstimo "${installment.loanDescription || 'Empréstimo'}" vence em ${threshold.label} (${dueDateStr}).`;
         
         await storage.createNotification({
           userId: treasurer.id,

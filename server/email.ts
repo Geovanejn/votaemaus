@@ -1140,7 +1140,9 @@ export async function sendNewProductEmail(
 
   try {
     const formattedName = getFirstAndLastName(recipientName);
-    const formattedPrice = productPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Price is stored in cents, divide by 100 to get the actual value
+    const priceInReais = productPrice / 100;
+    const formattedPrice = priceInReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const productUrl = `${baseUrl}/loja/produto/${productSlug}`;
     const shortDescription = productDescription ? productDescription.substring(0, 150) + (productDescription.length > 150 ? '...' : '') : '';
 

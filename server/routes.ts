@@ -91,6 +91,7 @@ import {
   notifyNewComment,
   notifyDevotionalComment,
   notifySeasonPublished,
+  notifySeasonEnded,
   notifyNewLessonToAll,
   notifyNewStudyEvent,
   notifyEventEnded,
@@ -2001,7 +2002,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // OPTIMIZED: Get a specific lesson with units - parallel queries
+  // OPTIMIZED: Get a specific lesson with units - parallel queries with season status
   app.get("/api/study/lessons/:lessonId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -2009,15 +2010,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const lessonId = parseInt(req.params.lessonId);
       
-      // Parallel fetch: lesson, units, and progress
-      const [lesson, units, progress] = await Promise.all([
-        storage.getLessonById(lessonId),
+      // Parallel fetch: lesson+season (single query), units, and progress
+      const [lessonWithSeason, units, progress] = await Promise.all([
+        storage.getLessonWithSeasonStatus(lessonId),
         storage.getUnitsByLessonId(lessonId),
         storage.getUserLessonProgress(req.user.id, lessonId)
       ]);
       
-      if (!lesson) {
+      if (!lessonWithSeason) {
         return res.status(404).json({ message: "Lição não encontrada" });
+      }
+      
+      // Check if season is ended - block access to lesson content
+      if (lessonWithSeason.seasonEnded) {
+        return res.status(403).json({ 
+          message: "Esta revista foi encerrada. Não é possível acessar as lições.",
+          seasonEnded: true,
+          seasonTitle: lessonWithSeason.seasonTitle
+        });
       }
       
       const unitsWithParsedContent = units.map((unit: any) => ({
@@ -2025,7 +2035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content
       }));
       
-      res.json({ ...lesson, units: unitsWithParsedContent, progress });
+      res.json({ ...lessonWithSeason.lesson, units: unitsWithParsedContent, progress });
     } catch (error) {
       console.error("Get lesson error:", error);
       res.status(500).json({ message: "Erro ao buscar lição" });
@@ -2039,6 +2049,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
+      
+      // OPTIMIZED: Check lesson and season status in single query
+      const lessonWithSeason = await storage.getLessonWithSeasonStatus(lessonId);
+      if (!lessonWithSeason) {
+        return res.status(404).json({ message: "Lição não encontrada" });
+      }
+      if (lessonWithSeason.seasonEnded) {
+        return res.status(403).json({ 
+          message: "Esta revista foi encerrada. Não é possível iniciar lições.",
+          seasonEnded: true
+        });
+      }
+      
       const profile = await storage.getOrCreateStudyProfile(req.user.id);
       
       if (profile.hearts <= 0) {
@@ -2128,6 +2151,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessonId = parseInt(req.params.lessonId);
       const { stage } = req.body;
       
+      // OPTIMIZED: Check lesson and season status in single query
+      const lessonWithSeason = await storage.getLessonWithSeasonStatus(lessonId);
+      if (!lessonWithSeason) {
+        return res.status(404).json({ message: "Lição não encontrada" });
+      }
+      if (lessonWithSeason.seasonEnded) {
+        return res.status(403).json({ 
+          message: "Esta revista foi encerrada. Não é possível completar seções.",
+          seasonEnded: true
+        });
+      }
+      
       const STAGE_XP = {
         estude: 50,
         medite: 50
@@ -2180,6 +2215,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isPerfect = mistakesCount === 0;
       const weekKey = getWeekKeyForLesson();
       const today = getTodayBrazilDate();
+
+      // OPTIMIZED: Check lesson and season status in single query
+      const lessonWithSeason = await storage.getLessonWithSeasonStatus(lessonId);
+      if (!lessonWithSeason) {
+        return res.status(404).json({ message: "Lição não encontrada" });
+      }
+      if (lessonWithSeason.seasonEnded) {
+        return res.status(403).json({ 
+          message: "Esta revista foi encerrada. Não é possível completar lições.",
+          seasonEnded: true
+        });
+      }
 
       // Step 1: Complete lesson (must happen first as other operations depend on it)
       const progress = await storage.completeLesson(
@@ -6681,6 +6728,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`[Season End] Error sending email to user ${ranker.userId}:`, emailError);
         }
       }
+      
+      // Send push and in-app notifications to ALL participants
+      notifySeasonEnded(result.season.id, result.season.title, result.topRankers).catch(err => 
+        console.error("[Notifications] Error notifying season ended:", err)
+      );
       
       res.json({ 
         season: result.season, 

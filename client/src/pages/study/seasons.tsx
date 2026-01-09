@@ -15,7 +15,10 @@ import {
   MoreVertical,
   Filter,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Timer,
+  CheckCircle2,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -38,6 +41,7 @@ interface Season {
   publishedAt: string | null;
   startsAt: string | null;
   endsAt: string | null;
+  isEnded?: boolean;
   progress?: SeasonProgress | null;
 }
 
@@ -240,7 +244,8 @@ function SeasonCard({
   avgMinutes,
   isExpanded,
   onToggle,
-  isCompleted
+  isCompleted,
+  isEnded = false
 }: { 
   season: Season;
   lessonsCount: number;
@@ -248,10 +253,13 @@ function SeasonCard({
   isExpanded: boolean;
   onToggle: () => void;
   isCompleted?: boolean;
+  isEnded?: boolean;
 }) {
-  const cardBackground = isCompleted 
-    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)'
-    : 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)';
+  const cardBackground = isEnded
+    ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 50%, #374151 100%)'
+    : isCompleted 
+      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)'
+      : 'linear-gradient(135deg, #c026d3 0%, #a855f7 50%, #8b5cf6 100%)';
   
   return (
     <motion.div
@@ -288,7 +296,12 @@ function SeasonCard({
               
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h2 className="text-xl font-bold text-white line-clamp-2">{season.title}</h2>
-                {isCompleted && (
+                {isEnded && (
+                  <Badge className="bg-gray-500 text-white border-0 text-xs">
+                    Encerrada
+                  </Badge>
+                )}
+                {isCompleted && !isEnded && (
                   <Badge className="bg-yellow-400 text-yellow-900 border-0 text-xs">
                     Concluída
                   </Badge>
@@ -309,12 +322,18 @@ function SeasonCard({
                     <span>~{avgMinutes} min</span>
                   </div>
                 </div>
-                <motion.div
-                  animate={{ rotate: isExpanded ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown className="h-5 w-5 text-white/80" />
-                </motion.div>
+                {isEnded ? (
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <Lock className="h-4 w-4 text-white/80" />
+                  </div>
+                ) : (
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="h-5 w-5 text-white/80" />
+                  </motion.div>
+                )}
               </div>
             </div>
           </div>
@@ -510,13 +529,15 @@ function SeasonListItem({
   onLessonClick,
   focusLessonId,
   scrollToNextId,
-  autoExpandForLessonId 
+  autoExpandForLessonId,
+  isEnded = false
 }: { 
   season: SeasonWithDetails;
   onLessonClick: (lessonId: number, stage?: "estude" | "medite" | "responda") => void;
   focusLessonId?: number | null;
   scrollToNextId?: number | null;
   autoExpandForLessonId?: number | null;
+  isEnded?: boolean;
 }) {
   const shouldAutoExpand = autoExpandForLessonId !== null && autoExpandForLessonId !== undefined;
   const [isExpanded, setIsExpanded] = useState(shouldAutoExpand);
@@ -596,12 +617,13 @@ function SeasonListItem({
         lessonsCount={season.totalLessons}
         avgMinutes={avgMinutesPerLesson}
         isExpanded={isExpanded}
-        onToggle={() => setIsExpanded(!isExpanded)}
+        onToggle={() => !isEnded && setIsExpanded(!isExpanded)}
         isCompleted={isCompleted}
+        isEnded={isEnded}
       />
 
       <AnimatePresence>
-        {isExpanded && (
+        {isExpanded && !isEnded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -688,7 +710,19 @@ export default function SeasonsPage() {
   }
 
   const hasSeasons = seasons && seasons.length > 0;
-  const sortedSeasons = hasSeasons ? [...seasons].reverse() : [];
+  
+  // Separate active and ended seasons (like events page)
+  const activeSeasons = hasSeasons 
+    ? [...seasons].filter(s => !s.isEnded).sort((a, b) => 
+        new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime()
+      )
+    : [];
+  
+  const endedSeasons = hasSeasons 
+    ? [...seasons].filter(s => s.isEnded).sort((a, b) => 
+        new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime()
+      )
+    : [];
 
   const getCurrentStageForLesson = (lesson: Lesson): 'estude' | 'medite' | 'responda' => {
     if (lesson.studyCompleted && lesson.meditationCompleted) return 'responda';
@@ -753,24 +787,57 @@ export default function SeasonsPage() {
             {seasons.length} revista{seasons.length !== 1 ? 's' : ''} disponível{seasons.length !== 1 ? 'veis' : ''}
           </p>
           
-          {sortedSeasons.map((season) => {
-            // Check if this season contains the current lesson for auto-expand
-            const isCurrentLessonSeason = currentLessonData?.season.id === season.id;
-            const autoExpandLessonId = isCurrentLessonSeason && !focusLessonId && !scrollToNextId 
-              ? currentLessonData?.lesson.id 
-              : null;
-            
-            return (
-              <SeasonListItem
-                key={season.id}
-                season={season}
-                onLessonClick={handleLessonClick}
-                focusLessonId={focusLessonId}
-                scrollToNextId={scrollToNextId}
-                autoExpandForLessonId={autoExpandLessonId}
-              />
-            );
-          })}
+          {/* Revistas Ativas - no topo */}
+          {activeSeasons.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-green-600 uppercase tracking-[0.2em] flex items-center gap-3">
+                <Timer className="h-4 w-4" />
+                Em Andamento
+                <div className="h-px bg-green-200 dark:bg-green-900 flex-1" />
+              </h3>
+              {activeSeasons.map((season) => {
+                const isCurrentLessonSeason = currentLessonData?.season.id === season.id;
+                const autoExpandLessonId = isCurrentLessonSeason && !focusLessonId && !scrollToNextId 
+                  ? currentLessonData?.lesson.id 
+                  : null;
+                
+                return (
+                  <SeasonListItem
+                    key={season.id}
+                    season={season}
+                    onLessonClick={handleLessonClick}
+                    focusLessonId={focusLessonId}
+                    scrollToNextId={scrollToNextId}
+                    autoExpandForLessonId={autoExpandLessonId}
+                  />
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Revistas Encerradas - no final */}
+          {endedSeasons.length > 0 && (
+            <div className={`space-y-4 ${activeSeasons.length > 0 ? "pt-4" : ""}`}>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
+                <CheckCircle2 className="h-4 w-4" />
+                Revistas Anteriores
+                <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
+              </h3>
+              <div className="space-y-4 opacity-70">
+                {endedSeasons.map((season) => (
+                  <SeasonListItem
+                    key={season.id}
+                    season={season}
+                    onLessonClick={handleLessonClick}
+                    focusLessonId={null}
+                    scrollToNextId={null}
+                    autoExpandForLessonId={null}
+                    isEnded={true}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </main>
       ) : (
         <EmptyState />

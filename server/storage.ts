@@ -164,6 +164,7 @@ export interface IStorage {
   getAllStudyWeeks(): Promise<any[]>;
   getLessonsForWeek(weekId: number): Promise<any[]>;
   getLessonById(lessonId: number): Promise<any | null>;
+  getLessonWithSeasonStatus(lessonId: number): Promise<{ lesson: any; seasonEnded: boolean; seasonTitle: string | null } | null>;
   getUnitsByLessonId(lessonId: number): Promise<any[]>;
   getUnitsByLessonIds(lessonIds: number[]): Promise<any[]>;
   getStudyUnitById(unitId: number): Promise<any | null>;
@@ -1257,6 +1258,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.studyLessons.id, lessonId))
       .limit(1);
     return lesson || null;
+  }
+
+  // OPTIMIZED: Get lesson with season status in a single query (avoids N+1)
+  async getLessonWithSeasonStatus(lessonId: number): Promise<{ lesson: any; seasonEnded: boolean; seasonTitle: string | null } | null> {
+    const [result] = await db.select({
+      lesson: schema.studyLessons,
+      seasonEnded: schema.seasons.isEnded,
+      seasonTitle: schema.seasons.title,
+    })
+      .from(schema.studyLessons)
+      .leftJoin(schema.seasons, eq(schema.studyLessons.seasonId, schema.seasons.id))
+      .where(eq(schema.studyLessons.id, lessonId))
+      .limit(1);
+    
+    if (!result?.lesson) return null;
+    
+    return {
+      lesson: result.lesson,
+      seasonEnded: result.seasonEnded ?? false,
+      seasonTitle: result.seasonTitle ?? null,
+    };
   }
 
   async getUnitsByLessonId(lessonId: number): Promise<any[]> {

@@ -245,9 +245,9 @@ export async function sendAnonymousPushNotification(
         tag: payload.tag,
       })
     ).then(() => {
-      console.log(`[Push] Successfully sent notification to ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}`);
+      console.log(`[Push] Successfully sent notification to anonymous user ${subscription.id}`);
     }).catch(err => {
-      console.error(`[Push] WebPush delivery error for ${subscription.userId ? 'member user ' + subscription.userId : 'anonymous user ' + subscription.id}:`, err.message || err);
+      console.error(`[Push] WebPush delivery error for anonymous user ${subscription.id}:`, err.message || err);
       throw err;
     });
 
@@ -674,6 +674,72 @@ export async function notifySeasonPublished(
   console.log(`[Notifications] Season published notification complete`);
 }
 
+// Notify all season participants when season ends
+export async function notifySeasonEnded(
+  seasonId: number,
+  seasonTitle: string,
+  topRankers: Array<{ userId: number; user: { fullName: string }; xpEarned: number }>
+): Promise<void> {
+  console.log(`[Notifications] notifySeasonEnded STARTED for season ${seasonId}: "${seasonTitle}"`);
+  
+  // Get all participants from season rankings (already ordered by XP)
+  const allParticipants = await storage.getSeasonRankings(seasonId, 1000);
+  
+  if (allParticipants.length === 0) {
+    console.log(`[Notifications] No participants found for season ${seasonId}`);
+    return;
+  }
+  
+  // Pre-build position map for O(1) lookups (avoids O(n²) findIndex in loop)
+  const positionMap = new Map<number, number>();
+  allParticipants.forEach((p, idx) => positionMap.set(p.userId, idx + 1));
+  
+  // Pre-compute top 3 data
+  const top3Data = topRankers.slice(0, 3).map((r, i) => ({
+    position: i + 1,
+    name: r.user.fullName,
+    xp: r.xpEarned
+  }));
+  
+  // Send push notifications to all participants
+  const payload: NotificationPayload = {
+    title: "🏆 Revista Encerrada!",
+    body: `A revista "${seasonTitle}" foi encerrada. Confira os vencedores!`,
+    url: "/study",
+    tag: `season-ended-${seasonId}`,
+    icon: "/logo.png",
+  };
+  
+  // Get user IDs of all participants
+  const participantIds = allParticipants.map(p => p.userId);
+  const pushResult = await sendPushToUsers(participantIds, payload);
+  console.log(`[Notifications] Season ended push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  
+  // Create in-app notifications for each participant with their ranking info
+  for (const participant of allParticipants) {
+    const position = positionMap.get(participant.userId) || 0;
+    const personalBody = position <= 3 
+      ? `Parabens! Voce ficou em ${position}o lugar na revista "${seasonTitle}" com ${participant.xpEarned} XP!`
+      : `A revista "${seasonTitle}" foi encerrada. Voce ficou em ${position}o lugar com ${participant.xpEarned} XP. Confira os vencedores!`;
+    
+    await createInAppNotification(
+      participant.userId,
+      "season_ended",
+      payload.title,
+      personalBody,
+      { 
+        seasonId, 
+        url: payload.url,
+        position,
+        xpEarned: participant.xpEarned,
+        top3: top3Data
+      }
+    );
+  }
+  
+  console.log(`[Notifications] Season ended notifications sent to ${allParticipants.length} participants`);
+}
+
 export async function notifyNewStudyEvent(
   eventId: number,
   title: string,
@@ -806,13 +872,13 @@ export async function notifyNewLessonToAll(
     icon: "/logo.png",
   };
 
-  // Send push notifications
-  const pushResult = await sendPushToAllMembers(payload);
+  // Send push notifications to ALL members (active and inactive)
+  const pushResult = await sendPushToAllMembersIncludingInactive(payload);
   console.log(`[Notifications] New lesson push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 
-  // Create in-app notifications
-  const activeMembers = await storage.getActiveMembers();
-  for (const member of activeMembers) {
+  // Create in-app notifications for ALL members
+  const allMembers = await storage.getAllMembers();
+  for (const member of allMembers) {
     await createInAppNotification(
       member.id,
       "lesson_available",
@@ -822,7 +888,7 @@ export async function notifyNewLessonToAll(
     );
   }
 
-  console.log(`[Notifications] New lesson notification sent to ${activeMembers.length} active members`);
+  console.log(`[Notifications] New lesson notification sent to ${allMembers.length} members (active and inactive)`);
 }
 
 export async function notifyStreakReminder(

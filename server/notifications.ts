@@ -15,6 +15,10 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 const VAPID_SUBJECT = "mailto:contato@umpemaus.com.br";
 
+// Rate limiting helper for Resend (2 requests per second max)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const EMAIL_RATE_LIMIT_DELAY = 600; // 600ms between emails to stay under 2 req/s
+
 let webPushConfigured = false;
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
@@ -342,17 +346,21 @@ export async function notifyNewDevotional(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    const batchSize = 10;
     let emailsSent = 0;
     
-    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
-      const batch = uniqueRecipients.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(recipient => 
-          sendNewDevotionalEmail(recipient.email, recipient.fullName, title, devotionalId, imageUrl || null)
-        )
-      );
-      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    // Sequential sending with rate limiting (Resend: 2 req/s max)
+    for (let i = 0; i < uniqueRecipients.length; i++) {
+      const recipient = uniqueRecipients[i];
+      try {
+        const result = await sendNewDevotionalEmail(recipient.email, recipient.fullName, title, devotionalId, imageUrl || null);
+        if (result) emailsSent++;
+      } catch (error) {
+        console.error(`[Notifications] Failed to send devotional email to ${recipient.email}:`, error);
+      }
+      // Wait between emails to respect Resend rate limit
+      if (i < uniqueRecipients.length - 1) {
+        await delay(EMAIL_RATE_LIMIT_DELAY);
+      }
     }
     console.log(`[Notifications] Devotional email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
@@ -406,17 +414,21 @@ export async function notifyNewEvent(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    const batchSize = 10;
     let emailsSent = 0;
     
-    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
-      const batch = uniqueRecipients.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(recipient => 
-          sendNewEventEmail(recipient.email, recipient.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null)
-        )
-      );
-      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    // Sequential sending with rate limiting (Resend: 2 req/s max)
+    for (let i = 0; i < uniqueRecipients.length; i++) {
+      const recipient = uniqueRecipients[i];
+      try {
+        const result = await sendNewEventEmail(recipient.email, recipient.fullName, title, eventDate, eventLocation || null, eventId, imageUrl || null);
+        if (result) emailsSent++;
+      } catch (error) {
+        console.error(`[Notifications] Failed to send event email to ${recipient.email}:`, error);
+      }
+      // Wait between emails to respect Resend rate limit
+      if (i < uniqueRecipients.length - 1) {
+        await delay(EMAIL_RATE_LIMIT_DELAY);
+      }
     }
     console.log(`[Notifications] Event email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
@@ -456,17 +468,21 @@ export async function notifyNewPrayerRequest(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    const batchSize = 10;
     let emailsSent = 0;
 
-    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
-      const batch = uniqueRecipients.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(recipient => 
-          sendNewPrayerRequestEmail(recipient.email, recipient.fullName, requesterName, category, requestText)
-        )
-      );
-      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    // Sequential sending with rate limiting (Resend: 2 req/s max)
+    for (let i = 0; i < uniqueRecipients.length; i++) {
+      const recipient = uniqueRecipients[i];
+      try {
+        const result = await sendNewPrayerRequestEmail(recipient.email, recipient.fullName, requesterName, category, requestText);
+        if (result) emailsSent++;
+      } catch (error) {
+        console.error(`[Notifications] Failed to send prayer request email to ${recipient.email}:`, error);
+      }
+      // Wait between emails to respect Resend rate limit
+      if (i < uniqueRecipients.length - 1) {
+        await delay(EMAIL_RATE_LIMIT_DELAY);
+      }
     }
     console.log(`[Notifications] Prayer request email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
@@ -636,17 +652,21 @@ export async function notifySeasonPublished(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    const batchSize = 10;
     let emailsSent = 0;
     
-    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
-      const batch = uniqueRecipients.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(recipient => 
-          sendSeasonPublishedEmail(recipient.email, recipient.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null)
-        )
-      );
-      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    // Sequential sending with rate limiting (Resend: 2 req/s max)
+    for (let i = 0; i < uniqueRecipients.length; i++) {
+      const recipient = uniqueRecipients[i];
+      try {
+        const result = await sendSeasonPublishedEmail(recipient.email, recipient.fullName, seasonTitle, seasonDescription || null, coverImageUrl || null);
+        if (result) emailsSent++;
+      } catch (error) {
+        console.error(`[Notifications] Failed to send season email to ${recipient.email}:`, error);
+      }
+      // Wait between emails to respect Resend rate limit
+      if (i < uniqueRecipients.length - 1) {
+        await delay(EMAIL_RATE_LIMIT_DELAY);
+      }
     }
     console.log(`[Notifications] Season email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }
@@ -714,26 +734,30 @@ export async function notifyNewStudyEvent(
     }
     
     const uniqueRecipients = Array.from(emailMap.values());
-    const batchSize = 10;
     let emailsSent = 0;
     
-    for (let i = 0; i < uniqueRecipients.length; i += batchSize) {
-      const batch = uniqueRecipients.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(recipient => 
-          sendNewStudyEventEmail(
-            recipient.email, 
-            recipient.fullName, 
-            title, 
-            description,
-            startDate,
-            endDate,
-            eventId, 
-            imageUrl
-          )
-        )
-      );
-      emailsSent += results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    // Sequential sending with rate limiting (Resend: 2 req/s max)
+    for (let i = 0; i < uniqueRecipients.length; i++) {
+      const recipient = uniqueRecipients[i];
+      try {
+        const result = await sendNewStudyEventEmail(
+          recipient.email, 
+          recipient.fullName, 
+          title, 
+          description,
+          startDate,
+          endDate,
+          eventId, 
+          imageUrl
+        );
+        if (result) emailsSent++;
+      } catch (error) {
+        console.error(`[Notifications] Failed to send study event email to ${recipient.email}:`, error);
+      }
+      // Wait between emails to respect Resend rate limit
+      if (i < uniqueRecipients.length - 1) {
+        await delay(EMAIL_RATE_LIMIT_DELAY);
+      }
     }
     console.log(`[Notifications] Study event email sent to ${emailsSent}/${uniqueRecipients.length} members`);
   }

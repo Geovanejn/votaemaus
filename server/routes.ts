@@ -54,6 +54,10 @@ import { z, ZodError } from "zod";
 function isZodError(error: unknown): error is ZodError {
   return error instanceof ZodError || (error as any)?.name === 'ZodError';
 }
+
+// Rate limiting helper for Resend (2 requests per second max)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const EMAIL_RATE_LIMIT_DELAY = 600; // 600ms between emails to stay under 2 req/s
 import type { AuthResponse } from "@shared/schema";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSeasonRankingEmail, sendNewProductEmail } from "./email";
 import { 
@@ -6648,7 +6652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
-      // Send congratulations emails to top 3
+      // Send congratulations emails to top 3 with rate limiting
       for (let i = 0; i < result.topRankers.length && i < 3; i++) {
         const ranker = result.topRankers[i];
         try {
@@ -6667,6 +6671,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }))
             );
             console.log(`[Season End] Sent ranking email to ${user.email} (position ${i + 1})`);
+            
+            // Rate limiting: wait between emails (Resend: 2 req/s max)
+            if (i < 2) {
+              await delay(EMAIL_RATE_LIMIT_DELAY);
+            }
           }
         } catch (emailError) {
           console.error(`[Season End] Error sending email to user ${ranker.userId}:`, emailError);
@@ -8818,7 +8827,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const membersWithEmail = allMembers.filter(m => m.email);
       
       let pushSent = 0;
-      let emailsQueued = 0;
       
       // Product identifier for URLs (use ID since slug doesn't exist)
       const productIdentifier = `${item.id}`;
@@ -8849,30 +8857,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Send emails only to members with email addresses (async, don't block)
-      for (const member of membersWithEmail) {
-        sendNewProductEmail(
-          member.email!,
-          member.fullName || 'Membro',
-          item.name,
-          productIdentifier,
-          productImageBase64,
-          item.price,
-          item.description,
-          baseUrl
-        ).catch(err => {
+      // Send emails only to members with email addresses with rate limiting (Resend: 2 req/s max)
+      let emailsSent = 0;
+      for (let i = 0; i < membersWithEmail.length; i++) {
+        const member = membersWithEmail[i];
+        try {
+          const result = await sendNewProductEmail(
+            member.email!,
+            member.fullName || 'Membro',
+            item.name,
+            productIdentifier,
+            productImageBase64,
+            item.price,
+            item.description,
+            baseUrl
+          );
+          if (result) emailsSent++;
+        } catch (err) {
           console.error(`[Shop] Email error for ${member.email}:`, err);
-        });
-        emailsQueued++;
+        }
+        // Rate limiting: wait between emails
+        if (i < membersWithEmail.length - 1) {
+          await delay(EMAIL_RATE_LIMIT_DELAY);
+        }
       }
       
-      console.log(`[Shop] Product ${item.name} published. Push: ${pushSent}, Emails queued: ${emailsQueued}`);
+      console.log(`[Shop] Product ${item.name} published. Push: ${pushSent}, Emails sent: ${emailsSent}/${membersWithEmail.length}`);
       
       res.json({ 
         success: true, 
-        message: `Produto publicado! ${pushSent} notificações enviadas.`,
+        message: `Produto publicado! ${pushSent} notificações enviadas, ${emailsSent} emails enviados.`,
         pushSent,
-        emailsQueued
+        emailsSent
       });
     } catch (error) {
       console.error("Publish shop item error:", error);

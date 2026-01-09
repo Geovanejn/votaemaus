@@ -6,6 +6,10 @@ import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 
+// Rate limiting helper for Resend (2 requests per second max)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const EMAIL_RATE_LIMIT_DELAY = 600; // 600ms between emails to stay under 2 req/s
+
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },
   { verse: "O Senhor é o meu pastor; nada me faltará.", reference: "Salmos 23:1 (ARA)" },
@@ -119,8 +123,9 @@ async function sendBirthdayEmails(): Promise<void> {
     
     console.log(`[Birthday Scheduler] Found ${birthdayMembers.length} birthday(s) today`);
     
-    // Send personal push to each birthday member
-    for (const member of birthdayMembers) {
+    // Send personal push to each birthday member with rate limiting for emails
+    for (let i = 0; i < birthdayMembers.length; i++) {
+      const member = birthdayMembers[i];
       try {
         await sendPushToUser(member.id, {
           title: '🎂 Feliz Aniversário!',
@@ -141,6 +146,11 @@ async function sendBirthdayEmails(): Promise<void> {
           console.log(`[Birthday Scheduler] ✓ Sent birthday email to ${member.fullName} (${member.email})`);
         } else {
           console.log(`[Birthday Scheduler] ✗ Failed to send birthday email to ${member.fullName} (${member.email})`);
+        }
+        
+        // Rate limiting: wait between emails (Resend: 2 req/s max)
+        if (i < birthdayMembers.length - 1) {
+          await delay(EMAIL_RATE_LIMIT_DELAY);
         }
       } catch (error) {
         console.error(`[Birthday Scheduler] Error sending to ${member.fullName}:`, error);

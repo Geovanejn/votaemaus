@@ -860,15 +860,40 @@ export async function notifyLessonAvailable(
 
 export async function notifyNewLessonToAll(
   lessonTitle: string,
-  seasonTitle: string
+  parentTitle: string,
+  type: "revista" | "unidade" | "evento" = "unidade"
 ): Promise<void> {
-  console.log(`[Notifications] notifyNewLessonToAll STARTED: "${lessonTitle}" from "${seasonTitle}"`);
+  console.log(`[Notifications] notifyNewLessonToAll STARTED: "${lessonTitle}" from "${parentTitle}" (${type})`);
+  
+  // Definir título e corpo baseado no tipo
+  let title: string;
+  let body: string;
+  let url: string;
+  
+  switch (type) {
+    case "revista":
+      title = "📖 Nova Lição da Revista!";
+      body = `"${lessonTitle}" da revista "${parentTitle}" foi liberada. Estude agora!`;
+      url = "/study/estudos";
+      break;
+    case "evento":
+      title = "🎯 Nova Lição do Evento!";
+      body = `"${lessonTitle}" do evento "${parentTitle}" foi liberada. Estude agora!`;
+      url = "/study/eventos";
+      break;
+    case "unidade":
+    default:
+      title = "📝 Nova Lição da Unidade!";
+      body = `"${lessonTitle}" da unidade "${parentTitle}" foi liberada. Estude agora!`;
+      url = "/study";
+      break;
+  }
   
   const payload: NotificationPayload = {
-    title: "📝 Nova Unidade de Estudo!",
-    body: `"${lessonTitle}" de "${seasonTitle}" foi liberada. Estude agora!`,
-    url: "/study",
-    tag: "new-lesson",
+    title,
+    body,
+    url,
+    tag: `new-lesson-${type}`,
     icon: "/logo.png",
   };
 

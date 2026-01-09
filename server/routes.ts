@@ -4207,12 +4207,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
 
-      // Get week title for notification
-      const week = await storage.getStudyWeekById(lesson.studyWeekId);
-      if (week) {
-        notifyNewLessonToAll(lesson.title, week.title).catch(err => 
-          console.error("[Notifications] Error notifying new lesson:", err)
-        );
+      // Get season (revista) title for notification - prioritize seasonId
+      if (lesson.seasonId) {
+        const season = await storage.getSeasonById(lesson.seasonId);
+        if (season) {
+          notifyNewLessonToAll(lesson.title, season.title, "revista").catch(err => 
+            console.error("[Notifications] Error notifying new lesson:", err)
+          );
+        }
+      } else if (lesson.studyWeekId) {
+        // Fallback for legacy weeks (unidades)
+        const week = await storage.getStudyWeekById(lesson.studyWeekId);
+        if (week) {
+          notifyNewLessonToAll(lesson.title, week.title, "unidade").catch(err => 
+            console.error("[Notifications] Error notifying new lesson:", err)
+          );
+        }
       }
 
       res.json({ message: "Lição liberada com sucesso", lesson });

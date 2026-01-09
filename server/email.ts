@@ -22,9 +22,17 @@ async function downloadImageAsBuffer(imageUrl: string): Promise<Buffer | null> {
   }
 }
 
-// URL pública do logo - não usar CID para evitar que apareça como anexo
-const LOGO_PUBLIC_URL = "https://umpemaus.com.br/logo.png";
-console.log(`✓ Logo configured with public URL: ${LOGO_PUBLIC_URL}`);
+// URL pública do logo para e-mails (sem espaços em branco)
+const LOGO_EMAIL_URL = "https://umpemaus.com.br/logo-email.png";
+console.log(`✓ Logo configured with public URL: ${LOGO_EMAIL_URL}`);
+
+// Footer HTML padrão com logo abaixo do texto
+const getEmailFooter = () => `
+  <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+    <p style="color: #888; font-size: 12px; margin: 0 0 10px 0;">UMP Emaús</p>
+    <img src="${LOGO_EMAIL_URL}" alt="Emaús" style="height: 40px; width: auto;" />
+  </div>
+`;
 
 export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
   if (!resend) {
@@ -47,8 +55,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
           </div>
           <p>Este código expira em 15 minutos.</p>
           <p>Se você não solicitou este código, ignore este email.</p>
-          <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     });
@@ -102,8 +109,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
             Se você não solicitou a recuperação de senha, ignore este email.
           </p>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -284,8 +290,7 @@ export async function sendCongratulationsEmail(
             Que Deus abençoe seu ministério e guie seus passos nesta nova jornada!
           </p>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -346,8 +351,7 @@ export async function sendAuditPDFEmail(
             Guarde este documento para seus registros oficiais.
           </p>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
       attachments: [
@@ -419,8 +423,7 @@ export async function sendNewPrayerRequestEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -482,8 +485,7 @@ export async function sendNewCommentEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -554,8 +556,7 @@ export async function sendNewDevotionalEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -643,8 +644,7 @@ export async function sendNewEventEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -727,8 +727,7 @@ export async function sendSeasonPublishedEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -828,8 +827,7 @@ export async function sendNewStudyEventEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -915,8 +913,7 @@ export async function sendSeasonEndedEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -976,8 +973,7 @@ export async function sendBonusEventEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -1035,8 +1031,7 @@ export async function sendLessonAvailableEmail(
             </a>
           </div>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };
@@ -1114,8 +1109,7 @@ export async function sendSeasonRankingEmail(
             Continue sua jornada de aprendizado no DeoGlory!
           </p>
           
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
+          ${getEmailFooter()}
         </div>
       `,
     };

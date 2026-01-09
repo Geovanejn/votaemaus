@@ -13,7 +13,7 @@ import {
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
-const VAPID_SUBJECT = "mailto:suporte@emausvota.com.br";
+const VAPID_SUBJECT = "mailto:contato@umpemaus.com.br";
 
 let webPushConfigured = false;
 

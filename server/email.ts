@@ -45,7 +45,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   
   try {
     await resend.emails.send({
-      from: "UMP Emaús <suporte@emausvota.com.br>" ,
+      from: "UMP Emaús <contato@umpemaus.com.br>" ,
       to: email,
       subject: "Seu código de verificação - UMP Emaús",
       html: `
@@ -78,7 +78,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
   
   try {
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: email,
       subject: "🔒 Recuperação de Senha - UMP Emaús",
       html: `
@@ -289,7 +289,7 @@ export async function sendCongratulationsEmail(
   try {
     // Prepare email payload with CID-embedded logo (Gmail-compatible method)
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: candidateEmail,
       subject: `Parabéns! Você foi eleito(a) - Emaús Vota`,
       html: `
@@ -384,7 +384,7 @@ export async function sendAuditPDFEmail(
     const formattedName = getFirstAndLastName(presidentName);
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: presidentEmail,
       subject: `Relatório de Auditoria - ${electionName}`,
       html: `
@@ -488,7 +488,7 @@ export async function sendNewPrayerRequestEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novo Pedido de Oração - ${category}`,
       html: `
@@ -564,7 +564,7 @@ export async function sendNewCommentEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novo Comentário em "${devotionalTitle}"`,
       html: `
@@ -647,7 +647,7 @@ export async function sendNewDevotionalEmail(
     }
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novo Devocional: ${devotionalTitle}`,
       html: `
@@ -751,7 +751,7 @@ export async function sendNewEventEmail(
     }
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novo Evento: ${eventTitle}`,
       html: `
@@ -853,7 +853,7 @@ export async function sendSeasonPublishedEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Nova Revista DeoGlory: ${seasonTitle}`,
       html: `
@@ -965,7 +965,7 @@ export async function sendNewStudyEventEmail(
     };
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novo Evento Especial DeoGlory: ${eventTitle}`,
       html: `
@@ -1068,7 +1068,7 @@ export async function sendSeasonEndedEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Revista Finalizada: ${seasonTitle} - Seu Relatório`,
       html: `
@@ -1157,7 +1157,7 @@ export async function sendBonusEventEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Evento Especial DeoGlory: ${eventName}`,
       html: `
@@ -1230,7 +1230,7 @@ export async function sendLessonAvailableEmail(
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Nova Lição: ${lessonTitle} - DeoGlory`,
       html: `
@@ -1331,7 +1331,7 @@ export async function sendSeasonRankingEmail(
     }).join('');
     
     const emailPayload: any = {
-      from: "UMP Emaús <suporte@emausvota.com.br>",
+      from: "UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Parabéns! Você ficou em ${position}º lugar na revista ${seasonTitle}!`,
       html: `
@@ -1413,7 +1413,7 @@ export async function sendNewProductEmail(
     const shortDescription = productDescription ? productDescription.substring(0, 150) + (productDescription.length > 150 ? '...' : '') : '';
 
     const emailPayload: any = {
-      from: "Loja UMP Emaús <suporte@emausvota.com.br>",
+      from: "Loja UMP Emaús <contato@umpemaus.com.br>",
       to: recipientEmail,
       subject: `Novidade na Loja! ${productName}`,
       html: `

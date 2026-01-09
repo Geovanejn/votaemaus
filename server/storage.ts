@@ -164,6 +164,7 @@ export interface IStorage {
   getLessonsForWeek(weekId: number): Promise<any[]>;
   getLessonById(lessonId: number): Promise<any | null>;
   getUnitsByLessonId(lessonId: number): Promise<any[]>;
+  getUnitsByLessonIds(lessonIds: number[]): Promise<any[]>;
   getStudyUnitById(unitId: number): Promise<any | null>;
   createStudyWeek(data: { title: string; description?: string; weekNumber: number; year: number; createdBy?: number; aiMetadata?: string }): Promise<any>;
   createStudyLesson(data: { studyWeekId: number; orderIndex: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<any>;
@@ -1225,6 +1226,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(schema.studyUnits)
       .where(eq(schema.studyUnits.lessonId, lessonId))
       .orderBy(asc(schema.studyUnits.orderIndex));
+  }
+
+  // OPTIMIZED: Batch fetch units for multiple lessons
+  async getUnitsByLessonIds(lessonIds: number[]): Promise<any[]> {
+    if (lessonIds.length === 0) return [];
+    return db.select().from(schema.studyUnits)
+      .where(inArray(schema.studyUnits.lessonId, lessonIds))
+      .orderBy(asc(schema.studyUnits.lessonId), asc(schema.studyUnits.orderIndex));
   }
 
   // OPTIMIZED: Batch fetch units for multiple lessons in one query (avoids N+1)

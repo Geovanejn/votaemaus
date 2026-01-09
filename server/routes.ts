@@ -1947,23 +1947,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get a specific lesson with units
+  // OPTIMIZED: Get a specific lesson with units - parallel queries
   app.get("/api/study/lessons/:lessonId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Não autenticado" });
       }
       const lessonId = parseInt(req.params.lessonId);
-      const lesson = await storage.getLessonById(lessonId);
+      
+      // Parallel fetch: lesson, units, and progress
+      const [lesson, units, progress] = await Promise.all([
+        storage.getLessonById(lessonId),
+        storage.getUnitsByLessonId(lessonId),
+        storage.getUserLessonProgress(req.user.id, lessonId)
+      ]);
+      
       if (!lesson) {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
-      const units = await storage.getUnitsByLessonId(lessonId);
+      
       const unitsWithParsedContent = units.map((unit: any) => ({
         ...unit,
         content: typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content
       }));
-      const progress = await storage.getUserLessonProgress(req.user.id, lessonId);
+      
       res.json({ ...lesson, units: unitsWithParsedContent, progress });
     } catch (error) {
       console.error("Get lesson error:", error);
@@ -2412,17 +2419,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const leaderboard = leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : [];
       const missions = missionsResult.status === 'fulfilled' ? missionsResult.value : [];
 
-      // Get lessons with progress for each week in parallel (bulk operation)
+      // OPTIMIZED: Use batch query instead of N individual queries
       let weeksWithLessons: any[] = [];
       if (weeks.length > 0) {
-        const lessonPromises = weeks.map(async (week: any) => {
-          const lessons = await storage.getLessonsWithProgress(userId, week.id);
-          return { week, lessons };
-        });
-        const lessonResults = await Promise.allSettled(lessonPromises);
-        weeksWithLessons = lessonResults
-          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-          .map(r => r.value);
+        const weekIds = weeks.map((w: any) => w.id);
+        weeksWithLessons = await storage.getWeeksWithLessonsBulkOptimized(userId, weekIds);
       }
 
       res.json({
@@ -2743,14 +2744,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== CRYSTAL AND STREAK FREEZE ENDPOINTS ====================
 
+  // OPTIMIZED: Get crystals - parallel queries
   app.get("/api/study/crystals", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Não autenticado" });
       }
       
-      const balance = await storage.getCrystalBalance(req.user.id);
-      const profile = await storage.getStudyProfile(req.user.id);
+      // Parallel fetch: balance and profile
+      const [balance, profile] = await Promise.all([
+        storage.getCrystalBalance(req.user.id),
+        storage.getStudyProfile(req.user.id)
+      ]);
       
       res.json({ 
         balance,
@@ -2849,7 +2854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get practice exercises from completed lessons
+  // OPTIMIZED: Get practice exercises from completed lessons - batch query instead of N+1
   app.get("/api/study/practice-exercises", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -2859,27 +2864,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all completed lessons for this user
       const completedLessons = await storage.getCompletedLessonsWithExercises(req.user.id);
       
-      // Collect all exercise units from completed lessons
-      const exercises: any[] = [];
-      
-      for (const lesson of completedLessons) {
-        const units = await storage.getUnitsByLessonId(lesson.id);
-        
-        for (const unit of units) {
-          if (unit.stage === "responda" && 
-              ["multiple_choice", "true_false", "fill_blank"].includes(unit.type)) {
-            const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
-            exercises.push({
-              id: unit.id,
-              type: unit.type,
-              stage: unit.stage,
-              content,
-              lessonId: lesson.id,
-              lessonTitle: lesson.title
-            });
-          }
-        }
+      if (completedLessons.length === 0) {
+        return res.json({ exercises: [] });
       }
+      
+      // Create lesson lookup map for O(1) access
+      const lessonMap = new Map(completedLessons.map(l => [l.id, l]));
+      const lessonIds = completedLessons.map(l => l.id);
+      
+      // Batch fetch all units at once (single query instead of N queries)
+      const allUnits = await storage.getUnitsByLessonIds(lessonIds);
+      
+      // Filter and build exercises
+      const exercises = allUnits
+        .filter(unit => 
+          unit.stage === "responda" && 
+          ["multiple_choice", "true_false", "fill_blank"].includes(unit.type)
+        )
+        .map(unit => {
+          const lesson = lessonMap.get(unit.lessonId);
+          const content = typeof unit.content === 'string' ? JSON.parse(unit.content) : unit.content;
+          return {
+            id: unit.id,
+            type: unit.type,
+            stage: unit.stage,
+            content,
+            lessonId: unit.lessonId,
+            lessonTitle: lesson?.title || ''
+          };
+        });
       
       res.json({ exercises });
     } catch (error) {
@@ -6010,7 +6023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Obter desafio final da temporada
+  // OPTIMIZED: Obter desafio final da temporada - parallel queries
   app.get("/api/study/seasons/:id/final-challenge", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const seasonId = parseInt(req.params.id);
@@ -6018,18 +6031,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
 
-      const season = await storage.getSeasonById(seasonId);
+      // Parallel fetch: season, progress, and challenge
+      const [season, progress, challenge] = await Promise.all([
+        storage.getSeasonById(seasonId),
+        storage.getUserSeasonProgress(req.user!.id, seasonId),
+        storage.getSeasonFinalChallenge(seasonId)
+      ]);
+
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
-      const progress = await storage.getUserSeasonProgress(req.user!.id, seasonId);
       const lessonsCompleted = progress?.lessonsCompleted || 0;
       if (lessonsCompleted < season.totalLessons) {
         return res.status(403).json({ message: "Complete todas as lições antes de acessar o desafio final" });
       }
 
-      const challenge = await storage.getSeasonFinalChallenge(seasonId);
       if (!challenge || !challenge.isActive) {
         return res.status(404).json({ message: "Desafio final não disponível" });
       }

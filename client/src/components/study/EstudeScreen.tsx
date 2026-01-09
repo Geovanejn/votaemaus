@@ -29,7 +29,7 @@ export function EstudeScreen({
   initialIndex = 0
 }: EstudeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const { fontSize, increaseFontSize, speak, isSpeaking } = useAccessibility();
+  const { fontSize, increaseFontSize, speak, isSpeaking, canSpeak } = useAccessibility();
   
   // Filter out any verse section from the sections passed to slides 1+
   // Slide 0: Verse
@@ -75,6 +75,27 @@ export function EstudeScreen({
         <Card className="border-0 shadow-sm rounded-[20px] bg-white dark:bg-zinc-900 p-5 mb-10">
           {currentIndex === 0 ? (
             <div className="flex-1 flex flex-col justify-center items-center py-6">
+              <div className="w-full flex justify-end mb-2">
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" data-testid="button-font-size-verse">
+                    <Type className="h-4 w-4 text-zinc-500" />
+                  </Button>
+                  {canSpeak && (
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={handleSpeak} 
+                      className={cn(
+                        "h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors",
+                        isSpeaking && "bg-blue-100 dark:bg-blue-900/40 text-blue-600 shadow-inner"
+                      )}
+                      data-testid="button-speak-verse"
+                    >
+                      <Volume2 className={cn("h-4 w-4 text-zinc-500", isSpeaking && "text-blue-600")} />
+                    </Button>
+                  )}
+                </div>
+              </div>
               <div className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-[20px] border border-blue-100 dark:border-blue-800/30 shadow-sm text-center">
                 <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center mx-auto mb-3">
                   <BookOpen className="h-5 w-5" />
@@ -100,20 +121,23 @@ export function EstudeScreen({
                   <span className="text-[#2563eb] text-[9px] font-black uppercase tracking-widest">Estude</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                  <Button size="icon" variant="ghost" onClick={() => increaseFontSize()} className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" data-testid="button-font-size">
                     <Type className="h-4 w-4 text-zinc-500" />
                   </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={handleSpeak} 
-                    className={cn(
-                      "h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors",
-                      isSpeaking && "bg-blue-100 dark:bg-blue-900/40 text-blue-600 shadow-inner"
-                    )}
-                  >
-                    <Volume2 className={cn("h-4 w-4 text-zinc-500", isSpeaking && "text-blue-600")} />
-                  </Button>
+                  {canSpeak && (
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={handleSpeak} 
+                      className={cn(
+                        "h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors",
+                        isSpeaking && "bg-blue-100 dark:bg-blue-900/40 text-blue-600 shadow-inner"
+                      )}
+                      data-testid="button-speak"
+                    >
+                      <Volume2 className={cn("h-4 w-4 text-zinc-500", isSpeaking && "text-blue-600")} />
+                    </Button>
+                  )}
                 </div>
               </div>
               <h3 className="text-[17px] font-bold text-[#2D3142] dark:text-zinc-100 mb-3">{currentSection.title || "Tópico de Estudo"}</h3>

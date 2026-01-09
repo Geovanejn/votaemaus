@@ -1,16 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
+
+const hasSpeechSynthesis = typeof window !== "undefined" && "speechSynthesis" in window;
 
 export function useAccessibility() {
   const [fontSize, setFontSize] = useState(16);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  
+  const canSpeak = useMemo(() => hasSpeechSynthesis, []);
 
   const increaseFontSize = () => {
     setFontSize((prev) => (prev >= 24 ? 16 : prev + 2));
   };
 
   const speak = (text: string) => {
-    if ("speechSynthesis" in window) {
+    if (hasSpeechSynthesis) {
       if (window.speechSynthesis.speaking && isSpeaking) {
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
@@ -35,5 +39,6 @@ export function useAccessibility() {
     increaseFontSize,
     speak,
     isSpeaking,
+    canSpeak,
   };
 }

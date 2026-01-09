@@ -324,10 +324,34 @@ function getRandomBibleVerse(): { verse: string; reference: string } {
   return BIBLE_VERSES[index];
 }
 
+function getTodayDateKey(): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year')?.value || '2025';
+  const month = parts.find(p => p.type === 'month')?.value || '01';
+  const day = parts.find(p => p.type === 'day')?.value || '01';
+  return `${year}-${month}-${day}`;
+}
+
 async function sendDailyVerse(): Promise<void> {
   console.log('[Daily Verse Scheduler] Sending daily verse notification...');
   
   try {
+    // Check if already sent today (survives server restarts)
+    const todayKey = getTodayDateKey();
+    const reminderKey = `daily_verse:${todayKey}`;
+    const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+    
+    if (alreadySent) {
+      console.log(`[Daily Verse Scheduler] Already sent today (${todayKey}), skipping`);
+      return;
+    }
+    
     let verse: string;
     let reference: string;
     
@@ -351,6 +375,10 @@ async function sendDailyVerse(): Promise<void> {
     }
     
     await notifyDailyVerse(verse, reference);
+    
+    // Mark as sent in database (survives server restarts)
+    await storage.markSchedulerReminderSent(reminderKey, 'daily_verse');
+    
     console.log(`[Daily Verse Scheduler] Sent: ${reference}`);
   } catch (error) {
     console.error('[Daily Verse Scheduler] Error sending daily verse:', error);

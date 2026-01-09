@@ -6962,6 +6962,7 @@ export class DatabaseStorage implements IStorage {
       featuredOrder: schema.shopItems.featuredOrder,
       allowInstallments: schema.shopItems.allowInstallments,
       maxInstallments: schema.shopItems.maxInstallments,
+      isPublished: schema.shopItems.isPublished,
       createdAt: schema.shopItems.createdAt,
       updatedAt: schema.shopItems.updatedAt,
     }).from(schema.shopItems);

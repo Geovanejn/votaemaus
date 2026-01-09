@@ -8149,7 +8149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === ROTAS MEMBROS - EVENTOS ESPECIAIS ===
 
-  // OPTIMIZED: Listar eventos ativos para membros - batch confirmation counts
+  // OPTIMIZED: Listar eventos ativos para membros - batch confirmation and participant counts
   app.get("/api/study/events", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getActiveStudyEvents();
@@ -8158,13 +8158,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      // OPTIMIZED: Batch fetch all confirmation counts in one query
+      // OPTIMIZED: Batch fetch all confirmation counts and participant counts in parallel (single query each)
       const eventIds = events.map(e => e.id);
-      const countsMap = await storage.getEventConfirmationCountsByEventIds(eventIds);
+      const [countsMap, participantCountsMap] = await Promise.all([
+        storage.getEventConfirmationCountsByEventIds(eventIds),
+        storage.getEventParticipantsCountBatch(eventIds)
+      ]);
       
       const eventsWithCounts = events.map(event => ({
         ...event,
         confirmationCount: countsMap.get(event.id) || { members: 0, visitors: 0 },
+        participantsCount: participantCountsMap.get(event.id) || 0,
       }));
       
       res.json(eventsWithCounts);
@@ -8423,6 +8427,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Complete event lesson error:", error);
       res.status(500).json({ message: "Erro ao completar licao" });
+    }
+  });
+
+  // Registrar participação em evento (chamado quando membro clica em "Estude")
+  app.post("/api/study/events/:eventId/participate", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "ID invalido" });
+      }
+      
+      const userId = req.user!.id;
+      
+      // Register participation (idempotent - won't duplicate if already registered)
+      const success = await storage.registerEventParticipant(userId, eventId);
+      
+      if (!success) {
+        console.error(`[Event Participate] Failed to register user ${userId} in event ${eventId}`);
+        return res.status(500).json({ success: false, message: "Falha ao registrar participação" });
+      }
+      
+      console.log(`[Event Participate] User ${userId} registered as participant in event ${eventId}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Register event participation error:", error);
+      res.status(500).json({ success: false, message: "Erro ao registrar participação" });
     }
   });
 

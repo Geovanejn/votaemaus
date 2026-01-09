@@ -470,6 +470,12 @@ export interface IStorage {
   getUserEventLessonProgress(userId: number, lessonId: number): Promise<UserEventProgress | null>;
   saveUserEventProgress(data: InsertUserEventProgress): Promise<UserEventProgress>;
   
+  // Study Event Participants Methods (for participation counter)
+  registerEventParticipant(userId: number, eventId: number): Promise<boolean>;
+  getEventParticipantsCount(eventId: number): Promise<number>;
+  getEventParticipantsCountBatch(eventIds: number[]): Promise<Map<number, number>>;
+  hasUserParticipatedInEvent(userId: number, eventId: number): Promise<boolean>;
+  
   // Collectible Cards Methods
   getAllCollectibleCards(): Promise<CollectibleCard[]>;
   getActiveCollectibleCards(): Promise<CollectibleCard[]>;
@@ -6504,6 +6510,53 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return progress;
+  }
+
+  // ==================== STUDY EVENT PARTICIPANTS METHODS ====================
+
+  async registerEventParticipant(userId: number, eventId: number): Promise<boolean> {
+    try {
+      await db.insert(schema.studyEventParticipants)
+        .values({ userId, eventId })
+        .onConflictDoNothing();
+      return true;
+    } catch (error) {
+      console.error(`[Storage] Failed to register event participant:`, error);
+      return false;
+    }
+  }
+
+  async getEventParticipantsCount(eventId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.studyEventParticipants)
+      .where(eq(schema.studyEventParticipants.eventId, eventId));
+    return result[0]?.count || 0;
+  }
+
+  // OPTIMIZED: Batch fetch participant counts for multiple events in one query
+  async getEventParticipantsCountBatch(eventIds: number[]): Promise<Map<number, number>> {
+    if (eventIds.length === 0) return new Map();
+    
+    const result = await db.select({
+      eventId: schema.studyEventParticipants.eventId,
+      count: sql<number>`count(*)`,
+    })
+      .from(schema.studyEventParticipants)
+      .where(inArray(schema.studyEventParticipants.eventId, eventIds))
+      .groupBy(schema.studyEventParticipants.eventId);
+    
+    return new Map(result.map(r => [r.eventId, r.count]));
+  }
+
+  async hasUserParticipatedInEvent(userId: number, eventId: number): Promise<boolean> {
+    const [participant] = await db.select()
+      .from(schema.studyEventParticipants)
+      .where(and(
+        eq(schema.studyEventParticipants.userId, userId),
+        eq(schema.studyEventParticipants.eventId, eventId)
+      ))
+      .limit(1);
+    return !!participant;
   }
 
   // ==================== COLLECTIBLE CARDS METHODS ====================

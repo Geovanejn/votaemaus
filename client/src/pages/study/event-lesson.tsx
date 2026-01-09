@@ -415,6 +415,15 @@ function EventLessonContent({ eventId, dayNumber }: { eventId: number; dayNumber
     }
   }, [correctAnswers, eventId, dayNumber, progressCleared]);
 
+  // Register participation when entering "estude" stage (fires once per event)
+  useEffect(() => {
+    if (currentStage === "estude" && user?.id) {
+      apiRequest("POST", `/api/study/events/${eventId}/participate`, {}).catch(() => {
+        // Silently fail - participation tracking is not critical
+      });
+    }
+  }, [eventId, currentStage, user?.id]);
+
   // Clear saved progress when lesson is completed
   const clearLessonProgress = () => {
     localStorage.removeItem(`lesson_${eventId}_${dayNumber}_stage`);

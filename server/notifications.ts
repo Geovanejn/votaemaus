@@ -664,9 +664,20 @@ export async function notifyNewStudyEvent(
 ): Promise<void> {
   console.log(`[Notifications] notifyNewStudyEvent STARTED for event ${eventId}: "${title}"`);
   
+  // Check if event is available now or still in the future
+  const now = new Date();
+  const eventStartDate = new Date(startDate);
+  const isEventAvailable = now >= eventStartDate;
+  
+  // Different notification text based on availability
+  const notificationTitle = "Novo Evento Especial!";
+  const notificationBody = isEventAvailable
+    ? `Evento "${title}" está disponível no DeoGlory. Participe agora!`
+    : `Evento "${title}" acaba de ser publicado, veja quando fica disponível e participe`;
+  
   const payload: NotificationPayload = {
-    title: "Novo Evento Especial!",
-    body: `"${title}" está disponível no DeoGlory. Participe agora!`,
+    title: notificationTitle,
+    body: notificationBody,
     url: `/study/events/${eventId}`,
     tag: `study-event-${eventId}`,
     icon: "/logo.png",

@@ -153,6 +153,7 @@ interface StudyEvent {
   xpMultiplier: number | null;
   durationLabel?: string | null;
   confirmationCount?: { members: number; visitors: number }; // Confirmation counts
+  participantsCount?: number; // Number of members who started studying
 }
 
 function getMonthLabel(startDate: string): string {
@@ -497,6 +498,12 @@ function EventCard({ event }: { event: StudyEvent }) {
                   </div>
                 );
               })()}
+              {isActive && event.participantsCount !== undefined && event.participantsCount > 0 && daysUntilEnd > 1 && (
+                <div className="absolute bottom-2 right-2 z-20 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20 shadow-lg pointer-events-none flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-white" />
+                  <span className="text-sm text-white font-medium">{event.participantsCount} {event.participantsCount === 1 ? 'participante' : 'participantes'}</span>
+                </div>
+              )}
             </>
           )}
         </div>

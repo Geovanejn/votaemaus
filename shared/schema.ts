@@ -1982,6 +1982,25 @@ export const insertUserEventProgressSchema = createInsertSchema(userEventProgres
 export type InsertUserEventProgress = z.infer<typeof insertUserEventProgressSchema>;
 export type UserEventProgress = typeof userEventProgress.$inferSelect;
 
+// Participantes de eventos (para contador de participantes)
+// Registrado quando membro clica em sessão "Estude" pela primeira vez em qualquer lição do evento
+export const studyEventParticipants = pgTable("study_event_participants", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  eventId: integer("event_id").notNull().references(() => studyEvents.id, { onDelete: "cascade" }),
+  participatedAt: timestamp("participated_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueParticipant: unique().on(table.userId, table.eventId),
+}));
+
+export const insertStudyEventParticipantSchema = createInsertSchema(studyEventParticipants).omit({
+  id: true,
+  participatedAt: true,
+});
+
+export type InsertStudyEventParticipant = z.infer<typeof insertStudyEventParticipantSchema>;
+export type StudyEventParticipant = typeof studyEventParticipants.$inferSelect;
+
 // Cards conquistados pelos usuários
 export const userCards = pgTable("user_cards", {
   id: serial("id").primaryKey(),

@@ -373,7 +373,8 @@ export default function LojaAdmin() {
 
   const publishMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("POST", `/api/admin/shop/items/${id}/publish`);
+      const res = await apiRequest("POST", `/api/admin/shop/items/${id}/publish`);
+      return res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });

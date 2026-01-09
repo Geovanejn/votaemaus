@@ -492,6 +492,7 @@ export interface IStorage {
   // Shop Categories Methods
   getShopCategories(): Promise<ShopCategory[]>;
   getShopCategoriesLight(): Promise<Omit<ShopCategory, 'imageData'>[]>;
+  getShopCategoriesWithImageCheck(ids: number[]): Promise<Map<number, boolean>>;
   getShopCategoryById(id: number): Promise<ShopCategory | null>;
   getShopCategoryImageData(id: number): Promise<string | null>;
   createShopCategory(data: InsertShopCategory): Promise<ShopCategory>;
@@ -6647,6 +6648,17 @@ export class DatabaseStorage implements IStorage {
     })
       .from(schema.shopCategories)
       .orderBy(asc(schema.shopCategories.name));
+  }
+
+  async getShopCategoriesWithImageCheck(ids: number[]): Promise<Map<number, boolean>> {
+    if (ids.length === 0) return new Map();
+    const results = await db.select({
+      id: schema.shopCategories.id,
+      hasImage: sql<boolean>`${schema.shopCategories.imageData} IS NOT NULL`,
+    })
+      .from(schema.shopCategories)
+      .where(inArray(schema.shopCategories.id, ids));
+    return new Map(results.map(r => [r.id, r.hasImage]));
   }
 
   async getShopCategoryImageData(id: number): Promise<string | null> {

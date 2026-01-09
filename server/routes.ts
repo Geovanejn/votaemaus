@@ -8498,12 +8498,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar categorias da loja (admin) - retorna URLs para imagens
   app.get("/api/admin/shop/categories", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const categories = await storage.getShopCategories();
+      // Use Light version to avoid loading Base64 from database
+      const categories = await storage.getShopCategoriesLight();
+      const categoryIds = categories.map(c => c.id);
+      // Check which categories have images
+      const hasImageMap = await storage.getShopCategoriesWithImageCheck(categoryIds);
+      
       // Return URLs instead of base64 for display
       const categoriesWithUrls = categories.map(cat => ({
         ...cat,
-        imageData: cat.imageData ? `/api/shop/images/category/${cat.id}` : null,
-        hasImage: !!cat.imageData,
+        imageData: hasImageMap.get(cat.id) ? `/api/shop/images/category/${cat.id}` : null,
+        hasImage: hasImageMap.get(cat.id) || false,
       }));
       res.json(categoriesWithUrls);
     } catch (error) {
@@ -9646,11 +9651,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar categorias da loja (publico) - OTIMIZADO sem Base64
   app.get("/api/shop/categories", async (req, res) => {
     try {
-      const categories = await storage.getShopCategories();
+      // Use Light version to avoid loading Base64 from database
+      const categories = await storage.getShopCategoriesLight();
+      const categoryIds = categories.map(c => c.id);
+      // Check which categories have images
+      const hasImageMap = await storage.getShopCategoriesWithImageCheck(categoryIds);
+      
       // Return URLs instead of base64 for lazy loading
       const categoriesWithUrls = categories.map(cat => ({
         ...cat,
-        imageData: cat.imageData ? `/api/shop/images/category/${cat.id}` : null,
+        imageData: hasImageMap.get(cat.id) ? `/api/shop/images/category/${cat.id}` : null,
       }));
       res.json(categoriesWithUrls);
     } catch (error) {

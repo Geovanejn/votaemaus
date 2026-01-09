@@ -1591,13 +1591,13 @@ export default function LojaAdmin() {
                       {genderImages.length > 0 ? (
                         <div className="grid grid-cols-5 gap-2">
                           {genderImages.map((img, index) => (
-                            <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden bg-muted">
+                            <div key={img.id} className="relative aspect-square rounded-md overflow-hidden bg-muted">
                               <img 
                                 src={img.imageData} 
                                 alt="" 
                                 className="w-full h-full object-cover"
                               />
-                              <div className="absolute top-1 left-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute top-1 left-1 flex flex-col gap-0.5">
                                 <Button
                                   size="icon"
                                   variant="secondary"
@@ -1622,7 +1622,7 @@ export default function LojaAdmin() {
                               <Button
                                 size="icon"
                                 variant="destructive"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-1 right-1 h-6 w-6"
                                 onClick={() => deleteImageMutation.mutate({ 
                                   itemId: managingItem.id, 
                                   imageId: img.id 
@@ -1631,7 +1631,7 @@ export default function LojaAdmin() {
                               >
                                 <X className="h-3 w-3" />
                               </Button>
-                              <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                                 {index + 1}
                               </div>
                             </div>

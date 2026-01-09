@@ -103,6 +103,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<Omit<User, 'id'>>): Promise<User | undefined>;
   getAllMembers(excludeAdmins?: boolean): Promise<User[]>;
+  getMembersBasicInfo(): Promise<{ id: number; fullName: string; email: string }[]>;
   getAllUsers(): Promise<User[]>;
   deleteMember(id: number): Promise<void>;
   
@@ -504,6 +505,7 @@ export interface IStorage {
   getShopItemsByIds(ids: number[]): Promise<ShopItem[]>;
   getShopItemsByIdsLight(ids: number[]): Promise<Pick<ShopItem, 'id' | 'name' | 'price'>[]>;
   getShopItemBannerImage(id: number): Promise<string | null>;
+  getShopItemsWithBannerCheck(ids: number[]): Promise<{ id: number; hasBanner: boolean }[]>;
   getShopItemImageData(imageId: number): Promise<string | null>;
   createShopItem(data: InsertShopItem): Promise<ShopItem>;
   updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
@@ -598,6 +600,19 @@ export class DatabaseStorage implements IStorage {
     }
     return db.select().from(schema.users)
       .where(eq(schema.users.isMember, true))
+      .orderBy(asc(schema.users.fullName));
+  }
+
+  async getMembersBasicInfo(): Promise<{ id: number; fullName: string; email: string }[]> {
+    return db.select({
+      id: schema.users.id,
+      fullName: schema.users.fullName,
+      email: schema.users.email,
+    }).from(schema.users)
+      .where(and(
+        eq(schema.users.isMember, true),
+        eq(schema.users.isAdmin, false)
+      ))
       .orderBy(asc(schema.users.fullName));
   }
 
@@ -6741,6 +6756,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.shopItems.id, id))
       .limit(1);
     return item?.bannerImageData || null;
+  }
+
+  async getShopItemsWithBannerCheck(ids: number[]): Promise<{ id: number; hasBanner: boolean }[]> {
+    if (ids.length === 0) return [];
+    const items = await db.select({
+      id: schema.shopItems.id,
+      hasBanner: sql<boolean>`${schema.shopItems.bannerImageData} IS NOT NULL`,
+    })
+      .from(schema.shopItems)
+      .where(inArray(schema.shopItems.id, ids));
+    return items;
   }
 
   async getShopItemImageData(imageId: number): Promise<string | null> {

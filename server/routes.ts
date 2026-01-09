@@ -4584,19 +4584,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (anonSubId) {
         try {
           const subId = parseInt(anonSubId);
-          console.log(`[Push] Attempting database link: anonSubId=${subId} -> userId=${userId}`);
           
           // Verify if the anonymous subscription exists before linking
           const allAnon = await storage.getAllAnonymousPushSubscriptions();
           const targetAnon = allAnon.find(a => a.id === subId);
           
           if (targetAnon) {
-            console.log(`[Push] Found anonymous sub ${subId}, linking...`);
+            console.log(`[Push] Found anonymous sub ${subId}, linking to user ${userId}...`);
             await storage.linkAnonymousSubscriptionToUser(subId, userId);
             console.log(`[Push] Database link successful for user ${userId}`);
-          } else {
-            console.warn(`[Push] Anonymous sub ${subId} not found in database`);
           }
+          // Note: If not found, it was already linked during login - this is expected, not an error
           
           if (syncOnly) {
             return res.json({ message: "Subscription linked successfully" });
@@ -8584,11 +8582,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens da loja (admin - todos os itens) - otimizado com batch queries
+  // Listar itens da loja (admin - todos os itens) - otimizado com versões Light (sem Base64)
   app.get("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const [items, categories] = await Promise.all([
-        storage.getShopItems(false),
+        storage.getShopItemsLight(false),
         storage.getShopCategories()
       ]);
       
@@ -8600,16 +8598,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemIds = items.map(item => item.id);
       
       const [imagesMap, sizesMap] = await Promise.all([
-        storage.getShopItemImagesByItemIds(itemIds),
+        storage.getShopItemImagesByItemIdsLight(itemIds),
         storage.getShopItemSizesByItemIds(itemIds)
       ]);
       
-      const itemsWithDetails = items.map(item => ({
-        ...item,
-        category: categoryMap.get(item.categoryId) || null,
-        images: imagesMap.get(item.id) || [],
-        sizes: sizesMap.get(item.id) || [],
-      }));
+      // Get items that have banner images
+      const bannerCheck = await storage.getShopItemsWithBannerCheck(itemIds);
+      const hasBannerMap = new Map(bannerCheck.map(b => [b.id, b.hasBanner]));
+      
+      const itemsWithDetails = items.map(item => {
+        const hasBanner = hasBannerMap.get(item.id) || false;
+        return {
+          ...item,
+          category: categoryMap.get(item.categoryId) || null,
+          images: (imagesMap.get(item.id) || []).map(img => ({
+            ...img,
+            imageUrl: `/api/shop/images/item/${img.id}`,
+            imageData: `/api/shop/images/item/${img.id}`, // Maintain backward compatibility
+          })),
+          sizes: sizesMap.get(item.id) || [],
+          hasBanner,
+          bannerImageData: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
+          bannerImageUrl: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
+        };
+      });
       
       res.json(itemsWithDetails);
     } catch (error) {
@@ -9208,17 +9220,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Buscar membros para criação manual de pedidos (marketing)
+  // Buscar membros para criação manual de pedidos (marketing) - otimizado com projeção
   app.get("/api/admin/shop/members", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const members = await storage.getAllMembers();
-      const simplifiedMembers = members
-        .filter(user => user.role !== "admin" && user.isAdmin !== true)
-        .map(user => ({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-        }));
+      const simplifiedMembers = await storage.getMembersBasicInfo();
       res.json(simplifiedMembers);
     } catch (error) {
       console.error("Get shop members error:", error);
@@ -9522,7 +9527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - MEMBER ====================
 
-  // Proxy de imagens - serve imagens sob demanda (lazy loading)
+  // Proxy de imagens - serve imagens sob demanda com compressão WebP (lazy loading)
   app.get("/api/shop/images/banner/:itemId", async (req, res) => {
     try {
       const itemId = parseInt(req.params.itemId);
@@ -9540,16 +9545,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
       
-      const mimeType = matches[1];
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
+      // Compress with Sharp - banner images get 1024px width for HD quality
+      const optimizedBuffer = await sharp(buffer)
+        .resize({ width: 1024, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      
       res.set({
-        'Content-Type': mimeType,
-        'Cache-Control': 'public, max-age=86400',
-        'Content-Length': buffer.length,
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Length': optimizedBuffer.length,
       });
-      res.send(buffer);
+      res.send(optimizedBuffer);
     } catch (error) {
       console.error("Get banner image error:", error);
       res.status(500).json({ message: "Erro ao buscar imagem" });
@@ -9573,23 +9583,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
       
-      const mimeType = matches[1];
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
+      // Compress with Sharp - gallery images get 500px width for thumbnails
+      const optimizedBuffer = await sharp(buffer)
+        .resize({ width: 500, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      
       res.set({
-        'Content-Type': mimeType,
-        'Cache-Control': 'public, max-age=86400',
-        'Content-Length': buffer.length,
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Length': optimizedBuffer.length,
       });
-      res.send(buffer);
+      res.send(optimizedBuffer);
     } catch (error) {
       console.error("Get item image error:", error);
       res.status(500).json({ message: "Erro ao buscar imagem" });
     }
   });
 
-  // Proxy de imagem de categoria (lazy loading)
+  // Proxy de imagem de categoria (lazy loading) com compressão WebP
   app.get("/api/shop/images/category/:categoryId", async (req, res) => {
     try {
       const categoryId = parseInt(req.params.categoryId);
@@ -9607,16 +9622,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
       
-      const mimeType = matches[1];
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
+      // Compress with Sharp - category images get 400px for grid display
+      const optimizedBuffer = await sharp(buffer)
+        .resize({ width: 400, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      
       res.set({
-        'Content-Type': mimeType,
-        'Cache-Control': 'public, max-age=86400',
-        'Content-Length': buffer.length,
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Length': optimizedBuffer.length,
       });
-      res.send(buffer);
+      res.send(optimizedBuffer);
     } catch (error) {
       console.error("Get category image error:", error);
       res.status(500).json({ message: "Erro ao buscar imagem" });

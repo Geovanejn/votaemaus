@@ -972,12 +972,12 @@ export async function sendNewStudyEventEmail(
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">DeoGlory - Estudos Especiais</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento Disponivel!</h1>
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento Disponível!</h1>
           </div>
           <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Ola, <strong>${formattedName}</strong>!</p>
+            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo evento especial de estudos esta disponivel no DeoGlory:
+              Um novo evento especial de estudos está disponível no DeoGlory:
             </p>
             
             <!-- Event Card with Image -->
@@ -991,25 +991,25 @@ export async function sendNewStudyEventEmail(
               ${eventDescription ? `<p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">${eventDescription}</p>` : ''}
               <div style="background-color: #EDE9FE; padding: 10px; border-radius: 6px; margin-top: 10px;">
                 <p style="margin: 0; color: #7C3AED; font-size: 13px;">
-                  <strong>Periodo:</strong> ${formatDateBR(startDate)} ate ${formatDateBR(endDate)}
+                  <strong>Período:</strong> ${formatDateBR(startDate)} até ${formatDateBR(endDate)}
                 </p>
               </div>
             </div>
             
             <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Participe e ganhe XP em dobro + cards colecionaveis exclusivos!
+              Participe e ganhe XP em dobro + cards colecionáveis exclusivos!
             </p>
             
             <!-- CTA Button -->
             <div style="text-align: center; margin-top: 25px;">
               <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Participar do Evento
+                Participe!
               </a>
             </div>
           </div>
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaus - DeoGlory</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
           </div>
         </div>
       `,
@@ -1333,7 +1333,7 @@ export async function sendSeasonRankingEmail(
     const emailPayload: any = {
       from: "UMP Emaús <suporte@emausvota.com.br>",
       to: recipientEmail,
-      subject: `Parabens! Voce ficou em ${position} lugar na revista ${seasonTitle}!`,
+      subject: `Parabéns! Você ficou em ${position}º lugar na revista ${seasonTitle}!`,
       html: `
         <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, ${positionInfo.color} 0%, ${positionInfo.color}CC 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -1346,16 +1346,16 @@ export async function sendSeasonRankingEmail(
           
           <div style="padding: 30px;">
             <p style="font-size: 18px; color: #333; text-align: center;">
-              Parabens, <strong>${formattedName}</strong>!
+              Parabéns, <strong>${formattedName}</strong>!
             </p>
             
             <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center;">
-              Voce concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position} lugar</strong>
+              Você concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position}º lugar</strong>
               com um total de <strong style="color: #FFA500;">${totalXp.toLocaleString('pt-BR')} XP</strong>!
             </p>
             
             <div style="background-color: #f8f9fa; border-radius: 12px; padding: 20px; margin: 25px 0;">
-              <h3 style="margin: 0 0 15px 0; color: #333; text-align: center; font-size: 16px;">Podio Final</h3>
+              <h3 style="margin: 0 0 15px 0; color: #333; text-align: center; font-size: 16px;">Pódio Final</h3>
               ${podiumHtml}
             </div>
             
@@ -1366,7 +1366,7 @@ export async function sendSeasonRankingEmail(
           
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaus - DeoGlory</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
           </div>
         </div>
       `,
@@ -1421,8 +1421,8 @@ export async function sendNewProductEmail(
           <!-- Header with Shop Logo -->
           <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             ${shopLogoBuffer ? `<img src="cid:shop-logo" style="max-width: 60px; height: auto; margin-bottom: 10px;" />` : ''}
-            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">Loja UMP Emaus</h1>
-            <p style="color: #ffffff; opacity: 0.9; margin: 5px 0 0 0; font-size: 14px;">Novidade disponivel!</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">Loja UMP Emaús</h1>
+            <p style="color: #ffffff; opacity: 0.9; margin: 5px 0 0 0; font-size: 14px;">Novidade disponível!</p>
           </div>
 
           <!-- Product Image -->
@@ -1435,11 +1435,11 @@ export async function sendNewProductEmail(
           <!-- Main Content -->
           <div style="padding: 30px;">
             <p style="font-size: 16px; color: #333; margin-bottom: 15px;">
-              Ola, <strong>${formattedName}</strong>!
+              Olá, <strong>${formattedName}</strong>!
             </p>
             
             <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Temos uma novidade na nossa loja que voce vai adorar!
+              Temos uma novidade na nossa loja que você vai adorar!
             </p>
 
             <!-- Product Card -->
@@ -1464,7 +1464,7 @@ export async function sendNewProductEmail(
           <!-- Footer -->
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
             ${shopLogoBuffer ? `<img src="cid:footer-logo" style="max-width: 50px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">Loja UMP Emaus</p>
+            <p style="color: #888; font-size: 12px; margin: 0;">Loja UMP Emaús</p>
             <p style="color: #aaa; font-size: 11px; margin: 5px 0 0 0;">
               <a href="${baseUrl}/loja" style="color: #FFA500; text-decoration: none;">Visite nossa loja</a>
             </p>

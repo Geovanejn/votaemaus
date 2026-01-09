@@ -1181,9 +1181,7 @@ export async function sendNewProductEmail(
           </p>
           
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">
-            <a href="${baseUrl}/loja" style="color: #FFA500; text-decoration: none;">Loja UMP Emaús</a>
-          </p>
+          ${getEmailFooter()}
         </div>
       `,
     };

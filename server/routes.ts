@@ -1891,6 +1891,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get streak recovery status for modal display
+  app.get("/api/study/streak/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      const status = await storage.getStreakRecoveryStatus(req.user.id);
+      if (!status) {
+        return res.status(404).json({ message: "Perfil de estudo não encontrado" });
+      }
+      res.json(status);
+    } catch (error) {
+      console.error("Get streak recovery status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status da ofensiva" });
+    }
+  });
+
+  // Recover streak using crystals
+  app.post("/api/study/streak/recover", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      const result = await storage.recoverStreakWithCrystals(req.user.id);
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      console.log(`[Streak Recovery] User ${req.user.id} recovered streak: ${result.crystalsSpent} crystals spent`);
+      res.json(result);
+    } catch (error) {
+      console.error("Recover streak error:", error);
+      res.status(500).json({ success: false, message: "Erro ao recuperar ofensiva" });
+    }
+  });
+
+  // Mark streak as lost (called from modal when user acknowledges loss)
+  app.post("/api/study/streak/acknowledge-loss", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+      await storage.resetStreak(req.user.id);
+      console.log(`[Streak] User ${req.user.id} acknowledged streak loss`);
+      res.json({ success: true, message: "Ofensiva resetada" });
+    } catch (error) {
+      console.error("Acknowledge streak loss error:", error);
+      res.status(500).json({ success: false, message: "Erro ao resetar ofensiva" });
+    }
+  });
+
   // Get all published study weeks
   app.get("/api/study/weeks", authenticateToken, async (req: AuthRequest, res) => {
     try {

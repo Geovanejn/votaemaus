@@ -9,6 +9,7 @@ import {
   NewUnitCard,
   ContinueLearning
 } from "@/components/study";
+import { StreakRecoveryModal } from "@/components/study/StreakRecoveryModal";
 import type { StageType, QuestionResult, UnitData, LessonData, LessonStage, ContinueLearningData, PracticeStatus } from "@/components/study";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Flame, Star, Heart, Loader2, ListChecks, Home, LayoutGrid } from "lucide-react";
@@ -688,6 +689,7 @@ export default function StudyHomePage() {
   return (
     <div className="min-h-screen bg-background pb-20" data-testid="study-home">
       <CelebrationComponent />
+      <StreakRecoveryModal />
       
       <UserProfileHeader 
         userName={user.fullName} 

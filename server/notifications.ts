@@ -308,7 +308,7 @@ export async function notifyNewDevotional(
   console.log(`[Notifications] notifyNewDevotional STARTED for devotional ${devotionalId}: "${title}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Devocional",
+    title: "📖 Novo Devocional",
     body: `"${title}" foi publicado. Leia agora!`,
     url: `/devocionais/${devotionalId}`,
     tag: `devotional-${devotionalId}`,
@@ -372,7 +372,7 @@ export async function notifyNewEvent(
   console.log(`[Notifications] notifyNewEvent STARTED for event ${eventId}: "${title}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Evento",
+    title: "📅 Novo Evento",
     body: `"${title}" foi adicionado a agenda. Confira!`,
     url: `/agenda/${eventId}`,
     tag: `event-${eventId}`,
@@ -435,7 +435,7 @@ export async function notifyNewPrayerRequest(
   console.log(`[Notifications] notifyNewPrayerRequest STARTED for request ${requestId} from "${requesterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Pedido de Oração",
+    title: "🙏 Novo Pedido de Oração",
     body: `${requesterName} enviou um pedido de oração.`,
     url: "/oracao",
     tag: `prayer-${requestId}`,
@@ -479,7 +479,7 @@ export async function notifyPrayerApproved(
   console.log(`[Notifications] notifyPrayerApproved STARTED for user ${userId}, request ${prayerRequestId}`);
   
   const payload: NotificationPayload = {
-    title: "Pedido de Oração Aprovado",
+    title: "✅ Pedido de Oração Aprovado",
     body: "Seu pedido de oração foi aprovado e está no Mural da Oração!",
     url: "/oracao",
     tag: `prayer-approved-${prayerRequestId}`,
@@ -506,7 +506,7 @@ export async function notifyPrayerLiked(
   console.log(`[Notifications] notifyPrayerLiked STARTED for user ${userId} from "${likerName}"`);
   
   const payload: NotificationPayload = {
-    title: "Curtida no seu Pedido",
+    title: "❤️ Curtida no seu Pedido",
     body: `${likerName} curtiu seu pedido de oração`,
     url: "/oracao",
     tag: `prayer-like-${Date.now()}`,
@@ -534,7 +534,7 @@ export async function notifyDevotionalComment(
   console.log(`[Notifications] notifyDevotionalComment for user ${authorUserId} from "${commenterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Comentário",
+    title: "💬 Novo Comentário",
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: `/devocionais/${devotionalId}`,
     tag: `devotional-comment-${Date.now()}`,
@@ -562,7 +562,7 @@ export async function notifyNewComment(
   console.log(`[Notifications] notifyNewComment STARTED for devotional ${devotionalId} from "${commenterName}"`);
   
   const payload: NotificationPayload = {
-    title: "Novo Comentário",
+    title: "💬 Novo Comentário",
     body: `${commenterName} comentou em "${devotionalTitle}"`,
     url: "/admin/espiritualidade/comentarios",
     tag: `comment-${devotionalId}`,
@@ -602,7 +602,7 @@ export async function notifySeasonPublished(
   console.log(`[Notifications] notifySeasonPublished STARTED for season ${seasonId}: "${seasonTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Nova Revista DeoGlory!",
+    title: "📚 Nova Revista DeoGlory!",
     body: `"${seasonTitle}" está disponível. Comece a estudar agora!`,
     url: "/study",
     tag: `season-${seasonId}`,
@@ -670,7 +670,7 @@ export async function notifyNewStudyEvent(
   const isEventAvailable = now >= eventStartDate;
   
   // Different notification text based on availability
-  const notificationTitle = "Novo Evento Especial!";
+  const notificationTitle = "🎯 Novo Evento Especial!";
   const notificationBody = isEventAvailable
     ? `Evento "${title}" está disponível no DeoGlory. Participe agora!`
     : `Evento "${title}" acaba de ser publicado, veja quando fica disponível e participe`;
@@ -749,7 +749,7 @@ export async function notifyLessonAvailable(
   console.log(`[Notifications] notifyLessonAvailable STARTED for user ${userId}: "${lessonTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Nova Lição Disponível!",
+    title: "📝 Nova Lição Disponível!",
     body: `"${lessonTitle}" de "${seasonTitle}" está liberada.`,
     url: "/study",
     tag: "lesson-available",
@@ -775,7 +775,7 @@ export async function notifyNewLessonToAll(
   console.log(`[Notifications] notifyNewLessonToAll STARTED: "${lessonTitle}" from "${seasonTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Nova Unidade de Estudo!",
+    title: "📝 Nova Unidade de Estudo!",
     body: `"${lessonTitle}" de "${seasonTitle}" foi liberada. Estude agora!`,
     url: "/study",
     tag: "new-lesson",
@@ -823,16 +823,16 @@ export async function notifyStreakReminder(
   
   switch (type) {
     case "warning":
-      title = "DeoGlory - Ofensiva em Risco!";
+      title = "🔥 Ofensiva em Risco!";
       break;
     case "freeze_used":
-      title = "DeoGlory - Congelamento Usado!";
+      title = "❄️ Congelamento Usado!";
       break;
     case "lost":
-      title = "DeoGlory - Ofensiva Perdida";
+      title = "💔 Ofensiva Perdida";
       break;
     default:
-      title = "DeoGlory - Mantenha sua Ofensiva!";
+      title = "🔥 Mantenha sua Ofensiva!";
   }
 
   const payload: NotificationPayload = {
@@ -873,7 +873,7 @@ export async function notifyInactivity(
   if (!message) return;
 
   const payload: NotificationPayload = {
-    title: "DeoGlory sente sua falta!",
+    title: "😢 DeoGlory sente sua falta!",
     body: message,
     url: "/study",
     tag: "inactivity-reminder",
@@ -901,7 +901,7 @@ export async function notifyAchievement(
   console.log(`[Notifications] notifyAchievement STARTED for user ${userId}: "${achievementName}"`);
   
   const payload: NotificationPayload = {
-    title: "Nova Conquista Desbloqueada!",
+    title: "🏆 Nova Conquista Desbloqueada!",
     body: `${achievementName}: ${achievementDescription}`,
     url: "/study/achievements",
     tag: `achievement-${achievementName}`,
@@ -928,7 +928,7 @@ export async function notifyAchievementLiked(
   console.log(`[Notifications] notifyAchievementLiked STARTED for user ${userId} from "${likerName}"`);
   
   const payload: NotificationPayload = {
-    title: "Conquista Curtida!",
+    title: "⭐ Conquista Curtida!",
     body: `${likerName} curtiu sua conquista "${achievementName}"`,
     url: "/study/profile",
     tag: `achievement-like-${Date.now()}`,
@@ -956,7 +956,7 @@ export async function notifyEncouragement(
   console.log(`[Notifications] notifyEncouragement STARTED for user ${userId} from "${senderName}"`);
   
   const payload: NotificationPayload = {
-    title: "Mensagem de Incentivo",
+    title: "💪 Mensagem de Incentivo",
     body: `${senderName}: ${messageText}`,
     url: "/study",
     tag: `encouragement-${encouragementId}`,
@@ -982,7 +982,7 @@ export async function notifyEventStartingSoon(
   console.log(`[Notifications] notifyEventStartingSoon STARTED for event ${eventId}: "${eventTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Evento Começa Amanhã!",
+    title: "⏰ Evento Começa Amanhã!",
     body: `"${eventTitle}" começa em 24 horas. Prepare-se!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-starting-${eventId}`,
@@ -1001,7 +1001,7 @@ export async function notifyEventDeadline(
   console.log(`[Notifications] notifyEventDeadline STARTED for event ${eventId}: "${eventTitle}" - ${timeRemaining}`);
   
   const payload: NotificationPayload = {
-    title: "Evento Terminando!",
+    title: "⚡ Evento Terminando!",
     body: `"${eventTitle}" termina em ${timeRemaining}. Não perca!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-deadline-${eventId}`,
@@ -1019,7 +1019,7 @@ export async function notifyEventEnded(
   console.log(`[Notifications] notifyEventEnded STARTED for event ${eventId}: "${eventTitle}"`);
   
   const payload: NotificationPayload = {
-    title: "Evento Encerrado",
+    title: "🏁 Evento Encerrado",
     body: `"${eventTitle}" chegou ao fim. Veja suas conquistas!`,
     url: `/study/eventos/${eventId}`,
     tag: `event-ended-${eventId}`,
@@ -1032,7 +1032,7 @@ export async function notifyEventEnded(
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {
   const payload: NotificationPayload = {
-    title: "Versículo do Dia",
+    title: "✨ Versículo do Dia",
     body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
     url: "/study",
     tag: "daily-verse",
@@ -1076,7 +1076,7 @@ export async function notifyMarketingEventReminder(
   
   const timeInfo = eventTime ? ` às ${eventTime}` : '';
   const payload: NotificationPayload = {
-    title: `Lembrete: ${eventTitle}`,
+    title: `🔔 Lembrete: ${eventTitle}`,
     body: `O evento acontece em ${humanizedTime}${timeInfo}. Não esqueça!`,
     url: `/agenda/${eventId}`,
     tag: `marketing-event-reminder-${eventId}-${timeLabel}`,

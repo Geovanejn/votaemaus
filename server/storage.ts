@@ -303,6 +303,21 @@ export interface IStorage {
   checkAndAwardStreakMilestone(userId: number, currentStreak: number): Promise<{ milestone: any; crystalsAwarded: number; xpAwarded: number } | null>;
   getUsersNeedingStreakCheck(): Promise<{ userId: number; currentStreak: number; lastLessonCompletedAt: Date | null; streakWarningDay: number; streakFreezesAvailable: number }[]>;
   resetStreak(userId: number): Promise<void>;
+  getStreakRecoveryStatus(userId: number): Promise<{
+    needsRecovery: boolean;
+    streakAtRisk: number;
+    daysMissed: number;
+    crystalCost: number;
+    crystalsAvailable: number;
+    canRecover: boolean;
+    streakLost: boolean;
+  } | null>;
+  recoverStreakWithCrystals(userId: number): Promise<{
+    success: boolean;
+    message: string;
+    crystalsSpent?: number;
+    newCrystalBalance?: number;
+  }>;
   updateStreakWarningDay(userId: number, day: number): Promise<void>;
   incrementStreak(userId: number): Promise<{ newStreak: number; isNewRecord: boolean }>;
   checkAndAwardLessonCrystals(userId: number, isPerfect: boolean): Promise<{ crystalsAwarded: number; rewards: Array<{ type: string; amount: number; description: string }> }>;
@@ -5743,6 +5758,136 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(schema.studyProfiles.userId, userId));
+  }
+
+  // Get streak recovery status for modal display
+  async getStreakRecoveryStatus(userId: number): Promise<{
+    needsRecovery: boolean;
+    streakAtRisk: number;
+    daysMissed: number;
+    crystalCost: number;
+    crystalsAvailable: number;
+    canRecover: boolean;
+    streakLost: boolean;
+  } | null> {
+    const profile = await this.getStudyProfile(userId);
+    if (!profile) return null;
+
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+
+    // If studied today, no recovery needed
+    if (profile.lastActivityDate === today) {
+      return {
+        needsRecovery: false,
+        streakAtRisk: profile.currentStreak,
+        daysMissed: 0,
+        crystalCost: 0,
+        crystalsAvailable: profile.crystals,
+        canRecover: false,
+        streakLost: false,
+      };
+    }
+
+    // Calculate days missed
+    let daysMissed = 0;
+    if (profile.lastActivityDate) {
+      const lastDate = new Date(profile.lastActivityDate + 'T12:00:00');
+      const todayDate = new Date(today + 'T12:00:00');
+      daysMissed = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    } else if (profile.currentStreak > 0) {
+      daysMissed = 1;
+    }
+
+    // Progressive crystal costs: 1 day = 10, 2 = 25, 3 = 45, 4 = 70, 5+ = unrecoverable
+    const crystalCosts: Record<number, number> = {
+      1: 10,
+      2: 25,
+      3: 45,
+      4: 70,
+    };
+
+    const crystalCost = crystalCosts[daysMissed] || 0;
+    const canRecover = daysMissed > 0 && daysMissed <= 4 && profile.crystals >= crystalCost && profile.currentStreak > 0;
+    const streakLost = daysMissed >= 5 && profile.currentStreak > 0;
+
+    return {
+      needsRecovery: daysMissed > 0 && profile.currentStreak > 0,
+      streakAtRisk: profile.currentStreak,
+      daysMissed,
+      crystalCost,
+      crystalsAvailable: profile.crystals,
+      canRecover,
+      streakLost,
+    };
+  }
+
+  // Recover streak using crystals
+  async recoverStreakWithCrystals(userId: number): Promise<{
+    success: boolean;
+    message: string;
+    crystalsSpent?: number;
+    newCrystalBalance?: number;
+  }> {
+    const status = await this.getStreakRecoveryStatus(userId);
+    if (!status) {
+      return { success: false, message: "Perfil de estudo não encontrado" };
+    }
+
+    if (!status.needsRecovery) {
+      return { success: false, message: "Ofensiva não precisa de recuperação" };
+    }
+
+    if (status.streakLost) {
+      return { success: false, message: "Ofensiva perdida - passou de 5 dias" };
+    }
+
+    if (!status.canRecover) {
+      return { success: false, message: "Cristais insuficientes para recuperar" };
+    }
+
+    // Spend crystals
+    const spent = await this.spendCrystals(
+      userId, 
+      status.crystalCost, 
+      "streak_recovery", 
+      `Recuperação de ofensiva de ${status.streakAtRisk} dias (${status.daysMissed} dia(s) perdido(s))`
+    );
+
+    if (!spent) {
+      return { success: false, message: "Falha ao gastar cristais" };
+    }
+
+    // Update lastActivityDate to yesterday so the streak continues
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(yesterday);
+
+    await db.update(schema.studyProfiles)
+      .set({ 
+        lastActivityDate: yesterdayStr,
+        streakWarningDay: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+
+    const newBalance = await this.getCrystalBalance(userId);
+
+    return { 
+      success: true, 
+      message: "Ofensiva recuperada com sucesso!",
+      crystalsSpent: status.crystalCost,
+      newCrystalBalance: newBalance
+    };
   }
 
   async updateStreakWarningDay(userId: number, day: number): Promise<void> {

@@ -22,20 +22,9 @@ async function downloadImageAsBuffer(imageUrl: string): Promise<Buffer | null> {
   }
 }
 
-// Read logo for CID embedding (Content-ID attachment method for Gmail compatibility)
-// This method is more reliable than base64 data URIs which Gmail blocks
-let logoBuffer: Buffer | null = null;
-let logoPath = "";
-try {
-  logoPath = path.join(process.cwd(), "client", "public", "logo.png");
-  logoBuffer = fs.readFileSync(logoPath);
-  const sizeKB = Math.round(logoBuffer.length / 1024);
-  console.log(`✓ Logo loaded successfully for CID email embedding from: ${logoPath}`);
-  console.log(`  Logo size: ${sizeKB}KB (will be attached via CID for Gmail compatibility)`);
-} catch (error) {
-  console.error("Error loading logo for email:", error);
-  console.error("Attempted path:", path.join(process.cwd(), "client", "public", "logo.png"));
-}
+// URL pública do logo - não usar CID para evitar que apareça como anexo
+const LOGO_PUBLIC_URL = "https://umpemaus.com.br/logo.png";
+console.log(`✓ Logo configured with public URL: ${LOGO_PUBLIC_URL}`);
 
 export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
   if (!resend) {
@@ -118,16 +107,6 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
         </div>
       `,
     };
-
-    if (logoBuffer) {
-      emailPayload.attachments = [
-        {
-          content: logoBuffer.toString('base64'),
-          filename: 'logo.png',
-          contentId: 'logo-emaus',
-        },
-      ];
-    }
 
     await resend.emails.send(emailPayload);
     return true;
@@ -311,17 +290,6 @@ export async function sendCongratulationsEmail(
       `,
     };
 
-    // Add logo as CID attachment for Gmail compatibility (not blocked like base64)
-    if (logoBuffer) {
-      emailPayload.attachments = [
-        {
-          content: logoBuffer.toString('base64'),
-          filename: 'logo.png',
-          contentId: 'logo-emaus',
-        },
-      ];
-    }
-
     await resend.emails.send(emailPayload);
     
     console.log(`✓ Congratulations email sent to ${formattedName} (${candidateEmail}) for ${positionName}`);
@@ -391,15 +359,6 @@ export async function sendAuditPDFEmail(
       ],
     };
 
-    // Add logo as CID attachment
-    if (logoBuffer) {
-      emailPayload.attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      });
-    }
-
     await resend.emails.send(emailPayload);
     
     console.log(`✓ Audit PDF email sent to ${formattedName} (${presidentEmail}) for ${electionName}`);
@@ -466,14 +425,6 @@ export async function sendNewPrayerRequestEmail(
       `,
     };
 
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
-
     await resend.emails.send(emailPayload);
     console.log(`✓ Prayer request notification email sent to ${recipientEmail}`);
     return true;
@@ -536,14 +487,6 @@ export async function sendNewCommentEmail(
         </div>
       `,
     };
-
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
 
     await resend.emails.send(emailPayload);
     console.log(`✓ Comment notification email sent to ${recipientEmail}`);
@@ -624,14 +567,6 @@ export async function sendNewDevotionalEmail(
         content: devotionalImageBuffer.toString('base64'),
         filename: 'devotional.jpg',
         contentId: 'devotional-image',
-      });
-    }
-    
-    if (logoBuffer) {
-      attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
       });
     }
     
@@ -724,14 +659,6 @@ export async function sendNewEventEmail(
       });
     }
     
-    if (logoBuffer) {
-      attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      });
-    }
-    
     if (attachments.length > 0) {
       emailPayload.attachments = attachments;
     }
@@ -813,14 +740,6 @@ export async function sendSeasonPublishedEmail(
         content: coverImageBuffer.toString('base64'),
         filename: 'cover.jpg',
         contentId: 'cover-image',
-      });
-    }
-    
-    if (logoBuffer) {
-      attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
       });
     }
     
@@ -925,14 +844,6 @@ export async function sendNewStudyEventEmail(
       });
     }
     
-    if (logoBuffer) {
-      attachments.push({
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      });
-    }
-    
     if (attachments.length > 0) {
       emailPayload.attachments = attachments;
     }
@@ -1010,14 +921,6 @@ export async function sendSeasonEndedEmail(
       `,
     };
 
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
-
     await resend.emails.send(emailPayload);
     return true;
   } catch (error) {
@@ -1079,14 +982,6 @@ export async function sendBonusEventEmail(
       `,
     };
 
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
-
     await resend.emails.send(emailPayload);
     return true;
   } catch (error) {
@@ -1145,14 +1040,6 @@ export async function sendLessonAvailableEmail(
         </div>
       `,
     };
-
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
 
     await resend.emails.send(emailPayload);
     return true;
@@ -1233,14 +1120,6 @@ export async function sendSeasonRankingEmail(
       `,
     };
 
-    if (logoBuffer) {
-      emailPayload.attachments = [{
-        content: logoBuffer.toString('base64'),
-        filename: 'logo.png',
-        contentId: 'logo-emaus',
-      }];
-    }
-
     await resend.emails.send(emailPayload);
     return true;
   } catch (error) {
@@ -1249,8 +1128,6 @@ export async function sendSeasonRankingEmail(
   }
 }
 
-// Shop logo buffer (same as main logo for now)
-let shopLogoBuffer: Buffer | null = logoBuffer;
 
 export async function sendNewProductEmail(
   recipientEmail: string,
@@ -1317,21 +1194,8 @@ export async function sendNewProductEmail(
       `,
     };
 
-    // Build attachments array
+    // Build attachments array for product image only
     const attachments: any[] = [];
-
-    if (shopLogoBuffer) {
-      attachments.push({
-        content: shopLogoBuffer.toString('base64'),
-        filename: 'shop-logo.png',
-        contentId: 'shop-logo',
-      });
-      attachments.push({
-        content: shopLogoBuffer.toString('base64'),
-        filename: 'footer-logo.png',
-        contentId: 'footer-logo',
-      });
-    }
 
     if (productImageBase64) {
       // Remove data URL prefix if present

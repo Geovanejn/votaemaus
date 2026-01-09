@@ -6,9 +6,9 @@ import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 
-// Rate limiting helper for Resend (2 requests per second max)
+// Rate limiting helper for Resend (10 requests per second approved)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const EMAIL_RATE_LIMIT_DELAY = 600; // 600ms between emails to stay under 2 req/s
+const EMAIL_RATE_LIMIT_DELAY = 110; // 110ms between emails (10 req/s limit approved by Resend)
 
 const BIBLE_VERSES = [
   { verse: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reference: "João 3:16 (ARA)" },

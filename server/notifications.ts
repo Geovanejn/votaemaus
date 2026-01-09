@@ -17,7 +17,7 @@ const VAPID_SUBJECT = "mailto:contato@umpemaus.com.br";
 
 // Rate limiting helper for Resend (2 requests per second max)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const EMAIL_RATE_LIMIT_DELAY = 600; // 600ms between emails to stay under 2 req/s
+const EMAIL_RATE_LIMIT_DELAY = 110; // 110ms between emails (10 req/s limit approved by Resend)
 
 let webPushConfigured = false;
 

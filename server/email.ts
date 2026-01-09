@@ -80,58 +80,41 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
     const emailPayload: any = {
       from: "UMP Emaús <contato@umpemaus.com.br>",
       to: email,
-      subject: "🔒 Recuperação de Senha - UMP Emaús",
+      subject: "Recuperação de Senha - UMP Emaús",
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: bold;">Recuperação de Senha</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Você solicitou a recuperação de senha para sua conta no sistema UMP Emaús.
+          </p>
+
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Use o código abaixo para recuperar sua senha:
+          </p>
+
+          <div style="background-color: #f5f5f5; padding: 25px; margin: 20px 0; text-align: center; border-radius: 6px;">
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 13px; font-weight: bold; text-transform: uppercase;">Código de Recuperação</p>
+            <h1 style="color: #FFA500; margin: 0; font-size: 32px; letter-spacing: 8px; font-weight: bold;">${code}</h1>
           </div>
 
-          <!-- Main Content -->
-          <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Olá!</p>
-            
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Você solicitou a recuperação de senha para sua conta no sistema UMP Emaús.
-            </p>
+          <p style="font-size: 14px; color: #856404; margin: 20px 0;">
+            <strong>Atenção:</strong> Este código expira em <strong>15 minutos</strong>.
+          </p>
 
-            <p style="font-size: 15px; color: #555; line-height: 1.6; margin-top: 20px;">
-              Use o código abaixo para recuperar sua senha:
-            </p>
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 20px 0;">
+            Após inserir o código, você será solicitado a criar uma nova senha para sua conta.
+          </p>
 
-            <!-- Code Card -->
-            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 25px; margin: 25px 0; border-radius: 8px; text-align: center;">
-              <p style="margin: 0 0 10px 0; color: #666; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Código de Recuperação</p>
-              <h1 style="color: #FFA500; margin: 0; font-size: 32px; letter-spacing: 8px; font-weight: bold;">${code}</h1>
-            </div>
-
-            <div style="background-color: #FFF3CD; border-left: 4px solid #FFA500; padding: 15px; margin: 25px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #856404; font-size: 14px;">
-                <strong>⏱️ Atenção:</strong> Este código expira em <strong>15 minutos</strong>.
-              </p>
-            </div>
-
-            <p style="font-size: 15px; color: #555; line-height: 1.6; margin-top: 25px;">
-              Após inserir o código, você será solicitado a criar uma nova senha para sua conta.
-            </p>
-
-            <p style="font-size: 14px; color: #888; line-height: 1.6; margin-top: 25px; padding-top: 25px; border-top: 1px solid #eee;">
-              <strong>Não solicitou esta recuperação?</strong><br>
-              Se você não solicitou a recuperação de senha, ignore este email. Sua senha atual permanecerá inalterada.
-            </p>
-          </div>
-
-          <!-- Footer -->
-          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
-            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús
-            </p>
-            <p style="color: #aaa; font-size: 12px; margin: 0;">
-              Este é um email automático, por favor não responda.
-            </p>
-          </div>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          
+          <p style="font-size: 14px; color: #888; line-height: 1.6; margin: 0;">
+            <strong>Não solicitou esta recuperação?</strong><br>
+            Se você não solicitou a recuperação de senha, ignore este email.
+          </p>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -287,63 +270,43 @@ export async function sendCongratulationsEmail(
   const formattedName = getFirstAndLastName(candidateName);
   
   try {
-    // Prepare email payload with CID-embedded logo (Gmail-compatible method)
     const emailPayload: any = {
       from: "UMP Emaús <contato@umpemaus.com.br>",
       to: candidateEmail,
       subject: `Parabéns! Você foi eleito(a) - Emaús Vota`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Parabéns!</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 18px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            É com grande alegria que informamos que você foi eleito(a) para o cargo de:
+          </p>
+
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 20px; margin: 20px 0;">
+            <h2 style="color: #333; margin: 0 0 10px 0; font-size: 22px; font-weight: bold;">${positionName}</h2>
+            <p style="margin: 0; color: #666; font-size: 14px;">Eleito no <strong>${scrutinyLabel} escrutínio</strong></p>
           </div>
 
-          <!-- Main Content -->
-          <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${formattedName}</strong>!</p>
-            
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
-              É com grande alegria que informamos que você foi eleito(a) para o cargo de:
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 20px 0;">
+            Este é um momento de celebração e também de responsabilidade. Confiamos em você para servir com dedicação e amor ao próximo.
+          </p>
+
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 6px; text-align: center;">
+            <p style="font-style: italic; color: #555; font-size: 15px; line-height: 1.8; margin: 0;">
+              "Porque de Deus somos cooperadores;<br/>
+              lavoura de Deus, edifício de Deus sois vós."
             </p>
-
-            <!-- Position Card -->
-            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 20px; margin: 25px 0; border-radius: 8px;">
-              <h2 style="color: #FFA500; margin: 0 0 10px 0; font-size: 24px; font-weight: bold;">${positionName}</h2>
-              <p style="margin: 0; color: #666; font-size: 14px;">Eleito no <strong>${scrutinyLabel} escrutínio</strong></p>
-            </div>
-
-            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
-              Este é um momento de celebração e também de responsabilidade. Confiamos em você para servir com dedicação e amor ao próximo.
-            </p>
-
-            <!-- Bible Verse -->
-            <div style="background-color: #f8f9fa; padding: 25px; margin: 30px 0; border-radius: 8px; text-align: center; border: 2px solid #e9ecef;">
-              <p style="font-style: italic; color: #555; font-size: 16px; line-height: 1.8; margin: 0;">
-                "Porque de Deus somos cooperadores;<br/>
-                lavoura de Deus, edifício de Deus sois vós."
-              </p>
-              <p style="color: #FFA500; font-weight: bold; margin: 15px 0 0 0; font-size: 14px;">
-                1 Coríntios 3:9
-              </p>
-            </div>
-
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
-              Que Deus abençoe seu ministério e guie seus passos nesta nova jornada!
+            <p style="color: #FFA500; font-weight: bold; margin: 15px 0 0 0; font-size: 14px;">
+              1 Coríntios 3:9
             </p>
           </div>
 
-          <!-- Footer -->
-          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
-            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús
-            </p>
-            <p style="color: #aaa; font-size: 12px; margin: 0;">
-              Este é um email automático, por favor não responda.
-            </p>
-          </div>
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 20px 0;">
+            Que Deus abençoe seu ministério e guie seus passos nesta nova jornada!
+          </p>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -388,53 +351,35 @@ export async function sendAuditPDFEmail(
       to: presidentEmail,
       subject: `Relatório de Auditoria - ${electionName}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Emaús Vota</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Relatório de Auditoria</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 18px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Segue anexo o relatório de auditoria completo da eleição:
+          </p>
+
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 20px; margin: 20px 0;">
+            <h2 style="color: #333; margin: 0 0 10px 0; font-size: 18px; font-weight: bold;">${electionName}</h2>
+            <p style="margin: 0; color: #666; font-size: 14px;">Relatório completo de auditoria em PDF</p>
           </div>
 
-          <!-- Main Content -->
-          <div style="padding: 40px 30px; background-color: #ffffff;">
-            <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Olá, <strong>${formattedName}</strong>!</p>
-            
-            <p style="font-size: 16px; color: #555; line-height: 1.6;">
-              Segue anexo o relatório de auditoria completo da eleição:
-            </p>
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 20px 0;">
+            Este relatório contém todos os detalhes da eleição, incluindo:
+          </p>
 
-            <!-- Election Card -->
-            <div style="background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%); border-left: 4px solid #FFA500; padding: 20px; margin: 25px 0; border-radius: 8px;">
-              <h2 style="color: #FFA500; margin: 0 0 10px 0; font-size: 20px; font-weight: bold;">${electionName}</h2>
-              <p style="margin: 0; color: #666; font-size: 14px;">Relatório completo de auditoria em PDF</p>
-            </div>
+          <ul style="color: #555; font-size: 15px; line-height: 1.8; margin: 0 0 20px 0;">
+            <li>Lista completa de presença</li>
+            <li>Resultados por cargo e escrutínio</li>
+            <li>Linha do tempo de votação</li>
+            <li>Informações de auditoria</li>
+          </ul>
 
-            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
-              Este relatório contém todos os detalhes da eleição, incluindo:
-            </p>
-
-            <ul style="color: #555; font-size: 15px; line-height: 1.8;">
-              <li>Lista completa de presença</li>
-              <li>Resultados por cargo e escrutínio</li>
-              <li>Linha do tempo de votação</li>
-              <li>Informações de auditoria</li>
-            </ul>
-
-            <p style="font-size: 16px; color: #555; line-height: 1.6; margin-top: 25px;">
-              Guarde este documento para seus registros oficiais.
-            </p>
-          </div>
-
-          <!-- Footer -->
-          <div style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 100px; height: auto; margin-bottom: 15px;" />` : ''}
-            <p style="color: #888; font-size: 14px; margin: 0 0 15px 0;">
-              UMP Emaús
-            </p>
-            <p style="color: #aaa; font-size: 12px; margin: 0;">
-              Este é um email automático, por favor não responda.
-            </p>
-          </div>
+          <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 20px 0;">
+            Guarde este documento para seus registros oficiais.
+          </p>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
       attachments: [
@@ -492,36 +437,31 @@ export async function sendNewPrayerRequestEmail(
       to: recipientEmail,
       subject: `Novo Pedido de Oração - ${category}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Mural de Oração</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Pedido de Oração</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um irmão da nossa comunidade enviou um pedido de oração. Vamos interceder juntos?
+          </p>
+          
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 14px;">Categoria: ${category}</p>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${requesterName}</p>
+            <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
           </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um irmão da nossa comunidade enviou um pedido de oração. Vamos interceder juntos?
-            </p>
-            <div style="background-color: #F3E8FF; border-radius: 8px; padding: 20px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0; color: #6B46C1; font-weight: bold; font-size: 14px;">Categoria: ${category}</p>
-              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${requesterName}</p>
-              <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
-            </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Ore por este pedido e visite o Mural de Oração para ver mais pedidos.
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/oracao" style="display: inline-block; background: linear-gradient(135deg, #6B46C1 0%, #805AD5 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Ver Mural de Oração
-              </a>
-            </div>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Ore por este pedido e visite o Mural de Oração para ver mais pedidos.
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/oracao" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Ver Mural de Oração
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Mural de Oração</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -568,36 +508,31 @@ export async function sendNewCommentEmail(
       to: recipientEmail,
       subject: `Novo Comentário em "${devotionalTitle}"`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Comentário</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um novo comentário foi recebido no devocional e precisa de aprovação:
+          </p>
+          
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 14px;">Devocional: ${devotionalTitle}</p>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${commenterName}</p>
+            <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
           </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo comentário foi recebido no devocional e precisa de aprovação:
-            </p>
-            <div style="background-color: #EFF6FF; border-radius: 8px; padding: 20px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0; color: #2563EB; font-weight: bold; font-size: 14px;">Devocional: ${devotionalTitle}</p>
-              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">De: ${commenterName}</p>
-              <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${preview}"</p>
-            </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Acesse o painel de espiritualidade para revisar e aprovar o comentário.
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/admin/espiritualidade" style="display: inline-block; background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar Painel
-              </a>
-            </div>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Acesse o painel para revisar e aprovar o comentário.
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/admin/espiritualidade" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Acessar Painel
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -651,42 +586,33 @@ export async function sendNewDevotionalEmail(
       to: recipientEmail,
       subject: `Novo Devocional: ${devotionalTitle}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Espiritualidade</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Devocional</h1>
-          </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo devocional foi publicado para você:
-            </p>
-            
-            <!-- Devotional Card with Image -->
-            <div style="background-color: #ECFDF5; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              ${devotionalImageBuffer ? `
-                <div style="margin-bottom: 15px;">
-                  <img src="cid:devotional-image" alt="${devotionalTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
-                </div>
-              ` : ''}
-              <p style="margin: 0; color: #059669; font-weight: bold; font-size: 20px;">${devotionalTitle}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um novo devocional foi publicado para você:
+          </p>
+          
+          ${devotionalImageBuffer ? `
+            <div style="margin: 20px 0; text-align: center;">
+              <img src="cid:devotional-image" alt="${devotionalTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
             </div>
-            
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Aproveite este momento de reflexão e crescimento espiritual!
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${devotionalUrl}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Ler Devocional
-              </a>
-            </div>
+          ` : ''}
+          
+          <p style="margin: 0 0 20px 0; color: #333; font-weight: bold; font-size: 18px; text-align: center;">${devotionalTitle}</p>
+          
+          <p style="font-size: 15px; color: #555; margin: 0 0 25px 0; text-align: center;">
+            Aproveite este momento de reflexão e crescimento espiritual!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${devotionalUrl}" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Ler Devocional
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Espiritualidade</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -755,44 +681,35 @@ export async function sendNewEventEmail(
       to: recipientEmail,
       subject: `Novo Evento: ${eventTitle}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: Marketing</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento</h1>
-          </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo evento foi adicionado à agenda:
-            </p>
-            
-            <!-- Event Card with Image -->
-            <div style="background-color: #FEF2F2; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              ${eventImageBuffer ? `
-                <div style="margin-bottom: 15px;">
-                  <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
-                </div>
-              ` : ''}
-              <p style="margin: 0 0 10px 0; color: #DC2626; font-weight: bold; font-size: 20px;">${eventTitle}</p>
-              <p style="margin: 0 0 5px 0; color: #666; font-size: 14px;">Data: ${eventDate}</p>
-              ${eventLocation ? `<p style="margin: 0; color: #666; font-size: 14px;">Local: ${eventLocation}</p>` : ''}
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um novo evento foi adicionado à agenda:
+          </p>
+          
+          ${eventImageBuffer ? `
+            <div style="margin: 20px 0; text-align: center;">
+              <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
             </div>
-            
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Marque na sua agenda e participe!
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Ver Evento
-              </a>
-            </div>
+          ` : ''}
+          
+          <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 18px; text-align: center;">${eventTitle}</p>
+          <p style="margin: 0 0 5px 0; color: #666; font-size: 14px; text-align: center;">Data: ${eventDate}</p>
+          ${eventLocation ? `<p style="margin: 0 0 20px 0; color: #666; font-size: 14px; text-align: center;">Local: ${eventLocation}</p>` : ''}
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Marque na sua agenda e participe!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${eventUrl}" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Ver Evento
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - Marketing</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -857,43 +774,34 @@ export async function sendSeasonPublishedEmail(
       to: recipientEmail,
       subject: `Nova Revista DeoGlory: ${seasonTitle}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Revista Disponível!</h1>
-          </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Uma nova revista de estudos está disponível no DeoGlory:
-            </p>
-            
-            <!-- Magazine Card with Cover -->
-            <div style="background-color: #FFF9E6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              ${coverImageBuffer ? `
-                <div style="margin-bottom: 15px;">
-                  <img src="cid:cover-image" alt="${seasonTitle}" style="max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-                </div>
-              ` : ''}
-              <p style="margin: 0 0 10px 0; color: #FFA500; font-weight: bold; font-size: 20px;">${seasonTitle}</p>
-              ${seasonDescription ? `<p style="margin: 0; color: #666; font-size: 14px;">${seasonDescription}</p>` : ''}
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Uma nova revista de estudos está disponível no DeoGlory:
+          </p>
+          
+          ${coverImageBuffer ? `
+            <div style="margin: 20px 0; text-align: center;">
+              <img src="cid:cover-image" alt="${seasonTitle}" style="max-width: 200px; height: auto; border-radius: 8px;" />
             </div>
-            
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Comece seus estudos agora e ganhe XP!
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar DeoGlory
-              </a>
-            </div>
+          ` : ''}
+          
+          <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 18px; text-align: center;">${seasonTitle}</p>
+          ${seasonDescription ? `<p style="margin: 0 0 20px 0; color: #666; font-size: 14px; text-align: center;">${seasonDescription}</p>` : ''}
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Comece seus estudos agora e ganhe XP!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/study" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Acessar DeoGlory
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -969,48 +877,40 @@ export async function sendNewStudyEventEmail(
       to: recipientEmail,
       subject: `Novo Evento Especial DeoGlory: ${eventTitle}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">DeoGlory - Estudos Especiais</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Novo Evento Disponível!</h1>
-          </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um novo evento especial de estudos está disponível no DeoGlory:
-            </p>
-            
-            <!-- Event Card with Image -->
-            <div style="background-color: #F5F3FF; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              ${eventImageBuffer ? `
-                <div style="margin-bottom: 15px;">
-                  <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-                </div>
-              ` : ''}
-              <p style="margin: 0 0 10px 0; color: #6366f1; font-weight: bold; font-size: 20px;">${eventTitle}</p>
-              ${eventDescription ? `<p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">${eventDescription}</p>` : ''}
-              <div style="background-color: #EDE9FE; padding: 10px; border-radius: 6px; margin-top: 10px;">
-                <p style="margin: 0; color: #7C3AED; font-size: 13px;">
-                  <strong>Período:</strong> ${formatDateBR(startDate)} até ${formatDateBR(endDate)}
-                </p>
-              </div>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um novo evento especial de estudos está disponível no DeoGlory:
+          </p>
+          
+          ${eventImageBuffer ? `
+            <div style="margin: 20px 0; text-align: center;">
+              <img src="cid:event-image" alt="${eventTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
             </div>
-            
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Participe e ganhe XP em dobro + cards colecionáveis exclusivos!
+          ` : ''}
+          
+          <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 18px; text-align: center;">${eventTitle}</p>
+          ${eventDescription ? `<p style="margin: 0 0 15px 0; color: #666; font-size: 14px; text-align: center;">${eventDescription}</p>` : ''}
+          
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #333; font-size: 14px;">
+              <strong>Período:</strong> ${formatDateBR(startDate)} até ${formatDateBR(endDate)}
             </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${eventUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Participe!
-              </a>
-            </div>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Participe e ganhe XP em dobro + cards colecionáveis exclusivos!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${eventUrl}" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Participe!
+            </a>
           </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -1072,51 +972,40 @@ export async function sendSeasonEndedEmail(
       to: recipientEmail,
       subject: `Revista Finalizada: ${seasonTitle} - Seu Relatório`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Revista Finalizada!</h1>
-          </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Parabéns, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              A revista "${seasonTitle}" chegou ao fim. Confira seu desempenho:
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Parabéns, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            A revista "${seasonTitle}" chegou ao fim. Confira seu desempenho:
+          </p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 6px;">
+            <p style="margin: 0 0 15px 0; text-align: center;">
+              <strong style="font-size: 24px; color: #333;">${lessonsCompleted}/${totalLessons}</strong>
+              <span style="color: #666; font-size: 14px; display: block;">Lições Completas</span>
             </p>
-            <div style="background-color: #F5F3FF; border-radius: 8px; padding: 25px; margin: 20px 0;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                <div style="text-align: center; flex: 1;">
-                  <p style="margin: 0; color: #7C3AED; font-size: 28px; font-weight: bold;">${lessonsCompleted}/${totalLessons}</p>
-                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Lições Completas</p>
-                </div>
-                <div style="text-align: center; flex: 1;">
-                  <p style="margin: 0; color: #FFA500; font-size: 28px; font-weight: bold;">${xpEarned}</p>
-                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">XP Ganho</p>
-                </div>
-                <div style="text-align: center; flex: 1;">
-                  <p style="margin: 0; color: #10B981; font-size: 28px; font-weight: bold;">${correctPercentage}%</p>
-                  <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Acertos</p>
-                </div>
-              </div>
-              <div style="background-color: #E9D5FF; height: 8px; border-radius: 4px; margin-top: 15px;">
-                <div style="background-color: #7C3AED; height: 8px; border-radius: 4px; width: ${completionRate}%;"></div>
-              </div>
-              <p style="margin: 10px 0 0 0; text-align: center; color: #7C3AED; font-size: 14px; font-weight: bold;">${completionRate}% Completo</p>
-            </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Continue crescendo na Palavra! Novas revistas virão em breve.
+            <p style="margin: 0 0 15px 0; text-align: center;">
+              <strong style="font-size: 24px; color: #FFA500;">${xpEarned} XP</strong>
+              <span style="color: #666; font-size: 14px; display: block;">XP Ganho</span>
             </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar DeoGlory
-              </a>
-            </div>
+            <p style="margin: 0; text-align: center;">
+              <strong style="font-size: 24px; color: #10B981;">${correctPercentage}%</strong>
+              <span style="color: #666; font-size: 14px; display: block;">Acertos</span>
+            </p>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Continue crescendo na Palavra! Novas revistas virão em breve.
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/study" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Acessar DeoGlory
+            </a>
           </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -1161,36 +1050,31 @@ export async function sendBonusEventEmail(
       to: recipientEmail,
       subject: `Evento Especial DeoGlory: ${eventName}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Evento Especial!</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Um evento especial está acontecendo no DeoGlory:
+          </p>
+          
+          <div style="background-color: #f5f5f5; border-left: 4px solid #FFA500; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; color: #333; font-weight: bold; font-size: 18px;">${eventName}</p>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">${eventDescription}</p>
+            ${bonusXp > 0 ? `<p style="margin: 0; color: #059669; font-weight: bold; font-size: 14px;">Bônus: +${bonusXp} XP</p>` : ''}
           </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Um evento especial está acontecendo no DeoGlory:
-            </p>
-            <div style="background-color: #FFFBEB; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0 0 10px 0; color: #F59E0B; font-weight: bold; font-size: 18px;">${eventName}</p>
-              <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">${eventDescription}</p>
-              ${bonusXp > 0 ? `<p style="margin: 0; color: #059669; font-weight: bold; font-size: 14px;">Bônus: +${bonusXp} XP</p>` : ''}
-            </div>
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Não perca essa oportunidade de ganhar XP extra!
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Acessar DeoGlory
-              </a>
-            </div>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Não perca essa oportunidade de ganhar XP extra!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/study" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Acessar DeoGlory
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -1234,38 +1118,30 @@ export async function sendLessonAvailableEmail(
       to: recipientEmail,
       subject: `Nova Lição: ${lessonTitle} - DeoGlory`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <p style="color: #ffffff; opacity: 0.9; font-size: 12px; margin: 0 0 8px 0;">Módulo: DeoGlory</p>
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Nova Lição Disponível!</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">Olá, <strong>${formattedName}</strong>!</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Uma nova lição foi liberada para você estudar:
+          </p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 6px; text-align: center;">
+            <p style="margin: 0 0 8px 0; color: #333; font-weight: bold; font-size: 18px;">${lessonTitle}</p>
+            <p style="margin: 0; color: #666; font-size: 14px;">Revista: ${seasonTitle}</p>
           </div>
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Olá, <strong>${formattedName}</strong>!</p>
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Uma nova lição foi liberada para você estudar:
-            </p>
-            
-            <!-- Lesson Card -->
-            <div style="background-color: #EFF6FF; border-radius: 8px; padding: 25px; margin: 20px 0; text-align: center;">
-              <p style="margin: 0 0 8px 0; color: #3B82F6; font-weight: bold; font-size: 20px;">${lessonTitle}</p>
-              <p style="margin: 0; color: #666; font-size: 14px;">Revista: ${seasonTitle}</p>
-            </div>
-            
-            <p style="font-size: 15px; color: #555; margin-top: 20px; text-align: center;">
-              Acesse o DeoGlory e continue sua jornada de aprendizado!
-            </p>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${appUrl}/study" style="display: inline-block; background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Estudar Agora
-              </a>
-            </div>
+          
+          <p style="font-size: 15px; color: #555; margin: 20px 0; text-align: center;">
+            Acesse o DeoGlory e continue sua jornada de aprendizado!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${appUrl}/study" style="display: inline-block; background-color: #FFA500; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Estudar Agora
+            </a>
           </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
-          </div>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -1318,14 +1194,11 @@ export async function sendSeasonRankingEmail(
       const pInfo = positionLabels[p.position] || { emoji: "", color: "#888", text: `${p.position}` };
       const isWinner = p.position === position;
       return `
-        <div style="display: flex; align-items: center; padding: 12px; margin: 8px 0; background-color: ${isWinner ? '#FFF9E6' : '#f5f5f5'}; border-radius: 8px; border: ${isWinner ? '2px solid #FFA500' : 'none'};">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, ${pInfo.color} 0%, ${pInfo.color}AA 100%); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: white; margin-right: 12px;">
-            ${p.position}
-          </div>
-          <div style="flex: 1;">
-            <p style="margin: 0; font-weight: ${isWinner ? 'bold' : 'normal'}; color: #333;">${p.name}</p>
-            <p style="margin: 0; font-size: 12px; color: #666;">${p.xp.toLocaleString('pt-BR')} XP</p>
-          </div>
+        <div style="padding: 12px; margin: 8px 0; background-color: ${isWinner ? '#FFF9E6' : '#f5f5f5'}; border-radius: 6px; border-left: 4px solid ${pInfo.color};">
+          <p style="margin: 0; font-weight: ${isWinner ? 'bold' : 'normal'}; color: #333;">
+            <strong>${p.position}º</strong> - ${p.name}
+          </p>
+          <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">${p.xp.toLocaleString('pt-BR')} XP</p>
         </div>
       `;
     }).join('');
@@ -1335,39 +1208,27 @@ export async function sendSeasonRankingEmail(
       to: recipientEmail,
       subject: `Parabéns! Você ficou em ${position}º lugar na revista ${seasonTitle}!`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="background: linear-gradient(135deg, ${positionInfo.color} 0%, ${positionInfo.color}CC 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <div style="font-size: 60px; margin-bottom: 10px;">${positionInfo.emoji}</div>
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-              ${positionInfo.text}!
-            </h1>
-            <p style="color: #ffffff; opacity: 0.9; margin: 10px 0 0 0;">Revista: ${seasonTitle}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 18px; color: #333; text-align: center; margin: 0 0 20px 0;">
+            Parabéns, <strong>${formattedName}</strong>!
+          </p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center; margin: 0 0 20px 0;">
+            Você concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position}º lugar</strong>
+            com um total de <strong style="color: #FFA500;">${totalXp.toLocaleString('pt-BR')} XP</strong>!
+          </p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 6px;">
+            <h3 style="margin: 0 0 15px 0; color: #333; text-align: center; font-size: 16px;">Pódio Final</h3>
+            ${podiumHtml}
           </div>
           
-          <div style="padding: 30px;">
-            <p style="font-size: 18px; color: #333; text-align: center;">
-              Parabéns, <strong>${formattedName}</strong>!
-            </p>
-            
-            <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center;">
-              Você concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position}º lugar</strong>
-              com um total de <strong style="color: #FFA500;">${totalXp.toLocaleString('pt-BR')} XP</strong>!
-            </p>
-            
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 20px; margin: 25px 0;">
-              <h3 style="margin: 0 0 15px 0; color: #333; text-align: center; font-size: 16px;">Pódio Final</h3>
-              ${podiumHtml}
-            </div>
-            
-            <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center; margin-top: 20px;">
-              Continue sua jornada de aprendizado no DeoGlory!
-            </p>
-          </div>
+          <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center; margin: 20px 0;">
+            Continue sua jornada de aprendizado no DeoGlory!
+          </p>
           
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${logoBuffer ? `<img src="cid:logo-emaus" style="max-width: 80px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">UMP Emaús - DeoGlory</p>
-          </div>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">UMP Emaús</p>
         </div>
       `,
     };
@@ -1417,58 +1278,41 @@ export async function sendNewProductEmail(
       to: recipientEmail,
       subject: `Novidade na Loja! ${productName}`,
       html: `
-        <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <!-- Header with Shop Logo -->
-          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            ${shopLogoBuffer ? `<img src="cid:shop-logo" style="max-width: 60px; height: auto; margin-bottom: 10px;" />` : ''}
-            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">Loja UMP Emaús</h1>
-            <p style="color: #ffffff; opacity: 0.9; margin: 5px 0 0 0; font-size: 14px;">Novidade disponível!</p>
-          </div>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+            Olá, <strong>${formattedName}</strong>!
+          </p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6; margin: 0 0 20px 0;">
+            Temos uma novidade na nossa loja que você vai adorar!
+          </p>
 
-          <!-- Product Image -->
           ${productImageBase64 ? `
-          <div style="text-align: center; padding: 0;">
-            <img src="cid:product-image" style="width: 100%; max-height: 300px; object-fit: cover;" alt="${productName}" />
+          <div style="text-align: center; margin: 20px 0;">
+            <img src="cid:product-image" style="max-width: 100%; height: auto; border-radius: 8px;" alt="${productName}" />
           </div>
           ` : ''}
 
-          <!-- Main Content -->
-          <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333; margin-bottom: 15px;">
-              Olá, <strong>${formattedName}</strong>!
-            </p>
-            
-            <p style="font-size: 15px; color: #555; line-height: 1.6;">
-              Temos uma novidade na nossa loja que você vai adorar!
-            </p>
-
-            <!-- Product Card -->
-            <div style="background-color: #f8f9fa; border-radius: 12px; padding: 20px; margin: 25px 0; border: 1px solid #e9ecef;">
-              <h2 style="margin: 0 0 10px 0; color: #333; font-size: 20px;">${productName}</h2>
-              ${shortDescription ? `<p style="font-size: 14px; color: #666; line-height: 1.5; margin: 0 0 15px 0;">${shortDescription}</p>` : ''}
-              <p style="margin: 0; font-size: 24px; font-weight: bold; color: #FFA500;">${formattedPrice}</p>
-            </div>
-
-            <!-- CTA Button -->
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${productUrl}" style="display: inline-block; background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); color: #ffffff; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);">
-                CONFIRA
-              </a>
-            </div>
-
-            <p style="font-size: 14px; color: #888; text-align: center; margin-top: 20px;">
-              Aproveite antes que acabe!
-            </p>
+          <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 6px;">
+            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${productName}</h2>
+            ${shortDescription ? `<p style="font-size: 14px; color: #666; line-height: 1.5; margin: 0 0 15px 0;">${shortDescription}</p>` : ''}
+            <p style="margin: 0; font-size: 22px; font-weight: bold; color: #FFA500;">${formattedPrice}</p>
           </div>
 
-          <!-- Footer -->
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-            ${shopLogoBuffer ? `<img src="cid:footer-logo" style="max-width: 50px; height: auto; margin-bottom: 10px;" />` : ''}
-            <p style="color: #888; font-size: 12px; margin: 0;">Loja UMP Emaús</p>
-            <p style="color: #aaa; font-size: 11px; margin: 5px 0 0 0;">
-              <a href="${baseUrl}/loja" style="color: #FFA500; text-decoration: none;">Visite nossa loja</a>
-            </p>
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${productUrl}" style="display: inline-block; background-color: #FFA500; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              CONFIRA
+            </a>
           </div>
+
+          <p style="font-size: 14px; color: #888; text-align: center; margin: 20px 0;">
+            Aproveite antes que acabe!
+          </p>
+          
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #888; font-size: 12px; margin: 0; text-align: center;">
+            <a href="${baseUrl}/loja" style="color: #FFA500; text-decoration: none;">Loja UMP Emaús</a>
+          </p>
         </div>
       `,
     };

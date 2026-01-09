@@ -341,11 +341,11 @@ function LoginForm() {
 
   return (
     <>
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-4">
         <img 
           src={logoAnimated}
           alt="UMP Emaús Logo"
-          className="w-32 h-auto object-contain"
+          className="w-28 h-auto object-contain"
           loading="eager"
           decoding="async"
           data-testid="logo-animated"
@@ -439,6 +439,7 @@ function LoginForm() {
                   id="password-email"
                   type="email"
                   placeholder="seu@email.com"
+                  autoComplete="email"
                   data-testid="input-password-email"
                   {...passwordForm.register("email")}
                 />
@@ -473,6 +474,7 @@ function LoginForm() {
                   id="password"
                   type="password"
                   placeholder="••••••"
+                  autoComplete="current-password"
                   data-testid="input-password"
                   {...passwordForm.register("password")}
                 />
@@ -849,8 +851,8 @@ export default function MembroPage() {
   }
 
   return (
-    <SiteLayout>
-      <section className="py-16 bg-background min-h-[70vh] flex items-center">
+    <SiteLayout hideFooter={!isAuthenticated}>
+      <section className="py-6 bg-background">
         <div className="container mx-auto px-4">
           {isLoading ? (
             <div className="flex justify-center py-12">

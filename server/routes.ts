@@ -9711,10 +9711,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Compress with Sharp - banner images get 1024px width for HD quality
+      // Compress with Sharp - banner images get 2000px width for Ultra HD quality
       const optimizedBuffer = await sharp(buffer)
-        .resize({ width: 1024, withoutEnlargement: true })
-        .webp({ quality: 80 })
+        .resize({ width: 2000, withoutEnlargement: true })
+        .webp({ quality: 90 })
         .toBuffer();
       
       res.set({
@@ -9749,10 +9749,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Compress with Sharp - gallery images get 500px width for thumbnails
+      // Compress with Sharp - gallery images get 2000px width for Ultra HD quality
       const optimizedBuffer = await sharp(buffer)
-        .resize({ width: 500, withoutEnlargement: true })
-        .webp({ quality: 80 })
+        .resize({ width: 2000, withoutEnlargement: true })
+        .webp({ quality: 90 })
         .toBuffer();
       
       res.set({

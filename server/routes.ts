@@ -9033,6 +9033,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reordenar imagens do item (admin)
+  app.patch("/api/admin/shop/items/:itemId/images/reorder", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      const { imageIds } = req.body;
+      
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      if (!Array.isArray(imageIds) || imageIds.length === 0) {
+        return res.status(400).json({ message: "Lista de IDs de imagens inválida" });
+      }
+      
+      // Validate all IDs are numbers
+      const validImageIds = imageIds.filter(id => typeof id === 'number' && !isNaN(id));
+      if (validImageIds.length !== imageIds.length) {
+        return res.status(400).json({ message: "IDs de imagens devem ser números válidos" });
+      }
+      
+      // Verify all images belong to this item
+      const existingImages = await storage.getShopItemImages(itemId);
+      const existingImageMap = new Map(existingImages.map(img => [img.id, img]));
+      
+      // Verify all IDs belong to the item and are from the same gender
+      let targetGender: string | null = null;
+      const seenIds = new Set<number>();
+      for (const id of validImageIds) {
+        // Check for duplicates
+        if (seenIds.has(id)) {
+          return res.status(400).json({ message: "IDs de imagens duplicados não são permitidos" });
+        }
+        seenIds.add(id);
+        
+        const img = existingImageMap.get(id);
+        if (!img) {
+          return res.status(400).json({ message: "Uma ou mais imagens não pertencem a este produto" });
+        }
+        if (targetGender === null) {
+          targetGender = img.gender;
+        } else if (img.gender !== targetGender) {
+          return res.status(400).json({ message: "Todas as imagens devem ser do mesmo gênero" });
+        }
+      }
+      
+      // Ensure all images of the target gender are included
+      if (targetGender) {
+        const genderImageCount = existingImages.filter(img => img.gender === targetGender).length;
+        if (validImageIds.length !== genderImageCount) {
+          return res.status(400).json({ message: "Todas as imagens do gênero devem ser incluídas na reordenação" });
+        }
+      }
+      
+      await storage.reorderShopItemImages(itemId, validImageIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reorder shop item images error:", error);
+      res.status(500).json({ message: "Erro ao reordenar imagens" });
+    }
+  });
+
   // Upload de imagem de banner do item (admin) - para carrossel da home
   app.post("/api/admin/shop/items/:id/banner", authenticateToken, requireMarketing, imageUpload.single("bannerImage"), async (req: AuthRequest, res) => {
     try {

@@ -15,6 +15,8 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
+  ArrowUp,
+  ArrowDown,
   Package, 
   Plus, 
   Pencil,
@@ -597,6 +599,19 @@ export default function LojaAdmin() {
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível remover a imagem.", variant: "destructive" });
+    },
+  });
+
+  const reorderImagesMutation = useMutation({
+    mutationFn: async ({ itemId, imageIds }: { itemId: number; imageIds: number[] }) => {
+      return apiRequest("PATCH", `/api/admin/shop/items/${itemId}/images/reorder`, { imageIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ title: "Ordem atualizada", description: "A ordem das imagens foi atualizada." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível reordenar as imagens.", variant: "destructive" });
     },
   });
 
@@ -1501,7 +1516,26 @@ export default function LojaAdmin() {
 
               <div className="space-y-3">
                 {managingItem && getGendersForType(managingItem.genderType).map((gender) => {
-                  const genderImages = currentItemData?.images?.filter(img => img.gender === gender) || [];
+                  const genderImages = currentItemData?.images?.filter(img => img.gender === gender).sort((a, b) => a.sortOrder - b.sortOrder) || [];
+                  
+                  const handleMoveImage = (imageId: number, direction: 'up' | 'down') => {
+                    const currentIndex = genderImages.findIndex(img => img.id === imageId);
+                    if (currentIndex === -1) return;
+                    
+                    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+                    if (newIndex < 0 || newIndex >= genderImages.length) return;
+                    
+                    const newOrder = [...genderImages];
+                    const temp = newOrder[currentIndex];
+                    newOrder[currentIndex] = newOrder[newIndex];
+                    newOrder[newIndex] = temp;
+                    
+                    reorderImagesMutation.mutate({
+                      itemId: managingItem.id,
+                      imageIds: newOrder.map(img => img.id)
+                    });
+                  };
+                  
                   return (
                     <div key={gender} className="space-y-2">
                       <Label className="text-sm font-medium">
@@ -1509,13 +1543,35 @@ export default function LojaAdmin() {
                       </Label>
                       {genderImages.length > 0 ? (
                         <div className="grid grid-cols-5 gap-2">
-                          {genderImages.map((img) => (
+                          {genderImages.map((img, index) => (
                             <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden bg-muted">
                               <img 
                                 src={img.imageData} 
                                 alt="" 
                                 className="w-full h-full object-cover"
                               />
+                              <div className="absolute top-1 left-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-5 w-5"
+                                  onClick={() => handleMoveImage(img.id, 'up')}
+                                  disabled={index === 0 || reorderImagesMutation.isPending}
+                                  data-testid={`button-move-up-image-${img.id}`}
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-5 w-5"
+                                  onClick={() => handleMoveImage(img.id, 'down')}
+                                  disabled={index === genderImages.length - 1 || reorderImagesMutation.isPending}
+                                  data-testid={`button-move-down-image-${img.id}`}
+                                >
+                                  <ArrowDown className="h-3 w-3" />
+                                </Button>
+                              </div>
                               <Button
                                 size="icon"
                                 variant="destructive"
@@ -1528,6 +1584,9 @@ export default function LojaAdmin() {
                               >
                                 <X className="h-3 w-3" />
                               </Button>
+                              <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {index + 1}
+                              </div>
                             </div>
                           ))}
                         </div>

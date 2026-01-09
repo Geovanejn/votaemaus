@@ -541,6 +541,7 @@ export interface IStorage {
   getShopItemImagesByItemIdsLight(itemIds: number[]): Promise<Map<number, Omit<ShopItemImage, 'imageData'>[]>>;
   createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage>;
   deleteShopItemImage(id: number): Promise<void>;
+  reorderShopItemImages(itemId: number, imageIds: number[]): Promise<void>;
   
   // Shop Item Sizes Methods
   getShopItemSizes(itemId: number): Promise<ShopItemSize[]>;
@@ -7091,6 +7092,55 @@ export class DatabaseStorage implements IStorage {
   async deleteShopItemImage(id: number): Promise<void> {
     await db.delete(schema.shopItemImages)
       .where(eq(schema.shopItemImages.id, id));
+  }
+
+  async reorderShopItemImages(itemId: number, imageIds: number[]): Promise<void> {
+    // Get all images for this item ordered by current sort order
+    const allImages = await db.select()
+      .from(schema.shopItemImages)
+      .where(eq(schema.shopItemImages.itemId, itemId))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+    
+    if (allImages.length === 0) return;
+    
+    // Get the gender of the images being reordered
+    const targetImagesSet = new Set(imageIds);
+    const targetGender = allImages.find(img => targetImagesSet.has(img.id))?.gender;
+    if (!targetGender) return;
+    
+    // Get all target gender images (including any that might not be in imageIds)
+    const targetGenderImages = allImages.filter(img => img.gender === targetGender);
+    const targetGenderIdsInPayload = new Set(imageIds);
+    
+    // Add any missing target gender images to the end (in case of incomplete payload)
+    const completeTargetGenderOrder = [...imageIds];
+    for (const img of targetGenderImages) {
+      if (!targetGenderIdsInPayload.has(img.id)) {
+        completeTargetGenderOrder.push(img.id);
+      }
+    }
+    
+    // Build final order by substituting target gender images in-place
+    const finalOrder: number[] = [];
+    let targetGenderIndex = 0;
+    
+    for (const img of allImages) {
+      if (img.gender === targetGender) {
+        // Replace with the image from the reordered list
+        finalOrder.push(completeTargetGenderOrder[targetGenderIndex]);
+        targetGenderIndex++;
+      } else {
+        // Non-target gender images stay in their exact original position
+        finalOrder.push(img.id);
+      }
+    }
+    
+    // Update all images with their new sort order
+    for (let i = 0; i < finalOrder.length; i++) {
+      await db.update(schema.shopItemImages)
+        .set({ sortOrder: i })
+        .where(eq(schema.shopItemImages.id, finalOrder[i]));
+    }
   }
 
   // ==================== SHOP ITEM SIZES METHODS ====================

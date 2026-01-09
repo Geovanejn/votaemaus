@@ -374,9 +374,18 @@ export default function LojaAdmin() {
   const publishMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("POST", `/api/admin/shop/items/${id}/publish`);
-      return res.json();
+      const data = await res.json();
+      return { ...data, id };
     },
     onSuccess: (data: any) => {
+      // Optimistic update: immediately update the cache to show isPublished: true
+      queryClient.setQueryData(["/api/admin/shop/items"], (oldData: any[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(item => 
+          item.id === data.id ? { ...item, isPublished: true } : item
+        );
+      });
+      // Also invalidate to ensure data is fresh
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
       toast({ 
         title: "Produto publicado!", 

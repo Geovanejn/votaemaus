@@ -30,7 +30,7 @@ console.log(`✓ Logo configured with public URL: ${LOGO_EMAIL_URL}`);
 const getEmailFooter = () => `
   <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
     <p style="color: #888; font-size: 12px; margin: 0 0 10px 0;">UMP Emaús</p>
-    <img src="${LOGO_EMAIL_URL}" alt="Emaús" style="height: 40px; width: auto;" />
+    <img src="${LOGO_EMAIL_URL}" alt="Emaús" style="height: 24px; width: auto;" />
   </div>
 `;
 

@@ -228,8 +228,7 @@ export default function OracaoPage() {
               Pedido de Oração
             </h1>
             <p className="text-lg opacity-90 max-w-2xl mx-auto">
-              Compartilhe suas necessidades. Nossa equipe de espiritualidade 
-              estará orando por você.
+              Compartilhe suas necessidades. Iremos orar uns pelos outros.
             </p>
           </motion.div>
         </div>
@@ -361,7 +360,7 @@ export default function OracaoPage() {
                                   <FormLabel>Seu Pedido *</FormLabel>
                                   <FormControl>
                                     <Textarea 
-                                      placeholder="Compartilhe seu pedido de oracao..."
+                                      placeholder="Compartilhe seu pedido de oração..."
                                       className="min-h-[150px] resize-none"
                                       {...field}
                                       data-testid="textarea-request"

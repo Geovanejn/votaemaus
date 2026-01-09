@@ -154,7 +154,7 @@ export default function DevocionaisPage() {
               Devocionais
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Fortaleca sua fe diariamente com reflexoes baseadas na Palavra de Deus
+              Fortaleça sua fé diariamente com reflexões baseadas na Palavra de Deus
             </p>
           </motion.div>
         </div>
@@ -170,9 +170,9 @@ export default function DevocionaisPage() {
         <section className="py-12 bg-background">
           <div className="container mx-auto px-4 text-center py-20">
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Nenhum devocional disponivel</h3>
+            <h3 className="text-xl font-semibold mb-2">Nenhum devocional disponível</h3>
             <p className="text-muted-foreground">
-              Novos devocionais serao adicionados em breve.
+              Novos devocionais serão adicionados em breve.
             </p>
           </div>
         </section>
@@ -287,7 +287,7 @@ export default function DevocionaisPage() {
                   <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Nenhum devocional encontrado</h3>
                   <p className="text-muted-foreground">
-                    Tente ajustar sua busca ou filtro
+                    Tente ajustar sua busca ou filtro.
                   </p>
                 </div>
               ) : (

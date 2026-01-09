@@ -79,7 +79,7 @@ export default function DiretoriaPage() {
               Diretoria
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Conheça os líderes que servem na UMP Emaús
+              Conheça a diretoria da UMP Emaús
             </p>
             <Badge variant="secondary" className="mt-4">
               Gestão {currentTerm}

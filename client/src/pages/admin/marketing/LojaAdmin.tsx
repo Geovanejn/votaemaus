@@ -35,7 +35,8 @@ import {
   Percent,
   Calendar,
   Hash,
-  ShoppingBag
+  ShoppingBag,
+  Send
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -88,6 +89,7 @@ interface ShopItemAdmin {
   isAvailable: boolean;
   isPreOrder: boolean;
   isFeatured: boolean;
+  isPublished: boolean;
   featuredOrder: number | null;
   bannerImageData: string | null;
   allowInstallments: boolean;
@@ -366,6 +368,26 @@ export default function LojaAdmin() {
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível excluir o item.", variant: "destructive" });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("POST", `/api/admin/shop/items/${id}/publish`);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      toast({ 
+        title: "Produto publicado!", 
+        description: `${data.pushSent} notificações e ${data.emailsSent} emails enviados.`
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro", 
+        description: error?.message || "Não foi possível publicar o produto.", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -947,6 +969,11 @@ export default function LojaAdmin() {
                       <Package className="h-12 w-12 text-muted-foreground" />
                     )}
                     <div className="absolute top-2 right-2 flex gap-1">
+                      {!item.isPublished && (
+                        <Badge variant="secondary" className="text-xs">
+                          Rascunho
+                        </Badge>
+                      )}
                       {item.isFeatured && (
                         <Badge className="text-xs bg-yellow-400 text-zinc-950 hover:bg-yellow-500">
                           Destaque
@@ -991,10 +1018,30 @@ export default function LojaAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                      {!item.isPublished && (
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() => {
+                            if (confirm(`Publicar "${item.name}"? Isso enviará notificações e emails para todos os membros.`)) {
+                              publishMutation.mutate(item.id);
+                            }
+                          }}
+                          disabled={publishMutation.isPending}
+                          data-testid={`button-publish-item-${item.id}`}
+                        >
+                          {publishMutation.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                          Publicar
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 gap-1"
+                        className={!item.isPublished ? "gap-1" : "flex-1 gap-1"}
                         onClick={() => {
                           setManagingItem(item);
                           setManageTab("images");

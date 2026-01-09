@@ -8804,6 +8804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasSize: hasSize ?? true,
         isAvailable: isAvailable ?? true,
         isPreOrder: isPreOrder ?? false,
+        isPublished: false,
         allowInstallments: allowInstallments ?? false,
         maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
       });
@@ -8865,10 +8866,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      // Mark as available if not already
-      if (!item.isAvailable) {
-        await storage.updateShopItem(id, { isAvailable: true });
+      // Check if already published
+      if (item.isPublished) {
+        return res.status(400).json({ message: "Produto já foi publicado" });
       }
+      
+      // Mark as published and available
+      await storage.updateShopItem(id, { isPublished: true, isAvailable: true });
       
       // Get product image (prefer banner, then first gallery image)
       let productImageBase64: string | null = item.bannerImageData;
@@ -9893,13 +9897,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const items = await storage.getShopItemsLight(false);
       
+      // Filtrar apenas itens publicados
+      const publishedItems = items.filter(item => item.isPublished);
+      
       // Primeiro os itens explicitamente marcados como featured
-      const explicitFeatured = items.filter(item => item.isFeatured).sort((a, b) => 
+      const explicitFeatured = publishedItems.filter(item => item.isFeatured).sort((a, b) => 
         (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)
       );
       
       // Todos os itens featured (fallback para todos se nenhum estiver marcado)
-      const featured = explicitFeatured.length > 0 ? explicitFeatured : items.slice(0, 5);
+      const featured = explicitFeatured.length > 0 ? explicitFeatured : publishedItems.slice(0, 5);
       
       if (featured.length === 0) {
         return res.json([]);
@@ -9927,7 +9934,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar itens disponiveis (catalogo publico) - OTIMIZADO sem Base64
   app.get("/api/shop/items", async (req, res) => {
     try {
-      const items = await storage.getShopItemsLight(false);
+      const allItems = await storage.getShopItemsLight(false);
+      // Filtrar apenas itens publicados para o catálogo público
+      const items = allItems.filter(item => item.isPublished);
       if (items.length === 0) {
         return res.json([]);
       }
@@ -9966,7 +9975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const item = await storage.getShopItemById(id);
-      if (!item || !item.isAvailable) {
+      if (!item || !item.isAvailable || !item.isPublished) {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       

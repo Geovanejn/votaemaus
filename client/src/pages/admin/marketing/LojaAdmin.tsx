@@ -1591,46 +1591,48 @@ export default function LojaAdmin() {
                       {genderImages.length > 0 ? (
                         <div className="grid grid-cols-5 gap-2">
                           {genderImages.map((img, index) => (
-                            <div key={img.id} className="relative aspect-square rounded-md overflow-hidden bg-muted">
+                            <div key={img.id} className="relative aspect-square rounded-md bg-muted">
                               <img 
                                 src={img.imageData} 
                                 alt="" 
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover rounded-md"
                               />
-                              <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+                              <div className="absolute top-0 left-0 right-0 flex justify-between items-start p-1">
+                                <div className="flex flex-col gap-0.5">
+                                  <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="h-5 w-5"
+                                    onClick={() => handleMoveImage(img.id, 'up')}
+                                    disabled={index === 0 || reorderImagesMutation.isPending}
+                                    data-testid={`button-move-up-image-${img.id}`}
+                                  >
+                                    <ArrowUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="h-5 w-5"
+                                    onClick={() => handleMoveImage(img.id, 'down')}
+                                    disabled={index === genderImages.length - 1 || reorderImagesMutation.isPending}
+                                    data-testid={`button-move-down-image-${img.id}`}
+                                  >
+                                    <ArrowDown className="h-3 w-3" />
+                                  </Button>
+                                </div>
                                 <Button
                                   size="icon"
-                                  variant="secondary"
-                                  className="h-5 w-5"
-                                  onClick={() => handleMoveImage(img.id, 'up')}
-                                  disabled={index === 0 || reorderImagesMutation.isPending}
-                                  data-testid={`button-move-up-image-${img.id}`}
+                                  variant="destructive"
+                                  className="h-6 w-6"
+                                  onClick={() => deleteImageMutation.mutate({ 
+                                    itemId: managingItem.id, 
+                                    imageId: img.id 
+                                  })}
+                                  data-testid={`button-delete-image-${img.id}`}
                                 >
-                                  <ArrowUp className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="secondary"
-                                  className="h-5 w-5"
-                                  onClick={() => handleMoveImage(img.id, 'down')}
-                                  disabled={index === genderImages.length - 1 || reorderImagesMutation.isPending}
-                                  data-testid={`button-move-down-image-${img.id}`}
-                                >
-                                  <ArrowDown className="h-3 w-3" />
+                                  <X className="h-3 w-3" />
                                 </Button>
                               </div>
-                              <Button
-                                size="icon"
-                                variant="destructive"
-                                className="absolute top-1 right-1 h-6 w-6"
-                                onClick={() => deleteImageMutation.mutate({ 
-                                  itemId: managingItem.id, 
-                                  imageId: img.id 
-                                })}
-                                data-testid={`button-delete-image-${img.id}`}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
                               <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                                 {index + 1}
                               </div>

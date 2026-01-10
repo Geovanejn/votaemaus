@@ -593,9 +593,12 @@ export default function LojaAdmin() {
   };
 
   const uploadImageMutation = useMutation({
-    mutationFn: async ({ itemId, gender, file }: { itemId: number; gender: string; file: File }) => {
+    mutationFn: async ({ itemId, gender, files }: { itemId: number; gender: string; files: File[] }) => {
       const formData = new FormData();
-      formData.append("image", file);
+      // Append files in order (respects selection order)
+      for (const file of files) {
+        formData.append("images", file);
+      }
       formData.append("gender", gender);
       
       const token = localStorage.getItem("token");
@@ -617,12 +620,16 @@ export default function LojaAdmin() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
-      toast({ title: "Imagem enviada", description: "A imagem foi adicionada ao item." });
+      const count = variables.files.length;
+      toast({ 
+        title: count > 1 ? "Imagens enviadas" : "Imagem enviada", 
+        description: count > 1 ? `${count} imagens foram adicionadas ao item.` : "A imagem foi adicionada ao item." 
+      });
     },
     onError: () => {
-      toast({ title: "Erro", description: "Não foi possível enviar a imagem.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível enviar a(s) imagem(ns).", variant: "destructive" });
     },
   });
 
@@ -762,12 +769,23 @@ export default function LojaAdmin() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && managingItem) {
+    const fileList = e.target.files;
+    if (fileList && fileList.length > 0 && managingItem) {
+      // Convert FileList to array maintaining selection order
+      const filesArray = Array.from(fileList);
+      
+      if (filesArray.length > 10) {
+        toast({ title: "Limite excedido", description: "Maximo de 10 imagens por upload.", variant: "destructive" });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+      
       uploadImageMutation.mutate({
         itemId: managingItem.id,
         gender: uploadingGender,
-        file,
+        files: filesArray,
       });
     }
     if (fileInputRef.current) {
@@ -1556,6 +1574,7 @@ export default function LojaAdmin() {
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={handleFileChange}
                   />
@@ -1571,12 +1590,12 @@ export default function LojaAdmin() {
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    Enviar Imagem
+                    Enviar Imagens
                   </Button>
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Maximo 5 imagens por genero. Recomendado: 800x800px
+                  Selecione ate 10 imagens por vez. Recomendado: 800x800px. A ordem de selecao sera mantida.
                 </p>
               </div>
 

@@ -8979,7 +8979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload de imagem do item (admin)
-  app.post("/api/admin/shop/items/:id/images", authenticateToken, requireMarketing, imageUpload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/admin/shop/items/:id/images", authenticateToken, requireMarketing, imageUpload.array("images", 10), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -8991,30 +8991,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      if (!req.file) {
-        return res.status(400).json({ message: "Imagem obrigatória" });
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "Pelo menos uma imagem é obrigatória" });
+      }
+      
+      if (files.length > 10) {
+        return res.status(400).json({ message: "Máximo de 10 imagens por upload" });
       }
       
       const gender = req.body.gender || "unissex";
       
-      const processedImage = await sharp(req.file.buffer)
-        .rotate() // Auto-rotate based on EXIF orientation
-        .jpeg({ quality: 95 })
-        .toBuffer();
-      
-      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
-      
       const existingImages = await storage.getShopItemImages(id);
-      const sortOrder = existingImages.length;
+      let sortOrder = existingImages.length;
       
-      const image = await storage.createShopItemImage({
-        itemId: id,
-        gender,
-        imageData: base64Image,
-        sortOrder,
-      });
+      const createdImages = [];
       
-      res.json(image);
+      // Process images in order (respects selection order from frontend)
+      for (const file of files) {
+        const processedImage = await sharp(file.buffer)
+          .rotate() // Auto-rotate based on EXIF orientation
+          .jpeg({ quality: 95 })
+          .toBuffer();
+        
+        const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+        
+        const image = await storage.createShopItemImage({
+          itemId: id,
+          gender,
+          imageData: base64Image,
+          sortOrder,
+        });
+        
+        createdImages.push(image);
+        sortOrder++;
+      }
+      
+      res.json(createdImages);
     } catch (error) {
       console.error("Upload shop item image error:", error);
       res.status(500).json({ message: "Erro ao fazer upload da imagem" });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,6 +15,116 @@ const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 const NOTIFICATION_DISMISSED_KEY = 'unified_notification_dismissed';
 const NOTIFICATION_SUBSCRIBED_KEY = 'unified_notification_subscribed';
 const ANONYMOUS_SUB_ID_KEY = 'anonymous_push_subscription_id';
+
+// Browser detection utilities
+function detectBrowser(): { name: string; isBrave: boolean; isIOS: boolean; isSafari: boolean; isFirefox: boolean; isChrome: boolean; isEdge: boolean } {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+  const isFirefox = /Firefox/.test(ua);
+  const isEdge = /Edg/.test(ua);
+  const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua);
+  
+  // Brave detection - check for brave object
+  const isBrave = !!(navigator as any).brave?.isBrave;
+  
+  let name = 'navegador';
+  if (isBrave) name = 'Brave';
+  else if (isEdge) name = 'Edge';
+  else if (isChrome) name = 'Chrome';
+  else if (isFirefox) name = 'Firefox';
+  else if (isSafari) name = 'Safari';
+  
+  return { name, isBrave, isIOS, isSafari, isFirefox, isChrome, isEdge };
+}
+
+interface BrowserInstructions {
+  title: string;
+  steps: string[];
+  link?: string;
+}
+
+function getBrowserSpecificInstructions(browser: ReturnType<typeof detectBrowser>): BrowserInstructions | null {
+  if (browser.isBrave) {
+    return {
+      title: 'Configuração do Brave',
+      steps: [
+        '1. Acesse brave://settings/privacy',
+        '2. Ative "Usar serviços do Google para mensagens push"',
+        '3. Reinicie o navegador',
+        '4. Volte e clique em "Ativar notificações"'
+      ],
+      link: 'brave://settings/privacy'
+    };
+  }
+  
+  if (browser.isIOS && browser.isSafari) {
+    return {
+      title: 'Configuração do Safari (iOS)',
+      steps: [
+        '1. Abra Ajustes do iPhone/iPad',
+        '2. Vá em Safari > Notificações',
+        '3. Permita notificações para este site',
+        '4. Adicione o site à tela inicial para melhor experiência'
+      ]
+    };
+  }
+  
+  if (browser.isFirefox) {
+    return {
+      title: 'Configuração do Firefox',
+      steps: [
+        '1. Clique no ícone de cadeado na barra de endereço',
+        '2. Em "Permissões", encontre "Notificações"',
+        '3. Altere para "Permitir"',
+        '4. Recarregue a página'
+      ]
+    };
+  }
+  
+  return null;
+}
+
+function getErrorMessage(error: any, browser: ReturnType<typeof detectBrowser>): string {
+  const errorStr = error?.message || error?.toString() || '';
+  
+  // Brave-specific errors
+  if (browser.isBrave) {
+    if (errorStr.includes('Registration failed') || 
+        errorStr.includes('AbortError') ||
+        errorStr.includes('InvalidStateError') ||
+        errorStr.includes('push service')) {
+      return 'O Brave requer configuração extra para notificações push. Veja as instruções abaixo.';
+    }
+  }
+  
+  // iOS Safari limitations
+  if (browser.isIOS && browser.isSafari) {
+    return 'No iOS, adicione o site à tela inicial para receber notificações.';
+  }
+  
+  // Permission denied
+  if (errorStr.includes('denied') || errorStr.includes('NotAllowedError')) {
+    return 'Permissão negada. Clique no ícone de cadeado na barra de endereço para permitir notificações.';
+  }
+  
+  // Service Worker errors
+  if (errorStr.includes('service worker') || errorStr.includes('ServiceWorker')) {
+    return 'Erro no serviço de notificações. Recarregue a página e tente novamente.';
+  }
+  
+  // Network errors
+  if (errorStr.includes('network') || errorStr.includes('fetch') || errorStr.includes('Failed to fetch')) {
+    return 'Erro de conexão. Verifique sua internet e tente novamente.';
+  }
+  
+  // Registration failed (generic)
+  if (errorStr.includes('Registration failed') || errorStr.includes('subscription')) {
+    return `Seu ${browser.name} pode precisar de configuração adicional. Veja as instruções abaixo.`;
+  }
+  
+  return 'Erro ao ativar. Tente novamente ou verifique as configurações do navegador.';
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -37,11 +147,18 @@ export function UnifiedNotificationPrompt() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
   const { user, token } = useAuth();
 
   useEffect(() => {
     const checkAndShowPrompt = async () => {
       console.log('[UnifiedNotification] Checking visibility...');
+      
+      // Detect browser first
+      const browser = detectBrowser();
+      setBrowserInfo(browser);
+      console.log('[UnifiedNotification] Detected browser:', browser.name, browser);
       
       const supported = 
         'serviceWorker' in navigator && 
@@ -53,6 +170,10 @@ export function UnifiedNotificationPrompt() {
       
       if (!supported) {
         console.log('[UnifiedNotification] Push notifications not supported');
+        // Show instructions for unsupported browsers
+        if (browser.isIOS) {
+          console.log('[UnifiedNotification] iOS detected - limited push support');
+        }
         return;
       }
       
@@ -227,13 +348,21 @@ export function UnifiedNotificationPrompt() {
       localStorage.setItem(NOTIFICATION_SUBSCRIBED_KEY, 'true');
       console.log('[UnifiedNotification] Subscription complete');
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[UnifiedNotification] Error subscribing:', error);
-      setErrorMessage('Erro ao ativar. Tente novamente.');
+      const browser = browserInfo || detectBrowser();
+      const message = getErrorMessage(error, browser);
+      setErrorMessage(message);
+      
+      // Show instructions if browser-specific help is available
+      const instructions = getBrowserSpecificInstructions(browser);
+      if (instructions) {
+        setShowInstructions(true);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, token, handleDismiss]);
+  }, [isSupported, token, handleDismiss, browserInfo]);
 
   if (!isOpen) {
     return null;
@@ -255,10 +384,47 @@ export function UnifiedNotificationPrompt() {
         </DialogHeader>
         
         {errorMessage && (
-          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-            {errorMessage}
+          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
           </div>
         )}
+        
+        {showInstructions && browserInfo && (() => {
+          const instructions = getBrowserSpecificInstructions(browserInfo);
+          if (!instructions) return null;
+          
+          return (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm p-4 rounded-md space-y-2">
+              <div className="font-medium text-amber-800 dark:text-amber-300">
+                {instructions.title}
+              </div>
+              <ul className="space-y-1 text-amber-700 dark:text-amber-400">
+                {instructions.steps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ul>
+              {instructions.link && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/50"
+                    onClick={() => {
+                      // Copy the link to clipboard since browser protocols can't be opened directly
+                      navigator.clipboard.writeText(instructions.link!);
+                      setErrorMessage('Link copiado! Cole na barra de endereço do navegador.');
+                    }}
+                    data-testid="button-copy-browser-settings"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Copiar link de configurações
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         
         <div className="flex flex-col gap-3 mt-4">
           <Button
@@ -267,7 +433,7 @@ export function UnifiedNotificationPrompt() {
             className="w-full"
             data-testid="button-activate-notifications"
           >
-            {isLoading ? 'Ativando...' : 'Ativar notificações'}
+            {isLoading ? 'Ativando...' : showInstructions ? 'Tentar novamente' : 'Ativar notificações'}
           </Button>
           <Button
             variant="ghost"

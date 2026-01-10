@@ -229,6 +229,34 @@ export default function FinanceiroPage() {
     createPaymentMutation.mutate({ type: "ump", months: [month] });
   };
 
+  // Pay full year (anticipate all remaining months until December)
+  const handlePayFullYear = () => {
+    if (!pixStatus?.configured) {
+      toast({
+        title: "PIX não configurado",
+        description: "Sistema de pagamento PIX ainda não está disponível.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!financial) return;
+    // Get all unpaid months (1-12) - includes past unpaid and future months
+    const allUnpaidMonths = [];
+    for (let m = 1; m <= 12; m++) {
+      if (!financial.umpStatus.paidMonths.includes(m)) {
+        allUnpaidMonths.push(m);
+      }
+    }
+    if (allUnpaidMonths.length === 0) {
+      toast({
+        title: "Ano completo",
+        description: "Todos os meses já estão pagos!",
+      });
+      return;
+    }
+    createPaymentMutation.mutate({ type: "ump", months: allUnpaidMonths });
+  };
+
   const [payingEventId, setPayingEventId] = useState<number | null>(null);
 
   const createEventPaymentMutation = useMutation({
@@ -587,37 +615,58 @@ export default function FinanceiroPage() {
                       })}
                     </div>
 
-                    {financial.umpStatus.totalOwed > 0 && (
-                      <div className="pt-2 space-y-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Total pendente:</span>
-                          <span className="font-medium text-amber-600 dark:text-amber-400">
-                            {formatCurrency(financial.umpStatus.totalOwed)}
-                          </span>
-                        </div>
-                        {financial.isActiveMember ? (
-                          <div className="space-y-3">
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              {financial.umpStatus.unpaidMonths.length === 1 ? (
-                                <Button
-                                  className="flex-1 gap-2 min-w-0"
-                                  onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
-                                  disabled={createPaymentMutation.isPending}
-                                  data-testid="button-ump-single"
-                                >
-                                  {createPaymentMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                                  ) : (
-                                    <QrCode className="h-4 w-4 flex-shrink-0" />
-                                  )}
-                                  <span className="truncate">Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})</span>
-                                </Button>
-                              ) : financial.umpStatus.unpaidMonths.length > 1 ? (
-                                <>
+                    {(() => {
+                      // Calculate all unpaid months (including future ones) for full year anticipation
+                      const allUnpaidMonths = [];
+                      for (let m = 1; m <= 12; m++) {
+                        if (!financial.umpStatus.paidMonths.includes(m)) {
+                          allUnpaidMonths.push(m);
+                        }
+                      }
+                      const fullYearAmount = allUnpaidMonths.length * financial.umpStatus.monthlyAmount;
+                      const hasUnpaidMonths = allUnpaidMonths.length > 0;
+                      const firstUnpaidMonth = allUnpaidMonths.length > 0 ? allUnpaidMonths[0] : null;
+                      
+                      // Outstanding months = unpaid past months (using existing umpStatus)
+                      const hasPendingMonths = financial.umpStatus.unpaidMonths.length > 0;
+                      const hasOnlyFutureMonths = hasPendingMonths && financial.umpStatus.totalOwed === 0;
+                      
+                      // Show full year option only if there are more months to pay than just outstanding
+                      const showFullYearOption = allUnpaidMonths.length > financial.umpStatus.unpaidMonths.length;
+
+                      if (!hasUnpaidMonths) return null;
+
+                      return (
+                        <div className="pt-2 space-y-3">
+                          {/* Show pending/outstanding amount if any */}
+                          {financial.umpStatus.totalOwed > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Total pendente:</span>
+                              <span className="font-medium text-amber-600 dark:text-amber-400">
+                                {formatCurrency(financial.umpStatus.totalOwed)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Show full year anticipation amount if different from pending */}
+                          {showFullYearOption && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Antecipar ano completo:</span>
+                              <span className="font-medium text-primary">
+                                {formatCurrency(fullYearAmount)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {financial.isActiveMember ? (
+                            <div className="space-y-2">
+                              {/* Row 1: Monthly payment + Outstanding payment */}
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                {firstUnpaidMonth && (
                                   <Button
                                     className="flex-1 gap-2 min-w-0"
                                     variant="outline"
-                                    onClick={() => handlePaySingleUmpMonth(financial.umpStatus.unpaidMonths[0])}
+                                    onClick={() => handlePaySingleUmpMonth(firstUnpaidMonth)}
                                     disabled={createPaymentMutation.isPending}
                                     data-testid="button-ump-single"
                                   >
@@ -626,32 +675,54 @@ export default function FinanceiroPage() {
                                     ) : (
                                       <QrCode className="h-4 w-4 flex-shrink-0" />
                                     )}
-                                    <span className="truncate">Pagar {monthNames[financial.umpStatus.unpaidMonths[0] - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})</span>
+                                    <span className="truncate">Pagar {monthNames[firstUnpaidMonth - 1]} ({formatCurrency(financial.umpStatus.monthlyAmount)})</span>
                                   </Button>
+                                )}
+                                
+                                {/* Pay all outstanding months (not future) */}
+                                {financial.umpStatus.unpaidMonths.length > 1 && (
                                   <Button
                                     className="flex-1 gap-2 min-w-0"
                                     onClick={handlePayUmp}
                                     disabled={createPaymentMutation.isPending}
-                                    data-testid="button-ump-all"
+                                    data-testid="button-ump-all-pending"
                                   >
                                     {createPaymentMutation.isPending ? (
                                       <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                                     ) : (
                                       <QrCode className="h-4 w-4 flex-shrink-0" />
                                     )}
-                                    <span className="truncate">Pagar todos ({financial.umpStatus.unpaidMonths.length}) - {formatCurrency(financial.umpStatus.totalOwed)}</span>
+                                    <span className="truncate">Pagar pendentes ({financial.umpStatus.unpaidMonths.length}x)</span>
                                   </Button>
-                                </>
-                              ) : null}
+                                )}
+                              </div>
+                              
+                              {/* Row 2: Full year anticipation button */}
+                              {showFullYearOption && (
+                                <Button
+                                  className="w-full gap-2"
+                                  variant="secondary"
+                                  onClick={handlePayFullYear}
+                                  disabled={createPaymentMutation.isPending}
+                                  data-testid="button-ump-full-year"
+                                >
+                                  {createPaymentMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                                  ) : (
+                                    <QrCode className="h-4 w-4 flex-shrink-0" />
+                                  )}
+                                  <span>Antecipar ano completo ({allUnpaidMonths.length} meses) - {formatCurrency(fullYearAmount)}</span>
+                                </Button>
+                              )}
                             </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-2">
-                            Apenas membros ativos pagam esta taxa
-                          </p>
-                        )}
-                      </div>
-                    )}
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              Apenas membros ativos pagam esta taxa
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </motion.div>

@@ -10,6 +10,52 @@ interface PushNotificationState {
   isSubscribedOnServer: boolean;
   isLoading: boolean;
   error: string | null;
+  browserInfo: { name: string; isBrave: boolean; requiresSetup: boolean } | null;
+}
+
+// Detect browser for better error messages
+function detectBrowserInfo(): { name: string; isBrave: boolean; requiresSetup: boolean } {
+  const ua = navigator.userAgent;
+  const isBrave = !!(navigator as any).brave?.isBrave;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isFirefox = /Firefox/.test(ua);
+  const isEdge = /Edg/.test(ua);
+  const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+  
+  let name = 'navegador';
+  if (isBrave) name = 'Brave';
+  else if (isEdge) name = 'Edge';
+  else if (isChrome) name = 'Chrome';
+  else if (isFirefox) name = 'Firefox';
+  else if (isSafari) name = 'Safari';
+  
+  // Brave requires special setup for push notifications
+  const requiresSetup = isBrave || isIOS;
+  
+  return { name, isBrave, requiresSetup };
+}
+
+function getSubscriptionError(error: any, browserInfo: ReturnType<typeof detectBrowserInfo>): string {
+  const errorStr = error?.message || error?.toString() || '';
+  
+  if (browserInfo.isBrave) {
+    if (errorStr.includes('Registration failed') || 
+        errorStr.includes('AbortError') ||
+        errorStr.includes('InvalidStateError')) {
+      return 'O Brave requer configuração: Acesse brave://settings/privacy e ative "Usar serviços do Google para mensagens push"';
+    }
+  }
+  
+  if (errorStr.includes('denied') || errorStr.includes('NotAllowedError')) {
+    return 'Permissão negada. Habilite nas configurações do navegador.';
+  }
+  
+  if (errorStr.includes('network') || errorStr.includes('fetch')) {
+    return 'Erro de conexão. Verifique sua internet.';
+  }
+  
+  return `Erro ao ativar notificações no ${browserInfo.name}. Verifique as permissões do navegador.`;
 }
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
@@ -40,14 +86,16 @@ export function usePushNotifications() {
     isSubscribedOnServer: false,
     isLoading: false,
     error: null,
+    browserInfo: null,
   });
 
   useEffect(() => {
     const checkSupportAndSync = async () => {
+      const browserInfo = detectBrowserInfo();
       const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
       
       if (!isSupported) {
-        setState(prev => ({ ...prev, isSupported: false }));
+        setState(prev => ({ ...prev, isSupported: false, browserInfo }));
         return;
       }
 
@@ -112,6 +160,7 @@ export function usePushNotifications() {
         permission,
         isSubscribed: isSubscribedOnServer || (isSubscribed && !token),
         isSubscribedOnServer,
+        browserInfo,
       }));
     };
 
@@ -210,16 +259,18 @@ export function usePushNotifications() {
       }));
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Push] Error subscribing:', error);
+      const browserInfo = state.browserInfo || detectBrowserInfo();
+      const errorMessage = getSubscriptionError(error, browserInfo);
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
-        error: 'Error subscribing to notifications' 
+        error: errorMessage 
       }));
       return false;
     }
-  }, [state.isSupported, state.permission, requestPermission]);
+  }, [state.isSupported, state.permission, state.browserInfo, requestPermission]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
     if (!state.isSupported || !state.isSubscribed) {

@@ -2760,11 +2760,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { PREDEFINED_ENCOURAGEMENT_MESSAGES } = await import('@shared/schema');
-      // Map to expected format: key, title, body, icon (frontend expects title/body fields)
+      // Map to expected format: key, text, icon (frontend expects text field)
       const messages = PREDEFINED_ENCOURAGEMENT_MESSAGES.map(msg => ({
         key: msg.key,
-        title: msg.text.split('!')[0] + (msg.text.includes('!') ? '!' : ''),
-        body: msg.text,
+        text: msg.text,
         icon: msg.icon,
       }));
       res.json({ messages });

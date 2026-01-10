@@ -656,11 +656,35 @@ export default function LessonPage() {
     // Convert units to sections
     // Note: verse units from season PDFs use { text, reference } format
     // while other units use { body, title } or { verseText, verseReference } format
-    const sections: StudySection[] = units.map(u => ({
-      type: u.type as any,
-      title: u.content.title || u.content.verseReference || u.content.reference || (u.type === 'verse' ? 'Versículo Base' : ''),
-      content: u.content.body || u.content.verseText || u.content.text || u.content.highlight || ""
-    }));
+    // For verse type: highlight contains the reference when coming from AI-generated studyContent
+    const sections: StudySection[] = units.map(u => {
+      // For verse type units, prioritize reference fields but also check title if it's a real reference
+      const isVerse = u.type === 'verse';
+      let title = '';
+      if (isVerse) {
+        // For verse: reference > verseReference > highlight > title (if not generic) > fallback
+        // Avoid using generic "Versículo Base" or "Versiculo base" as the displayed reference
+        const contentTitle = u.content.title;
+        const isGenericTitle = !contentTitle || 
+          contentTitle.toLowerCase().includes('versículo base') || 
+          contentTitle.toLowerCase().includes('versiculo base');
+        
+        title = u.content.reference || 
+                u.content.verseReference || 
+                u.content.highlight || 
+                (!isGenericTitle ? contentTitle : '') || 
+                'Versículo Base';
+      } else {
+        // For other types: title > verseReference > reference
+        title = u.content.title || u.content.verseReference || u.content.reference || '';
+      }
+      
+      return {
+        type: u.type as any,
+        title,
+        content: u.content.body || u.content.verseText || u.content.text || u.content.highlight || ""
+      };
+    });
 
     // Find Slide 0 (Verse) - MUST be first
     const primaryVerseIndex = sections.findIndex(s => s.type === 'verse');

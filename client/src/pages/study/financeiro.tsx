@@ -700,7 +700,7 @@ export default function FinanceiroPage() {
                               {/* Row 2: Full year anticipation button */}
                               {showFullYearOption && (
                                 <Button
-                                  className="w-full gap-2"
+                                  className="w-full gap-2 overflow-hidden"
                                   variant="secondary"
                                   onClick={handlePayFullYear}
                                   disabled={createPaymentMutation.isPending}
@@ -711,7 +711,7 @@ export default function FinanceiroPage() {
                                   ) : (
                                     <QrCode className="h-4 w-4 flex-shrink-0" />
                                   )}
-                                  <span>Antecipar ano completo ({allUnpaidMonths.length} meses) - {formatCurrency(fullYearAmount)}</span>
+                                  <span className="truncate">Antecipar ano ({allUnpaidMonths.length}x) - {formatCurrency(fullYearAmount)}</span>
                                 </Button>
                               )}
                             </div>

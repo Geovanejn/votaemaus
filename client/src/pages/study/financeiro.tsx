@@ -467,45 +467,56 @@ export default function FinanceiroPage() {
             </Card>
           ) : financial ? (
             <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className={cn(
-                  financial.totalOwed === 0 
-                    ? "bg-green-50 dark:bg-green-900/20" 
-                    : "bg-amber-50 dark:bg-amber-900/20"
-                )}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Situação Atual</p>
-                        <p className="text-2xl font-bold">
-                          {financial.totalOwed === 0 ? (
-                            <span className="text-green-600 dark:text-green-400">Em dia</span>
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400">
-                              {formatCurrency(financial.totalOwed)} pendente
-                            </span>
-                          )}
-                        </p>
+              {financial.isActiveMember && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className={cn(
+                    financial.totalOwed === 0 
+                      ? "bg-green-50 dark:bg-green-900/20" 
+                      : "bg-amber-50 dark:bg-amber-900/20"
+                  )}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Situação Atual</p>
+                          <p className="text-2xl font-bold">
+                            {financial.totalOwed === 0 ? (
+                              <span className="text-green-600 dark:text-green-400">Em dia</span>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400">
+                                {formatCurrency(financial.totalOwed)} pendente
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        {financial.totalOwed === 0 ? (
+                          <CheckCircle className="h-10 w-10 text-green-500" />
+                        ) : (
+                          <Clock className="h-10 w-10 text-amber-500" />
+                        )}
                       </div>
-                      {financial.totalOwed === 0 ? (
-                        <CheckCircle className="h-10 w-10 text-green-500" />
-                      ) : (
-                        <Clock className="h-10 w-10 text-amber-500" />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card>
+                <Card className="relative overflow-hidden">
+                  {!financial.isActiveMember && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                      <div className="bg-primary px-4 py-2 rounded-md">
+                        <span className="text-primary-foreground font-medium text-sm">
+                          Seja um sócio ativo
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-base">Taxa Percapta</CardTitle>
@@ -543,11 +554,6 @@ export default function FinanceiroPage() {
                         Pagar via PIX
                       </Button>
                     )}
-                    {!financial.isActiveMember && !financial.percaptaStatus.isPaid && (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        Apenas membros ativos pagam esta taxa
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -557,7 +563,16 @@ export default function FinanceiroPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card>
+                <Card className="relative overflow-hidden">
+                  {!financial.isActiveMember && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                      <div className="bg-primary px-4 py-2 rounded-md">
+                        <span className="text-primary-foreground font-medium text-sm">
+                          Seja um sócio ativo
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-base">Taxa UMP Emaús</CardTitle>
@@ -713,11 +728,7 @@ export default function FinanceiroPage() {
                                 </Button>
                               )}
                             </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground text-center py-2">
-                              Apenas membros ativos pagam esta taxa
-                            </p>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })()}

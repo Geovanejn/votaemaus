@@ -2311,6 +2311,7 @@ export const shopItems = pgTable("shop_items", {
   bannerImageData: text("banner_image_data"),
   allowInstallments: boolean("allow_installments").notNull().default(false),
   maxInstallments: integer("max_installments").default(1),
+  stockQuantity: integer("stock_quantity"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

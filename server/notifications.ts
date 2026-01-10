@@ -1125,6 +1125,24 @@ export async function notifyEventStartingSoon(
   console.log(`[Notifications] Event starting soon push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
 }
 
+export async function notifyEventStarted(
+  eventId: number,
+  eventTitle: string
+): Promise<void> {
+  console.log(`[Notifications] notifyEventStarted STARTED for event ${eventId}: "${eventTitle}"`);
+  
+  const payload: NotificationPayload = {
+    title: "🎉 Evento Começou!",
+    body: `"${eventTitle}" já está disponível! Comece agora.`,
+    url: `/study/eventos/${eventId}`,
+    tag: `event-started-${eventId}`,
+    icon: "/logo.png",
+  };
+
+  const pushResult = await sendPushToAllMembers(payload);
+  console.log(`[Notifications] Event started push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+}
+
 export async function notifyEventDeadline(
   eventId: number,
   eventTitle: string,

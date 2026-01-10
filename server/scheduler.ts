@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyEventStartingSoon, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
@@ -1001,6 +1001,25 @@ async function processEventDeadlineNotifications(): Promise<void> {
               console.log(`[Event Deadline Scheduler] Sent 24h before start notification for event "${event.title}" (${hoursUntilStart.toFixed(1)}h until start)`);
             } catch (notifyError) {
               console.error(`[Event Deadline Scheduler] Error sending start notification for event ${event.id}:`, notifyError);
+            }
+          }
+        }
+        
+        // === Check if event just STARTED (within first hour of start) ===
+        // This handles the case when the scheduler runs exactly at 00:00 when event starts
+        const hoursSinceStart = -hoursUntilStart; // Positive if event already started
+        if (hoursSinceStart >= 0 && hoursSinceStart < 1) {
+          const startedCacheKey = `${event.id}-started`;
+          const alreadySentStarted = await storage.hasEventNotificationBeenSent(startedCacheKey);
+          
+          if (!alreadySentStarted) {
+            try {
+              await notifyEventStarted(event.id, event.title);
+              await storage.markEventNotificationSent(startedCacheKey, event.id, 'started');
+              notificationsSent++;
+              console.log(`[Event Deadline Scheduler] Sent "event started" notification for event "${event.title}"`);
+            } catch (notifyError) {
+              console.error(`[Event Deadline Scheduler] Error sending started notification for event ${event.id}:`, notifyError);
             }
           }
         }

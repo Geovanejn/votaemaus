@@ -5885,19 +5885,19 @@ export class DatabaseStorage implements IStorage {
       return { success: false, message: "Falha ao gastar cristais" };
     }
 
-    // Update lastActivityDate to yesterday so the streak continues
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = new Intl.DateTimeFormat('en-CA', {
+    // Update lastActivityDate to TODAY so the modal stops appearing
+    // The streak continues because we're marking as if the user studied today
+    // They still need to actually complete a lesson to increment the streak
+    const today = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
-    }).format(yesterday);
+    }).format(new Date());
 
     await db.update(schema.studyProfiles)
       .set({ 
-        lastActivityDate: yesterdayStr,
+        lastActivityDate: today,
         streakWarningDay: 0,
         updatedAt: new Date() 
       })
@@ -5932,7 +5932,10 @@ export class DatabaseStorage implements IStorage {
       day: '2-digit'
     }).format(new Date());
     
-    if (profile.lastActivityDate === today) {
+    // Use lastLessonDate to check if already incremented today (not lastActivityDate)
+    // lastActivityDate may be set by streak recovery, but streak should only increment once per day
+    // based on actual lesson completion (tracked by lastLessonDate)
+    if (profile.lastLessonDate === today) {
       return { newStreak: profile.currentStreak, isNewRecord: false };
     }
     
@@ -5944,6 +5947,7 @@ export class DatabaseStorage implements IStorage {
         currentStreak: newStreak,
         longestStreak: isNewRecord ? newStreak : profile.longestStreak,
         lastActivityDate: today,
+        lastLessonDate: today,
         lastLessonCompletedAt: new Date(),
         streakWarningDay: 0,
         updatedAt: new Date() 

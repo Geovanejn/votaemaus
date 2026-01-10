@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Flame, Snowflake, Diamond, BookOpen } from "lucide-react";
+import { Flame, Diamond, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { FrozenFlameAnimation } from "./FrozenFlameAnimation";
 
 interface StreakRecoveryStatus {
   needsRecovery: boolean;
@@ -22,7 +23,7 @@ export function StreakRecoveryModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(0);
-  const [showFreezeBreaking, setShowFreezeBreaking] = useState(false);
+  const [isDefrosting, setIsDefrosting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: status, isLoading } = useQuery<StreakRecoveryStatus>({
@@ -37,15 +38,16 @@ export function StreakRecoveryModal() {
       return res.json();
     },
     onSuccess: () => {
-      setShowFreezeBreaking(true);
-      setTimeout(() => {
-        setShowFreezeBreaking(false);
-        setIsOpen(false);
-        queryClient.invalidateQueries({ queryKey: ["/api/study/streak/status"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/study/profile"] });
-      }, 2000);
+      setIsDefrosting(true);
     },
   });
+
+  const handleDefrostComplete = useCallback(() => {
+    setIsDefrosting(false);
+    setIsOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/study/streak/status"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/study/profile"] });
+  }, [queryClient]);
 
   const acknowledgeLossMutation = useMutation({
     mutationFn: async () => {
@@ -94,7 +96,7 @@ export function StreakRecoveryModal() {
   };
 
   const handleClose = () => {
-    if (!status.streakLost) {
+    if (!status.streakLost && !isDefrosting) {
       setIsOpen(false);
     }
   };
@@ -106,31 +108,18 @@ export function StreakRecoveryModal() {
         data-testid="streak-recovery-modal"
       >
         <AnimatePresence mode="wait">
-          {showFreezeBreaking ? (
+          {isDefrosting ? (
             <motion.div
-              key="freeze-breaking"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="flex flex-col items-center justify-center py-8 gap-4"
+              key="defrosting"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-12"
             >
-              <motion.div
-                animate={{ 
-                  rotate: [0, -10, 10, -10, 10, 0],
-                  scale: [1, 1.1, 1, 1.1, 1]
-                }}
-                transition={{ duration: 0.5 }}
-              >
-                <Snowflake className="w-20 h-20 text-cyan-400 opacity-50" />
-              </motion.div>
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3, type: "spring" }}
-              >
-                <Flame className="w-24 h-24 text-orange-500" />
-              </motion.div>
-              <p className="text-xl font-bold text-white">Ofensiva Recuperada!</p>
+              <FrozenFlameAnimation 
+                isDefrosting={true} 
+                onDefrostComplete={handleDefrostComplete}
+              />
             </motion.div>
           ) : showCountdown ? (
             <motion.div
@@ -194,15 +183,7 @@ export function StreakRecoveryModal() {
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-6 py-4"
             >
-              <motion.div 
-                className="relative"
-                animate={{ scale: [1, 1.02, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                <div className="absolute inset-0 bg-cyan-400/20 blur-2xl rounded-full" />
-                <Snowflake className="w-20 h-20 text-cyan-400 relative z-10" />
-                <Flame className="w-10 h-10 text-orange-500 absolute -bottom-1 -right-1 z-20" />
-              </motion.div>
+              <FrozenFlameAnimation isDefrosting={false} />
               
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-white">Ofensiva Congelada!</h2>

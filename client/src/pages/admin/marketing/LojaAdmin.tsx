@@ -94,6 +94,7 @@ interface ShopItemAdmin {
   bannerImageData: string | null;
   allowInstallments: boolean;
   maxInstallments: number | null;
+  stockQuantity: number | null;
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
@@ -126,6 +127,7 @@ const itemFormSchema = z.object({
   featuredOrder: z.number().optional(),
   allowInstallments: z.boolean(),
   maxInstallments: z.number().min(1).max(12).optional(),
+  stockQuantity: z.number().min(0).nullable().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -290,6 +292,7 @@ export default function LojaAdmin() {
       featuredOrder: undefined,
       allowInstallments: false,
       maxInstallments: 3,
+      stockQuantity: null,
     },
   });
 
@@ -308,6 +311,7 @@ export default function LojaAdmin() {
         featuredOrder: editingItem.featuredOrder ?? undefined,
         allowInstallments: editingItem.allowInstallments ?? false,
         maxInstallments: editingItem.maxInstallments ?? 3,
+        stockQuantity: editingItem.stockQuantity ?? null,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -324,6 +328,7 @@ export default function LojaAdmin() {
         featuredOrder: undefined,
         allowInstallments: false,
         maxInstallments: 3,
+        stockQuantity: null,
       });
       setPriceDisplay("");
     }
@@ -2052,6 +2057,37 @@ export default function LojaAdmin() {
                     )}
                   />
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="stockQuantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantidade em Estoque</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="Deixe vazio para sem controle"
+                          value={field.value?.toString() ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            if (val === "") {
+                              field.onChange(null);
+                            } else {
+                              field.onChange(parseInt(val, 10));
+                            }
+                          }}
+                          data-testid="input-stock-quantity"
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Deixe vazio para nao controlar estoque. Quando chegar a 0, o item sera marcado como esgotado automaticamente.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <DialogFooter className="gap-2 pt-4">

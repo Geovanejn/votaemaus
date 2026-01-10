@@ -664,8 +664,7 @@ export default function FinanceiroPage() {
                               <div className="flex flex-col sm:flex-row gap-2">
                                 {firstUnpaidMonth && (
                                   <Button
-                                    className="flex-1 gap-2 min-w-0"
-                                    variant="outline"
+                                    className="flex-1 gap-2 min-w-0 bg-primary hover:bg-primary/90 text-primary-foreground"
                                     onClick={() => handlePaySingleUmpMonth(firstUnpaidMonth)}
                                     disabled={createPaymentMutation.isPending}
                                     data-testid="button-ump-single"
@@ -682,7 +681,7 @@ export default function FinanceiroPage() {
                                 {/* Pay all outstanding months (not future) */}
                                 {financial.umpStatus.unpaidMonths.length > 1 && (
                                   <Button
-                                    className="flex-1 gap-2 min-w-0"
+                                    className="flex-1 gap-2 min-w-0 bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
                                     onClick={handlePayUmp}
                                     disabled={createPaymentMutation.isPending}
                                     data-testid="button-ump-all-pending"
@@ -700,8 +699,7 @@ export default function FinanceiroPage() {
                               {/* Row 2: Full year anticipation button */}
                               {showFullYearOption && (
                                 <Button
-                                  className="w-full gap-2 overflow-hidden"
-                                  variant="secondary"
+                                  className="w-full gap-2 overflow-hidden bg-emerald-500 hover:bg-emerald-600 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
                                   onClick={handlePayFullYear}
                                   disabled={createPaymentMutation.isPending}
                                   data-testid="button-ump-full-year"

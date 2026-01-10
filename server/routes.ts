@@ -13231,6 +13231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidAt: now,
         });
 
+        // Deduct stock for each item in the order
+        const orderItems = await storage.getShopOrderItems(entry.orderId);
+        for (const orderItem of orderItems) {
+          await storage.deductStockQuantity(orderItem.itemId, orderItem.quantity);
+        }
+        console.log(`[Payment] Stock deducted for ${orderItems.length} items in order ${entry.orderId}`);
+
         // Send notification for paid order
         const order = await storage.getShopOrderById(entry.orderId);
         if (order) {

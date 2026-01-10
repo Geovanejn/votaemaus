@@ -533,6 +533,7 @@ export interface IStorage {
   createShopItem(data: InsertShopItem): Promise<ShopItem>;
   updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
   deleteShopItem(id: number): Promise<void>;
+  deductStockQuantity(itemId: number, quantity: number): Promise<{ success: boolean; newQuantity: number | null }>;
   
   // Shop Item Images Methods
   getShopItemImages(itemId: number): Promise<ShopItemImage[]>;
@@ -7033,6 +7034,29 @@ export class DatabaseStorage implements IStorage {
   async deleteShopItem(id: number): Promise<void> {
     await db.delete(schema.shopItems)
       .where(eq(schema.shopItems.id, id));
+  }
+
+  async deductStockQuantity(itemId: number, quantity: number): Promise<{ success: boolean; newQuantity: number | null }> {
+    const item = await this.getShopItemById(itemId);
+    if (!item) return { success: false, newQuantity: null };
+    
+    // If stockQuantity is null, no stock control - just return success
+    if (item.stockQuantity === null) {
+      return { success: true, newQuantity: null };
+    }
+    
+    const newQuantity = Math.max(0, item.stockQuantity - quantity);
+    
+    // Update stock and mark as unavailable if quantity reaches 0
+    await db.update(schema.shopItems)
+      .set({
+        stockQuantity: newQuantity,
+        isAvailable: newQuantity > 0,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.shopItems.id, itemId));
+    
+    return { success: true, newQuantity };
   }
 
   // ==================== SHOP ITEM IMAGES METHODS ====================

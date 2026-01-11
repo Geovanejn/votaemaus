@@ -35,7 +35,7 @@ export function VisitorNotificationPrompt({ className }: VisitorNotificationProm
 
   useEffect(() => {
     const checkVisibility = () => {
-      const isLoggedIn = !!localStorage.getItem('auth_token');
+      const isLoggedIn = !!localStorage.getItem('token');
       if (isLoggedIn) {
         setIsVisible(false);
         return;

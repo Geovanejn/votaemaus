@@ -220,7 +220,7 @@ export default function AgendaPage() {
     
     const checkPaymentStatus = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token');
         const headers: Record<string, string> = {};
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
@@ -259,7 +259,7 @@ export default function AgendaPage() {
   const handleManualPaymentCheck = async () => {
     if (!pixData?.entryId) return;
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;

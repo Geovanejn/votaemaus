@@ -60,7 +60,7 @@ export function NotificationToggle() {
         
         console.log('[Push] Sending subscription to server...');
         const subscriptionJson = subscription.toJSON();
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token');
         
         const response = await fetch('/api/notifications/subscribe', {
           method: 'POST',

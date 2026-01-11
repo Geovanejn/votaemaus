@@ -52,6 +52,10 @@ export function authenticateToken(
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
+    // Log warning for notification routes to help debug subscription issues
+    if (req.path.includes('/notifications/')) {
+      console.warn(`[Auth] Missing token for notification route: ${req.method} ${req.path}`);
+    }
     return res.status(401).json({ message: "Token não fornecido" });
   }
 
@@ -59,7 +63,11 @@ export function authenticateToken(
     const decoded = jwt.verify(token, JWT_SECRET) as Omit<User, "password"> & { id: number };
     req.user = decoded;
     next();
-  } catch (error) {
+  } catch (error: any) {
+    // Log warning for notification routes to help debug subscription issues
+    if (req.path.includes('/notifications/')) {
+      console.warn(`[Auth] Invalid token for notification route: ${req.method} ${req.path} - ${error.message || 'Unknown error'}`);
+    }
     return res.status(403).json({ message: "Token inválido" });
   }
 }

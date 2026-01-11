@@ -18,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SESSION_DURATION = 2 * 60 * 60 * 1000;
+const SESSION_DURATION = 96 * 60 * 60 * 1000; // 96 hours (4 days) - must match JWT expiration in server/auth.ts
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Omit<User, "password"> | null>(null);

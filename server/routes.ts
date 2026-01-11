@@ -9767,12 +9767,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== SHOP ROUTES - MEMBER ====================
 
+  // In-memory cache for shop images (avoids repeated database queries and image processing)
+  const shopImageCache = new Map<string, { buffer: Buffer; timestamp: number }>();
+  const SHOP_IMAGE_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+  const SHOP_IMAGE_CACHE_MAX_SIZE = 200; // Max 200 images in cache
+
+  function getFromShopCache(key: string): Buffer | null {
+    const cached = shopImageCache.get(key);
+    if (cached && Date.now() - cached.timestamp < SHOP_IMAGE_CACHE_TTL) {
+      return cached.buffer;
+    }
+    if (cached) {
+      shopImageCache.delete(key);
+    }
+    return null;
+  }
+
+  function setInShopCache(key: string, buffer: Buffer): void {
+    if (shopImageCache.size >= SHOP_IMAGE_CACHE_MAX_SIZE) {
+      const firstKey = shopImageCache.keys().next().value;
+      if (firstKey) shopImageCache.delete(firstKey);
+    }
+    shopImageCache.set(key, { buffer, timestamp: Date.now() });
+  }
+
   // Proxy de imagens - serve imagens sob demanda com compressão WebP (lazy loading)
   app.get("/api/shop/images/banner/:itemId", async (req, res) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const cacheKey = `banner:${itemId}`;
+      const cached = getFromShopCache(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/webp',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Length': cached.length,
+        });
+        return res.send(cached);
       }
       
       const imageData = await storage.getShopItemBannerImage(itemId);
@@ -9788,11 +9823,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Compress with Sharp - banner images get 2000px width for Ultra HD quality
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 2000, withoutEnlargement: true })
         .webp({ quality: 90 })
         .toBuffer();
+      
+      setInShopCache(cacheKey, optimizedBuffer);
       
       res.set({
         'Content-Type': 'image/webp',
@@ -9813,6 +9849,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
+      const cacheKey = `item:${imageId}`;
+      const cached = getFromShopCache(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/webp',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Length': cached.length,
+        });
+        return res.send(cached);
+      }
+      
       const imageData = await storage.getShopItemImageData(imageId);
       if (!imageData) {
         return res.status(404).json({ message: "Imagem não encontrada" });
@@ -9826,11 +9873,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Compress with Sharp - gallery images get 2000px width for Ultra HD quality
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 2000, withoutEnlargement: true })
         .webp({ quality: 90 })
         .toBuffer();
+      
+      setInShopCache(cacheKey, optimizedBuffer);
       
       res.set({
         'Content-Type': 'image/webp',
@@ -9852,6 +9900,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
+      const cacheKey = `category:${categoryId}`;
+      const cached = getFromShopCache(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/webp',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Length': cached.length,
+        });
+        return res.send(cached);
+      }
+      
       const imageData = await storage.getShopCategoryImageData(categoryId);
       if (!imageData) {
         return res.status(404).json({ message: "Imagem não encontrada" });
@@ -9865,11 +9924,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Compress with Sharp - category images get 400px for grid display
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 400, withoutEnlargement: true })
         .webp({ quality: 80 })
         .toBuffer();
+      
+      setInShopCache(cacheKey, optimizedBuffer);
       
       res.set({
         'Content-Type': 'image/webp',

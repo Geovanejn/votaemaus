@@ -1189,11 +1189,12 @@ export async function notifyDailyVerse(verse: string, reference: string): Promis
     icon: "/logo.png",
   };
 
-  const result = await sendPushToAllMembers(payload);
+  // Send to ALL members (including inactive) - daily verse should reach everyone
+  const result = await sendPushToAllMembersIncludingInactive(payload);
   
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
-  console.log(`[Notifications] Daily verse notification: ${result.sent} members sent, ${anonymousResult.sent} anonymous visitors sent`);
+  console.log(`[Notifications] Daily verse notification: ${result.sent} members sent (including inactive), ${anonymousResult.sent} anonymous visitors sent`);
 }
 
 export function isWebPushConfigured(): boolean {

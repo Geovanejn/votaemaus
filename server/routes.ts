@@ -4746,6 +4746,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check push subscription status for current user
+  app.get("/api/notifications/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+      
+      res.json({
+        isSubscribed: subscriptions.length > 0,
+        subscriptionCount: subscriptions.length,
+        endpoints: subscriptions.map(s => s.endpoint.substring(0, 50) + '...')
+      });
+    } catch (error) {
+      console.error("[Push] Status check error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
   // Unsubscribe from push notifications
   app.post("/api/notifications/unsubscribe", authenticateToken, async (req: AuthRequest, res) => {
     try {

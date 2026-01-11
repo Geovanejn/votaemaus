@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ump-emaus-v4';
+const CACHE_NAME = 'ump-emaus-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

@@ -164,7 +164,30 @@ export function usePushNotifications() {
       }));
     };
 
+    // Always sync on app load (user accessing the system)
     checkSupportAndSync();
+    
+    // Revalidate when tab becomes visible (user returns to app after being away)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Push] Tab visible, revalidating subscription');
+        checkSupportAndSync();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Listen for service worker updates to re-sync
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[Push] Service worker updated, re-syncing subscription');
+        checkSupportAndSync();
+      });
+    }
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {

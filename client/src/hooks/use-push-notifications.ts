@@ -100,7 +100,7 @@ export function usePushNotifications() {
       }
 
       const permission = Notification.permission as PermissionState;
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token');
       
       if (token) {
         localStorage.removeItem(VISITOR_SUBSCRIBED_KEY);

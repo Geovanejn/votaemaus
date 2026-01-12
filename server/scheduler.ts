@@ -745,7 +745,7 @@ async function processEventLessonsRelease(): Promise<void> {
           const pushPayload = {
             title: '🎯 Novo Evento Especial!',
             body: `O evento "${event.title}" começou! Participe e ganhe cards exclusivos.`,
-            url: `/study/events/${event.id}`,
+            url: `/study/eventos/${event.id}`,
             tag: `event-${event.id}-start`,
             icon: "/logo.png",
           };
@@ -867,7 +867,7 @@ async function processEventCardsDistribution(): Promise<void> {
         const generalPayload = {
           title: '🏁 Evento Encerrado',
           body: `O evento "${event.title}" foi encerrado!`,
-          url: `/study/events`,
+          url: `/study/eventos`,
           tag: `event-${event.id}-end`,
           icon: "/logo.png",
         };

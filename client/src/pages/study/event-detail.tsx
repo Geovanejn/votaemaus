@@ -88,7 +88,7 @@ function LessonItem({
 
   const handleClick = () => {
     if (!isLocked && !isCompleted) {
-      setLocation(`/study/events/${eventId}/lessons/${lesson.dayNumber}`);
+      setLocation(`/study/eventos/${eventId}/lessons/${lesson.dayNumber}`);
     }
   };
 
@@ -387,7 +387,7 @@ export default function EventDetailPage() {
             return (
               <Card 
                 className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 hover-elevate cursor-pointer"
-                onClick={() => setLocation(`/study/events/${eventId}/lessons/${currentLesson.dayNumber}`)}
+                onClick={() => setLocation(`/study/eventos/${eventId}/lessons/${currentLesson.dayNumber}`)}
                 data-testid="card-continue-studying"
               >
                 <CardContent className="p-4">

@@ -483,6 +483,7 @@ export interface IStorage {
   
   // User Event Progress Methods
   getUserEventProgress(userId: number, eventId: number): Promise<UserEventProgress[]>;
+  getUserEventProgressBatch(userId: number, eventIds: number[]): Promise<Map<number, UserEventProgress[]>>;
   getUserEventLessonProgress(userId: number, lessonId: number): Promise<UserEventProgress | null>;
   saveUserEventProgress(data: InsertUserEventProgress): Promise<UserEventProgress>;
   
@@ -6661,6 +6662,26 @@ export class DatabaseStorage implements IStorage {
         eq(schema.userEventProgress.userId, userId),
         eq(schema.userEventProgress.eventId, eventId)
       ));
+  }
+
+  async getUserEventProgressBatch(userId: number, eventIds: number[]): Promise<Map<number, UserEventProgress[]>> {
+    if (eventIds.length === 0) {
+      return new Map();
+    }
+    const progress = await db.select()
+      .from(schema.userEventProgress)
+      .where(and(
+        eq(schema.userEventProgress.userId, userId),
+        inArray(schema.userEventProgress.eventId, eventIds)
+      ));
+    
+    const map = new Map<number, UserEventProgress[]>();
+    for (const p of progress) {
+      const existing = map.get(p.eventId) || [];
+      existing.push(p);
+      map.set(p.eventId, existing);
+    }
+    return map;
   }
 
   async getUserEventLessonProgress(userId: number, lessonId: number): Promise<UserEventProgress | null> {

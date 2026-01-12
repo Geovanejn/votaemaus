@@ -776,7 +776,7 @@ export async function sendNewStudyEventEmail(
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
       : (process.env.APP_URL || 'https://umpemaus.com.br');
     
-    const eventUrl = `${appUrl}/study/events/${eventId}`;
+    const eventUrl = `${appUrl}/study/eventos/${eventId}`;
     
     // Download event image if available
     let eventImageBuffer: Buffer | null = null;

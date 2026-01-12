@@ -61,6 +61,11 @@ export type NotificationType =
   | "prayer_liked"
   | "devotional_comment"
   | "event_deadline"
+  | "event_completed"
+  | "study_event_starting"
+  | "study_event_started"
+  | "study_event_deadline"
+  | "study_event_ended"
   | "system";
 
 export async function sendPushNotification(
@@ -301,6 +306,32 @@ export async function createInAppNotification(
     });
   } catch (error) {
     console.error(`[Notifications] Failed to create in-app notification for user ${userId}:`, error);
+  }
+}
+
+// Create in-app notifications for all active members
+export async function createInAppNotificationForAllMembers(
+  type: NotificationType,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+): Promise<void> {
+  try {
+    const activeMembers = await storage.getActiveMembers();
+    let count = 0;
+    for (const member of activeMembers) {
+      await storage.createNotification({
+        userId: member.id,
+        type,
+        title,
+        body,
+        data: data ? JSON.stringify(data) : null,
+      });
+      count++;
+    }
+    console.log(`[Notifications] Created ${count} in-app notifications for type "${type}"`);
+  } catch (error) {
+    console.error(`[Notifications] Failed to create in-app notifications for all members:`, error);
   }
 }
 
@@ -764,7 +795,7 @@ export async function notifyNewStudyEvent(
   const payload: NotificationPayload = {
     title: notificationTitle,
     body: notificationBody,
-    url: `/study/events/${eventId}`,
+    url: `/study/eventos/${eventId}`,
     tag: `study-event-${eventId}`,
     icon: "/logo.png",
   };
@@ -1123,6 +1154,14 @@ export async function notifyEventStartingSoon(
 
   const pushResult = await sendPushToAllMembers(payload);
   console.log(`[Notifications] Event starting soon push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  
+  // Also create in-app notifications for all members
+  await createInAppNotificationForAllMembers(
+    "study_event_starting",
+    payload.title,
+    payload.body,
+    { eventId, url: payload.url }
+  );
 }
 
 export async function notifyEventStarted(
@@ -1141,6 +1180,14 @@ export async function notifyEventStarted(
 
   const pushResult = await sendPushToAllMembers(payload);
   console.log(`[Notifications] Event started push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  
+  // Also create in-app notifications for all members
+  await createInAppNotificationForAllMembers(
+    "study_event_started",
+    payload.title,
+    payload.body,
+    { eventId, url: payload.url }
+  );
 }
 
 export async function notifyEventDeadline(
@@ -1160,6 +1207,14 @@ export async function notifyEventDeadline(
 
   const pushResult = await sendPushToAllMembers(payload);
   console.log(`[Notifications] Event deadline push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  
+  // Also create in-app notifications for all members
+  await createInAppNotificationForAllMembers(
+    "study_event_deadline",
+    payload.title,
+    payload.body,
+    { eventId, timeRemaining, url: payload.url }
+  );
 }
 
 export async function notifyEventEnded(
@@ -1178,6 +1233,14 @@ export async function notifyEventEnded(
 
   const pushResult = await sendPushToAllMembers(payload);
   console.log(`[Notifications] Event ended push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+  
+  // Also create in-app notifications for all members
+  await createInAppNotificationForAllMembers(
+    "study_event_ended",
+    payload.title,
+    payload.body,
+    { eventId, url: payload.url }
+  );
 }
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {

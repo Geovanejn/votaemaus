@@ -154,6 +154,7 @@ interface StudyEvent {
   durationLabel?: string | null;
   confirmationCount?: { members: number; visitors: number }; // Confirmation counts
   participantsCount?: number; // Number of members who started studying
+  isParticipating?: boolean; // Whether current user is participating
 }
 
 function getMonthLabel(startDate: string): string {
@@ -219,7 +220,7 @@ function EventCard({ event }: { event: StudyEvent }) {
 
   const handleClick = () => {
     if (!isLocked && !isEnded) {
-      setLocation(`/study/events/${event.id}`);
+      setLocation(`/study/eventos/${event.id}`);
     }
   };
 
@@ -424,6 +425,14 @@ function EventCard({ event }: { event: StudyEvent }) {
 
   const getButtonContent = () => {
     if (isActive) {
+      if (event.isParticipating) {
+        return (
+          <>
+            <CheckCircle2 className="h-4 w-4 mr-1" />
+            Participando
+          </>
+        );
+      }
       return "Participar";
     }
     if (isLocked) {
@@ -540,7 +549,9 @@ function EventCard({ event }: { event: StudyEvent }) {
             <Button 
               className={`rounded-xl px-6 font-bold shadow-md h-10 ${
                 isActive 
-                  ? "bg-[#2D5A27] hover:bg-[#23471F] text-white" 
+                  ? event.isParticipating
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-[#2D5A27] hover:bg-[#23471F] text-white" 
                   : isLocked 
                     ? "bg-slate-400 hover:bg-slate-500 text-white" 
                     : "bg-slate-300 text-slate-600 cursor-not-allowed"

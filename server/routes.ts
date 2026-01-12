@@ -8337,18 +8337,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      // OPTIMIZED: Batch fetch all confirmation counts and participant counts in parallel (single query each)
+      // OPTIMIZED: Batch fetch all confirmation counts, participant counts, and user progress in parallel
       const eventIds = events.map(e => e.id);
-      const [countsMap, participantCountsMap] = await Promise.all([
+      const userId = req.user!.id;
+      const [countsMap, participantCountsMap, userProgressMap] = await Promise.all([
         storage.getEventConfirmationCountsByEventIds(eventIds),
-        storage.getEventParticipantsCountBatch(eventIds)
+        storage.getEventParticipantsCountBatch(eventIds),
+        storage.getUserEventProgressBatch(userId, eventIds)
       ]);
       
-      const eventsWithCounts = events.map(event => ({
-        ...event,
-        confirmationCount: countsMap.get(event.id) || { members: 0, visitors: 0 },
-        participantsCount: participantCountsMap.get(event.id) || 0,
-      }));
+      const eventsWithCounts = events.map(event => {
+        const progress = userProgressMap.get(event.id) || [];
+        const hasProgress = progress.length > 0;
+        return {
+          ...event,
+          confirmationCount: countsMap.get(event.id) || { members: 0, visitors: 0 },
+          participantsCount: participantCountsMap.get(event.id) || 0,
+          isParticipating: hasProgress,
+        };
+      });
       
       res.json(eventsWithCounts);
     } catch (error) {

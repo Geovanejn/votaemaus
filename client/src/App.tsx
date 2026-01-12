@@ -215,8 +215,11 @@ function Router() {
           <Route path="/study/practice/:weekId" component={PracticePage} />
           <Route path="/study/practice" component={PracticePage} />
           <Route path="/study/events" component={EventsPage} />
+          <Route path="/study/eventos" component={EventsPage} />
           <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
+          <Route path="/study/eventos/:eventId/lessons/:dayNumber" component={EventLessonPage} />
           <Route path="/study/events/:id" component={EventDetailPage} />
+          <Route path="/study/eventos/:id" component={EventDetailPage} />
           <Route path="/study/cards" component={CardsCollectionPage} />
           <Route path="/study/financeiro" component={FinanceiroPage} />
           <Route path="/study/loja" component={LojaHomePage} />
@@ -278,8 +281,11 @@ function Router() {
         <Route path="/study/practice/:weekId" component={PracticePage} />
         <Route path="/study/practice" component={PracticePage} />
         <Route path="/study/events" component={EventsPage} />
+        <Route path="/study/eventos" component={EventsPage} />
         <Route path="/study/events/:eventId/lessons/:dayNumber" component={EventLessonPage} />
+        <Route path="/study/eventos/:eventId/lessons/:dayNumber" component={EventLessonPage} />
         <Route path="/study/events/:id" component={EventDetailPage} />
+        <Route path="/study/eventos/:id" component={EventDetailPage} />
         <Route path="/study/cards" component={CardsCollectionPage} />
         <Route path="/study/financeiro" component={FinanceiroPage} />
         <Route path="/study/loja" component={LojaHomePage} />

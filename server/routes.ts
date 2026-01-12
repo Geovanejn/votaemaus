@@ -99,6 +99,7 @@ import {
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
+import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
 // ==================== RATE LIMITING CONFIGURATION ====================
 
@@ -384,8 +385,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // ==================== IMAGE UPLOAD API ====================
-  // Images are now stored as Base64 data URLs in the database
-  // This ensures images persist across deploys on platforms like Render
+  // Images are stored in Cloudflare R2 when configured, otherwise Base64 in database
+  logR2Status();
+  
   app.post("/api/upload", authenticateToken, imageUpload.single('file'), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
@@ -393,75 +395,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const originalSizeKB = req.file.size / 1024;
+      const uploadType = req.body.uploadType || req.query.uploadType || 'general';
+      const isBanner = uploadType === 'banner';
       
       try {
-        // Para banners da loja, preservamos o arquivo original sem conversão
-        // ou qualquer processamento que possa reduzir a qualidade
-        const isBanner = req.body.uploadType === 'banner' || req.query.uploadType === 'banner';
-
+        let processedBuffer: Buffer;
+        let contentType: string;
+        
         if (isBanner) {
-          const base64 = req.file.buffer.toString('base64');
-          const mimeType = req.file.mimetype || 'image/jpeg';
-          const dataUrl = `data:${mimeType};base64,${base64}`;
-          
-          console.log(`[Upload] Pure banner upload: ${originalSizeKB.toFixed(1)}KB, mimeType: ${mimeType}`);
-          return res.json({ url: dataUrl, fileName: `banner_${Date.now()}` });
+          processedBuffer = req.file.buffer;
+          contentType = req.file.mimetype || 'image/jpeg';
+        } else {
+          processedBuffer = await sharp(req.file.buffer)
+            .webp({ quality: 100, lossless: true })
+            .toBuffer();
+          contentType = 'image/webp';
         }
-
-        // Get image metadata
-        const metadata = await sharp(req.file.buffer).metadata();
-        const originalWidth = metadata.width || 0;
-        const originalHeight = metadata.height || 0;
-
-        // Calculate new dimensions while preserving aspect ratio
-        let width = originalWidth;
-        let height = originalHeight;
-
-        if (originalWidth > MAX_IMAGE_WIDTH || originalHeight > MAX_IMAGE_HEIGHT) {
-          const aspectRatio = originalWidth / originalHeight;
-          if (aspectRatio > MAX_IMAGE_WIDTH / MAX_IMAGE_HEIGHT) {
-            width = MAX_IMAGE_WIDTH;
-            height = Math.round(MAX_IMAGE_WIDTH / aspectRatio);
-          } else {
-            height = MAX_IMAGE_HEIGHT;
-            width = Math.round(MAX_IMAGE_HEIGHT * aspectRatio);
-          }
-        }
-
-        // Process image: resize, compress, and convert to WebP for smaller size
-        const processedBuffer = await sharp(req.file.buffer)
-          .webp({ quality: 100, lossless: true })
-          .toBuffer();
 
         const compressedSizeKB = processedBuffer.length / 1024;
         
-        // Check if image is too large (max 10MB after processing)
         if (processedBuffer.length > 10 * 1024 * 1024) {
           return res.status(400).json({ 
-            message: `Imagem muito grande (${compressedSizeKB.toFixed(0)}KB). Máximo permitido: 10MB após processamento.` 
+            message: `Imagem muito grande (${compressedSizeKB.toFixed(0)}KB). Máximo permitido: 10MB.` 
           });
         }
 
-        // Convert to Base64 data URL
+        if (isR2Configured()) {
+          const category: ImageCategory = ['members', 'devotionals', 'events', 'shop', 'banners', 'categories', 'cards', 'lessons'].includes(uploadType) 
+            ? uploadType as ImageCategory 
+            : 'general';
+          
+          const r2Url = await uploadToR2(processedBuffer, category, contentType, req.file.originalname);
+          const publicUrl = getPublicUrl(r2Url);
+          
+          console.log(`[Upload] R2: ${originalSizeKB.toFixed(1)}KB -> ${compressedSizeKB.toFixed(1)}KB, URL: ${publicUrl}`);
+          return res.json({ url: r2Url, publicUrl, fileName: `image_${Date.now()}.webp` });
+        }
+
         const base64 = processedBuffer.toString('base64');
-        const dataUrl = `data:image/webp;base64,${base64}`;
+        const dataUrl = `data:${contentType};base64,${base64}`;
 
-        console.log(`[Upload] Image converted to Base64: ${originalSizeKB.toFixed(1)}KB -> ${compressedSizeKB.toFixed(1)}KB (${((1 - compressedSizeKB/originalSizeKB) * 100).toFixed(0)}% reduction)`);
-
+        console.log(`[Upload] Base64: ${originalSizeKB.toFixed(1)}KB -> ${compressedSizeKB.toFixed(1)}KB`);
         res.json({ url: dataUrl, fileName: `image_${Date.now()}.webp` });
       } catch (sharpError) {
-        console.error("[Upload] Sharp error, using original as Base64:", sharpError);
+        console.error("[Upload] Sharp error:", sharpError);
         
-        // Fallback: convert original to Base64 if sharp fails
+        if (isR2Configured()) {
+          const r2Url = await uploadToR2(req.file.buffer, 'general', req.file.mimetype, req.file.originalname);
+          return res.json({ url: r2Url, publicUrl: getPublicUrl(r2Url), fileName: `image_${Date.now()}` });
+        }
+        
         const base64 = req.file.buffer.toString('base64');
         const mimeType = req.file.mimetype || 'image/jpeg';
         const dataUrl = `data:${mimeType};base64,${base64}`;
-        
         res.json({ url: dataUrl, fileName: `image_${Date.now()}` });
       }
     } catch (error) {
       console.error("[Upload] Error:", error);
       res.status(500).json({ message: "Erro ao fazer upload do arquivo" });
+    }
+  });
+  
+  // ==================== R2 IMAGE PROXY ====================
+  app.get("/api/r2/:category/:filename", async (req, res) => {
+    try {
+      const { category, filename } = req.params;
+      if (!category || !filename) {
+        return res.status(400).json({ message: "Key not provided" });
+      }
+      
+      const key = `${category}/${filename}`;
+      const result = await getFromR2(`r2://${key}`);
+      if (!result) {
+        return res.status(404).json({ message: "Image not found" });
+      }
+      
+      res.set({
+        'Content-Type': result.contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.send(result.buffer);
+    } catch (error) {
+      console.error("[R2 Proxy] Error:", error);
+      res.status(500).json({ message: "Error fetching image" });
     }
   });
 

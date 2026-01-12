@@ -541,6 +541,7 @@ export interface IStorage {
   getShopItemImagesLight(itemId: number): Promise<Omit<ShopItemImage, 'imageData'>[]>;
   getShopItemImagesByItemIdsLight(itemIds: number[]): Promise<Map<number, Omit<ShopItemImage, 'imageData'>[]>>;
   createShopItemImage(data: InsertShopItemImage): Promise<ShopItemImage>;
+  updateShopItemImage(id: number, data: Partial<InsertShopItemImage>): Promise<ShopItemImage | null>;
   deleteShopItemImage(id: number): Promise<void>;
   reorderShopItemImages(itemId: number, imageIds: number[]): Promise<void>;
   
@@ -7123,6 +7124,14 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return image;
+  }
+
+  async updateShopItemImage(id: number, data: Partial<InsertShopItemImage>): Promise<ShopItemImage | null> {
+    const [image] = await db.update(schema.shopItemImages)
+      .set(data)
+      .where(eq(schema.shopItemImages.id, id))
+      .returning();
+    return image || null;
   }
 
   async deleteShopItemImage(id: number): Promise<void> {

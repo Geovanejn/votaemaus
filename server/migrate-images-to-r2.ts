@@ -113,6 +113,39 @@ export async function runImageMigration(): Promise<void> {
       }
     }
 
+    // Site events (agenda)
+    const siteEvents = await storage.getAllSiteEvents();
+    for (const event of siteEvents) {
+      if (event.imageUrl && isBase64Url(event.imageUrl)) {
+        await migrateField("siteEvents", event.id, "imageUrl", event.imageUrl, "events", async (newUrl) => {
+          await storage.updateSiteEvent(event.id, { imageUrl: newUrl });
+        });
+      }
+    }
+
+    // Board members (elections)
+    const boardMembers = await storage.getAllBoardMembers(false);
+    for (const member of boardMembers) {
+      if (member.photoUrl && isBase64Url(member.photoUrl)) {
+        await migrateField("boardMembers", member.id, "photoUrl", member.photoUrl, "members", async (newUrl) => {
+          await storage.updateBoardMember(member.id, { photoUrl: newUrl });
+        });
+      }
+    }
+
+    // Shop item images (product gallery)
+    const shopItems = await storage.getShopItems();
+    for (const item of shopItems) {
+      const images = await storage.getShopItemImages(item.id);
+      for (const img of images) {
+        if (img.imageData && isBase64Url(img.imageData)) {
+          await migrateField("shopItemImages", img.id, "imageData", img.imageData, "shop", async (newUrl) => {
+            await storage.updateShopItemImage(img.id, { imageData: newUrl });
+          });
+        }
+      }
+    }
+
   } catch (error) {
     console.error("[Migration] Fatal error:", error);
   }

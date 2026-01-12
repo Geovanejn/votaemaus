@@ -9047,12 +9047,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .jpeg({ quality: 95 })
           .toBuffer();
         
-        const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+        let imageDataUrl: string;
+        
+        // Upload to R2 if configured, otherwise use Base64
+        if (isR2Configured()) {
+          const r2Url = await uploadToR2(processedImage, 'image/jpeg', 'shop');
+          imageDataUrl = r2Url;
+        } else {
+          imageDataUrl = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+        }
         
         const image = await storage.createShopItemImage({
           itemId: id,
           gender,
-          imageData: base64Image,
+          imageData: imageDataUrl,
           sortOrder,
         });
         
@@ -9168,9 +9176,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .jpeg({ quality: 90, mozjpeg: true })
         .toBuffer();
       
-      const base64Image = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+      let imageDataUrl: string;
       
-      const updatedItem = await storage.updateShopItem(id, { bannerImageData: base64Image });
+      // Upload to R2 if configured, otherwise use Base64
+      if (isR2Configured()) {
+        const r2Url = await uploadToR2(processedImage, 'image/jpeg', 'banners');
+        imageDataUrl = r2Url;
+      } else {
+        imageDataUrl = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+      }
+      
+      const updatedItem = await storage.updateShopItem(id, { bannerImageData: imageDataUrl });
       res.json(updatedItem);
     } catch (error) {
       console.error("Upload shop item banner error:", error);
@@ -9825,6 +9841,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     shopImageCache.set(key, { buffer, timestamp: Date.now() });
   }
 
+  // Helper function to resolve image buffer from R2 or Base64
+  async function resolveImageBuffer(imageData: string): Promise<Buffer | null> {
+    if (isR2Url(imageData)) {
+      const r2Result = await getFromR2(imageData);
+      return r2Result ? r2Result.buffer : null;
+    } else if (isBase64Url(imageData)) {
+      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        return Buffer.from(matches[2], 'base64');
+      }
+    }
+    return null;
+  }
+
   // Proxy de imagens - serve imagens sob demanda com compressão WebP (lazy loading)
   app.get("/api/shop/images/banner/:itemId", async (req, res) => {
     try {
@@ -9849,13 +9879,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Imagem não encontrada" });
       }
       
-      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
-      if (!matches) {
+      const buffer = await resolveImageBuffer(imageData);
+      if (!buffer) {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
-      
-      const base64Data = matches[2];
-      const buffer = Buffer.from(base64Data, 'base64');
       
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 2000, withoutEnlargement: true })
@@ -9899,13 +9926,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Imagem não encontrada" });
       }
       
-      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
-      if (!matches) {
+      const buffer = await resolveImageBuffer(imageData);
+      if (!buffer) {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
-      
-      const base64Data = matches[2];
-      const buffer = Buffer.from(base64Data, 'base64');
       
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 2000, withoutEnlargement: true })
@@ -9950,13 +9974,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Imagem não encontrada" });
       }
       
-      const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
-      if (!matches) {
+      const buffer = await resolveImageBuffer(imageData);
+      if (!buffer) {
         return res.status(400).json({ message: "Formato de imagem inválido" });
       }
-      
-      const base64Data = matches[2];
-      const buffer = Buffer.from(base64Data, 'base64');
       
       const optimizedBuffer = await sharp(buffer)
         .resize({ width: 400, withoutEnlargement: true })

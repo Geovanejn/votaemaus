@@ -101,6 +101,28 @@ import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } fro
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
+// ==================== IMAGE URL CONVERSION HELPER ====================
+// Converts r2:// URLs to public URLs for all image fields in an object
+function convertImageUrls<T>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const imageFields = ['imageUrl', 'coverImageUrl', 'photoUrl', 'profileImage', 'bannerImageUrl', 'bannerImageData'];
+  const result = { ...obj } as any;
+  
+  for (const field of imageFields) {
+    if (result[field] && typeof result[field] === 'string') {
+      result[field] = getPublicUrl(result[field]);
+    }
+  }
+  
+  return result as T;
+}
+
+// Convert array of objects with image fields
+function convertImageUrlsArray<T>(arr: T[]): T[] {
+  return arr.map(item => convertImageUrls(item));
+}
+
 // ==================== RATE LIMITING CONFIGURATION ====================
 
 // Rate limiter geral para APIs publicas (100 req/15min)
@@ -2715,7 +2737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           earnedAt: uc.earnedAt,
           card: {
             name: card.name,
-            imageUrl: card.imageUrl,
+            imageUrl: getPublicUrl(card.imageUrl),
             description: card.description,
           },
           event: event ? {
@@ -5002,7 +5024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const devotionals = await storage.getAllDevotionals(limit);
-      res.json(devotionals);
+      res.json(convertImageUrlsArray(devotionals));
     } catch (error) {
       console.error("Get devotionals error:", error);
       res.status(500).json({ message: "Erro ao buscar devocionais" });
@@ -5020,7 +5042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
-      res.json(devotional);
+      res.json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Get devotional by ID error:", error);
       res.status(500).json({ message: "Erro ao buscar devocional" });
@@ -5032,7 +5054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const events = await storage.getUpcomingEvents(limit);
-      res.json(events);
+      res.json(convertImageUrlsArray(events));
     } catch (error) {
       console.error("Get events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });
@@ -5253,7 +5275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const currentOnly = req.query.current !== "false";
       const members = await storage.getAllBoardMembers(currentOnly);
-      res.json(members);
+      res.json(convertImageUrlsArray(members));
     } catch (error) {
       console.error("Get board members error:", error);
       res.status(500).json({ message: "Erro ao buscar membros da diretoria" });
@@ -5264,7 +5286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/banners", async (req, res) => {
     try {
       const banners = await storage.getActiveBanners();
-      res.json(banners);
+      res.json(convertImageUrlsArray(banners));
     } catch (error) {
       console.error("Get banners error:", error);
       res.status(500).json({ message: "Erro ao buscar banners" });
@@ -5363,7 +5385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log
       await logAuditAction(req.user?.id, "update", "board_member", id, `Atualizado: ${updated.name}`, req);
       
-      res.json(updated);
+      res.json(convertImageUrls(updated));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -5489,7 +5511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentMap[item.section] = {
           title: item.title,
           content: item.content,
-          imageUrl: item.imageUrl,
+          imageUrl: item.imageUrl ? getPublicUrl(item.imageUrl) : null,
           metadata: item.metadata ? JSON.parse(item.metadata) : null,
         };
       }
@@ -5505,7 +5527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/events", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getAllSiteEvents();
-      res.json(events);
+      res.json(convertImageUrlsArray(events));
     } catch (error) {
       console.error("Get events admin error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });
@@ -5523,7 +5545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
-      res.json(event);
+      res.json(convertImageUrls(event));
     } catch (error) {
       console.error("Get event error:", error);
       res.status(500).json({ message: "Erro ao buscar evento" });
@@ -5568,7 +5590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
       
-      res.status(201).json(event);
+      res.status(201).json(convertImageUrls(event));
     } catch (error) {
       console.error("Create event error:", error);
       res.status(500).json({ message: "Erro ao criar evento" });
@@ -5646,7 +5668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log
       await logAuditAction(req.user?.id, "update", "event", id, `Atualizado: ${updated.title}`, req);
       
-      res.json(updated);
+      res.json(convertImageUrls(updated));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -5907,7 +5929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit log
       await logAuditAction(req.user?.id, "update", "banner", id, `Atualizado: ${updated.title}`, req);
       
-      res.json(updated);
+      res.json(convertImageUrls(updated));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -6099,7 +6121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const totalLessons = season.totalLessons || 0;
         const isCompleted = totalLessons > 0 && lessonsCompleted >= totalLessons;
         
-        return {
+        return convertImageUrls({
           ...season,
           progress: progress ? {
             lessonsCompleted: progress.lessonsCompleted,
@@ -6108,7 +6130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isMastered: progress.isMastered || isCompleted,
             completedAt: progress.completedAt
           } : null
-        };
+        });
       });
       
       res.json(seasonsWithProgress);
@@ -6571,7 +6593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/study/admin/seasons", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const seasons = await storage.getAllSeasons();
-      res.json(seasons);
+      res.json(convertImageUrlsArray(seasons));
     } catch (error) {
       console.error("Get all seasons error:", error);
       res.status(500).json({ message: "Erro ao buscar temporadas" });
@@ -6590,7 +6612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
-      res.json(season);
+      res.json(convertImageUrls(season));
     } catch (error) {
       console.error("Get season by id error:", error);
       res.status(500).json({ message: "Erro ao buscar temporada" });
@@ -6628,7 +6650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         createdBy: req.user!.id
       });
-      res.status(201).json(season);
+      res.status(201).json(convertImageUrls(season));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -6657,7 +6679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
-      res.json(season);
+      res.json(convertImageUrls(season));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -7228,7 +7250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/espiritualidade/devotionals", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const devotionals = await storage.getAllDevotionalsAdmin();
-      res.json(devotionals);
+      res.json(convertImageUrlsArray(devotionals));
     } catch (error) {
       console.error("Get all devotionals admin error:", error);
       res.status(500).json({ message: "Erro ao buscar devocionais" });
@@ -7243,7 +7265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!devotional) {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
-      res.json(devotional);
+      res.json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Get devotional by id error:", error);
       res.status(500).json({ message: "Erro ao buscar devocional" });
@@ -7285,7 +7307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
       
-      res.status(201).json(devotional);
+      res.status(201).json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Create devotional error:", error);
       res.status(500).json({ message: "Erro ao criar devocional" });
@@ -7326,7 +7348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
       
-      res.json(devotional);
+      res.json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Update devotional error:", error);
       res.status(500).json({ message: "Erro ao atualizar devocional" });
@@ -7365,7 +7387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("[Notifications] Error notifying new devotional:", err)
       );
       
-      res.json(devotional);
+      res.json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Publish devotional error:", error);
       res.status(500).json({ message: "Erro ao publicar devocional" });
@@ -7382,7 +7404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
       
-      res.json(devotional);
+      res.json(convertImageUrls(devotional));
     } catch (error) {
       console.error("Unpublish devotional error:", error);
       res.status(500).json({ message: "Erro ao despublicar devocional" });
@@ -7716,7 +7738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/study-events", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const events = await storage.getAllStudyEvents();
-      res.json(events);
+      res.json(convertImageUrlsArray(events));
     } catch (error) {
       console.error("Get study events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });
@@ -7732,7 +7754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const event = await storage.createStudyEvent(validatedData);
       await logAuditAction(req.user?.id, "create", "study_event", event.id, `Evento criado: ${event.title}`, req);
-      res.status(201).json(event);
+      res.status(201).json(convertImageUrls(event));
     } catch (error) {
       console.error("Create study event error:", error);
       res.status(500).json({ message: "Erro ao criar evento" });
@@ -7750,7 +7772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ message: "Evento nao encontrado" });
       }
-      res.json(event);
+      res.json(convertImageUrls(event));
     } catch (error) {
       console.error("Get study event error:", error);
       res.status(500).json({ message: "Erro ao buscar evento" });
@@ -7834,7 +7856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       await logAuditAction(req.user?.id, "update", "study_event", id, `Evento atualizado: ${event.title}`, req);
-      res.json(event);
+      res.json(convertImageUrls(event));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -8238,7 +8260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/cards", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const cards = await storage.getAllCollectibleCards();
-      res.json(cards);
+      res.json(convertImageUrlsArray(cards));
     } catch (error) {
       console.error("Get cards error:", error);
       res.status(500).json({ message: "Erro ao buscar cards" });
@@ -8251,7 +8273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertCollectibleCardSchema.parse(req.body);
       const card = await storage.createCollectibleCard(validatedData);
       await logAuditAction(req.user?.id, "create", "collectible_card", card.id, `Card criado: ${card.name}`, req);
-      res.status(201).json(card);
+      res.status(201).json(convertImageUrls(card));
     } catch (error) {
       console.error("Create card error:", error);
       res.status(500).json({ message: "Erro ao criar card" });
@@ -8278,7 +8300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card nao encontrado" });
       }
       await logAuditAction(req.user?.id, "update", "collectible_card", id, `Card atualizado: ${card.name}`, req);
-      res.json(card);
+      res.json(convertImageUrls(card));
     } catch (error: any) {
       if (isZodError(error)) {
         return res.status(400).json({ message: "Dados invalidos", errors: error.errors });
@@ -8629,10 +8651,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cardsMap = await storage.getCollectibleCardsByIds(cardIds);
       
       // Build response with O(1) lookups
-      const cardsWithDetails = userCards.map(userCard => ({
-        ...userCard,
-        card: cardsMap.get(userCard.cardId) || null,
-      }));
+      const cardsWithDetails = userCards.map(userCard => {
+        const card = cardsMap.get(userCard.cardId);
+        return {
+          ...userCard,
+          card: card ? convertImageUrls(card) : null,
+        };
+      });
       
       res.json(cardsWithDetails);
     } catch (error) {
@@ -8653,7 +8678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card nao encontrado" });
       }
       const cardDetails = await storage.getCollectibleCardById(cardId);
-      res.json({ ...userCard, card: cardDetails });
+      res.json({ ...userCard, card: cardDetails ? convertImageUrls(cardDetails) : null });
     } catch (error) {
       console.error("Get user card error:", error);
       res.status(500).json({ message: "Erro ao buscar card" });

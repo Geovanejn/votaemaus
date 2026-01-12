@@ -21,6 +21,7 @@ const DiretoriaPage = lazy(() => import("@/pages/site/diretoria"));
 const OracaoPage = lazy(() => import("@/pages/site/oracao"));
 const MembroPage = lazy(() => import("@/pages/site/membro"));
 const PoliticaPrivacidadePage = lazy(() => import("@/pages/site/politica-privacidade"));
+const VersiculoDoDiaPage = lazy(() => import("@/pages/site/versiculo-do-dia"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminEmausVota = lazy(() => import("@/pages/admin"));
@@ -144,6 +145,8 @@ function Router() {
             <Route path="/oracao" component={OracaoPage} />
             <Route path="/membro" component={MembroPage} />
             <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
+            <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
+            <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
             <Route path="/login">
               <Redirect to="/membro" />
             </Route>
@@ -245,6 +248,8 @@ function Router() {
           <Route path="/oracao" component={OracaoPage} />
           <Route path="/membro" component={MembroPage} />
           <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
+          <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
+          <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
           <Route path="/login">
             <Redirect to="/membro" />
           </Route>
@@ -333,6 +338,8 @@ function Router() {
         <Route path="/oracao" component={OracaoPage} />
         <Route path="/membro" component={MembroPage} />
         <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
+        <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
+        <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
         <Route path="/login">
           <Redirect to="/membro" />
         </Route>

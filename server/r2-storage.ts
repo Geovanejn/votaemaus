@@ -30,7 +30,7 @@ function getS3Client(): S3Client {
   return s3Client;
 }
 
-export type ImageCategory = 'members' | 'devotionals' | 'events' | 'shop' | 'banners' | 'categories' | 'cards' | 'lessons' | 'general';
+export type ImageCategory = 'members' | 'devotionals' | 'events' | 'shop' | 'banners' | 'categories' | 'cards' | 'lessons' | 'verses' | 'general';
 
 function generateKey(category: ImageCategory, filename: string): string {
   const timestamp = Date.now();

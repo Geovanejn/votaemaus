@@ -6,3 +6,4 @@ export { default as QuemSomosPage } from "./quem-somos";
 export { default as DiretoriaPage } from "./diretoria";
 export { default as OracaoPage } from "./oracao";
 export { default as MembroPage } from "./membro";
+export { default as VersiculoDoDiaPage } from "./versiculo-do-dia";

@@ -386,6 +386,22 @@ export interface IStorage {
   getAuditLogs(filters?: { userId?: number; resource?: string; limit?: number }): Promise<AuditLog[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
   
+  // Daily Verse Stock Methods
+  getAllDailyVerseStock(): Promise<schema.DailyVerseStock[]>;
+  getDailyVerseStockById(id: number): Promise<schema.DailyVerseStock | null>;
+  getNextDailyVerseStockImage(): Promise<schema.DailyVerseStock | null>;
+  createDailyVerseStock(data: schema.InsertDailyVerseStock): Promise<schema.DailyVerseStock>;
+  updateDailyVerseStock(id: number, data: Partial<schema.InsertDailyVerseStock>): Promise<schema.DailyVerseStock | null>;
+  deleteDailyVerseStock(id: number): Promise<void>;
+  
+  // Daily Verse Posts Methods
+  getActiveDailyVersePost(): Promise<schema.DailyVersePost | null>;
+  getDailyVersePostByDate(date: Date): Promise<schema.DailyVersePost | null>;
+  getDailyVersePosts(limit?: number, offset?: number): Promise<schema.DailyVersePost[]>;
+  createDailyVersePost(data: schema.InsertDailyVersePost): Promise<schema.DailyVersePost>;
+  updateDailyVersePost(id: number, data: Partial<schema.InsertDailyVersePost>): Promise<schema.DailyVersePost | null>;
+  deactivateExpiredDailyVersePosts(): Promise<void>;
+  
   // Current Lesson Optimized
   getCurrentLessonOptimized(userId: number): Promise<{
     lesson: { id: number; lessonNumber: number; title: string; sectionsCompleted: number; totalSections: number; status: string };
@@ -4445,6 +4461,114 @@ export class DatabaseStorage implements IStorage {
       .values(data)
       .returning();
     return created;
+  }
+
+  // ==================== DAILY VERSE STOCK METHODS ====================
+
+  async getAllDailyVerseStock(): Promise<schema.DailyVerseStock[]> {
+    return db.select().from(schema.dailyVerseStock)
+      .where(eq(schema.dailyVerseStock.isActive, true))
+      .orderBy(asc(schema.dailyVerseStock.orderIndex));
+  }
+
+  async getDailyVerseStockById(id: number): Promise<schema.DailyVerseStock | null> {
+    const [stock] = await db.select().from(schema.dailyVerseStock)
+      .where(eq(schema.dailyVerseStock.id, id));
+    return stock || null;
+  }
+
+  async getNextDailyVerseStockImage(): Promise<schema.DailyVerseStock | null> {
+    // Get all active stock images ordered by last used (oldest first, null first)
+    const stocks = await db.select().from(schema.dailyVerseStock)
+      .where(eq(schema.dailyVerseStock.isActive, true))
+      .orderBy(asc(schema.dailyVerseStock.lastUsedAt), asc(schema.dailyVerseStock.orderIndex));
+    
+    if (stocks.length === 0) return null;
+    
+    // Return the one that was used longest ago (or never used)
+    return stocks[0];
+  }
+
+  async createDailyVerseStock(data: schema.InsertDailyVerseStock): Promise<schema.DailyVerseStock> {
+    const [stock] = await db.insert(schema.dailyVerseStock)
+      .values(data)
+      .returning();
+    return stock;
+  }
+
+  async updateDailyVerseStock(id: number, data: Partial<schema.InsertDailyVerseStock>): Promise<schema.DailyVerseStock | null> {
+    const [updated] = await db.update(schema.dailyVerseStock)
+      .set(data)
+      .where(eq(schema.dailyVerseStock.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteDailyVerseStock(id: number): Promise<void> {
+    await db.delete(schema.dailyVerseStock)
+      .where(eq(schema.dailyVerseStock.id, id));
+  }
+
+  // ==================== DAILY VERSE POSTS METHODS ====================
+
+  async getActiveDailyVersePost(): Promise<schema.DailyVersePost | null> {
+    const now = new Date();
+    const [post] = await db.select().from(schema.dailyVersePosts)
+      .where(and(
+        eq(schema.dailyVersePosts.isActive, true),
+        lte(schema.dailyVersePosts.publishedAt, now),
+        gte(schema.dailyVersePosts.expiresAt, now)
+      ))
+      .orderBy(desc(schema.dailyVersePosts.publishedAt))
+      .limit(1);
+    return post || null;
+  }
+
+  async getDailyVersePostByDate(date: Date): Promise<schema.DailyVersePost | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const [post] = await db.select().from(schema.dailyVersePosts)
+      .where(and(
+        gte(schema.dailyVersePosts.publishedAt, startOfDay),
+        lte(schema.dailyVersePosts.publishedAt, endOfDay)
+      ))
+      .limit(1);
+    return post || null;
+  }
+
+  async getDailyVersePosts(limit: number = 30, offset: number = 0): Promise<schema.DailyVersePost[]> {
+    return db.select().from(schema.dailyVersePosts)
+      .orderBy(desc(schema.dailyVersePosts.publishedAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async createDailyVersePost(data: schema.InsertDailyVersePost): Promise<schema.DailyVersePost> {
+    const [post] = await db.insert(schema.dailyVersePosts)
+      .values(data)
+      .returning();
+    return post;
+  }
+
+  async updateDailyVersePost(id: number, data: Partial<schema.InsertDailyVersePost>): Promise<schema.DailyVersePost | null> {
+    const [updated] = await db.update(schema.dailyVersePosts)
+      .set(data)
+      .where(eq(schema.dailyVersePosts.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deactivateExpiredDailyVersePosts(): Promise<void> {
+    const now = new Date();
+    await db.update(schema.dailyVersePosts)
+      .set({ isActive: false })
+      .where(and(
+        eq(schema.dailyVersePosts.isActive, true),
+        lte(schema.dailyVersePosts.expiresAt, now)
+      ));
   }
 
   // ==================== AUDIT LOG METHODS ====================

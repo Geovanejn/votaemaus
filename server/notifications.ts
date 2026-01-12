@@ -1245,7 +1245,7 @@ export async function notifyEventEnded(
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {
   const payload: NotificationPayload = {
-    title: "✨ Versículo do Dia",
+    title: "Versiculo do Dia",
     body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
     url: "/study",
     tag: "daily-verse",
@@ -1258,6 +1258,23 @@ export async function notifyDailyVerse(verse: string, reference: string): Promis
   // Also notify anonymous visitors
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
   console.log(`[Notifications] Daily verse notification: ${result.sent} members sent (including inactive), ${anonymousResult.sent} anonymous visitors sent`);
+}
+
+export async function notifyDailyVerseWithLink(verse: string, reference: string, url: string): Promise<void> {
+  const payload: NotificationPayload = {
+    title: "Versiculo do Dia",
+    body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
+    url: url,
+    tag: "daily-verse",
+    icon: "/logo.png",
+  };
+
+  // Send to ALL members (including inactive) - daily verse should reach everyone
+  const result = await sendPushToAllMembersIncludingInactive(payload);
+  
+  // Also notify anonymous visitors
+  const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
+  console.log(`[Notifications] Daily verse with link: ${result.sent} members, ${anonymousResult.sent} anonymous visitors`);
 }
 
 export function isWebPushConfigured(): boolean {

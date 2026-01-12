@@ -5317,6 +5317,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== PUBLIC DAILY VERSE API ====================
+  
+  // Get active daily verse post (public)
+  app.get("/api/site/daily-verse", async (req, res) => {
+    try {
+      const post = await storage.getActiveDailyVersePost();
+      if (!post) {
+        return res.status(404).json({ message: "Nenhum versículo do dia ativo" });
+      }
+      
+      // Get the stock image if available
+      let stockImage = null;
+      if (post.stockImageId) {
+        stockImage = await storage.getDailyVerseStockById(post.stockImageId);
+      }
+      
+      res.json({
+        ...convertImageUrls(post),
+        stockImage: stockImage ? convertImageUrls(stockImage) : null,
+      });
+    } catch (error) {
+      console.error("Get daily verse error:", error);
+      res.status(500).json({ message: "Erro ao buscar versículo do dia" });
+    }
+  });
+  
+  // Get daily verse by date (public)
+  app.get("/api/site/daily-verse/:date", async (req, res) => {
+    try {
+      const date = new Date(req.params.date);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Data inválida" });
+      }
+      
+      const post = await storage.getDailyVersePostByDate(date);
+      if (!post) {
+        return res.status(404).json({ message: "Versículo não encontrado para esta data" });
+      }
+      
+      let stockImage = null;
+      if (post.stockImageId) {
+        stockImage = await storage.getDailyVerseStockById(post.stockImageId);
+      }
+      
+      res.json({
+        ...convertImageUrls(post),
+        stockImage: stockImage ? convertImageUrls(stockImage) : null,
+      });
+    } catch (error) {
+      console.error("Get daily verse by date error:", error);
+      res.status(500).json({ message: "Erro ao buscar versículo" });
+    }
+  });
+  
+  // Get daily verse history/calendar (public)
+  app.get("/api/site/daily-verses", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 30;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const posts = await storage.getDailyVersePosts(limit, offset);
+      
+      // Get stock images for all posts
+      const postsWithImages = await Promise.all(posts.map(async (post) => {
+        let stockImage = null;
+        if (post.stockImageId) {
+          stockImage = await storage.getDailyVerseStockById(post.stockImageId);
+        }
+        return {
+          ...convertImageUrls(post),
+          stockImage: stockImage ? convertImageUrls(stockImage) : null,
+        };
+      }));
+      
+      res.json(postsWithImages);
+    } catch (error) {
+      console.error("Get daily verses history error:", error);
+      res.status(500).json({ message: "Erro ao buscar histórico" });
+    }
+  });
+
   // ==================== ADMIN SITE MANAGEMENT API ====================
 
   // Get all prayer requests (admin or marketing)

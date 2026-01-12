@@ -1,0 +1,366 @@
+import { useState, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
+import { Link, useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import html2canvas from "html2canvas";
+import { 
+  ArrowLeft,
+  Calendar,
+  Share2,
+  BookOpen,
+  Loader2,
+  Download,
+  Clock
+} from "lucide-react";
+import { SiWhatsapp, SiInstagram } from "react-icons/si";
+import { SiteLayout } from "@/components/site/SiteLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface DailyVersePost {
+  id: number;
+  verse: string;
+  reference: string;
+  reflection: string | null;
+  imageUrl: string | null;
+  publishedAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  stockImage: {
+    id: number;
+    imageUrl: string;
+    category: string;
+  } | null;
+}
+
+export default function VersiculoDoDiaPage() {
+  const [shareOpen, setShareOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const params = useParams<{ date?: string }>();
+  const [, navigate] = useLocation();
+
+  const isHistoricalView = !!params.date;
+
+  const { data: todayVerse, isLoading } = useQuery<DailyVersePost>({
+    queryKey: isHistoricalView ? ["/api/site/daily-verse", params.date] : ["/api/site/daily-verse"],
+    queryFn: async () => {
+      const endpoint = isHistoricalView 
+        ? `/api/site/daily-verse/${params.date}` 
+        : "/api/site/daily-verse";
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error("Failed to fetch verse");
+      }
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const { data: verseHistory } = useQuery<DailyVersePost[]>({
+    queryKey: ["/api/site/daily-verses"],
+  });
+
+  const backgroundImage = todayVerse?.stockImage?.imageUrl || todayVerse?.imageUrl;
+
+  const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
+    if (!shareCardRef.current) return;
+
+    setGenerating(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+          setGenerating(false);
+          return;
+        }
+
+        const file = new File([blob], 'versiculo-do-dia.png', { type: 'image/png' });
+        const shareUrl = `${window.location.origin}/versiculo-do-dia`;
+        const shareText = `"${todayVerse?.verse}" - ${todayVerse?.reference}\n\nVeja mais em: ${shareUrl}`;
+
+        if (platform === 'download') {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'versiculo-do-dia.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: "Imagem baixada!" });
+        } else if (platform === 'whatsapp') {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Versiculo do Dia',
+              text: shareText,
+            });
+          } else {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+          }
+        } else if (platform === 'instagram') {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'versiculo-do-dia.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ 
+            title: "Imagem baixada!", 
+            description: "Abra o Instagram e compartilhe nos Stories" 
+          });
+        }
+
+        setGenerating(false);
+        setShareOpen(false);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+      setGenerating(false);
+    }
+  }, [todayVerse, toast]);
+
+  if (isLoading) {
+    return (
+      <SiteLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </SiteLayout>
+    );
+  }
+
+  return (
+    <SiteLayout>
+      <div className="container mx-auto px-4 py-8">
+        <Link href="/">
+          <Button variant="ghost" className="mb-6" data-testid="button-back">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+        </Link>
+
+        {todayVerse ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="overflow-hidden mb-8">
+              <div 
+                className="relative h-80 md:h-96 bg-cover bg-center"
+                style={{ 
+                  backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+                  backgroundColor: backgroundImage ? undefined : 'hsl(var(--primary))'
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 text-white">
+                  <div className="flex items-center gap-2 mb-4 text-white/80">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm">
+                      {format(new Date(todayVerse.publishedAt), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold mb-2">Versiculo do Dia</h1>
+                  <p className="text-lg md:text-xl italic leading-relaxed">
+                    "{todayVerse.verse}"
+                  </p>
+                  <p className="text-sm md:text-base mt-2 font-medium text-white/90">
+                    {todayVerse.reference}
+                  </p>
+                </div>
+              </div>
+
+              <CardContent className="p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <BookOpen className="h-5 w-5" />
+                    <span>Reflexao</span>
+                  </div>
+                  <Button 
+                    onClick={() => setShareOpen(true)}
+                    variant="outline"
+                    data-testid="button-share"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Compartilhar
+                  </Button>
+                </div>
+
+                {todayVerse.reflection ? (
+                  <div className="prose prose-lg dark:prose-invert max-w-none">
+                    {todayVerse.reflection.split('\n').map((paragraph, index) => (
+                      <p key={index} className="text-foreground/90 leading-relaxed">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">
+                    Reflexao em preparacao...
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <Card className="p-8 text-center">
+            <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Versiculo do Dia</h2>
+            <p className="text-muted-foreground">
+              O versiculo de hoje sera publicado as 7h da manha. Volte mais tarde!
+            </p>
+          </Card>
+        )}
+
+        {verseHistory && verseHistory.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Calendar className="h-6 w-6" />
+              Historico de Versiculos
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {verseHistory.slice(0, 12).map((verse) => (
+                <Card 
+                  key={verse.id} 
+                  className="overflow-hidden hover-elevate cursor-pointer"
+                  onClick={() => {
+                    const date = format(new Date(verse.publishedAt), 'yyyy-MM-dd');
+                    navigate(`/versiculo-do-dia/${date}`);
+                  }}
+                  data-testid={`card-verse-${verse.id}`}
+                >
+                  <div 
+                    className="h-32 bg-cover bg-center relative"
+                    style={{ 
+                      backgroundImage: verse.stockImage?.imageUrl ? `url(${verse.stockImage.imageUrl})` : undefined,
+                      backgroundColor: verse.stockImage?.imageUrl ? undefined : 'hsl(var(--primary))'
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-2 left-3 right-3 text-white">
+                      <p className="text-xs opacity-80">
+                        {format(new Date(verse.publishedAt), "d MMM yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <p className="text-sm italic line-clamp-2 mb-2">
+                      "{verse.verse}"
+                    </p>
+                    <p className="text-xs font-medium text-primary">
+                      {verse.reference}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Compartilhar Versiculo</DialogTitle>
+          </DialogHeader>
+
+          <div 
+            ref={shareCardRef}
+            className="w-full aspect-[9/16] rounded-lg overflow-hidden relative"
+            style={{ 
+              backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+              backgroundColor: backgroundImage ? undefined : 'hsl(var(--primary))'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+            <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
+              <div className="text-center">
+                <h3 className="text-lg font-bold uppercase tracking-wider">Versiculo do Dia</h3>
+                <p className="text-sm opacity-80">
+                  {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
+                </p>
+              </div>
+
+              <div className="text-center flex-1 flex items-center justify-center px-4">
+                <div>
+                  <p className="text-xl md:text-2xl italic leading-relaxed mb-4">
+                    "{todayVerse?.verse}"
+                  </p>
+                  <p className="text-base font-semibold">
+                    {todayVerse?.reference}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <img src="/logo.png" alt="UMP Emaus" className="h-12 opacity-90" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={() => generateAndShareImage('whatsapp')}
+              disabled={generating}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              data-testid="button-share-whatsapp"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiWhatsapp className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareImage('instagram')}
+              disabled={generating}
+              className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              data-testid="button-share-instagram"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiInstagram className="mr-2 h-4 w-4" />
+                  Instagram
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareImage('download')}
+              disabled={generating}
+              variant="outline"
+              data-testid="button-download"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </SiteLayout>
+  );
+}

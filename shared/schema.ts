@@ -729,6 +729,50 @@ export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
 export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type SiteContent = typeof siteContent.$inferSelect;
 
+// Daily Verse Stock - 60 background images that rotate every 60 days
+export const dailyVerseStock = pgTable("daily_verse_stock", {
+  id: serial("id").primaryKey(),
+  imageUrl: text("image_url").notNull(),
+  category: text("category").notNull(), // nature, contemplative, christian, meditation
+  description: text("description"),
+  orderIndex: integer("order_index").notNull(), // 1-60 for rotation
+  lastUsedAt: timestamp("last_used_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertDailyVerseStockSchema = createInsertSchema(dailyVerseStock).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDailyVerseStock = z.infer<typeof insertDailyVerseStockSchema>;
+export type DailyVerseStock = typeof dailyVerseStock.$inferSelect;
+
+// Daily Verse Posts - daily verse with AI-generated reflection
+export const dailyVersePosts = pgTable("daily_verse_posts", {
+  id: serial("id").primaryKey(),
+  verse: text("verse").notNull(),
+  reference: text("reference").notNull(),
+  reflection: text("reflection"), // AI-generated reflection
+  stockImageId: integer("stock_image_id").references(() => dailyVerseStock.id),
+  imageUrl: text("image_url"), // cached image URL for the day
+  publishedAt: timestamp("published_at").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  dateIdx: index("daily_verse_posts_published_idx").on(table.publishedAt),
+}));
+
+export const insertDailyVersePostSchema = createInsertSchema(dailyVersePosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDailyVersePost = z.infer<typeof insertDailyVersePostSchema>;
+export type DailyVersePost = typeof dailyVersePosts.$inferSelect;
+
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 
 export const studyProfiles = pgTable("study_profiles", {

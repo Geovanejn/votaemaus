@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
-import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
+import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVerseWithLink, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
@@ -348,6 +348,35 @@ function getTodayDateKey(): string {
   return `${year}-${month}-${day}`;
 }
 
+async function generateVerseReflection(verse: string, reference: string): Promise<string | null> {
+  if (!isAIConfigured()) return null;
+  
+  try {
+    const prompt = `Você é um pastor presbiteriano experiente. Escreva uma breve reflexão devocional (2-3 parágrafos, máximo 150 palavras) sobre o seguinte versículo bíblico:
+
+"${verse}" - ${reference}
+
+A reflexão deve:
+- Ser edificante e encorajadora
+- Trazer aplicação prática para o dia a dia
+- Usar linguagem acessível
+- Não usar emojis
+
+Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
+
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.AI_INTEGRATIONS_GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('[Daily Verse] Error generating reflection:', error);
+    return null;
+  }
+}
+
 async function sendDailyVerse(): Promise<void> {
   console.log('[Daily Verse Scheduler] Sending daily verse notification...');
   
@@ -384,7 +413,49 @@ async function sendDailyVerse(): Promise<void> {
       console.log('[Daily Verse Scheduler] AI not configured, using fallback verse');
     }
     
-    await notifyDailyVerse(verse, reference);
+    // Get next stock image for the daily verse post
+    const stockImage = await storage.getNextDailyVerseStockImage();
+    
+    // Generate AI reflection
+    const reflection = await generateVerseReflection(verse, reference);
+    
+    // Create expiration time (23:59:59 today in São Paulo timezone)
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '2025');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '01') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '01');
+    
+    // Set expiration to 23:59:59 São Paulo time
+    const expiresAt = new Date(year, month, day, 23 + 3, 59, 59); // +3 for UTC offset from São Paulo
+    
+    // Create daily verse post
+    const post = await storage.createDailyVersePost({
+      verse,
+      reference,
+      reflection: reflection || undefined,
+      stockImageId: stockImage?.id,
+      imageUrl: stockImage?.imageUrl,
+      publishedAt: now,
+      expiresAt,
+      isActive: true,
+    });
+    
+    // Mark stock image as used
+    if (stockImage) {
+      await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: now });
+    }
+    
+    console.log(`[Daily Verse Scheduler] Created post ${post.id} with stock image ${stockImage?.id || 'none'}`);
+    
+    // Send push notification with link to public page
+    await notifyDailyVerseWithLink(verse, reference, '/versiculo-do-dia');
     
     // Mark as sent in database (survives server restarts)
     await storage.markSchedulerReminderSent(reminderKey, 'daily_verse');
@@ -392,6 +463,17 @@ async function sendDailyVerse(): Promise<void> {
     console.log(`[Daily Verse Scheduler] Sent: ${reference}`);
   } catch (error) {
     console.error('[Daily Verse Scheduler] Error sending daily verse:', error);
+  }
+}
+
+async function removeFromBanner(): Promise<void> {
+  console.log('[Daily Verse Scheduler] Removing daily verse from banner (keeping in history)...');
+  try {
+    // Only mark as not showing in banner, but keep the post accessible for history/calendar
+    await storage.deactivateExpiredDailyVersePosts();
+    console.log('[Daily Verse Scheduler] Daily verse removed from banner');
+  } catch (error) {
+    console.error('[Daily Verse Scheduler] Error removing from banner:', error);
   }
 }
 
@@ -405,10 +487,17 @@ function getCurrentHourInSaoPaulo(): number {
 }
 
 export function initDailyVerseScheduler(): void {
+  // Publish daily verse at 7:00 AM
   cron.schedule('0 7 * * *', sendDailyVerse, {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)');
+  
+  // Remove from banner at 23:59 (keeps in history)
+  cron.schedule('59 23 * * *', removeFromBanner, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)');
   
   setTimeout(async () => {
     try {

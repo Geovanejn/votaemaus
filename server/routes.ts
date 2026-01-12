@@ -2518,12 +2518,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const weekNumber = Math.ceil((now.getDate() + now.getDay()) / 7);
         periodKey = `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
         const leaderboard = await storage.getLeaderboard(periodType, periodKey, 50);
-        res.json({ periodType, periodKey, entries: leaderboard });
+        res.json({ periodType, periodKey, entries: convertImageUrlsArray(leaderboard) });
       } else if (periodType === 'monthly' || periodType === 'annual') {
         // Annual ranking - filter by year (Jan 1 00:00 to Dec 31 23:59)
         periodKey = year.toString();
         const leaderboard = await storage.getAnnualLeaderboard(year, 50);
-        res.json({ periodType: 'annual', periodKey, year, entries: leaderboard });
+        res.json({ periodType: 'annual', periodKey, year, entries: convertImageUrlsArray(leaderboard) });
       } else if (periodType === 'seasonal') {
         // Seasonal (Revista) - only lesson XP from that specific season
         if (!seasonId) {
@@ -2531,11 +2531,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         periodKey = `season-${seasonId}`;
         const leaderboard = await storage.getSeasonLeaderboard(seasonId, 50);
-        res.json({ periodType, periodKey, seasonId, entries: leaderboard });
+        res.json({ periodType, periodKey, seasonId, entries: convertImageUrlsArray(leaderboard) });
       } else {
         periodKey = now.getFullYear().toString();
         const leaderboard = await storage.getLeaderboard(periodType, periodKey, 50);
-        res.json({ periodType, periodKey, entries: leaderboard });
+        res.json({ periodType, periodKey, entries: convertImageUrlsArray(leaderboard) });
       }
     } catch (error) {
       console.error("Get leaderboard error:", error);
@@ -2597,7 +2597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profile,
         weeksWithLessons,
         weeklyGoal,
-        leaderboard: { periodType: 'weekly', entries: leaderboard },
+        leaderboard: { periodType: 'weekly', entries: convertImageUrlsArray(leaderboard) },
         missions
       });
     } catch (error) {
@@ -2655,7 +2655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Membro não encontrado" });
       }
       
-      res.json(profile);
+      res.json(convertImageUrls(profile));
     } catch (error) {
       console.error("Get member profile error:", error);
       res.status(500).json({ message: "Erro ao buscar perfil do membro" });

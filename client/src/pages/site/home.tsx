@@ -72,6 +72,14 @@ interface SiteHighlights {
 
 const getQuickAccessItems = (isAuthenticated: boolean) => [
   {
+    icon: BookOpen,
+    title: "Versiculo do Dia",
+    description: "Reflexao diaria",
+    href: "/versiculo-do-dia",
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+  },
+  {
     icon: BookMarked,
     title: "Devocionais",
     description: "Leia a Palavra",
@@ -88,16 +96,8 @@ const getQuickAccessItems = (isAuthenticated: boolean) => [
     bg: "bg-blue-500/10",
   },
   {
-    icon: Vote,
-    title: "Eleições",
-    description: "Sistema de Votação",
-    href: isAuthenticated ? "/elections" : "/membro",
-    color: "text-green-500",
-    bg: "bg-green-500/10",
-  },
-  {
     icon: Heart,
-    title: "Oração",
+    title: "Oracao",
     description: "Envie seu pedido",
     href: "/oracao",
     color: "text-primary",

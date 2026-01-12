@@ -3887,7 +3887,7 @@ export class DatabaseStorage implements IStorage {
   // Leaderboard Methods
   // Global leaderboard - OPTIMIZED: Single query with subqueries instead of N+1
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Single optimized query using subqueries for all XP components
+    // Single optimized query using subqueries for all XP components (including event XP)
     const leaderboardData = await db.execute(sql`
       SELECT 
         u.id as user_id,
@@ -3899,11 +3899,13 @@ export class DatabaseStorage implements IStorage {
         COALESCE(bonus_xp.total, 0) as bonus_xp,
         COALESCE(achievement_xp.total, 0) as achievement_xp,
         COALESCE(mission_xp.total, 0) as mission_xp,
+        COALESCE(event_xp.total, 0) as event_xp,
         (
           COALESCE(lesson_xp.total, 0) + 
           COALESCE(bonus_xp.total, 0) + 
           COALESCE(achievement_xp.total, 0) + 
-          COALESCE(mission_xp.total, 0)
+          COALESCE(mission_xp.total, 0) +
+          COALESCE(event_xp.total, 0)
         ) as total_xp
       FROM users u
       LEFT JOIN study_profiles sp ON sp.user_id = u.id
@@ -3927,6 +3929,11 @@ export class DatabaseStorage implements IStorage {
         FROM daily_mission_xp 
         WHERE user_id = u.id
       ) mission_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_earned), 0) as total 
+        FROM user_event_progress 
+        WHERE user_id = u.id AND completed = true
+      ) event_xp ON true
       WHERE u.is_admin = false
       ORDER BY total_xp DESC
       LIMIT ${limit}

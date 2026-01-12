@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -27,9 +27,31 @@ export function ImageUpload({
   const { toast } = useToast();
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+  const [isSelectingFile, setIsSelectingFile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Re-enable body scroll when file selector is opened on mobile
+  useEffect(() => {
+    if (isSelectingFile) {
+      // Temporarily remove any scroll locks when file picker is open
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = '';
+      
+      // Reset state when window regains focus (user cancelled or selected file)
+      const handleFocus = () => {
+        setTimeout(() => setIsSelectingFile(false), 300);
+      };
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [isSelectingFile]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsSelectingFile(false);
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -94,7 +116,11 @@ export function ImageUpload({
 
   const handleClick = () => {
     if (!disabled) {
-      inputRef.current?.click();
+      setIsSelectingFile(true);
+      // Small delay to ensure state is set before file picker opens
+      setTimeout(() => {
+        inputRef.current?.click();
+      }, 10);
     }
   };
 

@@ -139,8 +139,12 @@ export default function ImageCropDialog({
     : "Posicione e ajuste o zoom para enquadrar a imagem";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl">
+    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
+      <DialogContent 
+        className="w-[95vw] max-w-2xl"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>

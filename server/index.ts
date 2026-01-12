@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
 import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, initMarketingReminderScheduler, initTreasurySchedulers } from "./scheduler";
+import { runImageMigration } from "./migrate-images-to-r2";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
 import cors from "cors";
@@ -250,6 +251,10 @@ app.use((req, res, next) => {
       await initializeDatabase();
       await seedShopCategories();
       await seedAchievementsAndVerses();
+      
+      // Migrate existing Base64 images to R2 (runs once per deploy)
+      runImageMigration().catch(err => console.error("[Migration] Background migration error:", err));
+      
       initBirthdayScheduler();
       initDeoGlorySchedulers();
       initDailyVerseScheduler();

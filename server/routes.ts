@@ -8857,7 +8857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar item da loja (admin)
   app.post("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments, stockQuantity } = req.body;
       
       if (!name || price === undefined || !categoryId || !genderType) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
@@ -8875,6 +8875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPublished: false,
         allowInstallments: allowInstallments ?? false,
         maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
+        stockQuantity: stockQuantity === null || stockQuantity === '' || stockQuantity === undefined ? null : Number(stockQuantity),
       });
       
       res.json(item);
@@ -8892,7 +8893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments, stockQuantity } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
@@ -8908,6 +8909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (bannerImageData !== undefined) updates.bannerImageData = bannerImageData;
       if (allowInstallments !== undefined) updates.allowInstallments = allowInstallments;
       if (maxInstallments !== undefined) updates.maxInstallments = Number(maxInstallments);
+      if (stockQuantity !== undefined) updates.stockQuantity = stockQuantity === null || stockQuantity === '' ? null : Number(stockQuantity);
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {
@@ -10167,16 +10169,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getShopItemsByIds(itemIds),
         storage.getShopItemImagesByItemIds(itemIds)
       ]);
-      const itemsMap = new Map(items.map((item: ShopItem) => [item.id, item]));
+      const itemsMap = new Map(items.map((item: any) => [item.id, item]));
       
       const itemsWithDetails = cartItems.map(cartItem => {
         const item = itemsMap.get(cartItem.itemId);
         if (!item) return { ...cartItem, item: null };
+        const rawImages = imagesMap.get(item.id) || [];
+        // Convert image data to proxy URLs for proper display
+        const imagesWithUrls = rawImages.map(img => ({
+          ...img,
+          imageData: `/api/shop/images/item/${img.id}`,
+        }));
         return { 
           ...cartItem, 
           item: { 
             ...item, 
-            images: imagesMap.get(item.id) || [],
+            images: imagesWithUrls,
           } 
         };
       });

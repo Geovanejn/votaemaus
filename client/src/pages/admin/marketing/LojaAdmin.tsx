@@ -1041,7 +1041,16 @@ export default function LojaAdmin() {
                       <span className="font-bold text-lg" data-testid={`text-item-price-${item.id}`}>
                         {formatCurrency(item.price)}
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {item.stockQuantity !== null && (
+                          <Badge 
+                            variant={item.stockQuantity === 0 ? "destructive" : item.stockQuantity <= 5 ? "secondary" : "outline"}
+                            className="text-xs"
+                            data-testid={`badge-stock-${item.id}`}
+                          >
+                            {item.stockQuantity === 0 ? "Sem estoque" : `${item.stockQuantity} un`}
+                          </Badge>
+                        )}
                         {item.images && (
                           <Badge variant="outline" className="text-xs">
                             {item.images.length} img

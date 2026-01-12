@@ -5,6 +5,14 @@ import { useToast } from "@/hooks/use-toast";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import { Upload, Trash2, Loader2, ImageIcon } from "lucide-react";
 
+function getDisplayUrl(url: string): string {
+  if (!url || !url.startsWith('r2://')) {
+    return url;
+  }
+  const key = url.replace('r2://', '');
+  return `/api/r2/${key}`;
+}
+
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
@@ -137,7 +145,7 @@ export function ImageUpload({
             )}
           >
             <img 
-              src={value} 
+              src={getDisplayUrl(value || '')} 
               alt="Preview" 
               className="w-full h-full object-cover"
               data-testid="img-upload-preview"

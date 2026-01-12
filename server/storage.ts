@@ -3148,15 +3148,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserProfileStats(userId: number): Promise<any> {
-    // Get completed lessons count
-    const [lessonsResult] = await db.select({ count: sql<number>`count(*)` })
+    // Get completed regular lessons count
+    const [regularLessonsResult] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.userLessonProgress)
       .where(and(
         eq(schema.userLessonProgress.userId, userId),
         eq(schema.userLessonProgress.status, 'completed')
       ));
     
-    // Get completed units count
+    // Get completed event lessons count
+    const [eventLessonsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userEventLessonProgress)
+      .where(and(
+        eq(schema.userEventLessonProgress.userId, userId),
+        eq(schema.userEventLessonProgress.status, 'completed')
+      ));
+    
+    // Get completed units count (kept for backward compatibility)
     const [unitsResult] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.userUnitProgress)
       .where(and(
@@ -3164,15 +3172,26 @@ export class DatabaseStorage implements IStorage {
         eq(schema.userUnitProgress.isCompleted, true)
       ));
     
-    // Get distinct study days count (single timezone conversion)
-    const [studyDaysResult] = await db.select({ 
-      count: sql<number>`count(DISTINCT date_trunc('day', ${schema.userLessonProgress.completedAt} AT TIME ZONE 'America/Sao_Paulo'))` 
-    })
-      .from(schema.userLessonProgress)
-      .where(and(
-        eq(schema.userLessonProgress.userId, userId),
-        eq(schema.userLessonProgress.status, 'completed')
-      ));
+    // Get achievements earned count
+    const [achievementsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userAchievements)
+      .where(eq(schema.userAchievements.userId, userId));
+    
+    // Get distinct study days count using raw SQL for combined union query
+    const studyDaysQuery = await db.execute(sql`
+      SELECT COUNT(DISTINCT study_date) as count FROM (
+        SELECT date_trunc('day', completed_at AT TIME ZONE 'America/Sao_Paulo') as study_date
+        FROM user_lesson_progress
+        WHERE user_id = ${userId} AND status = 'completed' AND completed_at IS NOT NULL
+        UNION
+        SELECT date_trunc('day', completed_at AT TIME ZONE 'America/Sao_Paulo') as study_date
+        FROM user_event_lesson_progress
+        WHERE user_id = ${userId} AND status = 'completed' AND completed_at IS NOT NULL
+      ) combined
+    `);
+    const studyDaysCount = studyDaysQuery.rows && studyDaysQuery.rows.length > 0 
+      ? Number((studyDaysQuery.rows[0] as any)?.count || 0) 
+      : 0;
     
     // Get user ranking position using all users ordered by totalXp
     const [rankResult] = await db.select({
@@ -3186,19 +3205,32 @@ export class DatabaseStorage implements IStorage {
     const profile = await this.getStudyProfile(userId);
     const userRank = profile ? Number(rankResult?.rank || 1) : null;
     
-    // Get first activity date
-    const [firstActivity] = await db.select({ 
+    // Get first activity date (check both regular and event lessons)
+    const [firstRegular] = await db.select({ 
       firstDate: sql<string>`MIN(${schema.userLessonProgress.completedAt})` 
     })
       .from(schema.userLessonProgress)
       .where(eq(schema.userLessonProgress.userId, userId));
     
+    const [firstEvent] = await db.select({ 
+      firstDate: sql<string>`MIN(${schema.userEventLessonProgress.completedAt})` 
+    })
+      .from(schema.userEventLessonProgress)
+      .where(eq(schema.userEventLessonProgress.userId, userId));
+    
+    const firstActivityDate = !firstRegular?.firstDate ? firstEvent?.firstDate :
+      !firstEvent?.firstDate ? firstRegular?.firstDate :
+      new Date(firstRegular.firstDate) < new Date(firstEvent.firstDate) ? firstRegular.firstDate : firstEvent.firstDate;
+    
+    const totalLessons = Number(regularLessonsResult?.count || 0) + Number(eventLessonsResult?.count || 0);
+    
     return {
-      lessonsCompleted: Number(lessonsResult?.count || 0),
-      unitsCompleted: Number(unitsResult?.count || 0),
-      studyDays: Number(studyDaysResult?.count || 0),
+      lessonsCompleted: totalLessons,
+      unitsCompleted: Number(unitsResult?.count || 0), // Kept for backward compatibility
+      achievementsEarned: Number(achievementsResult?.count || 0),
+      studyDays: studyDaysCount,
       rankingPosition: userRank,
-      firstActivityDate: firstActivity?.firstDate || null,
+      firstActivityDate: firstActivityDate || null,
     };
   }
 
@@ -6997,6 +7029,7 @@ export class DatabaseStorage implements IStorage {
       allowInstallments: schema.shopItems.allowInstallments,
       maxInstallments: schema.shopItems.maxInstallments,
       isPublished: schema.shopItems.isPublished,
+      stockQuantity: schema.shopItems.stockQuantity,
       createdAt: schema.shopItems.createdAt,
       updatedAt: schema.shopItems.updatedAt,
     }).from(schema.shopItems);

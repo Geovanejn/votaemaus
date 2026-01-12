@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
   interface UserStats {
     lessonsCompleted: number;
-    unitsCompleted: number;
+    achievementsEarned: number;
     studyDays: number;
     rankingPosition: number | null;
     firstActivityDate: string | null;
@@ -284,7 +284,7 @@ export default function ProfilePage() {
   };
 
   const lessonsCompleted = userStats?.lessonsCompleted ?? 0;
-  const unitsCompleted = userStats?.unitsCompleted ?? 0;
+  const achievementsEarned = userStats?.achievementsEarned ?? 0;
   const studyDays = userStats?.studyDays ?? 0;
   const rankingPosition = userStats?.rankingPosition;
   const firstActivityDate = userStats?.firstActivityDate;
@@ -679,8 +679,8 @@ export default function ProfilePage() {
                 className="p-4 rounded-xl text-center"
                 style={{ backgroundColor: "#F3E8FF" }}
               >
-                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{unitsCompleted}</p>
-                <p className="text-xs text-muted-foreground">Unidades Completas</p>
+                <p className="text-2xl font-black" style={{ color: "#8B5CF6" }}>{achievementsEarned}</p>
+                <p className="text-xs text-muted-foreground">Conquistas</p>
               </div>
               <div 
                 className="p-4 rounded-xl text-center"

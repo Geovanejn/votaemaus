@@ -104,7 +104,7 @@ export function StreakRecoveryModal() {
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="max-w-sm mx-auto border-0 bg-gradient-to-b from-blue-900/95 to-slate-900/95 backdrop-blur-xl"
+        className="max-w-[calc(100vw-2rem)] sm:max-w-sm mx-auto border-0 bg-gradient-to-b from-blue-900/95 to-slate-900/95 backdrop-blur-xl overflow-hidden"
         data-testid="streak-recovery-modal"
       >
         <AnimatePresence mode="wait">
@@ -199,17 +199,17 @@ export function StreakRecoveryModal() {
                 </p>
               </div>
 
-              <div className="w-full bg-slate-800/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Custo de recuperação:</span>
-                  <div className="flex items-center gap-1">
+              <div className="w-full bg-slate-800/50 rounded-xl p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-gray-400 text-sm sm:text-base">Custo de recuperação:</span>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Diamond className="w-4 h-4 text-cyan-400" />
                     <span className="text-white font-bold">{status.crystalCost}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Seus cristais:</span>
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-gray-400 text-sm sm:text-base">Seus cristais:</span>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Diamond className="w-4 h-4 text-cyan-400" />
                     <span className={`font-bold ${status.canRecover ? 'text-green-400' : 'text-red-400'}`}>
                       {status.crystalsAvailable}
@@ -220,10 +220,10 @@ export function StreakRecoveryModal() {
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex items-center justify-between pt-2 border-t border-slate-700"
+                    className="flex items-center justify-between gap-2 pt-2 border-t border-slate-700"
                   >
-                    <span className="text-gray-400">Após recuperação:</span>
-                    <div className="flex items-center gap-1">
+                    <span className="text-gray-400 text-sm sm:text-base">Após recuperação:</span>
+                    <div className="flex items-center gap-1 shrink-0">
                       <Diamond className="w-4 h-4 text-cyan-400" />
                       <span className="text-yellow-400 font-bold">
                         {status.crystalsAvailable - status.crystalCost}

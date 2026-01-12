@@ -1552,9 +1552,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build response with O(1) lookups
       const candidatesWithPhotos = candidates.map(candidate => {
         const user = usersMap.get(candidate.userId);
+        const rawPhotoUrl = user?.photoUrl || getGravatarUrl(candidate.email);
         return {
           ...candidate,
-          photoUrl: user?.photoUrl || getGravatarUrl(candidate.email),
+          photoUrl: rawPhotoUrl ? getPublicUrl(rawPhotoUrl) : null,
         };
       });
       
@@ -1650,7 +1651,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     for (const position of positions) {
       for (const candidate of position.candidates) {
         const user = userMap.get(candidate.candidateEmail);
-        candidate.photoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
+        const rawPhotoUrl = user?.photoUrl || getGravatarUrl(candidate.candidateEmail);
+        candidate.photoUrl = rawPhotoUrl ? getPublicUrl(rawPhotoUrl) : null;
       }
     }
   }
@@ -1723,11 +1725,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const positionResults = results.positions.find(p => p.positionId === w.positionId);
         const candidateResults = positionResults?.candidates.find(c => c.candidateId === w.candidateId);
         
+        const rawPhotoUrl = user?.photoUrl || (user?.email ? getGravatarUrl(user.email) : undefined);
         return {
           positionId: w.positionId,
           positionName: position?.name || '',
           candidateName: user?.fullName || '',
-          photoUrl: user?.photoUrl || (user?.email ? getGravatarUrl(user.email) : undefined),
+          photoUrl: rawPhotoUrl ? getPublicUrl(rawPhotoUrl) : undefined,
           voteCount: candidateResults?.voteCount || 0,
           wonAtScrutiny: w.wonAtScrutiny
         };
@@ -2814,7 +2817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           ...e,
           senderName: sender?.fullName || 'Membro',
-          senderPhotoUrl: sender?.photoUrl || null,
+          senderPhotoUrl: sender?.photoUrl ? getPublicUrl(sender.photoUrl) : null,
         };
       });
       
@@ -5413,7 +5416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: u.id,
           fullName: u.fullName,
           email: u.email,
-          photoUrl: u.photoUrl,
+          photoUrl: u.photoUrl ? getPublicUrl(u.photoUrl) : null,
         }));
       res.json(users);
     } catch (error) {
@@ -10829,7 +10832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: member.id,
           fullName: member.fullName,
           email: member.email,
-          photoUrl: member.photoUrl ?? null,
+          photoUrl: member.photoUrl ? getPublicUrl(member.photoUrl) : null,
           percaptaPaid: !!percaptaPayment?.paidAt,
           umpMonthsPaid: paidMonths,
           totalOwed: percaptaOwed + umpOwed,
@@ -11092,7 +11095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: member.id,
             name: member.fullName,
             email: member.email,
-            profileImage: member.photoUrl,
+            profileImage: member.photoUrl ? getPublicUrl(member.photoUrl) : null,
           },
           percapta: percapta ? { isPaid: true, amount: percapta.amount, paidAt: percapta.paidAt } : { isPaid: false, amount: null, paidAt: null },
           umpPayments,

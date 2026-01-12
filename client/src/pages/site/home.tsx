@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StaggerContainer, StaggerItem } from "@/components/AnimatedPage";
 import { parseTipTapContent } from "@/lib/utils";
 import { DevotionalSkeleton, EventsSkeleton, InstagramGridSkeleton } from "@/components/ui/skeleton-cards";
+import { useAuth } from "@/lib/auth";
 
 import devocionalArt from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
 import eventImg1 from "@assets/stock_images/christian_youth_conc_2afcb390.jpg";
@@ -69,7 +70,7 @@ interface SiteHighlights {
   instagramPosts: InstagramPostData[];
 }
 
-const quickAccessItems = [
+const getQuickAccessItems = (isAuthenticated: boolean) => [
   {
     icon: BookMarked,
     title: "Devocionais",
@@ -82,7 +83,7 @@ const quickAccessItems = [
     icon: GraduationCap,
     title: "DeoGlory",
     description: "Sistema de Estudos",
-    href: "/membro",
+    href: isAuthenticated ? "/study" : "/membro",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
@@ -90,7 +91,7 @@ const quickAccessItems = [
     icon: Vote,
     title: "Eleições",
     description: "Sistema de Votação",
-    href: "/membro",
+    href: isAuthenticated ? "/elections" : "/membro",
     color: "text-green-500",
     bg: "bg-green-500/10",
   },
@@ -126,12 +127,15 @@ function formatDevotionalDate(dateStr?: string) {
 export default function HomePage() {
   const [selectedPost, setSelectedPost] = useState<InstagramPostData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const { data: highlights, isLoading, isError } = useQuery<SiteHighlights>({
     queryKey: ['/api/site/highlights'],
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
+
+  const quickAccessItems = getQuickAccessItems(isAuthenticated);
 
   const devotional = highlights?.devotional || null;
 

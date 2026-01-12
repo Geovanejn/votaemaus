@@ -106,8 +106,7 @@ export default function AdminPage() {
 
   const { data: activeElection, isLoading: loadingElection } = useQuery<Election | null>({
     queryKey: ["/api/elections/active"],
-    staleTime: 15000,
-    refetchInterval: 15000,
+    staleTime: 30000,
   });
 
   const { data: positions = [], isLoading: loadingPositions } = useQuery<Position[]>({
@@ -739,146 +738,120 @@ export default function AdminPage() {
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Arquivo inválido",
-          description: "Por favor, selecione uma imagem",
-          variant: "destructive",
-        });
-        return;
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione uma imagem",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      const MAX_SIZE = 1200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (width > height) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          // Redimensionar se a imagem for muito grande
-          const MAX_SIZE = 2000;
-          let width = img.width;
-          let height = img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
 
-          // Se a imagem for maior que MAX_SIZE, redimensiona mantendo aspect ratio
-          if (width > MAX_SIZE || height > MAX_SIZE) {
-            if (width > height) {
-              height = Math.round((height * MAX_SIZE) / width);
-              width = MAX_SIZE;
-            } else {
-              width = Math.round((width * MAX_SIZE) / height);
-              height = MAX_SIZE;
-            }
-          }
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setImageToCrop(resizedDataUrl);
+        setCropContext("add");
+        setIsCropDialogOpen(true);
+      }
+    };
 
-          // Criar canvas e redimensionar
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast({
+        title: "Erro ao carregar imagem",
+        description: "Não foi possível processar a imagem",
+        variant: "destructive",
+      });
+    };
 
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Converter para data URL com boa qualidade
-            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            setImageToCrop(resizedDataUrl);
-            setCropContext("add");
-            setIsCropDialogOpen(true);
-          }
-        };
-
-        img.onerror = () => {
-          toast({
-            title: "Erro ao carregar imagem",
-            description: "Não foi possível processar a imagem",
-            variant: "destructive",
-          });
-        };
-
-        img.src = event.target?.result as string;
-      };
-      
-      reader.onerror = () => {
-        toast({
-          title: "Erro ao ler arquivo",
-          description: "Não foi possível ler o arquivo selecionado",
-          variant: "destructive",
-        });
-      };
-      
-      reader.readAsDataURL(file);
-    }
+    img.src = objectUrl;
   };
 
   const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Arquivo inválido",
-          description: "Por favor, selecione uma imagem",
-          variant: "destructive",
-        });
-        return;
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione uma imagem",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      const MAX_SIZE = 1200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (width > height) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
       }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          // Redimensionar se a imagem for muito grande
-          const MAX_SIZE = 2000;
-          let width = img.width;
-          let height = img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
 
-          // Se a imagem for maior que MAX_SIZE, redimensiona mantendo aspect ratio
-          if (width > MAX_SIZE || height > MAX_SIZE) {
-            if (width > height) {
-              height = Math.round((height * MAX_SIZE) / width);
-              width = MAX_SIZE;
-            } else {
-              width = Math.round((width * MAX_SIZE) / height);
-              height = MAX_SIZE;
-            }
-          }
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setImageToCrop(resizedDataUrl);
+        setCropContext("edit");
+        setIsCropDialogOpen(true);
+      }
+    };
 
-          // Criar canvas e redimensionar
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast({
+        title: "Erro ao carregar imagem",
+        description: "Não foi possível processar a imagem",
+        variant: "destructive",
+      });
+    };
 
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Converter para data URL com boa qualidade
-            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            setImageToCrop(resizedDataUrl);
-            setCropContext("edit");
-            setIsCropDialogOpen(true);
-          }
-        };
-
-        img.onerror = () => {
-          toast({
-            title: "Erro ao carregar imagem",
-            description: "Não foi possível processar a imagem",
-            variant: "destructive",
-          });
-        };
-
-        img.src = event.target?.result as string;
-      };
-      
-      reader.onerror = () => {
-        toast({
-          title: "Erro ao ler arquivo",
-          description: "Não foi possível ler o arquivo selecionado",
-          variant: "destructive",
-        });
-      };
-      
-      reader.readAsDataURL(file);
-    }
+    img.src = objectUrl;
   };
 
   const handleCropComplete = (croppedImage: string) => {
@@ -1998,7 +1971,7 @@ export default function AdminPage() {
               <Input
                 id="member-photo"
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.gif,.webp"
                 onChange={handlePhotoUpload}
                 data-testid="input-member-photo"
               />
@@ -2130,7 +2103,7 @@ export default function AdminPage() {
               <Input
                 id="edit-member-photo"
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.gif,.webp"
                 onChange={handleEditPhotoUpload}
                 data-testid="input-edit-member-photo"
               />

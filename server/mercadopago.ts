@@ -72,8 +72,17 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
     const expirationDate = new Date();
     expirationDate.setMinutes(expirationDate.getMinutes() + PIX_EXPIRATION_MINUTES);
 
+    const transactionAmount = params.amountCentavos / 100;
+    
+    console.log(`[MercadoPago] Creating PIX payment:`, {
+      amountCentavos: params.amountCentavos,
+      transactionAmountReais: transactionAmount,
+      description: params.description,
+      externalReference: params.externalReference,
+    });
+
     const paymentBody: any = {
-      transaction_amount: params.amountCentavos / 100,
+      transaction_amount: transactionAmount,
       description: params.description,
       payment_method_id: "pix",
       date_of_expiration: expirationDate.toISOString(),
@@ -99,6 +108,19 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
     });
 
     const transactionData = payment.point_of_interaction?.transaction_data;
+
+    // Log warning if QR code data is missing
+    if (!transactionData?.qr_code_base64) {
+      console.warn(`[MercadoPago] Warning: QR code base64 not returned for payment ${payment.id}. Has qr_code: ${!!transactionData?.qr_code}, has ticketUrl: ${!!transactionData?.ticket_url}`);
+    }
+
+    console.log(`[MercadoPago] PIX created successfully:`, {
+      paymentId: payment.id,
+      status: payment.status,
+      hasQrCode: !!transactionData?.qr_code,
+      hasQrCodeBase64: !!transactionData?.qr_code_base64,
+      hasTicketUrl: !!transactionData?.ticket_url,
+    });
 
     return {
       success: true,

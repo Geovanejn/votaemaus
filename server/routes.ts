@@ -10405,6 +10405,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         const qty = Number(cartEntry.quantity) || 1;
+        console.log(`[Shop Checkout] Item ${item.name}:`, {
+          itemId: item.id,
+          price: item.price,
+          priceReais: item.price / 100,
+          quantity: qty,
+          subtotal: item.price * qty,
+          subtotalReais: (item.price * qty) / 100,
+        });
         totalAmount += item.price * qty;
         orderItems.push({
           itemId: item.id,
@@ -10449,6 +10457,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const finalAmount = Math.max(0, totalAmount - discountAmount);
+      
+      console.log(`[Shop Checkout] Order totals:`, {
+        totalAmount,
+        totalAmountReais: totalAmount / 100,
+        discountAmount,
+        discountAmountReais: discountAmount / 100,
+        finalAmount,
+        finalAmountReais: finalAmount / 100,
+      });
       
       // Validate installment count
       const installmentCount = Math.min(Math.max(1, reqInstallmentCount || 1), maxAllowedInstallments);
@@ -13112,13 +13129,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { action, data } = req.body;
         console.log(`[Webhook] Action-based notification: ${action}, ID: ${data.id}`);
         
+        // Process both payment.updated and payment.created
+        // MercadoPago may send payment.created with status=approved in some cases
+        // We always verify the actual status before marking as paid
         if (action === "payment.updated" || action === "payment.created") {
           const paymentId = typeof data.id === "string" ? parseInt(data.id) : data.id;
           
           if (isMercadoPagoConfigured() && !isNaN(paymentId)) {
             const result = await getPaymentStatus(paymentId);
             
-            if (result.success && result.approved) {
+            console.log(`[Webhook] Payment ${paymentId} status check:`, {
+              success: result.success,
+              status: result.status,
+              statusDetail: result.statusDetail,
+              approved: result.approved,
+            });
+            
+            // IMPORTANT: Only mark as paid if:
+            // 1. status === "approved" AND
+            // 2. statusDetail === "accredited" (funds actually credited to account)
+            // This prevents false positives from pending PIX creations or reserved funds
+            const isActuallyPaid = result.success && 
+                                   result.status === "approved" && 
+                                   result.statusDetail === "accredited";
+            
+            if (!isActuallyPaid) {
+              console.log(`[Webhook] Payment ${paymentId} NOT accredited yet. Status: ${result.status}, Detail: ${result.statusDetail}. Skipping completion.`);
+            }
+            
+            if (isActuallyPaid) {
               // First, check treasury entries
               const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
               
@@ -13230,8 +13269,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const result = await getPaymentStatus(paymentId);
+        
+        console.log(`[Webhook Type-based] Payment ${paymentId} status check:`, {
+          success: result.success,
+          status: result.status,
+          statusDetail: result.statusDetail,
+          approved: result.approved,
+        });
 
-        if (result.success && result.approved) {
+        // IMPORTANT: Only mark as paid if:
+        // 1. status === "approved" AND
+        // 2. statusDetail === "accredited" (funds actually credited to account)
+        const isActuallyPaid = result.success && 
+                               result.status === "approved" && 
+                               result.statusDetail === "accredited";
+        
+        if (!isActuallyPaid) {
+          console.log(`[Webhook Type-based] Payment ${paymentId} NOT accredited. Status: ${result.status}, Detail: ${result.statusDetail}. Skipping.`);
+          return res.sendStatus(200);
+        }
+
+        if (isActuallyPaid) {
           const entry = await storage.getTreasuryEntryByPixId(paymentId.toString());
 
           if (entry && entry.paymentStatus !== "completed") {
@@ -13875,12 +13933,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate PIX
+      console.log(`[Shop PIX] Generating PIX for order ${order.orderCode}:`, {
+        orderId,
+        totalAmount: order.totalAmount,
+        totalAmountReais: order.totalAmount / 100,
+      });
+      
       const result = await createPixPayment({
         amountCentavos: order.totalAmount,
         description: `Pedido ${order.orderCode} - Loja UMP`,
         payerEmail: user.email,
         payerName: user.fullName,
         externalReference: `order-${orderId}`,
+      });
+
+      console.log(`[Shop PIX] MercadoPago response for order ${order.orderCode}:`, {
+        success: result.success,
+        hasQrCode: !!result.qrCode,
+        hasQrCodeBase64: !!result.qrCodeBase64,
+        paymentId: result.paymentId,
+        status: result.status,
+        error: result.error,
       });
 
       if (!result.success) {

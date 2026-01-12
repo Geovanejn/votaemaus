@@ -3158,10 +3158,10 @@ export class DatabaseStorage implements IStorage {
     
     // Get completed event lessons count
     const [eventLessonsResult] = await db.select({ count: sql<number>`count(*)` })
-      .from(schema.userEventLessonProgress)
+      .from(schema.userEventProgress)
       .where(and(
-        eq(schema.userEventLessonProgress.userId, userId),
-        eq(schema.userEventLessonProgress.status, 'completed')
+        eq(schema.userEventProgress.userId, userId),
+        eq(schema.userEventProgress.completed, true)
       ));
     
     // Get completed units count (kept for backward compatibility)
@@ -3185,8 +3185,8 @@ export class DatabaseStorage implements IStorage {
         WHERE user_id = ${userId} AND status = 'completed' AND completed_at IS NOT NULL
         UNION
         SELECT date_trunc('day', completed_at AT TIME ZONE 'America/Sao_Paulo') as study_date
-        FROM user_event_lesson_progress
-        WHERE user_id = ${userId} AND status = 'completed' AND completed_at IS NOT NULL
+        FROM user_event_progress
+        WHERE user_id = ${userId} AND completed = true AND completed_at IS NOT NULL
       ) combined
     `);
     const studyDaysCount = studyDaysQuery.rows && studyDaysQuery.rows.length > 0 
@@ -3213,10 +3213,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.userLessonProgress.userId, userId));
     
     const [firstEvent] = await db.select({ 
-      firstDate: sql<string>`MIN(${schema.userEventLessonProgress.completedAt})` 
+      firstDate: sql<string>`MIN(${schema.userEventProgress.completedAt})` 
     })
-      .from(schema.userEventLessonProgress)
-      .where(eq(schema.userEventLessonProgress.userId, userId));
+      .from(schema.userEventProgress)
+      .where(eq(schema.userEventProgress.userId, userId));
     
     const firstActivityDate = !firstRegular?.firstDate ? firstEvent?.firstDate :
       !firstEvent?.firstDate ? firstRegular?.firstDate :

@@ -351,8 +351,7 @@ function getTodayDateKey(): string {
 async function generateVerseReflection(verse: string, reference: string): Promise<string | null> {
   if (!isAIConfigured()) return null;
   
-  try {
-    const prompt = `Você é um pastor presbiteriano experiente. Escreva uma breve reflexão devocional (2-3 parágrafos, máximo 150 palavras) sobre o seguinte versículo bíblico:
+  const prompt = `Você é um pastor presbiteriano experiente. Escreva uma breve reflexão devocional (2-3 parágrafos, máximo 150 palavras) sobre o seguinte versículo bíblico:
 
 "${verse}" - ${reference}
 
@@ -364,17 +363,29 @@ A reflexão deve:
 
 Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
 
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.AI_INTEGRATIONS_GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text().trim();
-  } catch (error) {
-    console.error('[Daily Verse] Error generating reflection:', error);
-    return null;
+  const { getGeminiModel, GEMINI_KEY_ROTATION } = await import('./ai.js');
+  
+  for (const keyNumber of GEMINI_KEY_ROTATION) {
+    try {
+      console.log(`[Daily Verse] Trying Gemini key ${keyNumber}...`);
+      const model = getGeminiModel(keyNumber, 'gemini-2.0-flash');
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text().trim();
+      
+      if (text) {
+        console.log(`[Daily Verse] Reflection generated successfully with key ${keyNumber}`);
+        return text;
+      }
+    } catch (error: any) {
+      console.warn(`[Daily Verse] Key ${keyNumber} failed:`, error.message || error);
+      continue;
+    }
   }
+  
+  console.error('[Daily Verse] All Gemini keys exhausted for reflection generation');
+  return null;
 }
 
 export async function forceDailyVerseGeneration(): Promise<{ success: boolean; message: string; postId?: number }> {

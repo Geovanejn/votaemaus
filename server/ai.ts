@@ -63,6 +63,9 @@ const GEMINI_MODELS = [
   "gemini-2.5-lite"          // Fallback 2: Gemini 2.5 Lite
 ];
 
+// Key rotation order for trying different Gemini API keys
+export const GEMINI_KEY_ROTATION = ["1", "2", "3", "4", "5"];
+
 // Get Gemini model with specific key and optional model override
 export function getGeminiModel(keyNumber: string = "1", modelName: string = GEMINI_MODELS[0]): GenerativeModel {
   const apiKey = getGeminiApiKey(keyNumber);

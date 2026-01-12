@@ -377,6 +377,86 @@ Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
   }
 }
 
+export async function forceDailyVerseGeneration(): Promise<{ success: boolean; message: string; postId?: number }> {
+  console.log('[Daily Verse] FORCE generating daily verse (admin triggered)...');
+  
+  try {
+    // Check if already exists for today
+    const existingPost = await storage.getActiveDailyVersePost();
+    if (existingPost) {
+      return { success: false, message: 'Já existe um versículo do dia ativo. Remova-o antes de gerar outro.' };
+    }
+    
+    let verse: string;
+    let reference: string;
+    
+    if (isAIConfigured()) {
+      const aiVerse = await generateDailyVerseWithAI();
+      if (aiVerse) {
+        verse = aiVerse.verse;
+        reference = aiVerse.reference;
+        console.log('[Daily Verse] Using AI-generated verse');
+      } else {
+        const fallback = getRandomBibleVerse();
+        verse = fallback.verse;
+        reference = fallback.reference;
+        console.log('[Daily Verse] AI failed, using fallback verse');
+      }
+    } else {
+      const fallback = getRandomBibleVerse();
+      verse = fallback.verse;
+      reference = fallback.reference;
+      console.log('[Daily Verse] AI not configured, using fallback verse');
+    }
+    
+    const stockImage = await storage.getNextDailyVerseStockImage();
+    const reflection = await generateVerseReflection(verse, reference);
+    
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '2025');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '01') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '01');
+    const expiresAt = new Date(year, month, day, 23 + 3, 59, 59);
+    
+    const post = await storage.createDailyVersePost({
+      verse,
+      reference,
+      reflection: reflection || undefined,
+      stockImageId: stockImage?.id,
+      imageUrl: stockImage?.imageUrl,
+      publishedAt: now,
+      expiresAt,
+      isActive: true,
+    });
+    
+    if (stockImage) {
+      await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: now });
+    }
+    
+    // Mark as sent so regular scheduler won't duplicate
+    const todayKey = getTodayDateKey();
+    const reminderKey = `daily_verse:${todayKey}`;
+    await storage.markSchedulerReminderSent(reminderKey, 'daily_verse');
+    
+    console.log(`[Daily Verse] Force generated post ${post.id}`);
+    return { 
+      success: true, 
+      message: `Versículo gerado com sucesso: "${verse.substring(0, 50)}..." - ${reference}`,
+      postId: post.id 
+    };
+  } catch (error) {
+    console.error('[Daily Verse] Force generation error:', error);
+    return { success: false, message: 'Erro ao gerar versículo: ' + (error as Error).message };
+  }
+}
+
 async function sendDailyVerse(): Promise<void> {
   console.log('[Daily Verse Scheduler] Sending daily verse notification...');
   

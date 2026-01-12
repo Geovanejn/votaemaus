@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,6 +46,26 @@ export default function EspiritualidadeDashboard() {
     },
   });
 
+  const generateDailyVerseMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/daily-verse/force-generate");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Versículo do Dia Gerado!",
+        description: data.message || "Versículo publicado com sucesso e notificações enviadas.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao gerar",
+        description: error.message || "Não foi possível gerar o versículo do dia.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -66,6 +86,15 @@ export default function EspiritualidadeDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={() => generateDailyVerseMutation.mutate()} 
+            disabled={generateDailyVerseMutation.isPending}
+            data-testid="button-generate-daily-verse"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            {generateDailyVerseMutation.isPending ? "Gerando..." : "Gerar Versículo do Dia"}
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => testPushMutation.mutate()} 

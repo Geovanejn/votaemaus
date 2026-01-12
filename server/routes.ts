@@ -5400,6 +5400,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== ADMIN SITE MANAGEMENT API ====================
 
+  // Force generate daily verse (admin only - for testing)
+  app.post("/api/admin/daily-verse/force-generate", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { forceDailyVerseGeneration } = await import('./scheduler');
+      const result = await forceDailyVerseGeneration();
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error("Force daily verse generation error:", error);
+      res.status(500).json({ success: false, message: "Erro ao gerar versículo" });
+    }
+  });
+
   // Get all prayer requests (admin or marketing)
   app.get("/api/admin/prayer-requests", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {

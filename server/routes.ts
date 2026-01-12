@@ -594,7 +594,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const response: AuthResponse = {
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          photoUrl: userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null,
+        },
         token,
       };
 
@@ -736,7 +739,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = generateToken(userWithoutPassword);
 
       const response: AuthResponse = {
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          photoUrl: userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null,
+        },
         token,
       };
 
@@ -789,7 +795,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const response: AuthResponse = {
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          photoUrl: userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null,
+        },
         token,
       };
 
@@ -809,7 +818,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter out admin users from the treasury member list and total counts
       const membersWithoutPasswords = members
         .filter(user => user.role !== "admin" && user.isAdmin !== true)
-        .map(({ password, ...user }) => user);
+        .map(({ password, ...user }) => ({
+          ...user,
+          photoUrl: user.photoUrl ? getPublicUrl(user.photoUrl) : null,
+        }));
       res.json(membersWithoutPasswords);
     } catch (error) {
       console.error("Get admin members error:", error);
@@ -843,7 +855,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } as any);
 
       const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      res.json({
+        ...userWithoutPassword,
+        photoUrl: userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null,
+      });
     } catch (error) {
       console.error("Add member error:", error);
       res.status(400).json({ 
@@ -876,7 +891,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { password, ...userWithoutPassword } = updatedUser;
-      res.json(userWithoutPassword);
+      res.json({
+        ...userWithoutPassword,
+        photoUrl: userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null,
+      });
     } catch (error) {
       console.error("Update member error:", error);
       res.status(400).json({ 
@@ -1479,7 +1497,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers();
-      const membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      const membersWithoutPasswords = members.map(({ password, ...user }) => ({
+        ...user,
+        photoUrl: user.photoUrl ? getPublicUrl(user.photoUrl) : null,
+      }));
       res.json(membersWithoutPasswords);
     } catch (error) {
       console.error("Get members error:", error);
@@ -1492,7 +1513,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/members/non-admins", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const members = await storage.getAllMembers(true); // Exclude admins
-      let membersWithoutPasswords = members.map(({ password, ...user }) => user);
+      let membersWithoutPasswords = members.map(({ password, ...user }) => ({
+        ...user,
+        photoUrl: user.photoUrl ? getPublicUrl(user.photoUrl) : null,
+      }));
       
       // If electionId is provided, exclude members who already won a position in this election
       // and filter only members who are present

@@ -3,9 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles, ImagePlus } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles, ImagePlus, Trash2, Calendar } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface EspiritualidadeStats {
   devotionals: {
@@ -19,11 +22,47 @@ interface EspiritualidadeStats {
   };
 }
 
+interface DailyVersePost {
+  id: number;
+  verse: string;
+  reference: string;
+  reflection?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  publishedAt: string;
+}
+
 export default function EspiritualidadeDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { data: stats, isLoading } = useQuery<EspiritualidadeStats>({
     queryKey: ["/api/espiritualidade/stats"],
+  });
+
+  const { data: dailyVerses, isLoading: loadingVerses } = useQuery<DailyVersePost[]>({
+    queryKey: ["/api/admin/daily-verses"],
+  });
+
+  const deleteVerseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/daily-verse/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/daily-verses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/site/daily-verse"] });
+      toast({
+        title: "Versículo removido",
+        description: "O versículo do dia foi removido com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao remover",
+        description: error.message || "Não foi possível remover o versículo.",
+        variant: "destructive",
+      });
+    },
   });
 
   const testPushMutation = useMutation({
@@ -281,6 +320,86 @@ export default function EspiritualidadeDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Daily Verses Management */}
+      <Card data-testid="card-daily-verses-section">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            Versículos do Dia
+          </CardTitle>
+          <CardDescription>
+            Gerencie os versículos do dia publicados
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingVerses ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : !dailyVerses || dailyVerses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum versículo do dia publicado.</p>
+          ) : (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {dailyVerses.map((verse) => (
+                <div 
+                  key={verse.id} 
+                  className="flex items-center justify-between p-3 border rounded-md gap-2"
+                  data-testid={`verse-item-${verse.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(verse.publishedAt), "dd/MM/yyyy", { locale: ptBR })}
+                      </span>
+                      {verse.isActive && (
+                        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-0.5 rounded">
+                          Ativo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium truncate">{verse.reference}</p>
+                    <p className="text-xs text-muted-foreground truncate">{verse.verse}</p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-destructive hover:text-destructive flex-shrink-0"
+                        data-testid={`button-delete-verse-${verse.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover Versículo</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja remover o versículo "{verse.reference}"? 
+                          Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteVerseMutation.mutate(verse.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          data-testid={`button-confirm-delete-${verse.id}`}
+                        >
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

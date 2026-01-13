@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +47,7 @@ interface DailyVersePost {
 export default function VersiculoDoDiaPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const params = useParams<{ date?: string }>();
@@ -75,6 +76,32 @@ export default function VersiculoDoDiaPage() {
   });
 
   const backgroundImage = todayVerse?.stockImage?.imageUrl || todayVerse?.imageUrl;
+
+  // Pre-load image as base64 for html2canvas (CORS workaround)
+  useEffect(() => {
+    if (backgroundImage && shareOpen) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          try {
+            const base64 = canvas.toDataURL('image/jpeg', 0.95);
+            setImageBase64(base64);
+          } catch {
+            console.log('CORS prevented base64 conversion');
+            setImageBase64(null);
+          }
+        }
+      };
+      img.onerror = () => setImageBase64(null);
+      img.src = backgroundImage;
+    }
+  }, [backgroundImage, shareOpen]);
 
   const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
     if (!shareCardRef.current) return;
@@ -291,27 +318,37 @@ export default function VersiculoDoDiaPage() {
 
           <div 
             ref={shareCardRef}
-            className="w-full aspect-[9/16] rounded-lg overflow-hidden relative"
+            className="w-full aspect-[9/16] rounded-xl overflow-hidden relative"
             style={{ 
-              backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-              backgroundColor: backgroundImage ? undefined : 'hsl(var(--primary))'
+              backgroundColor: '#1a1a2e'
             }}
           >
+            {/* Background image as inline element for html2canvas */}
+            {(imageBase64 || backgroundImage) && (
+              <img 
+                src={imageBase64 || backgroundImage || ''} 
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                crossOrigin="anonymous"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
             <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
               <div className="text-center">
-                <h3 className="text-lg font-bold uppercase tracking-wider">Versículo do Dia</h3>
-                <p className="text-sm opacity-80">
+                <h3 className="text-lg font-bold uppercase tracking-wider" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                  VERSÍCULO DO DIA
+                </h3>
+                <p className="text-sm opacity-90" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
                 </p>
               </div>
 
               <div className="text-center flex-1 flex items-center justify-center px-4">
                 <div>
-                  <p className="text-xl md:text-2xl italic leading-relaxed mb-4">
+                  <p className="text-xl md:text-2xl italic leading-relaxed mb-4" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                     "{todayVerse?.verse}"
                   </p>
-                  <p className="text-base font-semibold">
+                  <p className="text-base font-semibold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
                     {todayVerse?.reference}
                   </p>
                 </div>

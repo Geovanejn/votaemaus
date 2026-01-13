@@ -109,12 +109,14 @@ export default function VersiculoDoDiaPage() {
     setGenerating(true);
     try {
       const canvas = await html2canvas(shareCardRef.current, {
-        scale: 4,
+        scale: 3,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null,
+        backgroundColor: '#1a1a2e',
         logging: false,
         imageTimeout: 0,
+        width: shareCardRef.current.offsetWidth,
+        height: shareCardRef.current.offsetHeight,
       });
 
       canvas.toBlob(async (blob) => {
@@ -124,15 +126,15 @@ export default function VersiculoDoDiaPage() {
           return;
         }
 
-        const file = new File([blob], 'versiculo-do-dia.png', { type: 'image/png' });
+        const file = new File([blob], 'versiculo-do-dia.jpg', { type: 'image/jpeg' });
         const shareUrl = `${window.location.origin}/versiculo-do-dia`;
-        const shareText = `"${todayVerse?.verse}" - ${todayVerse?.reference}\n\nVeja mais em: ${shareUrl}`;
+        const shareText = `*Versículo do Dia* - UMP Emaús\n\n"${todayVerse?.verse}"\n— ${todayVerse?.reference}\n\nLeia a reflexão completa:\n${shareUrl}`;
 
         if (platform === 'download') {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.png';
+          a.download = 'versiculo-do-dia.jpg';
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
@@ -151,7 +153,7 @@ export default function VersiculoDoDiaPage() {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.png';
+          a.download = 'versiculo-do-dia.jpg';
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
@@ -162,7 +164,7 @@ export default function VersiculoDoDiaPage() {
 
         setGenerating(false);
         setShareOpen(false);
-      }, 'image/png');
+      }, 'image/jpeg', 0.95);
     } catch (error) {
       console.error('Error generating image:', error);
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });
@@ -318,9 +320,13 @@ export default function VersiculoDoDiaPage() {
 
           <div 
             ref={shareCardRef}
-            className="w-full aspect-[9/16] overflow-hidden relative"
             style={{ 
-              backgroundColor: '#1a1a2e'
+              width: '100%',
+              aspectRatio: '9/16',
+              position: 'relative',
+              backgroundColor: '#1a1a2e',
+              overflow: 'hidden',
+              borderRadius: '0.5rem'
             }}
           >
             {/* Background image as inline element for html2canvas */}
@@ -328,34 +334,91 @@ export default function VersiculoDoDiaPage() {
               <img 
                 src={imageBase64 || backgroundImage || ''} 
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
                 crossOrigin="anonymous"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
-            <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
-              <div className="text-center">
-                <h3 className="text-lg font-bold uppercase tracking-wider" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '1.5rem',
+              color: 'white',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <h3 style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: 'bold', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  margin: 0,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                }}>
                   VERSÍCULO DO DIA
                 </h3>
-                <p className="text-sm opacity-90" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  opacity: 0.9,
+                  margin: '0.25rem 0 0 0',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
                 </p>
               </div>
 
-              <div className="text-center flex-1 flex items-center justify-center px-4">
+              <div style={{ 
+                textAlign: 'center', 
+                flex: 1, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                padding: '0 1rem'
+              }}>
                 <div>
-                  <p className="text-xl md:text-2xl italic leading-relaxed mb-4" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                  <p style={{ 
+                    fontSize: '1.25rem', 
+                    fontStyle: 'italic', 
+                    lineHeight: 1.35,
+                    margin: '0 0 0.75rem 0',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                  }}>
                     "{todayVerse?.verse}"
                   </p>
-                  <p className="text-base font-semibold" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                  <p style={{ 
+                    fontSize: '0.8rem', 
+                    fontWeight: 600,
+                    margin: 0,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                  }}>
                     {todayVerse?.reference}
                   </p>
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <img src={logoWhite} alt="UMP Emaús" className="h-24 opacity-95" />
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <img src={logoWhite} alt="UMP Emaús" style={{ height: '6rem', opacity: 0.95, display: 'block' }} />
               </div>
             </div>
           </div>

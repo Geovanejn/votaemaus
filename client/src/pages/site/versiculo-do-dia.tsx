@@ -121,26 +121,34 @@ export default function VersiculoDoDiaPage() {
         height: shareCardRef.current.offsetHeight,
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          toast({ title: "Erro ao gerar imagem", variant: "destructive" });
-          setGenerating(false);
-          return;
-        }
+      const shareUrl = `${window.location.origin}/versiculo-do-dia`;
+      const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
 
-        const file = new File([blob], 'versiculo-do-dia.png', { type: 'image/png' });
-        const shareUrl = `${window.location.origin}/versiculo-do-dia`;
-        const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
-
-        if (platform === 'download') {
+      if (platform === 'download') {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.png';
+          a.download = 'versiculo-do-dia.jpg';
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
-        } else if (platform === 'whatsapp') {
+          setGenerating(false);
+          setShareOpen(false);
+        }, 'image/jpeg', 1.0);
+      } else if (platform === 'whatsapp') {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
+          const file = new File([blob], 'versiculo-do-dia.jpg', { type: 'image/jpeg' });
           try {
             await navigator.clipboard.writeText(shareText);
           } catch (e) {
@@ -160,22 +168,30 @@ export default function VersiculoDoDiaPage() {
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
             window.open(whatsappUrl, '_blank');
           }
-        } else if (platform === 'instagram') {
+          setGenerating(false);
+          setShareOpen(false);
+        }, 'image/jpeg', 1.0);
+      } else if (platform === 'instagram') {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.png';
+          a.download = 'versiculo-do-dia.jpg';
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
             title: "Imagem baixada!", 
             description: "Abra o Instagram e compartilhe nos Stories" 
           });
-        }
-
-        setGenerating(false);
-        setShareOpen(false);
-      }, 'image/png');
+          setGenerating(false);
+          setShareOpen(false);
+        }, 'image/jpeg', 1.0);
+      }
     } catch (error) {
       console.error('Error generating image:', error);
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });

@@ -6927,6 +6927,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== DAILY VERSE SHARING ====================
+
+  // Record daily verse share
+  app.post("/api/study/daily-verse/share", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { platform, versePostId } = req.body;
+      
+      if (!platform || !['whatsapp', 'instagram', 'download'].includes(platform)) {
+        return res.status(400).json({ message: "Plataforma inválida" });
+      }
+      
+      const todayKey = getDailyVerseDateKey();
+      
+      // Record the share
+      await storage.recordDailyVerseShare(userId, versePostId || null, platform, todayKey);
+      
+      res.json({ success: true, message: "Compartilhamento registrado" });
+    } catch (error) {
+      console.error("Record daily verse share error:", error);
+      res.status(500).json({ message: "Erro ao registrar compartilhamento" });
+    }
+  });
+
+  // Check if user has shared daily verse today
+  app.get("/api/study/daily-verse/shared-today", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const todayKey = getDailyVerseDateKey();
+      
+      const hasShared = await storage.hasUserSharedDailyVerseToday(userId, todayKey);
+      
+      res.json({ hasShared, dateKey: todayKey });
+    } catch (error) {
+      console.error("Check daily verse share status error:", error);
+      res.status(500).json({ message: "Erro ao verificar status" });
+    }
+  });
+
   // ==================== ADMINISTRAÇÃO DE TEMPORADAS ====================
 
   // Listar todas as temporadas (admin)

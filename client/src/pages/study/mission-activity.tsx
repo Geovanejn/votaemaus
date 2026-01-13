@@ -999,13 +999,23 @@ function ShareKnowledgeActivity({
 }: { 
   onComplete: () => void;
 }) {
-  const [shared, setShared] = useState(false);
+  const [, setLocation] = useLocation();
   const { sounds } = useSounds();
 
-  const handleConfirmShare = () => {
-    sounds.success();
-    setShared(true);
-  };
+  // Check if user has shared daily verse today
+  const { data: shareStatus, isLoading } = useQuery<{ hasShared: boolean }>({
+    queryKey: ["/api/study/daily-verse/shared-today"],
+    refetchInterval: 3000, // Poll every 3 seconds to detect when user shares
+  });
+
+  const hasShared = shareStatus?.hasShared || false;
+
+  // Auto-trigger completion sound when share is detected
+  useEffect(() => {
+    if (hasShared) {
+      sounds.success();
+    }
+  }, [hasShared, sounds]);
 
   return (
     <div className="space-y-6" data-testid="share-knowledge-activity">
@@ -1015,39 +1025,43 @@ function ShareKnowledgeActivity({
           <h3 className="text-lg font-bold text-foreground">Compartilhe a Palavra</h3>
         </div>
         
-        {!shared ? (
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
+          </div>
+        ) : !hasShared ? (
           <>
             <p className="text-center text-muted-foreground mb-4">
-              Sua missão é compartilhar um ensinamento bíblico com alguém hoje.
-              Pode ser pessoalmente, por mensagem, ou de qualquer outra forma.
+              Compartilhe o Versículo do Dia no WhatsApp ou Instagram para completar esta missão.
             </p>
             
             <div className="bg-sky-100 dark:bg-sky-900/30 rounded-lg p-4 text-sm space-y-2">
-              <p className="font-medium text-sky-800 dark:text-sky-200">Sugestões:</p>
-              <ul className="list-disc list-inside text-sky-700 dark:text-sky-300 space-y-1">
-                <li>Envie um versículo para um amigo</li>
-                <li>Conte sobre algo que aprendeu na Bíblia</li>
-                <li>Ore com alguém e compartilhe uma palavra</li>
-                <li>Poste uma reflexão nas redes sociais</li>
-              </ul>
+              <p className="font-medium text-sky-800 dark:text-sky-200">Como fazer:</p>
+              <ol className="list-decimal list-inside text-sky-700 dark:text-sky-300 space-y-1">
+                <li>Acesse a página do Versículo do Dia</li>
+                <li>Clique no botão "Compartilhar"</li>
+                <li>Escolha WhatsApp ou Instagram</li>
+                <li>Envie para um amigo ou nos Stories</li>
+              </ol>
             </div>
           </>
         ) : (
           <div className="text-center">
             <Check className="w-16 h-16 mx-auto text-[#58CC02] mb-3" />
-            <p className="text-[#58CC02] font-bold">Que bom! Você espalhou a Palavra!</p>
+            <p className="text-[#58CC02] font-bold">Versículo do Dia compartilhado!</p>
+            <p className="text-sm text-muted-foreground mt-1">Você espalhou a Palavra hoje.</p>
           </div>
         )}
       </Card>
 
-      {!shared ? (
+      {!hasShared ? (
         <Button 
-          onClick={handleConfirmShare} 
+          onClick={() => setLocation('/versiculo-do-dia')} 
           className="w-full bg-sky-600 text-white"
-          data-testid="button-confirm-share"
+          data-testid="button-go-to-verse"
         >
-          <Share2 className="w-4 h-4 mr-2" />
-          Já Compartilhei!
+          <ArrowRight className="w-4 h-4 mr-2" />
+          Ir para o Versículo do Dia
         </Button>
       ) : (
         <Button 

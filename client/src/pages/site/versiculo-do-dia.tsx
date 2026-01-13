@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import html2canvas from "html2canvas";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   ArrowLeft,
   Calendar,
@@ -76,6 +77,20 @@ export default function VersiculoDoDiaPage() {
   });
 
   const backgroundImage = todayVerse?.stockImage?.imageUrl || todayVerse?.imageUrl;
+
+  // Mutation to record share (only for authenticated users)
+  const recordShareMutation = useMutation({
+    mutationFn: async (data: { platform: string; versePostId?: number }) => {
+      const res = await apiRequest("POST", "/api/study/daily-verse/share", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/daily-verse/shared-today"] });
+    },
+    onError: () => {
+      // Silently fail - sharing should still work even if tracking fails
+    },
+  });
 
   // Pre-load image as base64 for html2canvas (CORS workaround)
   useEffect(() => {
@@ -168,6 +183,8 @@ export default function VersiculoDoDiaPage() {
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
+          // Record share for mission tracking
+          recordShareMutation.mutate({ platform: 'download', versePostId: todayVerse?.id });
           setGenerating(false);
           setShareOpen(false);
         }, 'image/png', 1.0);
@@ -198,6 +215,8 @@ export default function VersiculoDoDiaPage() {
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
             window.open(whatsappUrl, '_blank');
           }
+          // Record share for mission tracking
+          recordShareMutation.mutate({ platform: 'whatsapp', versePostId: todayVerse?.id });
           setGenerating(false);
           setShareOpen(false);
         }, 'image/png', 1.0);
@@ -218,6 +237,8 @@ export default function VersiculoDoDiaPage() {
             title: "Imagem baixada!", 
             description: "Abra o Instagram e compartilhe nos Stories" 
           });
+          // Record share for mission tracking
+          recordShareMutation.mutate({ platform: 'instagram', versePostId: todayVerse?.id });
           setGenerating(false);
           setShareOpen(false);
         }, 'image/png', 1.0);
@@ -227,7 +248,7 @@ export default function VersiculoDoDiaPage() {
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });
       setGenerating(false);
     }
-  }, [todayVerse, toast]);
+  }, [todayVerse, toast, recordShareMutation]);
 
   if (isLoading) {
     return (

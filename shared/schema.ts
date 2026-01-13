@@ -773,6 +773,26 @@ export const insertDailyVersePostSchema = createInsertSchema(dailyVersePosts).om
 export type InsertDailyVersePost = z.infer<typeof insertDailyVersePostSchema>;
 export type DailyVersePost = typeof dailyVersePosts.$inferSelect;
 
+// Daily Verse Shares - track when users share the daily verse
+export const dailyVerseShares = pgTable("daily_verse_shares", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  versePostId: integer("verse_post_id").references(() => dailyVersePosts.id),
+  sharedAt: timestamp("shared_at").notNull().defaultNow(),
+  platform: text("platform").notNull(), // 'whatsapp', 'instagram', 'download'
+  shareDate: text("share_date").notNull(), // YYYY-MM-DD format for quick lookup
+}, (table) => ({
+  userDateIdx: index("daily_verse_shares_user_date_idx").on(table.userId, table.shareDate),
+}));
+
+export const insertDailyVerseShareSchema = createInsertSchema(dailyVerseShares).omit({
+  id: true,
+  sharedAt: true,
+});
+
+export type InsertDailyVerseShare = z.infer<typeof insertDailyVerseShareSchema>;
+export type DailyVerseShare = typeof dailyVerseShares.$inferSelect;
+
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 
 export const studyProfiles = pgTable("study_profiles", {

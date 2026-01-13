@@ -402,6 +402,10 @@ export interface IStorage {
   updateDailyVersePost(id: number, data: Partial<schema.InsertDailyVersePost>): Promise<schema.DailyVersePost | null>;
   deactivateExpiredDailyVersePosts(): Promise<void>;
   
+  // Daily Verse Share Tracking
+  recordDailyVerseShare(userId: number, versePostId: number | null, platform: string, shareDate: string): Promise<schema.DailyVerseShare>;
+  hasUserSharedDailyVerseToday(userId: number, date: string): Promise<boolean>;
+  
   // Current Lesson Optimized
   getCurrentLessonOptimized(userId: number): Promise<{
     lesson: { id: number; lessonNumber: number; title: string; sectionsCompleted: number; totalSections: number; status: string };
@@ -1695,7 +1699,7 @@ export class DatabaseStorage implements IStorage {
       // New challenging missions (replaced memorize_theme)
       { type: 'verse_memory', title: 'Memorize o Versículo', description: 'Complete as palavras que faltam no versículo', icon: 'Brain', xpReward: 10 },
       { type: 'daily_reflection', title: 'Reflexão Diária', description: 'Escreva uma reflexão sobre o estudo de hoje', icon: 'MessageSquare', xpReward: 10 },
-      { type: 'share_knowledge', title: 'Compartilhe a Palavra', description: 'Compartilhe um ensinamento com alguém hoje', icon: 'Share2', xpReward: 10 },
+      { type: 'share_knowledge', title: 'Compartilhe a Palavra', description: 'Compartilhe o Versículo do Dia no WhatsApp ou Instagram', icon: 'Share2', xpReward: 10 },
     ];
 
     for (const mission of defaultMissions) {
@@ -4576,6 +4580,29 @@ export class DatabaseStorage implements IStorage {
         eq(schema.dailyVersePosts.isActive, true),
         lte(schema.dailyVersePosts.expiresAt, now)
       ));
+  }
+
+  async recordDailyVerseShare(userId: number, versePostId: number | null, platform: string, shareDate: string): Promise<schema.DailyVerseShare> {
+    const [share] = await db.insert(schema.dailyVerseShares)
+      .values({
+        userId,
+        versePostId,
+        platform,
+        shareDate,
+      })
+      .returning();
+    return share;
+  }
+
+  async hasUserSharedDailyVerseToday(userId: number, date: string): Promise<boolean> {
+    const [share] = await db.select()
+      .from(schema.dailyVerseShares)
+      .where(and(
+        eq(schema.dailyVerseShares.userId, userId),
+        eq(schema.dailyVerseShares.shareDate, date)
+      ))
+      .limit(1);
+    return !!share;
   }
 
   // ==================== AUDIT LOG METHODS ====================

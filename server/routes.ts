@@ -5417,12 +5417,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Populate daily verse stock images (admin only) - idempotent
+  // Populate daily verse stock images (admin only) - idempotent, uploads to R2
   app.post("/api/admin/daily-verse/populate-stock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       // Check if already populated
       const existingStock = await storage.getAllDailyVerseStock();
-      if (existingStock.length > 0) {
+      if (existingStock.length >= 60) {
         return res.json({ 
           success: true, 
           message: `Já existem ${existingStock.length} imagens stock cadastradas. Nenhuma adicionada.`,
@@ -5430,41 +5430,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const stockImages = [
-        { imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800", category: "nature", orderIndex: 1 },
-        { imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800", category: "nature", orderIndex: 2 },
-        { imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800", category: "nature", orderIndex: 3 },
-        { imageUrl: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=800", category: "nature", orderIndex: 4 },
-        { imageUrl: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800", category: "nature", orderIndex: 5 },
-        { imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800", category: "nature", orderIndex: 6 },
-        { imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800", category: "nature", orderIndex: 7 },
-        { imageUrl: "https://images.unsplash.com/photo-1518173946687-a4c036bc8bf1?w=800", category: "nature", orderIndex: 8 },
-        { imageUrl: "https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=800", category: "contemplative", orderIndex: 9 },
-        { imageUrl: "https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=800", category: "contemplative", orderIndex: 10 },
-        { imageUrl: "https://images.unsplash.com/photo-1489549132488-d00b7eee80f1?w=800", category: "sunrise", orderIndex: 11 },
-        { imageUrl: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=800", category: "sunrise", orderIndex: 12 },
-        { imageUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800", category: "nature", orderIndex: 13 },
-        { imageUrl: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800", category: "sky", orderIndex: 14 },
-        { imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", category: "mountains", orderIndex: 15 },
-        { imageUrl: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=800", category: "mountains", orderIndex: 16 },
-        { imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800", category: "mountains", orderIndex: 17 },
-        { imageUrl: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=800", category: "nature", orderIndex: 18 },
-        { imageUrl: "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?w=800", category: "sky", orderIndex: 19 },
-        { imageUrl: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800", category: "aurora", orderIndex: 20 },
+      // Check if R2 is configured
+      const { isR2Configured, uploadToR2 } = await import('./r2-storage');
+      if (!isR2Configured()) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "R2 não está configurado. Configure as variáveis R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY e R2_BUCKET_NAME." 
+        });
+      }
+
+      // 60 high-quality Unsplash images for daily verses
+      const unsplashImages = [
+        // Nature (20)
+        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&q=90",
+        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1200&q=90",
+        "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&q=90",
+        "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200&q=90",
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1200&q=90",
+        "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&q=90",
+        "https://images.unsplash.com/photo-1518173946687-a4c036bc8bf1?w=1200&q=90",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=90",
+        "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=1200&q=90",
+        "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1200&q=90",
+        "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1200&q=90",
+        "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&q=90",
+        "https://images.unsplash.com/photo-1497449493050-aad1e7cad165?w=1200&q=90",
+        "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=1200&q=90",
+        "https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=1200&q=90",
+        "https://images.unsplash.com/photo-1552083375-1447ce886485?w=1200&q=90",
+        // Mountains (15)
+        "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=90",
+        "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=90",
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=90",
+        "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=90",
+        "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=90",
+        "https://images.unsplash.com/photo-1434394354979-a235cd36269d?w=1200&q=90",
+        "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=90",
+        "https://images.unsplash.com/photo-1458668383970-8ddd3927deed?w=1200&q=90",
+        "https://images.unsplash.com/photo-1454982523318-4b6f2d0c0b78?w=1200&q=90",
+        "https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=1200&q=90",
+        "https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=1200&q=90",
+        "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=90",
+        "https://images.unsplash.com/photo-1445363692815-ebcd599f7621?w=1200&q=90",
+        "https://images.unsplash.com/photo-1464852045489-bccb7d17fe39?w=1200&q=90",
+        "https://images.unsplash.com/photo-1464817739973-0128fe77aaa1?w=1200&q=90",
+        // Sky/Sunrise/Sunset (15)
+        "https://images.unsplash.com/photo-1489549132488-d00b7eee80f1?w=1200&q=90",
+        "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1200&q=90",
+        "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1200&q=90",
+        "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?w=1200&q=90",
+        "https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1495344517868-8ebaf0a2044a?w=1200&q=90",
+        "https://images.unsplash.com/photo-1503803548695-c2a7b4a5b875?w=1200&q=90",
+        "https://images.unsplash.com/photo-1506012787146-f92b2d7d6d96?w=1200&q=90",
+        "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=1200&q=90",
+        "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&q=90",
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&q=90",
+        "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=1200&q=90",
+        "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1200&q=90",
+        "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1200&q=90",
+        "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1200&q=90",
+        // Contemplative/Spiritual (10)
+        "https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=1200&q=90",
+        "https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=1200&q=90",
+        "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1200&q=90",
+        "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1200&q=90",
+        "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=1200&q=90",
+        "https://images.unsplash.com/photo-1465189684280-6a8fa9b19a00?w=1200&q=90",
+        "https://images.unsplash.com/photo-1516410529446-2c777cb7366d?w=1200&q=90",
+        "https://images.unsplash.com/photo-1449057528837-7ca097b3520c?w=1200&q=90",
+        "https://images.unsplash.com/photo-1531685250784-7569952593d2?w=1200&q=90",
+        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200&q=90",
+      ];
+
+      const categories = [
+        ...Array(20).fill("nature"),
+        ...Array(15).fill("mountains"),
+        ...Array(15).fill("sky"),
+        ...Array(10).fill("contemplative"),
       ];
 
       let addedCount = 0;
-      for (const img of stockImages) {
-        await storage.createDailyVerseStock({
-          imageUrl: img.imageUrl,
-          category: img.category,
-          orderIndex: img.orderIndex,
-          isActive: true,
-        });
-        addedCount++;
+      const startIndex = existingStock.length;
+
+      console.log(`[Stock Images] Starting upload of ${unsplashImages.length - startIndex} images to R2...`);
+
+      for (let i = startIndex; i < unsplashImages.length; i++) {
+        try {
+          const url = unsplashImages[i];
+          const category = categories[i];
+          
+          // Fetch image from Unsplash
+          const response = await fetch(url);
+          if (!response.ok) {
+            console.error(`[Stock Images] Failed to fetch image ${i + 1}: ${response.status}`);
+            continue;
+          }
+          
+          const buffer = Buffer.from(await response.arrayBuffer());
+          
+          // Upload to R2
+          const r2Url = await uploadToR2(buffer, 'verses', 'image/jpeg', `verse-stock-${i + 1}.jpg`);
+          
+          // Save to database
+          await storage.createDailyVerseStock({
+            imageUrl: r2Url,
+            category,
+            orderIndex: i + 1,
+            isActive: true,
+          });
+          
+          addedCount++;
+          console.log(`[Stock Images] Uploaded ${addedCount}/${unsplashImages.length - startIndex} (${category})`);
+        } catch (imgError) {
+          console.error(`[Stock Images] Error processing image ${i + 1}:`, imgError);
+        }
       }
 
-      res.json({ success: true, message: `${addedCount} imagens stock adicionadas com sucesso!` });
+      res.json({ 
+        success: true, 
+        message: `${addedCount} imagens stock adicionadas ao R2 com sucesso!`,
+        total: existingStock.length + addedCount
+      });
     } catch (error) {
       console.error("Populate stock error:", error);
       res.status(500).json({ success: false, message: "Erro ao popular imagens stock" });

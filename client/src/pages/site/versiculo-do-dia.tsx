@@ -82,10 +82,12 @@ export default function VersiculoDoDiaPage() {
     setGenerating(true);
     try {
       const canvas = await html2canvas(shareCardRef.current, {
-        scale: 2,
+        scale: 4,
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
+        logging: false,
+        imageTimeout: 0,
       });
 
       canvas.toBlob(async (blob) => {

@@ -111,7 +111,7 @@ export default function VersiculoDoDiaPage() {
     setGenerating(true);
     try {
       const canvas = await html2canvas(shareCardRef.current, {
-        scale: 4,
+        scale: 5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#1a1a2e',
@@ -128,7 +128,7 @@ export default function VersiculoDoDiaPage() {
           return;
         }
 
-        const file = new File([blob], 'versiculo-do-dia.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], 'versiculo-do-dia.png', { type: 'image/png' });
         const shareUrl = `${window.location.origin}/versiculo-do-dia`;
         const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
 
@@ -136,7 +136,7 @@ export default function VersiculoDoDiaPage() {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.jpg';
+          a.download = 'versiculo-do-dia.png';
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
@@ -164,7 +164,7 @@ export default function VersiculoDoDiaPage() {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.jpg';
+          a.download = 'versiculo-do-dia.png';
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
@@ -175,7 +175,7 @@ export default function VersiculoDoDiaPage() {
 
         setGenerating(false);
         setShareOpen(false);
-      }, 'image/jpeg', 0.98);
+      }, 'image/png');
     } catch (error) {
       console.error('Error generating image:', error);
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });
@@ -337,7 +337,7 @@ export default function VersiculoDoDiaPage() {
               position: 'relative',
               backgroundColor: '#1a1a2e',
               overflow: 'hidden',
-              borderRadius: '0.5rem',
+              borderRadius: '16px',
               WebkitFontSmoothing: 'antialiased',
               textRendering: 'optimizeLegibility',
             }}
@@ -349,30 +349,25 @@ export default function VersiculoDoDiaPage() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  top: 0,
-                  left: 0,
+                  inset: 0,
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  display: 'block'
+                  display: 'block',
+                  borderRadius: '16px'
                 }}
                 crossOrigin="anonymous"
               />
             )}
             <div style={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))',
+              borderRadius: '16px'
             }} />
             <div style={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
+              inset: 0,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',

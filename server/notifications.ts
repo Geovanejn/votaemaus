@@ -1245,7 +1245,7 @@ export async function notifyEventEnded(
 
 export async function notifyDailyVerse(verse: string, reference: string): Promise<void> {
   const payload: NotificationPayload = {
-    title: "Versiculo do Dia",
+    title: "✨ Versículo do Dia",
     body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
     url: "/study",
     tag: "daily-verse",
@@ -1262,7 +1262,7 @@ export async function notifyDailyVerse(verse: string, reference: string): Promis
 
 export async function notifyDailyVerseWithLink(verse: string, reference: string, url: string): Promise<void> {
   const payload: NotificationPayload = {
-    title: "Versiculo do Dia",
+    title: "✨ Versículo do Dia",
     body: `"${verse.substring(0, 100)}${verse.length > 100 ? '...' : ''}" - ${reference}`,
     url: url,
     tag: "daily-verse",

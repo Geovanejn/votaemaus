@@ -110,22 +110,52 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      const canvas = await html2canvas(shareCardRef.current, {
+      const sourceCanvas = await html2canvas(shareCardRef.current, {
         scale: 5,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#000000',
+        backgroundColor: null,
         logging: false,
         imageTimeout: 0,
         width: shareCardRef.current.offsetWidth,
         height: shareCardRef.current.offsetHeight,
       });
 
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+      const borderRadius = 50;
+
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = width;
+      finalCanvas.height = height;
+      const ctx = finalCanvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+        setGenerating(false);
+        return;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(borderRadius, 0);
+      ctx.lineTo(width - borderRadius, 0);
+      ctx.quadraticCurveTo(width, 0, width, borderRadius);
+      ctx.lineTo(width, height - borderRadius);
+      ctx.quadraticCurveTo(width, height, width - borderRadius, height);
+      ctx.lineTo(borderRadius, height);
+      ctx.quadraticCurveTo(0, height, 0, height - borderRadius);
+      ctx.lineTo(0, borderRadius);
+      ctx.quadraticCurveTo(0, 0, borderRadius, 0);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.drawImage(sourceCanvas, 0, 0);
+
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
 
       if (platform === 'download') {
-        canvas.toBlob(async (blob) => {
+        finalCanvas.toBlob(async (blob) => {
           if (!blob) {
             toast({ title: "Erro ao gerar imagem", variant: "destructive" });
             setGenerating(false);
@@ -134,21 +164,21 @@ export default function VersiculoDoDiaPage() {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.jpg';
+          a.download = 'versiculo-do-dia.png';
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
           setGenerating(false);
           setShareOpen(false);
-        }, 'image/jpeg', 1.0);
+        }, 'image/png', 1.0);
       } else if (platform === 'whatsapp') {
-        canvas.toBlob(async (blob) => {
+        finalCanvas.toBlob(async (blob) => {
           if (!blob) {
             toast({ title: "Erro ao gerar imagem", variant: "destructive" });
             setGenerating(false);
             return;
           }
-          const file = new File([blob], 'versiculo-do-dia.jpg', { type: 'image/jpeg' });
+          const file = new File([blob], 'versiculo-do-dia.png', { type: 'image/png' });
           try {
             await navigator.clipboard.writeText(shareText);
           } catch (e) {
@@ -170,9 +200,9 @@ export default function VersiculoDoDiaPage() {
           }
           setGenerating(false);
           setShareOpen(false);
-        }, 'image/jpeg', 1.0);
+        }, 'image/png', 1.0);
       } else if (platform === 'instagram') {
-        canvas.toBlob(async (blob) => {
+        finalCanvas.toBlob(async (blob) => {
           if (!blob) {
             toast({ title: "Erro ao gerar imagem", variant: "destructive" });
             setGenerating(false);
@@ -181,7 +211,7 @@ export default function VersiculoDoDiaPage() {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'versiculo-do-dia.jpg';
+          a.download = 'versiculo-do-dia.png';
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
@@ -190,7 +220,7 @@ export default function VersiculoDoDiaPage() {
           });
           setGenerating(false);
           setShareOpen(false);
-        }, 'image/jpeg', 1.0);
+        }, 'image/png', 1.0);
       }
     } catch (error) {
       console.error('Error generating image:', error);
@@ -351,7 +381,6 @@ export default function VersiculoDoDiaPage() {
               width: '100%',
               aspectRatio: '9/16',
               position: 'relative',
-              backgroundColor: '#000000',
               overflow: 'hidden',
               borderRadius: '10px',
               WebkitFontSmoothing: 'antialiased',
@@ -365,9 +394,9 @@ export default function VersiculoDoDiaPage() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  inset: '-1px',
-                  width: 'calc(100% + 2px)',
-                  height: 'calc(100% + 2px)',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
                   objectFit: 'cover',
                   display: 'block'
                 }}
@@ -376,7 +405,7 @@ export default function VersiculoDoDiaPage() {
             )}
             <div style={{
               position: 'absolute',
-              inset: '-1px',
+              inset: 0,
               background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
             }} />
             <div style={{

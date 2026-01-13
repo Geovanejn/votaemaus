@@ -397,7 +397,7 @@ export interface IStorage {
   // Daily Verse Posts Methods
   getActiveDailyVersePost(): Promise<schema.DailyVersePost | null>;
   getDailyVersePostByDate(date: Date): Promise<schema.DailyVersePost | null>;
-  getDailyVersePosts(limit?: number, offset?: number): Promise<schema.DailyVersePost[]>;
+  getDailyVersePosts(limit?: number, offset?: number, activeOnly?: boolean): Promise<schema.DailyVersePost[]>;
   createDailyVersePost(data: schema.InsertDailyVersePost): Promise<schema.DailyVersePost>;
   updateDailyVersePost(id: number, data: Partial<schema.InsertDailyVersePost>): Promise<schema.DailyVersePost | null>;
   deactivateExpiredDailyVersePosts(): Promise<void>;
@@ -4539,7 +4539,14 @@ export class DatabaseStorage implements IStorage {
     return post || null;
   }
 
-  async getDailyVersePosts(limit: number = 30, offset: number = 0): Promise<schema.DailyVersePost[]> {
+  async getDailyVersePosts(limit: number = 30, offset: number = 0, activeOnly: boolean = true): Promise<schema.DailyVersePost[]> {
+    if (activeOnly) {
+      return db.select().from(schema.dailyVersePosts)
+        .where(eq(schema.dailyVersePosts.isActive, true))
+        .orderBy(desc(schema.dailyVersePosts.publishedAt))
+        .limit(limit)
+        .offset(offset);
+    }
     return db.select().from(schema.dailyVersePosts)
       .orderBy(desc(schema.dailyVersePosts.publishedAt))
       .limit(limit)

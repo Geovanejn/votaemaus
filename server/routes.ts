@@ -5562,11 +5562,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all daily verse posts (admin only)
+  // Get all daily verse posts (admin only - includes deleted)
   app.get("/api/admin/daily-verses", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const verses = await storage.getDailyVersePosts(100, 0);
-      res.json(verses);
+      // Admin sees only active verses (activeOnly = true)
+      const verses = await storage.getDailyVersePosts(100, 0, true);
+      res.json(convertImageUrlsArray(verses));
     } catch (error) {
       console.error("Get all daily verses error:", error);
       res.status(500).json({ message: "Erro ao buscar versículos" });

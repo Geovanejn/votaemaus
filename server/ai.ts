@@ -477,9 +477,60 @@ NÍVEIS DE DIFICULDADE (misture todos em cada lição):
 2. MÉDIO-DIFÍCIL (2 perguntas): Requer análise e interpretação do texto.
 3. DIFÍCIL (1 pergunta): Requer síntese de múltiplos conceitos ou distinção entre ideias muito similares.
 
+⚠️ SISTEMA DE AUTO-VALIDAÇÃO DE ALTERNATIVAS (OBRIGATÓRIO) ⚠️
+Antes de finalizar CADA pergunta de múltipla escolha, execute esta verificação mental:
+
+PASSO 1 - GERAR 6 CANDIDATOS:
+- Liste 6 alternativas candidatas relacionadas ao tema
+- Todas devem ser conceitos bíblicos/teológicos legítimos
+
+PASSO 2 - VERIFICAÇÃO DE PADRÕES ÓBVIOS:
+Analise os 6 candidatos e ELIMINE alternativas que criem padrões identificáveis:
+❌ PADRÃO TAMANHO: Se uma alternativa é significativamente mais longa que as outras, ELIMINE ou REESCREVA
+❌ PADRÃO NEGAÇÃO: Se apenas uma alternativa contém "não", "nunca", "nenhum" - ELIMINE ou ADICIONE outra negação
+❌ PADRÃO AFIRMAÇÃO: Se apenas uma alternativa é positiva entre negativas - REBALANCEIE
+❌ PADRÃO ABSOLUTO: Se apenas uma usa "sempre", "todos", "jamais" - EQUILIBRE
+❌ PADRÃO ESPECÍFICO: Se uma é muito específica e outras genéricas - EQUILIBRE especificidade
+❌ PADRÃO RELIGIOSO: Se uma é claramente "mais cristã" que outras - TORNE TODAS igualmente religiosas
+
+PASSO 3 - SELECIONAR 4 FINAIS:
+- Escolha 4 alternativas que passaram na validação
+- Todas devem ter TAMANHO SIMILAR (diferença máxima de 5 palavras)
+- Todas devem parecer IGUALMENTE PLAUSÍVEIS para quem não estudou
+
+PASSO 4 - TESTE DO "CHUTE EDUCADO":
+Pergunte-se: "Alguém que NÃO leu o texto conseguiria acertar por eliminação?"
+- Se SIM → REESCREVA as alternativas
+- Se NÃO → Alternativas aprovadas
+
+EXEMPLOS DE VALIDAÇÃO:
+❌ RUIM (padrão tamanho):
+A) Fé
+B) Obras
+C) A graça salvadora de Deus manifestada em Cristo Jesus ← ÓBVIA POR SER LONGA
+D) Lei
+
+✅ BOM (tamanhos similares):
+A) A fé genuína em Cristo
+B) As obras da lei mosaica
+C) A graça salvadora de Deus
+D) O cumprimento dos mandamentos
+
+❌ RUIM (padrão negação):
+A) Obedecer a Deus
+B) Amar o próximo
+C) Não fazer nada ← ÓBVIA POR SER A ÚNICA NEGAÇÃO
+D) Servir aos outros
+
+✅ BOM (negações equilibradas):
+A) Obedecer parcialmente a Deus
+B) Não se preocupar com pecado
+C) Confiar apenas em si mesmo
+D) Servir por interesse próprio
+
 REGRAS CRÍTICAS PARA EXERCÍCIOS DE MÚLTIPLA ESCOLHA:
 - TODAS as 4 alternativas devem ser PLAUSÍVEIS e parecerem igualmente corretas à primeira vista
-- As alternativas devem ter TAMANHOS SIMILARES (a resposta correta NÃO pode ser a mais longa)
+- As alternativas devem ter TAMANHOS SIMILARES (diferença máxima de 5 palavras entre a mais curta e a mais longa)
 - NUNCA use alternativas obviamente erradas como "Ignorar a Bíblia", "Desistir de tudo", "Nada disso"
 - As alternativas incorretas devem ser SUTILMENTE erradas, exigindo compreensão real do texto
 - Use conceitos bíblicos similares que requerem conhecimento para distinguir (ex: fé vs obras, graça vs lei, justificação vs santificação)
@@ -620,6 +671,35 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
 export async function generateExercisesFromTopic(topic: string, count: number = 5): Promise<GeneratedUnit[]> {
   const systemPrompt = `Voce e um especialista em educacao crista. Crie exercicios interativos no estilo Duolingo sobre o topico fornecido.
 Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
+
+⚠️ SISTEMA OBRIGATÓRIO DE AUTO-VALIDAÇÃO DE ALTERNATIVAS ⚠️
+
+Antes de gerar CADA pergunta de múltipla escolha, execute estes passos mentalmente:
+
+PASSO 1 - GERAR 6 CANDIDATOS:
+Liste 6 alternativas candidatas relacionadas ao tema, todas teologicamente plausíveis.
+
+PASSO 2 - VERIFICAR E ELIMINAR PADRÕES ÓBVIOS:
+❌ TAMANHO DESIGUAL: Uma alternativa muito mais longa → REESCREVA todas com tamanho similar
+❌ NEGAÇÃO ISOLADA: Apenas uma com "não/nunca/nenhum" → ADICIONE outra negação ou REMOVA
+❌ AFIRMAÇÃO ISOLADA: Uma positiva entre negativas → REBALANCEIE
+❌ ABSOLUTO ISOLADO: Uma com "sempre/todos/jamais" → EQUILIBRE com outras
+❌ ESPECIFICIDADE DESIGUAL: Uma muito detalhada, outras vagas → EQUILIBRE
+❌ "MAIS CRISTÃ": Uma claramente "mais correta religiosamente" → TORNE TODAS igualmente teológicas
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém sem estudar o tema conseguiria eliminar alternativas por padrão visual?"
+Se SIM → REESCREVA as alternativas
+Se NÃO → APROVADO
+
+PASSO 4 - CONFIRMAR:
+- Todas as 4 alternativas têm TAMANHO SIMILAR (máx 5 palavras de diferença)
+- Distratores são SUTILMENTE errados, não obviamente absurdos
+- A resposta correta não se destaca visualmente
+
+EXEMPLOS:
+❌ RUIM: A) Fé | B) Obras | C) A graça salvadora de Deus em Cristo nosso Senhor | D) Lei
+✅ BOM: A) A fé em Cristo | B) As obras da lei | C) A graça de Deus | D) Os rituais religiosos
 
 REGRAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Crie 4 alternativas PLAUSÍVEIS que parecem corretas à primeira vista
@@ -770,9 +850,59 @@ Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
 IMPORTANTE: As perguntas devem ser COMPLETAMENTE DIFERENTES das perguntas existentes listadas.
 IMPORTANTE: Para perguntas de multipla escolha, VARIE a posicao da resposta correta entre A, B, C e D (nao coloque sempre na mesma posicao).
 
-REGRAS CRITICAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
-- Todas as 4 alternativas devem ser PLAUSÍVEIS e parecer corretas à primeira vista
-- Use distratores inteligentes: respostas que poderiam parecer certas mas têm uma diferença sutil
+⚠️ SISTEMA OBRIGATÓRIO DE AUTO-VALIDAÇÃO DE ALTERNATIVAS ⚠️
+
+Antes de finalizar CADA pergunta de múltipla escolha, execute TODOS estes passos:
+
+PASSO 1 - GERAR 6 CANDIDATOS:
+- Crie 6 alternativas candidatas relacionadas ao tema
+- Todas devem ser conceitos bíblicos/teológicos plausíveis
+
+PASSO 2 - VERIFICAR PADRÕES ÓBVIOS (elimine se encontrar):
+❌ TAMANHO: Uma alternativa muito mais longa que outras → REESCREVA para igualar
+❌ NEGAÇÃO ÚNICA: Apenas uma com "não/nunca/nenhum" → ADICIONE outra negação ou REMOVA
+❌ AFIRMAÇÃO ÚNICA: Apenas uma positiva entre negativas → REBALANCEIE
+❌ ABSOLUTO ÚNICO: Apenas uma com "sempre/todos/jamais" → EQUILIBRE
+❌ ESPECIFICIDADE: Uma muito específica, outras genéricas → EQUILIBRE detalhamento
+❌ "MAIS CRISTÃ": Uma claramente "mais religiosa" → TORNE TODAS igualmente teológicas
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém SEM conhecimento do tema conseguiria eliminar alternativas?"
+- Se SIM → as alternativas estão RUINS, REESCREVA
+- Se NÃO → alternativas APROVADAS
+
+PASSO 4 - VALIDAÇÃO FINAL:
+- Confirme: todas as 4 alternativas têm TAMANHO SIMILAR (máx 5 palavras de diferença)
+- Confirme: a resposta correta NÃO se destaca visualmente
+- Confirme: distratores são SUTILMENTE errados, não obviamente errados
+
+EXEMPLOS DE ALTERNATIVAS:
+❌ RUIM (padrão tamanho - resposta óbvia é C):
+A) Fé
+B) Obras  
+C) A graça salvadora manifestada plenamente em Cristo Jesus nosso Senhor
+D) Lei
+
+✅ BOM (tamanhos equilibrados):
+A) A fé genuína em Cristo
+B) As obras da lei mosaica
+C) A graça salvadora de Deus
+D) O cumprimento dos rituais
+
+❌ RUIM (padrão negação - C é óbvia por ser única negativa):
+A) Obedecer a Deus fielmente
+B) Amar o próximo como a si mesmo
+C) Não fazer absolutamente nada
+D) Servir aos outros com alegria
+
+✅ BOM (todas parecem igualmente plausíveis):
+A) Confiar nas próprias obras
+B) Buscar a justificação pela lei
+C) Depender exclusivamente da graça
+D) Combinar fé com méritos pessoais
+
+REGRAS ADICIONAIS:
+- Use distratores inteligentes: respostas que poderiam parecer certas mas têm uma diferença sutil teológica
 - Evite alternativas obviamente erradas ou absurdas
 - As alternativas incorretas devem estar relacionadas ao tema e parecer razoáveis
 - Exemplo BOM: Pergunta sobre amor de Deus - alternativas falam de amor condicional, incondicional, merecido, seletivo

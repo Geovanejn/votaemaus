@@ -88,9 +88,11 @@ export default function VersiculoDoDiaPage() {
         canvas.height = img.naturalHeight;
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0);
           try {
-            const base64 = canvas.toDataURL('image/jpeg', 0.95);
+            const base64 = canvas.toDataURL('image/png');
             setImageBase64(base64);
           } catch {
             console.log('CORS prevented base64 conversion');
@@ -109,7 +111,7 @@ export default function VersiculoDoDiaPage() {
     setGenerating(true);
     try {
       const canvas = await html2canvas(shareCardRef.current, {
-        scale: 3,
+        scale: 4,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#1a1a2e',
@@ -173,7 +175,7 @@ export default function VersiculoDoDiaPage() {
 
         setGenerating(false);
         setShareOpen(false);
-      }, 'image/jpeg', 0.95);
+      }, 'image/jpeg', 0.98);
     } catch (error) {
       console.error('Error generating image:', error);
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });
@@ -335,7 +337,9 @@ export default function VersiculoDoDiaPage() {
               position: 'relative',
               backgroundColor: '#1a1a2e',
               overflow: 'hidden',
-              borderRadius: '0.5rem'
+              borderRadius: '0.5rem',
+              WebkitFontSmoothing: 'antialiased',
+              textRendering: 'optimizeLegibility',
             }}
           >
             {/* Background image as inline element for html2canvas */}

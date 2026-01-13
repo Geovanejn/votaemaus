@@ -33,9 +33,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSound } from "@/hooks/use-sound";
 import { useSounds } from "@/hooks/use-sounds";
+import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { SiWhatsapp } from "react-icons/si";
 
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
@@ -522,9 +525,94 @@ function BibleFactActivity({
   onComplete: () => void;
 }) {
   const [hasRead, setHasRead] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const fact = content?.bibleFact || 
     'O livro de Ester é um dos dois livros da Bíblia que não menciona o nome de Deus diretamente (o outro é Cantares de Salomão). Mesmo assim, a providência divina é claramente vista em toda a narrativa.';
+
+  const generateAndShareWhatsApp = useCallback(async () => {
+    if (!shareCardRef.current) return;
+    setGenerating(true);
+    try {
+      const sourceCanvas = await html2canvas(shareCardRef.current, {
+        scale: 5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        logging: false,
+        imageTimeout: 0,
+        width: shareCardRef.current.offsetWidth,
+        height: shareCardRef.current.offsetHeight,
+      });
+
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+      const borderRadius = 50;
+
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = width;
+      finalCanvas.height = height;
+      const ctx = finalCanvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+        setGenerating(false);
+        return;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(borderRadius, 0);
+      ctx.lineTo(width - borderRadius, 0);
+      ctx.quadraticCurveTo(width, 0, width, borderRadius);
+      ctx.lineTo(width, height - borderRadius);
+      ctx.quadraticCurveTo(width, height, width - borderRadius, height);
+      ctx.lineTo(borderRadius, height);
+      ctx.quadraticCurveTo(0, height, 0, height - borderRadius);
+      ctx.lineTo(0, borderRadius);
+      ctx.quadraticCurveTo(0, 0, borderRadius, 0);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      const shareText = `*Curiosidade Bíblica* - UMP Emaús\n\n${fact}\n\nAcesse: umpemaus.com.br`;
+
+      finalCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+          setGenerating(false);
+          return;
+        }
+        const file = new File([blob], 'curiosidade-biblica.png', { type: 'image/png' });
+        try {
+          await navigator.clipboard.writeText(shareText);
+        } catch (e) {
+          console.log('Could not copy to clipboard');
+        }
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          toast({ 
+            title: "Legenda copiada!", 
+            description: "Cole no campo 'Adicione uma legenda' do WhatsApp" 
+          });
+          await navigator.share({
+            files: [file],
+            title: 'Curiosidade Bíblica',
+          });
+        } else {
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+          window.open(whatsappUrl, '_blank');
+        }
+        setGenerating(false);
+      }, 'image/png', 1.0);
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+      setGenerating(false);
+    }
+  }, [fact, toast]);
 
   return (
     <div className="space-y-6" data-testid="bible-fact-activity">
@@ -540,30 +628,89 @@ function BibleFactActivity({
         </p>
       </Card>
 
-      {!hasRead ? (
-        <Button 
-          onClick={() => setHasRead(true)} 
-          className="w-full bg-yellow-600 text-white"
-          data-testid="button-understood-fact"
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Interessante!
-        </Button>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
+      <div className="flex flex-col gap-3">
+        {!hasRead ? (
           <Button 
-            onClick={onComplete} 
-            className="w-full bg-[#58CC02] text-white"
-            data-testid="button-complete-fact"
+            onClick={() => setHasRead(true)} 
+            className="w-full bg-yellow-600 text-white"
+            data-testid="button-understood-fact"
           >
-            <Check className="w-4 h-4 mr-2" />
-            Concluir Missão
+            <Sparkles className="w-4 h-4 mr-2" />
+            Interessante!
           </Button>
-        </motion.div>
-      )}
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col gap-3"
+          >
+            <Button 
+              onClick={generateAndShareWhatsApp}
+              disabled={generating}
+              className="w-full bg-[#25D366] hover:bg-[#20BD5B] text-white"
+              data-testid="button-share-whatsapp-fact"
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <SiWhatsapp className="w-4 h-4 mr-2" />
+              )}
+              Compartilhar no WhatsApp
+            </Button>
+            <Button 
+              onClick={onComplete} 
+              className="w-full bg-[#58CC02] text-white"
+              data-testid="button-complete-fact"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Concluir Missão
+            </Button>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Hidden share card for image generation - 9:16 aspect ratio */}
+      <div className="fixed -left-[9999px] top-0 pointer-events-none">
+        <div 
+          ref={shareCardRef} 
+          className="w-[360px] h-[640px] rounded-3xl overflow-hidden"
+          style={{ 
+            background: 'linear-gradient(135deg, #FEF3C7 0%, #F59E0B 50%, #D97706 100%)'
+          }}
+        >
+          <div className="h-full flex flex-col justify-between p-8">
+            {/* Header */}
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-4">
+                <Lightbulb className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-white drop-shadow-lg">Você Sabia?</h2>
+              <Badge className="mt-2 bg-white/30 text-white border-0">Curiosidade Bíblica</Badge>
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 flex items-center justify-center py-6">
+              <p className="text-white text-lg leading-relaxed text-center font-medium drop-shadow-md px-2">
+                {fact}
+              </p>
+            </div>
+            
+            {/* Footer with UMP logo */}
+            <div className="text-center pb-2">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <img 
+                  src="/logo-email.png" 
+                  alt="UMP Emaús" 
+                  className="w-8 h-8 object-contain"
+                  crossOrigin="anonymous"
+                />
+                <span className="text-black font-bold text-sm">UMP Emaús</span>
+              </div>
+              <p className="text-black/70 text-xs">umpemaus.com.br</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

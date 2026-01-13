@@ -4620,8 +4620,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse JSON fields from stored strings
       const parsedContent: any = {};
       if (rawContent) {
-        // Parse quiz questions from JSON string
-        if (rawContent.quizQuestions) {
+        // Parse quiz questions from JSON string - use timedQuizQuestions for timed_challenge missions
+        const missionType = mission.mission?.type;
+        const isTimedChallenge = missionType === 'timed_challenge';
+        const isQuickQuiz = missionType === 'quick_quiz';
+        
+        // For timed_challenge, use timedQuizQuestions if available
+        if (isTimedChallenge && (rawContent as any).timedQuizQuestions) {
+          try {
+            parsedContent.quizQuestions = JSON.parse((rawContent as any).timedQuizQuestions);
+          } catch (e) {
+            console.error('[Mission Content] Failed to parse timedQuizQuestions:', e);
+          }
+        }
+        // For quick_quiz and other quiz missions, use regular quizQuestions
+        if ((isQuickQuiz || !parsedContent.quizQuestions) && rawContent.quizQuestions) {
           try {
             parsedContent.quizQuestions = JSON.parse(rawContent.quizQuestions);
           } catch (e) {
@@ -4640,8 +4653,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         // Copy other fields directly
         if (rawContent.dailyVerse) parsedContent.dailyVerse = rawContent.dailyVerse;
-        if (rawContent.bibleCharacter) parsedContent.bibleCharacter = rawContent.bibleCharacter;
         if (rawContent.dailyTheme) parsedContent.dailyTheme = rawContent.dailyTheme;
+        
+        // Parse bible character from JSON string
+        if (rawContent.bibleCharacter) {
+          try {
+            const parsed = JSON.parse(rawContent.bibleCharacter);
+            parsedContent.bibleCharacter = parsed.name || 'Daniel';
+            parsedContent.characterStory = parsed.description || parsed.story || 'Daniel foi um jovem judeu levado cativo para a Babilônia. Ele se destacou por sua fé inabalável em Deus.';
+          } catch (e) {
+            // If not JSON, use as plain string (name)
+            parsedContent.bibleCharacter = rawContent.bibleCharacter;
+          }
+        }
+        
+        // Parse verse memory from JSON string
+        if (rawContent.verseMemory) {
+          try {
+            const parsed = JSON.parse(rawContent.verseMemory);
+            parsedContent.themeToMemorize = parsed.verse || parsed.text || '';
+            parsedContent.themeExplanation = parsed.explanation || '';
+            parsedContent.verseReference = parsed.reference || '';
+          } catch (e) {
+            // If not JSON, use as plain string
+            parsedContent.themeToMemorize = rawContent.verseMemory;
+          }
+        }
       }
       
       res.json({

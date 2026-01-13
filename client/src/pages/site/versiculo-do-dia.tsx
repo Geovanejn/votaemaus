@@ -114,7 +114,7 @@ export default function VersiculoDoDiaPage() {
         scale: 5,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: '#000000',
         logging: false,
         imageTimeout: 0,
         width: shareCardRef.current.offsetWidth,
@@ -351,9 +351,8 @@ export default function VersiculoDoDiaPage() {
               width: '100%',
               aspectRatio: '9/16',
               position: 'relative',
-              backgroundColor: '#1a1a2e',
+              backgroundColor: '#000000',
               overflow: 'hidden',
-              borderRadius: '16px',
               WebkitFontSmoothing: 'antialiased',
               textRendering: 'optimizeLegibility',
             }}
@@ -369,8 +368,7 @@ export default function VersiculoDoDiaPage() {
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  display: 'block',
-                  borderRadius: '16px'
+                  display: 'block'
                 }}
                 crossOrigin="anonymous"
               />
@@ -378,8 +376,7 @@ export default function VersiculoDoDiaPage() {
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))',
-              borderRadius: '16px'
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
             }} />
             <div style={{
               position: 'absolute',

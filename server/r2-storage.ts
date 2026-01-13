@@ -136,17 +136,32 @@ export async function getFromR2(r2Url: string): Promise<{ buffer: Buffer; conten
   }
 }
 
-export function getPublicUrl(r2Url: string): string {
+export function getPublicUrl(r2Url: string, useProxy: boolean = false): string {
   if (!r2Url.startsWith('r2://')) {
     return r2Url;
   }
   
   const key = r2Url.replace('r2://', '');
   
+  // Always use proxy for better CORS support when requested
+  if (useProxy) {
+    return `/api/r2/${key}`;
+  }
+  
   if (R2_PUBLIC_URL) {
     return `${R2_PUBLIC_URL}/${key}`;
   }
   
+  return `/api/r2/${key}`;
+}
+
+// Get proxy URL (always uses local proxy for CORS support)
+export function getProxyUrl(r2Url: string): string {
+  if (!r2Url.startsWith('r2://')) {
+    return r2Url;
+  }
+  
+  const key = r2Url.replace('r2://', '');
   return `/api/r2/${key}`;
 }
 

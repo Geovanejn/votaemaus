@@ -99,7 +99,7 @@ import {
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
-import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, logR2Status, type ImageCategory } from "./r2-storage";
+import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
 // ==================== IMAGE URL CONVERSION HELPER ====================
 // Converts r2:// URLs to public URLs for all image fields in an object
@@ -121,6 +121,22 @@ function convertImageUrls<T>(obj: T): T {
 // Convert array of objects with image fields
 function convertImageUrlsArray<T>(arr: T[]): T[] {
   return arr.map(item => convertImageUrls(item));
+}
+
+// Special converter for daily verse images - uses proxy for CORS support
+function convertDailyVerseImageUrls<T>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const imageFields = ['imageUrl'];
+  const result = { ...obj } as any;
+  
+  for (const field of imageFields) {
+    if (result[field] && typeof result[field] === 'string') {
+      result[field] = getProxyUrl(result[field]);
+    }
+  }
+  
+  return result as T;
 }
 
 // ==================== RATE LIMITING CONFIGURATION ====================
@@ -5327,15 +5343,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Nenhum versículo do dia ativo" });
       }
       
-      // Get the stock image if available
+      // Get the stock image if available (use proxy for CORS support)
       let stockImage = null;
       if (post.stockImageId) {
         stockImage = await storage.getDailyVerseStockById(post.stockImageId);
       }
       
       res.json({
-        ...convertImageUrls(post),
-        stockImage: stockImage ? convertImageUrls(stockImage) : null,
+        ...convertDailyVerseImageUrls(post),
+        stockImage: stockImage ? convertDailyVerseImageUrls(stockImage) : null,
       });
     } catch (error) {
       console.error("Get daily verse error:", error);
@@ -5362,8 +5378,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({
-        ...convertImageUrls(post),
-        stockImage: stockImage ? convertImageUrls(stockImage) : null,
+        ...convertDailyVerseImageUrls(post),
+        stockImage: stockImage ? convertDailyVerseImageUrls(stockImage) : null,
       });
     } catch (error) {
       console.error("Get daily verse by date error:", error);
@@ -5379,15 +5395,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const posts = await storage.getDailyVersePosts(limit, offset);
       
-      // Get stock images for all posts
+      // Get stock images for all posts (use proxy for CORS support)
       const postsWithImages = await Promise.all(posts.map(async (post) => {
         let stockImage = null;
         if (post.stockImageId) {
           stockImage = await storage.getDailyVerseStockById(post.stockImageId);
         }
         return {
-          ...convertImageUrls(post),
-          stockImage: stockImage ? convertImageUrls(stockImage) : null,
+          ...convertDailyVerseImageUrls(post),
+          stockImage: stockImage ? convertDailyVerseImageUrls(stockImage) : null,
         };
       }));
       
@@ -5567,7 +5583,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Admin sees only active verses (activeOnly = true)
       const verses = await storage.getDailyVersePosts(100, 0, true);
-      res.json(convertImageUrlsArray(verses));
+      // Use proxy URLs for CORS support
+      res.json(verses.map(v => convertDailyVerseImageUrls(v)));
     } catch (error) {
       console.error("Get all daily verses error:", error);
       res.status(500).json({ message: "Erro ao buscar versículos" });

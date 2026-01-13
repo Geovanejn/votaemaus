@@ -318,7 +318,7 @@ export default function VersiculoDoDiaPage() {
 
           <div 
             ref={shareCardRef}
-            className="w-full aspect-[9/16] rounded-xl overflow-hidden relative"
+            className="w-full aspect-[9/16] overflow-hidden relative"
             style={{ 
               backgroundColor: '#1a1a2e'
             }}

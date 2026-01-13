@@ -466,6 +466,9 @@ export async function forceDailyVerseGeneration(): Promise<{ success: boolean; m
     const reminderKey = `daily_verse:${todayKey}`;
     await storage.markSchedulerReminderSent(reminderKey, 'daily_verse');
     
+    // Send push notification for force-generated verse (same as scheduler)
+    await notifyDailyVerseWithLink(verse, reference, '/versiculo-do-dia');
+    
     console.log(`[Daily Verse] Force generated post ${post.id}`);
     return { 
       success: true, 

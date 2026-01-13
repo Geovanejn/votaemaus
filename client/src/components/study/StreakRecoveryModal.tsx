@@ -75,7 +75,7 @@ export function StreakRecoveryModal() {
     if (showCountdown && countdownValue > 0) {
       const timer = setTimeout(() => {
         setCountdownValue((prev) => prev - 1);
-      }, 150);
+      }, 800);
       return () => clearTimeout(timer);
     } else if (showCountdown && countdownValue === 0) {
       setTimeout(() => {
@@ -85,7 +85,7 @@ export function StreakRecoveryModal() {
           setIsOpen(false);
           setLocation("/study");
         }
-      }, 500);
+      }, 1000);
     }
   }, [showCountdown, countdownValue, isForfeitingStreak, setLocation]);
 
@@ -269,8 +269,7 @@ export function StreakRecoveryModal() {
                   </p>
                   <Button
                     onClick={handleForfeitStreak}
-                    variant="outline"
-                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6"
                     disabled={acknowledgeLossMutation.isPending || isForfeitingStreak}
                     data-testid="button-forfeit-streak"
                   >

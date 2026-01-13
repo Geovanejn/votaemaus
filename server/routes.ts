@@ -5417,6 +5417,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Populate daily verse stock images (admin only) - idempotent
+  app.post("/api/admin/daily-verse/populate-stock", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      // Check if already populated
+      const existingStock = await storage.getAllDailyVerseStock();
+      if (existingStock.length > 0) {
+        return res.json({ 
+          success: true, 
+          message: `Já existem ${existingStock.length} imagens stock cadastradas. Nenhuma adicionada.`,
+          existing: existingStock.length
+        });
+      }
+
+      const stockImages = [
+        { imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800", category: "nature", orderIndex: 1 },
+        { imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800", category: "nature", orderIndex: 2 },
+        { imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800", category: "nature", orderIndex: 3 },
+        { imageUrl: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=800", category: "nature", orderIndex: 4 },
+        { imageUrl: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=800", category: "nature", orderIndex: 5 },
+        { imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800", category: "nature", orderIndex: 6 },
+        { imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800", category: "nature", orderIndex: 7 },
+        { imageUrl: "https://images.unsplash.com/photo-1518173946687-a4c036bc8bf1?w=800", category: "nature", orderIndex: 8 },
+        { imageUrl: "https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=800", category: "contemplative", orderIndex: 9 },
+        { imageUrl: "https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=800", category: "contemplative", orderIndex: 10 },
+        { imageUrl: "https://images.unsplash.com/photo-1489549132488-d00b7eee80f1?w=800", category: "sunrise", orderIndex: 11 },
+        { imageUrl: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=800", category: "sunrise", orderIndex: 12 },
+        { imageUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800", category: "nature", orderIndex: 13 },
+        { imageUrl: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800", category: "sky", orderIndex: 14 },
+        { imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", category: "mountains", orderIndex: 15 },
+        { imageUrl: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=800", category: "mountains", orderIndex: 16 },
+        { imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800", category: "mountains", orderIndex: 17 },
+        { imageUrl: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=800", category: "nature", orderIndex: 18 },
+        { imageUrl: "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?w=800", category: "sky", orderIndex: 19 },
+        { imageUrl: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800", category: "aurora", orderIndex: 20 },
+      ];
+
+      let addedCount = 0;
+      for (const img of stockImages) {
+        await storage.createDailyVerseStock({
+          imageUrl: img.imageUrl,
+          category: img.category,
+          orderIndex: img.orderIndex,
+          isActive: true,
+        });
+        addedCount++;
+      }
+
+      res.json({ success: true, message: `${addedCount} imagens stock adicionadas com sucesso!` });
+    } catch (error) {
+      console.error("Populate stock error:", error);
+      res.status(500).json({ success: false, message: "Erro ao popular imagens stock" });
+    }
+  });
+
+  // Delete a daily verse post (admin only)
+  app.delete("/api/admin/daily-verse/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      await storage.updateDailyVersePost(id, { isActive: false });
+      res.json({ success: true, message: "Versículo removido" });
+    } catch (error) {
+      console.error("Delete daily verse error:", error);
+      res.status(500).json({ message: "Erro ao remover versículo" });
+    }
+  });
+
   // Get all prayer requests (admin or marketing)
   app.get("/api/admin/prayer-requests", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {

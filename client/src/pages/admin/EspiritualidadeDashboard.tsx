@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles, ImagePlus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -66,6 +66,26 @@ export default function EspiritualidadeDashboard() {
     },
   });
 
+  const populateStockMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/daily-verse/populate-stock");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Imagens Adicionadas!",
+        description: data.message || "Imagens stock populadas com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao popular",
+        description: error.message || "Não foi possível adicionar imagens stock.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -86,6 +106,15 @@ export default function EspiritualidadeDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={() => populateStockMutation.mutate()} 
+            disabled={populateStockMutation.isPending}
+            data-testid="button-populate-stock"
+          >
+            <ImagePlus className="h-4 w-4 mr-2" />
+            {populateStockMutation.isPending ? "Adicionando..." : "Popular Imagens"}
+          </Button>
           <Button 
             variant="outline" 
             onClick={() => generateDailyVerseMutation.mutate()} 

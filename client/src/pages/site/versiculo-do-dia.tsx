@@ -26,6 +26,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import logoWhite from "@assets/2-1_1766464654126.png";
+
 interface DailyVersePost {
   id: number;
   verse: string;
@@ -181,7 +183,7 @@ export default function VersiculoDoDiaPage() {
                       {format(new Date(todayVerse.publishedAt), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </span>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-bold mb-2">Versiculo do Dia</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold mb-2">Versículo do Dia</h1>
                   <p className="text-lg md:text-xl italic leading-relaxed">
                     "{todayVerse.verse}"
                   </p>
@@ -195,7 +197,7 @@ export default function VersiculoDoDiaPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <BookOpen className="h-5 w-5" />
-                    <span>Reflexao</span>
+                    <span>Reflexão</span>
                   </div>
                   <Button 
                     onClick={() => setShareOpen(true)}
@@ -217,7 +219,7 @@ export default function VersiculoDoDiaPage() {
                   </div>
                 ) : (
                   <p className="text-muted-foreground italic">
-                    Reflexao em preparacao...
+                    Reflexão em preparação...
                   </p>
                 )}
               </CardContent>
@@ -226,9 +228,9 @@ export default function VersiculoDoDiaPage() {
         ) : (
           <Card className="p-8 text-center">
             <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Versiculo do Dia</h2>
+            <h2 className="text-xl font-semibold mb-2">Versículo do Dia</h2>
             <p className="text-muted-foreground">
-              O versiculo de hoje sera publicado as 7h da manha. Volte mais tarde!
+              O versículo de hoje será publicado às 7h da manhã. Volte mais tarde!
             </p>
           </Card>
         )}
@@ -237,7 +239,7 @@ export default function VersiculoDoDiaPage() {
           <section className="mt-12">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <Calendar className="h-6 w-6" />
-              Historico de Versiculos
+              Histórico de Versículos
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {verseHistory.slice(0, 12).map((verse) => (
@@ -280,9 +282,9 @@ export default function VersiculoDoDiaPage() {
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
           <DialogHeader>
-            <DialogTitle>Compartilhar Versiculo</DialogTitle>
+            <DialogTitle>Compartilhar Versículo</DialogTitle>
           </DialogHeader>
 
           <div 
@@ -296,7 +298,7 @@ export default function VersiculoDoDiaPage() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
             <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
               <div className="text-center">
-                <h3 className="text-lg font-bold uppercase tracking-wider">Versiculo do Dia</h3>
+                <h3 className="text-lg font-bold uppercase tracking-wider">Versículo do Dia</h3>
                 <p className="text-sm opacity-80">
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
                 </p>
@@ -314,16 +316,16 @@ export default function VersiculoDoDiaPage() {
               </div>
 
               <div className="flex justify-center">
-                <img src="/logo.png" alt="UMP Emaus" className="h-12 opacity-90" />
+                <img src={logoWhite} alt="UMP Emaús" className="h-24 opacity-95" />
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 justify-center">
             <Button
               onClick={() => generateAndShareImage('whatsapp')}
               disabled={generating}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700"
               data-testid="button-share-whatsapp"
             >
               {generating ? (
@@ -338,7 +340,7 @@ export default function VersiculoDoDiaPage() {
             <Button
               onClick={() => generateAndShareImage('instagram')}
               disabled={generating}
-              className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="flex-1 min-w-[120px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               data-testid="button-share-instagram"
             >
               {generating ? (
@@ -354,6 +356,7 @@ export default function VersiculoDoDiaPage() {
               onClick={() => generateAndShareImage('download')}
               disabled={generating}
               variant="outline"
+              size="icon"
               data-testid="button-download"
             >
               <Download className="h-4 w-4" />

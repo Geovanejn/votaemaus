@@ -70,11 +70,25 @@ interface SiteHighlights {
   instagramPosts: InstagramPostData[];
 }
 
+interface DailyVerseData {
+  id: number;
+  verse: string;
+  reference: string;
+  reflection: string | null;
+  imageUrl: string | null;
+  publishedAt: string;
+  stockImage: {
+    id: number;
+    imageUrl: string;
+    category: string;
+  } | null;
+}
+
 const getQuickAccessItems = (isAuthenticated: boolean) => [
   {
     icon: BookOpen,
-    title: "Versiculo do Dia",
-    description: "Reflexao diaria",
+    title: "Versículo do Dia",
+    description: "Reflexão diária",
     href: "/versiculo-do-dia",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
@@ -135,6 +149,11 @@ export default function HomePage() {
     retry: 2,
   });
 
+  const { data: dailyVerse, isLoading: isLoadingVerse } = useQuery<DailyVerseData>({
+    queryKey: ['/api/site/daily-verse'],
+    retry: false,
+  });
+
   const quickAccessItems = getQuickAccessItems(isAuthenticated);
 
   const devotional = highlights?.devotional || null;
@@ -159,16 +178,96 @@ export default function HomePage() {
     ? devotional.imageUrl
     : fallbackDevotionalImages[0];
 
+  const verseImage = dailyVerse?.stockImage?.imageUrl || dailyVerse?.imageUrl;
+
   return (
     <SiteLayout>
       <HeroBanner />
+
+      {dailyVerse && (
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-6 w-6 text-amber-500" />
+                <h2 className="text-2xl font-bold">Versículo do Dia</h2>
+              </div>
+              <Link href="/versiculo-do-dia">
+                <Button variant="ghost" className="gap-2" data-testid="link-verse-page">
+                  Ver mais <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="grid md:grid-cols-3">
+                    <div className="relative overflow-hidden min-h-[280px]">
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ 
+                          backgroundImage: verseImage ? `url(${verseImage})` : undefined,
+                          backgroundColor: verseImage ? undefined : 'hsl(var(--primary))'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70" />
+                      <div className="relative p-8 flex flex-col justify-center h-full">
+                        <div className="absolute top-4 right-4">
+                          <Sparkles className="h-6 w-6 text-amber-500/50" />
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-sm text-amber-500 mb-2">
+                            {new Date(dailyVerse.publishedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          </p>
+                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30">
+                            <BookOpen className="h-8 w-8 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-white mb-2" data-testid="verse-reference">
+                            {dailyVerse.reference}
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 p-6 md:p-8 space-y-4">
+                      <blockquote className="border-l-4 border-amber-500 pl-4 py-2 bg-amber-500/5 rounded-r-lg">
+                        <p className="italic text-foreground/90 text-lg">
+                          "{dailyVerse.verse}"
+                        </p>
+                        <cite className="text-sm text-muted-foreground mt-1 block">
+                          - {dailyVerse.reference}
+                        </cite>
+                      </blockquote>
+                      {dailyVerse.reflection && (
+                        <p className="text-muted-foreground line-clamp-3">
+                          {dailyVerse.reflection}
+                        </p>
+                      )}
+                      <Link href="/versiculo-do-dia">
+                        <Button className="bg-amber-500 hover:bg-amber-600 text-white" data-testid="button-read-verse">
+                          Ler Completo <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <BookOpen className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Devocional do Dia</h2>
+              <h2 className="text-2xl font-bold">Devocional da Semana</h2>
             </div>
             <Link href="/devocionais">
               <Button variant="ghost" className="gap-2" data-testid="link-all-devotionals">

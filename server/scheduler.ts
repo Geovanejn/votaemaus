@@ -348,6 +348,13 @@ function getTodayDateKey(): string {
   return `${year}-${month}-${day}`;
 }
 
+// Model priority order - try each model in each key before moving to next key
+const GEMINI_MODEL_PRIORITY = [
+  'gemini-2.5-flash-preview-05-20',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+];
+
 async function generateVerseReflection(verse: string, reference: string): Promise<string | null> {
   if (!isAIConfigured()) return null;
   
@@ -365,26 +372,29 @@ Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
 
   const { getGeminiModel, GEMINI_KEY_ROTATION } = await import('./ai.js');
   
+  // For each key, try all models before moving to next key
   for (const keyNumber of GEMINI_KEY_ROTATION) {
-    try {
-      console.log(`[Daily Verse] Trying Gemini key ${keyNumber}...`);
-      const model = getGeminiModel(keyNumber, 'gemini-2.0-flash');
-      
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text().trim();
-      
-      if (text) {
-        console.log(`[Daily Verse] Reflection generated successfully with key ${keyNumber}`);
-        return text;
+    for (const modelName of GEMINI_MODEL_PRIORITY) {
+      try {
+        console.log(`[Daily Verse] Trying key ${keyNumber} with model ${modelName}...`);
+        const model = getGeminiModel(keyNumber, modelName);
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().trim();
+        
+        if (text) {
+          console.log(`[Daily Verse] Reflection generated successfully with key ${keyNumber}, model ${modelName}`);
+          return text;
+        }
+      } catch (error: any) {
+        console.warn(`[Daily Verse] Key ${keyNumber} model ${modelName} failed:`, error.message?.substring(0, 100) || error);
+        continue;
       }
-    } catch (error: any) {
-      console.warn(`[Daily Verse] Key ${keyNumber} failed:`, error.message || error);
-      continue;
     }
   }
   
-  console.error('[Daily Verse] All Gemini keys exhausted for reflection generation');
+  console.error('[Daily Verse] All Gemini keys and models exhausted for reflection generation');
   return null;
 }
 

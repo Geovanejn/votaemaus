@@ -353,7 +353,7 @@ export default function VersiculoDoDiaPage() {
               position: 'relative',
               backgroundColor: '#000000',
               overflow: 'hidden',
-              borderRadius: '16px',
+              borderRadius: '10px',
               WebkitFontSmoothing: 'antialiased',
               textRendering: 'optimizeLegibility',
             }}

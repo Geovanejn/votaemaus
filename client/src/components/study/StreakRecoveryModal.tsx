@@ -24,6 +24,7 @@ export function StreakRecoveryModal() {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(0);
   const [isDefrosting, setIsDefrosting] = useState(false);
+  const [isForfeitingStreak, setIsForfeitingStreak] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: status, isLoading } = useQuery<StreakRecoveryStatus>({
@@ -55,10 +56,8 @@ export function StreakRecoveryModal() {
       return res.json();
     },
     onSuccess: () => {
-      setIsOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/study/streak/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/study/profile"] });
-      setLocation("/study");
     },
   });
 
@@ -79,9 +78,16 @@ export function StreakRecoveryModal() {
       }, 150);
       return () => clearTimeout(timer);
     } else if (showCountdown && countdownValue === 0) {
-      setTimeout(() => setShowCountdown(false), 500);
+      setTimeout(() => {
+        setShowCountdown(false);
+        if (isForfeitingStreak) {
+          setIsForfeitingStreak(false);
+          setIsOpen(false);
+          setLocation("/study");
+        }
+      }, 500);
     }
-  }, [showCountdown, countdownValue]);
+  }, [showCountdown, countdownValue, isForfeitingStreak, setLocation]);
 
   if (isLoading || !status?.needsRecovery) {
     return null;
@@ -92,11 +98,24 @@ export function StreakRecoveryModal() {
   };
 
   const handleGoToLessons = () => {
+    setIsOpen(false);
+    setLocation("/study");
+  };
+
+  const handleForfeitStreak = () => {
+    setIsForfeitingStreak(true);
+    setShowCountdown(true);
+    setCountdownValue(status?.streakAtRisk || 0);
+    
+    const audio = new Audio('/sounds/streak-loss.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+    
     acknowledgeLossMutation.mutate();
   };
 
   const handleClose = () => {
-    if (!status.streakLost && !isDefrosting) {
+    if (!status.streakLost && !isDefrosting && !isForfeitingStreak && !showCountdown) {
       setIsOpen(false);
     }
   };
@@ -249,10 +268,11 @@ export function StreakRecoveryModal() {
                     Você não tem cristais suficientes para recuperar sua ofensiva.
                   </p>
                   <Button
-                    onClick={handleClose}
+                    onClick={handleForfeitStreak}
                     variant="outline"
                     className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-                    data-testid="button-close-modal"
+                    disabled={acknowledgeLossMutation.isPending || isForfeitingStreak}
+                    data-testid="button-forfeit-streak"
                   >
                     Continuar sem recuperar
                   </Button>

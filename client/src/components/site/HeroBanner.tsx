@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { BookOpen, Calendar, Instagram, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { BookOpen, Calendar, Instagram, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import defaultDevotionalImg from "@assets/stock_images/christian_prayer_spi_92875813.jpg";
@@ -72,8 +72,18 @@ interface HighlightsData {
   featuredInstagramPosts: InstagramPostData[];
 }
 
+interface DailyVerseData {
+  id: number;
+  verse: string;
+  reference: string;
+  reflection?: string;
+  imageUrl?: string;
+  stockImage?: { imageUrl: string };
+  publishedAt: string;
+}
+
 type BannerSlide = {
-  type: 'devotional' | 'event' | 'instagram';
+  type: 'devotional' | 'event' | 'instagram' | 'verse';
   id: number;
   title: string;
   subtitle: string;
@@ -107,7 +117,29 @@ export function HeroBanner() {
     retry: 2,
   });
 
+  const { data: dailyVerse } = useQuery<DailyVerseData>({
+    queryKey: ['/api/site/daily-verse'],
+    retry: false,
+  });
+
   const slides: BannerSlide[] = [];
+
+  // Add daily verse as first slide if available
+  if (dailyVerse) {
+    const verseImage = dailyVerse.stockImage?.imageUrl || dailyVerse.imageUrl;
+    slides.push({
+      type: 'verse',
+      id: dailyVerse.id,
+      title: 'Versículo do Dia',
+      subtitle: `"${dailyVerse.verse}"`,
+      caption: dailyVerse.reference,
+      imageUrl: verseImage || defaultDevotionalImg,
+      linkUrl: '/versiculo-do-dia',
+      linkText: 'Ver Reflexão',
+      icon: Sparkles,
+      badge: 'Versículo do Dia',
+    });
+  }
 
   const hasFeaturedContent = (highlights?.featuredDevotionals?.length || 0) > 0 ||
     (highlights?.featuredEvents?.length || 0) > 0 ||

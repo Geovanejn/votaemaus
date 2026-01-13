@@ -139,11 +139,20 @@ export default function VersiculoDoDiaPage() {
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
         } else if (platform === 'whatsapp') {
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
+          
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            toast({ 
+              title: "Legenda copiada!", 
+              description: "Cole no campo 'Adicione uma legenda' do WhatsApp" 
+            });
             await navigator.share({
               files: [file],
               title: 'Versiculo do Dia',
-              text: shareText,
             });
           } else {
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;

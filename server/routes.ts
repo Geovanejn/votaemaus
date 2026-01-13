@@ -5606,16 +5606,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all daily verse posts (admin only - includes deleted)
+  // Get all daily verse posts (admin only)
   app.get("/api/admin/daily-verses", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      // Admin sees only active verses (activeOnly = true)
-      const verses = await storage.getDailyVersePosts(100, 0, true);
+      // Allow admin to see inactive verses with ?includeInactive=true
+      const includeInactive = req.query.includeInactive === 'true';
+      const verses = await storage.getDailyVersePosts(100, 0, !includeInactive);
       // Use proxy URLs for CORS support
       res.json(verses.map(v => convertDailyVerseImageUrls(v)));
     } catch (error) {
       console.error("Get all daily verses error:", error);
       res.status(500).json({ message: "Erro ao buscar versículos" });
+    }
+  });
+  
+  // Permanently delete a daily verse post (admin only)
+  app.delete("/api/admin/daily-verse/:id/permanent", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      await storage.deleteDailyVersePost(id);
+      res.json({ success: true, message: "Versículo excluído permanentemente" });
+    } catch (error) {
+      console.error("Permanent delete daily verse error:", error);
+      res.status(500).json({ message: "Erro ao excluir versículo" });
     }
   });
 

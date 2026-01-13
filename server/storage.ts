@@ -400,6 +400,7 @@ export interface IStorage {
   getDailyVersePosts(limit?: number, offset?: number, activeOnly?: boolean): Promise<schema.DailyVersePost[]>;
   createDailyVersePost(data: schema.InsertDailyVersePost): Promise<schema.DailyVersePost>;
   updateDailyVersePost(id: number, data: Partial<schema.InsertDailyVersePost>): Promise<schema.DailyVersePost | null>;
+  deleteDailyVersePost(id: number): Promise<void>;
   deactivateExpiredDailyVersePosts(): Promise<void>;
   
   // Daily Verse Share Tracking
@@ -4572,6 +4573,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.dailyVersePosts.id, id))
       .returning();
     return updated || null;
+  }
+  
+  async deleteDailyVersePost(id: number): Promise<void> {
+    await db.delete(schema.dailyVersePosts)
+      .where(eq(schema.dailyVersePosts.id, id));
   }
 
   async deactivateExpiredDailyVersePosts(): Promise<void> {

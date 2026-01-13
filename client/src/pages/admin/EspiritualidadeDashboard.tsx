@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles, ImagePlus, Trash2, Calendar } from "lucide-react";
+import { BookOpen, Heart, Plus, FileText, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowLeft, Send, Sparkles, ImagePlus, Trash2, Calendar, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -35,12 +38,22 @@ interface DailyVersePost {
 export default function EspiritualidadeDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [showInactive, setShowInactive] = useState(false);
+  
   const { data: stats, isLoading } = useQuery<EspiritualidadeStats>({
     queryKey: ["/api/espiritualidade/stats"],
   });
 
   const { data: dailyVerses, isLoading: loadingVerses } = useQuery<DailyVersePost[]>({
-    queryKey: ["/api/admin/daily-verses"],
+    queryKey: ["/api/admin/daily-verses", showInactive],
+    queryFn: async () => {
+      const url = showInactive 
+        ? "/api/admin/daily-verses?includeInactive=true" 
+        : "/api/admin/daily-verses";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch verses");
+      return res.json();
+    },
   });
 
   const deleteVerseMutation = useMutation({
@@ -52,14 +65,36 @@ export default function EspiritualidadeDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/daily-verses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/site/daily-verse"] });
       toast({
-        title: "Versículo removido",
-        description: "O versículo do dia foi removido com sucesso.",
+        title: "Versículo desativado",
+        description: "O versículo foi desativado e não aparecerá mais no histórico.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao remover",
-        description: error.message || "Não foi possível remover o versículo.",
+        title: "Erro ao desativar",
+        description: error.message || "Não foi possível desativar o versículo.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/daily-verse/${id}/permanent`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/daily-verses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/site/daily-verse"] });
+      toast({
+        title: "Versículo excluído",
+        description: "O versículo foi excluído permanentemente do banco de dados.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message || "Não foi possível excluir o versículo.",
         variant: "destructive",
       });
     },
@@ -324,13 +359,28 @@ export default function EspiritualidadeDashboard() {
       {/* Daily Verses Management */}
       <Card data-testid="card-daily-verses-section">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Versículos do Dia
-          </CardTitle>
-          <CardDescription>
-            Gerencie os versículos do dia publicados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Versículos do Dia
+              </CardTitle>
+              <CardDescription>
+                Gerencie os versículos do dia publicados
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-inactive"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+                data-testid="switch-show-inactive"
+              />
+              <Label htmlFor="show-inactive" className="text-xs text-muted-foreground cursor-pointer">
+                {showInactive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingVerses ? (
@@ -339,24 +389,30 @@ export default function EspiritualidadeDashboard() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : !dailyVerses || dailyVerses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum versículo do dia publicado.</p>
+            <p className="text-sm text-muted-foreground">
+              {showInactive ? "Nenhum versículo encontrado." : "Nenhum versículo ativo."}
+            </p>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {dailyVerses.map((verse) => (
                 <div 
                   key={verse.id} 
-                  className="flex items-center justify-between p-3 border rounded-md gap-2"
+                  className={`flex items-center justify-between p-3 border rounded-md gap-2 ${!verse.isActive ? 'opacity-60 bg-muted/50' : ''}`}
                   data-testid={`verse-item-${verse.id}`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(verse.publishedAt), "dd/MM/yyyy", { locale: ptBR })}
                       </span>
-                      {verse.isActive && (
+                      {verse.isActive ? (
                         <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-0.5 rounded">
                           Ativo
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-0.5 rounded">
+                          Inativo
                         </span>
                       )}
                     </div>
@@ -376,20 +432,27 @@ export default function EspiritualidadeDashboard() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Remover Versículo</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          {verse.isActive ? "Desativar Versículo" : "Excluir Permanentemente"}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tem certeza que deseja remover o versículo "{verse.reference}"? 
-                          Esta ação não pode ser desfeita.
+                          {verse.isActive 
+                            ? `Desativar o versículo "${verse.reference}"? Ele não aparecerá mais no histórico público.`
+                            : `Excluir permanentemente o versículo "${verse.reference}"? Esta ação não pode ser desfeita.`
+                          }
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => deleteVerseMutation.mutate(verse.id)}
+                          onClick={() => verse.isActive 
+                            ? deleteVerseMutation.mutate(verse.id)
+                            : permanentDeleteMutation.mutate(verse.id)
+                          }
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           data-testid={`button-confirm-delete-${verse.id}`}
                         >
-                          Remover
+                          {verse.isActive ? "Desativar" : "Excluir"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

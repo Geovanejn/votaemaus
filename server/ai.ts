@@ -2072,6 +2072,56 @@ REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
 - Crie alternativas que usem conceitos teológicos relacionados mas com nuances diferentes
 - Exemplo: se a resposta é "justificação", alternativas podem ser "santificação", "regeneração", "glorificação"
 
+⚠️ SISTEMA OBRIGATÓRIO DE AUTO-VALIDAÇÃO DE ALTERNATIVAS ⚠️
+
+Antes de finalizar CADA pergunta de múltipla escolha, execute estes 4 passos:
+
+PASSO 1 - GERAR 6 CANDIDATOS:
+Liste 6 alternativas candidatas relacionadas ao tema, todas teologicamente plausíveis.
+
+PASSO 2 - VERIFICAR E ELIMINAR PADRÕES ÓBVIOS:
+❌ TAMANHO DESIGUAL: Uma alternativa muito mais longa → REESCREVA todas com tamanho similar (máx 5 palavras de diferença)
+❌ NEGAÇÃO ISOLADA: Apenas uma com "não/nunca/nenhum" → ADICIONE outra negação ou REMOVA
+❌ AFIRMAÇÃO ISOLADA: Uma positiva entre negativas → REBALANCEIE
+❌ ABSOLUTO ISOLADO: Uma com "sempre/todos/jamais" → EQUILIBRE com outras
+❌ ESPECIFICIDADE DESIGUAL: Uma muito detalhada, outras vagas → EQUILIBRE detalhamento
+❌ "MAIS CRISTÃ": Uma claramente "mais correta religiosamente" → TORNE TODAS igualmente teológicas
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém que NÃO estudou o texto conseguiria eliminar alternativas por padrão visual ou lógico?"
+Se SIM → as alternativas estão RUINS, REESCREVA
+Se NÃO → alternativas APROVADAS
+
+PASSO 4 - VALIDAÇÃO FINAL:
+- Confirme: todas as 4 alternativas têm TAMANHO SIMILAR
+- Confirme: distratores são SUTILMENTE errados, não obviamente absurdos
+- Confirme: a resposta correta NÃO se destaca visualmente
+
+EXEMPLOS DE ALTERNATIVAS:
+❌ RUIM (padrão tamanho - C é óbvia por ser longa):
+A) Fé
+B) Obras
+C) A graça salvadora de Deus manifestada plenamente em Cristo Jesus nosso Senhor
+D) Lei
+
+✅ BOM (tamanhos equilibrados):
+A) A fé genuína em Cristo
+B) As obras da lei mosaica
+C) A graça salvadora de Deus
+D) O cumprimento dos rituais
+
+❌ RUIM (padrão negação - C é óbvia):
+A) Obedecer a Deus fielmente
+B) Amar o próximo
+C) Não fazer absolutamente nada
+D) Servir aos outros
+
+✅ BOM (todas parecem igualmente plausíveis):
+A) Confiar nas próprias obras
+B) Buscar a justificação pela lei
+C) Depender exclusivamente da graça
+D) Combinar fé com méritos pessoais
+
 REGRAS PARA DICAS (HINTS):
 - Cada pergunta DEVE ter uma dica (hint) associada
 - A dica NÃO pode ser óbvia ou entregar a resposta diretamente

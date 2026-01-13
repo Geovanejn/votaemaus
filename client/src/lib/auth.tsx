@@ -125,10 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Auto-sync push subscription for existing sessions
         const lastSync = localStorage.getItem('push_last_sync');
         const syncAge = lastSync ? Date.now() - parseInt(lastSync) : Infinity;
-        const SIX_HOURS = 6 * 60 * 60 * 1000;
+        const ONE_HOUR = 60 * 60 * 1000;
         
-        if (syncAge > SIX_HOURS) {
-          console.log('[Push Sync] Session restored, triggering auto-sync (last sync > 6h ago)');
+        if (syncAge > ONE_HOUR) {
+          console.log('[Push Sync] Session restored, triggering auto-sync (last sync > 1h ago)');
           setTimeout(() => ensurePushSubscriptionSynced(storedToken), 2000);
         }
       } else {
@@ -161,6 +161,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, timeRemaining);
 
     return () => clearTimeout(timeoutId);
+  }, [token]);
+
+  // Auto-sync push subscription when tab becomes visible again
+  useEffect(() => {
+    if (!token) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const lastSync = localStorage.getItem('push_last_sync');
+        const syncAge = lastSync ? Date.now() - parseInt(lastSync) : Infinity;
+        const ONE_HOUR = 60 * 60 * 1000;
+        
+        if (syncAge > ONE_HOUR) {
+          console.log('[Push Sync] Tab visible, triggering auto-sync (last sync > 1h ago)');
+          ensurePushSubscriptionSynced(token);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [token]);
 
   const handleSessionExpired = () => {

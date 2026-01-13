@@ -472,6 +472,39 @@ function BibleCharacterActivity({
   );
 }
 
+const prayerTypes = [
+  {
+    type: 'gratitude',
+    title: 'Oração de Gratidão',
+    description: 'Escreva uma oração curta agradecendo a Deus por algo especial em sua vida.',
+    placeholder: 'Obrigado, Deus, por...',
+    icon: Heart,
+    gradient: 'from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30',
+    border: 'border-rose-200 dark:border-rose-800',
+    iconColor: 'text-rose-500',
+  },
+  {
+    type: 'confession',
+    title: 'Confissão de Pecados',
+    description: 'Confesse a Deus algo que pesa em seu coração. Ele é fiel e justo para nos perdoar.',
+    placeholder: 'Senhor, eu confesso que...',
+    icon: Heart,
+    gradient: 'from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30',
+    border: 'border-amber-200 dark:border-amber-800',
+    iconColor: 'text-amber-500',
+  },
+  {
+    type: 'petition',
+    title: 'Oração de Petição',
+    description: 'Apresente seus pedidos a Deus com fé. Ele ouve e responde as orações dos seus filhos.',
+    placeholder: 'Senhor, eu te peço...',
+    icon: Heart,
+    gradient: 'from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30',
+    border: 'border-sky-200 dark:border-sky-800',
+    iconColor: 'text-sky-500',
+  },
+];
+
 function PrayerActivity({ 
   onComplete 
 }: { 
@@ -479,20 +512,26 @@ function PrayerActivity({
 }) {
   const [prayer, setPrayer] = useState('');
   const minLength = 10;
+  
+  // Select prayer type based on day of year (rotates daily)
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+  const prayerType = prayerTypes[dayOfYear % prayerTypes.length];
+  const IconComponent = prayerType.icon;
 
   return (
     <div className="space-y-6" data-testid="prayer-activity">
-      <Card className="p-6 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 border-rose-200 dark:border-rose-800">
+      <Card className={`p-6 bg-gradient-to-br ${prayerType.gradient} ${prayerType.border}`}>
         <div className="text-center mb-4">
-          <Heart className="w-12 h-12 mx-auto text-rose-500 mb-3" />
-          <h3 className="text-lg font-bold text-foreground">Oração de Gratidão</h3>
+          <IconComponent className={`w-12 h-12 mx-auto ${prayerType.iconColor} mb-3`} />
+          <h3 className="text-lg font-bold text-foreground">{prayerType.title}</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            Escreva uma oração curta agradecendo a Deus por algo especial em sua vida.
+            {prayerType.description}
           </p>
         </div>
 
         <Textarea
-          placeholder="Obrigado, Deus, por..."
+          placeholder={prayerType.placeholder}
           value={prayer}
           onChange={(e) => setPrayer(e.target.value)}
           className="min-h-[120px] resize-none"
@@ -826,8 +865,15 @@ function VerseMemoryActivity({
   const [step, setStep] = useState<'read' | 'fill' | 'done'>('read');
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   
-  const verse = content?.dailyVerse || "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.";
-  const reference = content?.verseReference || "João 3:16";
+  // Fetch the daily verse from API
+  const { data: dailyVerseData } = useQuery<{ verse: string; reference: string }>({
+    queryKey: ["/api/site/daily-verse"],
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+  
+  // Use content from mission first, then daily verse from API, then fallback
+  const verse = content?.dailyVerse || dailyVerseData?.verse || "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.";
+  const reference = content?.verseReference || dailyVerseData?.reference || "João 3:16";
   
   const words = verse.split(' ');
   const blanksIndices = [2, 5, 8, 11].filter(i => i < words.length);

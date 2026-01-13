@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface FrozenFlameAnimationProps {
   isDefrosting: boolean;
@@ -24,6 +24,7 @@ function getAudioContext(): AudioContext | null {
 
 export function FrozenFlameAnimation({ isDefrosting, onDefrostComplete }: FrozenFlameAnimationProps) {
   const hasPlayedSounds = useRef(false);
+  const [defrostPhase, setDefrostPhase] = useState<'frozen' | 'melting' | 'free' | 'done'>('frozen');
 
   const playIceBreakSound = useCallback(() => {
     const audioContext = getAudioContext();
@@ -136,263 +137,246 @@ export function FrozenFlameAnimation({ isDefrosting, onDefrostComplete }: Frozen
   useEffect(() => {
     if (isDefrosting && !hasPlayedSounds.current) {
       hasPlayedSounds.current = true;
+      setDefrostPhase('melting');
       playIceBreakSound();
-      const timer = setTimeout(() => {
+      
+      const meltTimer = setTimeout(() => {
+        setDefrostPhase('free');
         playFireWhooshSound();
-      }, 800);
+      }, 2000);
+      
+      const doneTimer = setTimeout(() => {
+        setDefrostPhase('done');
+      }, 3500);
+      
       const completeTimer = setTimeout(() => {
         onDefrostComplete?.();
-      }, 2500);
+      }, 4500);
+      
       return () => {
-        clearTimeout(timer);
+        clearTimeout(meltTimer);
+        clearTimeout(doneTimer);
         clearTimeout(completeTimer);
       };
     }
     if (!isDefrosting) {
       hasPlayedSounds.current = false;
+      setDefrostPhase('frozen');
     }
   }, [isDefrosting, onDefrostComplete, playIceBreakSound, playFireWhooshSound]);
 
   return (
-    <div className="relative w-32 h-32 flex items-center justify-center">
-      <AnimatePresence mode="wait">
-        {!isDefrosting ? (
-          <motion.div
-            key="frozen"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.2 }}
-            className="relative"
-          >
+    <div className="flex flex-col items-center justify-center w-full">
+      <div className="relative w-32 h-40 flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          {!isDefrosting ? (
             <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              animate={{
-                scale: [1, 1.05, 1],
-                opacity: [0.8, 1, 0.8],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              key="frozen"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.2 }}
+              className="relative flex items-center justify-center"
             >
-              <svg viewBox="0 0 100 100" className="w-28 h-28">
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center"
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.8, 1, 0.8],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <svg viewBox="0 0 100 100" className="w-28 h-28">
+                  <defs>
+                    <linearGradient id="iceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.9" />
+                      <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.8" />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.9" />
+                    </linearGradient>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  
+                  <motion.g filter="url(#glow)">
+                    <motion.polygon
+                      points="50,10 55,25 45,25"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.7, 1, 0.7] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+                    />
+                    <motion.polygon
+                      points="50,10 65,35 55,25"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.6, 0.9, 0.6] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                    />
+                    <motion.polygon
+                      points="50,10 35,35 45,25"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.6, 0.9, 0.6] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                    />
+                    
+                    <motion.polygon
+                      points="15,45 30,50 25,55"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.5, 0.8, 0.5] }}
+                      transition={{ duration: 1.8, repeat: Infinity, delay: 0.1 }}
+                    />
+                    <motion.polygon
+                      points="85,45 70,50 75,55"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.5, 0.8, 0.5] }}
+                      transition={{ duration: 1.8, repeat: Infinity, delay: 0.3 }}
+                    />
+                    
+                    <motion.polygon
+                      points="25,80 40,75 35,85"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.6, 0.9, 0.6] }}
+                      transition={{ duration: 1.6, repeat: Infinity, delay: 0.5 }}
+                    />
+                    <motion.polygon
+                      points="75,80 60,75 65,85"
+                      fill="url(#iceGradient)"
+                      animate={{ opacity: [0.6, 0.9, 0.6] }}
+                      transition={{ duration: 1.6, repeat: Infinity, delay: 0.7 }}
+                    />
+                  </motion.g>
+                  
+                  <motion.g filter="url(#glow)">
+                    {[...Array(8)].map((_, i) => {
+                      const angle = (i * 45) * Math.PI / 180;
+                      const x1 = 50 + Math.cos(angle) * 20;
+                      const y1 = 50 + Math.sin(angle) * 20;
+                      const x2 = 50 + Math.cos(angle) * 35;
+                      const y2 = 50 + Math.sin(angle) * 35;
+                      return (
+                        <motion.line
+                          key={i}
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="#67e8f9"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          animate={{
+                            opacity: [0.3, 0.7, 0.3],
+                            strokeWidth: [1.5, 2.5, 1.5],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            delay: i * 0.15,
+                          }}
+                        />
+                      );
+                    })}
+                  </motion.g>
+                </svg>
+              </motion.div>
+              
+              <motion.div
+                className="relative z-10"
+                animate={{
+                  y: [0, -2, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <svg viewBox="0 0 60 80" className="w-16 h-20">
+                  <defs>
+                    <linearGradient id="flameGradientFrozen" x1="0%" y1="100%" x2="0%" y2="0%">
+                      <stop offset="0%" stopColor="#3b82f6" />
+                      <stop offset="40%" stopColor="#60a5fa" />
+                      <stop offset="70%" stopColor="#93c5fd" />
+                      <stop offset="100%" stopColor="#bfdbfe" />
+                    </linearGradient>
+                    <filter id="frozenGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="2" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <motion.path
+                    d="M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z"
+                    fill="url(#flameGradientFrozen)"
+                    filter="url(#frozenGlow)"
+                    animate={{
+                      d: [
+                        "M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z",
+                        "M30 8 C33 22, 48 38, 48 52 C48 63, 38 73, 30 73 C22 73, 12 63, 12 52 C12 38, 27 22, 30 8 Z",
+                        "M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z",
+                      ],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  <motion.path
+                    d="M30 25 C33 35, 40 40, 40 50 C40 58, 35 63, 30 63 C25 63, 20 58, 20 50 C20 40, 27 35, 30 25 Z"
+                    fill="#dbeafe"
+                    opacity={0.6}
+                    animate={{
+                      opacity: [0.4, 0.7, 0.4],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                    }}
+                  />
+                </svg>
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="defrosting"
+              initial={{ opacity: 1 }}
+              className="relative flex items-center justify-center"
+            >
+              <svg viewBox="0 0 100 120" className="w-32 h-40">
                 <defs>
-                  <linearGradient id="iceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.9" />
-                    <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.9" />
+                  <linearGradient id="iceShellGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#a5f3fc" stopOpacity="0.95" />
+                    <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.95" />
                   </linearGradient>
-                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <linearGradient id="flameCold" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="40%" stopColor="#60a5fa" />
+                    <stop offset="70%" stopColor="#93c5fd" />
+                    <stop offset="100%" stopColor="#bfdbfe" />
+                  </linearGradient>
+                  <linearGradient id="flameWarm" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stopColor="#dc2626" />
+                    <stop offset="30%" stopColor="#ea580c" />
+                    <stop offset="60%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#fbbf24" />
+                  </linearGradient>
+                  <filter id="iceGlowDefrost" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge>
                       <feMergeNode in="blur" />
                       <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
-                  <filter id="iceTexture">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
-                  </filter>
-                </defs>
-                
-                <motion.g filter="url(#glow)">
-                  <motion.polygon
-                    points="50,10 55,25 45,25"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
-                  />
-                  <motion.polygon
-                    points="50,10 65,35 55,25"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.6, 0.9, 0.6] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                  />
-                  <motion.polygon
-                    points="50,10 35,35 45,25"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.6, 0.9, 0.6] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-                  />
-                  
-                  <motion.polygon
-                    points="15,45 30,50 25,55"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.5, 0.8, 0.5] }}
-                    transition={{ duration: 1.8, repeat: Infinity, delay: 0.1 }}
-                  />
-                  <motion.polygon
-                    points="85,45 70,50 75,55"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.5, 0.8, 0.5] }}
-                    transition={{ duration: 1.8, repeat: Infinity, delay: 0.3 }}
-                  />
-                  
-                  <motion.polygon
-                    points="25,80 40,75 35,85"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.6, 0.9, 0.6] }}
-                    transition={{ duration: 1.6, repeat: Infinity, delay: 0.5 }}
-                  />
-                  <motion.polygon
-                    points="75,80 60,75 65,85"
-                    fill="url(#iceGradient)"
-                    animate={{ opacity: [0.6, 0.9, 0.6] }}
-                    transition={{ duration: 1.6, repeat: Infinity, delay: 0.7 }}
-                  />
-                </motion.g>
-                
-                <motion.g filter="url(#glow)">
-                  {[...Array(8)].map((_, i) => {
-                    const angle = (i * 45) * Math.PI / 180;
-                    const x1 = 50 + Math.cos(angle) * 20;
-                    const y1 = 50 + Math.sin(angle) * 20;
-                    const x2 = 50 + Math.cos(angle) * 35;
-                    const y2 = 50 + Math.sin(angle) * 35;
-                    return (
-                      <motion.line
-                        key={i}
-                        x1={x1}
-                        y1={y1}
-                        x2={x2}
-                        y2={y2}
-                        stroke="#67e8f9"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        animate={{
-                          opacity: [0.3, 0.7, 0.3],
-                          strokeWidth: [1.5, 2.5, 1.5],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          delay: i * 0.15,
-                        }}
-                      />
-                    );
-                  })}
-                </motion.g>
-              </svg>
-            </motion.div>
-            
-            <motion.div
-              className="relative z-10"
-              animate={{
-                y: [0, -2, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              <svg viewBox="0 0 60 80" className="w-16 h-20">
-                <defs>
-                  <linearGradient id="flameGradientFrozen" x1="0%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="40%" stopColor="#60a5fa" />
-                    <stop offset="70%" stopColor="#93c5fd" />
-                    <stop offset="100%" stopColor="#bfdbfe" />
-                  </linearGradient>
-                  <filter id="frozenGlow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                <motion.path
-                  d="M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z"
-                  fill="url(#flameGradientFrozen)"
-                  filter="url(#frozenGlow)"
-                  animate={{
-                    d: [
-                      "M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z",
-                      "M30 8 C33 22, 48 38, 48 52 C48 63, 38 73, 30 73 C22 73, 12 63, 12 52 C12 38, 27 22, 30 8 Z",
-                      "M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z",
-                    ],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <motion.path
-                  d="M30 25 C33 35, 40 40, 40 50 C40 58, 35 63, 30 63 C25 63, 20 58, 20 50 C20 40, 27 35, 30 25 Z"
-                  fill="#dbeafe"
-                  opacity={0.6}
-                  animate={{
-                    opacity: [0.4, 0.7, 0.4],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                  }}
-                />
-              </svg>
-            </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="defrosting"
-            initial={{ opacity: 1 }}
-            className="relative"
-          >
-            {[...Array(12)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute"
-                initial={{
-                  x: 0,
-                  y: 0,
-                  opacity: 1,
-                  scale: 1,
-                }}
-                animate={{
-                  x: (Math.random() - 0.5) * 200,
-                  y: (Math.random() - 0.5) * 200 + 100,
-                  opacity: 0,
-                  scale: 0.3,
-                  rotate: Math.random() * 360,
-                }}
-                transition={{
-                  duration: 1.2,
-                  delay: i * 0.05,
-                  ease: "easeOut",
-                }}
-              >
-                <svg viewBox="0 0 20 20" className="w-4 h-4">
-                  <polygon
-                    points="10,0 12,8 10,6 8,8"
-                    fill="#67e8f9"
-                  />
-                </svg>
-              </motion.div>
-            ))}
-            
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0.5 }}
-              animate={{
-                scale: [0.8, 1.3, 1.1],
-                opacity: [0.5, 1, 1],
-              }}
-              transition={{
-                duration: 1,
-                delay: 0.5,
-              }}
-            >
-              <svg viewBox="0 0 60 80" className="w-20 h-24">
-                <defs>
-                  <linearGradient id="flameGradientHot" x1="0%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stopColor="#dc2626" />
-                    <stop offset="30%" stopColor="#ea580c" />
-                    <stop offset="60%" stopColor="#f59e0b" />
-                    <stop offset="100%" stopColor="#fbbf24" />
-                  </linearGradient>
-                  <filter id="fireGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <filter id="fireGlowDefrost" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="4" result="blur" />
                     <feMerge>
                       <feMergeNode in="blur" />
@@ -400,48 +384,129 @@ export function FrozenFlameAnimation({ isDefrosting, onDefrostComplete }: Frozen
                     </feMerge>
                   </filter>
                 </defs>
+                
                 <motion.path
-                  d="M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z"
-                  fill="url(#flameGradientHot)"
-                  filter="url(#fireGlow)"
-                  animate={{
+                  d="M50 10 C55 30, 70 40, 70 55 C70 75, 60 85, 50 85 C40 85, 30 75, 30 55 C30 40, 45 30, 50 10 Z"
+                  fill={defrostPhase === 'frozen' || defrostPhase === 'melting' ? "url(#flameCold)" : "url(#flameWarm)"}
+                  filter={defrostPhase === 'free' || defrostPhase === 'done' ? "url(#fireGlowDefrost)" : undefined}
+                  animate={defrostPhase === 'free' || defrostPhase === 'done' ? {
                     d: [
-                      "M30 2 C38 20, 55 32, 55 48 C55 68, 42 78, 30 78 C18 78, 5 68, 5 48 C5 32, 22 20, 30 2 Z",
-                      "M30 5 C35 25, 50 35, 50 50 C50 65, 40 75, 30 75 C20 75, 10 65, 10 50 C10 35, 25 25, 30 5 Z",
-                      "M30 2 C38 20, 55 32, 55 48 C55 68, 42 78, 30 78 C18 78, 5 68, 5 48 C5 32, 22 20, 30 2 Z",
+                      "M50 8 C58 25, 75 38, 75 55 C75 78, 62 90, 50 90 C38 90, 25 78, 25 55 C25 38, 42 25, 50 8 Z",
+                      "M50 12 C55 28, 68 42, 68 58 C68 72, 58 82, 50 82 C42 82, 32 72, 32 58 C32 42, 45 28, 50 12 Z",
+                      "M50 8 C58 25, 75 38, 75 55 C75 78, 62 90, 50 90 C38 90, 25 78, 25 55 C25 38, 42 25, 50 8 Z",
+                    ],
+                    scale: [1, 1.05, 1],
+                  } : {
+                    d: [
+                      "M50 10 C55 30, 70 40, 70 55 C70 75, 60 85, 50 85 C40 85, 30 75, 30 55 C30 40, 45 30, 50 10 Z",
+                      "M50 12 C53 28, 68 42, 68 57 C68 73, 58 83, 50 83 C42 83, 32 73, 32 57 C32 42, 47 28, 50 12 Z",
+                      "M50 10 C55 30, 70 40, 70 55 C70 75, 60 85, 50 85 C40 85, 30 75, 30 55 C30 40, 45 30, 50 10 Z",
                     ],
                   }}
                   transition={{
-                    duration: 0.4,
+                    duration: defrostPhase === 'free' || defrostPhase === 'done' ? 0.4 : 2,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
                 />
+                
                 <motion.path
-                  d="M30 25 C33 35, 40 40, 40 50 C40 58, 35 63, 30 63 C25 63, 20 58, 20 50 C20 40, 27 35, 30 25 Z"
-                  fill="#fef08a"
+                  d="M50 35 C53 45, 60 50, 60 58 C60 68, 55 73, 50 73 C45 73, 40 68, 40 58 C40 50, 47 45, 50 35 Z"
+                  fill={defrostPhase === 'free' || defrostPhase === 'done' ? "#fef08a" : "#dbeafe"}
                   animate={{
-                    opacity: [0.6, 1, 0.6],
+                    opacity: [0.5, 0.9, 0.5],
                   }}
                   transition={{
-                    duration: 0.3,
+                    duration: defrostPhase === 'free' || defrostPhase === 'done' ? 0.3 : 1.5,
                     repeat: Infinity,
                   }}
                 />
+                
+                <motion.ellipse
+                  cx="50"
+                  cy="55"
+                  rx="28"
+                  ry="40"
+                  fill="url(#iceShellGradient)"
+                  filter="url(#iceGlowDefrost)"
+                  initial={{ opacity: 0.9, scale: 1 }}
+                  animate={defrostPhase === 'melting' ? {
+                    opacity: [0.9, 0.6, 0.3, 0],
+                    scale: [1, 0.95, 0.9, 0.8],
+                    y: [0, 5, 10, 20],
+                  } : defrostPhase === 'free' || defrostPhase === 'done' ? {
+                    opacity: 0,
+                    scale: 0.5,
+                  } : {
+                    opacity: 0.9,
+                    scale: 1,
+                  }}
+                  transition={{
+                    duration: 2,
+                    ease: "easeOut",
+                  }}
+                />
+                
+                {defrostPhase === 'melting' && (
+                  <>
+                    {[...Array(6)].map((_, i) => (
+                      <motion.ellipse
+                        key={`crack-${i}`}
+                        cx={35 + i * 6}
+                        cy={30 + (i % 2) * 10}
+                        rx="1"
+                        ry="8"
+                        fill="#a5f3fc"
+                        initial={{ opacity: 0, scaleY: 0 }}
+                        animate={{ 
+                          opacity: [0, 1, 1, 0], 
+                          scaleY: [0, 1, 1.5, 0],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          delay: 0.2 + i * 0.1,
+                          ease: "easeOut",
+                        }}
+                      />
+                    ))}
+                    
+                    {[...Array(8)].map((_, i) => (
+                      <motion.circle
+                        key={`drop-${i}`}
+                        cx={30 + (i % 4) * 12}
+                        cy={80}
+                        r="3"
+                        fill="#67e8f9"
+                        initial={{ opacity: 0, y: 0 }}
+                        animate={{ 
+                          opacity: [0, 1, 1, 0], 
+                          y: [0, 10, 25, 40],
+                        }}
+                        transition={{
+                          duration: 1.2,
+                          delay: 0.5 + i * 0.15,
+                          ease: "easeIn",
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
               </svg>
             </motion.div>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2 }}
-              className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-xl font-bold text-orange-400"
-            >
-              Ofensiva Recuperada!
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {isDefrosting && (defrostPhase === 'free' || defrostPhase === 'done') && (
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-lg sm:text-xl font-bold text-orange-400 text-center mt-4"
+        >
+          Ofensiva Recuperada!
+        </motion.p>
+      )}
     </div>
   );
 }

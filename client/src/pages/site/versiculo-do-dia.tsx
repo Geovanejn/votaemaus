@@ -353,6 +353,7 @@ export default function VersiculoDoDiaPage() {
               position: 'relative',
               backgroundColor: '#000000',
               overflow: 'hidden',
+              borderRadius: '16px',
               WebkitFontSmoothing: 'antialiased',
               textRendering: 'optimizeLegibility',
             }}
@@ -364,9 +365,9 @@ export default function VersiculoDoDiaPage() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
+                  inset: '-1px',
+                  width: 'calc(100% + 2px)',
+                  height: 'calc(100% + 2px)',
                   objectFit: 'cover',
                   display: 'block'
                 }}
@@ -375,7 +376,7 @@ export default function VersiculoDoDiaPage() {
             )}
             <div style={{
               position: 'absolute',
-              inset: 0,
+              inset: '-1px',
               background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
             }} />
             <div style={{

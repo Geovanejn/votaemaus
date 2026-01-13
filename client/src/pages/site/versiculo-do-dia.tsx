@@ -128,7 +128,7 @@ export default function VersiculoDoDiaPage() {
 
         const file = new File([blob], 'versiculo-do-dia.jpg', { type: 'image/jpeg' });
         const shareUrl = `${window.location.origin}/versiculo-do-dia`;
-        const shareText = `*Versículo do Dia* - UMP Emaús\n\n"${todayVerse?.verse}"\n— ${todayVerse?.reference}\n\nLeia a reflexão completa:\n${shareUrl}`;
+        const shareText = `*Versículo do Dia* - UMP Emaús\n\nLeia a reflexão completa:\n${shareUrl}`;
 
         if (platform === 'download') {
           const url = URL.createObjectURL(blob);

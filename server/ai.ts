@@ -652,6 +652,50 @@ REGRAS OBRIGATÓRIAS PARA EXERCÍCIOS fill_blank:
 - Exemplo INCORRETO: "Complete: ___" (muito vago)
 - A resposta deve ser uma ÚNICA palavra ou expressão curta
 
+⚠️ REGRAS OBRIGATÓRIAS PARA PERGUNTAS VERDADEIRO/FALSO - DIFICULDADE AVANÇADA ⚠️
+
+As perguntas de V/F são frequentemente MUITO FÁCEIS. Siga estas regras para aumentar a dificuldade:
+
+SISTEMA DE AUTO-VALIDAÇÃO PARA VERDADEIRO/FALSO:
+
+PASSO 1 - CRIAR AFIRMAÇÃO COMPLEXA:
+- A afirmação deve misturar conceitos verdadeiros e falsos de forma sutil
+- NÃO use afirmações obviamente verdadeiras ou obviamente falsas
+- Use nuances teológicas que requerem conhecimento para distinguir
+
+PASSO 2 - EVITAR PADRÕES ÓBVIOS:
+❌ PALAVRAS ABSOLUTAS: Afirmações com "sempre", "nunca", "todos", "nenhum" são frequentemente FALSAS - evite ou equilibre
+❌ AFIRMAÇÕES MUITO POSITIVAS: "Jesus nos ama incondicionalmente" é obviamente VERDADEIRA - muito fácil
+❌ AFIRMAÇÕES ABSURDAS: "Deus não existe" é obviamente FALSA - muito fácil
+❌ NEGAÇÕES DUPLAS: "Não é incorreto dizer que..." confunde mas não testa conhecimento
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém que NÃO leu o texto conseguiria acertar só pelo senso comum religioso?"
+Se SIM → a afirmação está MUITO FÁCIL, REESCREVA
+Se NÃO → afirmação APROVADA
+
+PASSO 4 - TIPOS DE AFIRMAÇÕES DESAFIADORAS:
+✅ INVERSÃO SUTIL: Troque um elemento pequeno que muda o significado
+   Ex: "A fé que salva é aquela que se manifesta em obras de caridade" (FALSO - é fé genuína, não necessariamente caridade)
+✅ MISTURA DE CONCEITOS: Combine conceitos relacionados de forma incorreta
+   Ex: "A justificação e a santificação são processos simultâneos e idênticos" (FALSO - justificação é instantânea, santificação é progressiva)
+✅ EXAGERO OU REDUÇÃO: Amplifique ou minimize um conceito
+   Ex: "A oração só é eficaz quando feita em conjunto com outros crentes" (FALSO - oração individual também é eficaz)
+✅ CONTEXTO ERRADO: Use afirmação verdadeira em contexto errado
+   Ex: "Segundo Romanos 3, o homem é justificado pelas obras da lei" (FALSO - é pela fé)
+
+EXEMPLOS DE AFIRMAÇÕES:
+❌ MUITO FÁCIL (evite):
+- "Jesus morreu na cruz para nos salvar" (obviamente VERDADEIRA)
+- "Satanás é mais poderoso que Deus" (obviamente FALSA)
+- "A Bíblia é a Palavra de Deus" (obviamente VERDADEIRA para cristãos)
+
+✅ DIFICULDADE ADEQUADA:
+- "A regeneração espiritual é resultado do esforço humano combinado com a graça divina" (FALSO - é monergismo divino)
+- "O arrependimento deve necessariamente preceder a fé para que haja salvação" (FALSO - são simultâneos)
+- "Segundo o texto estudado, a perseverança dos santos depende da fidelidade humana" (FALSO - depende da fidelidade de Deus)
+- "A santificação é um processo que se completa no momento da conversão" (FALSO - é progressivo)
+
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
@@ -751,7 +795,33 @@ Frase: "Devemos ___ uns aos outros."
 ✅ "amar" → "Devemos amar uns aos outros." (verbo infinitivo OK)
 ✅ "perdoar" → "Devemos perdoar uns aos outros." (verbo infinitivo OK)
 ❌ "amor" → "Devemos amor uns aos outros." (substantivo após modal - ERRADO)
-❌ "amando" → "Devemos amando uns aos outros." (gerúndio após modal - ERRADO)`;
+❌ "amando" → "Devemos amando uns aos outros." (gerúndio após modal - ERRADO)
+
+⚠️ REGRAS OBRIGATÓRIAS PARA PERGUNTAS VERDADEIRO/FALSO - DIFICULDADE AVANÇADA ⚠️
+
+SISTEMA DE AUTO-VALIDAÇÃO PARA VERDADEIRO/FALSO:
+
+PASSO 1 - CRIAR AFIRMAÇÃO COMPLEXA:
+- Misture conceitos verdadeiros e falsos de forma sutil
+- NÃO use afirmações obviamente verdadeiras ou falsas
+
+PASSO 2 - EVITAR PADRÕES ÓBVIOS:
+❌ "sempre/nunca/todos/nenhum" → frequentemente FALSAS - evite
+❌ Afirmações muito positivas → obviamente VERDADEIRAS
+❌ Afirmações absurdas → obviamente FALSAS
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Alguém sem estudar acertaria? Se SIM → REESCREVA
+
+PASSO 4 - TIPOS DESAFIADORES:
+✅ INVERSÃO SUTIL: Troque um elemento que muda significado
+✅ MISTURA DE CONCEITOS: Combine conceitos de forma incorreta
+✅ EXAGERO/REDUÇÃO: Amplifique ou minimize conceitos
+
+EXEMPLOS:
+❌ FÁCIL: "Jesus morreu para nos salvar" (óbvia)
+✅ ADEQUADO: "A regeneração depende do esforço humano combinado com graça" (FALSO)
+✅ ADEQUADO: "O arrependimento deve preceder a fé para salvação" (FALSO)`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -949,7 +1019,39 @@ Classe identificada: VERBO INFINITIVO (predicativo verbal)
 ❌ amor → "...é amor a Deus" (INVÁLIDO - muda estrutura)
 ❌ amando → "...é amando a Deus" (INVÁLIDO - gerúndio inadequado)
 
-NUNCA GERE ALTERNATIVAS SEM EXECUTAR ESTA VALIDAÇÃO!`;
+NUNCA GERE ALTERNATIVAS SEM EXECUTAR ESTA VALIDAÇÃO!
+
+⚠️ REGRAS OBRIGATÓRIAS PARA PERGUNTAS VERDADEIRO/FALSO - DIFICULDADE AVANÇADA ⚠️
+
+As perguntas de V/F são frequentemente MUITO FÁCEIS. Siga estas regras:
+
+SISTEMA DE AUTO-VALIDAÇÃO PARA VERDADEIRO/FALSO:
+
+PASSO 1 - CRIAR AFIRMAÇÃO COMPLEXA:
+- A afirmação deve misturar conceitos verdadeiros e falsos de forma sutil
+- NÃO use afirmações obviamente verdadeiras ou obviamente falsas
+- Use nuances teológicas que requerem conhecimento para distinguir
+
+PASSO 2 - EVITAR PADRÕES ÓBVIOS:
+❌ PALAVRAS ABSOLUTAS: "sempre", "nunca", "todos", "nenhum" são frequentemente FALSAS - evite
+❌ AFIRMAÇÕES MUITO POSITIVAS: "Jesus nos ama" é obviamente VERDADEIRA - muito fácil
+❌ AFIRMAÇÕES ABSURDAS: "Deus é mau" é obviamente FALSA - muito fácil
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém que NÃO estudou conseguiria acertar só pelo senso comum?"
+Se SIM → REESCREVA a afirmação
+Se NÃO → APROVADA
+
+PASSO 4 - TIPOS DE AFIRMAÇÕES DESAFIADORAS:
+✅ INVERSÃO SUTIL: Troque um elemento que muda o significado
+✅ MISTURA DE CONCEITOS: Combine conceitos de forma incorreta
+✅ EXAGERO/REDUÇÃO: Amplifique ou minimize um conceito
+✅ CONTEXTO ERRADO: Use afirmação verdadeira em contexto errado
+
+EXEMPLOS:
+❌ MUITO FÁCIL: "Jesus morreu para nos salvar" (obviamente VERDADEIRA)
+✅ ADEQUADO: "A regeneração espiritual depende do esforço humano combinado com a graça" (FALSO)
+✅ ADEQUADO: "O arrependimento deve preceder a fé para haver salvação" (FALSO - são simultâneos)`;
 
   const existingQuestionsText = existingQuestions.length > 0 
     ? `\n\nPERGUNTAS JA EXISTENTES (NAO repita estas, crie perguntas NOVAS e DIFERENTES):\n${existingQuestions.join('\n')}`
@@ -2203,6 +2305,48 @@ Validação:
 Seleção final: ["graça", "fé", "misericórdia", "bondade"] ✓
 
 NUNCA GERE ALTERNATIVAS SEM EXECUTAR TODOS OS 4 PASSOS DE VALIDAÇÃO!
+
+⚠️ REGRAS OBRIGATÓRIAS PARA PERGUNTAS VERDADEIRO/FALSO - DIFICULDADE AVANÇADA ⚠️
+
+As perguntas de V/F são frequentemente MUITO FÁCEIS. Siga estas regras para aumentar a dificuldade:
+
+SISTEMA DE AUTO-VALIDAÇÃO PARA VERDADEIRO/FALSO:
+
+PASSO 1 - CRIAR AFIRMAÇÃO COMPLEXA:
+- A afirmação deve misturar conceitos verdadeiros e falsos de forma sutil
+- NÃO use afirmações obviamente verdadeiras ou obviamente falsas
+- Use nuances teológicas que requerem conhecimento do texto para distinguir
+
+PASSO 2 - EVITAR PADRÕES ÓBVIOS:
+❌ PALAVRAS ABSOLUTAS: Afirmações com "sempre", "nunca", "todos", "nenhum" são frequentemente FALSAS - evite ou equilibre
+❌ AFIRMAÇÕES MUITO POSITIVAS: "Jesus nos ama incondicionalmente" é obviamente VERDADEIRA - muito fácil
+❌ AFIRMAÇÕES ABSURDAS: "Deus não existe" é obviamente FALSA - muito fácil
+❌ NEGAÇÕES DUPLAS: "Não é incorreto dizer que..." confunde mas não testa conhecimento
+
+PASSO 3 - TESTE DO "CHUTE EDUCADO":
+Pergunte: "Alguém que NÃO leu o texto conseguiria acertar só pelo senso comum religioso?"
+Se SIM → a afirmação está MUITO FÁCIL, REESCREVA
+Se NÃO → afirmação APROVADA
+
+PASSO 4 - TIPOS DE AFIRMAÇÕES DESAFIADORAS:
+✅ INVERSÃO SUTIL: Troque um elemento pequeno que muda o significado
+   Ex: "A fé que salva é aquela que se manifesta em obras de caridade" (FALSO)
+✅ MISTURA DE CONCEITOS: Combine conceitos relacionados de forma incorreta
+   Ex: "A justificação e a santificação são processos simultâneos e idênticos" (FALSO)
+✅ EXAGERO OU REDUÇÃO: Amplifique ou minimize um conceito
+   Ex: "A oração só é eficaz quando feita em conjunto com outros crentes" (FALSO)
+✅ CONTEXTO ERRADO: Use afirmação verdadeira em contexto errado
+   Ex: "Segundo Romanos 3, o homem é justificado pelas obras da lei" (FALSO)
+
+EXEMPLOS DE AFIRMAÇÕES:
+❌ MUITO FÁCIL (evite):
+- "Jesus morreu na cruz para nos salvar" (obviamente VERDADEIRA)
+- "Satanás é mais poderoso que Deus" (obviamente FALSA)
+
+✅ DIFICULDADE ADEQUADA:
+- "A regeneração espiritual é resultado do esforço humano combinado com a graça divina" (FALSO)
+- "O arrependimento deve necessariamente preceder a fé para que haja salvação" (FALSO)
+- "Segundo o texto estudado, a perseverança dos santos depende da fidelidade humana" (FALSO)
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 

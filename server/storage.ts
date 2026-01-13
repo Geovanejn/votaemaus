@@ -4534,8 +4534,10 @@ export class DatabaseStorage implements IStorage {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
     
+    // Only return active posts (filtered out posts are not accessible)
     const [post] = await db.select().from(schema.dailyVersePosts)
       .where(and(
+        eq(schema.dailyVersePosts.isActive, true),
         gte(schema.dailyVersePosts.publishedAt, startOfDay),
         lte(schema.dailyVersePosts.publishedAt, endOfDay)
       ))

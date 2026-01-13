@@ -102,7 +102,8 @@ import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
 // ==================== IMAGE URL CONVERSION HELPER ====================
-// Converts r2:// URLs to public URLs for all image fields in an object
+// Converts r2:// URLs to proxy URLs for CORS support (html2canvas requires same-origin or CORS)
+// Always uses proxy to ensure images work in share dialogs and cross-origin contexts
 function convertImageUrls<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') return obj;
   
@@ -111,7 +112,8 @@ function convertImageUrls<T>(obj: T): T {
   
   for (const field of imageFields) {
     if (result[field] && typeof result[field] === 'string') {
-      result[field] = getPublicUrl(result[field]);
+      // Use proxy for R2 images to ensure CORS support for html2canvas
+      result[field] = getProxyUrl(result[field]);
     }
   }
   
@@ -123,20 +125,9 @@ function convertImageUrlsArray<T>(arr: T[]): T[] {
   return arr.map(item => convertImageUrls(item));
 }
 
-// Special converter for daily verse images - uses proxy for CORS support
+// Alias for consistency (same as convertImageUrls now that all use proxy)
 function convertDailyVerseImageUrls<T>(obj: T): T {
-  if (!obj || typeof obj !== 'object') return obj;
-  
-  const imageFields = ['imageUrl'];
-  const result = { ...obj } as any;
-  
-  for (const field of imageFields) {
-    if (result[field] && typeof result[field] === 'string') {
-      result[field] = getProxyUrl(result[field]);
-    }
-  }
-  
-  return result as T;
+  return convertImageUrls(obj);
 }
 
 // ==================== RATE LIMITING CONFIGURATION ====================

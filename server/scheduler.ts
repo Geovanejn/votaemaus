@@ -348,11 +348,11 @@ function getTodayDateKey(): string {
   return `${year}-${month}-${day}`;
 }
 
-// Model priority order - try each model in each key before moving to next key
+// Model priority order - same as lesson system in ai.ts
 const GEMINI_MODEL_PRIORITY = [
-  'gemini-2.5-flash-preview-05-20',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
+  'gemini-3-flash-preview',  // Primary
+  'gemini-2.5-flash',        // Fallback 1
+  'gemini-2.5-lite',         // Fallback 2
 ];
 
 async function generateVerseReflection(verse: string, reference: string): Promise<string | null> {

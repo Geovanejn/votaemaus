@@ -2056,7 +2056,7 @@ export interface ExtractedLessonFromPDF {
 
 export async function generateLessonFromPDFExact(
   pdfText: string,
-  geminiKey: string = "1",
+  _geminiKey: string = "1", // Ignored - automatic key rotation is used
   provider: AIProvider = "gemini",
   openaiKey: string = "1"
 ): Promise<ExtractedLessonFromPDF> {
@@ -2465,12 +2465,8 @@ LEMBRE-SE:
 
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
-  try {
-    const content = await generateWithAI(systemPrompt, userPrompt, provider, geminiKey, openaiKey);
-    if (!content) {
-      throw new Error("Resposta vazia da IA");
-    }
-
+  // Helper function to process and validate the parsed content
+  const processContent = (content: string): ExtractedLessonFromPDF => {
     const parsed = safeJsonParse(content) as ExtractedLessonFromPDF;
     
     if (parsed.studyContent) {
@@ -2490,12 +2486,12 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
         // Filter out questions with invalid options
         .filter(unit => {
           if (unit.type === 'multiple_choice' || unit.type === 'fill_blank') {
-            const content = unit.content || {};
-            const options = content.options;
+            const unitContent = unit.content || {};
+            const options = unitContent.options;
             
             // Check for valid options array with exactly 4 unique items
             if (!options || !Array.isArray(options) || options.length !== 4) {
-              console.error(`[PDF Lesson] Removing ${unit.type} question without 4 options: "${content.question || 'no question'}"`);
+              console.error(`[PDF Lesson] Removing ${unit.type} question without 4 options: "${unitContent.question || 'no question'}"`);
               return false;
             }
             
@@ -2508,7 +2504,7 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
             
             // For multiple_choice, validate correctIndex is 0-3
             if (unit.type === 'multiple_choice') {
-              const correctIdx = content.correctIndex;
+              const correctIdx = unitContent.correctIndex;
               if (typeof correctIdx !== 'number' || correctIdx < 0 || correctIdx > 3) {
                 console.error(`[PDF Lesson] Removing multiple_choice question with invalid correctIndex: ${correctIdx}`);
                 return false;
@@ -2517,7 +2513,7 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
             
             // For fill_blank, validate correctAnswer is in options
             if (unit.type === 'fill_blank') {
-              const correctStr = String(content.correctAnswer || "").toLowerCase().trim();
+              const correctStr = String(unitContent.correctAnswer || "").toLowerCase().trim();
               const optionLower = options.map((o: string) => String(o).toLowerCase().trim());
               if (!optionLower.includes(correctStr)) {
                 console.error(`[PDF Lesson] Removing fill_blank - correctAnswer not in options`);
@@ -2530,10 +2526,52 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
     }
     
     return parsed;
-  } catch (error) {
-    console.error("Erro ao gerar lição do PDF:", error);
-    throw new Error(`Falha ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+  };
+
+  // For OpenAI provider, use the passed key directly
+  if (provider === "openai") {
+    try {
+      const content = await generateWithOpenAI(systemPrompt, userPrompt, openaiKey);
+      if (!content) {
+        throw new Error("Resposta vazia da IA");
+      }
+      return processContent(content);
+    } catch (error) {
+      console.error("Erro ao gerar lição do PDF com OpenAI:", error);
+      throw new Error(`Falha ao processar PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
   }
+
+  // For Gemini provider, try all 5 keys automatically
+  let lastError: Error | null = null;
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      console.log(`[PDF Lesson] Tentando gerar com Gemini chave ${keyNum}...`);
+      const content = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      if (!content) {
+        throw new Error("Resposta vazia da IA");
+      }
+      console.log(`[PDF Lesson] Sucesso com Gemini chave ${keyNum}`);
+      return processContent(content);
+    } catch (error: any) {
+      lastError = error;
+      const isQuota = isQuotaError(error);
+      
+      if (isQuota) {
+        console.log(`[PDF Lesson] Chave ${keyNum} com limite excedido, tentando próxima...`);
+        continue;
+      } else {
+        console.error(`[PDF Lesson] Erro com chave ${keyNum}:`, error?.message);
+        // For non-quota errors, still try next key but log the error
+        continue;
+      }
+    }
+  }
+  
+  // All keys exhausted
+  markQuotaExhausted();
+  console.error("Erro ao gerar lição do PDF: todas as chaves Gemini esgotadas");
+  throw new Error(`Falha ao processar PDF: ${lastError?.message || "Todas as chaves de API atingiram o limite de uso. Tente novamente em alguns minutos."}`);
 }
 
 // ==================== FUNÇÕES DE GERAÇÃO PARA MISSÕES DIÁRIAS ====================

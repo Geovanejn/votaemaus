@@ -34,7 +34,6 @@ import {
   Unlock,
   Trash2,
   Eye,
-  Key,
   AlertCircle,
   Pencil,
 } from "lucide-react";
@@ -59,9 +58,6 @@ export default function DeoGloryRevistaDetail() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
-  const [geminiKey, setGeminiKey] = useState<string>("1");
-  const [openaiKey, setOpenaiKey] = useState<string>("1");
-  const [aiProvider, setAiProvider] = useState<"gemini" | "openai">("gemini");
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const { data: season, isLoading: loadingSeason } = useQuery<Season>({
@@ -240,9 +236,6 @@ export default function DeoGloryRevistaDetail() {
       const formData = new FormData();
       formData.append("pdf", pdfFile);
       formData.append("lessonNumber", selectedLessonNumber);
-      formData.append("geminiKey", geminiKey);
-      formData.append("openaiKey", openaiKey);
-      formData.append("aiProvider", aiProvider);
 
       const response = await fetch(`/api/study/admin/seasons/${seasonId}/import-pdf-exact`, {
         method: "POST",
@@ -272,8 +265,7 @@ export default function DeoGloryRevistaDetail() {
         
         if (data.errorType === "rate_limit") {
           errorTitle = "Limite de requisições atingido";
-          const suggestProvider = aiProvider === "gemini" ? "OpenAI" : "Gemini";
-          errorDescription = `${data.message} Tente usar o provedor ${suggestProvider} ou a Chave ${parseInt(geminiKey) < 5 ? parseInt(geminiKey) + 1 : 1}.`;
+          errorDescription = `${data.message} Aguarde alguns minutos e tente novamente.`;
         } else if (data.errorType === "auth") {
           errorTitle = "Erro de autenticação";
         } else if (data.errorType === "service_unavailable") {
@@ -584,97 +576,27 @@ export default function DeoGloryRevistaDetail() {
           </DialogHeader>
           <div className="space-y-4 py-4 overflow-x-hidden">
             <div className="space-y-2">
-              <Label>Provedor de IA</Label>
+              <Label>Número da Lição</Label>
               <Select 
-                value={aiProvider} 
-                onValueChange={(value: "gemini" | "openai") => setAiProvider(value)}
+                value={selectedLessonNumber} 
+                onValueChange={setSelectedLessonNumber}
                 disabled={isProcessingPdf}
               >
-                <SelectTrigger data-testid="select-ai-provider">
-                  <SelectValue placeholder="Selecione o provedor" />
+                <SelectTrigger data-testid="select-lesson-number">
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gemini">Gemini (Google)</SelectItem>
-                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                  {availableLessonNumbers.map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      Lição {num}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Se um provedor estiver com limite, tente o outro.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Número da Lição</Label>
-                <Select 
-                  value={selectedLessonNumber} 
-                  onValueChange={setSelectedLessonNumber}
-                  disabled={isProcessingPdf}
-                >
-                  <SelectTrigger data-testid="select-lesson-number">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableLessonNumbers.map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
-                        Lição {num}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {availableLessonNumbers.length === 0 && (
-                  <p className="text-sm text-amber-600">
-                    Todas as 20 lições já foram criadas.
-                  </p>
-                )}
-              </div>
-              {aiProvider === "gemini" && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Key className="h-4 w-4" />
-                    Chave Gemini
-                  </Label>
-                  <Select 
-                    value={geminiKey} 
-                    onValueChange={setGeminiKey}
-                    disabled={isProcessingPdf}
-                  >
-                    <SelectTrigger data-testid="select-gemini-key">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Chave 1</SelectItem>
-                      <SelectItem value="2">Chave 2</SelectItem>
-                      <SelectItem value="3">Chave 3</SelectItem>
-                      <SelectItem value="4">Chave 4</SelectItem>
-                      <SelectItem value="5">Chave 5</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {aiProvider === "openai" && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Key className="h-4 w-4" />
-                    Chave OpenAI
-                  </Label>
-                  <Select 
-                    value={openaiKey} 
-                    onValueChange={setOpenaiKey}
-                    disabled={isProcessingPdf}
-                  >
-                    <SelectTrigger data-testid="select-openai-key">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Chave 1</SelectItem>
-                      <SelectItem value="2">Chave 2</SelectItem>
-                      <SelectItem value="3">Chave 3</SelectItem>
-                      <SelectItem value="4">Chave 4</SelectItem>
-                      <SelectItem value="5">Chave 5</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {availableLessonNumbers.length === 0 && (
+                <p className="text-sm text-amber-600">
+                  Todas as 20 lições já foram criadas.
+                </p>
               )}
             </div>
 

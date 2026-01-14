@@ -4484,9 +4484,13 @@ export class DatabaseStorage implements IStorage {
 
   async getNextDailyVerseStockImage(): Promise<schema.DailyVerseStock | null> {
     // Get all active stock images ordered by last used (oldest first, null first)
+    // NULLS FIRST ensures never-used images come first
     const stocks = await db.select().from(schema.dailyVerseStock)
       .where(eq(schema.dailyVerseStock.isActive, true))
-      .orderBy(asc(schema.dailyVerseStock.lastUsedAt), asc(schema.dailyVerseStock.orderIndex));
+      .orderBy(
+        sql`${schema.dailyVerseStock.lastUsedAt} ASC NULLS FIRST`,
+        asc(schema.dailyVerseStock.orderIndex)
+      );
     
     if (stocks.length === 0) return null;
     

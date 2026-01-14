@@ -533,6 +533,9 @@ export interface IStorage {
   // Event Completion Methods
   getUsersWhoCompletedEvent(eventId: number, totalLessons: number): Promise<number[]>;
   
+  // Season Completion Methods
+  getUsersWhoCompletedSeason(seasonId: number): Promise<{ userId: number; performance: number }[]>;
+  
   // Shop Categories Methods
   getShopCategories(): Promise<ShopCategory[]>;
   getShopCategoriesLight(): Promise<Omit<ShopCategory, 'imageData'>[]>;
@@ -7161,6 +7164,56 @@ export class DatabaseStorage implements IStorage {
         return lessonIds.every(id => completedIds.includes(id));
       })
       .map(p => p.userId);
+  }
+
+  // Get users who completed ALL lessons in a season (same structure as events)
+  async getUsersWhoCompletedSeason(seasonId: number): Promise<{ userId: number; performance: number }[]> {
+    const lessons = await this.getLessonsForSeason(seasonId);
+    const lessonIds = lessons.map(l => l.id);
+    
+    if (lessonIds.length === 0) return [];
+    
+    // Get all users with their lesson progress for this season
+    const progress = await db.select({
+      userId: schema.userLessonProgress.userId,
+      lessonId: schema.userLessonProgress.lessonId,
+      status: schema.userLessonProgress.status,
+      xpEarned: schema.userLessonProgress.xpEarned,
+      perfectScore: schema.userLessonProgress.perfectScore,
+    })
+      .from(schema.userLessonProgress)
+      .where(inArray(schema.userLessonProgress.lessonId, lessonIds));
+    
+    // Group by user and check who completed ALL lessons
+    const userProgress = new Map<number, { completedLessons: Set<number>; totalXp: number; perfectCount: number }>();
+    
+    for (const p of progress) {
+      if (!userProgress.has(p.userId)) {
+        userProgress.set(p.userId, { completedLessons: new Set(), totalXp: 0, perfectCount: 0 });
+      }
+      const user = userProgress.get(p.userId)!;
+      if (p.status === 'completed') {
+        user.completedLessons.add(p.lessonId);
+        user.totalXp += p.xpEarned || 0;
+        if (p.perfectScore) user.perfectCount++;
+      }
+    }
+    
+    // Filter users who completed ALL lessons and calculate performance
+    const completedUsers: { userId: number; performance: number }[] = [];
+    
+    Array.from(userProgress.entries()).forEach(([userId, data]) => {
+      // Check if user completed all lessons
+      if (lessonIds.every(id => data.completedLessons.has(id))) {
+        // Calculate performance based on perfect scores
+        const performance = lessonIds.length > 0 
+          ? (data.perfectCount / lessonIds.length) * 100 
+          : 0;
+        completedUsers.push({ userId, performance });
+      }
+    });
+    
+    return completedUsers;
   }
 
   // ==================== SHOP CATEGORIES METHODS ====================

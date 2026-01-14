@@ -7150,7 +7150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Encerrar temporada e enviar email para top 3
+  // Encerrar temporada e enviar email para top 3 (mesma estrutura dos eventos)
   app.post("/api/study/admin/seasons/:id/end", authenticateToken, requireAdminOrEspiritualidade, async (req: AuthRequest, res) => {
     try {
       const seasonId = parseInt(req.params.id);
@@ -7163,38 +7163,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
-      // Distribute collectible cards to ALL participants if season has a card
-      let cardsDistributed = 0;
-      if (result.season.cardId) {
-        console.log(`[Season End] Distributing card ${result.season.cardId} to ${result.allParticipants.length} participants`);
-        
-        for (const ranker of result.allParticipants) {
-          try {
-            // Calculate rarity based on performance (XP earned, completion %)
-            const performance = ranker.correctPercentage || 0;
-            const usedHints = false; // Seasons don't track hints like events
-            const rarity = calculateCardRarity(performance, usedHints);
-            
-            await storage.awardUserCard({
-              userId: ranker.userId,
-              cardId: result.season.cardId,
-              rarity,
-              sourceType: 'season',
-              sourceId: seasonId,
-              performance,
-            });
-            cardsDistributed++;
-            console.log(`[Season End] Awarded card to user ${ranker.userId} with rarity ${rarity}`);
-          } catch (cardError) {
-            console.error(`[Season End] Error awarding card to user ${ranker.userId}:`, cardError);
-          }
-        }
-        console.log(`[Season End] Cards distributed: ${cardsDistributed}/${result.allParticipants.length}`);
-      } else {
-        console.log(`[Season End] Season ${seasonId} has no cardId configured, skipping card distribution`);
+      // Get lessons count
+      const lessons = await storage.getLessonsForSeason(seasonId);
+      if (lessons.length === 0) {
+        return res.status(400).json({ message: "Revista não possui lições" });
       }
 
-      // Send congratulations emails to top 3 with rate limiting
+      // Get users who completed ALL lessons (same logic as events)
+      const completedUsers = await storage.getUsersWhoCompletedSeason(seasonId);
+      console.log(`[Season End] Found ${completedUsers.length} users who completed all ${lessons.length} lessons`);
+
+      // Auto-create collectible card if it doesn't exist (same as events)
+      let cardId = result.season.cardId;
+      if (!cardId) {
+        console.log(`[Season End] Creating collectible card for season ${seasonId}`);
+        const newCard = await storage.createCollectibleCard({
+          name: result.season.title,
+          description: `Card exclusivo da revista "${result.season.title}"`,
+          imageUrl: result.season.coverImageUrl || null,
+          sourceType: "season",
+          sourceId: seasonId,
+          availableRarities: ["common", "rare", "epic", "legendary"],
+          isActive: true,
+        });
+        cardId = newCard.id;
+        await storage.updateSeason(seasonId, { cardId });
+        console.log(`[Season End] Created card ${cardId} for season ${seasonId}`);
+      }
+
+      // Distribute cards to users who completed ALL lessons (same structure as events)
+      let cardsDistributed = 0;
+      for (const { userId, performance } of completedUsers) {
+        try {
+          // Check if user already has this card
+          const existingCard = await storage.getUserCard(userId, cardId);
+          if (existingCard) {
+            console.log(`[Season End] User ${userId} already has card ${cardId}, skipping`);
+            continue;
+          }
+
+          // Calculate rarity based on performance (same as events)
+          const usedHints = false; // Seasons don't track hints
+          const rarity = calculateCardRarity(performance, usedHints);
+          
+          await storage.awardUserCard({
+            userId,
+            cardId,
+            rarity,
+            sourceType: 'season',
+            sourceId: seasonId,
+            performance,
+          });
+          cardsDistributed++;
+          console.log(`[Season End] Awarded card to user ${userId} with rarity ${rarity} (performance: ${performance.toFixed(1)}%)`);
+        } catch (cardError) {
+          console.error(`[Season End] Error awarding card to user ${userId}:`, cardError);
+        }
+      }
+      console.log(`[Season End] Cards distributed: ${cardsDistributed}/${completedUsers.length}`);
+
+      // Send congratulations emails to top 3 rankers with rate limiting
       for (let i = 0; i < result.topRankers.length && i < 3; i++) {
         const ranker = result.topRankers[i];
         try {
@@ -7224,11 +7252,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Send push and in-app notifications to ALL participants
-      // IMPORTANT: Pass allParticipants directly to avoid re-fetching from DB
+      // Send push and in-app notifications to users who completed the season
       try {
-        await notifySeasonEnded(result.season.id, result.season.title, result.topRankers, result.allParticipants);
-        console.log(`[Season End] Notifications sent to ${result.allParticipants.length} participants`);
+        // Create participant list from completed users for notifications
+        const completedParticipants = completedUsers.map(u => ({
+          userId: u.userId,
+          xpEarned: 0,
+          correctPercentage: u.performance,
+          rankPosition: 0,
+          user: { id: u.userId, fullName: '', email: null }
+        }));
+        await notifySeasonEnded(result.season.id, result.season.title, result.topRankers, completedParticipants as any);
+        console.log(`[Season End] Notifications sent to ${completedUsers.length} users who completed the season`);
       } catch (notifError) {
         console.error("[Notifications] Error notifying season ended:", notifError);
       }
@@ -7237,8 +7272,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         season: result.season, 
         topRankers: result.topRankers,
         cardsDistributed,
-        participantsNotified: result.allParticipants.length,
-        message: "Temporada encerrada com sucesso" 
+        usersCompleted: completedUsers.length,
+        totalLessons: lessons.length,
+        message: "Revista encerrada com sucesso" 
       });
     } catch (error) {
       console.error("End season error:", error);

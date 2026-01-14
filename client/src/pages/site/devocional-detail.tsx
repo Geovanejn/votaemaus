@@ -226,8 +226,30 @@ export default function DevocionalDetailPage() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [shareImageBase64, setShareImageBase64] = useState<string | null>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+
+  const convertImageToBase64 = useCallback(async (imageUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/jpeg", 0.9));
+        } else {
+          reject(new Error("Could not get canvas context"));
+        }
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = imageUrl;
+    });
+  }, []);
 
   const { data: devotional, isLoading, isError } = useQuery<DevotionalData>({
     queryKey: ['/api/site/devotionals', devotionalId],
@@ -321,9 +343,25 @@ export default function DevocionalDetailPage() {
   const handleOpenShareDialog = async () => {
     setIsShareDialogOpen(true);
     setGeneratedImageUrl(null);
-    setTimeout(() => {
-      generateShareImage();
-    }, 100);
+    setShareImageBase64(null);
+    
+    const currentImageUrl = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder') 
+      ? devotional.imageUrl 
+      : defaultDevImg;
+    
+    try {
+      const base64 = await convertImageToBase64(currentImageUrl);
+      setShareImageBase64(base64);
+      setTimeout(() => {
+        generateShareImage();
+      }, 100);
+    } catch (err) {
+      console.error("Error converting image to base64:", err);
+      setShareImageBase64(currentImageUrl);
+      setTimeout(() => {
+        generateShareImage();
+      }, 100);
+    }
   };
 
   const handleDownloadImage = async () => {
@@ -829,7 +867,7 @@ export default function DevocionalDetailPage() {
           title={devotional?.title || ""}
           verse={devotional?.verse || ""}
           verseReference={devotional?.verseReference || ""}
-          imageUrl={imageUrl}
+          imageUrl={shareImageBase64 || imageUrl}
         />
       </div>
     </SiteLayout>

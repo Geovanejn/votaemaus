@@ -5334,10 +5334,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async finalizeSeasonRankings(seasonId: number): Promise<void> {
-    const rankings = await db.select().from(schema.seasonRankings)
+    // First check if rankings exist
+    let rankings = await db.select().from(schema.seasonRankings)
       .where(eq(schema.seasonRankings.seasonId, seasonId))
       .orderBy(desc(schema.seasonRankings.xpEarned));
 
+    // If no rankings exist, create them from user_lesson_progress data
+    if (rankings.length === 0) {
+      console.log(`[Season Finalize] No rankings found for season ${seasonId}, creating from lesson progress...`);
+      
+      // Find all distinct users who completed lessons in this season using raw SQL for DISTINCT
+      const usersWithProgress = await db.execute(sql`
+        SELECT DISTINCT ulp.user_id as "userId"
+        FROM user_lesson_progress ulp
+        INNER JOIN study_lessons sl ON ulp.lesson_id = sl.id
+        WHERE sl.season_id = ${seasonId}
+          AND ulp.status = 'completed'
+      `);
+      
+      const userIds = (usersWithProgress.rows || []) as { userId: number }[];
+      console.log(`[Season Finalize] Found ${userIds.length} users with completed lessons`);
+      
+      if (userIds.length === 0) {
+        console.warn(`[Season Finalize] WARNING: No participants found for season ${seasonId} - no cards or notifications will be sent`);
+        return;
+      }
+      
+      // Create ranking entry for each user (also creates userSeasonProgress if missing)
+      for (const { userId } of userIds) {
+        // First ensure userSeasonProgress exists with accurate data
+        await this.recalculateUserSeasonProgress(seasonId, userId);
+        // Then update ranking
+        await this.updateSeasonRanking(seasonId, userId);
+      }
+      
+      // Refetch rankings after creation
+      rankings = await db.select().from(schema.seasonRankings)
+        .where(eq(schema.seasonRankings.seasonId, seasonId))
+        .orderBy(desc(schema.seasonRankings.xpEarned));
+      
+      console.log(`[Season Finalize] Created ${rankings.length} ranking entries`);
+    }
+
+    // Now finalize positions
     for (let i = 0; i < rankings.length; i++) {
       await db.update(schema.seasonRankings)
         .set({ 
@@ -5347,6 +5386,39 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(schema.seasonRankings.id, rankings[i].id));
     }
+  }
+  
+  // Recalculate user season progress from lesson data
+  async recalculateUserSeasonProgress(seasonId: number, userId: number): Promise<void> {
+    // Get lesson progress data for this season
+    const [progressData] = await db.select({
+      lessonsCompleted: sql<number>`COUNT(*)`,
+      xpEarned: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
+      correctAnswers: sql<number>`COALESCE(SUM(${schema.userLessonProgress.correctAnswers}), 0)`,
+      totalAnswers: sql<number>`COALESCE(SUM(${schema.userLessonProgress.totalAnswers}), 0)`,
+      heartsLost: sql<number>`COALESCE(SUM(${schema.userLessonProgress.heartsLost}), 0)`,
+    })
+      .from(schema.userLessonProgress)
+      .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
+      .where(and(
+        eq(schema.userLessonProgress.userId, userId),
+        eq(schema.studyLessons.seasonId, seasonId),
+        eq(schema.userLessonProgress.status, 'completed')
+      ));
+    
+    if (!progressData) return;
+    
+    const season = await this.getSeasonById(seasonId);
+    
+    // Update or create userSeasonProgress
+    await this.updateUserSeasonProgress(userId, seasonId, {
+      lessonsCompleted: Number(progressData.lessonsCompleted) || 0,
+      xpEarned: Number(progressData.xpEarned) || 0,
+      correctAnswers: Number(progressData.correctAnswers) || 0,
+      totalAnswers: Number(progressData.totalAnswers) || 0,
+      heartsLost: Number(progressData.heartsLost) || 0,
+      totalLessons: season?.totalLessons || 0,
+    });
   }
 
   // ==================== WEEKLY GOAL METHODS ====================

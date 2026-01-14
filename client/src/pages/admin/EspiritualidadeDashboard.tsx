@@ -50,8 +50,16 @@ export default function EspiritualidadeDashboard() {
       const url = showInactive 
         ? "/api/admin/daily-verses?includeInactive=true" 
         : "/api/admin/daily-verses";
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch verses");
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(url, { headers, credentials: "include" });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to fetch verses");
+      }
       return res.json();
     },
   });

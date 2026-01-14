@@ -12,6 +12,74 @@ type EventCallback = (data: unknown) => void;
 let sharedSocket: Socket | null = null;
 let connectionCount = 0;
 const stateListeners = new Set<(connected: boolean, connecting: boolean) => void>();
+let visibilityHandlerRegistered = false;
+let lastHeartbeatTime = 0;
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+
+// iOS Safari specific: Detect if running on iOS
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Force reconnect WebSocket - useful for iOS when returning from background
+function forceReconnect(): void {
+  console.log("[WebSocket] Force reconnecting...");
+  if (sharedSocket) {
+    sharedSocket.disconnect();
+    sharedSocket = null;
+  }
+  
+  const token = getAuthToken();
+  if (token) {
+    getOrCreateSocket({
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000, // Faster reconnect on visibility change
+    });
+  }
+}
+
+// Register visibility change handlers once - critical for iOS
+function registerVisibilityHandlers(): void {
+  if (visibilityHandlerRegistered || typeof document === 'undefined') return;
+  visibilityHandlerRegistered = true;
+  
+  // Standard visibility change event
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log("[WebSocket] Page became visible, checking connection...");
+      if (!sharedSocket?.connected) {
+        forceReconnect();
+      }
+    }
+  });
+  
+  // iOS Safari specific: pageshow event is more reliable
+  window.addEventListener('pageshow', (event) => {
+    // persisted = true means page was restored from bfcache (iOS common behavior)
+    if (event.persisted || isIOS()) {
+      console.log("[WebSocket] Page shown (iOS/bfcache), checking connection...");
+      if (!sharedSocket?.connected) {
+        forceReconnect();
+      }
+    }
+  });
+  
+  // iOS Safari: Focus event as additional fallback
+  window.addEventListener('focus', () => {
+    if (isIOS() && !sharedSocket?.connected) {
+      console.log("[WebSocket] Window focused (iOS), checking connection...");
+      setTimeout(() => {
+        if (!sharedSocket?.connected) {
+          forceReconnect();
+        }
+      }, 100);
+    }
+  });
+  
+  console.log("[WebSocket] Visibility handlers registered for iOS compatibility");
+}
 
 function getAuthToken(): string | null {
   try {
@@ -86,6 +154,9 @@ function getOrCreateSocket(options: {
   });
 
   notifyStateListeners(false, true);
+  
+  // Register visibility handlers for iOS compatibility
+  registerVisibilityHandlers();
 
   return sharedSocket;
 }
@@ -304,6 +375,29 @@ interface PresenceUpdate {
   timestamp: string;
 }
 
+// Send HTTP heartbeat as fallback for iOS where WebSocket may be unreliable
+async function sendHttpHeartbeat(): Promise<void> {
+  const now = Date.now();
+  if (now - lastHeartbeatTime < HEARTBEAT_INTERVAL) return;
+  
+  lastHeartbeatTime = now;
+  const token = getAuthToken();
+  if (!token) return;
+  
+  try {
+    await fetch('/api/study/online-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    console.log("[Presence] HTTP heartbeat sent successfully");
+  } catch (err) {
+    console.warn("[Presence] HTTP heartbeat failed:", err);
+  }
+}
+
 export function usePresence(userId: number | null, userName?: string, photoUrl?: string) {
   const { on, emit, isConnected } = useWebSocket();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
@@ -312,13 +406,42 @@ export function usePresence(userId: number | null, userName?: string, photoUrl?:
   useEffect(() => {
     console.log("[Presence] Hook called - userId:", userId, "isConnected:", isConnected);
     
-    if (!userId || !isConnected) {
-      console.log("[Presence] Skipping - userId:", userId, "isConnected:", isConnected);
+    if (!userId) {
+      console.log("[Presence] Skipping - no userId");
       return;
     }
 
-    console.log("[Presence] Joining presence room for user:", userId);
-    emit("join:presence", { userId, userName, photoUrl });
+    // Send initial HTTP heartbeat immediately (works even if WebSocket is slow/unavailable on iOS)
+    sendHttpHeartbeat();
+    
+    // Set up periodic HTTP heartbeat as fallback (critical for iOS)
+    const heartbeatInterval = setInterval(() => {
+      sendHttpHeartbeat();
+    }, HEARTBEAT_INTERVAL);
+    
+    // Also send heartbeat when page becomes visible (iOS Safari specific)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("[Presence] Page visible, sending heartbeat");
+        sendHttpHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    
+    // iOS Safari: pageshow event for bfcache restoration
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted || isIOS()) {
+        console.log("[Presence] Page shown (iOS/bfcache), sending heartbeat");
+        sendHttpHeartbeat();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
+    // Join WebSocket presence room if connected
+    if (isConnected) {
+      console.log("[Presence] Joining presence room for user:", userId);
+      emit("join:presence", { userId, userName, photoUrl });
+    }
 
     const handlePresenceUpdate = (data: PresenceUpdate) => {
       console.log("[Presence] Update received:", data.type, "user:", data.userId);
@@ -329,7 +452,12 @@ export function usePresence(userId: number | null, userName?: string, photoUrl?:
     const unsub = on("presence:update", handlePresenceUpdate as (data: unknown) => void);
 
     return () => {
-      emit("leave:presence", { userId });
+      clearInterval(heartbeatInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+      if (isConnected) {
+        emit("leave:presence", { userId });
+      }
       unsub();
     };
   }, [userId, userName, photoUrl, isConnected, on, emit]);

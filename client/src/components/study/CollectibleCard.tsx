@@ -243,7 +243,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             if (!htmlEl.classList.contains('collectible-card') && 
                 !htmlEl.classList.contains('collectible-card-image') &&
                 !htmlEl.classList.contains('collectible-card-medallion') &&
-                !htmlEl.tagName.toLowerCase() === 'img') {
+                htmlEl.tagName.toLowerCase() !== 'img') {
               // Remove backgrounds and borders from all other elements
               if (htmlEl.classList.contains('collectible-card-text-plate') ||
                   htmlEl.classList.contains('flex-1') ||

@@ -5391,12 +5391,11 @@ export class DatabaseStorage implements IStorage {
   // Recalculate user season progress from lesson data
   async recalculateUserSeasonProgress(seasonId: number, userId: number): Promise<void> {
     // Get lesson progress data for this season
+    // Note: userLessonProgress only has xpEarned and mistakesCount columns
     const [progressData] = await db.select({
       lessonsCompleted: sql<number>`COUNT(*)`,
-      xpEarned: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}), 0)`,
-      correctAnswers: sql<number>`COALESCE(SUM(${schema.userLessonProgress.correctAnswers}), 0)`,
-      totalAnswers: sql<number>`COALESCE(SUM(${schema.userLessonProgress.totalAnswers}), 0)`,
-      heartsLost: sql<number>`COALESCE(SUM(${schema.userLessonProgress.heartsLost}), 0)`,
+      xpEarned: sql<number>`COALESCE(SUM(${schema.userLessonProgress.xpEarned}::integer), 0)`,
+      mistakesCount: sql<number>`COALESCE(SUM(${schema.userLessonProgress.mistakesCount}::integer), 0)`,
     })
       .from(schema.userLessonProgress)
       .innerJoin(schema.studyLessons, eq(schema.userLessonProgress.lessonId, schema.studyLessons.id))
@@ -5411,12 +5410,13 @@ export class DatabaseStorage implements IStorage {
     const season = await this.getSeasonById(seasonId);
     
     // Update or create userSeasonProgress
+    // correctAnswers/totalAnswers are not tracked at lesson level, so we set to 0
     await this.updateUserSeasonProgress(userId, seasonId, {
       lessonsCompleted: Number(progressData.lessonsCompleted) || 0,
       xpEarned: Number(progressData.xpEarned) || 0,
-      correctAnswers: Number(progressData.correctAnswers) || 0,
-      totalAnswers: Number(progressData.totalAnswers) || 0,
-      heartsLost: Number(progressData.heartsLost) || 0,
+      correctAnswers: 0,
+      totalAnswers: 0,
+      heartsLost: Number(progressData.mistakesCount) || 0,
       totalLessons: season?.totalLessons || 0,
     });
   }

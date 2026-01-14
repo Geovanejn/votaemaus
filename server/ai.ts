@@ -118,6 +118,7 @@ export interface GeneratedLesson {
 export interface GeneratedUnit {
   type: "text" | "multiple_choice" | "true_false" | "fill_blank" | "meditation" | "reflection" | "verse";
   stage?: "estude" | "medite" | "responda";
+  orderIndex?: number;
   content: {
     title?: string;
     text?: string;
@@ -304,12 +305,15 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
           break; // Exit retry loop, continue to next model
         }
         
-        if (isOverloaded || isRateLimit) {
-          // Extract retry delay from error message if available
+        if (isOverloaded) {
+          console.log(`[AI] Modelo ${currentModel} sobrecarregado (503), passando para próximo modelo imediatamente...`);
+          break;
+        }
+        
+        if (isRateLimit) {
           let waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
           const retryMatch = error?.message?.match(/retry in (\d+(?:\.\d+)?)/i);
-          if (retryMatch && isRateLimit) {
-            // Use the suggested retry time for rate limit errors, but cap at 30 seconds
+          if (retryMatch) {
             waitTime = Math.min(Math.ceil(parseFloat(retryMatch[1]) * 1000), 30000);
           }
           
@@ -317,11 +321,10 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
             console.log(`[AI] Aguardando ${waitTime}ms antes da próxima tentativa...`);
             await sleep(waitTime);
           } else if (modelIndex < GEMINI_MODELS.length - 1) {
-            // Try next model in the fallback chain
-            console.log(`[AI] Modelo ${currentModel} indisponível, tentando ${GEMINI_MODELS[modelIndex + 1]}...`);
-            break; // Exit retry loop, continue to next model
+            console.log(`[AI] Modelo ${currentModel} com limite de quota, tentando ${GEMINI_MODELS[modelIndex + 1]}...`);
+            break;
           }
-        } else {
+        } else if (!isOverloaded && !isRateLimit) {
           // For other non-recoverable errors, try next model
           if (modelIndex < GEMINI_MODELS.length - 1) {
             console.log(`[AI] Erro não recuperável com ${currentModel}, tentando próximo modelo...`);
@@ -1209,7 +1212,7 @@ export async function generateStudyContentFromPDF(
   return generateStudyContentFromText(cleanedText, weekNumber, year, geminiKey, provider, openaiKey);
 }
 
-function validateAndCleanUnit(unit: GeneratedUnit, type: string): GeneratedUnit {
+function validateAndCleanUnit(unit: GeneratedUnit, type: GeneratedUnit["type"]): GeneratedUnit {
   return normalizeUnitContent({ ...unit, type });
 }
 
@@ -1600,7 +1603,7 @@ function validateAndCleanContent(content: GeneratedWeekContent): GeneratedWeekCo
         };
       };
       
-      const questionTemplates = [
+      const questionTemplates: Array<{ type: GeneratedUnit["type"]; content: any }> = [
         { type: "true_false", content: { statement: "Este ensinamento nos ajuda a viver de forma mais alinhada com a vontade de Deus.", isTrue: true, explanationCorrect: "Correto! Os ensinamentos biblicos sempre nos guiam para a vontade de Deus.", explanationIncorrect: "A resposta correta e Verdadeiro. Os ensinamentos biblicos nos direcionam a Deus." } },
         { type: "true_false", content: { statement: "Os principios biblicos se aplicam somente a vida espiritual, nao afetando decisoes praticas do dia a dia.", isTrue: false, explanationCorrect: "Correto! Os principios biblicos se aplicam a toda nossa vida, incluindo decisoes praticas.", explanationIncorrect: "A resposta correta e Falso. A Biblia orienta todas as areas da nossa vida." } },
         { type: "multiple_choice", content: createMultipleChoice("Qual atitude reflete melhor a aplicacao deste ensinamento?", ["Refletir sobre o texto e buscar aplicacao pratica", "Compartilhar o texto com outros antes de aplicar", "Memorizar o texto para usar no futuro", "Estudar comentarios sobre o texto primeiro"], 0, "Isso mesmo! A reflexao e aplicacao pratica sao fundamentais.", "A resposta correta e refletir e aplicar. Embora outras opcoes sejam boas, a aplicacao pratica e essencial.") },

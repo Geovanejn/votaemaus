@@ -1089,7 +1089,8 @@ export async function sendSeasonRankingEmail(
   seasonTitle: string,
   position: number,
   totalXp: number,
-  podium: { name: string; position: number; xp: number }[]
+  podium: { name: string; position: number; xp: number }[],
+  coverImageUrl: string | null = null
 ): Promise<boolean> {
   if (!resend) {
     console.log(`[EMAIL DISABLED] Season ranking email for ${recipientEmail} (position ${position})`);
@@ -1098,6 +1099,12 @@ export async function sendSeasonRankingEmail(
 
   try {
     const formattedName = getFirstAndLastName(recipientName);
+    
+    // Download cover image if available
+    let coverImageBuffer: Buffer | null = null;
+    if (coverImageUrl) {
+      coverImageBuffer = await downloadImageAsBuffer(coverImageUrl);
+    }
     
     const positionLabels: Record<number, { emoji: string; color: string; text: string }> = {
       1: { emoji: "", color: "#FFD700", text: "Primeiro Lugar" },
@@ -1130,6 +1137,12 @@ export async function sendSeasonRankingEmail(
             Parabéns, <strong>${formattedName}</strong>!
           </p>
           
+          ${coverImageBuffer ? `
+            <div style="margin: 20px 0; text-align: center;">
+              <img src="cid:cover-image" alt="${seasonTitle}" style="max-width: 200px; height: auto; border-radius: 8px;" />
+            </div>
+          ` : ''}
+          
           <p style="font-size: 15px; color: #555; line-height: 1.6; text-align: center; margin: 0 0 20px 0;">
             Você concluiu a revista <strong>${seasonTitle}</strong> em <strong>${position}º lugar</strong>
             com um total de <strong style="color: #FFA500;">${totalXp.toLocaleString('pt-BR')} XP</strong>!
@@ -1148,6 +1161,15 @@ export async function sendSeasonRankingEmail(
         </div>
       `,
     };
+
+    // Add cover image attachment if available
+    if (coverImageBuffer) {
+      emailPayload.attachments = [{
+        content: coverImageBuffer.toString('base64'),
+        filename: 'cover.jpg',
+        contentId: 'cover-image',
+      }];
+    }
 
     await resend.emails.send(emailPayload);
     return true;

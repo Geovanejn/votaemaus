@@ -7238,7 +7238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: r.user.fullName,
                 position: idx + 1,
                 xp: r.xpEarned
-              }))
+              })),
+              result.season.coverImage // include cover image
             );
             console.log(`[Season End] Sent ranking email to ${user.email} (position ${i + 1})`);
             

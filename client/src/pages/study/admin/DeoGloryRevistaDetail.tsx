@@ -36,7 +36,12 @@ import {
   Eye,
   AlertCircle,
   Pencil,
+  Sparkles,
+  Gift,
+  Image as ImageIcon,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import type { CollectibleCard } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -59,6 +64,12 @@ export default function DeoGloryRevistaDetail() {
   const [selectedLessonNumber, setSelectedLessonNumber] = useState<string>("");
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [cardName, setCardName] = useState("");
+  const [cardDescription, setCardDescription] = useState("");
+  const [cardImageFile, setCardImageFile] = useState<File | null>(null);
+  const [cardImagePreview, setCardImagePreview] = useState<string | null>(null);
+  const cardImageInputRef = useRef<HTMLInputElement>(null);
 
   const { data: season, isLoading: loadingSeason } = useQuery<Season>({
     queryKey: ["/api/study/admin/seasons", seasonId],
@@ -89,6 +100,104 @@ export default function DeoGloryRevistaDetail() {
     },
     enabled: seasonId > 0,
   });
+
+  const { data: seasonCard } = useQuery<CollectibleCard | null>({
+    queryKey: ["/api/admin/cards/season", seasonId],
+    queryFn: async () => {
+      if (!season?.cardId) return null;
+      const res = await fetch(`/api/admin/cards`, {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+      if (!res.ok) return null;
+      const cards = await res.json();
+      return cards.find((c: CollectibleCard) => c.id === season.cardId) || null;
+    },
+    enabled: !!season?.cardId,
+  });
+
+  const createCardMutation = useMutation({
+    mutationFn: async (data: { name: string; description: string; imageData?: string }) => {
+      const cardData = {
+        name: data.name,
+        description: data.description,
+        sourceType: "season",
+        sourceId: seasonId,
+        imageUrl: data.imageData || null,
+      };
+      const card = await apiRequest("POST", `/api/admin/cards`, cardData);
+      await apiRequest("PUT", `/api/study/admin/seasons/${seasonId}`, { cardId: card.id });
+      return card;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cards/season", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cards"] });
+      toast({ title: "Card criado com sucesso!", description: "Ao encerrar a revista, todos os participantes receberão este card." });
+      resetCardModal();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao criar card", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeCardMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PUT", `/api/study/admin/seasons/${seasonId}`, { cardId: null });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cards/season", seasonId] });
+      toast({ title: "Card removido da revista" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao remover card", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetCardModal = () => {
+    setShowCardModal(false);
+    setCardName("");
+    setCardDescription("");
+    setCardImageFile(null);
+    setCardImagePreview(null);
+  };
+
+  const handleCardImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCardImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCardImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateCard = async () => {
+    if (!cardName.trim()) {
+      toast({ title: "Digite o nome do card", variant: "destructive" });
+      return;
+    }
+    
+    let imageData: string | undefined;
+    if (cardImageFile) {
+      const reader = new FileReader();
+      imageData = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(cardImageFile);
+      });
+    }
+    
+    createCardMutation.mutate({
+      name: cardName.trim(),
+      description: cardDescription.trim(),
+      imageData,
+    });
+  };
 
   const toggleLessonLockMutation = useMutation({
     mutationFn: async ({ lessonId, isLocked }: { lessonId: number; isLocked: boolean }) => {

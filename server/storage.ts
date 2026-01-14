@@ -7167,6 +7167,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Get users who completed ALL lessons in a season (same structure as events)
+  // Performance is calculated based on correct answers across ALL lessons (like events)
   async getUsersWhoCompletedSeason(seasonId: number): Promise<{ userId: number; performance: number }[]> {
     const lessons = await this.getLessonsForSeason(seasonId);
     const lessonIds = lessons.map(l => l.id);
@@ -7174,46 +7175,89 @@ export class DatabaseStorage implements IStorage {
     if (lessonIds.length === 0) return [];
     
     // Get all users with their lesson progress for this season
-    const progress = await db.select({
+    const lessonProgress = await db.select({
       userId: schema.userLessonProgress.userId,
       lessonId: schema.userLessonProgress.lessonId,
       status: schema.userLessonProgress.status,
-      xpEarned: schema.userLessonProgress.xpEarned,
-      perfectScore: schema.userLessonProgress.perfectScore,
     })
       .from(schema.userLessonProgress)
       .where(inArray(schema.userLessonProgress.lessonId, lessonIds));
     
-    // Group by user and check who completed ALL lessons
-    const userProgress = new Map<number, { completedLessons: Set<number>; totalXp: number; perfectCount: number }>();
+    // Find users who completed ALL lessons
+    const userCompletedLessons = new Map<number, Set<number>>();
     
-    for (const p of progress) {
-      if (!userProgress.has(p.userId)) {
-        userProgress.set(p.userId, { completedLessons: new Set(), totalXp: 0, perfectCount: 0 });
-      }
-      const user = userProgress.get(p.userId)!;
+    for (const p of lessonProgress) {
       if (p.status === 'completed') {
-        user.completedLessons.add(p.lessonId);
-        user.totalXp += p.xpEarned || 0;
-        if (p.perfectScore) user.perfectCount++;
+        if (!userCompletedLessons.has(p.userId)) {
+          userCompletedLessons.set(p.userId, new Set());
+        }
+        userCompletedLessons.get(p.userId)!.add(p.lessonId);
       }
     }
     
-    // Filter users who completed ALL lessons and calculate performance
-    const completedUsers: { userId: number; performance: number }[] = [];
-    
-    Array.from(userProgress.entries()).forEach(([userId, data]) => {
-      // Check if user completed all lessons
-      if (lessonIds.every(id => data.completedLessons.has(id))) {
-        // Calculate performance based on perfect scores
-        const performance = lessonIds.length > 0 
-          ? (data.perfectCount / lessonIds.length) * 100 
-          : 0;
-        completedUsers.push({ userId, performance });
+    // Filter only users who completed ALL lessons
+    const usersWhoCompletedAll: number[] = [];
+    Array.from(userCompletedLessons.entries()).forEach(([userId, completedSet]) => {
+      if (lessonIds.every(id => completedSet.has(id))) {
+        usersWhoCompletedAll.push(userId);
       }
     });
     
-    return completedUsers;
+    if (usersWhoCompletedAll.length === 0) return [];
+    
+    // Get all units for these lessons to calculate performance
+    const allUnitIds: number[] = [];
+    for (const lessonId of lessonIds) {
+      const units = await db.select({ id: schema.studyUnits.id })
+        .from(schema.studyUnits)
+        .where(eq(schema.studyUnits.lessonId, lessonId));
+      allUnitIds.push(...units.map(u => u.id));
+    }
+    
+    if (allUnitIds.length === 0) {
+      // No units means 100% for everyone who completed
+      return usersWhoCompletedAll.map(userId => ({ userId, performance: 100 }));
+    }
+    
+    // Get unit progress (correct/incorrect answers) for all users who completed all lessons
+    const unitProgress = await db.select({
+      userId: schema.userUnitProgress.userId,
+      unitId: schema.userUnitProgress.unitId,
+      isCorrect: schema.userUnitProgress.isCorrect,
+      isCompleted: schema.userUnitProgress.isCompleted,
+    })
+      .from(schema.userUnitProgress)
+      .where(
+        and(
+          inArray(schema.userUnitProgress.unitId, allUnitIds),
+          inArray(schema.userUnitProgress.userId, usersWhoCompletedAll)
+        )
+      );
+    
+    // Calculate performance: (correct answers / total questions) * 100
+    const userPerformance = new Map<number, { correct: number; total: number }>();
+    
+    // Initialize with 0 correct/0 total for all users
+    for (const userId of usersWhoCompletedAll) {
+      userPerformance.set(userId, { correct: 0, total: allUnitIds.length });
+    }
+    
+    // Count correct answers per user
+    for (const up of unitProgress) {
+      const perf = userPerformance.get(up.userId);
+      if (perf && up.isCompleted && up.isCorrect === true) {
+        perf.correct++;
+      }
+    }
+    
+    // Build result with performance percentage
+    const result: { userId: number; performance: number }[] = [];
+    Array.from(userPerformance.entries()).forEach(([userId, data]) => {
+      const performance = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+      result.push({ userId, performance });
+    });
+    
+    return result;
   }
 
   // ==================== SHOP CATEGORIES METHODS ====================

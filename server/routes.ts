@@ -7380,6 +7380,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get existing lessons to calculate the next order index and total count
       const existingLessons = await storage.getLessonsForSeason(seasonId);
+      
+      // Check for duplicate lesson with same title (prevent multiple imports of same PDF)
+      const duplicateLesson = existingLessons.find(l => 
+        l.title.toLowerCase().trim() === extractedLesson.title.toLowerCase().trim()
+      );
+      if (duplicateLesson) {
+        await storage.updateSeason(seasonId, { status: originalStatus });
+        return res.status(409).json({ 
+          message: `Já existe uma lição com o título "${extractedLesson.title}" nesta revista. Exclua a lição existente antes de importar novamente.`,
+          errorType: "duplicate"
+        });
+      }
+      
       const nextOrderIndex = existingLessons.length > 0 
         ? Math.max(...existingLessons.map(l => l.orderIndex)) + 1 
         : 1;

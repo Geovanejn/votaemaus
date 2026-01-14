@@ -957,6 +957,7 @@ export const seasons = pgTable("seasons", {
   endsAt: timestamp("ends_at"),
   createdBy: integer("created_by").references(() => users.id),
   aiMetadata: text("ai_metadata"),
+  cardId: integer("card_id").references(() => collectibleCards.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -984,6 +985,7 @@ export const updateSeasonSchema = z.object({
   startsAt: z.coerce.date().nullable().optional(),
   endsAt: z.coerce.date().nullable().optional(),
   aiMetadata: z.string().nullable().optional(),
+  cardId: z.number().nullable().optional(),
 }).strict();
 
 export type InsertSeason = z.infer<typeof insertSeasonSchema>;

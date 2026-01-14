@@ -317,7 +317,7 @@ export default function DevocionalDetailPage() {
     setIsGenerating(true);
     try {
       const canvas = await html2canvas(shareCardRef.current, {
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#111827",

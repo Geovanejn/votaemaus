@@ -311,17 +311,35 @@ async function generateWithGemini(systemPrompt: string, userPrompt: string, gemi
         }
         
         if (isRateLimit) {
-          let waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          // Check if this is a QUOTA exceeded error (daily limit) vs a rate limit error (temporary)
+          const isQuotaExceeded = error?.message?.includes('quota') || 
+            error?.message?.includes('RESOURCE_EXHAUSTED') ||
+            error?.message?.includes('exceeded your current quota');
+          
+          if (isQuotaExceeded) {
+            // Quota exceeded - skip immediately to next model (no point waiting)
+            console.log(`[AI] Modelo ${currentModel} com QUOTA EXCEDIDA, passando para próximo modelo imediatamente...`);
+            break;
+          }
+          
+          // For temporary rate limits, do a short wait
+          let waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
           const retryMatch = error?.message?.match(/retry in (\d+(?:\.\d+)?)/i);
           if (retryMatch) {
-            waitTime = Math.min(Math.ceil(parseFloat(retryMatch[1]) * 1000), 30000);
+            const suggestedWait = parseFloat(retryMatch[1]);
+            // If suggested wait is > 30 seconds, it's likely quota-related, skip to next model
+            if (suggestedWait > 30) {
+              console.log(`[AI] Tempo de espera sugerido muito alto (${suggestedWait}s), passando para próximo modelo...`);
+              break;
+            }
+            waitTime = Math.min(Math.ceil(suggestedWait * 1000), 5000);
           }
           
           if (attempt < maxRetries) {
             console.log(`[AI] Aguardando ${waitTime}ms antes da próxima tentativa...`);
             await sleep(waitTime);
           } else if (modelIndex < GEMINI_MODELS.length - 1) {
-            console.log(`[AI] Modelo ${currentModel} com limite de quota, tentando ${GEMINI_MODELS[modelIndex + 1]}...`);
+            console.log(`[AI] Modelo ${currentModel} com limite de rate, tentando ${GEMINI_MODELS[modelIndex + 1]}...`);
             break;
           }
         } else if (!isOverloaded && !isRateLimit) {

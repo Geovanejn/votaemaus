@@ -6,9 +6,20 @@ import { getGravatarUrl } from "@shared/schema";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Helper function to download image from URL and return as Buffer
+// Helper function to download image from URL (HTTP or base64 data URL) and return as Buffer
 async function downloadImageAsBuffer(imageUrl: string): Promise<Buffer | null> {
   try {
+    // Handle base64 data URLs (e.g., "data:image/jpeg;base64,/9j/4AAQ...")
+    if (imageUrl.startsWith('data:')) {
+      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches && matches[2]) {
+        return Buffer.from(matches[2], 'base64');
+      }
+      console.error(`Invalid base64 data URL format`);
+      return null;
+    }
+    
+    // Handle HTTP/HTTPS URLs
     const response = await fetch(imageUrl);
     if (!response.ok) {
       console.error(`Failed to download image from ${imageUrl}: ${response.status}`);

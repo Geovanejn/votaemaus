@@ -643,6 +643,12 @@ body {
   gap: 6px;
 }
 
+/* Magazine variant - no title, equal spacing around medallion */
+.collectible-card-inner-magazine {
+  padding: 12px;
+  gap: 12px;
+}
+
 /* Card image container - Deep Inset/Engraved frame effect (negative relief) */
 .collectible-card-image {
   position: relative;

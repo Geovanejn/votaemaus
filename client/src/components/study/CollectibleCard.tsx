@@ -121,9 +121,9 @@ export function CollectibleCard({
         }}
       />
 
-      <div className="collectible-card-inner">
+      <div className={`collectible-card-inner ${size === 'magazine' ? 'collectible-card-inner-magazine' : ''}`}>
         {/* Centered rarity medallion with forged effect */}
-        <div className={`collectible-card-medallion collectible-card-medallion-${rarity}`}>
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${size === 'magazine' ? 'my-3' : ''}`}>
           {rarity === "legendary" ? (
             <Gem className="w-6 h-6 text-white" />
           ) : rarity === "epic" ? (
@@ -133,14 +133,16 @@ export function CollectibleCard({
           )}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center">
-          {/* Text plate with negative relief (inset container) */}
-          <div className="collectible-card-text-plate">
-            <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
-              {name}
-            </h3>
+        {/* Text plate - hidden for magazine size */}
+        {size !== 'magazine' && (
+          <div className="flex-1 flex flex-col justify-center items-center">
+            <div className="collectible-card-text-plate">
+              <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
+                {name}
+              </h3>
+            </div>
           </div>
-        </div>
+        )}
 
         <div 
           className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative`}

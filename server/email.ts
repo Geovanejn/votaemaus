@@ -3,12 +3,36 @@ import fs from "fs";
 import path from "path";
 import { getFirstAndLastName } from "@shared/utils";
 import { getGravatarUrl } from "@shared/schema";
+import { getFromR2, isR2Configured, getPublicUrl } from "./r2-storage";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// Helper function to download image from URL (HTTP or base64 data URL) and return as Buffer
+// Helper function to download image from URL (HTTP, base64 data URL, or R2 URL) and return as Buffer
 async function downloadImageAsBuffer(imageUrl: string): Promise<Buffer | null> {
   try {
+    // Handle R2 URLs (e.g., "r2://seasons/image.webp")
+    if (imageUrl.startsWith('r2://')) {
+      if (isR2Configured()) {
+        const result = await getFromR2(imageUrl);
+        if (result) {
+          return result.buffer;
+        }
+        console.error(`Failed to get image from R2: ${imageUrl}`);
+        return null;
+      }
+      // If R2 is not configured, try to use public URL
+      const publicUrl = getPublicUrl(imageUrl);
+      if (publicUrl !== imageUrl) {
+        const response = await fetch(publicUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          return Buffer.from(arrayBuffer);
+        }
+      }
+      console.error(`R2 not configured and no public URL available for: ${imageUrl}`);
+      return null;
+    }
+    
     // Handle base64 data URLs (e.g., "data:image/jpeg;base64,/9j/4AAQ...")
     if (imageUrl.startsWith('data:')) {
       const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);

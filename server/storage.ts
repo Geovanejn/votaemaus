@@ -7205,17 +7205,31 @@ export class DatabaseStorage implements IStorage {
     
     if (usersWhoCompletedAll.length === 0) return [];
     
-    // Get all units for these lessons to calculate performance
-    const allUnitIds: number[] = [];
+    // Get all QUESTION units for these lessons (only responda stage with question types)
+    // Question types are: multiple_choice, true_false, fill_blank
+    const respondaTypes = ['multiple_choice', 'true_false', 'fill_blank'];
+    const questionUnitIds: number[] = [];
+    
     for (const lessonId of lessonIds) {
-      const units = await db.select({ id: schema.studyUnits.id })
+      const units = await db.select({ id: schema.studyUnits.id, type: schema.studyUnits.type, stage: schema.studyUnits.stage })
         .from(schema.studyUnits)
         .where(eq(schema.studyUnits.lessonId, lessonId));
-      allUnitIds.push(...units.map(u => u.id));
+      
+      for (const unit of units) {
+        const stage = unit.stage || 'estude';
+        const unitType = unit.type || '';
+        // Only count units that are questions (responda stage with question types)
+        if (stage === 'responda' && respondaTypes.includes(unitType)) {
+          questionUnitIds.push(unit.id);
+        }
+      }
     }
     
-    if (allUnitIds.length === 0) {
-      // No units means 100% for everyone who completed
+    console.log(`[Season Performance] Found ${questionUnitIds.length} question units for ${lessonIds.length} lessons`);
+    
+    if (questionUnitIds.length === 0) {
+      // No question units means 100% for everyone who completed all lessons
+      console.log(`[Season Performance] No questions found, returning 100% for all ${usersWhoCompletedAll.length} users`);
       return usersWhoCompletedAll.map(userId => ({ userId, performance: 100 }));
     }
     
@@ -7229,7 +7243,7 @@ export class DatabaseStorage implements IStorage {
       .from(schema.userUnitProgress)
       .where(
         and(
-          inArray(schema.userUnitProgress.unitId, allUnitIds),
+          inArray(schema.userUnitProgress.unitId, questionUnitIds),
           inArray(schema.userUnitProgress.userId, usersWhoCompletedAll)
         )
       );
@@ -7237,9 +7251,9 @@ export class DatabaseStorage implements IStorage {
     // Calculate performance: (correct answers / total questions) * 100
     const userPerformance = new Map<number, { correct: number; total: number }>();
     
-    // Initialize with 0 correct/0 total for all users
+    // Initialize with 0 correct for all users, total = number of question units
     for (const userId of usersWhoCompletedAll) {
-      userPerformance.set(userId, { correct: 0, total: allUnitIds.length });
+      userPerformance.set(userId, { correct: 0, total: questionUnitIds.length });
     }
     
     // Count correct answers per user
@@ -7254,6 +7268,7 @@ export class DatabaseStorage implements IStorage {
     const result: { userId: number; performance: number }[] = [];
     Array.from(userPerformance.entries()).forEach(([userId, data]) => {
       const performance = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+      console.log(`[Season Performance] User ${userId}: ${data.correct}/${data.total} = ${performance.toFixed(1)}%`);
       result.push({ userId, performance });
     });
     

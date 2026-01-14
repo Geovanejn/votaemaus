@@ -18,7 +18,7 @@ interface CollectibleCardProps {
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
-  size?: "sm" | "md" | "lg" | "compact";
+  size?: "sm" | "md" | "lg" | "compact" | "magazine";
 }
 
 const rarityLabels: Record<CardRarity, string> = {
@@ -54,13 +54,16 @@ export function CollectibleCard({
     sm: "w-[140px] h-[160px]",
     md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
     lg: "w-[280px] h-[320px]",
+    magazine: "w-[240px] min-h-[320px] sm:w-[280px] sm:min-h-[380px]",
   };
 
+  // For magazine size, we use flex-1 with aspect ratio instead of fixed height
   const imageHeightClasses = {
     compact: "h-[48px]",
     sm: "h-[68px]",
     md: "h-[88px] sm:h-[108px]",
     lg: "h-[140px]",
+    magazine: "aspect-[3/4] w-full",
   };
 
   const badgeSizeClasses = {
@@ -68,6 +71,7 @@ export function CollectibleCard({
     sm: "w-8 h-8",
     md: "w-10 h-10 sm:w-12 sm:h-12",
     lg: "w-14 h-14",
+    magazine: "w-12 h-12 sm:w-14 sm:h-14",
   };
 
   const titleSizeClasses = {
@@ -75,6 +79,7 @@ export function CollectibleCard({
     sm: "text-xs",
     md: "text-sm sm:text-base",
     lg: "text-lg",
+    magazine: "text-base sm:text-lg",
   };
 
   const subtitleSizeClasses = {
@@ -82,6 +87,7 @@ export function CollectibleCard({
     sm: "text-[10px]",
     md: "text-[10px] sm:text-xs",
     lg: "text-sm",
+    magazine: "text-xs sm:text-sm",
   };
 
   const diamondCount = rarity === "legendary" ? 5 : rarity === "epic" ? 3 : 0;
@@ -512,7 +518,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             imageUrl={card.imageUrl}
             rarity={card.rarity}
             orientation="portrait"
-            size="lg"
+            size={card.sourceType === "season" ? "magazine" : "lg"}
           />
         </div>
 

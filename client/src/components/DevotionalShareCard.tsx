@@ -22,13 +22,18 @@ export const DevotionalShareCard = forwardRef<HTMLDivElement, DevotionalShareCar
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
         }}
       >
-        <div
+        <img
+          src={imageUrl}
+          alt=""
+          crossOrigin="anonymous"
           style={{
             position: "absolute",
-            inset: 0,
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center",
           }}
         />
         

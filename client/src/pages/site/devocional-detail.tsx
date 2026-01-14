@@ -311,11 +311,45 @@ export default function DevocionalDetailPage() {
     markAsReadMutation.mutate();
   };
 
+  const waitForImageLoad = useCallback((element: HTMLElement): Promise<void> => {
+    return new Promise((resolve) => {
+      const img = element.querySelector('img');
+      if (!img) {
+        resolve();
+        return;
+      }
+      
+      if (img.complete && img.naturalHeight !== 0) {
+        resolve();
+        return;
+      }
+      
+      const handleLoad = () => {
+        img.removeEventListener('load', handleLoad);
+        img.removeEventListener('error', handleError);
+        resolve();
+      };
+      
+      const handleError = () => {
+        img.removeEventListener('load', handleLoad);
+        img.removeEventListener('error', handleError);
+        resolve();
+      };
+      
+      img.addEventListener('load', handleLoad);
+      img.addEventListener('error', handleError);
+      
+      setTimeout(resolve, 3000);
+    });
+  }, []);
+
   const generateShareImage = useCallback(async () => {
     if (!shareCardRef.current || !devotional) return null;
     
     setIsGenerating(true);
     try {
+      await waitForImageLoad(shareCardRef.current);
+      
       const canvas = await html2canvas(shareCardRef.current, {
         scale: 2,
         useCORS: true,
@@ -338,7 +372,7 @@ export default function DevocionalDetailPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [devotional, toast]);
+  }, [devotional, toast, waitForImageLoad]);
 
   const handleOpenShareDialog = async () => {
     setIsShareDialogOpen(true);

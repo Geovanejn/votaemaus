@@ -7163,6 +7163,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Temporada não encontrada" });
       }
 
+      // Distribute collectible cards to ALL participants if season has a card
+      let cardsDistributed = 0;
+      if (result.season.cardId) {
+        console.log(`[Season End] Distributing card ${result.season.cardId} to ${result.allParticipants.length} participants`);
+        
+        for (const ranker of result.allParticipants) {
+          try {
+            // Calculate rarity based on performance (XP earned, completion %)
+            const performance = ranker.correctPercentage || 0;
+            const usedHints = false; // Seasons don't track hints like events
+            const rarity = calculateCardRarity(performance, usedHints);
+            
+            await storage.awardUserCard({
+              userId: ranker.userId,
+              cardId: result.season.cardId,
+              rarity,
+              sourceType: 'season',
+              sourceId: seasonId,
+              performance,
+            });
+            cardsDistributed++;
+            console.log(`[Season End] Awarded card to user ${ranker.userId} with rarity ${rarity}`);
+          } catch (cardError) {
+            console.error(`[Season End] Error awarding card to user ${ranker.userId}:`, cardError);
+          }
+        }
+        console.log(`[Season End] Cards distributed: ${cardsDistributed}/${result.allParticipants.length}`);
+      } else {
+        console.log(`[Season End] Season ${seasonId} has no cardId configured, skipping card distribution`);
+      }
+
       // Send congratulations emails to top 3 with rate limiting
       for (let i = 0; i < result.topRankers.length && i < 3; i++) {
         const ranker = result.topRankers[i];
@@ -7194,13 +7225,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Send push and in-app notifications to ALL participants
-      notifySeasonEnded(result.season.id, result.season.title, result.topRankers).catch(err => 
-        console.error("[Notifications] Error notifying season ended:", err)
-      );
+      // IMPORTANT: Pass allParticipants directly to avoid re-fetching from DB
+      try {
+        await notifySeasonEnded(result.season.id, result.season.title, result.topRankers, result.allParticipants);
+        console.log(`[Season End] Notifications sent to ${result.allParticipants.length} participants`);
+      } catch (notifError) {
+        console.error("[Notifications] Error notifying season ended:", notifError);
+      }
       
       res.json({ 
         season: result.season, 
         topRankers: result.topRankers,
+        cardsDistributed,
+        participantsNotified: result.allParticipants.length,
         message: "Temporada encerrada com sucesso" 
       });
     } catch (error) {

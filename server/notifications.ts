@@ -709,17 +709,20 @@ export async function notifySeasonPublished(
 export async function notifySeasonEnded(
   seasonId: number,
   seasonTitle: string,
-  topRankers: Array<{ userId: number; user: { fullName: string }; xpEarned: number }>
+  topRankers: Array<{ userId: number; user: { fullName: string }; xpEarned: number }>,
+  participantsData?: Array<{ userId: number; user: { fullName: string }; xpEarned: number; correctPercentage?: number | null }>
 ): Promise<void> {
   console.log(`[Notifications] notifySeasonEnded STARTED for season ${seasonId}: "${seasonTitle}"`);
   
-  // Get all participants from season rankings (already ordered by XP)
-  const allParticipants = await storage.getSeasonRankings(seasonId, 1000);
+  // Use provided participants data if available, otherwise fetch from DB (fallback)
+  const allParticipants = participantsData || await storage.getSeasonRankings(seasonId, 1000);
   
   if (allParticipants.length === 0) {
     console.log(`[Notifications] No participants found for season ${seasonId}`);
     return;
   }
+  
+  console.log(`[Notifications] Processing ${allParticipants.length} participants for season ${seasonId}`);
   
   // Pre-build position map for O(1) lookups (avoids O(n²) findIndex in loop)
   const positionMap = new Map<number, number>();

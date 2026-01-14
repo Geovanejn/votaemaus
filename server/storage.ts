@@ -422,7 +422,7 @@ export interface IStorage {
   deleteSeason(id: number): Promise<boolean>;
   publishSeason(id: number): Promise<schema.Season | null>;
   toggleSeasonLock(id: number, isLocked: boolean): Promise<schema.Season | null>;
-  endSeason(id: number): Promise<{ season: schema.Season; topRankers: schema.SeasonRankingEntry[] } | null>;
+  endSeason(id: number): Promise<{ season: schema.Season; topRankers: schema.SeasonRankingEntry[]; allParticipants: schema.SeasonRankingEntry[] } | null>;
   getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]>;
   getLessonsWithProgressForSeason(userId: number, seasonId: number): Promise<any[]>;
   createSeasonLesson(data: { seasonId: number; orderIndex: number; lessonNumber?: number; title: string; type?: string; description?: string; xpReward?: number; estimatedMinutes?: number; icon?: string; isBonus?: boolean }): Promise<schema.StudyLesson>;
@@ -4844,15 +4844,18 @@ export class DatabaseStorage implements IStorage {
     return updated || null;
   }
 
-  async endSeason(id: number): Promise<{ season: schema.Season; topRankers: schema.SeasonRankingEntry[] } | null> {
+  async endSeason(id: number): Promise<{ season: schema.Season; topRankers: schema.SeasonRankingEntry[]; allParticipants: schema.SeasonRankingEntry[] } | null> {
     const season = await this.getSeasonById(id);
     if (!season) return null;
 
     // Finalize rankings before ending
     await this.finalizeSeasonRankings(id);
 
-    // Get top 3 rankers
-    const topRankers = await this.getSeasonRankings(id, 3);
+    // Get ALL participants (for card distribution and notifications)
+    const allParticipants = await this.getSeasonRankings(id, 1000);
+    
+    // Top 3 rankers for emails (first 3 from allParticipants)
+    const topRankers = allParticipants.slice(0, 3);
 
     // Mark season as ended
     const [updated] = await db.update(schema.seasons)
@@ -4867,7 +4870,7 @@ export class DatabaseStorage implements IStorage {
 
     if (!updated) return null;
 
-    return { season: updated, topRankers };
+    return { season: updated, topRankers, allParticipants };
   }
 
   async getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]> {

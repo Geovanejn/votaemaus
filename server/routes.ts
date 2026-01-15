@@ -104,14 +104,12 @@ import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicU
 // ==================== IMAGE URL CONVERSION HELPER ====================
 // Converts r2:// URLs to PUBLIC URLs for direct CDN access (fast, no server proxy)
 // This dramatically improves performance by bypassing the server for image delivery
-// Recursive to handle nested objects and arrays
-function convertImageUrls<T>(obj: T, depth: number = 0): T {
+function convertImageUrls<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') return obj;
-  if (depth > 10) return obj; // Prevent infinite recursion
   
-  // Handle arrays recursively
+  // Handle arrays - convert each item
   if (Array.isArray(obj)) {
-    return obj.map(item => convertImageUrls(item, depth + 1)) as T;
+    return obj.map(item => convertImageUrls(item)) as T;
   }
   
   // Comprehensive list of all image fields in the application
@@ -126,23 +124,30 @@ function convertImageUrls<T>(obj: T, depth: number = 0): T {
     'imageDataUrl',
     'thumbnailUrl',
     'iconUrl',
-    'logoUrl',
-    'image',
-    'images'
+    'logoUrl'
   ];
+  
   const result = { ...obj } as any;
   
-  for (const key of Object.keys(result)) {
-    const value = result[key];
-    
-    // Convert known image fields
-    if (imageFields.includes(key) && typeof value === 'string') {
-      result[key] = getPublicUrl(value);
+  for (const field of imageFields) {
+    if (result[field] && typeof result[field] === 'string') {
+      result[field] = getPublicUrl(result[field]);
     }
-    // Recursively process nested objects/arrays
-    else if (value && typeof value === 'object') {
-      result[key] = convertImageUrls(value, depth + 1);
-    }
+  }
+  
+  // Handle nested 'card' object specifically (for user cards API)
+  if (result.card && typeof result.card === 'object') {
+    result.card = convertImageUrls(result.card);
+  }
+  
+  // Handle nested 'season' object specifically
+  if (result.season && typeof result.season === 'object') {
+    result.season = convertImageUrls(result.season);
+  }
+  
+  // Handle nested 'event' object specifically
+  if (result.event && typeof result.event === 'object') {
+    result.event = convertImageUrls(result.event);
   }
   
   return result as T;

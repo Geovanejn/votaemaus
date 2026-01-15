@@ -136,7 +136,8 @@ export async function getFromR2(r2Url: string): Promise<{ buffer: Buffer; conten
   }
 }
 
-export function getPublicUrl(r2Url: string, useProxy: boolean = false): string {
+export function getPublicUrl(r2Url: string | null | undefined, useProxy: boolean = false): string {
+  if (!r2Url) return '';
   if (!r2Url.startsWith('r2://')) {
     return r2Url;
   }
@@ -156,7 +157,8 @@ export function getPublicUrl(r2Url: string, useProxy: boolean = false): string {
 }
 
 // Get proxy URL (always uses local proxy for CORS support)
-export function getProxyUrl(r2Url: string): string {
+export function getProxyUrl(r2Url: string | null | undefined): string {
+  if (!r2Url) return '';
   if (!r2Url.startsWith('r2://')) {
     return r2Url;
   }

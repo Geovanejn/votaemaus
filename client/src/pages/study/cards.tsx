@@ -121,21 +121,21 @@ export default function CardsCollectionPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex gap-1.5 overflow-x-auto">
-              <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs px-1.5 shrink-0">
-                <Crown className="h-3 w-3 mr-0.5" />
-                {cardsByRarity.legendary.length}
+            <div className="grid grid-cols-4 gap-0.5">
+              <Badge variant="outline" className="text-amber-600 border-amber-300 text-[9px] px-0.5 py-0 justify-center whitespace-nowrap">
+                <Crown className="h-2.5 w-2.5 mr-0.5 shrink-0" />
+                {cardsByRarity.legendary.length} Lendarios
               </Badge>
-              <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs px-1.5 shrink-0">
-                <Sparkles className="h-3 w-3 mr-0.5" />
-                {cardsByRarity.epic.length}
+              <Badge variant="outline" className="text-purple-600 border-purple-300 text-[9px] px-0.5 py-0 justify-center whitespace-nowrap">
+                <Sparkles className="h-2.5 w-2.5 mr-0.5 shrink-0" />
+                {cardsByRarity.epic.length} Epicos
               </Badge>
-              <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs px-1.5 shrink-0">
-                <Star className="h-3 w-3 mr-0.5" />
-                {cardsByRarity.rare.length}
+              <Badge variant="outline" className="text-blue-600 border-blue-300 text-[9px] px-0.5 py-0 justify-center whitespace-nowrap">
+                <Star className="h-2.5 w-2.5 mr-0.5 shrink-0" />
+                {cardsByRarity.rare.length} Raros
               </Badge>
-              <Badge variant="outline" className="text-gray-600 border-gray-300 text-xs px-1.5 shrink-0">
-                {cardsByRarity.common.length}
+              <Badge variant="outline" className="text-gray-600 border-gray-300 text-[9px] px-0.5 py-0 justify-center whitespace-nowrap">
+                {cardsByRarity.common.length} Comuns
               </Badge>
             </div>
 

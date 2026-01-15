@@ -6,11 +6,21 @@ import ImageCropDialog from "@/components/ImageCropDialog";
 import { Upload, Trash2, Loader2, ImageIcon } from "lucide-react";
 
 function getDisplayUrl(url: string): string {
-  if (!url || !url.startsWith('r2://')) {
+  if (!url) return url;
+  // If it's already an HTTP URL (from API response with public R2 URL), use it directly
+  if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  const key = url.replace('r2://', '');
-  return `/api/r2/${key}`;
+  // If it's a data URL (base64), use it directly
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  // If it's an r2:// URL (raw from database), convert to proxy (fallback)
+  if (url.startsWith('r2://')) {
+    const key = url.replace('r2://', '');
+    return `/api/r2/${key}`;
+  }
+  return url;
 }
 
 interface ImageUploadProps {

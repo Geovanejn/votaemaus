@@ -102,18 +102,46 @@ import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
 // ==================== IMAGE URL CONVERSION HELPER ====================
-// Converts r2:// URLs to proxy URLs for CORS support (html2canvas requires same-origin or CORS)
-// Always uses proxy to ensure images work in share dialogs and cross-origin contexts
-function convertImageUrls<T>(obj: T): T {
+// Converts r2:// URLs to PUBLIC URLs for direct CDN access (fast, no server proxy)
+// This dramatically improves performance by bypassing the server for image delivery
+// Recursive to handle nested objects and arrays
+function convertImageUrls<T>(obj: T, depth: number = 0): T {
   if (!obj || typeof obj !== 'object') return obj;
+  if (depth > 10) return obj; // Prevent infinite recursion
   
-  const imageFields = ['imageUrl', 'coverImageUrl', 'photoUrl', 'profileImage', 'bannerImageUrl', 'bannerImageData'];
+  // Handle arrays recursively
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertImageUrls(item, depth + 1)) as T;
+  }
+  
+  // Comprehensive list of all image fields in the application
+  const imageFields = [
+    'imageUrl', 
+    'coverImageUrl', 
+    'photoUrl', 
+    'profileImage', 
+    'bannerImageUrl', 
+    'bannerImageData',
+    'imageData',
+    'imageDataUrl',
+    'thumbnailUrl',
+    'iconUrl',
+    'logoUrl',
+    'image',
+    'images'
+  ];
   const result = { ...obj } as any;
   
-  for (const field of imageFields) {
-    if (result[field] && typeof result[field] === 'string') {
-      // Use proxy for R2 images to ensure CORS support for html2canvas
-      result[field] = getProxyUrl(result[field]);
+  for (const key of Object.keys(result)) {
+    const value = result[key];
+    
+    // Convert known image fields
+    if (imageFields.includes(key) && typeof value === 'string') {
+      result[key] = getPublicUrl(value);
+    }
+    // Recursively process nested objects/arrays
+    else if (value && typeof value === 'object') {
+      result[key] = convertImageUrls(value, depth + 1);
     }
   }
   

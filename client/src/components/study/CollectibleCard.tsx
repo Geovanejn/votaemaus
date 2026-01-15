@@ -18,7 +18,7 @@ interface CollectibleCardProps {
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
-  size?: "sm" | "md" | "lg" | "compact" | "magazine";
+  size?: "sm" | "md" | "lg" | "compact" | "magazine" | "event";
 }
 
 const rarityLabels: Record<CardRarity, string> = {
@@ -55,6 +55,8 @@ export function CollectibleCard({
     md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
     lg: "w-[280px] h-[320px]",
     magazine: "w-[240px] min-h-[320px] sm:w-[280px] sm:min-h-[380px]",
+    // Event-specific: wider landscape format
+    event: "w-[280px] h-[220px] sm:w-[320px] sm:h-[240px]",
   };
 
   // For magazine size, we use flex-1 with aspect ratio instead of fixed height
@@ -64,6 +66,7 @@ export function CollectibleCard({
     md: "h-[88px] sm:h-[108px]",
     lg: "h-[140px]",
     magazine: "aspect-[3/4] w-full",
+    event: "h-[100px] sm:h-[110px]", // Compact landscape image
   };
 
   const badgeSizeClasses = {
@@ -72,6 +75,7 @@ export function CollectibleCard({
     md: "w-10 h-10 sm:w-12 sm:h-12",
     lg: "w-14 h-14",
     magazine: "w-12 h-12 sm:w-14 sm:h-14",
+    event: "w-9 h-9 sm:w-10 sm:h-10", // Smaller medallion for events
   };
 
   const titleSizeClasses = {
@@ -80,6 +84,7 @@ export function CollectibleCard({
     md: "text-sm sm:text-base",
     lg: "text-lg",
     magazine: "text-base sm:text-lg",
+    event: "text-sm sm:text-base", // Event title size
   };
 
   const subtitleSizeClasses = {
@@ -88,6 +93,7 @@ export function CollectibleCard({
     md: "text-[10px] sm:text-xs",
     lg: "text-sm",
     magazine: "text-xs sm:text-sm",
+    event: "text-[10px] sm:text-xs",
   };
 
   const diamondCount = rarity === "legendary" ? 5 : rarity === "epic" ? 3 : 0;
@@ -121,21 +127,21 @@ export function CollectibleCard({
         }}
       />
 
-      <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Centered rarity medallion with forged effect */}
-        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${size === 'event' ? 'my-0' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
           {rarity === "legendary" ? (
-            <Gem className="w-6 h-6 text-white" />
+            <Gem className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
           ) : rarity === "epic" ? (
-            <Sparkles className="w-6 h-6 text-white" />
+            <Sparkles className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
           ) : (
-            <Star className="w-6 h-6 text-white" />
+            <Star className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
           )}
         </div>
 
         {/* Text plate - hidden for magazine size and season cards */}
         {size !== 'magazine' && sourceType !== 'season' && (
-          <div className="flex-1 flex flex-col justify-center items-center">
+          <div className={`flex flex-col justify-center items-center ${size === 'event' ? 'py-0' : 'flex-1'}`}>
             <div className="collectible-card-text-plate">
               <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
                 {name}
@@ -145,7 +151,7 @@ export function CollectibleCard({
         )}
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative`}
+          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative ${size === 'event' ? 'mt-1' : ''}`}
         >
           {imageUrl ? (
             <img 
@@ -518,8 +524,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             name={card.name}
             imageUrl={card.imageUrl}
             rarity={card.rarity}
-            orientation="portrait"
-            size={card.sourceType === "season" ? "magazine" : "lg"}
+            orientation={card.sourceType === "event" ? "landscape" : "portrait"}
+            size={card.sourceType === "season" ? "magazine" : card.sourceType === "event" ? "event" : "lg"}
           />
         </div>
 

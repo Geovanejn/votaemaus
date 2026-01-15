@@ -649,6 +649,12 @@ body {
   gap: 12px;
 }
 
+/* Event card variant - compact landscape layout with minimal spacing */
+.collectible-card-inner-event {
+  padding: 6px 10px 10px;
+  gap: 2px;
+}
+
 /* Card image container - Deep Inset/Engraved frame effect (negative relief) */
 .collectible-card-image {
   position: relative;

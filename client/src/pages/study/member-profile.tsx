@@ -173,6 +173,8 @@ export default function MemberProfilePage() {
   const [isSharing, setIsSharing] = useState(false);
   const shareableCardRef = useRef<HTMLDivElement>(null);
   
+  const isOwnProfile = user?.id === parseInt(userId || "0");
+  
   const { data: profile, isLoading } = useQuery<PublicMemberProfile>({
     queryKey: ["/api/study/member", userId],
     queryFn: async () => {
@@ -855,69 +857,71 @@ export default function MemberProfilePage() {
                   </p>
                 </div>
                 
-                <div className="border-t pt-4">
-                  <p className="text-sm text-center text-muted-foreground mb-3">
-                    {isSharing ? "Gerando imagem..." : "Compartilhar"}
-                  </p>
-                  <div className="flex justify-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleShareCard("whatsapp")}
-                      className="bg-green-500 text-white border-0"
-                      disabled={isSharing}
-                      data-testid="button-share-whatsapp"
-                    >
-                      {isSharing ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <SiWhatsapp className="h-5 w-5" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleShareCard("twitter")}
-                      className="bg-black text-white border-0"
-                      disabled={isSharing}
-                      data-testid="button-share-twitter"
-                    >
-                      {isSharing ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <SiX className="h-5 w-5" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleShareCard("facebook")}
-                      className="bg-blue-600 text-white border-0"
-                      disabled={isSharing}
-                      data-testid="button-share-facebook"
-                    >
-                      {isSharing ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <SiFacebook className="h-5 w-5" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleDownloadCard}
-                      className="bg-gray-600 text-white border-0"
-                      disabled={isSharing}
-                      data-testid="button-download-card"
-                    >
-                      {isSharing ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <Download className="h-5 w-5" />
-                      )}
-                    </Button>
+                {isOwnProfile && (
+                  <div className="border-t pt-4">
+                    <p className="text-sm text-center text-muted-foreground mb-3">
+                      {isSharing ? "Gerando imagem..." : "Compartilhar"}
+                    </p>
+                    <div className="flex justify-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleShareCard("whatsapp")}
+                        className="bg-green-500 text-white border-0"
+                        disabled={isSharing}
+                        data-testid="button-share-whatsapp"
+                      >
+                        {isSharing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <SiWhatsapp className="h-5 w-5" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleShareCard("twitter")}
+                        className="bg-black text-white border-0"
+                        disabled={isSharing}
+                        data-testid="button-share-twitter"
+                      >
+                        {isSharing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <SiX className="h-5 w-5" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleShareCard("facebook")}
+                        className="bg-blue-600 text-white border-0"
+                        disabled={isSharing}
+                        data-testid="button-share-facebook"
+                      >
+                        {isSharing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <SiFacebook className="h-5 w-5" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleDownloadCard}
+                        className="bg-gray-600 text-white border-0"
+                        disabled={isSharing}
+                        data-testid="button-download-card"
+                      >
+                        {isSharing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Download className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}

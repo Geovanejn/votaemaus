@@ -70,6 +70,9 @@ export default function DeoGloryRevistaDetail() {
   const [cardImageFile, setCardImageFile] = useState<File | null>(null);
   const [cardImagePreview, setCardImagePreview] = useState<string | null>(null);
   const cardImageInputRef = useRef<HTMLInputElement>(null);
+  const [geminiKey, setGeminiKey] = useState<string>("1");
+  const [openaiKey, setOpenaiKey] = useState<string>("1");
+  const [aiProvider, setAiProvider] = useState<string>("gemini");
 
   const { data: season, isLoading: loadingSeason } = useQuery<Season>({
     queryKey: ["/api/study/admin/seasons", seasonId],

@@ -121,21 +121,21 @@ export default function CardsCollectionPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-amber-600 border-amber-300">
-                <Crown className="h-3 w-3 mr-1" />
-                {cardsByRarity.legendary.length} Lendarios
+            <div className="flex gap-1.5 overflow-x-auto">
+              <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs px-1.5 shrink-0">
+                <Crown className="h-3 w-3 mr-0.5" />
+                {cardsByRarity.legendary.length}
               </Badge>
-              <Badge variant="outline" className="text-purple-600 border-purple-300">
-                <Sparkles className="h-3 w-3 mr-1" />
-                {cardsByRarity.epic.length} Epicos
+              <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs px-1.5 shrink-0">
+                <Sparkles className="h-3 w-3 mr-0.5" />
+                {cardsByRarity.epic.length}
               </Badge>
-              <Badge variant="outline" className="text-blue-600 border-blue-300">
-                <Star className="h-3 w-3 mr-1" />
-                {cardsByRarity.rare.length} Raros
+              <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs px-1.5 shrink-0">
+                <Star className="h-3 w-3 mr-0.5" />
+                {cardsByRarity.rare.length}
               </Badge>
-              <Badge variant="outline" className="text-gray-600 border-gray-300">
-                {cardsByRarity.common.length} Comuns
+              <Badge variant="outline" className="text-gray-600 border-gray-300 text-xs px-1.5 shrink-0">
+                {cardsByRarity.common.length}
               </Badge>
             </div>
 

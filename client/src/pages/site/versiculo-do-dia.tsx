@@ -92,11 +92,10 @@ export default function VersiculoDoDiaPage() {
     },
   });
 
-  // Pre-load image as base64 for html2canvas (CORS workaround)
+  // Pre-load image as base64 for html2canvas (no CORS needed for R2 CDN)
   useEffect(() => {
     if (backgroundImage && shareOpen) {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
@@ -110,7 +109,7 @@ export default function VersiculoDoDiaPage() {
             const base64 = canvas.toDataURL('image/png');
             setImageBase64(base64);
           } catch {
-            console.log('CORS prevented base64 conversion');
+            console.log('Canvas export failed, using original URL');
             setImageBase64(null);
           }
         }
@@ -421,7 +420,6 @@ export default function VersiculoDoDiaPage() {
                   objectFit: 'cover',
                   display: 'block'
                 }}
-                crossOrigin="anonymous"
               />
             )}
             <div style={{

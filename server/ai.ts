@@ -582,31 +582,6 @@ Pergunte-se: "Alguém que NÃO leu o texto conseguiria acertar por eliminação?
 - Se SIM → REESCREVA as alternativas
 - Se NÃO → Alternativas aprovadas
 
-EXEMPLOS DE VALIDAÇÃO:
-❌ RUIM (padrão tamanho):
-A) Fé
-B) Obras
-C) A graça salvadora de Deus manifestada em Cristo Jesus ← ÓBVIA POR SER LONGA
-D) Lei
-
-✅ BOM (tamanhos similares):
-A) A fé genuína em Cristo
-B) As obras da lei mosaica
-C) A graça salvadora de Deus
-D) O cumprimento dos mandamentos
-
-❌ RUIM (padrão negação):
-A) Obedecer a Deus
-B) Amar o próximo
-C) Não fazer nada ← ÓBVIA POR SER A ÚNICA NEGAÇÃO
-D) Servir aos outros
-
-✅ BOM (negações equilibradas):
-A) Obedecer parcialmente a Deus
-B) Não se preocupar com pecado
-C) Confiar apenas em si mesmo
-D) Servir por interesse próprio
-
 REGRAS CRÍTICAS PARA EXERCÍCIOS DE MÚLTIPLA ESCOLHA:
 - TODAS as 4 alternativas devem ser PLAUSÍVEIS e parecerem igualmente corretas à primeira vista
 - As alternativas devem ter TAMANHOS SIMILARES (diferença máxima de 5 palavras entre a mais curta e a mais longa)
@@ -616,12 +591,6 @@ REGRAS CRÍTICAS PARA EXERCÍCIOS DE MÚLTIPLA ESCOLHA:
 - Evite padrões como "Todas as alternativas", "Nenhuma das alternativas"
 - A resposta correta NÃO pode ser identificada sem ler o texto de estudo
 - Embaralhe a posição da resposta correta (distribua entre A, B, C e D)
-
-EXEMPLOS DE DIFICULDADE:
-❌ MUITO FÁCIL (evite): "Quem morreu na cruz?" - alternativas óbvias
-❌ FÁCIL (evite): "Jesus é o caminho, a ____ e a vida" - A) verdade B) mentira
-✅ MÉDIO: "Qual consequência imediata de confiar em Cristo segundo o texto?"
-✅ DIFÍCIL: "Como o conceito de graça se diferencia de mérito no contexto estudado?"
 
 Responda SEMPRE em JSON válido com a estrutura exata especificada. NÃO use markdown, apenas JSON puro.`;
 
@@ -763,18 +732,6 @@ PASSO 4 - TIPOS DE AFIRMAÇÕES DESAFIADORAS:
 ✅ CONTEXTO ERRADO: Use afirmação verdadeira em contexto errado
    Ex: "Segundo Romanos 3, o homem é justificado pelas obras da lei" (FALSO - é pela fé)
 
-EXEMPLOS DE AFIRMAÇÕES:
-❌ MUITO FÁCIL (evite):
-- "Jesus morreu na cruz para nos salvar" (obviamente VERDADEIRA)
-- "Satanás é mais poderoso que Deus" (obviamente FALSA)
-- "A Bíblia é a Palavra de Deus" (obviamente VERDADEIRA para cristãos)
-
-✅ DIFICULDADE ADEQUADA:
-- "A regeneração espiritual é resultado do esforço humano combinado com a graça divina" (FALSO - é monergismo divino)
-- "O arrependimento deve necessariamente preceder a fé para que haja salvação" (FALSO - são simultâneos)
-- "Segundo o texto estudado, a perseverança dos santos depende da fidelidade humana" (FALSO - depende da fidelidade de Deus)
-- "A santificação é um processo que se completa no momento da conversão" (FALSO - é progressivo)
-
 Retorne APENAS o JSON, sem explicações adicionais.`;
 
   try {
@@ -878,10 +835,6 @@ PASSO 4 - CONFIRMAR:
 - Distratores são SUTILMENTE errados, não obviamente absurdos
 - A resposta correta não se destaca visualmente
 
-EXEMPLOS:
-❌ RUIM: A) Fé | B) Obras | C) A graça salvadora de Deus em Cristo nosso Senhor | D) Lei
-✅ BOM: A) A fé em Cristo | B) As obras da lei | C) A graça de Deus | D) Os rituais religiosos
-
 REGRAS PARA ALTERNATIVAS DE MULTIPLA ESCOLHA:
 - Crie 4 alternativas PLAUSÍVEIS que parecem corretas à primeira vista
 - Use distratores inteligentes relacionados ao tema
@@ -953,12 +906,7 @@ Alguém sem estudar acertaria? Se SIM → REESCREVA
 PASSO 4 - TIPOS DESAFIADORES:
 ✅ INVERSÃO SUTIL: Troque um elemento que muda significado
 ✅ MISTURA DE CONCEITOS: Combine conceitos de forma incorreta
-✅ EXAGERO/REDUÇÃO: Amplifique ou minimize conceitos
-
-EXEMPLOS:
-❌ FÁCIL: "Jesus morreu para nos salvar" (óbvia)
-✅ ADEQUADO: "A regeneração depende do esforço humano combinado com graça" (FALSO)
-✅ ADEQUADO: "O arrependimento deve preceder a fé para salvação" (FALSO)`;
+✅ EXAGERO/REDUÇÃO: Amplifique ou minimize conceitos`;
 
   const userPrompt = `Crie ${count} exercicios variados sobre o topico: "${topic}"
 
@@ -1141,37 +1089,10 @@ PASSO 4 - VALIDAÇÃO FINAL:
 - Confirme: a resposta correta NÃO se destaca visualmente
 - Confirme: distratores são SUTILMENTE errados, não obviamente errados
 
-EXEMPLOS DE ALTERNATIVAS:
-❌ RUIM (padrão tamanho - resposta óbvia é C):
-A) Fé
-B) Obras  
-C) A graça salvadora manifestada plenamente em Cristo Jesus nosso Senhor
-D) Lei
-
-✅ BOM (tamanhos equilibrados):
-A) A fé genuína em Cristo
-B) As obras da lei mosaica
-C) A graça salvadora de Deus
-D) O cumprimento dos rituais
-
-❌ RUIM (padrão negação - C é óbvia por ser única negativa):
-A) Obedecer a Deus fielmente
-B) Amar o próximo como a si mesmo
-C) Não fazer absolutamente nada
-D) Servir aos outros com alegria
-
-✅ BOM (todas parecem igualmente plausíveis):
-A) Confiar nas próprias obras
-B) Buscar a justificação pela lei
-C) Depender exclusivamente da graça
-D) Combinar fé com méritos pessoais
-
 REGRAS ADICIONAIS:
 - Use distratores inteligentes: respostas que poderiam parecer certas mas têm uma diferença sutil teológica
 - Evite alternativas obviamente erradas ou absurdas
 - As alternativas incorretas devem estar relacionadas ao tema e parecer razoáveis
-- Exemplo BOM: Pergunta sobre amor de Deus - alternativas falam de amor condicional, incondicional, merecido, seletivo
-- Exemplo RUIM: Alternativas como "Não sei", "Nenhuma das anteriores", ou respostas absurdas
 
 REGRAS CRÍTICAS PARA FILL_BLANK COM VALIDAÇÃO PRÉ-GERAÇÃO OBRIGATÓRIA:
 
@@ -2411,13 +2332,6 @@ CARACTERÍSTICAS DE PERGUNTAS BEM FEITAS:
 - Explore nuances teológicas (ex: justificação vs santificação, fé vs obras)
 - Pergunte sobre aplicações práticas, não apenas fatos
 
-EXEMPLOS DE DIFICULDADE:
-❌ MUITO FÁCIL (evite): "Quem morreu na cruz?" - A) Jesus B) Pilatos C) Pedro D) Judas
-❌ FÁCIL (evite): "Jesus é o caminho, a ____ e a vida" - A) verdade B) mentira C) tristeza D) dúvida
-✅ MÉDIO: "Qual é a consequência imediata de confiar exclusivamente em Jesus segundo João 3:16?" - alternativas sobre vida eterna, salvação das obras, perdão vs justificação
-✅ MÉDIO-DIFÍCIL: "Como o conceito de graça se diferencia de misericórdia no contexto de Efésios 2?"
-✅ DIFÍCIL: "Analise: Segundo o texto, a fé que salva se manifesta principalmente através de..." (requer síntese)
-
 REGRAS PARA PERGUNTAS DE MÚLTIPLA ESCOLHA:
 - TODAS as 4 alternativas devem ser MUITO PLAUSÍVEIS e parecerem igualmente corretas
 - As alternativas devem ter TAMANHOS SIMILARES (a resposta correta NÃO pode ser a mais longa)
@@ -2451,31 +2365,6 @@ PASSO 4 - VALIDAÇÃO FINAL:
 - Confirme: todas as 4 alternativas têm TAMANHO SIMILAR
 - Confirme: distratores são SUTILMENTE errados, não obviamente absurdos
 - Confirme: a resposta correta NÃO se destaca visualmente
-
-EXEMPLOS DE ALTERNATIVAS:
-❌ RUIM (padrão tamanho - C é óbvia por ser longa):
-A) Fé
-B) Obras
-C) A graça salvadora de Deus manifestada plenamente em Cristo Jesus nosso Senhor
-D) Lei
-
-✅ BOM (tamanhos equilibrados):
-A) A fé genuína em Cristo
-B) As obras da lei mosaica
-C) A graça salvadora de Deus
-D) O cumprimento dos rituais
-
-❌ RUIM (padrão negação - C é óbvia):
-A) Obedecer a Deus fielmente
-B) Amar o próximo
-C) Não fazer absolutamente nada
-D) Servir aos outros
-
-✅ BOM (todas parecem igualmente plausíveis):
-A) Confiar nas próprias obras
-B) Buscar a justificação pela lei
-C) Depender exclusivamente da graça
-D) Combinar fé com méritos pessoais
 
 REGRAS PARA DICAS (HINTS):
 - Cada pergunta DEVE ter uma dica (hint) associada
@@ -2583,23 +2472,9 @@ Se NÃO → afirmação APROVADA
 
 PASSO 4 - TIPOS DE AFIRMAÇÕES DESAFIADORAS:
 ✅ INVERSÃO SUTIL: Troque um elemento pequeno que muda o significado
-   Ex: "A fé que salva é aquela que se manifesta em obras de caridade" (FALSO)
 ✅ MISTURA DE CONCEITOS: Combine conceitos relacionados de forma incorreta
-   Ex: "A justificação e a santificação são processos simultâneos e idênticos" (FALSO)
 ✅ EXAGERO OU REDUÇÃO: Amplifique ou minimize um conceito
-   Ex: "A oração só é eficaz quando feita em conjunto com outros crentes" (FALSO)
 ✅ CONTEXTO ERRADO: Use afirmação verdadeira em contexto errado
-   Ex: "Segundo Romanos 3, o homem é justificado pelas obras da lei" (FALSO)
-
-EXEMPLOS DE AFIRMAÇÕES:
-❌ MUITO FÁCIL (evite):
-- "Jesus morreu na cruz para nos salvar" (obviamente VERDADEIRA)
-- "Satanás é mais poderoso que Deus" (obviamente FALSA)
-
-✅ DIFICULDADE ADEQUADA:
-- "A regeneração espiritual é resultado do esforço humano combinado com a graça divina" (FALSO)
-- "O arrependimento deve necessariamente preceder a fé para que haja salvação" (FALSO)
-- "Segundo o texto estudado, a perseverança dos santos depende da fidelidade humana" (FALSO)
 
 Responda SEMPRE em JSON válido. NÃO use markdown, apenas JSON puro.`;
 

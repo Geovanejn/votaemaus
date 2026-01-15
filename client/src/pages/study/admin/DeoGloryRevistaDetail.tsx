@@ -386,7 +386,14 @@ export default function DeoGloryRevistaDetail() {
         toast({ title: errorTitle, description: errorDescription, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Erro de conexão", description: "Verifique sua internet e tente novamente.", variant: "destructive" });
+      console.error("[PDF Upload] Error caught:", error);
+      // Only show connection error if it's actually a network/fetch error
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      if (errorMessage.includes("fetch") || errorMessage.includes("network") || errorMessage.includes("abort")) {
+        toast({ title: "Erro de conexão", description: "Verifique sua internet e tente novamente.", variant: "destructive" });
+      } else {
+        toast({ title: "Erro ao processar", description: errorMessage, variant: "destructive" });
+      }
     } finally {
       setIsProcessingPdf(false);
     }

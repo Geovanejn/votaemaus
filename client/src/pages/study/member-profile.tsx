@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -18,13 +18,9 @@ import {
   Medal,
   BookOpen,
   Target,
-  Sparkles,
-  Share2,
-  X,
-  Download
+  Sparkles
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { SiX, SiFacebook, SiWhatsapp } from "react-icons/si";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -33,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import html2canvas from "html2canvas";
+import { CollectibleCard, CollectibleCardModal } from "@/components/study/CollectibleCard";
 
 interface AchievementWithLikes {
   id: number;
@@ -80,6 +76,10 @@ interface UserCardWithDetails {
     id: number;
     title: string;
     theme: string;
+  } | null;
+  season: {
+    id: number;
+    name: string;
   } | null;
 }
 
@@ -169,9 +169,6 @@ export default function MemberProfilePage() {
   const [selectedMessage, setSelectedMessage] = useState<EncouragementMessage | null>(null);
   const [selectedCard, setSelectedCard] = useState<UserCardWithDetails | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
-  const [cardAnimating, setCardAnimating] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const shareableCardRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = user?.id === parseInt(userId || "0");
   
@@ -269,161 +266,6 @@ export default function MemberProfilePage() {
   const handleOpenCard = (card: UserCardWithDetails) => {
     setSelectedCard(card);
     setShowCardModal(true);
-    setCardAnimating(true);
-    setTimeout(() => setCardAnimating(false), 1000);
-  };
-
-  const generateCardImage = async (): Promise<Blob | null> => {
-    if (!shareableCardRef.current) return null;
-    
-    const element = shareableCardRef.current;
-    const originalStyle = element.style.cssText;
-    
-    try {
-      element.style.position = "fixed";
-      element.style.left = "0";
-      element.style.top = "0";
-      element.style.zIndex = "99999";
-      
-      await new Promise(r => setTimeout(r, 100));
-      
-      const canvas = await html2canvas(element, {
-        backgroundColor: "#1a1a2e",
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 320,
-        height: element.scrollHeight,
-      });
-      
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(blob);
-        }, "image/png", 1.0);
-      });
-    } catch (error) {
-      console.error("Error generating card image:", error);
-      return null;
-    } finally {
-      element.style.cssText = originalStyle;
-    }
-  };
-
-  const handleShareCard = async (platform: string) => {
-    if (!selectedCard) return;
-    
-    const shareText = `Ganhei o card "${selectedCard.card.name}" (${rarityLabels[selectedCard.rarity]}) no evento ${selectedCard.event?.title || "Evento Especial"} do DeoGlory!`;
-    
-    setIsSharing(true);
-    
-    try {
-      const imageBlob = await generateCardImage();
-      
-      if (imageBlob && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
-        const imageFile = new File([imageBlob], `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`, { 
-          type: "image/png" 
-        });
-        
-        const shareData = {
-          files: [imageFile],
-          text: shareText,
-        };
-        
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          toast({
-            title: "Compartilhado!",
-            description: "Card compartilhado com sucesso.",
-          });
-          setIsSharing(false);
-          return;
-        }
-      }
-      
-      if (imageBlob) {
-        const url = URL.createObjectURL(imageBlob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Imagem salva!",
-          description: "Anexe a imagem do card na rede social para compartilhar.",
-        });
-        
-        setTimeout(() => {
-          openSocialPlatform(platform, shareText);
-        }, 500);
-      } else {
-        openSocialPlatform(platform, shareText);
-      }
-    } catch (error) {
-      if ((error as Error).name !== "AbortError") {
-        openSocialPlatform(platform, shareText);
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const openSocialPlatform = (platform: string, text: string) => {
-    const shareUrl = window.location.href;
-    let platformUrl = "";
-    switch (platform) {
-      case "twitter":
-        platformUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text + " (imagem anexada)")}&url=${encodeURIComponent(shareUrl)}`;
-        break;
-      case "facebook":
-        platformUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(text + " (imagem anexada)")}`;
-        break;
-      case "whatsapp":
-        platformUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + shareUrl)}`;
-        break;
-    }
-    
-    if (platformUrl) {
-      window.open(platformUrl, "_blank", "width=600,height=400");
-    }
-  };
-
-  const handleDownloadCard = async () => {
-    if (!selectedCard) return;
-    
-    setIsSharing(true);
-    
-    try {
-      const imageBlob = await generateCardImage();
-      
-      if (imageBlob) {
-        const url = URL.createObjectURL(imageBlob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `card-${selectedCard.card.name.replace(/\s+/g, '-')}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Download concluido!",
-          description: "A imagem do card foi salva.",
-        });
-      }
-    } catch (error) {
-      console.error("Download error:", error);
-      toast({
-        title: "Erro",
-        description: "Nao foi possivel baixar a imagem.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSharing(false);
-    }
   };
 
   if (isLoading) {
@@ -647,220 +489,23 @@ export default function MemberProfilePage() {
         </div>
       )}
 
-      {/* Hidden Shareable Card for html2canvas capture - must be fully opaque for capture */}
+      {/* Card Modal - Using same design as owner's profile */}
       {selectedCard && (
-        <div 
-          ref={shareableCardRef}
-          style={{ 
-            position: "absolute",
-            left: "-9999px",
-            top: 0,
-            width: "320px",
-            pointerEvents: "none",
+        <CollectibleCardModal
+          isOpen={showCardModal}
+          onClose={() => setShowCardModal(false)}
+          card={{
+            name: selectedCard.card.name,
+            description: selectedCard.card.description,
+            imageUrl: selectedCard.card.imageUrl,
+            rarity: selectedCard.rarity as "common" | "rare" | "epic" | "legendary",
+            sourceType: selectedCard.event ? "event" : "season",
+            sourceName: selectedCard.event?.title || selectedCard.season?.name,
+            earnedAt: selectedCard.earnedAt,
+            performance: selectedCard.score,
           }}
-        >
-          <div 
-            style={{
-              position: 'relative',
-              width: '320px',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              background: `linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)`,
-              padding: '24px',
-            }}
-          >
-            <div 
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '8px',
-                background: selectedCard.rarity === 'legendary' 
-                  ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
-                  : selectedCard.rarity === 'epic'
-                  ? 'linear-gradient(90deg, #a855f7, #9333ea)'
-                  : selectedCard.rarity === 'rare'
-                  ? 'linear-gradient(90deg, #3b82f6, #2563eb)'
-                  : 'linear-gradient(90deg, #6b7280, #4b5563)',
-              }}
-            />
-            
-            <div style={{ 
-              width: '100%', 
-              aspectRatio: '1', 
-              borderRadius: '12px', 
-              overflow: 'hidden', 
-              marginBottom: '16px',
-              border: `4px solid ${
-                selectedCard.rarity === 'legendary' ? '#fbbf24'
-                : selectedCard.rarity === 'epic' ? '#a855f7'
-                : selectedCard.rarity === 'rare' ? '#3b82f6'
-                : '#6b7280'
-              }`,
-            }}>
-              {selectedCard.card.imageUrl ? (
-                <img 
-                  src={selectedCard.card.imageUrl} 
-                  alt={selectedCard.card.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: selectedCard.rarity === 'legendary' 
-                    ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                    : selectedCard.rarity === 'epic'
-                    ? 'linear-gradient(135deg, #a855f7, #9333ea)'
-                    : selectedCard.rarity === 'rare'
-                    ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
-                    : 'linear-gradient(135deg, #6b7280, #4b5563)',
-                }}>
-                  <Sparkles style={{ width: '64px', height: '64px', color: '#fff' }} />
-                </div>
-              )}
-            </div>
-            
-            <div style={{ textAlign: 'center' }}>
-              <h3 style={{ 
-                fontSize: '20px', 
-                fontWeight: 'bold', 
-                color: '#fff',
-                marginBottom: '8px',
-              }}>
-                {selectedCard.card.name}
-              </h3>
-              
-              <div style={{
-                display: 'inline-block',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                color: '#fff',
-                background: selectedCard.rarity === 'legendary' 
-                  ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                  : selectedCard.rarity === 'epic'
-                  ? 'linear-gradient(135deg, #a855f7, #9333ea)'
-                  : selectedCard.rarity === 'rare'
-                  ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
-                  : 'linear-gradient(135deg, #6b7280, #4b5563)',
-              }}>
-                {rarityLabels[selectedCard.rarity]}
-              </div>
-              
-              {selectedCard.event && (
-                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '12px' }}>
-                  Evento: {selectedCard.event.title}
-                </p>
-              )}
-              
-              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                Pontuacao: {selectedCard.score}%
-              </p>
-              
-              <div style={{
-                marginTop: '16px',
-                paddingTop: '16px',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}>
-                <Trophy style={{ width: '16px', height: '16px', color: '#a855f7' }} />
-                <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: 600 }}>
-                  DeoGlory
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        />
       )}
-
-      {/* Card Modal */}
-      <Dialog open={showCardModal} onOpenChange={setShowCardModal}>
-        <DialogContent className="max-w-sm p-0 overflow-hidden bg-transparent border-0">
-          {selectedCard && (
-            <div className={cn(
-              "relative p-6",
-              cardAnimating && "animate-pulse"
-            )}>
-              <div className={cn(
-                "absolute inset-0 rounded-2xl",
-                rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg,
-                "opacity-20"
-              )} />
-              
-              <div className="relative bg-card rounded-xl p-4 shadow-2xl">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={() => setShowCardModal(false)}
-                  disabled={isSharing}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                
-                <div className={cn(
-                  "aspect-square relative mb-4 rounded-xl overflow-hidden",
-                  "border-4",
-                  rarityColors[selectedCard.rarity]?.border || rarityColors.common.border,
-                  cardAnimating && "animate-bounce"
-                )}>
-                  {selectedCard.card.imageUrl ? (
-                    <img 
-                      src={selectedCard.card.imageUrl} 
-                      alt={selectedCard.card.name}
-                      className={cn(
-                        "w-full h-full object-cover",
-                        cardAnimating && "scale-110 transition-transform duration-500"
-                      )}
-                    />
-                  ) : (
-                    <div className={cn(
-                      "w-full h-full flex items-center justify-center",
-                      rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg
-                    )}>
-                      <Sparkles className="h-24 w-24 text-white" />
-                    </div>
-                  )}
-                </div>
-                
-                <div className="text-center mb-4">
-                  <h3 className="text-xl font-bold mb-1">{selectedCard.card.name}</h3>
-                  <Badge className={cn(
-                    "text-sm",
-                    rarityColors[selectedCard.rarity]?.bg || rarityColors.common.bg,
-                    "text-white border-0"
-                  )}>
-                    {rarityLabels[selectedCard.rarity]}
-                  </Badge>
-                  {selectedCard.card.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {selectedCard.card.description}
-                    </p>
-                  )}
-                  {selectedCard.event && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Evento: {selectedCard.event.title}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Pontuacao: {selectedCard.score}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Message Dialog */}
       <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>

@@ -167,6 +167,7 @@ export default function CardsCollectionPage() {
                         name={card.card?.name || "Card"}
                         imageUrl={card.card?.imageUrl}
                         rarity={card.rarity}
+                        sourceType={card.sourceType as "season" | "event"}
                         onClick={() => setSelectedCard(card)}
                         size="compact"
                       />
@@ -201,6 +202,7 @@ export default function CardsCollectionPage() {
                           name={card.card?.name || "Card"}
                           imageUrl={card.card?.imageUrl}
                           rarity={card.rarity}
+                          sourceType="event"
                           onClick={() => setSelectedCard(card)}
                           size="compact"
                         />
@@ -236,6 +238,7 @@ export default function CardsCollectionPage() {
                           name={card.card?.name || "Card"}
                           imageUrl={card.card?.imageUrl}
                           rarity={card.rarity}
+                          sourceType="season"
                           onClick={() => setSelectedCard(card)}
                           size="compact"
                         />

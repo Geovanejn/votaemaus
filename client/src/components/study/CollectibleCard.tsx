@@ -121,9 +121,9 @@ export function CollectibleCard({
         }}
       />
 
-      <div className={`collectible-card-inner ${size === 'magazine' ? 'collectible-card-inner-magazine' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''}`}>
         {/* Centered rarity medallion with forged effect */}
-        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${size === 'magazine' ? 'my-3' : ''}`}>
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
           {rarity === "legendary" ? (
             <Gem className="w-6 h-6 text-white" />
           ) : rarity === "epic" ? (
@@ -133,8 +133,8 @@ export function CollectibleCard({
           )}
         </div>
 
-        {/* Text plate - hidden for magazine size */}
-        {size !== 'magazine' && (
+        {/* Text plate - hidden for magazine size and season cards */}
+        {size !== 'magazine' && sourceType !== 'season' && (
           <div className="flex-1 flex flex-col justify-center items-center">
             <div className="collectible-card-text-plate">
               <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>

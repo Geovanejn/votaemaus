@@ -10408,6 +10408,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return null;
   }
 
+  // Helper function to get optimal image URL (direct R2 CDN or proxy fallback)
+  function getOptimalImageUrl(imageData: string | null | undefined, proxyFallback: string): string {
+    if (!imageData) return proxyFallback;
+    // If R2 URL, use public CDN for fast loading
+    if (isR2Url(imageData)) {
+      return getPublicUrl(imageData);
+    }
+    // If Base64 or other format, use proxy (slower but works)
+    return proxyFallback;
+  }
+
   // Proxy de imagens - serve imagens sob demanda com compressão WebP (lazy loading)
   app.get("/api/shop/images/banner/:itemId", async (req, res) => {
     try {
@@ -10551,19 +10562,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar categorias da loja (publico) - OTIMIZADO sem Base64
+  // Listar categorias da loja (publico) - OTIMIZADO COM R2 CDN
   app.get("/api/shop/categories", async (req, res) => {
     try {
       // Use Light version to avoid loading Base64 from database
       const categories = await storage.getShopCategoriesLight();
       const categoryIds = categories.map(c => c.id);
-      // Check which categories have images
-      const hasImageMap = await storage.getShopCategoriesWithImageCheck(categoryIds);
+      // Fetch actual image URLs for direct R2 CDN access
+      const imageUrlsMap = await storage.getShopCategoryImageUrls(categoryIds);
       
-      // Return URLs instead of base64 for lazy loading
+      // Return direct R2 URLs when available, fallback to proxy
       const categoriesWithUrls = categories.map(cat => ({
         ...cat,
-        imageData: hasImageMap.get(cat.id) ? `/api/shop/images/category/${cat.id}` : null,
+        imageData: getOptimalImageUrl(imageUrlsMap.get(cat.id), `/api/shop/images/category/${cat.id}`),
       }));
       res.json(categoriesWithUrls);
     } catch (error) {
@@ -10572,7 +10583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens em destaque (para hero banner - publico) - OTIMIZADO
+  // Listar itens em destaque (para hero banner - publico) - OTIMIZADO COM R2 CDN
   app.get("/api/shop/featured", async (req, res) => {
     try {
       const items = await storage.getShopItemsLight(false);
@@ -10593,14 +10604,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const featuredIds = featured.map(item => item.id);
-      const imagesMap = await storage.getShopItemImagesByItemIdsLight(featuredIds);
+      // Fetch actual image URLs for direct R2 CDN access
+      const [bannerUrlsMap, imagesUrlsMap] = await Promise.all([
+        storage.getShopItemBannerUrls(featuredIds),
+        storage.getShopItemImageUrls(featuredIds)
+      ]);
       
       const featuredWithImages = featured.map(item => ({
         ...item,
-        bannerImageData: `/api/shop/images/banner/${item.id}`,
-        images: (imagesMap.get(item.id) || []).map(img => ({
-          ...img,
-          imageData: `/api/shop/images/item/${img.id}`,
+        bannerImageData: getOptimalImageUrl(bannerUrlsMap.get(item.id), `/api/shop/images/banner/${item.id}`),
+        images: (imagesUrlsMap.get(item.id) || []).map(img => ({
+          id: img.id,
+          sortOrder: img.sortOrder,
+          imageData: getOptimalImageUrl(img.imageData, `/api/shop/images/item/${img.id}`),
         }))
       }));
       
@@ -10611,7 +10627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Listar itens disponiveis (catalogo publico) - OTIMIZADO sem Base64
+  // Listar itens disponiveis (catalogo publico) - OTIMIZADO COM R2 CDN
   app.get("/api/shop/items", async (req, res) => {
     try {
       const allItems = await storage.getShopItemsLight(false);
@@ -10622,18 +10638,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const itemIds = items.map(item => item.id);
-      const [imagesMap, sizesMap, sizeChartsMap] = await Promise.all([
-        storage.getShopItemImagesByItemIdsLight(itemIds),
+      // Fetch actual image URLs for direct R2 CDN access
+      const [bannerUrlsMap, imagesUrlsMap, sizesMap, sizeChartsMap] = await Promise.all([
+        storage.getShopItemBannerUrls(itemIds),
+        storage.getShopItemImageUrls(itemIds),
         storage.getShopItemSizesByItemIds(itemIds),
         storage.getShopItemSizeChartsByItemIds(itemIds)
       ]);
       
       const itemsWithDetails = items.map(item => ({
         ...item,
-        bannerImageData: `/api/shop/images/banner/${item.id}`,
-        images: (imagesMap.get(item.id) || []).map(img => ({
-          ...img,
-          imageData: `/api/shop/images/item/${img.id}`,
+        bannerImageData: getOptimalImageUrl(bannerUrlsMap.get(item.id), `/api/shop/images/banner/${item.id}`),
+        images: (imagesUrlsMap.get(item.id) || []).map(img => ({
+          id: img.id,
+          sortOrder: img.sortOrder,
+          imageData: getOptimalImageUrl(img.imageData, `/api/shop/images/item/${img.id}`),
         })),
         sizes: sizesMap.get(item.id) || [],
         sizeCharts: sizeChartsMap.get(item.id) || []

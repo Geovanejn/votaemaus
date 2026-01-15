@@ -554,7 +554,10 @@ export interface IStorage {
   getShopItemsByIdsLight(ids: number[]): Promise<Pick<ShopItem, 'id' | 'name' | 'price'>[]>;
   getShopItemBannerImage(id: number): Promise<string | null>;
   getShopItemsWithBannerCheck(ids: number[]): Promise<{ id: number; hasBanner: boolean }[]>;
+  getShopItemBannerUrls(ids: number[]): Promise<Map<number, string>>;
   getShopItemImageData(imageId: number): Promise<string | null>;
+  getShopItemImageUrls(itemIds: number[]): Promise<Map<number, { id: number; imageData: string; sortOrder: number }[]>>;
+  getShopCategoryImageUrls(ids: number[]): Promise<Map<number, string>>;
   createShopItem(data: InsertShopItem): Promise<ShopItem>;
   updateShopItem(id: number, data: Partial<InsertShopItem>): Promise<ShopItem | null>;
   deleteShopItem(id: number): Promise<void>;
@@ -7427,6 +7430,23 @@ export class DatabaseStorage implements IStorage {
     return items;
   }
 
+  async getShopItemBannerUrls(ids: number[]): Promise<Map<number, string>> {
+    if (ids.length === 0) return new Map();
+    const items = await db.select({
+      id: schema.shopItems.id,
+      bannerImageData: schema.shopItems.bannerImageData,
+    })
+      .from(schema.shopItems)
+      .where(inArray(schema.shopItems.id, ids));
+    const map = new Map<number, string>();
+    for (const item of items) {
+      if (item.bannerImageData) {
+        map.set(item.id, item.bannerImageData);
+      }
+    }
+    return map;
+  }
+
   async getShopItemImageData(imageId: number): Promise<string | null> {
     const [image] = await db.select({ imageData: schema.shopItemImages.imageData })
       .from(schema.shopItemImages)
@@ -7526,6 +7546,41 @@ export class DatabaseStorage implements IStorage {
     for (const img of images) {
       if (!map.has(img.itemId)) map.set(img.itemId, []);
       map.get(img.itemId)!.push(img);
+    }
+    return map;
+  }
+
+  async getShopItemImageUrls(itemIds: number[]): Promise<Map<number, { id: number; imageData: string; sortOrder: number }[]>> {
+    if (itemIds.length === 0) return new Map();
+    const images = await db.select({
+      id: schema.shopItemImages.id,
+      itemId: schema.shopItemImages.itemId,
+      imageData: schema.shopItemImages.imageData,
+      sortOrder: schema.shopItemImages.sortOrder,
+    }).from(schema.shopItemImages)
+      .where(inArray(schema.shopItemImages.itemId, itemIds))
+      .orderBy(asc(schema.shopItemImages.sortOrder));
+    const map = new Map<number, { id: number; imageData: string; sortOrder: number }[]>();
+    for (const img of images) {
+      if (!map.has(img.itemId)) map.set(img.itemId, []);
+      map.get(img.itemId)!.push({ id: img.id, imageData: img.imageData, sortOrder: img.sortOrder });
+    }
+    return map;
+  }
+
+  async getShopCategoryImageUrls(ids: number[]): Promise<Map<number, string>> {
+    if (ids.length === 0) return new Map();
+    const cats = await db.select({
+      id: schema.shopCategories.id,
+      imageData: schema.shopCategories.imageData,
+    })
+      .from(schema.shopCategories)
+      .where(inArray(schema.shopCategories.id, ids));
+    const map = new Map<number, string>();
+    for (const cat of cats) {
+      if (cat.imageData) {
+        map.set(cat.id, cat.imageData);
+      }
     }
     return map;
   }

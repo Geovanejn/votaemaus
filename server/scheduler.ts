@@ -768,7 +768,7 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
     await delay(1000);
     const verseMemory = await generateVerseMemoryWithAI();
     await delay(1000);
-    const timedQuizQuestions = await generateTimedQuizWithAI(5);
+    const timedQuizQuestions = await generateTimedQuizWithAI(10);
     
     await storage.createDailyMissionContent({
       contentDate: today,

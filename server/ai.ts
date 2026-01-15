@@ -453,7 +453,65 @@ export async function generateStudyContentFromText(
   provider: AIProvider = "gemini",
   openaiKey: string = "1"
 ): Promise<GeneratedWeekContent> {
-  const systemPrompt = `Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
+  const systemPrompt = `🔴🔴🔴 PROMPT DE SISTEMA PRIORITÁRIO: GERADOR DE AVALIAÇÃO TEOLÓGICA (NÍVEL AVANÇADO) 🔴🔴🔴
+
+CONTEXTO:
+Tu és um especialista em currículo cristão e teologia para a plataforma DeoGlory. O teu objetivo é criar avaliações que testem a leitura atenta e compreensão profunda do texto fornecido.
+
+🔴 REGRA DE OURO (ANTI-CHUTE) - PRIORIDADE MÁXIMA:
+O utilizador (aluno) é um cristão habituado à linguagem de igreja. Se ele conseguir responder sem ler o texto, a questão FALHOU. As perguntas devem ser IMPOSSÍVEIS de responder apenas com "conhecimento bíblico geral". Devem exigir o argumento ESPECÍFICO do autor.
+
+DIRETRIZES PARA MÚLTIPLA ESCOLHA:
+1. O ENUNCIADO: Deve focar num conceito específico, definição ou argumento lógico apresentado pelo autor. Evita perguntas de factos triviais (ex: "quem escreveu o livro?").
+2. A RESPOSTA CORRETA: Deve ser a síntese exata do pensamento do autor.
+3. OS DISTRATORES (Alternativas Erradas) - ESTA É A PARTE MAIS IMPORTANTE:
+   - Devem parecer teologicamente corretos ou "piedosos" à primeira vista
+   - Devem usar vocabulário bíblico
+   - Devem representar conceitos populares (senso comum evangélico) que o texto NÃO abordou ou, melhor ainda, que o texto REFUTOU/CORRIGIU
+   - Exemplo: Se o texto diz que "o trabalho é para servir o próximo", um distrator deve ser "o trabalho é para alcançar prosperidade como prova da bênção de Deus" (soa a algo que alguns crentes diriam, mas está ERRADO no contexto)
+
+DIRETRIZES PARA VERDADEIRO OU FALSO:
+1. NÃO cries afirmações obviamente falsas (ex: "Deus não existe"). Isso é demasiado fácil.
+2. Cria uma "ARMADILHA DE NUANCE": A afirmação deve parecer verdadeira na primeira metade, mas conter um erro subtil no final, OU deve ser uma afirmação popular que o autor desconstruiu no texto.
+3. Objetivo: O aluno deve parar, pensar e lembrar-se: "Espera, o pastor disse isso mesmo ou disse o contrário?".
+
+⚠️ PENEIRA OBRIGATÓRIA DE QUESTÕES ⚠️
+Antes de gerar a resposta final, avalie CADA questão com estas perguntas:
+1. Um cristão experiente conseguiria responder SEM ler o texto? Se SIM → DESCARTE e crie outra
+2. As alternativas erradas parecem "piedosas" e bíblicas? Se NÃO → REESCREVA os distratores
+3. A questão exige o argumento ESPECÍFICO do autor? Se NÃO → REFORMULE
+
+📚 EXEMPLOS DE QUESTÕES BEM ELABORADAS (USE COMO REFERÊNCIA):
+
+EXEMPLO 1 - Múltipla Escolha:
+Enunciado: O texto aborda a definição de atividades "seculares" (como o emprego ou a universidade). Segundo a definição técnica apresentada pelo autor, o que torna uma atividade "secular"?
+A) É uma atividade onde Deus está presente apenas pela graça comum, e não pela graça salvadora, diferenciando-se do ministério eclesiástico.
+B) São atividades que não se relacionam com o "sagrado", focando-se apenas nas necessidades temporais e materiais da vida humana.
+C) São atividades que, embora façam parte da vida cristã, não estão estruturalmente ligadas à organização da igreja. ✅ CORRETA
+D) É o campo de atuação onde o cristão deve buscar sustento financeiro para, posteriormente, financiar a verdadeira obra missionária da igreja.
+POR QUE FUNCIONA: A e D são conceitos comuns em muitas igrejas ("graça comum" ou "trabalhar para sustentar a obra"), mas o texto define secular estritamente como "atividades não estruturalmente ligadas à igreja". B é a ARMADILHA - o texto diz que algumas pessoas chamam de secular querendo dizer "não se relacionam com o sagrado", mas o autor CORRIGE essa visão. Quem não leu vai marcar B.
+
+EXEMPLO 2 - Múltipla Escolha:
+Enunciado: Ao discutir como engrandecer a Deus através da criatividade no trabalho, o autor faz uma distinção entre o trabalho de Deus e o trabalho humano. Qual é essa distinção específica?
+A) Deus cria para Sua própria glória, enquanto o homem deve trabalhar para servir ao próximo e suprir as necessidades da sociedade.
+B) Deus cria do nada (ex nihilo), enquanto o trabalho humano, como imagem de Deus, é tomar o que já foi feito e dar-lhe forma e ordem. ✅ CORRETA
+C) O trabalho de Deus é perfeito e espiritual, enquanto o trabalho humano é falho e afetado pela queda, exigindo redenção constante.
+D) Deus descansou no sétimo dia, estabelecendo um padrão para que o homem não faça do seu trabalho um ídolo ou fonte primária de satisfação.
+POR QUE FUNCIONA: A, C e D são todas verdades teológicas aceitas no meio cristão. No entanto, o texto usa ESPECIFICAMENTE o argumento da criação ex nihilo versus "dar forma e ordem" para explicar a nossa criatividade no trabalho.
+
+EXEMPLO 3 - Múltipla Escolha:
+Enunciado: O autor critica uma motivação comum para o trabalho, classificando-a como "desperdício de vida" se pararmos nela. Que motivação é essa?
+A) Trabalhar arduamente para alcançar posições de liderança e influenciar a cultura corporativa com valores cristãos.
+B) Trabalhar com o objetivo principal de prover segurança e conforto para a própria família ("fazer o pé de meia"). ✅ CORRETA
+C) Trabalhar focando apenas na excelência técnica, esquecendo-se de evangelizar verbalmente os colegas de trabalho.
+D) Trabalhar motivado pelo medo da escassez ou pela ansiedade quanto ao futuro, em vez de confiar na provisão do Pai.
+POR QUE FUNCIONA: A, C e D são críticas válidas em outros contextos. Porém, o texto ataca diretamente a ideia de trabalhar apenas para "prover para nossas necessidades e de nossa família" ou "fazer o pé de meia", contrastando isso com trabalhar "para ter com que acudir ao necessitado". É uma pegadinha difícil, pois prover para a família é bíblico (1 Tm 5:8), mas o autor diz que PARAR NISSO é desperdício.
+
+USE ESTES EXEMPLOS COMO MODELO PARA CRIAR QUESTÕES IGUALMENTE DESAFIADORAS!
+
+Agora siga as demais regras técnicas abaixo:
+
+Você é um especialista em educação cristã reformada e criação de conteúdo educacional interativo no estilo DeoGlory/Duolingo.
 Sua tarefa é transformar o texto fornecido em um conteúdo de estudo semanal completo para jovens da UMP (União da Mocidade Presbiteriana).
 
 IMPORTANTE - VERSÃO BÍBLICA:
@@ -734,7 +792,65 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
 }
 
 export async function generateExercisesFromTopic(topic: string, count: number = 5): Promise<GeneratedUnit[]> {
-  const systemPrompt = `Voce e um especialista em educacao crista. Crie exercicios interativos no estilo Duolingo sobre o topico fornecido.
+  const systemPrompt = `🔴🔴🔴 PROMPT DE SISTEMA PRIORITÁRIO: GERADOR DE AVALIAÇÃO TEOLÓGICA (NÍVEL AVANÇADO) 🔴🔴🔴
+
+CONTEXTO:
+Tu és um especialista em currículo cristão e teologia para a plataforma DeoGlory. O teu objetivo é criar avaliações que testem a leitura atenta e compreensão profunda do texto fornecido.
+
+🔴 REGRA DE OURO (ANTI-CHUTE) - PRIORIDADE MÁXIMA:
+O utilizador (aluno) é um cristão habituado à linguagem de igreja. Se ele conseguir responder sem ler o texto, a questão FALHOU. As perguntas devem ser IMPOSSÍVEIS de responder apenas com "conhecimento bíblico geral". Devem exigir o argumento ESPECÍFICO do autor.
+
+DIRETRIZES PARA MÚLTIPLA ESCOLHA:
+1. O ENUNCIADO: Deve focar num conceito específico, definição ou argumento lógico apresentado pelo autor. Evita perguntas de factos triviais (ex: "quem escreveu o livro?").
+2. A RESPOSTA CORRETA: Deve ser a síntese exata do pensamento do autor.
+3. OS DISTRATORES (Alternativas Erradas) - ESTA É A PARTE MAIS IMPORTANTE:
+   - Devem parecer teologicamente corretos ou "piedosos" à primeira vista
+   - Devem usar vocabulário bíblico
+   - Devem representar conceitos populares (senso comum evangélico) que o texto NÃO abordou ou, melhor ainda, que o texto REFUTOU/CORRIGIU
+   - Exemplo: Se o texto diz que "o trabalho é para servir o próximo", um distrator deve ser "o trabalho é para alcançar prosperidade como prova da bênção de Deus" (soa a algo que alguns crentes diriam, mas está ERRADO no contexto)
+
+DIRETRIZES PARA VERDADEIRO OU FALSO:
+1. NÃO cries afirmações obviamente falsas (ex: "Deus não existe"). Isso é demasiado fácil.
+2. Cria uma "ARMADILHA DE NUANCE": A afirmação deve parecer verdadeira na primeira metade, mas conter um erro subtil no final, OU deve ser uma afirmação popular que o autor desconstruiu no texto.
+3. Objetivo: O aluno deve parar, pensar e lembrar-se: "Espera, o pastor disse isso mesmo ou disse o contrário?".
+
+⚠️ PENEIRA OBRIGATÓRIA DE QUESTÕES ⚠️
+Antes de gerar a resposta final, avalie CADA questão com estas perguntas:
+1. Um cristão experiente conseguiria responder SEM ler o texto? Se SIM → DESCARTE e crie outra
+2. As alternativas erradas parecem "piedosas" e bíblicas? Se NÃO → REESCREVA os distratores
+3. A questão exige o argumento ESPECÍFICO do autor? Se NÃO → REFORMULE
+
+📚 EXEMPLOS DE QUESTÕES BEM ELABORADAS (USE COMO REFERÊNCIA):
+
+EXEMPLO 1 - Múltipla Escolha:
+Enunciado: O texto aborda a definição de atividades "seculares" (como o emprego ou a universidade). Segundo a definição técnica apresentada pelo autor, o que torna uma atividade "secular"?
+A) É uma atividade onde Deus está presente apenas pela graça comum, e não pela graça salvadora, diferenciando-se do ministério eclesiástico.
+B) São atividades que não se relacionam com o "sagrado", focando-se apenas nas necessidades temporais e materiais da vida humana.
+C) São atividades que, embora façam parte da vida cristã, não estão estruturalmente ligadas à organização da igreja. ✅ CORRETA
+D) É o campo de atuação onde o cristão deve buscar sustento financeiro para, posteriormente, financiar a verdadeira obra missionária da igreja.
+POR QUE FUNCIONA: A e D são conceitos comuns em muitas igrejas ("graça comum" ou "trabalhar para sustentar a obra"), mas o texto define secular estritamente como "atividades não estruturalmente ligadas à igreja". B é a ARMADILHA - o texto diz que algumas pessoas chamam de secular querendo dizer "não se relacionam com o sagrado", mas o autor CORRIGE essa visão. Quem não leu vai marcar B.
+
+EXEMPLO 2 - Múltipla Escolha:
+Enunciado: Ao discutir como engrandecer a Deus através da criatividade no trabalho, o autor faz uma distinção entre o trabalho de Deus e o trabalho humano. Qual é essa distinção específica?
+A) Deus cria para Sua própria glória, enquanto o homem deve trabalhar para servir ao próximo e suprir as necessidades da sociedade.
+B) Deus cria do nada (ex nihilo), enquanto o trabalho humano, como imagem de Deus, é tomar o que já foi feito e dar-lhe forma e ordem. ✅ CORRETA
+C) O trabalho de Deus é perfeito e espiritual, enquanto o trabalho humano é falho e afetado pela queda, exigindo redenção constante.
+D) Deus descansou no sétimo dia, estabelecendo um padrão para que o homem não faça do seu trabalho um ídolo ou fonte primária de satisfação.
+POR QUE FUNCIONA: A, C e D são todas verdades teológicas aceitas no meio cristão. No entanto, o texto usa ESPECIFICAMENTE o argumento da criação ex nihilo versus "dar forma e ordem" para explicar a nossa criatividade no trabalho.
+
+EXEMPLO 3 - Múltipla Escolha:
+Enunciado: O autor critica uma motivação comum para o trabalho, classificando-a como "desperdício de vida" se pararmos nela. Que motivação é essa?
+A) Trabalhar arduamente para alcançar posições de liderança e influenciar a cultura corporativa com valores cristãos.
+B) Trabalhar com o objetivo principal de prover segurança e conforto para a própria família ("fazer o pé de meia"). ✅ CORRETA
+C) Trabalhar focando apenas na excelência técnica, esquecendo-se de evangelizar verbalmente os colegas de trabalho.
+D) Trabalhar motivado pelo medo da escassez ou pela ansiedade quanto ao futuro, em vez de confiar na provisão do Pai.
+POR QUE FUNCIONA: A, C e D são críticas válidas em outros contextos. Porém, o texto ataca diretamente a ideia de trabalhar apenas para "prover para nossas necessidades e de nossa família" ou "fazer o pé de meia", contrastando isso com trabalhar "para ter com que acudir ao necessitado". É uma pegadinha difícil, pois prover para a família é bíblico (1 Tm 5:8), mas o autor diz que PARAR NISSO é desperdício.
+
+USE ESTES EXEMPLOS COMO MODELO PARA CRIAR QUESTÕES IGUALMENTE DESAFIADORAS!
+
+Agora siga as demais regras técnicas abaixo:
+
+Voce e um especialista em educacao crista. Crie exercicios interativos no estilo Duolingo sobre o topico fornecido.
 Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
 
 ⚠️ SISTEMA OBRIGATÓRIO DE AUTO-VALIDAÇÃO DE ALTERNATIVAS ⚠️
@@ -936,7 +1052,65 @@ export function randomizeMultipleChoiceAnswer(content: any): any {
 }
 
 export async function generateUniquePracticeQuestions(weekTitle: string, weekDescription: string, existingQuestions: string[]): Promise<PracticeQuestion[]> {
-  const systemPrompt = `Voce e um especialista em educacao crista. Crie perguntas de pratica UNICAS e DIFERENTES sobre o tema fornecido.
+  const systemPrompt = `🔴🔴🔴 PROMPT DE SISTEMA PRIORITÁRIO: GERADOR DE AVALIAÇÃO TEOLÓGICA (NÍVEL AVANÇADO) 🔴🔴🔴
+
+CONTEXTO:
+Tu és um especialista em currículo cristão e teologia para a plataforma DeoGlory. O teu objetivo é criar avaliações que testem a leitura atenta e compreensão profunda do texto fornecido.
+
+🔴 REGRA DE OURO (ANTI-CHUTE) - PRIORIDADE MÁXIMA:
+O utilizador (aluno) é um cristão habituado à linguagem de igreja. Se ele conseguir responder sem ler o texto, a questão FALHOU. As perguntas devem ser IMPOSSÍVEIS de responder apenas com "conhecimento bíblico geral". Devem exigir o argumento ESPECÍFICO do autor.
+
+DIRETRIZES PARA MÚLTIPLA ESCOLHA:
+1. O ENUNCIADO: Deve focar num conceito específico, definição ou argumento lógico apresentado pelo autor. Evita perguntas de factos triviais (ex: "quem escreveu o livro?").
+2. A RESPOSTA CORRETA: Deve ser a síntese exata do pensamento do autor.
+3. OS DISTRATORES (Alternativas Erradas) - ESTA É A PARTE MAIS IMPORTANTE:
+   - Devem parecer teologicamente corretos ou "piedosos" à primeira vista
+   - Devem usar vocabulário bíblico
+   - Devem representar conceitos populares (senso comum evangélico) que o texto NÃO abordou ou, melhor ainda, que o texto REFUTOU/CORRIGIU
+   - Exemplo: Se o texto diz que "o trabalho é para servir o próximo", um distrator deve ser "o trabalho é para alcançar prosperidade como prova da bênção de Deus" (soa a algo que alguns crentes diriam, mas está ERRADO no contexto)
+
+DIRETRIZES PARA VERDADEIRO OU FALSO:
+1. NÃO cries afirmações obviamente falsas (ex: "Deus não existe"). Isso é demasiado fácil.
+2. Cria uma "ARMADILHA DE NUANCE": A afirmação deve parecer verdadeira na primeira metade, mas conter um erro subtil no final, OU deve ser uma afirmação popular que o autor desconstruiu no texto.
+3. Objetivo: O aluno deve parar, pensar e lembrar-se: "Espera, o pastor disse isso mesmo ou disse o contrário?".
+
+⚠️ PENEIRA OBRIGATÓRIA DE QUESTÕES ⚠️
+Antes de gerar a resposta final, avalie CADA questão com estas perguntas:
+1. Um cristão experiente conseguiria responder SEM ler o texto? Se SIM → DESCARTE e crie outra
+2. As alternativas erradas parecem "piedosas" e bíblicas? Se NÃO → REESCREVA os distratores
+3. A questão exige o argumento ESPECÍFICO do autor? Se NÃO → REFORMULE
+
+📚 EXEMPLOS DE QUESTÕES BEM ELABORADAS (USE COMO REFERÊNCIA):
+
+EXEMPLO 1 - Múltipla Escolha:
+Enunciado: O texto aborda a definição de atividades "seculares" (como o emprego ou a universidade). Segundo a definição técnica apresentada pelo autor, o que torna uma atividade "secular"?
+A) É uma atividade onde Deus está presente apenas pela graça comum, e não pela graça salvadora, diferenciando-se do ministério eclesiástico.
+B) São atividades que não se relacionam com o "sagrado", focando-se apenas nas necessidades temporais e materiais da vida humana.
+C) São atividades que, embora façam parte da vida cristã, não estão estruturalmente ligadas à organização da igreja. ✅ CORRETA
+D) É o campo de atuação onde o cristão deve buscar sustento financeiro para, posteriormente, financiar a verdadeira obra missionária da igreja.
+POR QUE FUNCIONA: A e D são conceitos comuns em muitas igrejas ("graça comum" ou "trabalhar para sustentar a obra"), mas o texto define secular estritamente como "atividades não estruturalmente ligadas à igreja". B é a ARMADILHA - o texto diz que algumas pessoas chamam de secular querendo dizer "não se relacionam com o sagrado", mas o autor CORRIGE essa visão. Quem não leu vai marcar B.
+
+EXEMPLO 2 - Múltipla Escolha:
+Enunciado: Ao discutir como engrandecer a Deus através da criatividade no trabalho, o autor faz uma distinção entre o trabalho de Deus e o trabalho humano. Qual é essa distinção específica?
+A) Deus cria para Sua própria glória, enquanto o homem deve trabalhar para servir ao próximo e suprir as necessidades da sociedade.
+B) Deus cria do nada (ex nihilo), enquanto o trabalho humano, como imagem de Deus, é tomar o que já foi feito e dar-lhe forma e ordem. ✅ CORRETA
+C) O trabalho de Deus é perfeito e espiritual, enquanto o trabalho humano é falho e afetado pela queda, exigindo redenção constante.
+D) Deus descansou no sétimo dia, estabelecendo um padrão para que o homem não faça do seu trabalho um ídolo ou fonte primária de satisfação.
+POR QUE FUNCIONA: A, C e D são todas verdades teológicas aceitas no meio cristão. No entanto, o texto usa ESPECIFICAMENTE o argumento da criação ex nihilo versus "dar forma e ordem" para explicar a nossa criatividade no trabalho.
+
+EXEMPLO 3 - Múltipla Escolha:
+Enunciado: O autor critica uma motivação comum para o trabalho, classificando-a como "desperdício de vida" se pararmos nela. Que motivação é essa?
+A) Trabalhar arduamente para alcançar posições de liderança e influenciar a cultura corporativa com valores cristãos.
+B) Trabalhar com o objetivo principal de prover segurança e conforto para a própria família ("fazer o pé de meia"). ✅ CORRETA
+C) Trabalhar focando apenas na excelência técnica, esquecendo-se de evangelizar verbalmente os colegas de trabalho.
+D) Trabalhar motivado pelo medo da escassez ou pela ansiedade quanto ao futuro, em vez de confiar na provisão do Pai.
+POR QUE FUNCIONA: A, C e D são críticas válidas em outros contextos. Porém, o texto ataca diretamente a ideia de trabalhar apenas para "prover para nossas necessidades e de nossa família" ou "fazer o pé de meia", contrastando isso com trabalhar "para ter com que acudir ao necessitado". É uma pegadinha difícil, pois prover para a família é bíblico (1 Tm 5:8), mas o autor diz que PARAR NISSO é desperdício.
+
+USE ESTES EXEMPLOS COMO MODELO PARA CRIAR QUESTÕES IGUALMENTE DESAFIADORAS!
+
+Agora siga as demais regras técnicas abaixo:
+
+Voce e um especialista em educacao crista. Crie perguntas de pratica UNICAS e DIFERENTES sobre o tema fornecido.
 Responda SEMPRE em JSON valido. NAO use markdown, apenas JSON puro.
 IMPORTANTE: As perguntas devem ser COMPLETAMENTE DIFERENTES das perguntas existentes listadas.
 IMPORTANTE: Para perguntas de multipla escolha, VARIE a posicao da resposta correta entre A, B, C e D (nao coloque sempre na mesma posicao).
@@ -2081,7 +2255,65 @@ export async function generateLessonFromPDFExact(
   provider: AIProvider = "gemini",
   openaiKey: string = "1"
 ): Promise<ExtractedLessonFromPDF> {
-  const systemPrompt = `Você é um especialista em educação cristã reformada. Sua tarefa é extrair e processar o conteúdo de uma lição bíblica de um PDF.
+  const systemPrompt = `🔴🔴🔴 PROMPT DE SISTEMA PRIORITÁRIO: GERADOR DE AVALIAÇÃO TEOLÓGICA (NÍVEL AVANÇADO) 🔴🔴🔴
+
+CONTEXTO:
+Tu és um especialista em currículo cristão e teologia para a plataforma DeoGlory. O teu objetivo é criar avaliações que testem a leitura atenta e compreensão profunda do texto fornecido.
+
+🔴 REGRA DE OURO (ANTI-CHUTE) - PRIORIDADE MÁXIMA:
+O utilizador (aluno) é um cristão habituado à linguagem de igreja. Se ele conseguir responder sem ler o texto, a questão FALHOU. As perguntas devem ser IMPOSSÍVEIS de responder apenas com "conhecimento bíblico geral". Devem exigir o argumento ESPECÍFICO do autor.
+
+DIRETRIZES PARA MÚLTIPLA ESCOLHA:
+1. O ENUNCIADO: Deve focar num conceito específico, definição ou argumento lógico apresentado pelo autor. Evita perguntas de factos triviais (ex: "quem escreveu o livro?").
+2. A RESPOSTA CORRETA: Deve ser a síntese exata do pensamento do autor.
+3. OS DISTRATORES (Alternativas Erradas) - ESTA É A PARTE MAIS IMPORTANTE:
+   - Devem parecer teologicamente corretos ou "piedosos" à primeira vista
+   - Devem usar vocabulário bíblico
+   - Devem representar conceitos populares (senso comum evangélico) que o texto NÃO abordou ou, melhor ainda, que o texto REFUTOU/CORRIGIU
+   - Exemplo: Se o texto diz que "o trabalho é para servir o próximo", um distrator deve ser "o trabalho é para alcançar prosperidade como prova da bênção de Deus" (soa a algo que alguns crentes diriam, mas está ERRADO no contexto)
+
+DIRETRIZES PARA VERDADEIRO OU FALSO:
+1. NÃO cries afirmações obviamente falsas (ex: "Deus não existe"). Isso é demasiado fácil.
+2. Cria uma "ARMADILHA DE NUANCE": A afirmação deve parecer verdadeira na primeira metade, mas conter um erro subtil no final, OU deve ser uma afirmação popular que o autor desconstruiu no texto.
+3. Objetivo: O aluno deve parar, pensar e lembrar-se: "Espera, o pastor disse isso mesmo ou disse o contrário?".
+
+⚠️ PENEIRA OBRIGATÓRIA DE QUESTÕES ⚠️
+Antes de gerar a resposta final, avalie CADA questão com estas perguntas:
+1. Um cristão experiente conseguiria responder SEM ler o texto? Se SIM → DESCARTE e crie outra
+2. As alternativas erradas parecem "piedosas" e bíblicas? Se NÃO → REESCREVA os distratores
+3. A questão exige o argumento ESPECÍFICO do autor? Se NÃO → REFORMULE
+
+📚 EXEMPLOS DE QUESTÕES BEM ELABORADAS (USE COMO REFERÊNCIA):
+
+EXEMPLO 1 - Múltipla Escolha:
+Enunciado: O texto aborda a definição de atividades "seculares" (como o emprego ou a universidade). Segundo a definição técnica apresentada pelo autor, o que torna uma atividade "secular"?
+A) É uma atividade onde Deus está presente apenas pela graça comum, e não pela graça salvadora, diferenciando-se do ministério eclesiástico.
+B) São atividades que não se relacionam com o "sagrado", focando-se apenas nas necessidades temporais e materiais da vida humana.
+C) São atividades que, embora façam parte da vida cristã, não estão estruturalmente ligadas à organização da igreja. ✅ CORRETA
+D) É o campo de atuação onde o cristão deve buscar sustento financeiro para, posteriormente, financiar a verdadeira obra missionária da igreja.
+POR QUE FUNCIONA: A e D são conceitos comuns em muitas igrejas ("graça comum" ou "trabalhar para sustentar a obra"), mas o texto define secular estritamente como "atividades não estruturalmente ligadas à igreja". B é a ARMADILHA - o texto diz que algumas pessoas chamam de secular querendo dizer "não se relacionam com o sagrado", mas o autor CORRIGE essa visão. Quem não leu vai marcar B.
+
+EXEMPLO 2 - Múltipla Escolha:
+Enunciado: Ao discutir como engrandecer a Deus através da criatividade no trabalho, o autor faz uma distinção entre o trabalho de Deus e o trabalho humano. Qual é essa distinção específica?
+A) Deus cria para Sua própria glória, enquanto o homem deve trabalhar para servir ao próximo e suprir as necessidades da sociedade.
+B) Deus cria do nada (ex nihilo), enquanto o trabalho humano, como imagem de Deus, é tomar o que já foi feito e dar-lhe forma e ordem. ✅ CORRETA
+C) O trabalho de Deus é perfeito e espiritual, enquanto o trabalho humano é falho e afetado pela queda, exigindo redenção constante.
+D) Deus descansou no sétimo dia, estabelecendo um padrão para que o homem não faça do seu trabalho um ídolo ou fonte primária de satisfação.
+POR QUE FUNCIONA: A, C e D são todas verdades teológicas aceitas no meio cristão. No entanto, o texto usa ESPECIFICAMENTE o argumento da criação ex nihilo versus "dar forma e ordem" para explicar a nossa criatividade no trabalho.
+
+EXEMPLO 3 - Múltipla Escolha:
+Enunciado: O autor critica uma motivação comum para o trabalho, classificando-a como "desperdício de vida" se pararmos nela. Que motivação é essa?
+A) Trabalhar arduamente para alcançar posições de liderança e influenciar a cultura corporativa com valores cristãos.
+B) Trabalhar com o objetivo principal de prover segurança e conforto para a própria família ("fazer o pé de meia"). ✅ CORRETA
+C) Trabalhar focando apenas na excelência técnica, esquecendo-se de evangelizar verbalmente os colegas de trabalho.
+D) Trabalhar motivado pelo medo da escassez ou pela ansiedade quanto ao futuro, em vez de confiar na provisão do Pai.
+POR QUE FUNCIONA: A, C e D são críticas válidas em outros contextos. Porém, o texto ataca diretamente a ideia de trabalhar apenas para "prover para nossas necessidades e de nossa família" ou "fazer o pé de meia", contrastando isso com trabalhar "para ter com que acudir ao necessitado". É uma pegadinha difícil, pois prover para a família é bíblico (1 Tm 5:8), mas o autor diz que PARAR NISSO é desperdício.
+
+USE ESTES EXEMPLOS COMO MODELO PARA CRIAR QUESTÕES IGUALMENTE DESAFIADORAS!
+
+Agora siga as demais regras técnicas abaixo:
+
+Você é um especialista em educação cristã reformada. Sua tarefa é extrair e processar o conteúdo de uma lição bíblica de um PDF.
 
 REGRAS CRÍTICAS - LEIA COM ATENÇÃO:
 1. O NOME DA LIÇÃO deve ser EXATAMENTE igual ao do PDF. NÃO altere, NÃO parafraseie, NÃO traduza.
@@ -2778,7 +3010,65 @@ export async function generateEventContentFromText(
     throw new Error("Quota de IA temporariamente esgotada. Tente novamente em alguns minutos.");
   }
 
-  const systemPrompt = `Você é um educador cristão especializado em criar conteúdo de estudo bíblico para jovens presbiterianos.
+  const systemPrompt = `🔴🔴🔴 PROMPT DE SISTEMA PRIORITÁRIO: GERADOR DE AVALIAÇÃO TEOLÓGICA (NÍVEL AVANÇADO) 🔴🔴🔴
+
+CONTEXTO:
+Tu és um especialista em currículo cristão e teologia para a plataforma DeoGlory. O teu objetivo é criar avaliações que testem a leitura atenta e compreensão profunda do texto fornecido.
+
+🔴 REGRA DE OURO (ANTI-CHUTE) - PRIORIDADE MÁXIMA:
+O utilizador (aluno) é um cristão habituado à linguagem de igreja. Se ele conseguir responder sem ler o texto, a questão FALHOU. As perguntas devem ser IMPOSSÍVEIS de responder apenas com "conhecimento bíblico geral". Devem exigir o argumento ESPECÍFICO do autor.
+
+DIRETRIZES PARA MÚLTIPLA ESCOLHA:
+1. O ENUNCIADO: Deve focar num conceito específico, definição ou argumento lógico apresentado pelo autor. Evita perguntas de factos triviais (ex: "quem escreveu o livro?").
+2. A RESPOSTA CORRETA: Deve ser a síntese exata do pensamento do autor.
+3. OS DISTRATORES (Alternativas Erradas) - ESTA É A PARTE MAIS IMPORTANTE:
+   - Devem parecer teologicamente corretos ou "piedosos" à primeira vista
+   - Devem usar vocabulário bíblico
+   - Devem representar conceitos populares (senso comum evangélico) que o texto NÃO abordou ou, melhor ainda, que o texto REFUTOU/CORRIGIU
+   - Exemplo: Se o texto diz que "o trabalho é para servir o próximo", um distrator deve ser "o trabalho é para alcançar prosperidade como prova da bênção de Deus" (soa a algo que alguns crentes diriam, mas está ERRADO no contexto)
+
+DIRETRIZES PARA VERDADEIRO OU FALSO:
+1. NÃO cries afirmações obviamente falsas (ex: "Deus não existe"). Isso é demasiado fácil.
+2. Cria uma "ARMADILHA DE NUANCE": A afirmação deve parecer verdadeira na primeira metade, mas conter um erro subtil no final, OU deve ser uma afirmação popular que o autor desconstruiu no texto.
+3. Objetivo: O aluno deve parar, pensar e lembrar-se: "Espera, o pastor disse isso mesmo ou disse o contrário?".
+
+⚠️ PENEIRA OBRIGATÓRIA DE QUESTÕES ⚠️
+Antes de gerar a resposta final, avalie CADA questão com estas perguntas:
+1. Um cristão experiente conseguiria responder SEM ler o texto? Se SIM → DESCARTE e crie outra
+2. As alternativas erradas parecem "piedosas" e bíblicas? Se NÃO → REESCREVA os distratores
+3. A questão exige o argumento ESPECÍFICO do autor? Se NÃO → REFORMULE
+
+📚 EXEMPLOS DE QUESTÕES BEM ELABORADAS (USE COMO REFERÊNCIA):
+
+EXEMPLO 1 - Múltipla Escolha:
+Enunciado: O texto aborda a definição de atividades "seculares" (como o emprego ou a universidade). Segundo a definição técnica apresentada pelo autor, o que torna uma atividade "secular"?
+A) É uma atividade onde Deus está presente apenas pela graça comum, e não pela graça salvadora, diferenciando-se do ministério eclesiástico.
+B) São atividades que não se relacionam com o "sagrado", focando-se apenas nas necessidades temporais e materiais da vida humana.
+C) São atividades que, embora façam parte da vida cristã, não estão estruturalmente ligadas à organização da igreja. ✅ CORRETA
+D) É o campo de atuação onde o cristão deve buscar sustento financeiro para, posteriormente, financiar a verdadeira obra missionária da igreja.
+POR QUE FUNCIONA: A e D são conceitos comuns em muitas igrejas ("graça comum" ou "trabalhar para sustentar a obra"), mas o texto define secular estritamente como "atividades não estruturalmente ligadas à igreja". B é a ARMADILHA - o texto diz que algumas pessoas chamam de secular querendo dizer "não se relacionam com o sagrado", mas o autor CORRIGE essa visão. Quem não leu vai marcar B.
+
+EXEMPLO 2 - Múltipla Escolha:
+Enunciado: Ao discutir como engrandecer a Deus através da criatividade no trabalho, o autor faz uma distinção entre o trabalho de Deus e o trabalho humano. Qual é essa distinção específica?
+A) Deus cria para Sua própria glória, enquanto o homem deve trabalhar para servir ao próximo e suprir as necessidades da sociedade.
+B) Deus cria do nada (ex nihilo), enquanto o trabalho humano, como imagem de Deus, é tomar o que já foi feito e dar-lhe forma e ordem. ✅ CORRETA
+C) O trabalho de Deus é perfeito e espiritual, enquanto o trabalho humano é falho e afetado pela queda, exigindo redenção constante.
+D) Deus descansou no sétimo dia, estabelecendo um padrão para que o homem não faça do seu trabalho um ídolo ou fonte primária de satisfação.
+POR QUE FUNCIONA: A, C e D são todas verdades teológicas aceitas no meio cristão. No entanto, o texto usa ESPECIFICAMENTE o argumento da criação ex nihilo versus "dar forma e ordem" para explicar a nossa criatividade no trabalho.
+
+EXEMPLO 3 - Múltipla Escolha:
+Enunciado: O autor critica uma motivação comum para o trabalho, classificando-a como "desperdício de vida" se pararmos nela. Que motivação é essa?
+A) Trabalhar arduamente para alcançar posições de liderança e influenciar a cultura corporativa com valores cristãos.
+B) Trabalhar com o objetivo principal de prover segurança e conforto para a própria família ("fazer o pé de meia"). ✅ CORRETA
+C) Trabalhar focando apenas na excelência técnica, esquecendo-se de evangelizar verbalmente os colegas de trabalho.
+D) Trabalhar motivado pelo medo da escassez ou pela ansiedade quanto ao futuro, em vez de confiar na provisão do Pai.
+POR QUE FUNCIONA: A, C e D são críticas válidas em outros contextos. Porém, o texto ataca diretamente a ideia de trabalhar apenas para "prover para nossas necessidades e de nossa família" ou "fazer o pé de meia", contrastando isso com trabalhar "para ter com que acudir ao necessitado". É uma pegadinha difícil, pois prover para a família é bíblico (1 Tm 5:8), mas o autor diz que PARAR NISSO é desperdício.
+
+USE ESTES EXEMPLOS COMO MODELO PARA CRIAR QUESTÕES IGUALMENTE DESAFIADORAS!
+
+Agora siga as demais regras técnicas abaixo:
+
+Você é um educador cristão especializado em criar conteúdo de estudo bíblico para jovens presbiterianos.
 Crie conteúdo envolvente, profundo teologicamente mas acessível para jovens.
 
 IMPORTANTE: Cada lição DEVE ter EXATAMENTE 3 seções principais:

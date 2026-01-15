@@ -2289,12 +2289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
       
-      // Increment streak for stage completion too (idempotent - won't double-count same day)
-      try {
-        await storage.incrementStreak(req.user.id);
-      } catch (streakError) {
-        console.error("Error incrementing streak for stage completion:", streakError);
-      }
+      // NOTE: Seções (estude/medite) NÃO incrementam streak
+      // Apenas a lição COMPLETA (após Responda) incrementa a ofensiva
       
       // FIXED: Also track stage XP in season progress for magazine ranking
       try {

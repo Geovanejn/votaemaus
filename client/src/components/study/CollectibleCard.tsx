@@ -153,7 +153,6 @@ export function CollectibleCard({
               alt={name}
               className="w-full h-full object-cover"
               style={{ imageRendering: 'auto' }}
-              crossOrigin="anonymous"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black/20">

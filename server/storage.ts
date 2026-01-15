@@ -6110,13 +6110,22 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Calculate days missed
+    // IMPORTANT: We subtract 1 because the current day is still available to study.
+    // If lastActivityDate was yesterday, the user still has TODAY to complete a lesson.
+    // The recovery modal should only appear if they COMPLETELY missed at least one day.
+    // Day 1: complete lesson → lastActivityDate = today
+    // Day 2: opens app (yesterday was Day 1) → daysMissed = 0 (still have today to study)
+    // Day 3: opens app (Day 2 was completely missed) → daysMissed = 1 (missed Day 2)
     let daysMissed = 0;
     if (profile.lastActivityDate) {
       const lastDate = new Date(profile.lastActivityDate + 'T12:00:00');
       const todayDate = new Date(today + 'T12:00:00');
-      daysMissed = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+      const rawDiff = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Subtract 1 because today is not a missed day yet - user can still study today
+      daysMissed = Math.max(rawDiff - 1, 0);
     } else if (profile.currentStreak > 0) {
-      daysMissed = 1;
+      // No lastActivityDate but has streak - edge case, give benefit of doubt
+      daysMissed = 0;
     }
 
     // Progressive crystal costs: 1 day = 10, 2 = 25, 3 = 45, 4 = 70, 5+ = unrecoverable

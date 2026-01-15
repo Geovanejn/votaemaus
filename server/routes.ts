@@ -2233,6 +2233,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const unitId = parseInt(req.params.unitId);
       
       const result = await storage.markUnitAsCompleted(req.user.id, unitId);
+      
+      // Increment streak for unit completion too (ALL types of study activity count)
+      try {
+        await storage.incrementStreak(req.user.id);
+      } catch (streakError) {
+        console.error("Error incrementing streak for unit completion:", streakError);
+      }
+      
       const profile = await storage.getStudyProfile(req.user.id);
       
       res.json({ 
@@ -2280,6 +2288,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       await storage.addStageXp(req.user.id, xpToAward, stage, lessonId);
+      
+      // Increment streak for stage completion too (idempotent - won't double-count same day)
+      try {
+        await storage.incrementStreak(req.user.id);
+      } catch (streakError) {
+        console.error("Error incrementing streak for stage completion:", streakError);
+      }
       
       // FIXED: Also track stage XP in season progress for magazine ranking
       try {
@@ -9076,6 +9091,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add event XP to user profile (counts for general and annual ranking, NOT revista/season)
       // addEventXp is idempotent - it won't add XP if already awarded for this lesson
       await storage.addEventXp(req.user!.id, totalXpEarned, eventId, lessonId);
+      
+      // Increment streak for event lessons too (same as magazine lessons)
+      // This ensures daily streak is counted for ALL types of lessons
+      try {
+        await storage.incrementStreak(req.user!.id);
+      } catch (streakError) {
+        console.error("Error incrementing streak for event lesson:", streakError);
+      }
       
       // After completing a lesson, check if subsequent days should be unlocked
       // This handles the case where past days weren't unlocked yet (e.g., user started late)

@@ -7591,10 +7591,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (extractedLesson.questions && extractedLesson.questions.length > 0) {
         for (const question of extractedLesson.questions) {
+          // Use the actual question type from the AI response
+          const questionType = question.type || "multiple_choice";
           await storage.createStudyUnit({
             lessonId: lesson.id,
-            type: "multiple_choice",
-            content: JSON.stringify(question),
+            type: questionType,
+            content: JSON.stringify(question.content || question),
             orderIndex: unitIndex++,
             xpValue: 15,
             stage: "responda"

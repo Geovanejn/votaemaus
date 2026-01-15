@@ -4827,6 +4827,10 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.seasonFinalChallenges.seasonId, id));
     }
     
+    // Delete season rankings before deleting the season
+    await db.delete(schema.seasonRankings)
+      .where(eq(schema.seasonRankings.seasonId, id));
+    
     await db.delete(schema.seasons)
       .where(eq(schema.seasons.id, id));
     return true;

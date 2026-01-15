@@ -75,7 +75,7 @@ export function CollectibleCard({
     md: "w-10 h-10 sm:w-12 sm:h-12",
     lg: "w-14 h-14",
     magazine: "w-12 h-12 sm:w-14 sm:h-14",
-    event: "w-9 h-9 sm:w-10 sm:h-10", // Smaller medallion for events
+    event: "w-12 h-12 sm:w-14 sm:h-14", // Same size as lg
   };
 
   const titleSizeClasses = {
@@ -129,19 +129,19 @@ export function CollectibleCard({
 
       <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Centered rarity medallion with forged effect */}
-        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${size === 'event' ? 'my-0' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
           {rarity === "legendary" ? (
-            <Gem className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
+            <Gem className="w-6 h-6 text-white" />
           ) : rarity === "epic" ? (
-            <Sparkles className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
+            <Sparkles className="w-6 h-6 text-white" />
           ) : (
-            <Star className={size === 'event' ? "w-4 h-4 text-white" : "w-6 h-6 text-white"} />
+            <Star className="w-6 h-6 text-white" />
           )}
         </div>
 
         {/* Text plate - hidden for magazine size and season cards */}
         {size !== 'magazine' && sourceType !== 'season' && (
-          <div className={`flex flex-col justify-center items-center ${size === 'event' ? 'py-0' : 'flex-1'}`}>
+          <div className={`flex flex-col justify-center items-center ${size === 'event' ? '' : 'flex-1'}`}>
             <div className="collectible-card-text-plate">
               <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
                 {name}
@@ -151,7 +151,7 @@ export function CollectibleCard({
         )}
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative ${size === 'event' ? 'mt-1' : ''}`}
+          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative`}
         >
           {imageUrl ? (
             <img 

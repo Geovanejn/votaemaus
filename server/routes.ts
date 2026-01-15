@@ -2234,12 +2234,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const result = await storage.markUnitAsCompleted(req.user.id, unitId);
       
-      // Increment streak for unit completion too (ALL types of study activity count)
-      try {
-        await storage.incrementStreak(req.user.id);
-      } catch (streakError) {
-        console.error("Error incrementing streak for unit completion:", streakError);
-      }
+      // NOTE: Unidades individuais NÃO incrementam streak
+      // Apenas a lição COMPLETA (após Estude + Medite + Responda) incrementa a ofensiva
       
       const profile = await storage.getStudyProfile(req.user.id);
       

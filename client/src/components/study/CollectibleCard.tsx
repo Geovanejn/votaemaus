@@ -52,8 +52,8 @@ export function CollectibleCard({
     md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
     lg: "w-[280px] h-[320px]",
     magazine: "w-[240px] min-h-[320px] sm:w-[280px] sm:min-h-[380px]",
-    // Event-specific: wider landscape format
-    event: "w-[280px] h-[220px] sm:w-[320px] sm:h-[240px]",
+    // Event-specific: wider landscape format (+10% height)
+    event: "w-[280px] h-[242px] sm:w-[320px] sm:h-[264px]",
   };
 
   // For magazine size, we use flex-1 with aspect ratio instead of fixed height

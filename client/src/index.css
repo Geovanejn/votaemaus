@@ -652,7 +652,7 @@ body {
 /* Event card variant - compact landscape layout with proportional spacing */
 .collectible-card-inner-event {
   padding: 12px;
-  gap: 8px;
+  gap: 12px;
   justify-content: flex-start;
 }
 

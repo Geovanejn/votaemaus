@@ -656,6 +656,14 @@ body {
   justify-content: flex-start;
 }
 
+/* Compact variant - minicard with only centered icon */
+.collectible-card-inner-compact {
+  padding: 8px;
+  gap: 0;
+  justify-content: center;
+  align-items: center;
+}
+
 /* Card image container - Deep Inset/Engraved frame effect (negative relief) */
 .collectible-card-image {
   position: relative;

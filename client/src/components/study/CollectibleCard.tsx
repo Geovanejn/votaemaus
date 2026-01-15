@@ -1,4 +1,4 @@
-import { Star, Gem, Crown, Sparkles } from "lucide-react";
+import { Star, Crown, Sparkles, Circle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRef } from "react";
@@ -25,10 +25,11 @@ const rarityLabels: Record<CardRarity, string> = {
   legendary: "Lendario",
 };
 
+// Icons matching the badge indicators at the top of the collection page
 const rarityIcons: Record<CardRarity, LucideIcon> = {
-  common: Star,
+  common: Circle,
   rare: Star,
-  epic: Gem,
+  epic: Sparkles,
   legendary: Crown,
 };
 
@@ -124,20 +125,14 @@ export function CollectibleCard({
         }}
       />
 
-      <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' || (size === 'compact' && sourceType === 'event') ? 'collectible-card-inner-event' : ''}`}>
         {/* Centered rarity medallion with forged effect */}
-        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${sourceType === 'season' && size === 'compact' ? 'scale-75' : ''}`}>
-          {rarity === "legendary" ? (
-            <Gem className="w-6 h-6 text-white" />
-          ) : rarity === "epic" ? (
-            <Sparkles className="w-6 h-6 text-white" />
-          ) : (
-            <Star className="w-6 h-6 text-white" />
-          )}
+        <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''} ${(sourceType === 'season' || sourceType === 'event') && size === 'compact' ? 'scale-75' : ''}`}>
+          <IconComponent className="w-6 h-6 text-white" />
         </div>
 
-        {/* Text plate - hidden for magazine size and season cards */}
-        {size !== 'magazine' && sourceType !== 'season' && (
+        {/* Text plate - hidden for magazine size, season cards, and compact event cards */}
+        {size !== 'magazine' && sourceType !== 'season' && !(size === 'compact' && sourceType === 'event') && (
           <div className={`flex flex-col justify-center items-center ${size === 'event' ? '' : 'flex-1'}`}>
             <div className="collectible-card-text-plate">
               <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>
@@ -148,7 +143,7 @@ export function CollectibleCard({
         )}
 
         <div 
-          className={`collectible-card-image ${size === 'event' ? 'flex-1' : imageHeightClasses[size]} overflow-hidden relative`}
+          className={`collectible-card-image ${size === 'event' || (size === 'compact' && sourceType === 'event') ? 'flex-1' : imageHeightClasses[size]} overflow-hidden relative`}
         >
           {imageUrl ? (
             <img 

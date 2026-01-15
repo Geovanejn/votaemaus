@@ -4668,7 +4668,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For timed_challenge, use timedQuizQuestions if available
         if (isTimedChallenge && (rawContent as any).timedQuizQuestions) {
           try {
-            parsedContent.quizQuestions = JSON.parse((rawContent as any).timedQuizQuestions);
+            let questions = JSON.parse((rawContent as any).timedQuizQuestions);
+            // Shuffle questions for variety each time user accesses
+            if (Array.isArray(questions) && questions.length > 0) {
+              for (let i = questions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [questions[i], questions[j]] = [questions[j], questions[i]];
+              }
+            }
+            parsedContent.quizQuestions = questions;
           } catch (e) {
             console.error('[Mission Content] Failed to parse timedQuizQuestions:', e);
           }
@@ -4676,7 +4684,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For quick_quiz and other quiz missions, use regular quizQuestions
         if ((isQuickQuiz || !parsedContent.quizQuestions) && rawContent.quizQuestions) {
           try {
-            parsedContent.quizQuestions = JSON.parse(rawContent.quizQuestions);
+            let questions = JSON.parse(rawContent.quizQuestions);
+            // Shuffle questions for variety each time user accesses
+            if (Array.isArray(questions) && questions.length > 0) {
+              for (let i = questions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [questions[i], questions[j]] = [questions[j], questions[i]];
+              }
+            }
+            parsedContent.quizQuestions = questions;
           } catch (e) {
             console.error('[Mission Content] Failed to parse quizQuestions:', e);
           }

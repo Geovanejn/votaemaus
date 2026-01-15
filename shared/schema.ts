@@ -808,7 +808,7 @@ export const studyProfiles = pgTable("study_profiles", {
   lastActivityDate: text("last_activity_date"),
   dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
   timezone: text("timezone").notNull().default("America/Sao_Paulo"),
-  weeklyLessonsGoal: integer("weekly_lessons_goal").notNull().default(1),
+  weeklyLessonsGoal: integer("weekly_lessons_goal").notNull().default(10),
   weeklyVersesGoal: integer("weekly_verses_goal").notNull().default(7),
   weeklyMissionsGoal: integer("weekly_missions_goal").notNull().default(3),
   weeklyDevotionalsGoal: integer("weekly_devotionals_goal").notNull().default(1),

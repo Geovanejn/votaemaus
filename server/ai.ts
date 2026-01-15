@@ -1,6 +1,41 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 import OpenAI from "openai";
 
+// Helper function to shuffle options and update correctAnswer for fill_blank
+function shuffleFillBlankOptions(options: string[], correctAnswer: string): { shuffledOptions: string[], newCorrectAnswer: string } {
+  if (!options || !Array.isArray(options) || options.length < 2) {
+    return { shuffledOptions: options || [], newCorrectAnswer: correctAnswer };
+  }
+  
+  // Create a copy and shuffle using Fisher-Yates
+  const shuffled = [...options];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  return { shuffledOptions: shuffled, newCorrectAnswer: correctAnswer };
+}
+
+// Helper function to shuffle multiple choice options and update correctIndex
+function shuffleMultipleChoiceOptions(options: string[], correctIndex: number): { shuffledOptions: string[], newCorrectIndex: number } {
+  if (!options || !Array.isArray(options) || options.length < 2 || correctIndex < 0 || correctIndex >= options.length) {
+    return { shuffledOptions: options || [], newCorrectIndex: correctIndex };
+  }
+  
+  const correctAnswer = options[correctIndex];
+  const shuffled = [...options];
+  
+  // Fisher-Yates shuffle
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  const newIndex = shuffled.indexOf(correctAnswer);
+  return { shuffledOptions: shuffled, newCorrectIndex: newIndex };
+}
+
 // AI Provider type
 export type AIProvider = "gemini" | "openai";
 
@@ -1518,6 +1553,12 @@ function normalizeUnitContent(unit: GeneratedUnit): GeneratedUnit {
         content.explanationIncorrect = `Incorreto. A resposta correta e: "${content.correctAnswer}".`;
       }
       delete content.explanation;
+      
+      // SHUFFLE OPTIONS: Randomize option positions so correct answer isn't always first
+      if (content.options && Array.isArray(content.options) && content.options.length >= 2) {
+        const { shuffledOptions } = shuffleFillBlankOptions(content.options, content.correctAnswer);
+        content.options = shuffledOptions;
+      }
       break;
       
     case "meditation":
@@ -2609,6 +2650,11 @@ Retorne APENAS o JSON, sem explicações adicionais.`;
           if (unit.type === 'multiple_choice') {
             unit.content = randomizeMultipleChoiceAnswer(unit.content);
           }
+          // Shuffle fill_blank options so correct answer isn't always first
+          if (unit.type === 'fill_blank' && unit.content?.options && Array.isArray(unit.content.options) && unit.content.correctAnswer) {
+            const { shuffledOptions } = shuffleFillBlankOptions(unit.content.options, String(unit.content.correctAnswer));
+            unit.content.options = shuffledOptions;
+          }
           return validateAndCleanUnit(unit, unit.type);
         })
         // Filter out questions with invalid options
@@ -3145,13 +3191,27 @@ Gere TODAS as 5 lições completas com ESSA ESTRUTURA EXATA.`;
                 }
               }
               
+              // Shuffle options for fill_blank and multiple_choice
+              let processedOptions = q.options;
+              let processedCorrectAnswer = q.correctAnswer;
+              
+              if (questionType === 'fill_blank' && q.options && Array.isArray(q.options) && q.options.length >= 2) {
+                const { shuffledOptions } = shuffleFillBlankOptions(q.options, String(q.correctAnswer || ''));
+                processedOptions = shuffledOptions;
+              } else if (questionType === 'multiple_choice' && q.options && Array.isArray(q.options) && q.options.length >= 2) {
+                const correctIdx = typeof q.correctAnswer === 'number' ? q.correctAnswer : 0;
+                const { shuffledOptions, newCorrectIndex } = shuffleMultipleChoiceOptions(q.options, correctIdx);
+                processedOptions = shuffledOptions;
+                processedCorrectAnswer = newCorrectIndex;
+              }
+              
               return {
                 ...q,
                 id: q.id || `q${qIdx + 1}`,
                 type: questionType,
-                correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : 0,
+                correctAnswer: processedCorrectAnswer !== undefined ? processedCorrectAnswer : 0,
                 explanation: q.explanation || "Resposta correta!",
-                options: questionType !== 'true_false' ? (q.options || []) : undefined
+                options: questionType !== 'true_false' ? (processedOptions || []) : undefined
               };
             })
           }));

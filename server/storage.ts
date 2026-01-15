@@ -5469,8 +5469,8 @@ export class DatabaseStorage implements IStorage {
     const goals = {
       lessons: {
         current: progress?.lessonsCompleted || 0,
-        target: profile?.weeklyLessonsGoal || 1,
-        completed: (progress?.lessonsCompleted || 0) >= (profile?.weeklyLessonsGoal || 1),
+        target: profile?.weeklyLessonsGoal || 10,
+        completed: (progress?.lessonsCompleted || 0) >= (profile?.weeklyLessonsGoal || 10),
       },
       verses: {
         current: progress?.versesRead || 0,

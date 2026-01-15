@@ -151,7 +151,7 @@ export function CollectibleCard({
         )}
 
         <div 
-          className={`collectible-card-image ${imageHeightClasses[size]} overflow-hidden relative`}
+          className={`collectible-card-image ${size === 'event' ? 'flex-1' : imageHeightClasses[size]} overflow-hidden relative`}
         >
           {imageUrl ? (
             <img 

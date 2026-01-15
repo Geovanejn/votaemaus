@@ -1018,35 +1018,55 @@ async function processEventCardsDistribution(): Promise<void> {
       const completedUsers = await storage.getUsersWhoCompletedEvent(event.id, totalLessons);
       const cardsAwarded: Array<{ userId: number; rarity: string }> = [];
       
-      if (event.cardId) {
+      // Create card automatically if event doesn't have one (same as manual end)
+      let cardId = event.cardId;
+      if (!cardId) {
+        console.log(`[Event Scheduler] Creating collectible card for event "${event.title}"`);
+        const newCard = await storage.createCollectibleCard({
+          name: event.title,
+          description: `Card exclusivo do evento "${event.title}"`,
+          imageUrl: event.imageUrl || null,
+          sourceType: "event",
+          sourceId: event.id,
+          availableRarities: ["common", "rare", "epic", "legendary"],
+          isActive: true,
+        });
+        cardId = newCard.id;
+        await storage.updateStudyEvent(event.id, { cardId });
+        console.log(`[Event Scheduler] Created card ${cardId} for event ${event.id}`);
+      }
+      
+      if (cardId) {
         for (const userId of completedUsers) {
-          const progress = await storage.getUserEventProgress(userId, event.id);
-          const completedProgress = progress.filter(p => p.completed);
+          // Use same calculation as manual end: correctAnswers/totalQuestions
+          const allProgress = await storage.getUserEventProgress(userId, event.id);
+          const totalCorrect = allProgress.reduce((sum, p) => sum + (p.correctAnswers || 0), 0);
+          const totalQs = allProgress.reduce((sum, p) => sum + (p.totalQuestions || 0), 0);
+          const avgPerformance = totalQs > 0 ? (totalCorrect / totalQs) * 100 : 0;
+          const anyHints = allProgress.some(p => p.usedHints);
           
-          const totalScore = completedProgress.reduce((sum, p) => sum + (p.score || 0), 0);
-          const avgScore = completedProgress.length > 0 ? totalScore / completedProgress.length : 0;
-          
+          // Calculate rarity using same thresholds as manual end
           let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
-          if (avgScore === 100) {
+          if (avgPerformance >= 95 && !anyHints) {
             rarity = 'legendary';
-          } else if (avgScore >= 80) {
+          } else if (avgPerformance >= 85) {
             rarity = 'epic';
-          } else if (avgScore >= 60) {
+          } else if (avgPerformance >= 70) {
             rarity = 'rare';
           }
           
-          const existingCard = await storage.getUserCard(userId, event.cardId);
+          const existingCard = await storage.getUserCard(userId, cardId);
           if (!existingCard) {
             await storage.awardUserCard({ 
               userId, 
-              cardId: event.cardId, 
+              cardId, 
               rarity,
               sourceType: 'event',
               sourceId: event.id,
-              performance: avgScore
+              performance: avgPerformance
             });
             cardsAwarded.push({ userId, rarity });
-            console.log(`[Event Scheduler] Awarded ${rarity} card (avg score: ${avgScore.toFixed(1)}%) to user ${userId} for event "${event.title}"`);
+            console.log(`[Event Scheduler] Awarded ${rarity} card (performance: ${avgPerformance.toFixed(1)}%) to user ${userId} for event "${event.title}"`);
           }
         }
       }

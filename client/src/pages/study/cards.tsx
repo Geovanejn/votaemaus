@@ -14,7 +14,8 @@ import {
   Star,
   Crown,
   Calendar,
-  BookOpen
+  BookOpen,
+  Circle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -135,6 +136,7 @@ export default function CardsCollectionPage() {
                 {cardsByRarity.rare.length} Raros
               </Badge>
               <Badge variant="outline" className="text-gray-600 border-gray-300 text-[9px] px-0.5 py-0 justify-center whitespace-nowrap">
+                <Circle className="h-2.5 w-2.5 mr-0.5 shrink-0" />
                 {cardsByRarity.common.length} Comuns
               </Badge>
             </div>

@@ -450,7 +450,6 @@ body {
 /* Base collectible card styles */
 .collectible-card {
   position: relative;
-  overflow: hidden;
   border-radius: 16px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -459,8 +458,10 @@ body {
   transform: translateY(-4px) scale(1.02);
 }
 
-/* Light sweep effect overlay - contained within card boundaries */
-.collectible-card::after {
+/* Light sweep effect overlay - only for rare/epic/legendary cards */
+.collectible-card-rare::after,
+.collectible-card-epic::after,
+.collectible-card-legendary::after {
   content: "";
   position: absolute;
   top: 0;
@@ -530,60 +531,65 @@ body {
   animation-duration: 3.5s;
 }
 
-/* Container for traveling lightning effect - uses SVG for smooth border path */
+/* Container for traveling lightning effect */
 .rare-lightning-container {
   position: absolute;
   inset: -4px;
-  z-index: 25;
+  z-index: 2;
   pointer-events: none;
-  border-radius: inherit;
+  border-radius: 20px;
+  animation: border-spin 2s linear infinite;
 }
 
-/* Traveling lightning using conic-gradient rotation for smooth border loop */
+/* Traveling lightning - rotating conic gradient with border mask */
 .rare-lightning-bolt {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: conic-gradient(
-    from var(--lightning-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 320deg,
-    #00BFFF 335deg,
-    #FFFFFF 345deg,
-    #00FFFF 350deg,
-    #1E90FF 355deg,
-    #00BFFF 360deg
+    transparent 270deg,
+    #0066CC 285deg,
+    #0088FF 300deg,
+    #00BFFF 320deg,
+    #00FFFF 340deg,
+    #FFFFFF 350deg,
+    #00FFFF 355deg,
+    #00BFFF 358deg,
+    transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  padding: 3px;
-  animation: lightning-rotate 2.5s linear infinite;
-  filter: blur(0.5px);
+  padding: 4px;
 }
 
-/* Lightning glow effect */
+/* Lightning glow layer */
 .rare-lightning-bolt::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: inherit;
+  inset: -6px;
+  border-radius: 26px;
   background: conic-gradient(
-    from var(--lightning-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 310deg,
-    rgba(0, 191, 255, 0.6) 330deg,
-    rgba(135, 206, 235, 0.8) 345deg,
-    rgba(0, 255, 255, 0.9) 350deg,
-    rgba(30, 144, 255, 0.8) 355deg,
-    rgba(0, 191, 255, 0.6) 360deg
+    transparent 260deg,
+    rgba(0, 102, 204, 0.4) 280deg,
+    rgba(0, 136, 255, 0.6) 300deg,
+    rgba(0, 191, 255, 0.8) 325deg,
+    rgba(0, 255, 255, 1) 345deg,
+    rgba(255, 255, 255, 0.8) 350deg,
+    rgba(0, 255, 255, 0.6) 358deg,
+    transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 6px;
-  filter: blur(4px);
-  animation: lightning-rotate 2.5s linear infinite;
+  filter: blur(10px);
+  z-index: -1;
 }
 
 /* Only show first bolt - others hidden */
@@ -592,44 +598,16 @@ body {
 }
 
 /* Lightning rotation with flicker effect */
-@keyframes lightning-rotate {
+/* Universal border spin animation for all rotating border effects */
+@keyframes border-spin {
   0% {
-    --lightning-angle: 0deg;
-    opacity: 0.9;
-  }
-  10% {
-    opacity: 1;
-  }
-  20% {
-    opacity: 0.7;
-  }
-  25% {
-    opacity: 1;
-  }
-  50% {
-    --lightning-angle: 180deg;
-    opacity: 0.85;
-  }
-  60% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 0.75;
-  }
-  75% {
-    opacity: 1;
+    transform: rotate(0deg);
   }
   100% {
-    --lightning-angle: 360deg;
-    opacity: 0.9;
+    transform: rotate(360deg);
   }
 }
 
-@property --lightning-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
 
 /* Ambient electric glow around rare card */
 .collectible-card-rare::before {
@@ -681,77 +659,69 @@ body {
   animation-duration: 2.5s;
 }
 
-/* Traveling neon line for epic cards - uses conic-gradient for smooth border loop */
-.collectible-card-epic::before {
-  content: '';
+/* Traveling neon line for epic cards */
+.epic-neon-glow {
   position: absolute;
   inset: -4px;
+  border-radius: 20px;
+  z-index: 2;
+  pointer-events: none;
+  animation: border-spin 2s linear infinite;
+}
+
+/* Neon core line */
+.epic-neon-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
   background: conic-gradient(
-    from var(--neon-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 300deg,
-    #7B2CBF 320deg,
-    #9D4EDD 335deg,
-    #C77DFF 345deg,
+    transparent 270deg,
+    #5B1F9F 285deg,
+    #7B2CBF 300deg,
+    #9D4EDD 320deg,
+    #C77DFF 340deg,
     #E0AAFF 350deg,
     #C77DFF 355deg,
     #9D4EDD 358deg,
     transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  padding: 3px;
-  animation: neon-rotate 2s linear infinite;
-  z-index: -1;
-  pointer-events: none;
-  filter: blur(0.5px);
+  padding: 4px;
 }
 
-/* Neon glow layer for depth */
-.epic-neon-glow {
+/* Neon outer glow layer */
+.epic-neon-glow::before {
+  content: '';
   position: absolute;
   inset: -6px;
-  border-radius: inherit;
+  border-radius: 26px;
   background: conic-gradient(
-    from var(--neon-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 290deg,
-    rgba(123, 44, 191, 0.4) 310deg,
-    rgba(157, 78, 221, 0.7) 330deg,
-    rgba(199, 125, 255, 0.9) 345deg,
+    transparent 260deg,
+    rgba(91, 31, 159, 0.4) 280deg,
+    rgba(123, 44, 191, 0.6) 300deg,
+    rgba(157, 78, 221, 0.8) 325deg,
+    rgba(199, 125, 255, 1) 345deg,
     rgba(224, 170, 255, 1) 350deg,
-    rgba(199, 125, 255, 0.9) 355deg,
-    rgba(157, 78, 221, 0.7) 358deg,
+    rgba(199, 125, 255, 0.6) 358deg,
     transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 6px;
-  animation: neon-rotate 2s linear infinite;
-  z-index: -2;
-  pointer-events: none;
-  filter: blur(6px);
+  filter: blur(10px);
+  z-index: -1;
 }
 
 /* Neon rotation animation */
-@keyframes neon-rotate {
-  0% {
-    --neon-angle: 0deg;
-  }
-  100% {
-    --neon-angle: 360deg;
-  }
-}
-
-@property --neon-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
 /* Subtle ambient glow pulse */
 @keyframes neon-pulse {
   0%, 100% {
@@ -855,92 +825,78 @@ body {
   animation-delay: 1.6s;
 }
 
-/* Container for traveling flame effect - uses conic-gradient for smooth border loop */
+/* Container for traveling flame effect */
 .legendary-fire-container {
   position: absolute;
   inset: -5px;
-  z-index: 25;
+  z-index: 2;
   pointer-events: none;
-  border-radius: inherit;
+  border-radius: 21px;
+  animation: border-spin 1.5s linear infinite;
 }
 
-/* Traveling flame using conic-gradient rotation */
+/* Traveling flame - rotating conic gradient with border mask */
 .legendary-flame {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+}
+
+/* Flame core line */
+.legendary-flame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: conic-gradient(
-    from var(--flame-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 280deg,
-    #FF4500 300deg,
-    #FF6B00 315deg,
-    #FF8C00 325deg,
+    transparent 240deg,
+    #CC3300 260deg,
+    #FF4500 280deg,
+    #FF6B00 300deg,
+    #FF8C00 320deg,
     #FFA500 335deg,
     #FFD700 345deg,
-    #FFFF66 350deg,
-    #FFD700 355deg,
-    #FFA500 358deg,
+    #FFFF66 352deg,
+    #FFD700 356deg,
+    #FF8C00 358deg,
     transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
-  padding: 4px;
-  animation: flame-rotate 1.8s linear infinite;
-  filter: blur(0.5px);
+  padding: 5px;
 }
 
 /* Flame glow outer layer */
 .legendary-flame::before {
   content: '';
   position: absolute;
-  inset: -4px;
-  border-radius: inherit;
+  inset: -8px;
+  border-radius: 29px;
   background: conic-gradient(
-    from var(--flame-angle, 0deg) at 50% 50%,
+    from 0deg at 50% 50%,
     transparent 0deg,
-    transparent 270deg,
-    rgba(255, 69, 0, 0.3) 290deg,
-    rgba(255, 107, 0, 0.5) 305deg,
-    rgba(255, 140, 0, 0.7) 320deg,
-    rgba(255, 165, 0, 0.9) 335deg,
+    transparent 230deg,
+    rgba(204, 51, 0, 0.4) 250deg,
+    rgba(255, 69, 0, 0.6) 270deg,
+    rgba(255, 107, 0, 0.8) 290deg,
+    rgba(255, 140, 0, 0.9) 310deg,
+    rgba(255, 165, 0, 1) 330deg,
     rgba(255, 215, 0, 1) 345deg,
-    rgba(255, 255, 100, 1) 350deg,
-    rgba(255, 215, 0, 1) 355deg,
-    rgba(255, 165, 0, 0.7) 358deg,
+    rgba(255, 255, 100, 1) 352deg,
+    rgba(255, 215, 0, 0.8) 356deg,
+    rgba(255, 140, 0, 0.5) 358deg,
     transparent 360deg
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 8px;
-  filter: blur(6px);
-  animation: flame-rotate 1.8s linear infinite, flame-flicker 0.1s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
-}
-
-/* Bright core inner layer */
-.legendary-flame::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from var(--flame-angle, 0deg) at 50% 50%,
-    transparent 0deg,
-    transparent 320deg,
-    rgba(255, 255, 200, 0.5) 340deg,
-    rgba(255, 255, 255, 0.8) 348deg,
-    rgba(255, 255, 200, 0.5) 355deg,
-    transparent 360deg
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 2px;
-  filter: blur(1px);
-  animation: flame-rotate 1.8s linear infinite;
+  filter: blur(12px);
+  z-index: -1;
 }
 
 /* Only show first flame - others hidden */
@@ -949,15 +905,6 @@ body {
 }
 
 /* Flame rotation animation */
-@keyframes flame-rotate {
-  0% {
-    --flame-angle: 0deg;
-  }
-  100% {
-    --flame-angle: 360deg;
-  }
-}
-
 /* Flame flicker effect */
 @keyframes flame-flicker {
   0% {
@@ -970,12 +917,6 @@ body {
   }
 }
 
-@property --flame-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
 /* Card inner content area */
 .collectible-card-inner {
   position: relative;
@@ -985,6 +926,8 @@ body {
   flex-direction: column;
   height: 100%;
   gap: 6px;
+  overflow: hidden;
+  border-radius: 14px;
 }
 
 /* Magazine variant - no title, equal spacing around medallion */

@@ -1,7 +1,8 @@
 import { Star, Crown, Sparkles, Circle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { BorderSnake } from "./BorderSnake";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -94,15 +95,20 @@ export function CollectibleCard({
     event: "text-[10px] sm:text-xs",
   };
 
-  // Diamond effects: epic=3, legendary=5
-  const diamondCount = rarity === "legendary" ? 5 : rarity === "epic" ? 3 : 0;
-  // Single traveling flame for legendary cards
-  const flameCount = rarity === "legendary" ? 1 : 0;
-  // Single traveling lightning bolt for rare cards
-  const lightningCount = rarity === "rare" ? 1 : 0;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
+  const showBorderSnake = rarity !== "common";
+
+  useEffect(() => {
+    if (cardRef.current && showBorderSnake) {
+      const { offsetWidth, offsetHeight } = cardRef.current;
+      setCardSize({ width: offsetWidth, height: offsetHeight });
+    }
+  }, [showBorderSnake]);
 
   return (
     <motion.div
+      ref={cardRef}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.03 }}
@@ -118,39 +124,13 @@ export function CollectibleCard({
       `}
       data-testid={`collectible-card-${rarity}`}
     >
-      {/* Fire container for legendary cards */}
-      {flameCount > 0 && (
-        <div className="legendary-fire-container">
-          {Array.from({ length: flameCount }).map((_, i) => (
-            <div key={`flame-${i}`} className="legendary-flame" />
-          ))}
-        </div>
+      {showBorderSnake && cardSize.width > 0 && cardSize.height > 0 && (
+        <BorderSnake 
+          rarity={rarity as Exclude<CardRarity, "common">} 
+          width={cardSize.width} 
+          height={cardSize.height} 
+        />
       )}
-
-      {/* Lightning container for rare cards */}
-      {lightningCount > 0 && (
-        <div className="rare-lightning-container">
-          {Array.from({ length: lightningCount }).map((_, i) => (
-            <div key={`lightning-${i}`} className="rare-lightning-bolt" />
-          ))}
-        </div>
-      )}
-
-      {/* Neon glow layer for epic cards */}
-      {rarity === "epic" && <div className="epic-neon-glow" />}
-
-      {/* Diamond sparkle effects for epic and legendary */}
-      {Array.from({ length: diamondCount }).map((_, i) => (
-        <div key={i} className="card-diamond-effect" />
-      ))}
-
-      <div 
-        className="card-shine-beam absolute inset-0 pointer-events-none z-20 rounded-[16px]"
-        style={{
-          background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.25) 23%, rgba(255,255,255,0.5) 25%, rgba(255,255,255,0.25) 27%, transparent 30%)',
-          transform: 'translateX(-100%)',
-        }}
-      />
 
       <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}

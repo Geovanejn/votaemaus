@@ -609,27 +609,27 @@ body {
   border-radius: 14px;
   overflow: hidden;
   pointer-events: none;
-  z-index: 3;
+  z-index: 10;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .collectible-card-epic .collectible-card-holo-overlay {
-  opacity: 0.25;
+  opacity: 1;
   background: linear-gradient(
     135deg,
-    rgba(139, 92, 246, 0.5) 0%,        /* Roxo */
-    rgba(167, 139, 250, 0.4) 12%,      /* Lilás */
-    rgba(236, 72, 153, 0.4) 24%,       /* Rosa */
-    rgba(59, 130, 246, 0.4) 36%,       /* Azul */
-    rgba(6, 182, 212, 0.4) 48%,        /* Ciano */
-    rgba(255, 255, 255, 0.35) 60%,     /* Branco */
-    rgba(139, 92, 246, 0.5) 72%,       /* Roxo */
-    rgba(167, 139, 250, 0.4) 84%,      /* Lilás */
-    rgba(236, 72, 153, 0.4) 100%       /* Rosa */
+    #8b5cf6 0%,        /* Roxo */
+    #a78bfa 14%,       /* Lilás */
+    #ec4899 28%,       /* Rosa */
+    #3b82f6 42%,       /* Azul */
+    #06b6d4 56%,       /* Ciano */
+    #ffffff 70%,       /* Branco */
+    #8b5cf6 84%,       /* Roxo */
+    #a78bfa 100%       /* Lilás */
   );
-  background-size: 300% 300%;
-  animation: holo-shimmer 5s ease-in-out infinite;
+  background-size: 400% 400%;
+  animation: holo-shimmer 4s ease-in-out infinite;
+  mix-blend-mode: overlay;
 }
 
 .collectible-card-legendary .collectible-card-holo-overlay {

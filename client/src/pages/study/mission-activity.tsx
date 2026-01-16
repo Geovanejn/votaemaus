@@ -565,19 +565,19 @@ function BibleFactActivity({
 }) {
   const [hasRead, setHasRead] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const visibleCardRef = useRef<HTMLDivElement>(null);
+  const shareContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const fact = content?.bibleFact || 
     'O livro de Ester é um dos dois livros da Bíblia que não menciona o nome de Deus diretamente (o outro é Cantares de Salomão). Mesmo assim, a providência divina é claramente vista em toda a narrativa.';
 
   const generateAndShareWhatsApp = useCallback(async () => {
-    if (!visibleCardRef.current) return;
+    if (!shareContainerRef.current) return;
     setGenerating(true);
     
     try {
-      // Step 1: Take literal screenshot of the visible card
-      const cardCanvas = await html2canvas(visibleCardRef.current, {
+      // Take literal screenshot of the 9:16 share container
+      const canvas = await html2canvas(shareContainerRef.current, {
         scale: 4,
         useCORS: true,
         allowTaint: true,
@@ -586,101 +586,9 @@ function BibleFactActivity({
         imageTimeout: 0,
       });
 
-      // Step 2: Create 9:16 aspect ratio canvas with card + footer
-      const targetWidth = 1080;
-      const targetHeight = 1920;
-      const padding = 80;
-      const footerHeight = 120;
-      
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = targetWidth;
-      finalCanvas.height = targetHeight;
-      const ctx = finalCanvas.getContext('2d');
-      
-      if (!ctx) {
-        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
-        setGenerating(false);
-        return;
-      }
-
-      // Draw gradient background matching the card's yellow theme
-      const gradient = ctx.createLinearGradient(0, 0, targetWidth, targetHeight);
-      gradient.addColorStop(0, '#FEF9C3');
-      gradient.addColorStop(0.5, '#FDE68A');
-      gradient.addColorStop(1, '#FCD34D');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
-
-      // Calculate card dimensions to fit in canvas with padding
-      const availableWidth = targetWidth - (padding * 2);
-      const availableHeight = targetHeight - (padding * 2) - footerHeight;
-      
-      const cardAspect = cardCanvas.width / cardCanvas.height;
-      let drawWidth, drawHeight;
-      
-      if (cardAspect > availableWidth / availableHeight) {
-        drawWidth = availableWidth;
-        drawHeight = drawWidth / cardAspect;
-      } else {
-        drawHeight = availableHeight;
-        drawWidth = drawHeight * cardAspect;
-      }
-      
-      const cardX = (targetWidth - drawWidth) / 2;
-      const cardY = padding;
-
-      // Draw rounded corners clip for the card
-      const borderRadius = 40;
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cardX + borderRadius, cardY);
-      ctx.lineTo(cardX + drawWidth - borderRadius, cardY);
-      ctx.quadraticCurveTo(cardX + drawWidth, cardY, cardX + drawWidth, cardY + borderRadius);
-      ctx.lineTo(cardX + drawWidth, cardY + drawHeight - borderRadius);
-      ctx.quadraticCurveTo(cardX + drawWidth, cardY + drawHeight, cardX + drawWidth - borderRadius, cardY + drawHeight);
-      ctx.lineTo(cardX + borderRadius, cardY + drawHeight);
-      ctx.quadraticCurveTo(cardX, cardY + drawHeight, cardX, cardY + drawHeight - borderRadius);
-      ctx.lineTo(cardX, cardY + borderRadius);
-      ctx.quadraticCurveTo(cardX, cardY, cardX + borderRadius, cardY);
-      ctx.closePath();
-      ctx.clip();
-      
-      // Draw the screenshot of the visible card
-      ctx.drawImage(cardCanvas, cardX, cardY, drawWidth, drawHeight);
-      ctx.restore();
-
-      // Draw black UMP logo in footer
-      const logoImg = new Image();
-      logoImg.crossOrigin = 'anonymous';
-      
-      await new Promise<void>((resolve, reject) => {
-        logoImg.onload = () => resolve();
-        logoImg.onerror = () => reject(new Error('Logo failed to load'));
-        logoImg.src = '/logo-ump.png';
-      });
-
-      const logoSize = 48;
-      const footerY = targetHeight - footerHeight + 20;
-      const logoX = (targetWidth - logoSize - 120) / 2;
-      
-      ctx.drawImage(logoImg, logoX, footerY, logoSize, logoSize);
-      
-      // Draw "UMP Emaús" text next to logo
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('UMP Emaús', logoX + logoSize + 12, footerY + logoSize / 2);
-      
-      // Draw website below
-      ctx.font = '18px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = '#666666';
-      ctx.textAlign = 'center';
-      ctx.fillText('umpemaus.com.br', targetWidth / 2, footerY + logoSize + 24);
-
       const shareText = `*Curiosidade Bíblica* - UMP Emaús\n\n${fact}\n\nAcesse: umpemaus.com.br`;
 
-      finalCanvas.toBlob(async (blob) => {
+      canvas.toBlob(async (blob) => {
         if (!blob) {
           toast({ title: "Erro ao gerar imagem", variant: "destructive" });
           setGenerating(false);
@@ -717,20 +625,50 @@ function BibleFactActivity({
 
   return (
     <div className="space-y-6" data-testid="bible-fact-activity">
-      <Card 
-        ref={visibleCardRef}
-        className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800"
+      {/* 9:16 aspect ratio share container - visible to user */}
+      <div 
+        ref={shareContainerRef}
+        className="rounded-2xl overflow-hidden mx-auto"
+        style={{ 
+          background: 'linear-gradient(135deg, #FEF9C3 0%, #FDE68A 50%, #FCD34D 100%)',
+          width: '100%',
+          maxWidth: '320px',
+          aspectRatio: '9/16',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '24px'
+        }}
       >
-        <div className="text-center mb-4">
-          <Lightbulb className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
-          <h3 className="text-lg font-bold text-foreground">Você Sabia?</h3>
-          <Badge variant="secondary" className="mt-2">Fato Bíblico do Dia</Badge>
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col justify-center">
+          <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200 shadow-lg">
+            <div className="text-center mb-4">
+              <Lightbulb className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
+              <h3 className="text-lg font-bold text-gray-900">Você Sabia?</h3>
+              <Badge className="mt-2 bg-yellow-100 text-yellow-800 border-yellow-300">Fato Bíblico do Dia</Badge>
+            </div>
+            
+            <p className="text-gray-800 leading-relaxed text-center text-sm" data-testid="bible-fact">
+              {fact}
+            </p>
+          </Card>
         </div>
-        
-        <p className="text-foreground/90 leading-relaxed text-center" data-testid="bible-fact">
-          {fact}
-        </p>
-      </Card>
+
+        {/* Footer with black UMP logo */}
+        <div className="flex items-center justify-center gap-3 pt-4">
+          <img 
+            src="/logo-ump.png" 
+            alt="UMP Emaús" 
+            className="w-10 h-10 object-contain"
+            crossOrigin="anonymous"
+            style={{ filter: 'brightness(0)' }}
+          />
+          <div className="text-center">
+            <p className="font-bold text-gray-900 text-sm">UMP Emaús</p>
+            <p className="text-gray-600 text-xs">umpemaus.com.br</p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-3">
         {!hasRead ? (

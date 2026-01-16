@@ -1,7 +1,7 @@
 import { Star, Crown, Sparkles, Circle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -94,7 +94,12 @@ export function CollectibleCard({
     event: "text-[10px] sm:text-xs",
   };
 
+  // Diamond effects: epic=3, legendary=5
   const diamondCount = rarity === "legendary" ? 5 : rarity === "epic" ? 3 : 0;
+  // Fire flames only for legendary cards (15 flames around the card)
+  const flameCount = rarity === "legendary" ? 15 : 0;
+  // Lightning bolts for rare cards (9 bolts around the card)
+  const lightningCount = rarity === "rare" ? 9 : 0;
 
   return (
     <motion.div
@@ -113,6 +118,28 @@ export function CollectibleCard({
       `}
       data-testid={`collectible-card-${rarity}`}
     >
+      {/* Fire container for legendary cards */}
+      {flameCount > 0 && (
+        <div className="legendary-fire-container">
+          {Array.from({ length: flameCount }).map((_, i) => (
+            <div key={`flame-${i}`} className="legendary-flame" />
+          ))}
+        </div>
+      )}
+
+      {/* Lightning container for rare cards */}
+      {lightningCount > 0 && (
+        <div className="rare-lightning-container">
+          {Array.from({ length: lightningCount }).map((_, i) => (
+            <div key={`lightning-${i}`} className="rare-lightning-bolt" />
+          ))}
+        </div>
+      )}
+
+      {/* Neon glow layer for epic cards */}
+      {rarity === "epic" && <div className="epic-neon-glow" />}
+
+      {/* Diamond sparkle effects for epic and legendary */}
       {Array.from({ length: diamondCount }).map((_, i) => (
         <div key={i} className="card-diamond-effect" />
       ))}
@@ -191,6 +218,51 @@ interface CollectibleCardModalProps {
 
 export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Sound effects based on card rarity
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Select audio source based on rarity
+    let audioSrc: string | null = null;
+    let volume = 0.3;
+
+    switch (card.rarity) {
+      case "legendary":
+        audioSrc = "/sounds/fire-loop.mp3";
+        volume = 0.3;
+        break;
+      case "epic":
+        audioSrc = "/sounds/neon-hum.mp3";
+        volume = 0.25;
+        break;
+      case "rare":
+        audioSrc = "/sounds/electric-loop.mp3";
+        volume = 0.2;
+        break;
+      default:
+        audioSrc = null;
+    }
+
+    if (audioSrc) {
+      audioRef.current = new Audio(audioSrc);
+      audioRef.current.loop = true;
+      audioRef.current.volume = volume;
+      audioRef.current.play().catch(() => {
+        // Autoplay might be blocked, ignore error
+      });
+    }
+
+    return () => {
+      // Cleanup: stop and remove audio when modal closes
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+    };
+  }, [isOpen, card.rarity]);
 
   if (!isOpen) return null;
 

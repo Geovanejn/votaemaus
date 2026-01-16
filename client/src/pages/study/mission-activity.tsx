@@ -565,34 +565,36 @@ function BibleFactActivity({
 }) {
   const [hasRead, setHasRead] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const shareCardRef = useRef<HTMLDivElement>(null);
+  const visibleCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const fact = content?.bibleFact || 
     'O livro de Ester é um dos dois livros da Bíblia que não menciona o nome de Deus diretamente (o outro é Cantares de Salomão). Mesmo assim, a providência divina é claramente vista em toda a narrativa.';
 
   const generateAndShareWhatsApp = useCallback(async () => {
-    if (!shareCardRef.current) return;
+    if (!visibleCardRef.current) return;
     setGenerating(true);
+    
     try {
-      const sourceCanvas = await html2canvas(shareCardRef.current, {
-        scale: 5,
+      // Step 1: Take literal screenshot of the visible card
+      const cardCanvas = await html2canvas(visibleCardRef.current, {
+        scale: 4,
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
         logging: false,
         imageTimeout: 0,
-        width: shareCardRef.current.offsetWidth,
-        height: shareCardRef.current.offsetHeight,
       });
 
-      const width = sourceCanvas.width;
-      const height = sourceCanvas.height;
-      const borderRadius = 50;
-
+      // Step 2: Create 9:16 aspect ratio canvas with card + footer
+      const targetWidth = 1080;
+      const targetHeight = 1920;
+      const padding = 80;
+      const footerHeight = 120;
+      
       const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = width;
-      finalCanvas.height = height;
+      finalCanvas.width = targetWidth;
+      finalCanvas.height = targetHeight;
       const ctx = finalCanvas.getContext('2d');
       
       if (!ctx) {
@@ -601,20 +603,80 @@ function BibleFactActivity({
         return;
       }
 
+      // Draw gradient background matching the card's yellow theme
+      const gradient = ctx.createLinearGradient(0, 0, targetWidth, targetHeight);
+      gradient.addColorStop(0, '#FEF9C3');
+      gradient.addColorStop(0.5, '#FDE68A');
+      gradient.addColorStop(1, '#FCD34D');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+      // Calculate card dimensions to fit in canvas with padding
+      const availableWidth = targetWidth - (padding * 2);
+      const availableHeight = targetHeight - (padding * 2) - footerHeight;
+      
+      const cardAspect = cardCanvas.width / cardCanvas.height;
+      let drawWidth, drawHeight;
+      
+      if (cardAspect > availableWidth / availableHeight) {
+        drawWidth = availableWidth;
+        drawHeight = drawWidth / cardAspect;
+      } else {
+        drawHeight = availableHeight;
+        drawWidth = drawHeight * cardAspect;
+      }
+      
+      const cardX = (targetWidth - drawWidth) / 2;
+      const cardY = padding;
+
+      // Draw rounded corners clip for the card
+      const borderRadius = 40;
+      ctx.save();
       ctx.beginPath();
-      ctx.moveTo(borderRadius, 0);
-      ctx.lineTo(width - borderRadius, 0);
-      ctx.quadraticCurveTo(width, 0, width, borderRadius);
-      ctx.lineTo(width, height - borderRadius);
-      ctx.quadraticCurveTo(width, height, width - borderRadius, height);
-      ctx.lineTo(borderRadius, height);
-      ctx.quadraticCurveTo(0, height, 0, height - borderRadius);
-      ctx.lineTo(0, borderRadius);
-      ctx.quadraticCurveTo(0, 0, borderRadius, 0);
+      ctx.moveTo(cardX + borderRadius, cardY);
+      ctx.lineTo(cardX + drawWidth - borderRadius, cardY);
+      ctx.quadraticCurveTo(cardX + drawWidth, cardY, cardX + drawWidth, cardY + borderRadius);
+      ctx.lineTo(cardX + drawWidth, cardY + drawHeight - borderRadius);
+      ctx.quadraticCurveTo(cardX + drawWidth, cardY + drawHeight, cardX + drawWidth - borderRadius, cardY + drawHeight);
+      ctx.lineTo(cardX + borderRadius, cardY + drawHeight);
+      ctx.quadraticCurveTo(cardX, cardY + drawHeight, cardX, cardY + drawHeight - borderRadius);
+      ctx.lineTo(cardX, cardY + borderRadius);
+      ctx.quadraticCurveTo(cardX, cardY, cardX + borderRadius, cardY);
       ctx.closePath();
       ctx.clip();
+      
+      // Draw the screenshot of the visible card
+      ctx.drawImage(cardCanvas, cardX, cardY, drawWidth, drawHeight);
+      ctx.restore();
 
-      ctx.drawImage(sourceCanvas, 0, 0);
+      // Draw black UMP logo in footer
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      
+      await new Promise<void>((resolve, reject) => {
+        logoImg.onload = () => resolve();
+        logoImg.onerror = () => reject(new Error('Logo failed to load'));
+        logoImg.src = '/logo-ump.png';
+      });
+
+      const logoSize = 48;
+      const footerY = targetHeight - footerHeight + 20;
+      const logoX = (targetWidth - logoSize - 120) / 2;
+      
+      ctx.drawImage(logoImg, logoX, footerY, logoSize, logoSize);
+      
+      // Draw "UMP Emaús" text next to logo
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('UMP Emaús', logoX + logoSize + 12, footerY + logoSize / 2);
+      
+      // Draw website below
+      ctx.font = '18px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#666666';
+      ctx.textAlign = 'center';
+      ctx.fillText('umpemaus.com.br', targetWidth / 2, footerY + logoSize + 24);
 
       const shareText = `*Curiosidade Bíblica* - UMP Emaús\n\n${fact}\n\nAcesse: umpemaus.com.br`;
 
@@ -655,7 +717,10 @@ function BibleFactActivity({
 
   return (
     <div className="space-y-6" data-testid="bible-fact-activity">
-      <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800">
+      <Card 
+        ref={visibleCardRef}
+        className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800"
+      >
         <div className="text-center mb-4">
           <Lightbulb className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
           <h3 className="text-lg font-bold text-foreground">Você Sabia?</h3>
@@ -706,49 +771,6 @@ function BibleFactActivity({
             </Button>
           </motion.div>
         )}
-      </div>
-
-      {/* Hidden share card for image generation - 9:16 aspect ratio */}
-      <div className="fixed -left-[9999px] top-0 pointer-events-none">
-        <div 
-          ref={shareCardRef} 
-          className="w-[360px] h-[640px] rounded-3xl overflow-hidden"
-          style={{ 
-            background: 'linear-gradient(135deg, #FEF3C7 0%, #F59E0B 50%, #D97706 100%)'
-          }}
-        >
-          <div className="h-full flex flex-col justify-between p-8">
-            {/* Header */}
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto rounded-full bg-white/30 flex items-center justify-center mb-4">
-                <Lightbulb className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-2xl font-black text-white drop-shadow-lg">Você Sabia?</h2>
-              <Badge className="mt-2 bg-white/30 text-white border-0">Curiosidade Bíblica</Badge>
-            </div>
-            
-            {/* Content */}
-            <div className="flex-1 flex items-center justify-center py-6">
-              <p className="text-white text-lg leading-relaxed text-center font-medium drop-shadow-md px-2">
-                {fact}
-              </p>
-            </div>
-            
-            {/* Footer with UMP logo */}
-            <div className="text-center pb-2">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <img 
-                  src="/logo-email.png" 
-                  alt="UMP Emaús" 
-                  className="w-8 h-8 object-contain"
-                  crossOrigin="anonymous"
-                />
-                <span className="text-black font-bold text-sm">UMP Emaús</span>
-              </div>
-              <p className="text-black/70 text-xs">umpemaus.com.br</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -181,7 +181,7 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
     {
       key: "lessons",
       icon: BookOpen,
-      label: "Licoes",
+      label: "Lições",
       ...goals.lessons,
       gradientFrom: "#4A90E2",
       gradientTo: "#357ABD",
@@ -189,7 +189,7 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
     {
       key: "verses",
       icon: BookMarked,
-      label: "Versiculos",
+      label: "Versículos",
       ...goals.verses,
       gradientFrom: "#9B59B6",
       gradientTo: "#8E44AD",
@@ -197,7 +197,7 @@ export function WeeklyGoalsWidget({ compact = false, showTitle = true }: WeeklyG
     {
       key: "missions",
       icon: ListChecks,
-      label: "Missoes",
+      label: "Missões",
       ...goals.missions,
       gradientFrom: "#5DADE2",
       gradientTo: "#3498DB",

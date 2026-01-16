@@ -155,14 +155,11 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Use optimized resolution per platform to avoid WhatsApp/Instagram recompression
-      // WhatsApp/Instagram: 1080x1920 (native story size) - avoids aggressive recompression
-      // Download: 2160x3840 (ultra high res) - maximum quality for saving
-      const isDownload = platform === 'download';
-      const cardWidth = isDownload ? 2160 : 1080;
-      const cardHeight = isDownload ? 3840 : 1920;
-      const scaleFactor = isDownload ? 8 : 4; // 2160/270=8, 1080/270=4
-      const borderRadius = isDownload ? 80 : 40;
+      // Use ultra high resolution for sharp export (2x story resolution)
+      const cardWidth = 2160; // 2x Full HD width for stories
+      const cardHeight = 3840; // 2x Full HD height for stories (9:16)
+      const scale = 1; // No scaling needed since we're already at full resolution
+      const borderRadius = 80; // Scaled border-radius for ultra high res
       
       // Create off-screen container with fully transparent background
       // This prevents blending with Dialog's light background
@@ -181,7 +178,7 @@ export default function VersiculoDoDiaPage() {
       `;
       document.body.appendChild(offscreenContainer);
       
-      // Clone the share card into the off-screen container at target resolution
+      // Clone the share card into the off-screen container at full resolution
       const clonedCard = shareCardRef.current.cloneNode(true) as HTMLElement;
       clonedCard.style.cssText = `
         width: ${cardWidth}px;
@@ -193,59 +190,39 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Set explicit pixel sizes for export (25% smaller than proportional preview sizes)
+      // Set explicit pixel sizes for ultra high-res export (25% smaller than proportional preview sizes)
+      // Preview at 270px width has these rem sizes, scaled to 2160px (8x) then reduced 25%
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
         if (!isNaN(currentSize)) {
-          // Convert rem to px at scale factor, then reduce 25%
-          const pxSize = Math.round(currentSize * 16 * scaleFactor * 0.75);
+          // Convert rem to px at 8x scale (2160/270), then reduce 25%
+          const pxSize = Math.round(currentSize * 16 * 8 * 0.75);
           htmlEl.style.fontSize = `${pxSize}px`;
         }
       });
       
-      // Scale padding for target resolution
+      // Scale padding for ultra high-res
       const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
       if (contentContainer) {
-        const padding = Math.round(1.5 * 16 * scaleFactor); // 1.5rem * 16 * scale
-        contentContainer.style.padding = `${padding}px`;
+        contentContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
       }
       
-      // Scale logo for target resolution (4.8rem * 16 * scale * 0.75)
+      // Scale logo for ultra high-res (4.8rem * 16 * 8 * 0.75 = 460px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
-        const logoHeight = Math.round(4.8 * 16 * scaleFactor * 0.75);
-        logo.style.height = `${logoHeight}px`;
-      }
-      
-      // For WhatsApp/Instagram, resize background image to target resolution
-      const bgImg = clonedCard.querySelector('img[src]') as HTMLImageElement;
-      if (bgImg && !isDownload && croppedBgDataUrl) {
-        // Create a resized version of the background for social media
-        const resizeCanvas = document.createElement('canvas');
-        resizeCanvas.width = cardWidth;
-        resizeCanvas.height = cardHeight;
-        const resizeCtx = resizeCanvas.getContext('2d');
-        if (resizeCtx) {
-          const tempImg = new Image();
-          tempImg.src = croppedBgDataUrl;
-          await new Promise(resolve => { tempImg.onload = resolve; });
-          resizeCtx.imageSmoothingEnabled = true;
-          resizeCtx.imageSmoothingQuality = 'high';
-          resizeCtx.drawImage(tempImg, 0, 0, cardWidth, cardHeight);
-          bgImg.src = resizeCanvas.toDataURL('image/jpeg', 0.95);
-        }
+        logo.style.height = '460px';
       }
       
       offscreenContainer.appendChild(clonedCard);
       
       // Wait for images to load in cloned element
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 150));
       
-      // Capture from the off-screen container at target resolution
+      // Capture from the off-screen container at full resolution
       const sourceCanvas = await html2canvas(clonedCard, {
-        scale: 1,
+        scale: scale,
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
@@ -262,7 +239,7 @@ export default function VersiculoDoDiaPage() {
       // This prevents white pixels from ever being blended into the canvas
       const srcWidth = sourceCanvas.width;
       const srcHeight = sourceCanvas.height;
-      const scaledRadius = borderRadius;
+      const scaledRadius = Math.round(borderRadius * scale);
       
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = srcWidth;

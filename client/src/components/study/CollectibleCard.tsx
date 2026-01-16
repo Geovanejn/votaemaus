@@ -100,11 +100,29 @@ export function CollectibleCard({
   const showBorderSnake = rarity !== "common";
 
   useEffect(() => {
-    if (cardRef.current && showBorderSnake) {
-      const { offsetWidth, offsetHeight } = cardRef.current;
-      setCardSize({ width: offsetWidth, height: offsetHeight });
-    }
-  }, [showBorderSnake]);
+    if (!cardRef.current || !showBorderSnake) return;
+    
+    const updateSize = () => {
+      if (cardRef.current) {
+        const { offsetWidth, offsetHeight } = cardRef.current;
+        if (offsetWidth > 0 && offsetHeight > 0) {
+          setCardSize({ width: offsetWidth, height: offsetHeight });
+        }
+      }
+    };
+    
+    updateSize();
+    
+    const timer = setTimeout(updateSize, 100);
+    
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(cardRef.current);
+    
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
+  }, [showBorderSnake, size]);
 
   return (
     <motion.div

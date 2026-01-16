@@ -17,9 +17,9 @@ export default function DemoCardsPage() {
         <h1 className="text-3xl font-bold text-white text-center mb-2">Demo - Efeitos de Cards</h1>
         <p className="text-gray-400 text-center mb-8">Clique em um card para ver em tamanho maior</p>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 justify-items-center overflow-visible p-8">
           {demoCards.map((card) => (
-            <div key={card.id} className="flex flex-col items-center gap-2">
+            <div key={card.id} className="flex flex-col items-center gap-2 overflow-visible">
               <CollectibleCard
                 name={card.name}
                 rarity={card.rarity}
@@ -33,14 +33,15 @@ export default function DemoCardsPage() {
 
         <div className="mt-12">
           <h2 className="text-xl font-semibold text-white mb-4">Tamanho Grande (Modal)</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 justify-items-center overflow-visible p-8">
             {demoCards.map((card) => (
-              <CollectibleCard
-                key={`lg-${card.id}`}
-                name={card.name}
-                rarity={card.rarity}
-                size="lg"
-              />
+              <div key={`lg-${card.id}`} className="overflow-visible">
+                <CollectibleCard
+                  name={card.name}
+                  rarity={card.rarity}
+                  size="lg"
+                />
+              </div>
             ))}
           </div>
         </div>

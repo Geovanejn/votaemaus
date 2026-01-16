@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { CardRarity } from "./CollectibleCard";
 
 interface BorderSnakeProps {
@@ -9,100 +10,108 @@ interface BorderSnakeProps {
 
 const rarityConfig = {
   rare: {
-    colors: ["#00FFFF", "#00BFFF", "#0088FF", "#0066CC"],
-    glowColor: "rgba(0, 191, 255, 0.5)",
+    color: "#00FFFF",
+    glowColor: "rgba(0, 255, 255, 0.8)",
     duration: 2.5,
-    dashLength: 280,
+    dashLength: 200,
   },
   epic: {
-    colors: ["#E0AAFF", "#C77DFF", "#9D4EDD", "#7B2CBF"],
-    glowColor: "rgba(168, 85, 247, 0.5)",
+    color: "#C77DFF",
+    glowColor: "rgba(200, 125, 255, 0.8)",
     duration: 3,
-    dashLength: 350,
+    dashLength: 250,
   },
   legendary: {
-    colors: ["#FFFFFF", "#FFD700", "#FF8C00", "#FF4500"],
-    glowColor: "rgba(255, 140, 0, 0.5)",
+    color: "#FFD700",
+    glowColor: "rgba(255, 200, 0, 0.8)",
     duration: 2,
-    dashLength: 420,
+    dashLength: 300,
   },
 };
 
 export function BorderSnake({ rarity, width, height, borderRadius = 16 }: BorderSnakeProps) {
+  const uniqueId = useId();
   const config = rarityConfig[rarity];
-  const offset = 6;
-  const rectWidth = width + offset * 2;
-  const rectHeight = height + offset * 2;
-  const adjustedRadius = borderRadius + offset;
+  const offset = 10;
+  const svgWidth = width + offset * 2;
+  const svgHeight = height + offset * 2;
+  const adjustedRadius = borderRadius + offset / 2;
   
-  const perimeter = 2 * (rectWidth + rectHeight - 4 * adjustedRadius) + 2 * Math.PI * adjustedRadius;
+  const perimeter = 2 * (width + height) + 2 * Math.PI * adjustedRadius;
   
-  const layers = [
-    { opacity: 0.15, width: 28, blur: 20 },
-    { opacity: 0.25, width: 20, blur: 14 },
-    { opacity: 0.4, width: 14, blur: 8 },
-    { opacity: 0.7, width: 8, blur: 4 },
-    { opacity: 1, width: 4, blur: 0 },
-  ];
+  const animationName = `snake-${uniqueId.replace(/:/g, '')}`;
 
   return (
-    <svg
-      className="absolute pointer-events-none"
-      style={{ 
+    <div
+      style={{
+        position: "absolute",
         top: -offset,
         left: -offset,
+        width: svgWidth,
+        height: svgHeight,
+        pointerEvents: "none",
+        zIndex: 100,
         overflow: "visible",
-        zIndex: 3,
       }}
-      width={rectWidth}
-      height={rectHeight}
-      viewBox={`0 0 ${rectWidth} ${rectHeight}`}
     >
-      <defs>
-        {layers.map((layer, i) => (
-          <filter key={`filter-${i}`} id={`glow-${rarity}-${i}`} x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation={layer.blur} result="blur" />
+      <svg
+        width={svgWidth}
+        height={svgHeight}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        style={{ overflow: "visible" }}
+      >
+        <defs>
+          <filter id={`blur-${uniqueId}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-        ))}
-        <linearGradient id={`gradient-${rarity}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          {config.colors.map((color, i) => (
-            <stop key={i} offset={`${i * 33}%`} stopColor={color} />
-          ))}
-        </linearGradient>
-      </defs>
-      
-      {layers.map((layer, i) => (
+        </defs>
+        
         <rect
-          key={i}
-          x={layer.width / 2}
-          y={layer.width / 2}
-          width={rectWidth - layer.width}
-          height={rectHeight - layer.width}
-          rx={adjustedRadius - layer.width / 2}
-          ry={adjustedRadius - layer.width / 2}
+          x={offset / 2}
+          y={offset / 2}
+          width={width + offset}
+          height={height + offset}
+          rx={adjustedRadius}
+          ry={adjustedRadius}
           fill="none"
-          stroke={i < 3 ? config.glowColor : `url(#gradient-${rarity})`}
-          strokeWidth={layer.width}
+          stroke={config.glowColor}
+          strokeWidth="20"
           strokeLinecap="round"
           strokeDasharray={`${config.dashLength} ${perimeter - config.dashLength}`}
-          opacity={layer.opacity}
-          filter={layer.blur > 0 ? `url(#glow-${rarity}-${i})` : undefined}
+          filter={`url(#blur-${uniqueId})`}
           style={{
-            animation: `snake-travel-${rarity} ${config.duration}s linear infinite`,
+            animation: `${animationName} ${config.duration}s linear infinite`,
           }}
         />
-      ))}
-      
-      <style>{`
-        @keyframes snake-travel-${rarity} {
-          0% { stroke-dashoffset: 0; }
-          100% { stroke-dashoffset: -${perimeter}px; }
-        }
-      `}</style>
-    </svg>
+        
+        <rect
+          x={offset / 2}
+          y={offset / 2}
+          width={width + offset}
+          height={height + offset}
+          rx={adjustedRadius}
+          ry={adjustedRadius}
+          fill="none"
+          stroke={config.color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={`${config.dashLength} ${perimeter - config.dashLength}`}
+          style={{
+            animation: `${animationName} ${config.duration}s linear infinite`,
+          }}
+        />
+        
+        <style>{`
+          @keyframes ${animationName} {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -${perimeter}px; }
+          }
+        `}</style>
+      </svg>
+    </div>
   );
 }

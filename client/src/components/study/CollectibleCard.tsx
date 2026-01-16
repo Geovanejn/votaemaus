@@ -96,10 +96,10 @@ export function CollectibleCard({
 
   // Diamond effects: epic=3, legendary=5
   const diamondCount = rarity === "legendary" ? 5 : rarity === "epic" ? 3 : 0;
-  // Fire flames only for legendary cards (15 flames around the card)
-  const flameCount = rarity === "legendary" ? 15 : 0;
-  // Lightning bolts for rare cards (9 bolts around the card)
-  const lightningCount = rarity === "rare" ? 9 : 0;
+  // Single traveling flame for legendary cards
+  const flameCount = rarity === "legendary" ? 1 : 0;
+  // Single traveling lightning bolt for rare cards
+  const lightningCount = rarity === "rare" ? 1 : 0;
 
   return (
     <motion.div

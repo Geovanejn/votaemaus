@@ -459,25 +459,43 @@ body {
   transform: translateY(-4px) scale(1.02);
 }
 
-/* Light sweep effect overlay */
+/* Light sweep effect overlay - contained within card boundaries */
 .collectible-card::after {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
+  top: 0;
+  left: -100%;
   width: 50%;
-  height: 200%;
+  height: 100%;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 40%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.08) 70%,
     transparent 100%
   );
-  animation: card-light-sweep 4s ease-in-out infinite;
+  animation: card-light-sweep-contained 4s ease-in-out infinite;
   pointer-events: none;
   z-index: 10;
+  border-radius: inherit;
+}
+
+@keyframes card-light-sweep-contained {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 200%;
+    opacity: 0;
+  }
 }
 
 /* COMMON (Silver/Gray Steel Texture) - No flash effects */
@@ -492,13 +510,12 @@ body {
   animation: none;
 }
 
-/* RARE (Blue Steel Texture) - with realistic lightning effect */
+/* RARE (Blue Steel Texture) - with traveling lightning border effect */
 .collectible-card-rare {
   background: url(/CARD_RARO_1766929049996.png) center/cover no-repeat;
   border: 2px solid #4A90C0;
   animation: rare-pulse 3s ease-in-out infinite;
   box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3), inset 0 -1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(59, 130, 246, 0.2);
-  overflow: visible !important;
 }
 
 .collectible-card-rare::after {
@@ -513,133 +530,117 @@ body {
   animation-duration: 3.5s;
 }
 
-/* Realistic lightning effect container for rare cards */
+/* Container for traveling lightning effect - uses SVG for smooth border path */
 .rare-lightning-container {
   position: absolute;
-  inset: -8px;
-  z-index: -1;
+  inset: -4px;
+  z-index: 25;
   pointer-events: none;
-  overflow: visible;
+  border-radius: inherit;
 }
 
-/* Individual lightning bolt elements */
+/* Traveling lightning using conic-gradient rotation for smooth border loop */
 .rare-lightning-bolt {
   position: absolute;
-  width: 4px;
-  height: 20px;
-  opacity: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--lightning-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 320deg,
+    #00BFFF 335deg,
+    #FFFFFF 345deg,
+    #00FFFF 350deg,
+    #1E90FF 355deg,
+    #00BFFF 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 3px;
+  animation: lightning-rotate 2.5s linear infinite;
   filter: blur(0.5px);
 }
 
-/* Lightning bolt shape - jagged electric blue */
+/* Lightning glow effect */
 .rare-lightning-bolt::before {
   content: '';
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(180deg, 
-    #00BFFF 0%, 
-    #1E90FF 30%, 
-    #00FFFF 50%, 
-    #87CEEB 70%, 
-    transparent 100%
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--lightning-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 310deg,
+    rgba(0, 191, 255, 0.6) 330deg,
+    rgba(135, 206, 235, 0.8) 345deg,
+    rgba(0, 255, 255, 0.9) 350deg,
+    rgba(30, 144, 255, 0.8) 355deg,
+    rgba(0, 191, 255, 0.6) 360deg
   );
-  clip-path: polygon(
-    50% 0%, 
-    100% 25%, 
-    60% 30%, 
-    90% 55%, 
-    50% 50%, 
-    80% 75%, 
-    50% 100%, 
-    30% 70%, 
-    60% 60%, 
-    20% 40%, 
-    50% 35%
-  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 6px;
+  filter: blur(4px);
+  animation: lightning-rotate 2.5s linear infinite;
 }
 
-/* Electric glow around bolt */
-.rare-lightning-bolt::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  background: radial-gradient(ellipse, 
-    rgba(0, 191, 255, 0.6) 0%, 
-    rgba(30, 144, 255, 0.3) 40%, 
-    transparent 70%
-  );
-  filter: blur(3px);
+/* Only show first bolt - others hidden */
+.rare-lightning-bolt:nth-child(n+2) {
+  display: none;
 }
 
-/* Lightning positions around the card - bottom */
-.rare-lightning-bolt:nth-child(1) { left: 15%; bottom: -12px; animation: lightning-strike 2s ease-out infinite; animation-delay: 0s; }
-.rare-lightning-bolt:nth-child(2) { left: 45%; bottom: -10px; animation: lightning-strike 2s ease-out infinite; animation-delay: 0.8s; }
-.rare-lightning-bolt:nth-child(3) { left: 75%; bottom: -14px; animation: lightning-strike 2s ease-out infinite; animation-delay: 1.4s; }
-
-/* Lightning positions - left side */
-.rare-lightning-bolt:nth-child(4) { left: -10px; top: 25%; transform: rotate(90deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 0.3s; }
-.rare-lightning-bolt:nth-child(5) { left: -8px; top: 60%; transform: rotate(90deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 1.1s; }
-
-/* Lightning positions - right side */
-.rare-lightning-bolt:nth-child(6) { right: -10px; top: 30%; transform: rotate(-90deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 0.6s; }
-.rare-lightning-bolt:nth-child(7) { right: -8px; top: 65%; transform: rotate(-90deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 1.7s; }
-
-/* Lightning positions - top */
-.rare-lightning-bolt:nth-child(8) { left: 30%; top: -12px; transform: rotate(180deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 0.4s; }
-.rare-lightning-bolt:nth-child(9) { left: 60%; top: -10px; transform: rotate(180deg); animation: lightning-strike 2s ease-out infinite; animation-delay: 1.2s; }
-
-/* Lightning strike animation - quick flash with fade, realistic flicker pattern */
-@keyframes lightning-strike {
-  0%, 85%, 100% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  86% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-  87% {
-    opacity: 0.2;
-    transform: scale(1);
-  }
-  88% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-  89% {
-    opacity: 0.4;
-    transform: scale(1.1);
-  }
-  90% {
+/* Lightning rotation with flicker effect */
+@keyframes lightning-rotate {
+  0% {
+    --lightning-angle: 0deg;
     opacity: 0.9;
-    transform: scale(1.15);
   }
-  92% {
-    opacity: 0.1;
-    transform: scale(1);
+  10% {
+    opacity: 1;
   }
-  94% {
-    opacity: 0.8;
-    transform: scale(1.1);
+  20% {
+    opacity: 0.7;
   }
-  96% {
-    opacity: 0;
-    transform: scale(0.9);
+  25% {
+    opacity: 1;
   }
+  50% {
+    --lightning-angle: 180deg;
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.75;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    --lightning-angle: 360deg;
+    opacity: 0.9;
+  }
+}
+
+@property --lightning-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
 }
 
 /* Ambient electric glow around rare card */
 .collectible-card-rare::before {
   content: '';
   position: absolute;
-  inset: -6px;
+  inset: -3px;
   border-radius: inherit;
   background: transparent;
   box-shadow: 
-    0 0 15px rgba(0, 191, 255, 0.4),
-    0 0 30px rgba(30, 144, 255, 0.2),
-    inset 0 0 10px rgba(0, 191, 255, 0.1);
+    0 0 10px rgba(0, 191, 255, 0.3),
+    0 0 20px rgba(30, 144, 255, 0.15);
   animation: rare-electric-pulse 1.5s ease-in-out infinite;
   z-index: -1;
   pointer-events: none;
@@ -649,24 +650,23 @@ body {
   0%, 100% {
     opacity: 0.5;
     box-shadow: 
-      0 0 15px rgba(0, 191, 255, 0.4),
-      0 0 30px rgba(30, 144, 255, 0.2);
+      0 0 10px rgba(0, 191, 255, 0.3),
+      0 0 20px rgba(30, 144, 255, 0.15);
   }
   50% {
     opacity: 1;
     box-shadow: 
-      0 0 25px rgba(0, 191, 255, 0.6),
-      0 0 50px rgba(30, 144, 255, 0.35);
+      0 0 15px rgba(0, 191, 255, 0.5),
+      0 0 30px rgba(30, 144, 255, 0.25);
   }
 }
 
-/* EPIC (Purple Steel Texture) - with realistic neon effect */
+/* EPIC (Purple Steel Texture) - with traveling neon line border effect */
 .collectible-card-epic {
   background: url(/CARD_ÉPICO_1766929050040.png) center/cover no-repeat;
   border: 2px solid #8B6BA8;
   animation: epic-glow 2.5s ease-in-out infinite;
   box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.25), inset 0 -1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(139, 92, 246, 0.25);
-  overflow: visible !important;
 }
 
 .collectible-card-epic::after {
@@ -681,75 +681,68 @@ body {
   animation-duration: 2.5s;
 }
 
-/* Realistic neon purple border effect for epic cards */
+/* Traveling neon line for epic cards - uses conic-gradient for smooth border loop */
 .collectible-card-epic::before {
   content: '';
   position: absolute;
   inset: -4px;
   border-radius: inherit;
-  padding: 3px;
   background: conic-gradient(
-    from var(--neon-angle, 0deg),
+    from var(--neon-angle, 0deg) at 50% 50%,
     transparent 0deg,
-    transparent 30deg,
-    #9D4EDD 60deg,
-    #C77DFF 90deg,
-    #E0AAFF 120deg,
-    #C77DFF 150deg,
-    #9D4EDD 180deg,
-    transparent 210deg,
+    transparent 300deg,
+    #7B2CBF 320deg,
+    #9D4EDD 335deg,
+    #C77DFF 345deg,
+    #E0AAFF 350deg,
+    #C77DFF 355deg,
+    #9D4EDD 358deg,
     transparent 360deg
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+  padding: 3px;
   animation: neon-rotate 2s linear infinite;
   z-index: -1;
   pointer-events: none;
-  filter: blur(1px);
+  filter: blur(0.5px);
 }
 
-/* Secondary glow layer for depth */
+/* Neon glow layer for depth */
 .epic-neon-glow {
   position: absolute;
-  inset: -8px;
+  inset: -6px;
   border-radius: inherit;
-  pointer-events: none;
+  background: conic-gradient(
+    from var(--neon-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 290deg,
+    rgba(123, 44, 191, 0.4) 310deg,
+    rgba(157, 78, 221, 0.7) 330deg,
+    rgba(199, 125, 255, 0.9) 345deg,
+    rgba(224, 170, 255, 1) 350deg,
+    rgba(199, 125, 255, 0.9) 355deg,
+    rgba(157, 78, 221, 0.7) 358deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 6px;
+  animation: neon-rotate 2s linear infinite;
   z-index: -2;
-  background: transparent;
-  box-shadow: 
-    0 0 20px rgba(157, 78, 221, 0.5),
-    0 0 40px rgba(157, 78, 221, 0.3),
-    0 0 60px rgba(157, 78, 221, 0.15);
-  animation: neon-pulse 1.5s ease-in-out infinite alternate;
+  pointer-events: none;
+  filter: blur(6px);
 }
 
-/* Neon rotation animation using CSS custom property */
+/* Neon rotation animation */
 @keyframes neon-rotate {
   0% {
     --neon-angle: 0deg;
-    transform: rotate(0deg);
   }
   100% {
     --neon-angle: 360deg;
-    transform: rotate(360deg);
-  }
-}
-
-/* Neon pulse glow animation */
-@keyframes neon-pulse {
-  0% {
-    opacity: 0.6;
-    box-shadow: 
-      0 0 15px rgba(157, 78, 221, 0.4),
-      0 0 30px rgba(157, 78, 221, 0.2);
-  }
-  100% {
-    opacity: 1;
-    box-shadow: 
-      0 0 25px rgba(157, 78, 221, 0.6),
-      0 0 50px rgba(157, 78, 221, 0.4),
-      0 0 80px rgba(157, 78, 221, 0.2);
   }
 }
 
@@ -757,6 +750,16 @@ body {
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
+}
+
+/* Subtle ambient glow pulse */
+@keyframes neon-pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Diamond effect for epic */
@@ -789,13 +792,12 @@ body {
   animation-delay: 1.4s;
 }
 
-/* LEGENDARY (Gold Steel Texture) - with realistic fire effect */
+/* LEGENDARY (Gold Steel Texture) - with traveling flame border effect */
 .collectible-card-legendary {
   background: url(/CARD_LENDÁRIO_1766929050060.png) center/cover no-repeat;
   border: 3px solid #D4A050;
   animation: legendary-pulse 2s ease-in-out infinite;
   box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.35), inset 0 -1px 4px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(251, 191, 36, 0.25);
-  overflow: visible !important;
 }
 
 .collectible-card-legendary::after {
@@ -853,120 +855,125 @@ body {
   animation-delay: 1.6s;
 }
 
-/* Realistic fire effect container for legendary cards */
+/* Container for traveling flame effect - uses conic-gradient for smooth border loop */
 .legendary-fire-container {
   position: absolute;
-  inset: -12px;
-  z-index: -1;
+  inset: -5px;
+  z-index: 25;
   pointer-events: none;
-  overflow: visible;
+  border-radius: inherit;
 }
 
-/* Individual flame elements */
+/* Traveling flame using conic-gradient rotation */
 .legendary-flame {
   position: absolute;
-  width: 24px;
-  height: 36px;
-  opacity: 0.85;
-  filter: blur(1px);
-  mix-blend-mode: screen;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--flame-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 280deg,
+    #FF4500 300deg,
+    #FF6B00 315deg,
+    #FF8C00 325deg,
+    #FFA500 335deg,
+    #FFD700 345deg,
+    #FFFF66 350deg,
+    #FFD700 355deg,
+    #FFA500 358deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 4px;
+  animation: flame-rotate 1.8s linear infinite;
+  filter: blur(0.5px);
 }
 
-/* Flame shape using radial gradient - realistic orange fire */
+/* Flame glow outer layer */
 .legendary-flame::before {
   content: '';
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(ellipse at bottom, 
-    #FF6B00 0%, 
-    #FF8C00 25%, 
-    #FFA500 45%, 
-    #FFD700 65%, 
-    transparent 80%
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--flame-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 270deg,
+    rgba(255, 69, 0, 0.3) 290deg,
+    rgba(255, 107, 0, 0.5) 305deg,
+    rgba(255, 140, 0, 0.7) 320deg,
+    rgba(255, 165, 0, 0.9) 335deg,
+    rgba(255, 215, 0, 1) 345deg,
+    rgba(255, 255, 100, 1) 350deg,
+    rgba(255, 215, 0, 1) 355deg,
+    rgba(255, 165, 0, 0.7) 358deg,
+    transparent 360deg
   );
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  animation: flame-flicker 0.8s ease-in-out infinite alternate;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 8px;
+  filter: blur(6px);
+  animation: flame-rotate 1.8s linear infinite, flame-flicker 0.1s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
 }
 
-/* Secondary inner flame - brighter core */
+/* Bright core inner layer */
 .legendary-flame::after {
   content: '';
   position: absolute;
-  width: 60%;
-  height: 70%;
-  left: 20%;
-  bottom: 10%;
-  background: radial-gradient(ellipse at bottom, 
-    #FFFF00 0%, 
-    #FFD700 40%, 
-    #FF8C00 70%, 
-    transparent 100%
+  inset: 2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--flame-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    transparent 320deg,
+    rgba(255, 255, 200, 0.5) 340deg,
+    rgba(255, 255, 255, 0.8) 348deg,
+    rgba(255, 255, 200, 0.5) 355deg,
+    transparent 360deg
   );
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  animation: flame-flicker-inner 0.6s ease-in-out infinite alternate;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  filter: blur(1px);
+  animation: flame-rotate 1.8s linear infinite;
 }
 
-/* Flame positions around the card - bottom */
-.legendary-flame:nth-child(1) { left: 10%; bottom: -20px; animation-delay: 0s; }
-.legendary-flame:nth-child(2) { left: 25%; bottom: -18px; animation-delay: 0.1s; }
-.legendary-flame:nth-child(3) { left: 40%; bottom: -22px; animation-delay: 0.2s; }
-.legendary-flame:nth-child(4) { left: 55%; bottom: -19px; animation-delay: 0.15s; }
-.legendary-flame:nth-child(5) { left: 70%; bottom: -21px; animation-delay: 0.25s; }
-.legendary-flame:nth-child(6) { left: 85%; bottom: -17px; animation-delay: 0.05s; }
+/* Only show first flame - others hidden */
+.legendary-flame:nth-child(n+2) {
+  display: none;
+}
 
-/* Flame positions - left side */
-.legendary-flame:nth-child(7) { left: -18px; top: 15%; transform: rotate(90deg); animation-delay: 0.3s; }
-.legendary-flame:nth-child(8) { left: -20px; top: 40%; transform: rotate(90deg); animation-delay: 0.2s; }
-.legendary-flame:nth-child(9) { left: -16px; top: 65%; transform: rotate(90deg); animation-delay: 0.35s; }
+/* Flame rotation animation */
+@keyframes flame-rotate {
+  0% {
+    --flame-angle: 0deg;
+  }
+  100% {
+    --flame-angle: 360deg;
+  }
+}
 
-/* Flame positions - right side */
-.legendary-flame:nth-child(10) { right: -18px; top: 20%; transform: rotate(-90deg); animation-delay: 0.25s; }
-.legendary-flame:nth-child(11) { right: -20px; top: 45%; transform: rotate(-90deg); animation-delay: 0.15s; }
-.legendary-flame:nth-child(12) { right: -17px; top: 70%; transform: rotate(-90deg); animation-delay: 0.3s; }
-
-/* Flame positions - top (smaller, rising flames) */
-.legendary-flame:nth-child(13) { left: 20%; top: -15px; transform: rotate(180deg) scale(0.7); animation-delay: 0.4s; }
-.legendary-flame:nth-child(14) { left: 50%; top: -18px; transform: rotate(180deg) scale(0.8); animation-delay: 0.35s; }
-.legendary-flame:nth-child(15) { left: 75%; top: -14px; transform: rotate(180deg) scale(0.6); animation-delay: 0.45s; }
-
-/* Flame flickering animation - realistic movement */
+/* Flame flicker effect */
 @keyframes flame-flicker {
   0% {
-    transform: scaleY(1) scaleX(1) translateY(0);
-    opacity: 0.8;
-  }
-  25% {
-    transform: scaleY(1.1) scaleX(0.95) translateY(-2px);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scaleY(0.9) scaleX(1.05) translateY(1px);
     opacity: 0.85;
-  }
-  75% {
-    transform: scaleY(1.15) scaleX(0.9) translateY(-3px);
-    opacity: 0.95;
+    filter: blur(5px);
   }
   100% {
-    transform: scaleY(1.05) scaleX(1) translateY(-1px);
-    opacity: 0.88;
+    opacity: 1;
+    filter: blur(7px);
   }
 }
 
-@keyframes flame-flicker-inner {
-  0% {
-    transform: scaleY(1) scaleX(1);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scaleY(1.2) scaleX(0.85);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(0.95) scaleX(1.1);
-    opacity: 0.85;
-  }
+@property --flame-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
 }
 
 /* Card inner content area */
@@ -1040,21 +1047,27 @@ body {
   object-fit: cover;
 }
 
-/* Shine beam animation for cards */
+/* Shine beam animation for cards - contained within card boundaries */
 .card-shine-beam {
-  animation: shine-sweep 3s ease-in-out infinite;
+  animation: shine-sweep-contained 3s ease-in-out infinite;
+  overflow: hidden;
+  clip-path: inset(0 round 16px);
 }
 
-@keyframes shine-sweep {
-  0%, 100% {
+@keyframes shine-sweep-contained {
+  0% {
     transform: translateX(-100%);
     opacity: 0;
   }
-  40%, 60% {
+  15% {
     opacity: 1;
   }
-  50% {
-    transform: translateX(100%);
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
   }
 }
 

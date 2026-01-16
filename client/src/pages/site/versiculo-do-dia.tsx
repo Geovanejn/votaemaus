@@ -157,51 +157,18 @@ export default function VersiculoDoDiaPage() {
       // Get the actual computed dimensions of the card
       const rect = shareCardRef.current.getBoundingClientRect();
       
-      const sourceCanvas = await html2canvas(shareCardRef.current, {
+      // html2canvas captures the rounded corners from CSS (borderRadius + overflow:hidden)
+      // No post-processing needed - export sourceCanvas directly for true transparency
+      const finalCanvas = await html2canvas(shareCardRef.current, {
         scale: 5,
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
+        allowTaint: false, // Disable to ensure CORS compliance
+        backgroundColor: null, // Transparent background
         logging: false,
         imageTimeout: 15000,
         width: rect.width,
         height: rect.height,
       });
-
-      const width = sourceCanvas.width;
-      const height = sourceCanvas.height;
-      const borderRadius = Math.round(10 * 5); // 10px border-radius * scale
-
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = width;
-      finalCanvas.height = height;
-      const ctx = finalCanvas.getContext('2d');
-      
-      if (!ctx) {
-        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
-        setGenerating(false);
-        return;
-      }
-
-      // Clear the canvas first to ensure transparency
-      ctx.clearRect(0, 0, width, height);
-
-      // Create rounded rectangle clip path
-      ctx.beginPath();
-      ctx.moveTo(borderRadius, 0);
-      ctx.lineTo(width - borderRadius, 0);
-      ctx.quadraticCurveTo(width, 0, width, borderRadius);
-      ctx.lineTo(width, height - borderRadius);
-      ctx.quadraticCurveTo(width, height, width - borderRadius, height);
-      ctx.lineTo(borderRadius, height);
-      ctx.quadraticCurveTo(0, height, 0, height - borderRadius);
-      ctx.lineTo(0, borderRadius);
-      ctx.quadraticCurveTo(0, 0, borderRadius, 0);
-      ctx.closePath();
-      ctx.clip();
-
-      // Draw source canvas onto the clipped area
-      ctx.drawImage(sourceCanvas, 0, 0, width, height);
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;

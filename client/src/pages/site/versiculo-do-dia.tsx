@@ -154,11 +154,11 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Use high resolution for sharp export (native story resolution)
-      const cardWidth = 1080; // Full HD width for stories
-      const cardHeight = 1920; // Full HD height for stories (9:16)
+      // Use ultra high resolution for sharp export (2x story resolution)
+      const cardWidth = 2160; // 2x Full HD width for stories
+      const cardHeight = 3840; // 2x Full HD height for stories (9:16)
       const scale = 1; // No scaling needed since we're already at full resolution
-      const borderRadius = 40; // Scaled border-radius for high res
+      const borderRadius = 80; // Scaled border-radius for ultra high res
       
       // Create off-screen container with fully transparent background
       // This prevents blending with Dialog's light background
@@ -189,29 +189,29 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Set explicit pixel sizes for high-res export (25% smaller than proportional preview sizes)
-      // Preview at 270px width has these rem sizes, scaled to 1080px (4x) then reduced 25%
+      // Set explicit pixel sizes for ultra high-res export (25% smaller than proportional preview sizes)
+      // Preview at 270px width has these rem sizes, scaled to 2160px (8x) then reduced 25%
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
         if (!isNaN(currentSize)) {
-          // Convert rem to px at 4x scale (1080/270), then reduce 25%
-          const pxSize = Math.round(currentSize * 16 * 4 * 0.75);
+          // Convert rem to px at 8x scale (2160/270), then reduce 25%
+          const pxSize = Math.round(currentSize * 16 * 8 * 0.75);
           htmlEl.style.fontSize = `${pxSize}px`;
         }
       });
       
-      // Scale padding for high-res
+      // Scale padding for ultra high-res
       const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
       if (contentContainer) {
-        contentContainer.style.padding = '96px'; // 1.5rem * 16 * 4 = 96px
+        contentContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
       }
       
-      // Scale logo for high-res (4.8rem * 16 * 4 * 0.75 = 230px)
+      // Scale logo for ultra high-res (4.8rem * 16 * 8 * 0.75 = 460px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
-        logo.style.height = '230px';
+        logo.style.height = '460px';
       }
       
       offscreenContainer.appendChild(clonedCard);

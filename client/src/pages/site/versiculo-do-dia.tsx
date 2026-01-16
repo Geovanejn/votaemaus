@@ -157,18 +157,54 @@ export default function VersiculoDoDiaPage() {
       // Get the actual computed dimensions of the card
       const rect = shareCardRef.current.getBoundingClientRect();
       
-      // html2canvas captures the rounded corners from CSS (borderRadius + overflow:hidden)
-      // No post-processing needed - export sourceCanvas directly for true transparency
-      const finalCanvas = await html2canvas(shareCardRef.current, {
-        scale: 5,
+      // Capture with html2canvas
+      const scale = 3; // Use scale 3 to reduce anti-aliasing artifacts
+      const sourceCanvas = await html2canvas(shareCardRef.current, {
+        scale: scale,
         useCORS: true,
-        allowTaint: false, // Disable to ensure CORS compliance
-        backgroundColor: null, // Transparent background
+        allowTaint: false,
+        backgroundColor: null,
         logging: false,
         imageTimeout: 15000,
         width: rect.width,
         height: rect.height,
       });
+
+      // Apply alpha mask to remove white border artifacts from anti-aliasing
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+      const borderRadius = Math.round(10 * scale); // 10px CSS border-radius * scale
+      
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = width;
+      finalCanvas.height = height;
+      const ctx = finalCanvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+        setGenerating(false);
+        return;
+      }
+
+      // First draw the source image
+      ctx.drawImage(sourceCanvas, 0, 0);
+      
+      // Then apply alpha mask using destination-in to force true transparency
+      // This removes any blended white pixels from anti-aliasing
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.beginPath();
+      ctx.moveTo(borderRadius, 0);
+      ctx.lineTo(width - borderRadius, 0);
+      ctx.arcTo(width, 0, width, borderRadius, borderRadius);
+      ctx.lineTo(width, height - borderRadius);
+      ctx.arcTo(width, height, width - borderRadius, height, borderRadius);
+      ctx.lineTo(borderRadius, height);
+      ctx.arcTo(0, height, 0, height - borderRadius, borderRadius);
+      ctx.lineTo(0, borderRadius);
+      ctx.arcTo(0, 0, borderRadius, 0, borderRadius);
+      ctx.closePath();
+      ctx.fillStyle = '#000'; // Color doesn't matter, only alpha
+      ctx.fill();
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;

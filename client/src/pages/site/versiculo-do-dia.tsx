@@ -157,7 +157,7 @@ export default function VersiculoDoDiaPage() {
       // Use exact integer dimensions for 9:16 aspect ratio (prevents fractional sizing artifacts)
       const cardWidth = 270; // Fixed integer width
       const cardHeight = 480; // Fixed integer height (9:16 ratio)
-      const scale = 4;
+      const scale = 6; // Higher scale for better quality
       const borderRadius = 10; // CSS border-radius in px
       
       // Create off-screen container with fully transparent background
@@ -211,7 +211,10 @@ export default function VersiculoDoDiaPage() {
       // Apply alpha mask to ensure true transparency at rounded corners
       const width = sourceCanvas.width;
       const height = sourceCanvas.height;
-      const scaledRadius = Math.round(borderRadius * scale);
+      // Use slightly smaller radius (1px less) to cut inside anti-aliased edges
+      const scaledRadius = Math.round((borderRadius - 1) * scale);
+      // Inset the mask by 1 scaled pixel to remove edge artifacts
+      const inset = scale;
       
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = width;
@@ -224,24 +227,98 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       // Draw source image first
       ctx.drawImage(sourceCanvas, 0, 0);
       
       // Apply alpha mask using destination-in for true transparency
+      // The mask is slightly inset to cut inside anti-aliased edges
       ctx.globalCompositeOperation = 'destination-in';
       ctx.beginPath();
-      ctx.moveTo(scaledRadius, 0);
-      ctx.lineTo(width - scaledRadius, 0);
-      ctx.arcTo(width, 0, width, scaledRadius, scaledRadius);
-      ctx.lineTo(width, height - scaledRadius);
-      ctx.arcTo(width, height, width - scaledRadius, height, scaledRadius);
-      ctx.lineTo(scaledRadius, height);
-      ctx.arcTo(0, height, 0, height - scaledRadius, scaledRadius);
-      ctx.lineTo(0, scaledRadius);
-      ctx.arcTo(0, 0, scaledRadius, 0, scaledRadius);
+      ctx.moveTo(inset + scaledRadius, inset);
+      ctx.lineTo(width - inset - scaledRadius, inset);
+      ctx.arcTo(width - inset, inset, width - inset, inset + scaledRadius, scaledRadius);
+      ctx.lineTo(width - inset, height - inset - scaledRadius);
+      ctx.arcTo(width - inset, height - inset, width - inset - scaledRadius, height - inset, scaledRadius);
+      ctx.lineTo(inset + scaledRadius, height - inset);
+      ctx.arcTo(inset, height - inset, inset, height - inset - scaledRadius, scaledRadius);
+      ctx.lineTo(inset, inset + scaledRadius);
+      ctx.arcTo(inset, inset, inset + scaledRadius, inset, scaledRadius);
       ctx.closePath();
       ctx.fillStyle = '#000';
       ctx.fill();
+      
+      // Post-processing: clean up any remaining white artifacts at corners
+      // Scan corner regions and force alpha=0 for pixels with high luminance + low alpha
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const cornerSize = scaledRadius + inset + 10; // Scan area slightly larger than corner radius
+      
+      // Helper to check and clean a corner region
+      const cleanCorner = (startX: number, endX: number, startY: number, endY: number) => {
+        for (let y = startY; y < endY; y++) {
+          for (let x = startX; x < endX; x++) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const a = data[idx + 3];
+            // If pixel is semi-transparent and bright (white-ish), make fully transparent
+            if (a > 0 && a < 250 && r > 200 && g > 200 && b > 200) {
+              data[idx + 3] = 0; // Force fully transparent
+            }
+          }
+        }
+      };
+      
+      // Clean all four corners
+      cleanCorner(0, cornerSize, 0, cornerSize); // Top-left
+      cleanCorner(width - cornerSize, width, 0, cornerSize); // Top-right
+      cleanCorner(0, cornerSize, height - cornerSize, height); // Bottom-left
+      cleanCorner(width - cornerSize, width, height - cornerSize, height); // Bottom-right
+      
+      // Also clean the edges (top, bottom, left, right strips)
+      const edgeWidth = inset + 5;
+      // Top edge
+      for (let y = 0; y < edgeWidth; y++) {
+        for (let x = cornerSize; x < width - cornerSize; x++) {
+          const idx = (y * width + x) * 4;
+          if (data[idx + 3] > 0 && data[idx + 3] < 250 && data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+      // Bottom edge
+      for (let y = height - edgeWidth; y < height; y++) {
+        for (let x = cornerSize; x < width - cornerSize; x++) {
+          const idx = (y * width + x) * 4;
+          if (data[idx + 3] > 0 && data[idx + 3] < 250 && data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+      // Left edge
+      for (let y = cornerSize; y < height - cornerSize; y++) {
+        for (let x = 0; x < edgeWidth; x++) {
+          const idx = (y * width + x) * 4;
+          if (data[idx + 3] > 0 && data[idx + 3] < 250 && data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+      // Right edge
+      for (let y = cornerSize; y < height - cornerSize; y++) {
+        for (let x = width - edgeWidth; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          if (data[idx + 3] > 0 && data[idx + 3] < 250 && data[idx] > 200 && data[idx + 1] > 200 && data[idx + 2] > 200) {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;

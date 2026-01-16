@@ -93,17 +93,13 @@ export default function VersiculoDoDiaPage() {
   });
 
   // Pre-load image as base64 for html2canvas
-  // Use proxy to avoid CORS issues with external images
+  // Try direct CDN first (R2/Cloudflare), then fallback to proxy for external images
   useEffect(() => {
     if (backgroundImage && shareOpen) {
       setImageBase64(null); // Reset while loading
       
-      // Use server proxy to avoid CORS issues
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`;
-      
-      const img = new Image();
-      img.crossOrigin = 'anonymous'; // Required for canvas export
-      img.onload = () => {
+      // Helper to convert image to base64
+      const convertToBase64 = (img: HTMLImageElement): string | null => {
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -113,39 +109,54 @@ export default function VersiculoDoDiaPage() {
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0);
           try {
-            const base64 = canvas.toDataURL('image/png');
-            setImageBase64(base64);
-            console.log('[DailyVerse] Image converted to base64 successfully');
-          } catch (e) {
-            console.log('[DailyVerse] Canvas export failed:', e);
-            setImageBase64(null);
+            return canvas.toDataURL('image/png');
+          } catch {
+            return null;
           }
         }
+        return null;
       };
-      img.onerror = (e) => {
-        console.log('[DailyVerse] Image load error, trying direct URL:', e);
-        // Fallback: try direct URL if proxy fails
-        const directImg = new Image();
-        directImg.crossOrigin = 'anonymous';
-        directImg.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = directImg.naturalWidth;
-          canvas.height = directImg.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(directImg, 0, 0);
-            try {
-              const base64 = canvas.toDataURL('image/png');
-              setImageBase64(base64);
-            } catch {
-              setImageBase64(null);
-            }
+
+      // Try loading directly first (works for R2 CDN with CORS)
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // Required for canvas export
+      img.onload = () => {
+        const base64 = convertToBase64(img);
+        if (base64) {
+          setImageBase64(base64);
+          console.log('[DailyVerse] Image loaded directly from CDN');
+        } else {
+          console.log('[DailyVerse] Canvas export failed, trying proxy');
+          tryProxy();
+        }
+      };
+      img.onerror = () => {
+        console.log('[DailyVerse] Direct load failed, trying proxy');
+        tryProxy();
+      };
+      
+      // Fallback to server proxy for external images without CORS
+      const tryProxy = () => {
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`;
+        const proxyImg = new Image();
+        proxyImg.crossOrigin = 'anonymous';
+        proxyImg.onload = () => {
+          const base64 = convertToBase64(proxyImg);
+          if (base64) {
+            setImageBase64(base64);
+            console.log('[DailyVerse] Image loaded via proxy');
+          } else {
+            setImageBase64(null);
           }
         };
-        directImg.onerror = () => setImageBase64(null);
-        directImg.src = backgroundImage;
+        proxyImg.onerror = () => {
+          console.log('[DailyVerse] Proxy load failed');
+          setImageBase64(null);
+        };
+        proxyImg.src = proxyUrl;
       };
-      img.src = proxyUrl;
+      
+      img.src = backgroundImage;
     }
   }, [backgroundImage, shareOpen]);
 

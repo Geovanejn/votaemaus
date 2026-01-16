@@ -144,24 +144,16 @@ export function CollectibleCard({
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (
           <div className="flex-1 flex items-center justify-center">
-            {rarity === 'legendary' ? (
-              <div className="legendary-gem-medallion w-12 h-12" />
-            ) : (
-              <div className={`collectible-card-medallion collectible-card-medallion-${rarity} w-12 h-12`}>
-                <IconComponent className="w-6 h-6 text-white" />
-              </div>
-            )}
+            <div className={`collectible-card-medallion collectible-card-medallion-${rarity} w-12 h-12`}>
+              <IconComponent className="w-6 h-6 text-white" />
+            </div>
           </div>
         ) : (
           <>
-            {/* Centered rarity medallion - gem for legendary, icon for others */}
-            {rarity === 'legendary' ? (
-              <div className={`legendary-gem-medallion ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''}`} />
-            ) : (
-              <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''}`}>
-                <IconComponent className="w-6 h-6 text-white" />
-              </div>
-            )}
+            {/* Centered rarity medallion with forged effect */}
+            <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''}`}>
+              <IconComponent className="w-6 h-6 text-white" />
+            </div>
 
             {/* Text plate - hidden for magazine size and season cards */}
             {size !== 'magazine' && sourceType !== 'season' && (

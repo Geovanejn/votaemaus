@@ -47,10 +47,11 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
   const midDash = config.dashLength * 0.5;
   const tailDash = config.dashLength;
 
-  // Offsets relativos ao headDash - camadas maiores ficam ATRÁS
-  const headOffset = 0;
-  const midOffset = headDash - midDash;   // negativo: -headDash * 0.25
-  const tailOffset = headDash - tailDash; // mais negativo: -headDash * 0.75
+  // Alinhar o FIM (frente) de todas as camadas no mesmo ponto
+  // Offset = -dashLength coloca o fim do dash no ponto 0
+  const headOffset = -headDash;
+  const midOffset = -midDash;
+  const tailOffset = -tailDash;
 
   return (
     <div
@@ -80,7 +81,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           </filter>
         </defs>
         
-        {/* Tail - camada de fundo, mais atrás */}
+        {/* Tail - rastro difuso, se estende para trás */}
         <rect
           x={offset}
           y={offset}
@@ -120,7 +121,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           }}
         />
         
-        {/* Head - camada de frente, lidera */}
+        {/* Head - brilho intenso, lidera na frente */}
         <rect
           x={offset}
           y={offset}

@@ -92,30 +92,85 @@ export default function VersiculoDoDiaPage() {
   });
 
   // Pre-load image for html2canvas - use proxy URL for CORS compatibility
-  // The proxy returns the image with proper CORS headers
   const proxyImageUrl = backgroundImage 
     ? `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`
     : null;
+
+  // State to hold the pre-cropped background image data URL
+  const [croppedBgDataUrl, setCroppedBgDataUrl] = useState<string | null>(null);
+
+  // Pre-load and crop background image to match 9:16 aspect ratio (simulates object-fit: cover)
+  useEffect(() => {
+    if (!proxyImageUrl || !shareOpen) {
+      setCroppedBgDataUrl(null);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // Target aspect ratio is 9:16 (width:height)
+      const targetAspect = 9 / 16;
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      
+      let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight;
+      
+      if (imgAspect > targetAspect) {
+        // Image is wider than target - crop sides (center horizontally)
+        srcW = img.naturalHeight * targetAspect;
+        srcX = (img.naturalWidth - srcW) / 2;
+      } else {
+        // Image is taller than target - crop top/bottom (center vertically)
+        srcH = img.naturalWidth / targetAspect;
+        srcY = (img.naturalHeight - srcH) / 2;
+      }
+      
+      // Create canvas with exact 9:16 ratio at high resolution
+      const exportWidth = 1080;
+      const exportHeight = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = exportWidth;
+      canvas.height = exportHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        // Draw cropped portion to fill the entire canvas
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, exportWidth, exportHeight);
+        setCroppedBgDataUrl(canvas.toDataURL('image/jpeg', 0.95));
+        console.log('[DailyVerse] Background image cropped successfully');
+      }
+    };
+    img.onerror = () => {
+      console.log('[DailyVerse] Failed to load background image');
+      setCroppedBgDataUrl(null);
+    };
+    img.src = proxyImageUrl;
+  }, [proxyImageUrl, shareOpen]);
 
   const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
     if (!shareCardRef.current) return;
 
     setGenerating(true);
     try {
+      // Get the actual computed dimensions of the card
+      const rect = shareCardRef.current.getBoundingClientRect();
+      
       const sourceCanvas = await html2canvas(shareCardRef.current, {
         scale: 5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
         logging: false,
-        imageTimeout: 0,
-        width: shareCardRef.current.offsetWidth,
-        height: shareCardRef.current.offsetHeight,
+        imageTimeout: 15000,
+        width: rect.width,
+        height: rect.height,
       });
 
       const width = sourceCanvas.width;
       const height = sourceCanvas.height;
-      const borderRadius = 50;
+      const borderRadius = Math.round(10 * 5); // 10px border-radius * scale
 
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = width;
@@ -128,6 +183,10 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
+      // Clear the canvas first to ensure transparency
+      ctx.clearRect(0, 0, width, height);
+
+      // Create rounded rectangle clip path
       ctx.beginPath();
       ctx.moveTo(borderRadius, 0);
       ctx.lineTo(width - borderRadius, 0);
@@ -141,7 +200,8 @@ export default function VersiculoDoDiaPage() {
       ctx.closePath();
       ctx.clip();
 
-      ctx.drawImage(sourceCanvas, 0, 0);
+      // Draw source canvas onto the clipped area
+      ctx.drawImage(sourceCanvas, 0, 0, width, height);
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
@@ -385,10 +445,10 @@ export default function VersiculoDoDiaPage() {
               textRendering: 'optimizeLegibility',
             }}
           >
-            {/* Background image - use proxy URL for CORS compatibility with html2canvas */}
-            {proxyImageUrl && (
+            {/* Background image - use pre-cropped data URL for exact 9:16 aspect ratio match */}
+            {(croppedBgDataUrl || proxyImageUrl) && (
               <img 
-                src={proxyImageUrl}
+                src={croppedBgDataUrl || proxyImageUrl || ''}
                 crossOrigin="anonymous"
                 alt=""
                 style={{
@@ -396,7 +456,7 @@ export default function VersiculoDoDiaPage() {
                   inset: 0,
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover',
+                  objectFit: croppedBgDataUrl ? 'fill' : 'cover', // Use fill for pre-cropped, cover for loading
                   display: 'block'
                 }}
               />

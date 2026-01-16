@@ -244,6 +244,19 @@ export default function VersiculoDoDiaPage() {
       // This means white edge pixels from html2canvas will NOT be painted
       ctx.globalCompositeOperation = 'source-in';
       ctx.drawImage(sourceCanvas, 0, 0);
+      
+      // Step 3: Hard alpha clamp - force semi-transparent pixels to fully transparent
+      // This removes anti-aliased edge pixels that appear white on white backgrounds
+      const imageData = ctx.getImageData(0, 0, srcWidth, srcHeight);
+      const data = imageData.data;
+      const alphaThreshold = 250; // Pixels with alpha < 250 become fully transparent
+      
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 0 && data[i] < alphaThreshold) {
+          data[i] = 0; // Force fully transparent
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;
@@ -520,7 +533,7 @@ export default function VersiculoDoDiaPage() {
             }}>
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{ 
-                  fontSize: '1.125rem', 
+                  fontSize: '0.9rem', 
                   fontWeight: 'bold', 
                   textTransform: 'uppercase', 
                   letterSpacing: '0.1em',
@@ -530,9 +543,9 @@ export default function VersiculoDoDiaPage() {
                   VERSÍCULO DO DIA
                 </h3>
                 <p style={{ 
-                  fontSize: '0.875rem', 
+                  fontSize: '0.7rem', 
                   opacity: 0.9,
-                  margin: '0.25rem 0 0 0',
+                  margin: '0.2rem 0 0 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
@@ -545,20 +558,20 @@ export default function VersiculoDoDiaPage() {
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                padding: '0 1rem'
+                padding: '0 0.8rem'
               }}>
                 <div>
                   <p style={{ 
-                    fontSize: '1.25rem', 
+                    fontSize: '1rem', 
                     fontStyle: 'italic', 
                     lineHeight: 1.35,
-                    margin: '0 0 0.75rem 0',
+                    margin: '0 0 0.6rem 0',
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                   }}>
                     "{todayVerse?.verse}"
                   </p>
                   <p style={{ 
-                    fontSize: '0.8rem', 
+                    fontSize: '0.64rem', 
                     fontWeight: 600,
                     margin: 0,
                     textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
@@ -569,7 +582,7 @@ export default function VersiculoDoDiaPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <img src={logoWhite} alt="UMP Emaús" style={{ height: '6rem', opacity: 0.95, display: 'block' }} />
+                <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.8rem', opacity: 0.95, display: 'block' }} />
               </div>
             </div>
           </div>

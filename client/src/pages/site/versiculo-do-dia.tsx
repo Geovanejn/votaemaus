@@ -48,7 +48,6 @@ interface DailyVersePost {
 export default function VersiculoDoDiaPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const params = useParams<{ date?: string }>();
@@ -92,96 +91,11 @@ export default function VersiculoDoDiaPage() {
     },
   });
 
-  // Pre-load image as base64 for html2canvas with object-fit: cover simulation
-  // Try direct CDN first (R2/Cloudflare), then fallback to proxy for external images
-  useEffect(() => {
-    if (backgroundImage && shareOpen && shareCardRef.current) {
-      setImageBase64(null); // Reset while loading
-      
-      // Helper to convert image to base64 with object-fit: cover crop
-      // This ensures the exported image matches the preview exactly
-      const convertToBase64WithCover = (img: HTMLImageElement): string | null => {
-        // Get target dimensions from the card (9:16 aspect ratio)
-        const targetWidth = shareCardRef.current!.offsetWidth;
-        const targetHeight = shareCardRef.current!.offsetHeight;
-        const targetAspect = targetWidth / targetHeight;
-        
-        // Calculate crop to simulate object-fit: cover
-        const imgAspect = img.naturalWidth / img.naturalHeight;
-        let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight;
-        
-        if (imgAspect > targetAspect) {
-          // Image is wider - crop sides
-          srcW = img.naturalHeight * targetAspect;
-          srcX = (img.naturalWidth - srcW) / 2;
-        } else {
-          // Image is taller - crop top/bottom
-          srcH = img.naturalWidth / targetAspect;
-          srcY = (img.naturalHeight - srcH) / 2;
-        }
-        
-        // Create canvas with target aspect ratio at high resolution
-        const scale = 5; // Match html2canvas scale
-        const canvas = document.createElement('canvas');
-        canvas.width = targetWidth * scale;
-        canvas.height = targetHeight * scale;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          // Draw cropped image to fill canvas (simulates object-fit: cover)
-          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
-          try {
-            return canvas.toDataURL('image/jpeg', 0.95);
-          } catch {
-            return null;
-          }
-        }
-        return null;
-      };
-
-      // Try loading directly first (works for R2 CDN with CORS)
-      const img = new Image();
-      img.crossOrigin = 'anonymous'; // Required for canvas export
-      img.onload = () => {
-        const base64 = convertToBase64WithCover(img);
-        if (base64) {
-          setImageBase64(base64);
-          console.log('[DailyVerse] Image loaded directly from CDN');
-        } else {
-          console.log('[DailyVerse] Canvas export failed, trying proxy');
-          tryProxy();
-        }
-      };
-      img.onerror = () => {
-        console.log('[DailyVerse] Direct load failed, trying proxy');
-        tryProxy();
-      };
-      
-      // Fallback to server proxy for external images without CORS
-      const tryProxy = () => {
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`;
-        const proxyImg = new Image();
-        proxyImg.crossOrigin = 'anonymous';
-        proxyImg.onload = () => {
-          const base64 = convertToBase64WithCover(proxyImg);
-          if (base64) {
-            setImageBase64(base64);
-            console.log('[DailyVerse] Image loaded via proxy');
-          } else {
-            setImageBase64(null);
-          }
-        };
-        proxyImg.onerror = () => {
-          console.log('[DailyVerse] Proxy load failed');
-          setImageBase64(null);
-        };
-        proxyImg.src = proxyUrl;
-      };
-      
-      img.src = backgroundImage;
-    }
-  }, [backgroundImage, shareOpen]);
+  // Pre-load image for html2canvas - use proxy URL for CORS compatibility
+  // The proxy returns the image with proper CORS headers
+  const proxyImageUrl = backgroundImage 
+    ? `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`
+    : null;
 
   const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
     if (!shareCardRef.current) return;
@@ -471,10 +385,11 @@ export default function VersiculoDoDiaPage() {
               textRendering: 'optimizeLegibility',
             }}
           >
-            {/* Background image as inline element for html2canvas */}
-            {(imageBase64 || backgroundImage) && (
+            {/* Background image - use proxy URL for CORS compatibility with html2canvas */}
+            {proxyImageUrl && (
               <img 
-                src={imageBase64 || backgroundImage || ''} 
+                src={proxyImageUrl}
+                crossOrigin="anonymous"
                 alt=""
                 style={{
                   position: 'absolute',

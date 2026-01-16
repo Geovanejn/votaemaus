@@ -125,9 +125,9 @@ export default function VersiculoDoDiaPage() {
         srcY = (img.naturalHeight - srcH) / 2;
       }
       
-      // Create canvas with exact 9:16 ratio at high resolution
-      const exportWidth = 1080;
-      const exportHeight = 1920;
+      // Create canvas with exact 9:16 ratio at ultra high resolution (matches export size)
+      const exportWidth = 2160;
+      const exportHeight = 3840;
       const canvas = document.createElement('canvas');
       canvas.width = exportWidth;
       canvas.height = exportHeight;
@@ -136,10 +136,11 @@ export default function VersiculoDoDiaPage() {
       if (ctx) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        // Draw cropped portion to fill the entire canvas
+        // Draw cropped portion to fill the entire canvas at full export resolution
         ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, exportWidth, exportHeight);
-        setCroppedBgDataUrl(canvas.toDataURL('image/jpeg', 0.95));
-        console.log('[DailyVerse] Background image cropped successfully');
+        // Use PNG for better quality (no JPEG compression artifacts)
+        setCroppedBgDataUrl(canvas.toDataURL('image/png'));
+        console.log('[DailyVerse] Background image cropped at 2160x3840');
       }
     };
     img.onerror = () => {

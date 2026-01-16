@@ -154,6 +154,20 @@ export function CollectibleCard({
         <div className="collectible-card-effects" />
       )}
 
+      {(rarity === "epic" || rarity === "legendary") && (
+        <>
+          <div className="card-diamond-effect" />
+          <div className="card-diamond-effect" />
+          <div className="card-diamond-effect" />
+          {rarity === "legendary" && (
+            <>
+              <div className="card-diamond-effect" />
+              <div className="card-diamond-effect" />
+            </>
+          )}
+        </>
+      )}
+
       <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (

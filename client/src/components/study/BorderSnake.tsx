@@ -101,8 +101,9 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.color}
           strokeWidth="5"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.5} ${perimeter - config.dashLength * 0.5}`}
-          opacity="0.5"
+          strokeDasharray={`${config.dashLength * 0.6} ${perimeter - config.dashLength * 0.6}`}
+          strokeDashoffset={config.dashLength * 0.2}
+          opacity="0.6"
           filter={`url(#${blurSoftId})`}
           style={{
             animation: `${animationName} ${config.duration}s linear infinite`,
@@ -120,7 +121,8 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.color}
           strokeWidth="2"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.25} ${perimeter - config.dashLength * 0.25}`}
+          strokeDasharray={`${config.dashLength * 0.3} ${perimeter - config.dashLength * 0.3}`}
+          strokeDashoffset={config.dashLength * 0.35}
           opacity="1"
           style={{
             animation: `${animationName} ${config.duration}s linear infinite`,
@@ -129,8 +131,8 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
         
         <style>{`
           @keyframes ${animationName} {
-            0% { stroke-dashoffset: ${perimeter}px; }
-            100% { stroke-dashoffset: 0; }
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -${perimeter}px; }
           }
         `}</style>
       </svg>

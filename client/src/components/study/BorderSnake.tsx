@@ -39,9 +39,17 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
   
   const perimeter = 2 * (width + height) + 2 * Math.PI * adjustedRadius;
   
-  const animationName = `snake-${uniqueId.replace(/:/g, '')}`;
+  const animationPrefix = `snake-${uniqueId.replace(/:/g, '')}`;
   const blurSoftId = `blur-soft-${uniqueId.replace(/:/g, '')}`;
   const blurMediumId = `blur-med-${uniqueId.replace(/:/g, '')}`;
+
+  const headDash = config.dashLength * 0.25;
+  const midDash = config.dashLength * 0.5;
+  const tailDash = config.dashLength;
+
+  const headStart = headDash;
+  const midStart = midDash;
+  const tailStart = tailDash;
 
   return (
     <div
@@ -82,11 +90,11 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.glowColor}
           strokeWidth="10"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength} ${perimeter - config.dashLength}`}
+          strokeDasharray={`${tailDash} ${perimeter - tailDash}`}
           opacity="0.25"
           filter={`url(#${blurMediumId})`}
           style={{
-            animation: `${animationName} ${config.duration}s linear infinite`,
+            animation: `${animationPrefix}-tail ${config.duration}s linear infinite`,
           }}
         />
         
@@ -101,12 +109,11 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.color}
           strokeWidth="5"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.6} ${perimeter - config.dashLength * 0.6}`}
-          strokeDashoffset={config.dashLength * 0.2}
+          strokeDasharray={`${midDash} ${perimeter - midDash}`}
           opacity="0.6"
           filter={`url(#${blurSoftId})`}
           style={{
-            animation: `${animationName} ${config.duration}s linear infinite`,
+            animation: `${animationPrefix}-mid ${config.duration}s linear infinite`,
           }}
         />
         
@@ -121,18 +128,25 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.color}
           strokeWidth="2"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.3} ${perimeter - config.dashLength * 0.3}`}
-          strokeDashoffset={config.dashLength * 0.35}
+          strokeDasharray={`${headDash} ${perimeter - headDash}`}
           opacity="1"
           style={{
-            animation: `${animationName} ${config.duration}s linear infinite`,
+            animation: `${animationPrefix}-head ${config.duration}s linear infinite`,
           }}
         />
         
         <style>{`
-          @keyframes ${animationName} {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -${perimeter}px; }
+          @keyframes ${animationPrefix}-tail {
+            0% { stroke-dashoffset: ${tailStart}px; }
+            100% { stroke-dashoffset: ${tailStart + perimeter}px; }
+          }
+          @keyframes ${animationPrefix}-mid {
+            0% { stroke-dashoffset: ${midStart}px; }
+            100% { stroke-dashoffset: ${midStart + perimeter}px; }
+          }
+          @keyframes ${animationPrefix}-head {
+            0% { stroke-dashoffset: ${headStart}px; }
+            100% { stroke-dashoffset: ${headStart + perimeter}px; }
           }
         `}</style>
       </svg>

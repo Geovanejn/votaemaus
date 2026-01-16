@@ -383,14 +383,21 @@ export default function DevocionalDetailPage() {
       ? devotional.imageUrl 
       : defaultDevImg;
     
+    // Use proxy for external images to avoid CORS issues
+    const isExternalUrl = currentImageUrl.startsWith('http') && !currentImageUrl.includes(window.location.hostname);
+    const proxiedUrl = isExternalUrl 
+      ? `/api/proxy-image?url=${encodeURIComponent(currentImageUrl)}`
+      : currentImageUrl;
+    
     try {
-      const base64 = await convertImageToBase64(currentImageUrl);
+      const base64 = await convertImageToBase64(proxiedUrl);
       setShareImageBase64(base64);
       setTimeout(() => {
         generateShareImage();
       }, 100);
     } catch (err) {
       console.error("Error converting image to base64:", err);
+      // Fallback: try with original URL
       setShareImageBase64(currentImageUrl);
       setTimeout(() => {
         generateShareImage();

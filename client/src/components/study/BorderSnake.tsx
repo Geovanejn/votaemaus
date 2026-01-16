@@ -80,10 +80,10 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           ry={adjustedRadius}
           fill="none"
           stroke={config.glowColor}
-          strokeWidth="12"
+          strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={`${config.dashLength} ${perimeter - config.dashLength}`}
-          opacity="0.4"
+          opacity="0.25"
           filter={`url(#${blurMediumId})`}
           style={{
             animation: `${animationName} ${config.duration}s linear infinite`,
@@ -99,10 +99,10 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           ry={adjustedRadius}
           fill="none"
           stroke={config.color}
-          strokeWidth="6"
+          strokeWidth="5"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.7} ${perimeter - config.dashLength * 0.7}`}
-          opacity="0.7"
+          strokeDasharray={`${config.dashLength * 0.5} ${perimeter - config.dashLength * 0.5}`}
+          opacity="0.5"
           filter={`url(#${blurSoftId})`}
           style={{
             animation: `${animationName} ${config.duration}s linear infinite`,
@@ -120,7 +120,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           stroke={config.color}
           strokeWidth="2"
           strokeLinecap="round"
-          strokeDasharray={`${config.dashLength * 0.4} ${perimeter - config.dashLength * 0.4}`}
+          strokeDasharray={`${config.dashLength * 0.25} ${perimeter - config.dashLength * 0.25}`}
           opacity="1"
           style={{
             animation: `${animationName} ${config.duration}s linear infinite`,
@@ -129,8 +129,8 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
         
         <style>{`
           @keyframes ${animationName} {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -${perimeter}px; }
+            0% { stroke-dashoffset: ${perimeter}px; }
+            100% { stroke-dashoffset: 0; }
           }
         `}</style>
       </svg>

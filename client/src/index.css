@@ -615,7 +615,7 @@ body {
 }
 
 .collectible-card-epic .collectible-card-holo-overlay {
-  opacity: 1;
+  opacity: 0.4;
   background: linear-gradient(
     135deg,
     #8b5cf6 0%,        /* Roxo */

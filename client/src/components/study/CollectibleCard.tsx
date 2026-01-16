@@ -124,15 +124,6 @@ export function CollectibleCard({
         <div className="collectible-card-effects-secondary" />
       )}
 
-      {/* Legendary ornaments - curved top corners */}
-      {rarity === "legendary" && (
-        <>
-          <div className="legendary-corner-ornament legendary-corner-left" />
-          <div className="legendary-corner-ornament legendary-corner-right" />
-          <div className="legendary-top-gem" />
-        </>
-      )}
-
       {/* Holographic overlay for epic and legendary */}
       {(rarity === "epic" || rarity === "legendary") && (
         <div className="collectible-card-holo-overlay" />

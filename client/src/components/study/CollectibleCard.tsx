@@ -114,14 +114,23 @@ export function CollectibleCard({
       `}
       data-testid={`collectible-card-${rarity}`}
     >
-      {/* Light sweep effects - contained within card */}
-      {rarity !== "common" && (
+      {/* Light sweep effects - only for rare and legendary */}
+      {(rarity === "rare" || rarity === "legendary") && (
         <div className="collectible-card-effects" />
       )}
 
       {/* Second flash only for legendary */}
       {rarity === "legendary" && (
         <div className="collectible-card-effects-secondary" />
+      )}
+
+      {/* Legendary ornaments - curved top corners */}
+      {rarity === "legendary" && (
+        <>
+          <div className="legendary-corner-ornament legendary-corner-left" />
+          <div className="legendary-corner-ornament legendary-corner-right" />
+          <div className="legendary-top-gem" />
+        </>
       )}
 
       {/* Holographic overlay for epic and legendary */}

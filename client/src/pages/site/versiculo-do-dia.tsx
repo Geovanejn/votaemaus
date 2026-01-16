@@ -208,17 +208,15 @@ export default function VersiculoDoDiaPage() {
       // Remove off-screen container
       document.body.removeChild(offscreenContainer);
 
-      // Crop 4 pixels from all sides to physically remove edge artifacts
-      const cropPx = 4 * scale; // 4 CSS pixels * scale
+      // Use clip-first strategy: draw mask first, then image with source-in
+      // This prevents white pixels from ever being blended into the canvas
       const srcWidth = sourceCanvas.width;
       const srcHeight = sourceCanvas.height;
-      const croppedWidth = srcWidth - (cropPx * 2);
-      const croppedHeight = srcHeight - (cropPx * 2);
       const scaledRadius = Math.round(borderRadius * scale);
       
       const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = croppedWidth;
-      finalCanvas.height = croppedHeight;
+      finalCanvas.width = srcWidth;
+      finalCanvas.height = srcHeight;
       const ctx = finalCanvas.getContext('2d');
       
       if (!ctx) {
@@ -227,24 +225,25 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
-      // Draw source image offset by -cropPx to crop edges
-      ctx.drawImage(sourceCanvas, -cropPx, -cropPx);
-      
-      // Apply simple rounded-rect mask for true transparency at corners
-      ctx.globalCompositeOperation = 'destination-in';
+      // Step 1: Draw the rounded-rect mask FIRST (this defines what pixels can exist)
+      ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.moveTo(scaledRadius, 0);
-      ctx.lineTo(croppedWidth - scaledRadius, 0);
-      ctx.arcTo(croppedWidth, 0, croppedWidth, scaledRadius, scaledRadius);
-      ctx.lineTo(croppedWidth, croppedHeight - scaledRadius);
-      ctx.arcTo(croppedWidth, croppedHeight, croppedWidth - scaledRadius, croppedHeight, scaledRadius);
-      ctx.lineTo(scaledRadius, croppedHeight);
-      ctx.arcTo(0, croppedHeight, 0, croppedHeight - scaledRadius, scaledRadius);
+      ctx.lineTo(srcWidth - scaledRadius, 0);
+      ctx.arcTo(srcWidth, 0, srcWidth, scaledRadius, scaledRadius);
+      ctx.lineTo(srcWidth, srcHeight - scaledRadius);
+      ctx.arcTo(srcWidth, srcHeight, srcWidth - scaledRadius, srcHeight, scaledRadius);
+      ctx.lineTo(scaledRadius, srcHeight);
+      ctx.arcTo(0, srcHeight, 0, srcHeight - scaledRadius, scaledRadius);
       ctx.lineTo(0, scaledRadius);
       ctx.arcTo(0, 0, scaledRadius, 0, scaledRadius);
       ctx.closePath();
-      ctx.fillStyle = '#000';
       ctx.fill();
+      
+      // Step 2: Draw the image using source-in (only draws where mask exists)
+      // This means white edge pixels from html2canvas will NOT be painted
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.drawImage(sourceCanvas, 0, 0);
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;
       const shareText = `✨ *Versículo do Dia* - UMP Emaús ✨\n\nLeia a reflexão completa:\n${shareUrl}`;

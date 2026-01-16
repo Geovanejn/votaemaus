@@ -188,6 +188,26 @@ export default function VersiculoDoDiaPage() {
         margin: 0;
         padding: 0;
       `;
+      
+      // Reduce text sizes by 25% for exported image only (preview stays the same)
+      const textElements = clonedCard.querySelectorAll('h3, p');
+      textElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const currentSize = parseFloat(htmlEl.style.fontSize);
+        if (!isNaN(currentSize)) {
+          htmlEl.style.fontSize = `${currentSize * 0.75}rem`;
+        }
+      });
+      
+      // Reduce logo by 25%
+      const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
+      if (logo) {
+        const currentHeight = parseFloat(logo.style.height);
+        if (!isNaN(currentHeight)) {
+          logo.style.height = `${currentHeight * 0.75}rem`;
+        }
+      }
+      
       offscreenContainer.appendChild(clonedCard);
       
       // Wait for images to load in cloned element

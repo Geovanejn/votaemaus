@@ -70,6 +70,7 @@ const EventsPage = lazy(() => import("@/pages/study/events"));
 const EventDetailPage = lazy(() => import("@/pages/study/event-detail"));
 const EventLessonPage = lazy(() => import("@/pages/study/event-lesson"));
 const CardsCollectionPage = lazy(() => import("@/pages/study/cards"));
+const DemoCardsPage = lazy(() => import("@/pages/demo/cards"));
 const FinanceiroPage = lazy(() => import("@/pages/study/financeiro"));
 const LojaHomePage = lazy(() => import("@/pages/loja/home"));
 const LojaCatalogoPage = lazy(() => import("@/pages/loja/catalogo"));
@@ -157,6 +158,7 @@ function Router() {
             <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
             <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
             <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+            <Route path="/demo/cards" component={DemoCardsPage} />
             <Route path="/login">
               <Redirect to="/membro" />
             </Route>
@@ -260,6 +262,7 @@ function Router() {
           <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
           <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
           <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+          <Route path="/demo/cards" component={DemoCardsPage} />
           <Route path="/login">
             <Redirect to="/membro" />
           </Route>
@@ -350,6 +353,7 @@ function Router() {
         <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
         <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
         <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+        <Route path="/demo/cards" component={DemoCardsPage} />
         <Route path="/login">
           <Redirect to="/membro" />
         </Route>

@@ -92,24 +92,47 @@ export default function VersiculoDoDiaPage() {
     },
   });
 
-  // Pre-load image as base64 for html2canvas
+  // Pre-load image as base64 for html2canvas with object-fit: cover simulation
   // Try direct CDN first (R2/Cloudflare), then fallback to proxy for external images
   useEffect(() => {
-    if (backgroundImage && shareOpen) {
+    if (backgroundImage && shareOpen && shareCardRef.current) {
       setImageBase64(null); // Reset while loading
       
-      // Helper to convert image to base64
-      const convertToBase64 = (img: HTMLImageElement): string | null => {
+      // Helper to convert image to base64 with object-fit: cover crop
+      // This ensures the exported image matches the preview exactly
+      const convertToBase64WithCover = (img: HTMLImageElement): string | null => {
+        // Get target dimensions from the card (9:16 aspect ratio)
+        const targetWidth = shareCardRef.current!.offsetWidth;
+        const targetHeight = shareCardRef.current!.offsetHeight;
+        const targetAspect = targetWidth / targetHeight;
+        
+        // Calculate crop to simulate object-fit: cover
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight;
+        
+        if (imgAspect > targetAspect) {
+          // Image is wider - crop sides
+          srcW = img.naturalHeight * targetAspect;
+          srcX = (img.naturalWidth - srcW) / 2;
+        } else {
+          // Image is taller - crop top/bottom
+          srcH = img.naturalWidth / targetAspect;
+          srcY = (img.naturalHeight - srcH) / 2;
+        }
+        
+        // Create canvas with target aspect ratio at high resolution
+        const scale = 5; // Match html2canvas scale
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width = targetWidth * scale;
+        canvas.height = targetHeight * scale;
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0);
+          // Draw cropped image to fill canvas (simulates object-fit: cover)
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
           try {
-            return canvas.toDataURL('image/png');
+            return canvas.toDataURL('image/jpeg', 0.95);
           } catch {
             return null;
           }
@@ -121,7 +144,7 @@ export default function VersiculoDoDiaPage() {
       const img = new Image();
       img.crossOrigin = 'anonymous'; // Required for canvas export
       img.onload = () => {
-        const base64 = convertToBase64(img);
+        const base64 = convertToBase64WithCover(img);
         if (base64) {
           setImageBase64(base64);
           console.log('[DailyVerse] Image loaded directly from CDN');
@@ -141,7 +164,7 @@ export default function VersiculoDoDiaPage() {
         const proxyImg = new Image();
         proxyImg.crossOrigin = 'anonymous';
         proxyImg.onload = () => {
-          const base64 = convertToBase64(proxyImg);
+          const base64 = convertToBase64WithCover(proxyImg);
           if (base64) {
             setImageBase64(base64);
             console.log('[DailyVerse] Image loaded via proxy');
@@ -165,10 +188,6 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Force exact 9:16 aspect ratio for consistent exports
-      const captureWidth = shareCardRef.current.offsetWidth;
-      const captureHeight = Math.round(captureWidth * (16 / 9)); // 9:16 = width:height, so height = width * 16/9
-      
       const sourceCanvas = await html2canvas(shareCardRef.current, {
         scale: 5,
         useCORS: true,
@@ -176,10 +195,8 @@ export default function VersiculoDoDiaPage() {
         backgroundColor: null,
         logging: false,
         imageTimeout: 0,
-        width: captureWidth,
-        height: captureHeight,
-        windowWidth: captureWidth,
-        windowHeight: captureHeight,
+        width: shareCardRef.current.offsetWidth,
+        height: shareCardRef.current.offsetHeight,
       });
 
       const width = sourceCanvas.width;

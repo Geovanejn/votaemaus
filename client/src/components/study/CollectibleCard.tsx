@@ -1,8 +1,7 @@
 import { Star, Crown, Sparkles, Circle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
-import { BorderSnake } from "./BorderSnake";
+import { useRef, useEffect } from "react";
 
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 export type CardOrientation = "portrait" | "landscape";
@@ -96,33 +95,6 @@ export function CollectibleCard({
   };
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
-  const showBorderSnake = rarity !== "common";
-
-  useEffect(() => {
-    if (!cardRef.current || !showBorderSnake) return;
-    
-    const updateSize = () => {
-      if (cardRef.current) {
-        const { offsetWidth, offsetHeight } = cardRef.current;
-        if (offsetWidth > 0 && offsetHeight > 0) {
-          setCardSize({ width: offsetWidth, height: offsetHeight });
-        }
-      }
-    };
-    
-    updateSize();
-    
-    const timer = setTimeout(updateSize, 100);
-    
-    const resizeObserver = new ResizeObserver(updateSize);
-    resizeObserver.observe(cardRef.current);
-    
-    return () => {
-      clearTimeout(timer);
-      resizeObserver.disconnect();
-    };
-  }, [showBorderSnake, size]);
 
   return (
     <motion.div
@@ -142,29 +114,29 @@ export function CollectibleCard({
       `}
       data-testid={`collectible-card-${rarity}`}
     >
-      {showBorderSnake && cardSize.width > 0 && cardSize.height > 0 && (
-        <BorderSnake 
-          rarity={rarity as Exclude<CardRarity, "common">} 
-          width={cardSize.width} 
-          height={cardSize.height} 
-        />
-      )}
-
+      {/* Light sweep effects - contained within card */}
       {rarity !== "common" && (
         <div className="collectible-card-effects" />
       )}
 
+      {/* Second flash only for legendary */}
+      {rarity === "legendary" && (
+        <div className="collectible-card-effects-secondary" />
+      )}
+
+      {/* Holographic overlay for epic and legendary */}
       {(rarity === "epic" || rarity === "legendary") && (
+        <div className="collectible-card-holo-overlay" />
+      )}
+
+      {/* Diamond sparkles only for legendary */}
+      {rarity === "legendary" && (
         <>
           <div className="card-diamond-effect" />
           <div className="card-diamond-effect" />
           <div className="card-diamond-effect" />
-          {rarity === "legendary" && (
-            <>
-              <div className="card-diamond-effect" />
-              <div className="card-diamond-effect" />
-            </>
-          )}
+          <div className="card-diamond-effect" />
+          <div className="card-diamond-effect" />
         </>
       )}
 

@@ -372,17 +372,40 @@ body {
 
 /* ==================== COLLECTIBLE CARD SYSTEM ==================== */
 
-/* Light sweep animation for all cards */
+/* Light sweep animation for all cards - covers full width */
 @keyframes card-light-sweep {
   0% {
-    transform: translateX(-100%) rotate(25deg);
+    transform: translateX(-150%) rotate(25deg);
   }
   100% {
-    transform: translateX(300%) rotate(25deg);
+    transform: translateX(400%) rotate(25deg);
   }
 }
 
-/* Diamond sparkle animation for epic/legendary */
+/* Secondary light sweep for legendary - different angle and speed */
+@keyframes card-light-sweep-secondary {
+  0% {
+    transform: translateX(-150%) rotate(-15deg);
+  }
+  100% {
+    transform: translateX(400%) rotate(-15deg);
+  }
+}
+
+/* Holographic shimmer effect */
+@keyframes holo-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Diamond sparkle animation for legendary */
 @keyframes diamond-sparkle {
   0%, 100% {
     opacity: 0;
@@ -550,7 +573,77 @@ body {
   animation-duration: 2s;
 }
 
-/* Diamond sparkle effects - for EPIC and LEGENDARY */
+/* Secondary flash for LEGENDARY - different angle and timing */
+.collectible-card-effects-secondary {
+  position: absolute;
+  inset: 6px;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.collectible-card-legendary .collectible-card-effects-secondary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.15) 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 215, 0, 0.15) 65%,
+    transparent 100%
+  );
+  animation: card-light-sweep-secondary 3.2s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+/* Holographic overlay for EPIC and LEGENDARY */
+.collectible-card-holo-overlay {
+  position: absolute;
+  inset: 4px;
+  border-radius: 14px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.collectible-card-epic .collectible-card-holo-overlay {
+  opacity: 0.15;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.3) 0%,
+    rgba(59, 130, 246, 0.2) 25%,
+    rgba(236, 72, 153, 0.2) 50%,
+    rgba(139, 92, 246, 0.3) 75%,
+    rgba(59, 130, 246, 0.2) 100%
+  );
+  background-size: 200% 200%;
+  animation: holo-shimmer 6s ease-in-out infinite;
+}
+
+.collectible-card-legendary .collectible-card-holo-overlay {
+  opacity: 0.2;
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.4) 0%,
+    rgba(245, 158, 11, 0.3) 20%,
+    rgba(255, 255, 255, 0.3) 40%,
+    rgba(251, 191, 36, 0.4) 60%,
+    rgba(245, 158, 11, 0.3) 80%,
+    rgba(251, 191, 36, 0.4) 100%
+  );
+  background-size: 200% 200%;
+  animation: holo-shimmer 4s ease-in-out infinite;
+}
+
+/* Diamond sparkle effects - only for LEGENDARY */
 .card-diamond-effect {
   position: absolute;
   width: 6px;
@@ -561,11 +654,6 @@ body {
   animation: diamond-sparkle 2s ease-in-out infinite;
   z-index: 15;
   pointer-events: none;
-}
-
-.collectible-card-epic .card-diamond-effect {
-  width: 6px;
-  height: 6px;
 }
 
 .collectible-card-legendary .card-diamond-effect {

@@ -154,26 +154,64 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Get the actual computed dimensions of the card
-      const rect = shareCardRef.current.getBoundingClientRect();
+      // Use exact integer dimensions for 9:16 aspect ratio (prevents fractional sizing artifacts)
+      const cardWidth = 270; // Fixed integer width
+      const cardHeight = 480; // Fixed integer height (9:16 ratio)
+      const scale = 4;
+      const borderRadius = 10; // CSS border-radius in px
       
-      // Capture with html2canvas
-      const scale = 3; // Use scale 3 to reduce anti-aliasing artifacts
-      const sourceCanvas = await html2canvas(shareCardRef.current, {
+      // Create off-screen container with fully transparent background
+      // This prevents blending with Dialog's light background
+      const offscreenContainer = document.createElement('div');
+      offscreenContainer.style.cssText = `
+        position: fixed;
+        left: -10000px;
+        top: 0;
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        border-radius: ${borderRadius}px;
+      `;
+      document.body.appendChild(offscreenContainer);
+      
+      // Clone the share card into the off-screen container
+      const clonedCard = shareCardRef.current.cloneNode(true) as HTMLElement;
+      clonedCard.style.cssText = `
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        border-radius: ${borderRadius}px;
+        overflow: hidden;
+        background: transparent;
+        margin: 0;
+        padding: 0;
+      `;
+      offscreenContainer.appendChild(clonedCard);
+      
+      // Wait for images to load in cloned element
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Capture from the off-screen container (no Dialog background bleeding)
+      const sourceCanvas = await html2canvas(clonedCard, {
         scale: scale,
         useCORS: true,
         allowTaint: false,
         backgroundColor: null,
         logging: false,
         imageTimeout: 15000,
-        width: rect.width,
-        height: rect.height,
+        width: cardWidth,
+        height: cardHeight,
       });
+      
+      // Remove off-screen container
+      document.body.removeChild(offscreenContainer);
 
-      // Apply alpha mask to remove white border artifacts from anti-aliasing
+      // Apply alpha mask to ensure true transparency at rounded corners
       const width = sourceCanvas.width;
       const height = sourceCanvas.height;
-      const borderRadius = Math.round(10 * scale); // 10px CSS border-radius * scale
+      const scaledRadius = Math.round(borderRadius * scale);
       
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = width;
@@ -186,24 +224,23 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
-      // First draw the source image
+      // Draw source image first
       ctx.drawImage(sourceCanvas, 0, 0);
       
-      // Then apply alpha mask using destination-in to force true transparency
-      // This removes any blended white pixels from anti-aliasing
+      // Apply alpha mask using destination-in for true transparency
       ctx.globalCompositeOperation = 'destination-in';
       ctx.beginPath();
-      ctx.moveTo(borderRadius, 0);
-      ctx.lineTo(width - borderRadius, 0);
-      ctx.arcTo(width, 0, width, borderRadius, borderRadius);
-      ctx.lineTo(width, height - borderRadius);
-      ctx.arcTo(width, height, width - borderRadius, height, borderRadius);
-      ctx.lineTo(borderRadius, height);
-      ctx.arcTo(0, height, 0, height - borderRadius, borderRadius);
-      ctx.lineTo(0, borderRadius);
-      ctx.arcTo(0, 0, borderRadius, 0, borderRadius);
+      ctx.moveTo(scaledRadius, 0);
+      ctx.lineTo(width - scaledRadius, 0);
+      ctx.arcTo(width, 0, width, scaledRadius, scaledRadius);
+      ctx.lineTo(width, height - scaledRadius);
+      ctx.arcTo(width, height, width - scaledRadius, height, scaledRadius);
+      ctx.lineTo(scaledRadius, height);
+      ctx.arcTo(0, height, 0, height - scaledRadius, scaledRadius);
+      ctx.lineTo(0, scaledRadius);
+      ctx.arcTo(0, 0, scaledRadius, 0, scaledRadius);
       ctx.closePath();
-      ctx.fillStyle = '#000'; // Color doesn't matter, only alpha
+      ctx.fillStyle = '#000';
       ctx.fill();
 
       const shareUrl = `${window.location.origin}/versiculo-do-dia`;

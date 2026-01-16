@@ -516,6 +516,25 @@ body {
   background: url(/CARD_LENDÁRIO_1766929050060.png) center/cover no-repeat;
   border: 3px solid #D4A050;
   box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.35), inset 0 -1px 4px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(251, 191, 36, 0.25);
+  /* Curved top corners - horns pointing upward */
+  border-radius: 16px;
+  clip-path: polygon(
+    /* Left horn curve */
+    0% 8%, 
+    2% 4%, 
+    5% 1%, 
+    8% 0%,
+    /* Top edge */
+    92% 0%,
+    /* Right horn curve */
+    95% 1%,
+    98% 4%,
+    100% 8%,
+    /* Right edge */
+    100% 100%,
+    /* Bottom edge */
+    0% 100%
+  );
 }
 
 /* Light sweep effect overlay - contained within card */
@@ -887,6 +906,100 @@ body {
 
 .collectible-card-medallion-legendary {
   background: linear-gradient(145deg, rgba(212, 160, 80, 0.5), rgba(180, 140, 60, 0.4));
+}
+
+/* ==================== LEGENDARY GEM MEDALLION ==================== */
+/* Replaces the icon medallion with a glowing gem for legendary cards */
+
+.legendary-gem-medallion {
+  position: relative;
+  align-self: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  z-index: 6;
+  
+  /* Outer bezel - raised metallic ring */
+  background: linear-gradient(
+    135deg,
+    #fef3c7 0%,
+    #fcd34d 15%,
+    #d97706 40%,
+    #92400e 60%,
+    #d97706 85%,
+    #fef3c7 100%
+  );
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(251, 191, 36, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Inner gem - sits inside the bezel */
+.legendary-gem-medallion::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  right: 15%;
+  bottom: 15%;
+  border-radius: 50%;
+  background: 
+    radial-gradient(ellipse 50% 35% at 30% 25%, rgba(255, 255, 255, 0.95) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 25% at 70% 75%, rgba(255, 180, 80, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, 
+      #fff7ed 0%, 
+      #fcd34d 20%, 
+      #f59e0b 40%, 
+      #d97706 60%, 
+      #b45309 80%, 
+      #78350f 100%
+    );
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 8px rgba(120, 53, 15, 0.9),
+    0 0 12px rgba(251, 191, 36, 0.8);
+  animation: gem-pulse 2s ease-in-out infinite alternate;
+}
+
+/* Sparkle highlight on the gem */
+.legendary-gem-medallion::after {
+  content: '';
+  position: absolute;
+  top: 22%;
+  left: 25%;
+  width: 25%;
+  height: 18%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: gem-sparkle-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes gem-pulse {
+  0% {
+    box-shadow:
+      inset 0 3px 6px rgba(255, 255, 255, 0.7),
+      inset 0 -3px 8px rgba(120, 53, 15, 0.9),
+      0 0 12px rgba(251, 191, 36, 0.8);
+  }
+  100% {
+    box-shadow:
+      inset 0 3px 6px rgba(255, 255, 255, 0.8),
+      inset 0 -3px 8px rgba(120, 53, 15, 0.7),
+      0 0 20px rgba(251, 191, 36, 1),
+      0 0 30px rgba(251, 191, 36, 0.5);
+  }
+}
+
+@keyframes gem-sparkle-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 
 /* Forged icon effect inside medallion */

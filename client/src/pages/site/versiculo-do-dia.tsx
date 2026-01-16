@@ -154,11 +154,11 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Use exact integer dimensions for 9:16 aspect ratio (prevents fractional sizing artifacts)
-      const cardWidth = 270; // Fixed integer width
-      const cardHeight = 480; // Fixed integer height (9:16 ratio)
-      const scale = 6; // Higher scale for better quality
-      const borderRadius = 10; // CSS border-radius in px
+      // Use high resolution for sharp export (native story resolution)
+      const cardWidth = 1080; // Full HD width for stories
+      const cardHeight = 1920; // Full HD height for stories (9:16)
+      const scale = 1; // No scaling needed since we're already at full resolution
+      const borderRadius = 40; // Scaled border-radius for high res
       
       // Create off-screen container with fully transparent background
       // This prevents blending with Dialog's light background
@@ -177,7 +177,7 @@ export default function VersiculoDoDiaPage() {
       `;
       document.body.appendChild(offscreenContainer);
       
-      // Clone the share card into the off-screen container
+      // Clone the share card into the off-screen container at full resolution
       const clonedCard = shareCardRef.current.cloneNode(true) as HTMLElement;
       clonedCard.style.cssText = `
         width: ${cardWidth}px;
@@ -189,31 +189,37 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Reduce text sizes by 25% for exported image only (preview stays the same)
+      // Set explicit pixel sizes for high-res export (25% smaller than proportional preview sizes)
+      // Preview at 270px width has these rem sizes, scaled to 1080px (4x) then reduced 25%
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
         if (!isNaN(currentSize)) {
-          htmlEl.style.fontSize = `${currentSize * 0.75}rem`;
+          // Convert rem to px at 4x scale (1080/270), then reduce 25%
+          const pxSize = Math.round(currentSize * 16 * 4 * 0.75);
+          htmlEl.style.fontSize = `${pxSize}px`;
         }
       });
       
-      // Reduce logo by 25%
+      // Scale padding for high-res
+      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
+      if (contentContainer) {
+        contentContainer.style.padding = '96px'; // 1.5rem * 16 * 4 = 96px
+      }
+      
+      // Scale logo for high-res (4.8rem * 16 * 4 * 0.75 = 230px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
-        const currentHeight = parseFloat(logo.style.height);
-        if (!isNaN(currentHeight)) {
-          logo.style.height = `${currentHeight * 0.75}rem`;
-        }
+        logo.style.height = '230px';
       }
       
       offscreenContainer.appendChild(clonedCard);
       
       // Wait for images to load in cloned element
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
       
-      // Capture from the off-screen container (no Dialog background bleeding)
+      // Capture from the off-screen container at full resolution
       const sourceCanvas = await html2canvas(clonedCard, {
         scale: scale,
         useCORS: true,

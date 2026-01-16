@@ -47,9 +47,10 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
   const midDash = config.dashLength * 0.5;
   const tailDash = config.dashLength;
 
-  const headStart = headDash;
-  const midStart = midDash;
-  const tailStart = tailDash;
+  // Offsets relativos ao headDash - camadas maiores ficam ATRÁS
+  const headOffset = 0;
+  const midOffset = headDash - midDash;   // negativo: -headDash * 0.25
+  const tailOffset = headDash - tailDash; // mais negativo: -headDash * 0.75
 
   return (
     <div
@@ -79,6 +80,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           </filter>
         </defs>
         
+        {/* Tail - camada de fundo, mais atrás */}
         <rect
           x={offset}
           y={offset}
@@ -98,6 +100,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           }}
         />
         
+        {/* Mid - camada intermediária */}
         <rect
           x={offset}
           y={offset}
@@ -117,6 +120,7 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
           }}
         />
         
+        {/* Head - camada de frente, lidera */}
         <rect
           x={offset}
           y={offset}
@@ -137,16 +141,16 @@ export function BorderSnake({ rarity, width, height, borderRadius = 16 }: Border
         
         <style>{`
           @keyframes ${animationPrefix}-tail {
-            0% { stroke-dashoffset: ${tailStart}px; }
-            100% { stroke-dashoffset: ${tailStart + perimeter}px; }
+            0% { stroke-dashoffset: ${tailOffset}px; }
+            100% { stroke-dashoffset: ${tailOffset - perimeter}px; }
           }
           @keyframes ${animationPrefix}-mid {
-            0% { stroke-dashoffset: ${midStart}px; }
-            100% { stroke-dashoffset: ${midStart + perimeter}px; }
+            0% { stroke-dashoffset: ${midOffset}px; }
+            100% { stroke-dashoffset: ${midOffset - perimeter}px; }
           }
           @keyframes ${animationPrefix}-head {
-            0% { stroke-dashoffset: ${headStart}px; }
-            100% { stroke-dashoffset: ${headStart + perimeter}px; }
+            0% { stroke-dashoffset: ${headOffset}px; }
+            100% { stroke-dashoffset: ${headOffset - perimeter}px; }
           }
         `}</style>
       </svg>

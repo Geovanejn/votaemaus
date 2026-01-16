@@ -165,6 +165,10 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
+      // Force exact 9:16 aspect ratio for consistent exports
+      const captureWidth = shareCardRef.current.offsetWidth;
+      const captureHeight = Math.round(captureWidth * (16 / 9)); // 9:16 = width:height, so height = width * 16/9
+      
       const sourceCanvas = await html2canvas(shareCardRef.current, {
         scale: 5,
         useCORS: true,
@@ -172,8 +176,10 @@ export default function VersiculoDoDiaPage() {
         backgroundColor: null,
         logging: false,
         imageTimeout: 0,
-        width: shareCardRef.current.offsetWidth,
-        height: shareCardRef.current.offsetHeight,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: captureWidth,
+        windowHeight: captureHeight,
       });
 
       const width = sourceCanvas.width;

@@ -544,6 +544,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== GENERIC IMAGE PROXY (for CORS support) ====================
+  // This proxy fetches external images and returns them with CORS headers
+  // Used for html2canvas and sharing functionality
+  app.get("/api/proxy-image", async (req, res) => {
+    try {
+      const imageUrl = req.query.url as string;
+      if (!imageUrl) {
+        return res.status(400).json({ message: "URL not provided" });
+      }
+
+      // Validate URL format
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(imageUrl);
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      // Security: Only allow http/https protocols
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ message: "Invalid protocol" });
+      }
+
+      // Fetch the image from the external URL
+      const response = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ message: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      // Set CORS headers and cache
+      res.set({
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error("[Image Proxy] Error:", error);
+      res.status(500).json({ message: "Error fetching image" });
+    }
+  });
+
   // ==================== AUDIO UPLOAD API ====================
   // Audio files are stored as Base64 data URLs in the database
   app.post("/api/upload/audio", authenticateToken, audioUpload.single('file'), async (req: AuthRequest, res) => {

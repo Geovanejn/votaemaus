@@ -92,10 +92,17 @@ export default function VersiculoDoDiaPage() {
     },
   });
 
-  // Pre-load image as base64 for html2canvas (no CORS needed for R2 CDN)
+  // Pre-load image as base64 for html2canvas
+  // Use proxy to avoid CORS issues with external images
   useEffect(() => {
     if (backgroundImage && shareOpen) {
+      setImageBase64(null); // Reset while loading
+      
+      // Use server proxy to avoid CORS issues
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(backgroundImage)}`;
+      
       const img = new Image();
+      img.crossOrigin = 'anonymous'; // Required for canvas export
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
@@ -108,14 +115,37 @@ export default function VersiculoDoDiaPage() {
           try {
             const base64 = canvas.toDataURL('image/png');
             setImageBase64(base64);
-          } catch {
-            console.log('Canvas export failed, using original URL');
+            console.log('[DailyVerse] Image converted to base64 successfully');
+          } catch (e) {
+            console.log('[DailyVerse] Canvas export failed:', e);
             setImageBase64(null);
           }
         }
       };
-      img.onerror = () => setImageBase64(null);
-      img.src = backgroundImage;
+      img.onerror = (e) => {
+        console.log('[DailyVerse] Image load error, trying direct URL:', e);
+        // Fallback: try direct URL if proxy fails
+        const directImg = new Image();
+        directImg.crossOrigin = 'anonymous';
+        directImg.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = directImg.naturalWidth;
+          canvas.height = directImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(directImg, 0, 0);
+            try {
+              const base64 = canvas.toDataURL('image/png');
+              setImageBase64(base64);
+            } catch {
+              setImageBase64(null);
+            }
+          }
+        };
+        directImg.onerror = () => setImageBase64(null);
+        directImg.src = backgroundImage;
+      };
+      img.src = proxyUrl;
     }
   }, [backgroundImage, shareOpen]);
 

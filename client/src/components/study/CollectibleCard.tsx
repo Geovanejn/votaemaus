@@ -283,7 +283,8 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             name={card.name}
             imageUrl={card.imageUrl}
             rarity={card.rarity}
-            orientation={card.sourceType === "event" ? "landscape" : "portrait"}
+            sourceType={card.sourceType}
+            orientation={card.sourceType === "event" ? "portrait" : "portrait"}
             size={card.sourceType === "season" ? "magazine" : card.sourceType === "event" ? "event" : "lg"}
           />
         </div>

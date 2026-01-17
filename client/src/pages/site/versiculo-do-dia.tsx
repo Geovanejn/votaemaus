@@ -238,7 +238,41 @@ export default function VersiculoDoDiaPage() {
           const pxSize = Math.round(currentSize * 16 * 8 * 0.75);
           htmlEl.style.fontSize = `${pxSize}px`;
         }
+        // Scale gap for flex containers (0.5rem -> 64px at 8x scale with 75%)
+        if (htmlEl.style.gap) {
+          const currentGap = parseFloat(htmlEl.style.gap);
+          if (!isNaN(currentGap)) {
+            const pxGap = Math.round(currentGap * 16 * 8 * 0.75);
+            htmlEl.style.gap = `${pxGap}px`;
+          }
+        }
       });
+      
+      // Ensure strong/bold elements have proper font-weight for html2canvas
+      const strongElements = clonedCard.querySelectorAll('strong');
+      strongElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.fontWeight = '700';
+      });
+      
+      // Replace SVG icon with Unicode book character for html2canvas compatibility
+      const svgIcon = clonedCard.querySelector('svg');
+      if (svgIcon) {
+        const parentP = svgIcon.closest('p');
+        if (parentP) {
+          // Create a span with Unicode book emoji as replacement
+          const bookSpan = document.createElement('span');
+          bookSpan.textContent = '📖';
+          bookSpan.style.cssText = `
+            font-size: 56px;
+            line-height: 1;
+            vertical-align: middle;
+            margin-right: 24px;
+          `;
+          // Remove the SVG and insert the book character
+          svgIcon.replaceWith(bookSpan);
+        }
+      }
       
       // Scale padding for ultra high-res
       const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
@@ -246,10 +280,10 @@ export default function VersiculoDoDiaPage() {
         contentContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
       }
       
-      // Scale logo for ultra high-res (4.8rem * 16 * 8 * 0.75 = 460px)
+      // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
-        logo.style.height = '460px';
+        logo.style.height = '442px';
       }
       
       offscreenContainer.appendChild(clonedCard);

@@ -11,7 +11,7 @@ interface CollectibleCardProps {
   imageUrl?: string | null;
   rarity: CardRarity;
   orientation?: CardOrientation;
-  sourceType?: "season" | "event";
+  sourceType?: "season" | "event" | "magazine";
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
@@ -52,7 +52,7 @@ export function CollectibleCard({
     sm: "w-[140px] h-[160px]",
     md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
     lg: "w-[280px] h-[320px]",
-    magazine: "w-[240px] min-h-[320px] sm:w-[280px] sm:min-h-[380px]",
+    magazine: "w-[180px] h-[270px] sm:w-[220px] sm:h-[330px]",
     // Event-specific: vertical portrait format matching new design
     event: "w-[180px] h-[270px] sm:w-[220px] sm:h-[330px]",
   };
@@ -107,7 +107,7 @@ export function CollectibleCard({
       onClick={onClick}
       className={`
         collectible-card
-        ${sourceType === 'event' ? `event-card-${rarity}` : `collectible-card-${rarity}`}
+        ${sourceType === 'event' ? `event-card-${rarity}` : sourceType === 'magazine' ? `magazine-card-${rarity}` : `collectible-card-${rarity}`}
         ${sizeClasses[size]}
         ${onClick ? "cursor-pointer" : ""}
         ${className}
@@ -130,7 +130,7 @@ export function CollectibleCard({
       )}
 
       {/* Diamond sparkles only for legendary season cards */}
-      {rarity === "legendary" && sourceType !== "event" && (
+      {rarity === "legendary" && sourceType !== "event" && sourceType !== "magazine" && (
         <>
           <div className="card-diamond-effect" />
           <div className="card-diamond-effect" />
@@ -141,7 +141,7 @@ export function CollectibleCard({
       )}
 
 
-      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${sourceType === 'event' ? 'event-card-inner' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${sourceType === 'event' ? 'event-card-inner' : ''} ${sourceType === 'magazine' ? 'magazine-card-inner' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (
           <div className="flex-1 flex items-center justify-center">
@@ -149,6 +149,29 @@ export function CollectibleCard({
               <IconComponent className="w-6 h-6 text-white" />
             </div>
           </div>
+        ) : sourceType === 'magazine' ? (
+          /* Magazine card layout: cover image BEHIND PNG, NO title */
+          <>
+            {/* Layer 0: Portal effect for legendary (BEHIND everything) */}
+            {rarity === 'legendary' && (
+              <div className="magazine-card-portal-layer" />
+            )}
+
+            {/* Layer 1: Cover image (BEHIND the PNG frame) */}
+            <div className="magazine-card-image-layer">
+              {imageUrl && (
+                <img 
+                  src={imageUrl} 
+                  alt={name}
+                  className="w-full h-full object-cover"
+                  style={{ imageRendering: 'auto' }}
+                />
+              )}
+            </div>
+
+            {/* Layer 2: PNG card frame (ON TOP of the image) */}
+            <div className={`magazine-card-png-layer magazine-card-png-${rarity}`} />
+          </>
         ) : sourceType === 'event' ? (
           /* Event card layout: image BEHIND PNG, portal BEHIND everything */
           <>
@@ -229,7 +252,7 @@ interface CollectibleCardModalProps {
     description?: string | null;
     imageUrl?: string | null;
     rarity: CardRarity;
-    sourceType: "season" | "event";
+    sourceType: "season" | "event" | "magazine";
     sourceName?: string;
     earnedAt?: string;
     performance?: number | null;

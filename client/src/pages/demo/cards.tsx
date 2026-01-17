@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { CollectibleCard, CollectibleCardModal, type CardRarity } from "@/components/study/CollectibleCard";
+import magazineCover1 from "@assets/stock_images/magazine_cover_fashi_38881411.jpg";
+import magazineCover2 from "@assets/stock_images/magazine_cover_fashi_2a92c38f.jpg";
 
 const demoCards = [
   { id: 1, name: "Card Comum", rarity: "common" as CardRarity, description: "Exemplo de card comum sem efeitos" },
@@ -15,12 +17,19 @@ const eventCards = [
   { id: 4, name: "Jubileu UMP", rarity: "legendary" as CardRarity, description: "Card de evento lendário", imageUrl: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&h=600&fit=crop" },
 ];
 
+const magazineCards = [
+  { id: 1, name: "Revista Comum", rarity: "common" as CardRarity, description: "Card de revista comum", imageUrl: magazineCover1 },
+  { id: 2, name: "Revista Rara", rarity: "rare" as CardRarity, description: "Card de revista raro", imageUrl: magazineCover2 },
+  { id: 3, name: "Revista Épica", rarity: "epic" as CardRarity, description: "Card de revista épico", imageUrl: magazineCover1 },
+  { id: 4, name: "Revista Lendária", rarity: "legendary" as CardRarity, description: "Card de revista lendário", imageUrl: magazineCover2 },
+];
+
 type DemoCard = {
   id: number;
   name: string;
   rarity: CardRarity;
   description: string;
-  sourceType?: "season" | "event";
+  sourceType?: "season" | "event" | "magazine";
   imageUrl?: string;
 };
 
@@ -74,6 +83,25 @@ export default function DemoCardsPage() {
                   size="event"
                   sourceType="event"
                   onClick={() => setSelectedCard({ ...card, sourceType: "event" })}
+                />
+                <span className="text-sm text-gray-300 capitalize">{card.rarity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-white mb-4">Cards de Revista (Novo Design)</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 justify-items-center overflow-visible p-8">
+            {magazineCards.map((card) => (
+              <div key={`magazine-${card.id}`} className="flex flex-col items-center gap-2 overflow-visible">
+                <CollectibleCard
+                  name={card.name}
+                  rarity={card.rarity}
+                  imageUrl={card.imageUrl}
+                  size="magazine"
+                  sourceType="magazine"
+                  onClick={() => setSelectedCard({ ...card, sourceType: "magazine" })}
                 />
                 <span className="text-sm text-gray-300 capitalize">{card.rarity}</span>
               </div>

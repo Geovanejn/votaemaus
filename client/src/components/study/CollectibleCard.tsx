@@ -119,8 +119,8 @@ export function CollectibleCard({
         <div className="collectible-card-effects" />
       )}
 
-      {/* Second flash only for legendary (season cards) */}
-      {rarity === "legendary" && sourceType !== "event" && (
+      {/* Second flash for legendary (both season and event cards) */}
+      {rarity === "legendary" && (
         <div className="collectible-card-effects-secondary" />
       )}
 

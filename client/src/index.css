@@ -623,10 +623,13 @@ body {
   z-index: 4;
 }
 
-/* Light sweep for RARE, EPIC, and LEGENDARY */
+/* Light sweep for RARE, EPIC, and LEGENDARY (season and event cards) */
 .collectible-card-rare .collectible-card-effects::after,
 .collectible-card-epic .collectible-card-effects::after,
-.collectible-card-legendary .collectible-card-effects::after {
+.collectible-card-legendary .collectible-card-effects::after,
+.event-card-rare .collectible-card-effects::after,
+.event-card-epic .collectible-card-effects::after,
+.event-card-legendary .collectible-card-effects::after {
   content: '';
   position: absolute;
   top: -50%;
@@ -644,7 +647,8 @@ body {
   animation: card-light-sweep 4s ease-in-out infinite;
 }
 
-.collectible-card-rare .collectible-card-effects::after {
+.collectible-card-rare .collectible-card-effects::after,
+.event-card-rare .collectible-card-effects::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -656,7 +660,8 @@ body {
   animation-duration: 3.5s;
 }
 
-.collectible-card-legendary .collectible-card-effects::after {
+.collectible-card-legendary .collectible-card-effects::after,
+.event-card-legendary .collectible-card-effects::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -678,7 +683,8 @@ body {
   z-index: 5;
 }
 
-.collectible-card-legendary .collectible-card-effects-secondary::after {
+.collectible-card-legendary .collectible-card-effects-secondary::after,
+.event-card-legendary .collectible-card-effects-secondary::after {
   content: '';
   position: absolute;
   top: -50%;
@@ -709,7 +715,8 @@ body {
   transition: opacity 0.3s ease;
 }
 
-.collectible-card-epic .collectible-card-holo-overlay {
+.collectible-card-epic .collectible-card-holo-overlay,
+.event-card-epic .collectible-card-holo-overlay {
   opacity: 0.4;
   background: linear-gradient(
     135deg,
@@ -727,7 +734,8 @@ body {
   mix-blend-mode: overlay;
 }
 
-.collectible-card-legendary .collectible-card-holo-overlay {
+.collectible-card-legendary .collectible-card-holo-overlay,
+.event-card-legendary .collectible-card-holo-overlay {
   opacity: 0.25;
   background: linear-gradient(
     135deg,
@@ -845,11 +853,11 @@ body {
 .event-card-epic { filter: drop-shadow(0 4px 10px rgba(139, 92, 246, 0.25)); }
 .event-card-legendary { filter: drop-shadow(0 6px 12px rgba(251, 191, 36, 0.3)); }
 
-/* Layer 0: Portal effect (BEHIND everything) - only for legendary - reduced 30% */
+/* Layer 0: Portal effect (BEHIND everything) - only for legendary - contained within card edges */
 .event-card-portal-layer {
   position: absolute;
-  inset: -5px;
-  border-radius: 16px;
+  inset: 2px;
+  border-radius: 10px;
   z-index: 0;
   pointer-events: none;
   background: conic-gradient(
@@ -866,23 +874,23 @@ body {
     rgba(217, 119, 6, 0) 74%,
     rgba(251, 191, 36, 0) 100%
   );
-  filter: blur(4px);
+  filter: blur(3px);
   opacity: 0.85;
   animation: legendary-portal-spin 3s linear infinite;
 }
 
-/* Aurora mist behind legendary card - reduced 30% */
+/* Aurora mist behind legendary event card - contained within card edges */
 .event-card-legendary::before {
   content: '';
   position: absolute;
-  inset: -10px;
-  border-radius: 18px;
+  inset: 4px;
+  border-radius: 10px;
   background: 
     radial-gradient(ellipse 120% 80% at 20% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 50%),
     radial-gradient(ellipse 100% 60% at 80% 70%, rgba(251, 191, 36, 0.3) 0%, transparent 45%),
     radial-gradient(ellipse 80% 100% at 50% 50%, rgba(217, 119, 6, 0.2) 0%, transparent 60%);
   z-index: -1;
-  filter: blur(12px);
+  filter: blur(8px);
   opacity: 0.7;
   animation: legendary-aurora-drift 6s ease-in-out infinite alternate;
   pointer-events: none;

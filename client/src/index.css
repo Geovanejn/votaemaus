@@ -933,8 +933,8 @@ body {
 /* Event card name area - centered between top banner and image frame */
 .event-card-name-area {
   position: absolute;
-  top: 36%;
-  bottom: 44%;
+  top: 32%;
+  bottom: 48%;
   left: 12%;
   right: 12%;
   z-index: 4;

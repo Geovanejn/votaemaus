@@ -825,21 +825,25 @@ body {
 /* ==================== EVENT CARDS - LAYERED DESIGN ==================== */
 
 /* Event cards use layered structure: portal -> image -> PNG -> effects */
+/* CRITICAL: Override ALL base styles - NO borders, NO backgrounds except PNG */
 .event-card-common,
 .event-card-rare,
 .event-card-epic,
 .event-card-legendary {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 12px !important;
   position: relative;
   overflow: visible;
   isolation: isolate;
+  box-shadow: none !important;
 }
 
-.event-card-common { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
-.event-card-rare { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-.event-card-epic { box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
-.event-card-legendary { box-shadow: 0 6px 16px rgba(251, 191, 36, 0.35); }
+/* Only subtle drop shadow for depth - no borders */
+.event-card-common { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); }
+.event-card-rare { filter: drop-shadow(0 4px 10px rgba(59, 130, 246, 0.25)); }
+.event-card-epic { filter: drop-shadow(0 4px 10px rgba(139, 92, 246, 0.25)); }
+.event-card-legendary { filter: drop-shadow(0 6px 12px rgba(251, 191, 36, 0.3)); }
 
 /* Layer 0: Portal effect (BEHIND everything) - only for legendary */
 .event-card-portal-layer {
@@ -884,16 +888,17 @@ body {
   pointer-events: none;
 }
 
-/* Layer 1: User image (BEHIND the PNG frame) */
+/* Layer 1: User image (BEHIND the PNG frame) - moved UP */
 .event-card-image-layer {
   position: absolute;
-  bottom: 8%;
-  left: 11%;
-  right: 11%;
-  height: 31%;
+  bottom: 6%;
+  left: 10%;
+  right: 10%;
+  height: 33%;
   z-index: 1;
   border-radius: 4px;
   overflow: hidden;
+  background: transparent;
 }
 
 .event-card-image-layer img {
@@ -918,7 +923,7 @@ body {
 .event-card-png-epic { background-image: url(/EVENT_CARD_EPICO.png); }
 .event-card-png-legendary { background-image: url(/EVENT_CARD_LENDARIO.png); }
 
-/* Event card inner layout */
+/* Event card inner layout - NO backgrounds, NO borders */
 .event-card-inner {
   position: relative;
   z-index: 3;
@@ -928,13 +933,17 @@ body {
   height: 100%;
   gap: 0;
   overflow: visible;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Event card name area - centered between top banner and image frame */
 .event-card-name-area {
   position: absolute;
-  top: 32%;
-  bottom: 48%;
+  top: 35%;
+  bottom: 45%;
   left: 12%;
   right: 12%;
   z-index: 4;

@@ -264,28 +264,45 @@ export default function VersiculoDoDiaPage() {
       const svgIcon = clonedCard.querySelector('svg');
       if (svgIcon) {
         const parentP = svgIcon.closest('p') as HTMLElement;
+        const scaledSize = 58;
+        
         if (parentP) {
           // Force explicit flex centering on parent container
           parentP.style.display = 'flex';
           parentP.style.alignItems = 'center';
           parentP.style.justifyContent = 'center';
-          // Reduce gap - closer to reference (0.5rem * 16 * 6 = 48px)
+          // Reduce gap - closer to reference
           parentP.style.gap = '48px';
-          parentP.style.lineHeight = '1';
+          // Set line-height to match icon size to prevent clipping
+          parentP.style.lineHeight = `${scaledSize}px`;
+          parentP.style.overflow = 'visible';
         }
         
-        // Scale SVG size for high-res export (0.7rem * 16 * 6 = 67.2px)
-        const scaledSize = 58;
+        // Wrap SVG in a fixed-height flex container for stable centering
+        const wrapper = document.createElement('span');
+        wrapper.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: ${scaledSize}px;
+          height: ${scaledSize}px;
+          overflow: visible;
+          flex-shrink: 0;
+        `;
+        
+        // Scale SVG size for high-res export
         svgIcon.setAttribute('width', `${scaledSize}`);
         svgIcon.setAttribute('height', `${scaledSize}`);
         svgIcon.style.width = `${scaledSize}px`;
         svgIcon.style.height = `${scaledSize}px`;
         svgIcon.style.flexShrink = '0';
         svgIcon.style.display = 'block';
-        // Remove margin - using gap instead
         svgIcon.style.marginRight = '0';
-        // Nudge icon down to align visual center with text center (html2canvas offset fix)
-        svgIcon.style.marginTop = '23px';
+        svgIcon.style.marginTop = '0';
+        
+        // Insert wrapper and move SVG inside it
+        svgIcon.parentNode?.insertBefore(wrapper, svgIcon);
+        wrapper.appendChild(svgIcon);
       }
       
       // Scale padding for ultra high-res

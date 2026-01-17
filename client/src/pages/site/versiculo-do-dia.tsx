@@ -602,7 +602,6 @@ export default function VersiculoDoDiaPage() {
                   textTransform: 'uppercase', 
                   letterSpacing: '0.1em',
                   margin: 0,
-                  fontFamily: "'Playfair Display', serif",
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                 }}>
                   VERSÍCULO DO DIA
@@ -611,7 +610,6 @@ export default function VersiculoDoDiaPage() {
                   fontSize: '0.7rem', 
                   opacity: 0.9,
                   margin: '0.25rem 0 0 0',
-                  fontFamily: "'Playfair Display', serif",
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
@@ -629,11 +627,10 @@ export default function VersiculoDoDiaPage() {
                 <div>
                   <p style={{ 
                     fontSize: '1.1rem', 
-                    fontStyle: 'normal', 
+                    fontStyle: 'italic', 
                     fontWeight: 400,
                     lineHeight: 1.4,
                     margin: '0 0 0.7rem 0',
-                    fontFamily: "'Playfair Display', serif",
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                   }}>
                     {todayVerse?.verse ? renderVerseWithHighlights(todayVerse.verse, todayVerse.highlightedKeywords) : ''}
@@ -642,17 +639,16 @@ export default function VersiculoDoDiaPage() {
                     fontSize: '0.608rem', 
                     fontWeight: 500,
                     margin: 0,
-                    fontFamily: "'Playfair Display', serif",
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.3rem',
+                    gap: '0.5rem',
                     textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                   }}>
-                    <BookOpen style={{ width: '0.7rem', height: '0.7rem', color: '#FFA500' }} />
-                    <span>{todayVerse?.reference ? formatReference(todayVerse.reference) : ''}</span>
+                    <BookOpen style={{ width: '0.7rem', height: '0.7rem', color: '#FFA500', flexShrink: 0, verticalAlign: 'middle' }} />
+                    <span style={{ lineHeight: 1 }}>{todayVerse?.reference ? formatReference(todayVerse.reference) : ''}</span>
                   </p>
                 </div>
               </div>

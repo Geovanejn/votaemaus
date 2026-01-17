@@ -888,13 +888,13 @@ body {
   pointer-events: none;
 }
 
-/* Layer 1: User image (BEHIND the PNG frame) - moved UP */
+/* Layer 1: User image (BEHIND the PNG frame) - adjusted to fit frame */
 .event-card-image-layer {
   position: absolute;
-  bottom: 6%;
-  left: 10%;
-  right: 10%;
-  height: 33%;
+  bottom: 4%;
+  left: 9%;
+  right: 9%;
+  height: 35%;
   z-index: 1;
   border-radius: 4px;
   overflow: hidden;
@@ -1039,46 +1039,12 @@ body {
   animation: light-sweep 4s ease-in-out infinite;
 }
 
-/* Holographic prisma overlay for event epic and legendary */
+/* DISABLE holographic overlay for event cards - it creates white background */
 .event-card-epic .collectible-card-holo-overlay,
 .event-card-legendary .collectible-card-holo-overlay {
-  position: absolute;
-  inset: 6px;
-  border-radius: 10px;
-  pointer-events: none;
-  z-index: 8;
-  mix-blend-mode: overlay;
-  opacity: 0.6;
-  animation: holo-breathe 3s ease-in-out infinite;
+  display: none !important;
 }
 
-/* Epic prisma - purple tones */
-.event-card-epic .collectible-card-holo-overlay {
-  background: linear-gradient(
-    135deg,
-    rgba(139, 92, 246, 0.3) 0%,
-    rgba(167, 139, 250, 0.4) 15%,
-    rgba(196, 181, 253, 0.5) 30%,
-    rgba(255, 255, 255, 0.4) 45%,
-    rgba(192, 132, 252, 0.5) 60%,
-    rgba(139, 92, 246, 0.4) 75%,
-    rgba(109, 40, 217, 0.3) 100%
-  );
-}
-
-/* Legendary prisma - golden tones */
-.event-card-legendary .collectible-card-holo-overlay {
-  background: linear-gradient(
-    135deg,
-    rgba(251, 191, 36, 0.35) 0%,
-    rgba(253, 224, 71, 0.45) 15%,
-    rgba(254, 240, 138, 0.5) 30%,
-    rgba(255, 255, 255, 0.45) 45%,
-    rgba(253, 224, 71, 0.5) 60%,
-    rgba(251, 191, 36, 0.4) 75%,
-    rgba(217, 119, 6, 0.35) 100%
-  );
-}
 
 
 /* Compact variant - minicard with only centered icon */

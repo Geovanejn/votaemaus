@@ -405,8 +405,10 @@ function getIconForLessonType(type: string): string {
   return icons[type] || "star";
 }
 
+// Função unificada para calcular weekKey (domingo a sábado, timezone São Paulo)
+// A semana começa no domingo (dia 1) e termina no sábado (dia 7) às 23:59
 function getWeekKeyForLesson(): string {
-  // Use Brazil timezone (America/Sao_Paulo) to calculate week number
+  // Get current date in São Paulo timezone
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -418,9 +420,18 @@ function getWeekKeyForLesson(): string {
   
   // Create date object for Brazil's current date
   const brazilDate = new Date(year, month - 1, day);
-  const startOfYear = new Date(year, 0, 1);
-  const weekNumber = Math.ceil(((brazilDate.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
-  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+  
+  // Get the Sunday of the current week (week starts on Sunday)
+  const dayOfWeek = brazilDate.getDay(); // 0 = Sunday, 6 = Saturday
+  const sundayOfWeek = new Date(brazilDate);
+  sundayOfWeek.setDate(brazilDate.getDate() - dayOfWeek);
+  
+  // Calculate week number based on the Sunday's date
+  const startOfYear = new Date(sundayOfWeek.getFullYear(), 0, 1);
+  const daysSinceStart = Math.floor((sundayOfWeek.getTime() - startOfYear.getTime()) / 86400000);
+  const weekNumber = Math.ceil((daysSinceStart + startOfYear.getDay() + 1) / 7);
+  
+  return `${sundayOfWeek.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
 function getStageFromUnitType(unitType: string): string {
@@ -6549,12 +6560,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== TEMPORADAS (SEASONS) ====================
 
-  // Função auxiliar para obter a chave da semana atual
+  // Função auxiliar para obter a chave da semana atual (domingo a sábado, timezone São Paulo)
+  // A semana começa no domingo (dia 1) e termina no sábado (dia 7) às 23:59
   function getCurrentWeekKey(): string {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const weekNumber = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
-    return `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+    // Get current date in São Paulo timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const brazilDateStr = formatter.format(new Date());
+    const [year, month, day] = brazilDateStr.split('-').map(Number);
+    
+    // Create date object for Brazil's current date
+    const brazilDate = new Date(year, month - 1, day);
+    
+    // Get the Sunday of the current week (week starts on Sunday)
+    const dayOfWeek = brazilDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const sundayOfWeek = new Date(brazilDate);
+    sundayOfWeek.setDate(brazilDate.getDate() - dayOfWeek);
+    
+    // Calculate week number based on the Sunday's date
+    const startOfYear = new Date(sundayOfWeek.getFullYear(), 0, 1);
+    const daysSinceStart = Math.floor((sundayOfWeek.getTime() - startOfYear.getTime()) / 86400000);
+    const weekNumber = Math.ceil((daysSinceStart + startOfYear.getDay() + 1) / 7);
+    
+    return `${sundayOfWeek.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
   }
 
   // Obter lição atual em progresso do usuário (para "Continue estudando")

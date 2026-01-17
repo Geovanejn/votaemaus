@@ -812,31 +812,60 @@ export function initDailyMissionsScheduler(): void {
 
 // ==================== WEEKLY GOAL SCHEDULER ====================
 
+// Função auxiliar para obter a chave da semana atual (domingo a sábado, timezone São Paulo)
+// A semana começa no domingo (dia 1) e termina no sábado (dia 7) às 23:59
 function getCurrentWeekKey(): string {
-  const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo'
+  // Get current date in São Paulo timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
-  const localDate = new Date(formatter.format(now));
-  const year = localDate.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+  const brazilDateStr = formatter.format(new Date());
+  const [year, month, day] = brazilDateStr.split('-').map(Number);
+  
+  // Create date object for Brazil's current date
+  const brazilDate = new Date(year, month - 1, day);
+  
+  // Get the Sunday of the current week (week starts on Sunday)
+  const dayOfWeek = brazilDate.getDay(); // 0 = Sunday, 6 = Saturday
+  const sundayOfWeek = new Date(brazilDate);
+  sundayOfWeek.setDate(brazilDate.getDate() - dayOfWeek);
+  
+  // Calculate week number based on the Sunday's date
+  const startOfYear = new Date(sundayOfWeek.getFullYear(), 0, 1);
+  const daysSinceStart = Math.floor((sundayOfWeek.getTime() - startOfYear.getTime()) / 86400000);
+  const weekNumber = Math.ceil((daysSinceStart + startOfYear.getDay() + 1) / 7);
+  
+  return `${sundayOfWeek.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
 function getPreviousWeekKey(): string {
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Sao_Paulo'
+  // Get current date in São Paulo timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
-  const localDate = new Date(formatter.format(oneWeekAgo));
-  const year = localDate.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((localDate.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+  const brazilDateStr = formatter.format(new Date());
+  const [year, month, day] = brazilDateStr.split('-').map(Number);
+  
+  // Create date object for Brazil's current date - 7 days (previous week)
+  const brazilDate = new Date(year, month - 1, day - 7);
+  
+  // Get the Sunday of that week (week starts on Sunday)
+  const dayOfWeek = brazilDate.getDay();
+  const sundayOfWeek = new Date(brazilDate);
+  sundayOfWeek.setDate(brazilDate.getDate() - dayOfWeek);
+  
+  // Calculate week number based on the Sunday's date
+  const startOfYear = new Date(sundayOfWeek.getFullYear(), 0, 1);
+  const daysSinceStart = Math.floor((sundayOfWeek.getTime() - startOfYear.getTime()) / 86400000);
+  const weekNumber = Math.ceil((daysSinceStart + startOfYear.getDay() + 1) / 7);
+  
+  return `${sundayOfWeek.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
 async function processWeeklyGoalRewards(): Promise<void> {

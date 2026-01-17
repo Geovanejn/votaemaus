@@ -907,10 +907,10 @@ body {
 /* Layer 1: User image (BEHIND the PNG frame) - precisely aligned to frame cutout */
 .event-card-image-layer {
   position: absolute;
-  bottom: 7%;
+  bottom: 8%;
   left: 7.5%;
   right: 7.5%;
-  top: 56%;
+  top: 54%;
   z-index: 1;
   border-radius: 6px;
   overflow: hidden;

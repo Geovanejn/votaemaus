@@ -891,10 +891,10 @@ body {
 /* Layer 1: User image (BEHIND the PNG frame) - adjusted to fit frame */
 .event-card-image-layer {
   position: absolute;
-  bottom: 4%;
-  left: 9%;
-  right: 9%;
-  height: 35%;
+  bottom: 3%;
+  left: 8%;
+  right: 8%;
+  height: 40%;
   z-index: 1;
   border-radius: 4px;
   overflow: hidden;

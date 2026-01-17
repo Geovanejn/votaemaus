@@ -1133,41 +1133,41 @@ body {
   word-wrap: break-word;
 }
 
-/* Common: same gray color as "COMUM" badge on PNG */
+/* Common: exact color from inside "COMUM" text on PNG - silver/white */
 .event-card-title-common {
-  color: #9ca3af;
+  color: #cac8c7;
   text-shadow: 
     0 -1px 0 rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.15),
     0 0 3px rgba(0, 0, 0, 0.4);
 }
 
-/* Rare: same blue color as "RARO" badge on PNG */
+/* Rare: exact color from inside "RARO" text on PNG - cyan/aqua */
 .event-card-title-rare {
-  color: #60a5fa;
+  color: #00c5ff;
   text-shadow: 
     0 -1px 0 rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(96, 165, 250, 0.3),
-    0 0 6px rgba(59, 130, 246, 0.5);
+    0 1px 0 rgba(0, 197, 255, 0.3),
+    0 0 6px rgba(0, 197, 255, 0.5);
 }
 
-/* Epic: same purple color as "ÉPICO" badge on PNG */
+/* Epic: exact color from inside "ÉPICO" text on PNG - bright magenta/pink */
 .event-card-title-epic {
-  color: #c084fc;
+  color: #ff92ff;
   text-shadow: 
     0 -1px 0 rgba(0, 0, 0, 0.8),
-    0 1px 0 rgba(192, 132, 252, 0.3),
-    0 0 6px rgba(139, 92, 246, 0.5);
+    0 1px 0 rgba(255, 146, 255, 0.3),
+    0 0 6px rgba(255, 146, 255, 0.5);
 }
 
-/* Legendary: same golden color as "LENDÁRIO" badge on PNG */
+/* Legendary: exact color from inside "LENDÁRIO" text on PNG - bright gold/orange */
 .event-card-title-legendary {
-  color: #fbbf24;
+  color: #ffb800;
   text-shadow: 
     0 -1px 0 rgba(0, 0, 0, 0.8),
     0 1px 0 rgba(255, 255, 255, 0.4),
-    0 0 8px rgba(251, 191, 36, 0.6),
-    0 0 16px rgba(251, 191, 36, 0.3);
+    0 0 8px rgba(255, 184, 0, 0.6),
+    0 0 16px rgba(255, 184, 0, 0.3);
 }
 
 

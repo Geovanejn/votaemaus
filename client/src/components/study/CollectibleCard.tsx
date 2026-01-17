@@ -15,7 +15,7 @@ interface CollectibleCardProps {
   onClick?: () => void;
   className?: string;
   showLabel?: boolean;
-  size?: "sm" | "md" | "lg" | "compact" | "magazine" | "event";
+  size?: "sm" | "md" | "lg" | "compact" | "magazine" | "event" | "event-modal" | "magazine-modal";
 }
 
 const rarityLabels: Record<CardRarity, string> = {
@@ -55,43 +55,54 @@ export function CollectibleCard({
     magazine: "w-[180px] h-[270px] sm:w-[220px] sm:h-[330px]",
     // Event-specific: vertical portrait format matching new design
     event: "w-[180px] h-[270px] sm:w-[220px] sm:h-[330px]",
+    // Modal sizes - 30% larger than regular event/magazine
+    "event-modal": "w-[234px] h-[351px] sm:w-[286px] sm:h-[429px]",
+    "magazine-modal": "w-[234px] h-[351px] sm:w-[286px] sm:h-[429px]",
   };
 
   // For magazine size, we use flex-1 with aspect ratio instead of fixed height
-  const imageHeightClasses = {
+  const imageHeightClasses: Record<string, string> = {
     compact: "h-[48px]",
     sm: "h-[68px]",
     md: "h-[88px] sm:h-[108px]",
     lg: "h-[140px]",
     magazine: "aspect-[3/4] w-full",
-    event: "h-[100px] sm:h-[110px]", // Compact landscape image
+    event: "h-[100px] sm:h-[110px]",
+    "event-modal": "h-[130px] sm:h-[143px]",
+    "magazine-modal": "aspect-[3/4] w-full",
   };
 
-  const badgeSizeClasses = {
+  const badgeSizeClasses: Record<string, string> = {
     compact: "w-7 h-7",
     sm: "w-8 h-8",
     md: "w-10 h-10 sm:w-12 sm:h-12",
     lg: "w-14 h-14",
     magazine: "w-12 h-12 sm:w-14 sm:h-14",
-    event: "w-12 h-12 sm:w-14 sm:h-14", // Same size as lg
+    event: "w-12 h-12 sm:w-14 sm:h-14",
+    "event-modal": "w-14 h-14 sm:w-16 sm:h-16",
+    "magazine-modal": "w-14 h-14 sm:w-16 sm:h-16",
   };
 
-  const titleSizeClasses = {
+  const titleSizeClasses: Record<string, string> = {
     compact: "text-[10px] leading-tight line-clamp-2 px-1",
     sm: "text-xs",
     md: "text-sm sm:text-base",
     lg: "text-lg",
     magazine: "text-base sm:text-lg",
-    event: "text-sm sm:text-base", // Event title size
+    event: "text-sm sm:text-base",
+    "event-modal": "text-base sm:text-lg",
+    "magazine-modal": "text-base sm:text-lg",
   };
 
-  const subtitleSizeClasses = {
+  const subtitleSizeClasses: Record<string, string> = {
     compact: "text-[8px]",
     sm: "text-[10px]",
     md: "text-[10px] sm:text-xs",
     lg: "text-sm",
     magazine: "text-xs sm:text-sm",
     event: "text-[10px] sm:text-xs",
+    "event-modal": "text-xs sm:text-sm",
+    "magazine-modal": "text-xs sm:text-sm",
   };
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -313,7 +324,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             rarity={card.rarity}
             sourceType={card.sourceType}
             orientation="portrait"
-            size={card.sourceType === "magazine" ? "magazine" : card.sourceType === "event" ? "event" : "lg"}
+            size={card.sourceType === "magazine" ? "magazine-modal" : card.sourceType === "event" ? "event-modal" : "lg"}
           />
         </div>
 

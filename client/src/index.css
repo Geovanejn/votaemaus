@@ -1110,8 +1110,8 @@ body {
 /* Event card name area - centered between top banner and image frame */
 .event-card-name-area {
   position: absolute;
-  top: 32%;
-  bottom: 48%;
+  top: 33%;
+  bottom: 47%;
   left: 10%;
   right: 10%;
   z-index: 4;
@@ -1128,7 +1128,7 @@ body {
   letter-spacing: 0.06em;
   text-align: center;
   line-height: 1.1;
-  font-size: 0.65rem;
+  font-size: 0.585rem;
   max-width: 95%;
   word-wrap: break-word;
 }

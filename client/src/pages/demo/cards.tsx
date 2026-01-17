@@ -8,8 +8,23 @@ const demoCards = [
   { id: 4, name: "Card Lendário", rarity: "legendary" as CardRarity, description: "Exemplo de card lendário com efeito de chama" },
 ];
 
+const eventCards = [
+  { id: 1, name: "Acampamento", rarity: "common" as CardRarity, description: "Card de evento comum" },
+  { id: 2, name: "Retiro Jovem", rarity: "rare" as CardRarity, description: "Card de evento raro" },
+  { id: 3, name: "Congresso", rarity: "epic" as CardRarity, description: "Card de evento épico" },
+  { id: 4, name: "Jubileu UMP", rarity: "legendary" as CardRarity, description: "Card de evento lendário" },
+];
+
+type DemoCard = {
+  id: number;
+  name: string;
+  rarity: CardRarity;
+  description: string;
+  sourceType?: "season" | "event";
+};
+
 export default function DemoCardsPage() {
-  const [selectedCard, setSelectedCard] = useState<typeof demoCards[0] | null>(null);
+  const [selectedCard, setSelectedCard] = useState<DemoCard | null>(null);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 p-8">
@@ -45,6 +60,24 @@ export default function DemoCardsPage() {
             ))}
           </div>
         </div>
+
+        <div className="mt-12">
+          <h2 className="text-xl font-semibold text-white mb-4">Cards de Evento (Novo Design)</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 justify-items-center overflow-visible p-8">
+            {eventCards.map((card) => (
+              <div key={`event-${card.id}`} className="flex flex-col items-center gap-2 overflow-visible">
+                <CollectibleCard
+                  name={card.name}
+                  rarity={card.rarity}
+                  size="event"
+                  sourceType="event"
+                  onClick={() => setSelectedCard({ ...card, sourceType: "event" })}
+                />
+                <span className="text-sm text-gray-300 capitalize">{card.rarity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {selectedCard && (
@@ -55,7 +88,7 @@ export default function DemoCardsPage() {
             name: selectedCard.name,
             rarity: selectedCard.rarity,
             description: selectedCard.description,
-            sourceType: "season",
+            sourceType: selectedCard.sourceType || "season",
             imageUrl: null,
           }}
         />

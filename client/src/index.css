@@ -822,11 +822,174 @@ body {
   gap: 12px;
 }
 
-/* Event card variant - compact landscape layout with proportional spacing */
-.collectible-card-inner-event {
-  padding: 12px;
-  gap: 12px;
-  justify-content: flex-start;
+/* ==================== EVENT CARDS - NEW DESIGN ==================== */
+
+/* Event card backgrounds - using new PNG designs */
+.event-card-common {
+  background: url(/EVENT_CARD_COMUM.png) center/cover no-repeat;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: visible;
+}
+
+.event-card-rare {
+  background: url(/EVENT_CARD_RARO.png) center/cover no-repeat;
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: visible;
+}
+
+.event-card-epic {
+  background: url(/EVENT_CARD_EPICO.png) center/cover no-repeat;
+  border: none;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  position: relative;
+  overflow: visible;
+}
+
+.event-card-legendary {
+  background: url(/EVENT_CARD_LENDARIO.png) center/cover no-repeat;
+  border: none;
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.35);
+  position: relative;
+  overflow: visible;
+  transform-style: preserve-3d;
+  isolation: isolate;
+}
+
+/* Event card inner layout */
+.event-card-inner {
+  position: relative;
+  z-index: 5;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+  overflow: visible;
+}
+
+/* Event card name area - positioned in the middle empty space */
+.event-card-name-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  margin-top: 28%;
+}
+
+/* Event card title - engraved/embossed style */
+.event-card-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  line-height: 1.1;
+  font-size: 0.9rem;
+  max-width: 90%;
+  word-wrap: break-word;
+}
+
+/* Common: dark gray engraved text */
+.event-card-title-common {
+  color: rgba(180, 180, 180, 0.95);
+  text-shadow: 
+    0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Rare: blue metallic text */
+.event-card-title-rare {
+  color: rgba(147, 197, 253, 0.95);
+  text-shadow: 
+    0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(147, 197, 253, 0.3),
+    0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+/* Epic: purple metallic text */
+.event-card-title-epic {
+  color: rgba(216, 180, 254, 0.95);
+  text-shadow: 
+    0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(216, 180, 254, 0.3),
+    0 0 6px rgba(139, 92, 246, 0.4);
+}
+
+/* Legendary: golden metallic text */
+.event-card-title-legendary {
+  color: rgba(253, 224, 71, 0.98);
+  text-shadow: 
+    0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 8px rgba(251, 191, 36, 0.6),
+    0 0 16px rgba(251, 191, 36, 0.3);
+}
+
+/* Event card image frame - bottom area */
+.event-card-image-frame {
+  position: absolute;
+  bottom: 7.5%;
+  left: 7%;
+  right: 7%;
+  height: 42%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.event-card-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Event Legendary Portal Effect */
+.event-card-legendary::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 22px;
+  background: conic-gradient(
+    from var(--legendary-portal-angle, 0deg),
+    rgba(251, 191, 36, 0) 0%,
+    rgba(253, 224, 71, 0.8) 8%,
+    rgba(255, 255, 255, 1) 12%,
+    rgba(253, 224, 71, 0.8) 16%,
+    rgba(251, 191, 36, 0) 24%,
+    rgba(217, 119, 6, 0) 50%,
+    rgba(253, 224, 71, 0.6) 58%,
+    rgba(255, 255, 255, 0.9) 62%,
+    rgba(253, 224, 71, 0.6) 66%,
+    rgba(217, 119, 6, 0) 74%,
+    rgba(251, 191, 36, 0) 100%
+  );
+  z-index: -1;
+  transform: translateZ(-1px);
+  filter: blur(6px);
+  opacity: 0.9;
+  animation: legendary-portal-spin 3s linear infinite;
+}
+
+/* Event Legendary Aurora Mist */
+.event-card-legendary::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 28px;
+  background: 
+    radial-gradient(ellipse 120% 80% at 20% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 60% at 80% 70%, rgba(251, 191, 36, 0.3) 0%, transparent 45%),
+    radial-gradient(ellipse 80% 100% at 50% 50%, rgba(217, 119, 6, 0.2) 0%, transparent 60%);
+  z-index: -2;
+  transform: translateZ(-2px);
+  filter: blur(20px);
+  opacity: 0.8;
+  animation: legendary-aurora-drift 6s ease-in-out infinite alternate, legendary-aurora-pulse 2s ease-in-out infinite alternate;
 }
 
 /* Compact variant - minicard with only centered icon */

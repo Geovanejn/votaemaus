@@ -53,8 +53,8 @@ export function CollectibleCard({
     md: "w-[180px] h-[210px] sm:w-[220px] sm:h-[250px]",
     lg: "w-[280px] h-[320px]",
     magazine: "w-[240px] min-h-[320px] sm:w-[280px] sm:min-h-[380px]",
-    // Event-specific: wider landscape format (+10% height)
-    event: "w-[280px] h-[242px] sm:w-[320px] sm:h-[264px]",
+    // Event-specific: vertical portrait format matching new design
+    event: "w-[180px] h-[270px] sm:w-[220px] sm:h-[330px]",
   };
 
   // For magazine size, we use flex-1 with aspect ratio instead of fixed height
@@ -107,7 +107,7 @@ export function CollectibleCard({
       onClick={onClick}
       className={`
         collectible-card
-        collectible-card-${rarity}
+        ${sourceType === 'event' ? `event-card-${rarity}` : `collectible-card-${rarity}`}
         ${sizeClasses[size]}
         ${onClick ? "cursor-pointer" : ""}
         ${className}
@@ -141,7 +141,7 @@ export function CollectibleCard({
       )}
 
 
-      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${sourceType === 'event' ? 'event-card-inner' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (
           <div className="flex-1 flex items-center justify-center">
@@ -149,6 +149,32 @@ export function CollectibleCard({
               <IconComponent className="w-6 h-6 text-white" />
             </div>
           </div>
+        ) : sourceType === 'event' ? (
+          /* Event card layout: name in top area, image in bottom frame */
+          <>
+            {/* Event name in the middle empty area - engraved style */}
+            <div className="event-card-name-area">
+              <h3 className={`event-card-title event-card-title-${rarity}`}>
+                {name}
+              </h3>
+            </div>
+
+            {/* Event image in bottom frame */}
+            <div className="event-card-image-frame">
+              {imageUrl ? (
+                <img 
+                  src={imageUrl} 
+                  alt={name}
+                  className="w-full h-full object-cover"
+                  style={{ imageRendering: 'auto' }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-black/30">
+                  <IconComponent className="w-8 h-8 text-white/50" />
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <>
             {/* Centered rarity medallion with forged effect */}

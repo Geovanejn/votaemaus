@@ -35,7 +35,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import type { Season } from "@shared/schema";
 
-const MAGAZINE_COVER_ASPECT_RATIO = 9 / 16;
+const MAGAZINE_COVER_ASPECT_RATIO = 3 / 4;
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-400", label: "Rascunho" },

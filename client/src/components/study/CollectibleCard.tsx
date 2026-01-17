@@ -66,10 +66,10 @@ export function CollectibleCard({
     sm: "h-[68px]",
     md: "h-[88px] sm:h-[108px]",
     lg: "h-[140px]",
-    magazine: "aspect-[9/16] w-full",
+    magazine: "aspect-[3/4] w-full",
     event: "h-[100px] sm:h-[110px]",
     "event-modal": "h-[130px] sm:h-[143px]",
-    "magazine-modal": "aspect-[9/16] w-full",
+    "magazine-modal": "aspect-[3/4] w-full",
   };
 
   const badgeSizeClasses: Record<string, string> = {

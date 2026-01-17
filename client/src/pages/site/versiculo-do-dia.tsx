@@ -285,7 +285,7 @@ export default function VersiculoDoDiaPage() {
         // Remove margin - using gap instead
         svgIcon.style.marginRight = '0';
         // Nudge icon down to align visual center with text center (html2canvas offset fix)
-        svgIcon.style.marginTop = '8px';
+        svgIcon.style.marginTop = '23px';
       }
       
       // Scale padding for ultra high-res

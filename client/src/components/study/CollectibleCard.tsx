@@ -208,35 +208,15 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
   const cardRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sound effects based on card rarity
+  // Sound effect only for legendary cards - plays once, no loop
   useEffect(() => {
     if (!isOpen) return;
 
-    // Select audio source based on rarity
-    let audioSrc: string | null = null;
-    let volume = 0.3;
-
-    switch (card.rarity) {
-      case "legendary":
-        audioSrc = "/sounds/fire-loop.mp3";
-        volume = 0.3;
-        break;
-      case "epic":
-        audioSrc = "/sounds/neon-hum.mp3";
-        volume = 0.25;
-        break;
-      case "rare":
-        audioSrc = "/sounds/electric-loop.mp3";
-        volume = 0.2;
-        break;
-      default:
-        audioSrc = null;
-    }
-
-    if (audioSrc) {
-      audioRef.current = new Audio(audioSrc);
-      audioRef.current.loop = true;
-      audioRef.current.volume = volume;
+    // Only legendary cards have sound effect
+    if (card.rarity === "legendary") {
+      audioRef.current = new Audio("/sounds/legendary-reveal.mp3");
+      audioRef.current.loop = false;
+      audioRef.current.volume = 0.5;
       audioRef.current.play().catch(() => {
         // Autoplay might be blocked, ignore error
       });

@@ -519,77 +519,93 @@ body {
   position: relative;
 }
 
-/* Cosmic Aura - Pulsing radiant glow around legendary card */
+/* ==================== LEGENDARY PORTAL + AURORA EFFECTS ==================== */
+
+/* Portal Dimensional Vortex - Spinning energy ring */
 .collectible-card-legendary::before {
   content: '';
   position: absolute;
-  inset: -8px;
-  border-radius: 20px;
+  inset: -12px;
+  border-radius: 22px;
   background: conic-gradient(
-    from 0deg,
-    rgba(251, 191, 36, 0.6),
-    rgba(245, 158, 11, 0.3),
-    rgba(217, 119, 6, 0.6),
-    rgba(251, 191, 36, 0.3),
-    rgba(253, 224, 71, 0.6),
-    rgba(251, 191, 36, 0.3),
-    rgba(217, 119, 6, 0.6),
-    rgba(245, 158, 11, 0.3),
-    rgba(251, 191, 36, 0.6)
+    from var(--legendary-portal-angle, 0deg),
+    rgba(251, 191, 36, 0) 0%,
+    rgba(253, 224, 71, 0.8) 8%,
+    rgba(255, 255, 255, 1) 12%,
+    rgba(253, 224, 71, 0.8) 16%,
+    rgba(251, 191, 36, 0) 24%,
+    rgba(217, 119, 6, 0) 50%,
+    rgba(253, 224, 71, 0.6) 58%,
+    rgba(255, 255, 255, 0.9) 62%,
+    rgba(253, 224, 71, 0.6) 66%,
+    rgba(217, 119, 6, 0) 74%,
+    rgba(251, 191, 36, 0) 100%
   );
   z-index: -1;
-  filter: blur(12px);
-  opacity: 0.7;
-  animation: legendary-aura-rotate 8s linear infinite, legendary-aura-pulse 2s ease-in-out infinite alternate;
+  filter: blur(6px);
+  opacity: 0.9;
+  animation: legendary-portal-spin 3s linear infinite;
 }
 
-/* Orbiting Energy Border - Animated golden energy ring */
+/* Mystical Aurora Mist - Flowing ethereal fog */
 .collectible-card-legendary::after {
   content: '';
   position: absolute;
-  inset: -3px;
-  border-radius: 18px;
-  background: conic-gradient(
-    from var(--legendary-border-angle, 0deg),
-    transparent 0%,
-    rgba(253, 224, 71, 0.9) 10%,
-    rgba(251, 191, 36, 1) 20%,
-    transparent 30%,
-    transparent 50%,
-    rgba(253, 224, 71, 0.9) 60%,
-    rgba(251, 191, 36, 1) 70%,
-    transparent 80%,
-    transparent 100%
-  );
-  z-index: -1;
-  animation: legendary-border-orbit 4s linear infinite;
+  inset: -20px;
+  border-radius: 28px;
+  background: 
+    radial-gradient(ellipse 120% 80% at 20% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 60% at 80% 70%, rgba(251, 191, 36, 0.3) 0%, transparent 45%),
+    radial-gradient(ellipse 80% 100% at 50% 50%, rgba(217, 119, 6, 0.2) 0%, transparent 60%);
+  z-index: -2;
+  filter: blur(20px);
+  opacity: 0.8;
+  animation: legendary-aurora-drift 6s ease-in-out infinite alternate, legendary-aurora-pulse 2s ease-in-out infinite alternate;
 }
 
-@property --legendary-border-angle {
+@property --legendary-portal-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
 
-@keyframes legendary-aura-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes legendary-portal-spin {
+  from { --legendary-portal-angle: 0deg; }
+  to { --legendary-portal-angle: 360deg; }
 }
 
-@keyframes legendary-aura-pulse {
+@keyframes legendary-aurora-drift {
   0% {
-    opacity: 0.5;
-    filter: blur(10px);
+    transform: translateX(-5px) translateY(-3px) scale(1);
+    background: 
+      radial-gradient(ellipse 120% 80% at 20% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 50%),
+      radial-gradient(ellipse 100% 60% at 80% 70%, rgba(251, 191, 36, 0.3) 0%, transparent 45%),
+      radial-gradient(ellipse 80% 100% at 50% 50%, rgba(217, 119, 6, 0.2) 0%, transparent 60%);
+  }
+  50% {
+    background: 
+      radial-gradient(ellipse 100% 90% at 70% 40%, rgba(253, 224, 71, 0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 70% at 30% 60%, rgba(251, 191, 36, 0.4) 0%, transparent 50%),
+      radial-gradient(ellipse 110% 80% at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
   }
   100% {
-    opacity: 0.85;
-    filter: blur(16px);
+    transform: translateX(5px) translateY(3px) scale(1.05);
+    background: 
+      radial-gradient(ellipse 90% 100% at 80% 20%, rgba(253, 224, 71, 0.45) 0%, transparent 50%),
+      radial-gradient(ellipse 110% 50% at 20% 80%, rgba(251, 191, 36, 0.35) 0%, transparent 45%),
+      radial-gradient(ellipse 70% 120% at 50% 50%, rgba(217, 119, 6, 0.25) 0%, transparent 55%);
   }
 }
 
-@keyframes legendary-border-orbit {
-  from { --legendary-border-angle: 0deg; }
-  to { --legendary-border-angle: 360deg; }
+@keyframes legendary-aurora-pulse {
+  0% {
+    opacity: 0.6;
+    filter: blur(18px);
+  }
+  100% {
+    opacity: 0.9;
+    filter: blur(24px);
+  }
 }
 
 /* Light sweep effect overlay - contained within card */

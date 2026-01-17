@@ -83,6 +83,18 @@ async function getCroppedImg(
   return dataUrl;
 }
 
+interface MediaSize {
+  width: number;
+  height: number;
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
+interface CropSize {
+  width: number;
+  height: number;
+}
+
 export default function ImageCropDialog({
   open,
   onOpenChange,
@@ -92,15 +104,45 @@ export default function ImageCropDialog({
 }: ImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [minZoom, setMinZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
+  const [mediaSize, setMediaSize] = useState<MediaSize | null>(null);
+  const [cropSize, setCropSize] = useState<CropSize | null>(null);
 
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setMinZoom(1);
       setCroppedAreaPixels(null);
+      setMediaSize(null);
+      setCropSize(null);
     }
   }, [open]);
+
+  // Calculate minZoom when both media and crop sizes are available
+  useEffect(() => {
+    if (mediaSize && cropSize) {
+      // Calculate minZoom to ensure image covers entire crop area (cover fit)
+      const zoomForWidth = cropSize.width / mediaSize.width;
+      const zoomForHeight = cropSize.height / mediaSize.height;
+      // Take the maximum to ensure both dimensions are covered
+      const requiredZoom = Math.max(zoomForWidth, zoomForHeight);
+      // Ensure minimum zoom of 1 with small buffer
+      const calculatedMinZoom = Math.max(1, requiredZoom * 1.01);
+      setMinZoom(calculatedMinZoom);
+      setZoom(calculatedMinZoom);
+    }
+  }, [mediaSize, cropSize]);
+
+  const onMediaLoaded = useCallback((size: MediaSize) => {
+    setMediaSize(size);
+  }, []);
+
+  const onCropSizeChange = useCallback((size: CropSize) => {
+    setCropSize(size);
+  }, []);
 
   const onCropChange = useCallback((location: { x: number; y: number }) => {
     setCrop(location);
@@ -157,12 +199,16 @@ export default function ImageCropDialog({
               image={imageSrc}
               crop={crop}
               zoom={zoom}
+              minZoom={minZoom}
               aspect={aspectRatio}
               cropShape={isSquare ? "round" : "rect"}
               showGrid={!isSquare}
               onCropChange={onCropChange}
               onZoomChange={onZoomChange}
-              onCropAreaChange={onCropAreaChange}
+              onCropComplete={onCropAreaChange}
+              onMediaLoaded={onMediaLoaded}
+              onCropSizeChange={onCropSizeChange}
+              objectFit="contain"
             />
           </div>
           <div className="space-y-2">
@@ -170,8 +216,8 @@ export default function ImageCropDialog({
             <Slider
               value={[zoom]}
               onValueChange={(values) => setZoom(values[0])}
-              min={1}
-              max={3}
+              min={minZoom}
+              max={Math.max(3, minZoom + 2)}
               step={0.1}
               className="w-full"
               data-testid="slider-zoom"

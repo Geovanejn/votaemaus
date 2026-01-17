@@ -66,10 +66,10 @@ export function CollectibleCard({
     sm: "h-[68px]",
     md: "h-[88px] sm:h-[108px]",
     lg: "h-[140px]",
-    magazine: "aspect-[3/4] w-full",
+    magazine: "aspect-[9/16] w-full",
     event: "h-[100px] sm:h-[110px]",
     "event-modal": "h-[130px] sm:h-[143px]",
-    "magazine-modal": "aspect-[3/4] w-full",
+    "magazine-modal": "aspect-[9/16] w-full",
   };
 
   const badgeSizeClasses: Record<string, string> = {
@@ -308,7 +308,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto max-h-screen"
       onClick={onClose}
       data-testid="modal-card-view"
     >
@@ -317,7 +317,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 300 }}
-        className="flex flex-col items-center gap-6 max-w-md overflow-visible"
+        className="flex flex-col items-center gap-4 max-w-md overflow-visible my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div ref={cardRef} className="relative overflow-visible">
@@ -327,7 +327,7 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
             rarity={card.rarity}
             sourceType={card.sourceType}
             orientation="portrait"
-            size={card.sourceType === "magazine" ? "magazine-modal" : card.sourceType === "event" ? "event-modal" : "lg"}
+            size={(card.sourceType === "magazine" || card.sourceType === "season") ? "magazine-modal" : card.sourceType === "event" ? "event-modal" : "lg"}
           />
         </div>
 

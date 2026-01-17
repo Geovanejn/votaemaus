@@ -910,7 +910,7 @@ body {
   bottom: 8%;
   left: 7.5%;
   right: 7.5%;
-  top: 50%;
+  top: 51%;
   z-index: 1;
   border-radius: 6px;
   overflow: hidden;
@@ -1128,7 +1128,7 @@ body {
   letter-spacing: 0.06em;
   text-align: center;
   line-height: 1.1;
-  font-size: 0.585rem;
+  font-size: 0.626rem;
   max-width: 95%;
   word-wrap: break-word;
 }

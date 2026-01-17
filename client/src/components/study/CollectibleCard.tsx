@@ -303,17 +303,17 @@ export function CollectibleCardModal({ isOpen, onClose, card }: CollectibleCardM
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 300 }}
-        className="flex flex-col items-center gap-6 max-w-md"
+        className="flex flex-col items-center gap-6 max-w-md overflow-visible"
         onClick={(e) => e.stopPropagation()}
       >
-        <div ref={cardRef} className="relative">
+        <div ref={cardRef} className="relative overflow-visible">
           <CollectibleCard
             name={card.name}
             imageUrl={card.imageUrl}
             rarity={card.rarity}
             sourceType={card.sourceType}
-            orientation={card.sourceType === "event" ? "portrait" : "portrait"}
-            size={card.sourceType === "season" ? "magazine" : card.sourceType === "event" ? "event" : "lg"}
+            orientation="portrait"
+            size={card.sourceType === "magazine" ? "magazine" : card.sourceType === "event" ? "event" : "lg"}
           />
         </div>
 
@@ -367,7 +367,7 @@ export function CollectibleCardGrid({
     description?: string | null;
     imageUrl?: string | null;
     rarity: CardRarity;
-    sourceType: "season" | "event";
+    sourceType: "season" | "event" | "magazine";
     earnedAt?: string;
     performance?: number | null;
   }>;

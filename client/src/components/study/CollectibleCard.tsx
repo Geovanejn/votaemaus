@@ -150,17 +150,15 @@ export function CollectibleCard({
             </div>
           </div>
         ) : sourceType === 'event' ? (
-          /* Event card layout: name in top area, image in bottom frame */
+          /* Event card layout: image BEHIND PNG, portal BEHIND everything */
           <>
-            {/* Event name in the middle empty area - engraved style */}
-            <div className="event-card-name-area">
-              <h3 className={`event-card-title event-card-title-${rarity}`}>
-                {name}
-              </h3>
-            </div>
+            {/* Layer 0: Portal effect for legendary (BEHIND everything) */}
+            {rarity === 'legendary' && (
+              <div className="event-card-portal-layer" />
+            )}
 
-            {/* Event image in bottom frame */}
-            <div className="event-card-image-frame">
+            {/* Layer 1: User image (BEHIND the PNG frame) */}
+            <div className="event-card-image-layer">
               {imageUrl ? (
                 <img 
                   src={imageUrl} 
@@ -169,10 +167,20 @@ export function CollectibleCard({
                   style={{ imageRendering: 'auto' }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-black/30">
-                  <IconComponent className="w-8 h-8 text-white/50" />
+                <div className="w-full h-full flex items-center justify-center bg-black/50">
+                  <IconComponent className="w-10 h-10 text-white/40" />
                 </div>
               )}
+            </div>
+
+            {/* Layer 2: PNG card frame (ON TOP of the image) */}
+            <div className={`event-card-png-layer event-card-png-${rarity}`} />
+
+            {/* Layer 3: Event name overlay */}
+            <div className="event-card-name-area">
+              <h3 className={`event-card-title event-card-title-${rarity}`}>
+                {name}
+              </h3>
             </div>
           </>
         ) : (

@@ -140,18 +140,9 @@ export function CollectibleCard({
         </>
       )}
 
-      {/* Floating particles (anti-gravity) only for legendary */}
+      {/* Energy field effect only for legendary */}
       {rarity === "legendary" && (
-        <>
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-          <div className="legendary-particle" />
-        </>
+        <div className="legendary-energy-field" />
       )}
 
       <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>

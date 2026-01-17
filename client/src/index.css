@@ -608,57 +608,35 @@ body {
   }
 }
 
-/* ==================== ANTI-GRAVITY FLOATING PARTICLES ==================== */
+/* ==================== LEGENDARY ENERGY FIELD ==================== */
 
-.legendary-particle {
+.legendary-energy-field {
   position: absolute;
-  width: 4px;
-  height: 4px;
-  background: radial-gradient(circle, rgba(253, 224, 71, 1) 0%, rgba(251, 191, 36, 0.6) 50%, transparent 100%);
-  border-radius: 50%;
+  inset: -8px;
+  border-radius: 16px;
   pointer-events: none;
-  z-index: 20;
-  opacity: 0;
-  animation: particle-float-up 4s ease-in-out infinite;
+  z-index: -1;
+  background: 
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(253, 224, 71, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(251, 191, 36, 0.3) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 0% 50%, rgba(245, 158, 11, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 100% 50%, rgba(245, 158, 11, 0.25) 0%, transparent 60%);
+  animation: energy-field-pulse 3s ease-in-out infinite alternate;
+  filter: blur(6px);
 }
 
-.legendary-particle:nth-child(1) { left: 10%; bottom: 5%; animation-delay: 0s; }
-.legendary-particle:nth-child(2) { left: 25%; bottom: 10%; animation-delay: 0.5s; width: 3px; height: 3px; }
-.legendary-particle:nth-child(3) { left: 40%; bottom: 3%; animation-delay: 1s; }
-.legendary-particle:nth-child(4) { left: 55%; bottom: 8%; animation-delay: 1.5s; width: 5px; height: 5px; }
-.legendary-particle:nth-child(5) { left: 70%; bottom: 5%; animation-delay: 2s; width: 3px; height: 3px; }
-.legendary-particle:nth-child(6) { left: 85%; bottom: 12%; animation-delay: 2.5s; }
-.legendary-particle:nth-child(7) { left: 15%; bottom: 15%; animation-delay: 3s; width: 2px; height: 2px; }
-.legendary-particle:nth-child(8) { left: 60%; bottom: 2%; animation-delay: 3.5s; width: 4px; height: 4px; }
-
-@keyframes particle-float-up {
+@keyframes energy-field-pulse {
   0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.5);
-  }
-  10% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-120px) scale(0.2);
-  }
-}
-
-/* Subtle floating/wave animation for legendary card */
-.collectible-card-legendary {
-  animation: legendary-float 4s ease-in-out infinite;
-}
-
-@keyframes legendary-float {
-  0%, 100% {
-    transform: translateY(0);
+    opacity: 0.6;
+    transform: scale(1);
   }
   50% {
-    transform: translateY(-3px);
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(0.98);
   }
 }
 

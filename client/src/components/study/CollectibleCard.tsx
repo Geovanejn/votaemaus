@@ -140,6 +140,20 @@ export function CollectibleCard({
         </>
       )}
 
+      {/* Floating particles (anti-gravity) only for legendary */}
+      {rarity === "legendary" && (
+        <>
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+          <div className="legendary-particle" />
+        </>
+      )}
+
       <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (

@@ -140,10 +140,6 @@ export function CollectibleCard({
         </>
       )}
 
-      {/* Energy field effect only for legendary */}
-      {rarity === "legendary" && (
-        <div className="legendary-energy-field" />
-      )}
 
       <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${size === 'magazine' || sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${size === 'event' ? 'collectible-card-inner-event' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}

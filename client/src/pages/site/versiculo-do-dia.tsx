@@ -34,6 +34,7 @@ interface DailyVersePost {
   verse: string;
   reference: string;
   reflection: string | null;
+  highlightedKeywords: string[] | null;
   imageUrl: string | null;
   publishedAt: string;
   expiresAt: string;
@@ -43,6 +44,42 @@ interface DailyVersePost {
     imageUrl: string;
     category: string;
   } | null;
+}
+
+// Helper function to render verse text with highlighted keywords in bold
+function renderVerseWithHighlights(verse: string, keywords: string[] | null | undefined): JSX.Element {
+  if (!keywords || keywords.length === 0) {
+    return <>{verse}</>;
+  }
+  
+  // Sort keywords by length (longer first) to avoid partial matching issues
+  const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
+  
+  // Create a regex pattern that matches any of the keywords (case-insensitive)
+  const pattern = new RegExp(
+    `(${sortedKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'gi'
+  );
+  
+  const parts = verse.split(pattern);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        const isKeyword = sortedKeywords.some(k => k.toLowerCase() === part.toLowerCase());
+        return isKeyword ? (
+          <strong key={index} style={{ fontWeight: 700 }}>{part}</strong>
+        ) : (
+          <span key={index}>{part}</span>
+        );
+      })}
+    </>
+  );
+}
+
+// Helper function to format reference: remove (ARA), uppercase
+function formatReference(reference: string): string {
+  return reference.replace(/\s*\(ARA\)\s*/gi, '').toUpperCase();
 }
 
 export default function VersiculoDoDiaPage() {
@@ -558,13 +595,14 @@ export default function VersiculoDoDiaPage() {
               color: 'white',
               boxSizing: 'border-box'
             }}>
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
                 <h3 style={{ 
                   fontSize: '0.9rem', 
                   fontWeight: 'bold', 
                   textTransform: 'uppercase', 
                   letterSpacing: '0.1em',
                   margin: 0,
+                  fontFamily: "'Playfair Display', serif",
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                 }}>
                   VERSÍCULO DO DIA
@@ -572,7 +610,8 @@ export default function VersiculoDoDiaPage() {
                 <p style={{ 
                   fontSize: '0.7rem', 
                   opacity: 0.9,
-                  margin: '0.2rem 0 0 0',
+                  margin: '0.25rem 0 0 0',
+                  fontFamily: "'Playfair Display', serif",
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
@@ -589,27 +628,37 @@ export default function VersiculoDoDiaPage() {
               }}>
                 <div>
                   <p style={{ 
-                    fontSize: '1rem', 
-                    fontStyle: 'italic', 
-                    lineHeight: 1.35,
-                    margin: '0 0 0.6rem 0',
+                    fontSize: '1.1rem', 
+                    fontStyle: 'normal', 
+                    fontWeight: 400,
+                    lineHeight: 1.4,
+                    margin: '0 0 0.7rem 0',
+                    fontFamily: "'Playfair Display', serif",
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                   }}>
-                    "{todayVerse?.verse}"
+                    {todayVerse?.verse ? renderVerseWithHighlights(todayVerse.verse, todayVerse.highlightedKeywords) : ''}
                   </p>
                   <p style={{ 
-                    fontSize: '0.64rem', 
-                    fontWeight: 600,
+                    fontSize: '0.608rem', 
+                    fontWeight: 500,
                     margin: 0,
+                    fontFamily: "'Playfair Display', serif",
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.3rem',
                     textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                   }}>
-                    {todayVerse?.reference}
+                    <BookOpen style={{ width: '0.7rem', height: '0.7rem', color: '#FFA500' }} />
+                    <span>{todayVerse?.reference ? formatReference(todayVerse.reference) : ''}</span>
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.8rem', opacity: 0.95, display: 'block' }} />
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem' }}>
+                <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block' }} />
               </div>
             </div>
           </div>

@@ -179,21 +179,6 @@ export function CollectibleCard({
               </h3>
             </div>
 
-            {/* Layer 4: Prismatic effects for epic and legendary */}
-            {rarity === 'epic' && (
-              <div className="event-card-prisma-epic" />
-            )}
-            {rarity === 'legendary' && (
-              <div className="event-card-prisma-legendary" />
-            )}
-
-            {/* Layer 5: Flash effects for epic and legendary */}
-            {(rarity === 'epic' || rarity === 'legendary') && (
-              <>
-                <div className="event-card-flash-25" />
-                <div className="event-card-flash-15" />
-              </>
-            )}
           </>
         ) : (
           <>

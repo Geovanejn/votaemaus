@@ -255,8 +255,8 @@ export default function VersiculoDoDiaPage() {
         const htmlP = p as HTMLElement;
         // Verse paragraph has italic style and 0.7rem margin
         if (htmlP.style.fontStyle === 'italic') {
-          // Scale margin and triple it for better spacing (0.7rem * 16 * 6 * 3 = 201.6px)
-          htmlP.style.marginBottom = '200px';
+          // Scale margin with 2x multiplier for better spacing (0.7rem * 16 * 6 * 2 = 134.4px)
+          htmlP.style.marginBottom = '130px';
         }
       });
       
@@ -269,13 +269,13 @@ export default function VersiculoDoDiaPage() {
           parentP.style.display = 'flex';
           parentP.style.alignItems = 'center';
           parentP.style.justifyContent = 'center';
-          // Triple the gap for export (0.5rem * 16 * 6 * 3 = 144px)
-          parentP.style.gap = '144px';
+          // Reduce gap - closer to reference (0.5rem * 16 * 6 = 48px)
+          parentP.style.gap = '48px';
           parentP.style.lineHeight = '1';
         }
         
         // Scale SVG size for high-res export (0.7rem * 16 * 6 = 67.2px)
-        const scaledSize = 67;
+        const scaledSize = 58;
         svgIcon.setAttribute('width', `${scaledSize}`);
         svgIcon.setAttribute('height', `${scaledSize}`);
         svgIcon.style.width = `${scaledSize}px`;

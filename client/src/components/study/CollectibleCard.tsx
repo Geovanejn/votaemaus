@@ -159,17 +159,13 @@ export function CollectibleCard({
 
             {/* Layer 1: User image (BEHIND the PNG frame) */}
             <div className="event-card-image-layer">
-              {imageUrl ? (
+              {imageUrl && (
                 <img 
                   src={imageUrl} 
                   alt={name}
                   className="w-full h-full object-cover"
                   style={{ imageRendering: 'auto' }}
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-black/50">
-                  <IconComponent className="w-10 h-10 text-white/40" />
-                </div>
               )}
             </div>
 

@@ -255,23 +255,36 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontWeight = '700';
       });
       
-      // Replace SVG icon with Unicode book character for html2canvas compatibility
+      // Convert SVG icon to inline image for html2canvas compatibility
       const svgIcon = clonedCard.querySelector('svg');
       if (svgIcon) {
-        const parentP = svgIcon.closest('p');
-        if (parentP) {
-          // Create a span with Unicode book emoji as replacement
-          const bookSpan = document.createElement('span');
-          bookSpan.textContent = '📖';
-          bookSpan.style.cssText = `
-            font-size: 56px;
-            line-height: 1;
-            vertical-align: middle;
-            margin-right: 24px;
-          `;
-          // Remove the SVG and insert the book character
-          svgIcon.replaceWith(bookSpan);
-        }
+        // Scale SVG size for high-res export (0.7rem * 16 * 8 * 0.75 = 67.2px)
+        const scaledSize = 67;
+        svgIcon.setAttribute('width', `${scaledSize}`);
+        svgIcon.setAttribute('height', `${scaledSize}`);
+        svgIcon.style.width = `${scaledSize}px`;
+        svgIcon.style.height = `${scaledSize}px`;
+        svgIcon.style.flexShrink = '0';
+        svgIcon.style.verticalAlign = 'middle';
+        // Triple the margin for exported image (0.5rem * 16 * 8 * 0.75 * 3 = 144px)
+        svgIcon.style.marginRight = '144px';
+        
+        // Serialize SVG to data URL for html2canvas
+        const svgString = new XMLSerializer().serializeToString(svgIcon);
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const svgUrl = URL.createObjectURL(svgBlob);
+        
+        // Replace SVG with img element
+        const imgEl = document.createElement('img');
+        imgEl.src = svgUrl;
+        imgEl.style.cssText = `
+          width: ${scaledSize}px;
+          height: ${scaledSize}px;
+          vertical-align: middle;
+          margin-right: 144px;
+          flex-shrink: 0;
+        `;
+        svgIcon.replaceWith(imgEl);
       }
       
       // Scale padding for ultra high-res

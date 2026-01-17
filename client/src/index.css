@@ -930,22 +930,99 @@ body {
     0 0 16px rgba(251, 191, 36, 0.3);
 }
 
-/* Event card image frame - bottom area */
+/* Event card image frame - bottom area (adjusted to fit PNG frame) */
 .event-card-image-frame {
   position: absolute;
-  bottom: 7.5%;
-  left: 7%;
-  right: 7%;
-  height: 42%;
-  border-radius: 6px;
+  bottom: 5%;
+  left: 9%;
+  right: 9%;
+  height: 36%;
+  border-radius: 4px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.5);
+  background: transparent;
 }
 
 .event-card-image-frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* ==================== EVENT CARD EFFECTS ==================== */
+
+/* Flash sweep for event rare, epic and legendary */
+.event-card-rare .collectible-card-effects,
+.event-card-epic .collectible-card-effects,
+.event-card-legendary .collectible-card-effects {
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.event-card-rare .collectible-card-effects::before,
+.event-card-epic .collectible-card-effects::before,
+.event-card-legendary .collectible-card-effects::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 80%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.4) 45%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 55%,
+    rgba(255, 255, 255, 0) 80%,
+    transparent 100%
+  );
+  animation: light-sweep 4s ease-in-out infinite;
+}
+
+/* Holographic prisma overlay for event epic and legendary */
+.event-card-epic .collectible-card-holo-overlay,
+.event-card-legendary .collectible-card-holo-overlay {
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 8;
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+  animation: holo-breathe 3s ease-in-out infinite;
+}
+
+/* Epic prisma - purple tones */
+.event-card-epic .collectible-card-holo-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.3) 0%,
+    rgba(167, 139, 250, 0.4) 15%,
+    rgba(196, 181, 253, 0.5) 30%,
+    rgba(255, 255, 255, 0.4) 45%,
+    rgba(192, 132, 252, 0.5) 60%,
+    rgba(139, 92, 246, 0.4) 75%,
+    rgba(109, 40, 217, 0.3) 100%
+  );
+}
+
+/* Legendary prisma - golden tones */
+.event-card-legendary .collectible-card-holo-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.35) 0%,
+    rgba(253, 224, 71, 0.45) 15%,
+    rgba(254, 240, 138, 0.5) 30%,
+    rgba(255, 255, 255, 0.45) 45%,
+    rgba(253, 224, 71, 0.5) 60%,
+    rgba(251, 191, 36, 0.4) 75%,
+    rgba(217, 119, 6, 0.35) 100%
+  );
 }
 
 /* Event Legendary Portal Effect */

@@ -114,23 +114,23 @@ export function CollectibleCard({
       `}
       data-testid={`collectible-card-${rarity}`}
     >
-      {/* Light sweep effects - only for rare and legendary */}
-      {(rarity === "rare" || rarity === "legendary") && (
+      {/* Light sweep effects - for rare, epic and legendary (both season and event) */}
+      {(rarity === "rare" || rarity === "epic" || rarity === "legendary") && (
         <div className="collectible-card-effects" />
       )}
 
-      {/* Second flash only for legendary */}
-      {rarity === "legendary" && (
+      {/* Second flash only for legendary (season cards) */}
+      {rarity === "legendary" && sourceType !== "event" && (
         <div className="collectible-card-effects-secondary" />
       )}
 
-      {/* Holographic overlay for epic and legendary */}
+      {/* Holographic overlay for epic and legendary (both season and event) */}
       {(rarity === "epic" || rarity === "legendary") && (
         <div className="collectible-card-holo-overlay" />
       )}
 
-      {/* Diamond sparkles only for legendary */}
-      {rarity === "legendary" && (
+      {/* Diamond sparkles only for legendary season cards */}
+      {rarity === "legendary" && sourceType !== "event" && (
         <>
           <div className="card-diamond-effect" />
           <div className="card-diamond-effect" />

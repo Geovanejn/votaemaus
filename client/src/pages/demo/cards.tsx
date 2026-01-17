@@ -9,10 +9,10 @@ const demoCards = [
 ];
 
 const eventCards = [
-  { id: 1, name: "Acampamento", rarity: "common" as CardRarity, description: "Card de evento comum" },
-  { id: 2, name: "Retiro Jovem", rarity: "rare" as CardRarity, description: "Card de evento raro" },
-  { id: 3, name: "Congresso", rarity: "epic" as CardRarity, description: "Card de evento épico" },
-  { id: 4, name: "Jubileu UMP", rarity: "legendary" as CardRarity, description: "Card de evento lendário" },
+  { id: 1, name: "Acampamento", rarity: "common" as CardRarity, description: "Card de evento comum", imageUrl: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&h=600&fit=crop" },
+  { id: 2, name: "Retiro Jovem", rarity: "rare" as CardRarity, description: "Card de evento raro", imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=600&fit=crop" },
+  { id: 3, name: "Congresso", rarity: "epic" as CardRarity, description: "Card de evento épico", imageUrl: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=600&fit=crop" },
+  { id: 4, name: "Jubileu UMP", rarity: "legendary" as CardRarity, description: "Card de evento lendário", imageUrl: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&h=600&fit=crop" },
 ];
 
 type DemoCard = {
@@ -21,6 +21,7 @@ type DemoCard = {
   rarity: CardRarity;
   description: string;
   sourceType?: "season" | "event";
+  imageUrl?: string;
 };
 
 export default function DemoCardsPage() {
@@ -69,6 +70,7 @@ export default function DemoCardsPage() {
                 <CollectibleCard
                   name={card.name}
                   rarity={card.rarity}
+                  imageUrl={card.imageUrl}
                   size="event"
                   sourceType="event"
                   onClick={() => setSelectedCard({ ...card, sourceType: "event" })}
@@ -89,7 +91,7 @@ export default function DemoCardsPage() {
             rarity: selectedCard.rarity,
             description: selectedCard.description,
             sourceType: selectedCard.sourceType || "season",
-            imageUrl: null,
+            imageUrl: selectedCard.imageUrl || null,
           }}
         />
       )}

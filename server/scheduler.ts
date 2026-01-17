@@ -868,7 +868,7 @@ async function processWeeklyGoalRewards(): Promise<void> {
         
         // Count completed goals
         const goals = {
-          lessons: (progress.lessonsCompleted || 0) >= (profile.weeklyLessonsGoal || 1),
+          lessons: (progress.lessonsCompleted || 0) >= (profile.weeklyLessonsGoal || 10),
           verses: (progress.versesRead || 0) >= (profile.weeklyVersesGoal || 7),
           missions: (progress.missionsCompleted || 0) >= (profile.weeklyMissionsGoal || 3),
           devotionals: (progress.devotionalsRead || 0) >= (profile.weeklyDevotionalsGoal || 1),
@@ -906,11 +906,11 @@ async function processWeeklyGoalRewards(): Promise<void> {
 }
 
 export function initWeeklyGoalScheduler(): void {
-  // Run every Sunday at 23:59 to process weekly goals
-  cron.schedule('59 23 * * 0', processWeeklyGoalRewards, {
+  // Run every Saturday at 23:59 to process weekly goals
+  cron.schedule('59 23 * * 6', processWeeklyGoalRewards, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Weekly Goal Scheduler] Initialized - will run every Sunday at 23:59 (America/Sao_Paulo)');
+  console.log('[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)');
 }
 
 async function processEventLessonsRelease(): Promise<void> {

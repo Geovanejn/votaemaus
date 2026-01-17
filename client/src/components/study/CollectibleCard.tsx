@@ -107,6 +107,9 @@ export function CollectibleCard({
 
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Treat "season" as "magazine" for backwards compatibility
+  const effectiveSourceType = sourceType === 'season' ? 'magazine' : sourceType;
+
   return (
     <motion.div
       ref={cardRef}
@@ -118,7 +121,7 @@ export function CollectibleCard({
       onClick={onClick}
       className={`
         collectible-card
-        ${sourceType === 'event' ? `event-card-${rarity}` : sourceType === 'magazine' ? `magazine-card-${rarity}` : `collectible-card-${rarity}`}
+        ${effectiveSourceType === 'event' ? `event-card-${rarity}` : effectiveSourceType === 'magazine' ? `magazine-card-${rarity}` : `collectible-card-${rarity}`}
         ${sizeClasses[size]}
         ${onClick ? "cursor-pointer" : ""}
         ${className}
@@ -140,8 +143,8 @@ export function CollectibleCard({
         <div className="collectible-card-holo-overlay" />
       )}
 
-      {/* Diamond sparkles only for legendary season cards */}
-      {rarity === "legendary" && sourceType !== "event" && sourceType !== "magazine" && (
+      {/* Diamond sparkles only for legendary season cards (not event/magazine) */}
+      {rarity === "legendary" && effectiveSourceType !== "event" && effectiveSourceType !== "magazine" && (
         <>
           <div className="card-diamond-effect" />
           <div className="card-diamond-effect" />
@@ -152,7 +155,7 @@ export function CollectibleCard({
       )}
 
 
-      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${sourceType === 'season' ? 'collectible-card-inner-magazine' : ''} ${sourceType === 'event' ? 'event-card-inner' : ''} ${sourceType === 'magazine' ? 'magazine-card-inner' : ''}`}>
+      <div className={`collectible-card-inner ${size === 'compact' ? 'collectible-card-inner-compact' : ''} ${effectiveSourceType === 'magazine' ? 'magazine-card-inner' : ''} ${effectiveSourceType === 'event' ? 'event-card-inner' : ''}`}>
         {/* Compact mode: only centered rarity icon, no image */}
         {size === 'compact' ? (
           <div className="flex-1 flex items-center justify-center">
@@ -160,7 +163,7 @@ export function CollectibleCard({
               <IconComponent className="w-6 h-6 text-white" />
             </div>
           </div>
-        ) : sourceType === 'magazine' ? (
+        ) : effectiveSourceType === 'magazine' ? (
           /* Magazine card layout: cover image BEHIND PNG, NO title */
           <>
             {/* Layer 0: Portal effect for legendary (BEHIND everything) */}
@@ -183,7 +186,7 @@ export function CollectibleCard({
             {/* Layer 2: PNG card frame (ON TOP of the image) */}
             <div className={`magazine-card-png-layer magazine-card-png-${rarity}`} />
           </>
-        ) : sourceType === 'event' ? (
+        ) : effectiveSourceType === 'event' ? (
           /* Event card layout: image BEHIND PNG, portal BEHIND everything */
           <>
             {/* Layer 0: Portal effect for legendary (BEHIND everything) */}
@@ -217,12 +220,12 @@ export function CollectibleCard({
         ) : (
           <>
             {/* Centered rarity medallion with forged effect */}
-            <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' || sourceType === 'season' ? 'my-2' : ''}`}>
+            <div className={`collectible-card-medallion collectible-card-medallion-${rarity} ${badgeSizeClasses[size]} ${size === 'magazine' ? 'my-2' : ''}`}>
               <IconComponent className="w-6 h-6 text-white" />
             </div>
 
-            {/* Text plate - hidden for magazine size and season cards */}
-            {size !== 'magazine' && sourceType !== 'season' && (
+            {/* Text plate - hidden for magazine size */}
+            {size !== 'magazine' && (
               <div className={`flex flex-col justify-center items-center ${size === 'event' ? '' : 'flex-1'}`}>
                 <div className="collectible-card-text-plate">
                   <h3 className={`collectible-card-title ${titleSizeClasses[size]}`}>

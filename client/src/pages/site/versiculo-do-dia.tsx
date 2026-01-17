@@ -229,22 +229,16 @@ export default function VersiculoDoDiaPage() {
       
       // Set explicit pixel sizes for ultra high-res export (25% smaller than proportional preview sizes)
       // Preview at 270px width has these rem sizes, scaled to 2160px (8x) then reduced 25%
+      const scaleFactor = 8 * 0.75; // 6x scale
+      
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
         if (!isNaN(currentSize)) {
-          // Convert rem to px at 8x scale (2160/270), then reduce 25%
-          const pxSize = Math.round(currentSize * 16 * 8 * 0.75);
+          // Convert rem to px at scale
+          const pxSize = Math.round(currentSize * 16 * scaleFactor);
           htmlEl.style.fontSize = `${pxSize}px`;
-        }
-        // Scale gap for flex containers (0.5rem -> 64px at 8x scale with 75%)
-        if (htmlEl.style.gap) {
-          const currentGap = parseFloat(htmlEl.style.gap);
-          if (!isNaN(currentGap)) {
-            const pxGap = Math.round(currentGap * 16 * 8 * 0.75);
-            htmlEl.style.gap = `${pxGap}px`;
-          }
         }
       });
       
@@ -255,36 +249,41 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontWeight = '700';
       });
       
-      // Convert SVG icon to inline image for html2canvas compatibility
+      // Find and fix the verse paragraph - increase margin-bottom for spacing from reference
+      const allParagraphs = clonedCard.querySelectorAll('p');
+      allParagraphs.forEach((p) => {
+        const htmlP = p as HTMLElement;
+        // Verse paragraph has italic style and 0.7rem margin
+        if (htmlP.style.fontStyle === 'italic') {
+          // Scale margin and triple it for better spacing (0.7rem * 16 * 6 * 3 = 201.6px)
+          htmlP.style.marginBottom = '200px';
+        }
+      });
+      
+      // Fix the reference container (p with inline-flex) and icon alignment
       const svgIcon = clonedCard.querySelector('svg');
       if (svgIcon) {
-        // Scale SVG size for high-res export (0.7rem * 16 * 8 * 0.75 = 67.2px)
+        const parentP = svgIcon.closest('p') as HTMLElement;
+        if (parentP) {
+          // Force explicit flex centering on parent container
+          parentP.style.display = 'flex';
+          parentP.style.alignItems = 'center';
+          parentP.style.justifyContent = 'center';
+          // Triple the gap for export (0.5rem * 16 * 6 * 3 = 144px)
+          parentP.style.gap = '144px';
+          parentP.style.lineHeight = '1';
+        }
+        
+        // Scale SVG size for high-res export (0.7rem * 16 * 6 = 67.2px)
         const scaledSize = 67;
         svgIcon.setAttribute('width', `${scaledSize}`);
         svgIcon.setAttribute('height', `${scaledSize}`);
         svgIcon.style.width = `${scaledSize}px`;
         svgIcon.style.height = `${scaledSize}px`;
         svgIcon.style.flexShrink = '0';
-        svgIcon.style.verticalAlign = 'middle';
-        // Triple the margin for exported image (0.5rem * 16 * 8 * 0.75 * 3 = 144px)
-        svgIcon.style.marginRight = '144px';
-        
-        // Serialize SVG to data URL for html2canvas
-        const svgString = new XMLSerializer().serializeToString(svgIcon);
-        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-        const svgUrl = URL.createObjectURL(svgBlob);
-        
-        // Replace SVG with img element
-        const imgEl = document.createElement('img');
-        imgEl.src = svgUrl;
-        imgEl.style.cssText = `
-          width: ${scaledSize}px;
-          height: ${scaledSize}px;
-          vertical-align: middle;
-          margin-right: 144px;
-          flex-shrink: 0;
-        `;
-        svgIcon.replaceWith(imgEl);
+        svgIcon.style.display = 'block';
+        // Remove margin - using gap instead
+        svgIcon.style.marginRight = '0';
       }
       
       // Scale padding for ultra high-res

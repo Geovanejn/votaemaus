@@ -355,20 +355,38 @@ const GEMINI_MODEL_PRIORITY = [
   'gemini-2.5-lite',         // Fallback 2
 ];
 
-async function generateVerseReflection(verse: string, reference: string): Promise<string | null> {
-  if (!isAIConfigured()) return null;
+interface VerseReflectionResult {
+  reflection: string | null;
+  highlightedKeywords: string[];
+}
+
+async function generateVerseReflection(verse: string, reference: string): Promise<VerseReflectionResult> {
+  if (!isAIConfigured()) return { reflection: null, highlightedKeywords: [] };
   
-  const prompt = `Você é um pastor presbiteriano experiente. Escreva uma breve reflexão devocional (2-3 parágrafos, máximo 150 palavras) sobre o seguinte versículo bíblico:
+  const prompt = `Você é um pastor presbiteriano experiente. Para o seguinte versículo bíblico, forneça:
 
-"${verse}" - ${reference}
+1. Uma breve reflexão devocional (2-3 parágrafos, máximo 150 palavras)
+2. 2-4 palavras-chave ou expressões impactantes do versículo que devem ser destacadas em negrito na imagem de compartilhamento
 
-A reflexão deve:
+Versículo: "${verse}" - ${reference}
+
+Regras para a reflexão:
 - Ser edificante e encorajadora
 - Trazer aplicação prática para o dia a dia
 - Usar linguagem acessível
 - Não usar emojis
 
-Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
+Regras para palavras-chave:
+- Escolha apenas palavras ou expressões que sejam realmente impactantes no contexto
+- Máximo 4 palavras/expressões (não exagere)
+- Use as palavras EXATAMENTE como aparecem no versículo (case-sensitive)
+- Podem ser palavras individuais ou expressões curtas (ex: "vida eterna", "Filho unigênito")
+
+Responda APENAS no formato JSON:
+{
+  "reflection": "Sua reflexão aqui...",
+  "keywords": ["palavra1", "expressão chave", "palavra2"]
+}`;
 
   const { getGeminiModel, GEMINI_KEY_ROTATION } = await import('./ai.js');
   
@@ -381,11 +399,32 @@ Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const text = response.text().trim();
+        let text = response.text().trim();
+        
+        // Remove markdown code block if present
+        if (text.startsWith('```json')) {
+          text = text.slice(7);
+        } else if (text.startsWith('```')) {
+          text = text.slice(3);
+        }
+        if (text.endsWith('```')) {
+          text = text.slice(0, -3);
+        }
+        text = text.trim();
         
         if (text) {
-          console.log(`[Daily Verse] Reflection generated successfully with key ${keyNumber}, model ${modelName}`);
-          return text;
+          try {
+            const parsed = JSON.parse(text);
+            console.log(`[Daily Verse] Reflection and keywords generated successfully with key ${keyNumber}, model ${modelName}`);
+            return {
+              reflection: parsed.reflection || null,
+              highlightedKeywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 4) : []
+            };
+          } catch (parseError) {
+            // If JSON parsing fails, try to extract just the reflection
+            console.warn(`[Daily Verse] JSON parsing failed, using text as reflection`);
+            return { reflection: text, highlightedKeywords: [] };
+          }
         }
       } catch (error: any) {
         console.warn(`[Daily Verse] Key ${keyNumber} model ${modelName} failed:`, error.message?.substring(0, 100) || error);
@@ -395,7 +434,7 @@ Responda apenas com a reflexão, sem introduções ou conclusões extras.`;
   }
   
   console.error('[Daily Verse] All Gemini keys and models exhausted for reflection generation');
-  return null;
+  return { reflection: null, highlightedKeywords: [] };
 }
 
 export async function forceDailyVerseGeneration(): Promise<{ success: boolean; message: string; postId?: number }> {
@@ -431,7 +470,7 @@ export async function forceDailyVerseGeneration(): Promise<{ success: boolean; m
     }
     
     const stockImage = await storage.getNextDailyVerseStockImage();
-    const reflection = await generateVerseReflection(verse, reference);
+    const { reflection, highlightedKeywords } = await generateVerseReflection(verse, reference);
     
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
@@ -450,6 +489,7 @@ export async function forceDailyVerseGeneration(): Promise<{ success: boolean; m
       verse,
       reference,
       reflection: reflection || undefined,
+      highlightedKeywords: highlightedKeywords.length > 0 ? highlightedKeywords : undefined,
       stockImageId: stockImage?.id,
       imageUrl: stockImage?.imageUrl,
       publishedAt: now,
@@ -520,8 +560,8 @@ async function sendDailyVerse(): Promise<void> {
     // Get next stock image for the daily verse post
     const stockImage = await storage.getNextDailyVerseStockImage();
     
-    // Generate AI reflection
-    const reflection = await generateVerseReflection(verse, reference);
+    // Generate AI reflection and highlighted keywords
+    const { reflection, highlightedKeywords } = await generateVerseReflection(verse, reference);
     
     // Create expiration time (23:59:59 today in São Paulo timezone)
     const now = new Date();
@@ -544,6 +584,7 @@ async function sendDailyVerse(): Promise<void> {
       verse,
       reference,
       reflection: reflection || undefined,
+      highlightedKeywords: highlightedKeywords.length > 0 ? highlightedKeywords : undefined,
       stockImageId: stockImage?.id,
       imageUrl: stockImage?.imageUrl,
       publishedAt: now,

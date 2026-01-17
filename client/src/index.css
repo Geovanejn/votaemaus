@@ -848,8 +848,8 @@ body {
 /* Layer 0: Portal effect (BEHIND everything) - only for legendary */
 .event-card-portal-layer {
   position: absolute;
-  inset: -15px;
-  border-radius: 22px;
+  inset: -8px;
+  border-radius: 18px;
   z-index: 0;
   pointer-events: none;
   background: conic-gradient(
@@ -866,7 +866,7 @@ body {
     rgba(217, 119, 6, 0) 74%,
     rgba(251, 191, 36, 0) 100%
   );
-  filter: blur(8px);
+  filter: blur(6px);
   opacity: 0.85;
   animation: legendary-portal-spin 3s linear infinite;
 }
@@ -875,14 +875,14 @@ body {
 .event-card-legendary::before {
   content: '';
   position: absolute;
-  inset: -25px;
-  border-radius: 30px;
+  inset: -15px;
+  border-radius: 22px;
   background: 
     radial-gradient(ellipse 120% 80% at 20% 30%, rgba(253, 224, 71, 0.4) 0%, transparent 50%),
     radial-gradient(ellipse 100% 60% at 80% 70%, rgba(251, 191, 36, 0.3) 0%, transparent 45%),
     radial-gradient(ellipse 80% 100% at 50% 50%, rgba(217, 119, 6, 0.2) 0%, transparent 60%);
   z-index: -1;
-  filter: blur(20px);
+  filter: blur(15px);
   opacity: 0.7;
   animation: legendary-aurora-drift 6s ease-in-out infinite alternate;
   pointer-events: none;
@@ -943,10 +943,10 @@ body {
 /* Event card name area - centered between top banner and image frame */
 .event-card-name-area {
   position: absolute;
-  top: 35%;
-  bottom: 45%;
-  left: 12%;
-  right: 12%;
+  top: 32%;
+  bottom: 48%;
+  left: 10%;
+  right: 10%;
   z-index: 4;
   display: flex;
   align-items: center;
@@ -958,11 +958,11 @@ body {
 .event-card-title {
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-align: center;
   line-height: 1.1;
-  font-size: 0.9rem;
-  max-width: 90%;
+  font-size: 0.72rem;
+  max-width: 95%;
   word-wrap: break-word;
 }
 
@@ -1044,6 +1044,175 @@ body {
 .event-card-epic .collectible-card-holo-overlay,
 .event-card-legendary .collectible-card-holo-overlay {
   display: none !important;
+}
+
+/* ==================== EVENT CARD FLASH EFFECTS ==================== */
+
+/* Flash sweep layer for event cards - 25 degree angle (slower) */
+.event-card-flash-25 {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.event-card-flash-25::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -150%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(
+    25deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.5) 48%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.5) 52%,
+    rgba(255, 255, 255, 0) 65%,
+    transparent 100%
+  );
+  animation: event-flash-sweep-25 5s ease-in-out infinite;
+}
+
+/* Flash sweep layer for event cards - 15 degree angle (faster) */
+.event-card-flash-15 {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 11;
+}
+
+.event-card-flash-15::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -150%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    15deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.4) 47%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.4) 53%,
+    rgba(255, 255, 255, 0) 70%,
+    transparent 100%
+  );
+  animation: event-flash-sweep-15 3s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+@keyframes event-flash-sweep-25 {
+  0% {
+    left: -150%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 250%;
+    opacity: 0;
+  }
+}
+
+@keyframes event-flash-sweep-15 {
+  0% {
+    left: -150%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 250%;
+    opacity: 0;
+  }
+}
+
+/* ==================== PRISMATIC OVERLAY EFFECTS ==================== */
+
+/* Epic prismatic overlay - purple tones */
+.event-card-prisma-epic {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 9;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.08) 20%,
+    rgba(167, 139, 250, 0.12) 35%,
+    rgba(192, 132, 252, 0.15) 50%,
+    rgba(167, 139, 250, 0.12) 65%,
+    rgba(139, 92, 246, 0.08) 80%,
+    transparent 100%
+  );
+  animation: prisma-shift-epic 4s ease-in-out infinite alternate;
+  mix-blend-mode: overlay;
+}
+
+@keyframes prisma-shift-epic {
+  0% {
+    background-position: 0% 50%;
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    background-position: 100% 50%;
+    opacity: 0.6;
+  }
+}
+
+/* Legendary prismatic overlay - golden tones */
+.event-card-prisma-legendary {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 9;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(251, 191, 36, 0.1) 15%,
+    rgba(253, 224, 71, 0.15) 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(253, 224, 71, 0.15) 70%,
+    rgba(251, 191, 36, 0.1) 85%,
+    transparent 100%
+  );
+  animation: prisma-shift-legendary 3.5s ease-in-out infinite alternate;
+  mix-blend-mode: overlay;
+}
+
+@keyframes prisma-shift-legendary {
+  0% {
+    background-position: 0% 50%;
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    background-position: 100% 50%;
+    opacity: 0.5;
+  }
 }
 
 

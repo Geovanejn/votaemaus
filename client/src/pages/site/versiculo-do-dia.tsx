@@ -288,7 +288,7 @@ export default function VersiculoDoDiaPage() {
           height: ${scaledSize}px;
           overflow: visible;
           flex-shrink: 0;
-          margin-top: 42px;
+          margin-top: 47px;
         `;
         
         // Scale SVG size for high-res export

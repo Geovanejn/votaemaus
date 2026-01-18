@@ -5502,9 +5502,9 @@ export class DatabaseStorage implements IStorage {
       .reduce((sum, goal) => sum + Math.min(goal.current / Math.max(goal.target, 1), 1), 0);
     const overallProgress = Math.round((totalProgress / 4) * 100);
     
-    // Calculate current day of the week (1-7, starting from Sunday=1)
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+    // Calculate current day of the week in São Paulo timezone (1-7, starting from Sunday=1)
+    const brazilDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const dayOfWeek = brazilDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
     // Convert to 1-7 where Sunday is day 1 of the new week
     const daysCompleted = dayOfWeek === 0 ? 1 : dayOfWeek + 1;
     

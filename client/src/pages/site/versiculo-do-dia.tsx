@@ -301,9 +301,27 @@ export default function VersiculoDoDiaPage() {
         svgIcon.style.marginRight = '0';
         svgIcon.style.marginTop = '0';
         
-        // Insert wrapper and move SVG inside it
+        // Convert SVG to inline data URL image for maximum html2canvas compatibility
+        const svgClone = svgIcon.cloneNode(true) as SVGElement;
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        const svgString = new XMLSerializer().serializeToString(svgClone);
+        const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
+        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+        
+        // Create img element to replace SVG
+        const imgElement = document.createElement('img');
+        imgElement.src = svgDataUrl;
+        imgElement.style.cssText = `
+          width: ${scaledSize}px;
+          height: ${scaledSize}px;
+          display: block;
+          flex-shrink: 0;
+        `;
+        
+        // Insert wrapper with the image instead of SVG
         svgIcon.parentNode?.insertBefore(wrapper, svgIcon);
-        wrapper.appendChild(svgIcon);
+        wrapper.appendChild(imgElement);
+        svgIcon.remove();
       }
       
       // Scale padding for ultra high-res
@@ -320,8 +338,13 @@ export default function VersiculoDoDiaPage() {
       
       offscreenContainer.appendChild(clonedCard);
       
+      // Wait for fonts to be fully loaded (ensures bold text renders correctly)
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      
       // Wait for images to load in cloned element
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Capture from the off-screen container at full resolution
       const sourceCanvas = await html2canvas(clonedCard, {

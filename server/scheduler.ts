@@ -391,7 +391,7 @@ REGRAS PARA A REFLEXÃO:
 - Ser edificante e encorajadora
 - Linguagem acessível
 - Não usar emojis
-- Máximo 120 palavras total
+- IMPORTANTE: A reflexão DEVE ter entre 400 e 450 caracteres (incluindo espaços) - gere EXATAMENTE nessa faixa para consistência visual
 
 REGRAS PARA PALAVRAS-CHAVE DO VERSÍCULO:
 - Máximo 4 palavras/expressões impactantes

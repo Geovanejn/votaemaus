@@ -611,6 +611,20 @@ export default function VersiculoDoDiaPage() {
         }
       });
       
+      // Ensure strong/bold elements have proper font-weight for html2canvas
+      const strongElements = clonedCard.querySelectorAll('strong');
+      strongElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.fontWeight = '700';
+      });
+      
+      // Ensure italic elements have proper font-style for html2canvas
+      const emElements = clonedCard.querySelectorAll('em');
+      emElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.fontStyle = 'italic';
+      });
+      
       // Scale padding for ultra high-res
       const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
       if (contentContainer) {
@@ -1125,50 +1139,51 @@ export default function VersiculoDoDiaPage() {
               boxSizing: 'border-box'
             }}>
               <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
-                <p style={{ 
-                  fontSize: '0.65rem', 
-                  opacity: 0.85,
-                  margin: '0 0 0.15rem 0',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
-                  textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                <h3 style={{ 
+                  fontSize: '0.9rem', 
+                  fontWeight: 'bold', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  margin: 0,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                 }}>
                   REFLEXÃO DO DIA
-                </p>
+                </h3>
                 <p style={{ 
-                  fontSize: '0.6rem', 
-                  opacity: 0.8,
-                  margin: '0 0 0.3rem 0',
+                  fontSize: '0.7rem', 
+                  opacity: 0.9,
+                  margin: '0.25rem 0 0 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
                 </p>
-                {todayVerse?.reflectionTitle && (
-                  <h3 style={{ 
-                    fontSize: '1rem', 
-                    fontWeight: 700, 
-                    letterSpacing: '0.05em',
-                    margin: 0,
-                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
-                  }}>
-                    {todayVerse.reflectionTitle}
-                  </h3>
-                )}
               </div>
 
               <div style={{ 
-                textAlign: 'justify', 
+                textAlign: 'center', 
                 flex: 1, 
                 display: 'flex', 
+                flexDirection: 'column',
                 alignItems: 'center', 
                 justifyContent: 'center',
                 padding: '0 0.5rem',
                 overflow: 'hidden'
               }}>
+                {todayVerse?.reflectionTitle && (
+                  <h3 style={{ 
+                    fontSize: '1.1rem', 
+                    fontWeight: 700, 
+                    letterSpacing: '0.05em',
+                    margin: '0 0 0.6rem 0',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                  }}>
+                    {todayVerse.reflectionTitle}
+                  </h3>
+                )}
                 <p style={{ 
-                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 400 ? '0.715rem' : todayVerse?.reflection && todayVerse.reflection.length > 250 ? '0.825rem' : '0.935rem', 
+                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 500 ? '0.787rem' : todayVerse?.reflection && todayVerse.reflection.length > 350 ? '0.908rem' : '1.029rem', 
                   fontWeight: 400,
-                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 400 ? 1.4 : 1.5,
+                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 500 ? 1.4 : 1.5,
                   margin: 0,
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                   textAlign: 'justify',

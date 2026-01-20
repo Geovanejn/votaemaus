@@ -86,6 +86,7 @@ function formatReference(reference: string): string {
 }
 
 // Helper function to render reflection with keywords in bold and references in italic
+// Returns an array of paragraph elements, each with proper ABNT text-indent
 function renderReflectionWithFormatting(
   reflection: string, 
   keywords: string[] | null | undefined,
@@ -104,45 +105,49 @@ function renderReflectionWithFormatting(
   
   // Create combined pattern
   const allTerms = [...sortedKeywords, ...sortedReferences];
-  if (allTerms.length === 0) {
+  
+  const renderParagraphContent = (para: string) => {
+    if (allTerms.length === 0) {
+      return <>{para}</>;
+    }
+    
+    const pattern = new RegExp(
+      `(${allTerms.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+      'gi'
+    );
+    
+    const parts = para.split(pattern);
     return (
       <>
-        {paragraphs.map((para, i) => (
-          <span key={i}>
-            {para}
-            {i < paragraphs.length - 1 && <><br /><br /></>}
-          </span>
-        ))}
+        {parts.map((part, index) => {
+          const isKeyword = sortedKeywords.some(k => k.toLowerCase() === part.toLowerCase());
+          const isReference = sortedReferences.some(r => r.toLowerCase() === part.toLowerCase());
+          
+          if (isKeyword) {
+            return <strong key={index} style={{ fontWeight: 700 }}>{part}</strong>;
+          } else if (isReference) {
+            return <em key={index} style={{ fontStyle: 'italic' }}>{part}</em>;
+          }
+          return <span key={index}>{part}</span>;
+        })}
       </>
     );
-  }
-  
-  const pattern = new RegExp(
-    `(${allTerms.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
-    'gi'
-  );
+  };
   
   return (
     <>
-      {paragraphs.map((para, paraIndex) => {
-        const parts = para.split(pattern);
-        return (
-          <span key={paraIndex}>
-            {parts.map((part, index) => {
-              const isKeyword = sortedKeywords.some(k => k.toLowerCase() === part.toLowerCase());
-              const isReference = sortedReferences.some(r => r.toLowerCase() === part.toLowerCase());
-              
-              if (isKeyword) {
-                return <strong key={index} style={{ fontWeight: 700 }}>{part}</strong>;
-              } else if (isReference) {
-                return <em key={index} style={{ fontStyle: 'italic' }}>{part}</em>;
-              }
-              return <span key={index}>{part}</span>;
-            })}
-            {paraIndex < paragraphs.length - 1 && <><br /><br /></>}
-          </span>
-        );
-      })}
+      {paragraphs.map((para, paraIndex) => (
+        <span 
+          key={paraIndex} 
+          style={{ 
+            display: 'block', 
+            textIndent: '1.5em',
+            marginBottom: paraIndex < paragraphs.length - 1 ? '0.8em' : 0
+          }}
+        >
+          {renderParagraphContent(para)}
+        </span>
+      ))}
     </>
   );
 }
@@ -1180,21 +1185,20 @@ export default function VersiculoDoDiaPage() {
                     {todayVerse.reflectionTitle}
                   </h3>
                 )}
-                <p style={{ 
+                <div style={{ 
                   fontSize: todayVerse?.reflection && todayVerse.reflection.length > 500 ? '0.787rem' : todayVerse?.reflection && todayVerse.reflection.length > 350 ? '0.908rem' : '1.029rem', 
                   fontWeight: 400,
                   lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 500 ? 1.4 : 1.5,
                   margin: 0,
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                  textAlign: 'justify',
-                  textIndent: '1.5em'
+                  textAlign: 'justify'
                 }}>
                   {todayVerse?.reflection ? renderReflectionWithFormatting(
                     todayVerse.reflection,
                     todayVerse.reflectionKeywords,
                     todayVerse.reflectionReferences
                   ) : ''}
-                </p>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem' }}>

@@ -1265,7 +1265,7 @@ export default function VersiculoDoDiaPage() {
               }}>
                 {todayVerse?.reflectionTitle && (
                   <h3 style={{ 
-                    fontSize: '1.1rem', 
+                    fontSize: '0.825rem', 
                     fontWeight: 700, 
                     letterSpacing: '0.05em',
                     margin: '0 0 0.6rem 0',

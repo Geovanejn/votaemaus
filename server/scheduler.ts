@@ -398,8 +398,11 @@ REGRAS PARA PALAVRAS-CHAVE DO VERSÍCULO:
 - Use EXATAMENTE como aparecem no versículo
 
 REGRAS PARA PALAVRAS-CHAVE DA REFLEXÃO:
-- 2-4 palavras ou expressões espirituais importantes da reflexão
-- Ex: "graça divina", "fé", "esperança", "amor de Deus"
+- OBRIGATÓRIO: Exatamente 6 palavras-chave da reflexão
+- 3 palavras-chave da PRIMEIRA estrofe
+- 3 palavras-chave da SEGUNDA estrofe
+- Devem ser termos espirituais ou expressões importantes
+- Ex: "graça divina", "fé", "esperança", "amor de Deus", "renovação", "propósito"
 
 REGRAS PARA REFERÊNCIAS:
 - Citações de autores (ex: "Como disse C.S. Lewis")
@@ -411,7 +414,7 @@ Responda APENAS no formato JSON:
   "title": "Título Impactante Aqui",
   "reflection": "Primeira estrofe aqui...\\n\\nSegunda estrofe aqui...",
   "keywords": ["palavra1", "expressão chave"],
-  "reflectionKeywords": ["graça", "fé"],
+  "reflectionKeywords": ["palavra1", "palavra2", "palavra3", "palavra4", "palavra5", "palavra6"],
   "reflectionReferences": ["Romanos 8:28", "C.S. Lewis"]
 }`;
 
@@ -447,7 +450,7 @@ Responda APENAS no formato JSON:
               reflection: parsed.reflection || null,
               reflectionTitle: parsed.title || null,
               highlightedKeywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 4) : [],
-              reflectionKeywords: Array.isArray(parsed.reflectionKeywords) ? parsed.reflectionKeywords.slice(0, 4) : [],
+              reflectionKeywords: Array.isArray(parsed.reflectionKeywords) ? parsed.reflectionKeywords.slice(0, 6) : [],
               reflectionReferences: Array.isArray(parsed.reflectionReferences) ? parsed.reflectionReferences : []
             };
           } catch (parseError) {

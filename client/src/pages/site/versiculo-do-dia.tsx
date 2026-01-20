@@ -34,7 +34,10 @@ interface DailyVersePost {
   verse: string;
   reference: string;
   reflection: string | null;
+  reflectionTitle: string | null;
   highlightedKeywords: string[] | null;
+  reflectionKeywords: string[] | null;
+  reflectionReferences: string[] | null;
   imageUrl: string | null;
   publishedAt: string;
   expiresAt: string;
@@ -80,6 +83,68 @@ function renderVerseWithHighlights(verse: string, keywords: string[] | null | un
 // Helper function to format reference: remove (ARA), uppercase
 function formatReference(reference: string): string {
   return reference.replace(/\s*\(ARA\)\s*/gi, '').toUpperCase();
+}
+
+// Helper function to render reflection with keywords in bold and references in italic
+function renderReflectionWithFormatting(
+  reflection: string, 
+  keywords: string[] | null | undefined,
+  references: string[] | null | undefined
+): JSX.Element {
+  // Split reflection into paragraphs (stanzas)
+  const paragraphs = reflection.split(/\n\n+/);
+  
+  // Combine keywords and references for matching
+  const allKeywords = keywords || [];
+  const allReferences = references || [];
+  
+  // Sort by length (longer first) to avoid partial matching issues
+  const sortedKeywords = [...allKeywords].sort((a, b) => b.length - a.length);
+  const sortedReferences = [...allReferences].sort((a, b) => b.length - a.length);
+  
+  // Create combined pattern
+  const allTerms = [...sortedKeywords, ...sortedReferences];
+  if (allTerms.length === 0) {
+    return (
+      <>
+        {paragraphs.map((para, i) => (
+          <span key={i}>
+            {para}
+            {i < paragraphs.length - 1 && <><br /><br /></>}
+          </span>
+        ))}
+      </>
+    );
+  }
+  
+  const pattern = new RegExp(
+    `(${allTerms.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'gi'
+  );
+  
+  return (
+    <>
+      {paragraphs.map((para, paraIndex) => {
+        const parts = para.split(pattern);
+        return (
+          <span key={paraIndex}>
+            {parts.map((part, index) => {
+              const isKeyword = sortedKeywords.some(k => k.toLowerCase() === part.toLowerCase());
+              const isReference = sortedReferences.some(r => r.toLowerCase() === part.toLowerCase());
+              
+              if (isKeyword) {
+                return <strong key={index} style={{ fontWeight: 700 }}>{part}</strong>;
+              } else if (isReference) {
+                return <em key={index} style={{ fontStyle: 'italic' }}>{part}</em>;
+              }
+              return <span key={index}>{part}</span>;
+            })}
+            {paraIndex < paragraphs.length - 1 && <><br /><br /></>}
+          </span>
+        );
+      })}
+    </>
+  );
 }
 
 export default function VersiculoDoDiaPage() {
@@ -1060,27 +1125,39 @@ export default function VersiculoDoDiaPage() {
               boxSizing: 'border-box'
             }}>
               <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
-                <h3 style={{ 
-                  fontSize: '0.9rem', 
-                  fontWeight: 'bold', 
-                  letterSpacing: '0.1em',
-                  margin: 0,
-                  textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
-                }}>
-                  Reflexão do Dia
-                </h3>
                 <p style={{ 
-                  fontSize: '0.7rem', 
-                  opacity: 0.9,
-                  margin: '0.25rem 0 0 0',
+                  fontSize: '0.65rem', 
+                  opacity: 0.85,
+                  margin: '0 0 0.15rem 0',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.15em',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                }}>
+                  REFLEXÃO DO DIA
+                </p>
+                <p style={{ 
+                  fontSize: '0.6rem', 
+                  opacity: 0.8,
+                  margin: '0 0 0.3rem 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
                 </p>
+                {todayVerse?.reflectionTitle && (
+                  <h3 style={{ 
+                    fontSize: '1rem', 
+                    fontWeight: 700, 
+                    letterSpacing: '0.05em',
+                    margin: 0,
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                  }}>
+                    {todayVerse.reflectionTitle}
+                  </h3>
+                )}
               </div>
 
               <div style={{ 
-                textAlign: 'center', 
+                textAlign: 'justify', 
                 flex: 1, 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -1089,14 +1166,19 @@ export default function VersiculoDoDiaPage() {
                 overflow: 'hidden'
               }}>
                 <p style={{ 
-                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 400 ? '0.65rem' : todayVerse?.reflection && todayVerse.reflection.length > 250 ? '0.75rem' : '0.85rem', 
+                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 400 ? '0.715rem' : todayVerse?.reflection && todayVerse.reflection.length > 250 ? '0.825rem' : '0.935rem', 
                   fontWeight: 400,
-                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 400 ? 1.3 : 1.4,
+                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 400 ? 1.4 : 1.5,
                   margin: 0,
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                  textAlign: 'justify'
+                  textAlign: 'justify',
+                  textIndent: '1.5em'
                 }}>
-                  {todayVerse?.reflection || ''}
+                  {todayVerse?.reflection ? renderReflectionWithFormatting(
+                    todayVerse.reflection,
+                    todayVerse.reflectionKeywords,
+                    todayVerse.reflectionReferences
+                  ) : ''}
                 </p>
               </div>
 

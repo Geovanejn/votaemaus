@@ -606,12 +606,16 @@ export default function VersiculoDoDiaPage() {
       `;
       
       // Scale ALL text elements (h3, p, div with fontSize, and spans)
+      // Apply 10% font size increase for reflection content (not headers)
       const textElements = clonedCard.querySelectorAll('h3, p, div, span');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
         if (!isNaN(currentSize) && currentSize > 0) {
-          const pxSize = Math.round(currentSize * 16 * scaleFactor);
+          // Apply 10% increase for reflection text (not the title headers which use uppercase)
+          const isReflectionContent = htmlEl.tagName !== 'H3' && !htmlEl.style.textTransform;
+          const fontMultiplier = isReflectionContent ? 1.1 : 1.0;
+          const pxSize = Math.round(currentSize * 16 * scaleFactor * fontMultiplier);
           htmlEl.style.fontSize = `${pxSize}px`;
         }
         // Scale lineHeight if it exists
@@ -928,10 +932,23 @@ export default function VersiculoDoDiaPage() {
 
                 {todayVerse.reflection ? (
                   <>
+                    {todayVerse.reflectionTitle && (
+                      <h3 className="text-xl font-bold mb-4 text-foreground">
+                        {todayVerse.reflectionTitle}
+                      </h3>
+                    )}
                     <div className="prose prose-lg dark:prose-invert max-w-none">
-                      {todayVerse.reflection.split('\n').map((paragraph, index) => (
-                        <p key={index} className="text-foreground/90 leading-relaxed">
-                          {paragraph}
+                      {todayVerse.reflection.split('\n\n').map((paragraph, index) => (
+                        <p 
+                          key={index} 
+                          className="text-foreground/90 leading-relaxed mb-4"
+                          style={{ textIndent: '1.5em' }}
+                        >
+                          {renderReflectionWithFormatting(
+                            paragraph,
+                            todayVerse.reflectionKeywords,
+                            todayVerse.reflectionReferences
+                          )}
                         </p>
                       ))}
                     </div>

@@ -1063,12 +1063,11 @@ export default function VersiculoDoDiaPage() {
                 <h3 style={{ 
                   fontSize: '0.9rem', 
                   fontWeight: 'bold', 
-                  textTransform: 'uppercase', 
                   letterSpacing: '0.1em',
                   margin: 0,
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                 }}>
-                  REFLEXÃO DO DIA
+                  Reflexão do Dia
                 </h3>
                 <p style={{ 
                   fontSize: '0.7rem', 

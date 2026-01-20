@@ -577,6 +577,7 @@ export default function VersiculoDoDiaPage() {
       const cardHeight = 3840;
       const scale = 1;
       const borderRadius = 80;
+      const scaleFactor = 8 * 0.75; // 6x scale (preview ~270px -> 2160px, then 75%)
       
       const offscreenContainer = document.createElement('div');
       offscreenContainer.style.cssText = `
@@ -604,15 +605,36 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      const scaleFactor = 8 * 0.75;
-      
-      const textElements = clonedCard.querySelectorAll('h3, p');
+      // Scale ALL text elements (h3, p, div with fontSize, and spans)
+      const textElements = clonedCard.querySelectorAll('h3, p, div, span');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
         const currentSize = parseFloat(htmlEl.style.fontSize);
-        if (!isNaN(currentSize)) {
+        if (!isNaN(currentSize) && currentSize > 0) {
           const pxSize = Math.round(currentSize * 16 * scaleFactor);
           htmlEl.style.fontSize = `${pxSize}px`;
+        }
+        // Scale lineHeight if it exists
+        const currentLineHeight = parseFloat(htmlEl.style.lineHeight);
+        if (!isNaN(currentLineHeight) && currentLineHeight > 0 && currentLineHeight < 3) {
+          // Keep relative line heights as is (they're already ratios)
+        }
+        // Scale textIndent if it exists (for reflection paragraphs)
+        if (htmlEl.style.textIndent) {
+          const currentIndent = parseFloat(htmlEl.style.textIndent);
+          if (!isNaN(currentIndent) && currentIndent > 0) {
+            const pxIndent = Math.round(currentIndent * 16 * scaleFactor);
+            htmlEl.style.textIndent = `${pxIndent}px`;
+          }
+        }
+        // Scale marginBottom if it exists (for paragraph spacing)
+        if (htmlEl.style.marginBottom) {
+          const currentMargin = parseFloat(htmlEl.style.marginBottom);
+          if (!isNaN(currentMargin) && currentMargin > 0 && currentMargin < 5) {
+            // This is in em, scale it
+            const pxMargin = Math.round(currentMargin * 16 * scaleFactor);
+            htmlEl.style.marginBottom = `${pxMargin}px`;
+          }
         }
       });
       
@@ -630,17 +652,62 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontStyle = 'italic';
       });
       
-      // Scale padding for ultra high-res
-      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
-      if (contentContainer) {
-        contentContainer.style.padding = '192px';
-      }
+      // Scale padding for ultra high-res - find all containers with padding
+      const allDivs = clonedCard.querySelectorAll('div');
+      allDivs.forEach((div) => {
+        const htmlDiv = div as HTMLElement;
+        if (htmlDiv.style.padding) {
+          const currentPadding = parseFloat(htmlDiv.style.padding);
+          if (!isNaN(currentPadding) && currentPadding > 0) {
+            const pxPadding = Math.round(currentPadding * 16 * scaleFactor);
+            htmlDiv.style.padding = `${pxPadding}px`;
+          }
+        }
+        // Also scale marginTop, marginBottom on divs
+        if (htmlDiv.style.marginTop) {
+          const mt = parseFloat(htmlDiv.style.marginTop);
+          if (!isNaN(mt) && mt > 0 && mt < 5) {
+            htmlDiv.style.marginTop = `${Math.round(mt * 16 * scaleFactor)}px`;
+          }
+        }
+        if (htmlDiv.style.marginBottom) {
+          const mb = parseFloat(htmlDiv.style.marginBottom);
+          if (!isNaN(mb) && mb > 0 && mb < 5) {
+            htmlDiv.style.marginBottom = `${Math.round(mb * 16 * scaleFactor)}px`;
+          }
+        }
+      });
       
-      // Scale logo for ultra high-res
+      // Scale logo for ultra high-res (4.6rem * 16 * 6 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
         logo.style.height = '442px';
+        logo.style.width = 'auto';
       }
+      
+      // Scale letter-spacing on headers
+      const headers = clonedCard.querySelectorAll('h3');
+      headers.forEach((h) => {
+        const htmlH = h as HTMLElement;
+        if (htmlH.style.letterSpacing) {
+          const currentSpacing = parseFloat(htmlH.style.letterSpacing);
+          if (!isNaN(currentSpacing) && currentSpacing > 0) {
+            htmlH.style.letterSpacing = `${Math.round(currentSpacing * 16 * scaleFactor)}px`;
+          }
+        }
+        // Scale margin on title
+        if (htmlH.style.margin) {
+          const parts = htmlH.style.margin.split(' ');
+          const scaledParts = parts.map(p => {
+            const val = parseFloat(p);
+            if (!isNaN(val) && val > 0 && val < 5) {
+              return `${Math.round(val * 16 * scaleFactor)}px`;
+            }
+            return p;
+          });
+          htmlH.style.margin = scaledParts.join(' ');
+        }
+      });
       
       offscreenContainer.appendChild(clonedCard);
       
@@ -648,7 +715,8 @@ export default function VersiculoDoDiaPage() {
         await document.fonts.ready;
       }
       
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait longer for images and fonts to load
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const sourceCanvas = await html2canvas(clonedCard, {
         scale: scale,
@@ -678,6 +746,8 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
+      // Step 1: Draw the rounded-rect mask FIRST
+      ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.moveTo(scaledRadius, 0);
       ctx.lineTo(srcWidth - scaledRadius, 0);
@@ -691,9 +761,11 @@ export default function VersiculoDoDiaPage() {
       ctx.closePath();
       ctx.fill();
       
+      // Step 2: Draw the image using source-in
       ctx.globalCompositeOperation = 'source-in';
       ctx.drawImage(sourceCanvas, 0, 0);
       
+      // Step 3: Hard alpha clamp
       const imageData = ctx.getImageData(0, 0, srcWidth, srcHeight);
       const data = imageData.data;
       const alphaThreshold = 250;

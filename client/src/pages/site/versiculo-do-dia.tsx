@@ -84,8 +84,10 @@ function formatReference(reference: string): string {
 
 export default function VersiculoDoDiaPage() {
   const [shareOpen, setShareOpen] = useState(false);
+  const [reflectionShareOpen, setReflectionShareOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const reflectionCardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const params = useParams<{ date?: string }>();
   const [, navigate] = useLocation();
@@ -138,7 +140,7 @@ export default function VersiculoDoDiaPage() {
 
   // Pre-load and crop background image to match 9:16 aspect ratio (simulates object-fit: cover)
   useEffect(() => {
-    if (!proxyImageUrl || !shareOpen) {
+    if (!proxyImageUrl || (!shareOpen && !reflectionShareOpen)) {
       setCroppedBgDataUrl(null);
       return;
     }
@@ -185,7 +187,7 @@ export default function VersiculoDoDiaPage() {
       setCroppedBgDataUrl(null);
     };
     img.src = proxyImageUrl;
-  }, [proxyImageUrl, shareOpen]);
+  }, [proxyImageUrl, shareOpen, reflectionShareOpen]);
 
   const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
     if (!shareCardRef.current) return;
@@ -495,6 +497,211 @@ export default function VersiculoDoDiaPage() {
     }
   }, [todayVerse, toast, recordShareMutation]);
 
+  // Function to generate and share reflection image
+  const generateAndShareReflectionImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
+    if (!reflectionCardRef.current) return;
+
+    setGenerating(true);
+    try {
+      const cardWidth = 2160;
+      const cardHeight = 3840;
+      const scale = 1;
+      const borderRadius = 80;
+      
+      const offscreenContainer = document.createElement('div');
+      offscreenContainer.style.cssText = `
+        position: fixed;
+        left: -10000px;
+        top: 0;
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        border-radius: ${borderRadius}px;
+      `;
+      document.body.appendChild(offscreenContainer);
+      
+      const clonedCard = reflectionCardRef.current.cloneNode(true) as HTMLElement;
+      clonedCard.style.cssText = `
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        border-radius: ${borderRadius}px;
+        overflow: hidden;
+        background: transparent;
+        margin: 0;
+        padding: 0;
+      `;
+      
+      const scaleFactor = 8 * 0.75;
+      
+      const textElements = clonedCard.querySelectorAll('h3, p');
+      textElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const currentSize = parseFloat(htmlEl.style.fontSize);
+        if (!isNaN(currentSize)) {
+          const pxSize = Math.round(currentSize * 16 * scaleFactor);
+          htmlEl.style.fontSize = `${pxSize}px`;
+        }
+      });
+      
+      // Scale padding for ultra high-res
+      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
+      if (contentContainer) {
+        contentContainer.style.padding = '192px';
+      }
+      
+      // Scale logo for ultra high-res
+      const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
+      if (logo) {
+        logo.style.height = '442px';
+      }
+      
+      offscreenContainer.appendChild(clonedCard);
+      
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const sourceCanvas = await html2canvas(clonedCard, {
+        scale: scale,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: null,
+        logging: false,
+        imageTimeout: 15000,
+        width: cardWidth,
+        height: cardHeight,
+      });
+      
+      document.body.removeChild(offscreenContainer);
+
+      const srcWidth = sourceCanvas.width;
+      const srcHeight = sourceCanvas.height;
+      const scaledRadius = Math.round(borderRadius * scale);
+      
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = srcWidth;
+      finalCanvas.height = srcHeight;
+      const ctx = finalCanvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+        setGenerating(false);
+        return;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(scaledRadius, 0);
+      ctx.lineTo(srcWidth - scaledRadius, 0);
+      ctx.arcTo(srcWidth, 0, srcWidth, scaledRadius, scaledRadius);
+      ctx.lineTo(srcWidth, srcHeight - scaledRadius);
+      ctx.arcTo(srcWidth, srcHeight, srcWidth - scaledRadius, srcHeight, scaledRadius);
+      ctx.lineTo(scaledRadius, srcHeight);
+      ctx.arcTo(0, srcHeight, 0, srcHeight - scaledRadius, scaledRadius);
+      ctx.lineTo(0, scaledRadius);
+      ctx.arcTo(0, 0, scaledRadius, 0, scaledRadius);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.drawImage(sourceCanvas, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, srcWidth, srcHeight);
+      const data = imageData.data;
+      const alphaThreshold = 250;
+      
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 0 && data[i] < alphaThreshold) {
+          data[i] = 0;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      const shareUrl = `${window.location.origin}/versiculo-do-dia`;
+      const shareText = `✨ *Reflexão do Dia* - UMP Emaús ✨\n\nLeia mais:\n${shareUrl}`;
+
+      if (platform === 'download') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'reflexao-do-dia.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: "Imagem baixada!" });
+          recordShareMutation.mutate({ platform: 'download', versePostId: todayVerse?.id });
+          setGenerating(false);
+          setReflectionShareOpen(false);
+        }, 'image/png', 1.0);
+      } else if (platform === 'whatsapp') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
+          const file = new File([blob], 'reflexao-do-dia.png', { type: 'image/png' });
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            toast({ 
+              title: "Legenda copiada!", 
+              description: "Cole no campo 'Adicione uma legenda' do WhatsApp" 
+            });
+            await navigator.share({
+              files: [file],
+              title: 'Reflexão do Dia',
+            });
+          } else {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+          }
+          recordShareMutation.mutate({ platform: 'whatsapp', versePostId: todayVerse?.id });
+          setGenerating(false);
+          setReflectionShareOpen(false);
+        }, 'image/png', 1.0);
+      } else if (platform === 'instagram') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setGenerating(false);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'reflexao-do-dia.png';
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ 
+            title: "Imagem baixada!", 
+            description: "Abra o Instagram e compartilhe nos Stories" 
+          });
+          recordShareMutation.mutate({ platform: 'instagram', versePostId: todayVerse?.id });
+          setGenerating(false);
+          setReflectionShareOpen(false);
+        }, 'image/png', 1.0);
+      }
+    } catch (error) {
+      console.error('Error generating reflection image:', error);
+      toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+      setGenerating(false);
+    }
+  }, [todayVerse, toast, recordShareMutation]);
+
   if (isLoading) {
     return (
       <SiteLayout>
@@ -564,13 +771,25 @@ export default function VersiculoDoDiaPage() {
                 </div>
 
                 {todayVerse.reflection ? (
-                  <div className="prose prose-lg dark:prose-invert max-w-none">
-                    {todayVerse.reflection.split('\n').map((paragraph, index) => (
-                      <p key={index} className="text-foreground/90 leading-relaxed">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
+                  <>
+                    <div className="prose prose-lg dark:prose-invert max-w-none">
+                      {todayVerse.reflection.split('\n').map((paragraph, index) => (
+                        <p key={index} className="text-foreground/90 leading-relaxed">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                    <div className="mt-6 flex justify-center">
+                      <Button 
+                        onClick={() => setReflectionShareOpen(true)}
+                        variant="outline"
+                        data-testid="button-share-reflection"
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Compartilhar Reflexão
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <p className="text-muted-foreground italic">
                     Reflexão em preparação...
@@ -785,6 +1004,146 @@ export default function VersiculoDoDiaPage() {
               variant="outline"
               size="icon"
               data-testid="button-download"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reflectionShareOpen} onOpenChange={setReflectionShareOpen}>
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
+          <DialogHeader>
+            <DialogTitle>Compartilhar Reflexão</DialogTitle>
+          </DialogHeader>
+
+          <div 
+            ref={reflectionCardRef}
+            style={{ 
+              width: '100%',
+              aspectRatio: '9/16',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '10px',
+              WebkitFontSmoothing: 'antialiased',
+              textRendering: 'optimizeLegibility',
+            }}
+          >
+            {(croppedBgDataUrl || proxyImageUrl) && (
+              <img 
+                src={croppedBgDataUrl || proxyImageUrl || ''}
+                crossOrigin="anonymous"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: croppedBgDataUrl ? 'fill' : 'cover',
+                  display: 'block'
+                }}
+              />
+            )}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
+            }} />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '1.5rem',
+              color: 'white',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
+                <h3 style={{ 
+                  fontSize: '0.9rem', 
+                  fontWeight: 'bold', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  margin: 0,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                }}>
+                  REFLEXÃO DO DIA
+                </h3>
+                <p style={{ 
+                  fontSize: '0.7rem', 
+                  opacity: 0.9,
+                  margin: '0.25rem 0 0 0',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                }}>
+                  {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
+                </p>
+              </div>
+
+              <div style={{ 
+                textAlign: 'center', 
+                flex: 1, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                padding: '0 0.5rem',
+                overflow: 'hidden'
+              }}>
+                <p style={{ 
+                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 400 ? '0.65rem' : todayVerse?.reflection && todayVerse.reflection.length > 250 ? '0.75rem' : '0.85rem', 
+                  fontWeight: 400,
+                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 400 ? 1.3 : 1.4,
+                  margin: 0,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                  textAlign: 'justify'
+                }}>
+                  {todayVerse?.reflection || ''}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem' }}>
+                <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block' }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 justify-center">
+            <Button
+              onClick={() => generateAndShareReflectionImage('whatsapp')}
+              disabled={generating}
+              className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700"
+              data-testid="button-share-reflection-whatsapp"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiWhatsapp className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareReflectionImage('instagram')}
+              disabled={generating}
+              className="flex-1 min-w-[120px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              data-testid="button-share-reflection-instagram"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiInstagram className="mr-2 h-4 w-4" />
+                  Instagram
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareReflectionImage('download')}
+              disabled={generating}
+              variant="outline"
+              size="icon"
+              data-testid="button-download-reflection"
             >
               <Download className="h-4 w-4" />
             </Button>

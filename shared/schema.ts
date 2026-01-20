@@ -756,6 +756,8 @@ export const dailyVersePosts = pgTable("daily_verse_posts", {
   reference: text("reference").notNull(),
   reflection: text("reflection"), // AI-generated reflection
   highlightedKeywords: text("highlighted_keywords").array(), // AI-identified keywords to display in bold
+  reflectionKeywords: text("reflection_keywords").array(), // AI-identified keywords for reflection (bold)
+  reflectionReferences: text("reflection_references").array(), // Biblical references and quotes in reflection (italic)
   stockImageId: integer("stock_image_id").references(() => dailyVerseStock.id),
   imageUrl: text("image_url"), // cached image URL for the day
   publishedAt: timestamp("published_at").notNull(),

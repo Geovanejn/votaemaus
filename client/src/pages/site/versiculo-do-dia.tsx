@@ -1076,7 +1076,7 @@ export default function VersiculoDoDiaPage() {
               color: 'white',
               boxSizing: 'border-box'
             }}>
-              <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <h3 style={{ 
                   fontSize: '0.9rem', 
                   fontWeight: 'bold', 
@@ -1090,7 +1090,7 @@ export default function VersiculoDoDiaPage() {
                 <p style={{ 
                   fontSize: '0.7rem', 
                   opacity: 0.9,
-                  margin: '0.25rem 0 0 0',
+                  margin: '0.3rem 0 0 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
@@ -1134,7 +1134,7 @@ export default function VersiculoDoDiaPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.8rem' }}>
                 <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block' }} />
               </div>
             </div>
@@ -1232,7 +1232,7 @@ export default function VersiculoDoDiaPage() {
               color: 'white',
               boxSizing: 'border-box'
             }}>
-              <div style={{ textAlign: 'center', marginTop: '0.3rem' }}>
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <h3 style={{ 
                   fontSize: '0.9rem', 
                   fontWeight: 'bold', 
@@ -1246,7 +1246,7 @@ export default function VersiculoDoDiaPage() {
                 <p style={{ 
                   fontSize: '0.7rem', 
                   opacity: 0.9,
-                  margin: '0.25rem 0 0 0',
+                  margin: '0.3rem 0 0 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
                 }}>
                   {todayVerse && format(new Date(todayVerse.publishedAt), "d 'de' MMMM", { locale: ptBR })}
@@ -1260,7 +1260,7 @@ export default function VersiculoDoDiaPage() {
                 flexDirection: 'column',
                 alignItems: 'center', 
                 justifyContent: 'center',
-                padding: '0 0.5rem',
+                padding: '0 0.8rem',
                 overflow: 'hidden'
               }}>
                 {todayVerse?.reflectionTitle && (
@@ -1290,7 +1290,7 @@ export default function VersiculoDoDiaPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.8rem' }}>
                 <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block' }} />
               </div>
             </div>

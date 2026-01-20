@@ -2120,31 +2120,28 @@ Formato JSON (OBRIGATÓRIO):
   ]
 }`;
   
-  // Try each key with retries - NEVER fallback
+  // Try each key (1-5) - generateWithGemini handles model fallback internally (gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)
   for (let keyNum = 1; keyNum <= 5; keyNum++) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(`[Quiz Questions] Trying key ${keyNum}, attempt ${attempt}/3...`);
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.questions && parsed.questions.length >= count) {
-            console.log(`[Quiz Questions] Successfully generated ${parsed.questions.length} questions (key ${keyNum})`);
-            return parsed.questions.slice(0, count);
-          }
+    try {
+      console.log(`[Quiz Questions] Trying key ${keyNum} (all models: gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.questions && parsed.questions.length >= count) {
+          console.log(`[Quiz Questions] Successfully generated ${parsed.questions.length} questions (key ${keyNum})`);
+          return parsed.questions.slice(0, count);
         }
-        console.log(`[Quiz Questions] Key ${keyNum} returned invalid format, retrying...`);
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Quiz Questions] Key ${keyNum} quota exceeded, trying next key...`);
-          break; // Move to next key
-        } else {
-          console.error(`[Quiz Questions] Key ${keyNum} attempt ${attempt} error:`, error?.message);
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 2000 * attempt)); // Exponential backoff
-          }
-        }
+      }
+      console.log(`[Quiz Questions] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Quiz Questions] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Quiz Questions] Key ${keyNum} error:`, error?.message);
+        // For non-quota errors, try next key
+        continue;
       }
     }
   }
@@ -2829,31 +2826,28 @@ Formato JSON (OBRIGATÓRIO):
   "fact": "Um fato curioso ou interessante sobre o personagem"
 }`;
   
-  // Try each key with retries - NEVER fallback
+  // Try each key (1-5) - generateWithGemini handles model fallback internally (gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)
   for (let keyNum = 1; keyNum <= 5; keyNum++) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(`[Bible Character] Trying key ${keyNum}, attempt ${attempt}/3...`);
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.name && parsed.description && parsed.verse && parsed.fact) {
-            console.log(`[Bible Character] Successfully generated: ${parsed.name} (key ${keyNum})`);
-            return parsed;
-          }
+    try {
+      console.log(`[Bible Character] Trying key ${keyNum} (all models: gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.name && parsed.description && parsed.verse && parsed.fact) {
+          console.log(`[Bible Character] Successfully generated: ${parsed.name} (key ${keyNum})`);
+          return parsed;
         }
-        console.log(`[Bible Character] Key ${keyNum} returned invalid format, retrying...`);
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Bible Character] Key ${keyNum} quota exceeded, trying next key...`);
-          break; // Move to next key
-        } else {
-          console.error(`[Bible Character] Key ${keyNum} attempt ${attempt} error:`, error?.message);
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 2000 * attempt)); // Exponential backoff
-          }
-        }
+      }
+      console.log(`[Bible Character] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Bible Character] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Bible Character] Key ${keyNum} error:`, error?.message);
+        // For non-quota errors, try next key
+        continue;
       }
     }
   }
@@ -3289,31 +3283,28 @@ Formato JSON (OBRIGATÓRIO):
   ]
 }`;
   
-  // Try each key with retries - NEVER fallback
+  // Try each key (1-5) - generateWithGemini handles model fallback internally (gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)
   for (let keyNum = 1; keyNum <= 5; keyNum++) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(`[Timed Quiz] Trying key ${keyNum}, attempt ${attempt}/3...`);
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.questions && parsed.questions.length >= count) {
-            console.log(`[Timed Quiz] Successfully generated ${parsed.questions.length} questions (key ${keyNum})`);
-            return parsed.questions.slice(0, count);
-          }
+    try {
+      console.log(`[Timed Quiz] Trying key ${keyNum} (all models: gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.questions && parsed.questions.length >= count) {
+          console.log(`[Timed Quiz] Successfully generated ${parsed.questions.length} questions (key ${keyNum})`);
+          return parsed.questions.slice(0, count);
         }
-        console.log(`[Timed Quiz] Key ${keyNum} returned invalid format, retrying...`);
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Timed Quiz] Key ${keyNum} quota exceeded, trying next key...`);
-          break; // Move to next key
-        } else {
-          console.error(`[Timed Quiz] Key ${keyNum} attempt ${attempt} error:`, error?.message);
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 2000 * attempt)); // Exponential backoff
-          }
-        }
+      }
+      console.log(`[Timed Quiz] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Timed Quiz] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Timed Quiz] Key ${keyNum} error:`, error?.message);
+        // For non-quota errors, try next key
+        continue;
       }
     }
   }

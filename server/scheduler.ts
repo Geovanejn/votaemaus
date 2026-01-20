@@ -855,59 +855,34 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
     } = await import('./ai');
     
     console.log('[Daily Missions Scheduler] Generating all mission content with AI (NO FALLBACK)...');
+    console.log('[Daily Missions Scheduler] Key rotation: Chave 1 → Chave 2 → ... → Chave 5');
+    console.log('[Daily Missions Scheduler] Model fallback per key: gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite');
     
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-    const MAX_RETRIES = 3;
     
-    // Helper to retry generation with exponential backoff
-    async function retryGenerate<T>(
-      name: string,
-      generator: () => Promise<T | null>,
-      validator: (result: T | null) => boolean
-    ): Promise<T | null> {
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        console.log(`[Daily Missions Scheduler] ${name}: Attempt ${attempt}/${MAX_RETRIES}`);
-        const result = await generator();
-        if (validator(result)) {
-          console.log(`[Daily Missions Scheduler] ${name}: Success!`);
-          return result;
-        }
-        console.log(`[Daily Missions Scheduler] ${name}: Failed, waiting before retry...`);
-        await delay(5000 * attempt); // 5s, 10s, 15s delays
-      }
-      console.error(`[Daily Missions Scheduler] ${name}: All retries exhausted!`);
-      return null;
-    }
-    
-    // Generate with retries - NEVER use fallback
+    // Generate content - each AI function handles key rotation and model fallback internally
+    console.log('[Daily Missions Scheduler] Generating AI Missions...');
     const aiMissions = await generateDailyMissionsWithAI();
-    await delay(2000);
+    await delay(1000);
     
-    const quizQuestions = await retryGenerate(
-      'Quiz Questions',
-      () => generateQuizQuestionsWithAI(10),
-      (r) => Array.isArray(r) && r.length >= 5
-    );
-    await delay(2000);
+    console.log('[Daily Missions Scheduler] Generating Quiz Questions...');
+    const quizQuestions = await generateQuizQuestionsWithAI(10);
+    await delay(1000);
     
+    console.log('[Daily Missions Scheduler] Generating Bible Fact...');
     const bibleFact = await generateBibleFactWithAI();
-    await delay(2000);
+    await delay(1000);
     
-    const bibleCharacter = await retryGenerate(
-      'Bible Character',
-      () => generateBibleCharacterWithAI(),
-      (r) => r !== null && typeof r === 'object' && 'name' in r && !!r.name
-    );
-    await delay(2000);
+    console.log('[Daily Missions Scheduler] Generating Bible Character...');
+    const bibleCharacter = await generateBibleCharacterWithAI();
+    await delay(1000);
     
+    console.log('[Daily Missions Scheduler] Generating Verse Memory...');
     const verseMemory = await generateVerseMemoryWithAI();
-    await delay(2000);
+    await delay(1000);
     
-    const timedQuizQuestions = await retryGenerate(
-      'Timed Quiz',
-      () => generateTimedQuizWithAI(10),
-      (r) => Array.isArray(r) && r.length >= 5
-    );
+    console.log('[Daily Missions Scheduler] Generating Timed Quiz...');
+    const timedQuizQuestions = await generateTimedQuizWithAI(10);
     
     // Check if critical content was generated successfully
     const hasQuiz = quizQuestions && quizQuestions.length >= 5;

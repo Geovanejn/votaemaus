@@ -170,30 +170,19 @@ function QuizActivity({
   const isTimedChallenge = missionType === 'timed_challenge';
   const needsAllCorrect = isQuickQuiz || isTimedChallenge;
   
-  const allQuestions = [
-    { question: "Quantos livros tem a Bíblia?", options: ["66", "72", "39", "27"], correctIndex: 0 },
-    { question: "Quem escreveu Provérbios?", options: ["Moisés", "Salomão", "Davi", "Paulo"], correctIndex: 1 },
-    { question: "Quem foi lançado na cova dos leões?", options: ["José", "Daniel", "Jonas", "Elias"], correctIndex: 1 },
-    { question: "Qual livro vem depois de Gênesis?", options: ["Números", "Êxodo", "Levítico", "Deuteronômio"], correctIndex: 1 },
-    { question: "Quantos discípulos Jesus tinha?", options: ["10", "11", "12", "13"], correctIndex: 2 },
-    { question: "Quem construiu a arca?", options: ["Abraão", "Noé", "Moisés", "Davi"], correctIndex: 1 },
-    { question: "Qual profeta enfrentou os profetas de Baal?", options: ["Elias", "Eliseu", "Isaías", "Jeremias"], correctIndex: 0 },
-    { question: "Em que cidade Jesus nasceu?", options: ["Nazaré", "Jerusalém", "Belém", "Cafarnaum"], correctIndex: 2 },
-    { question: "Quem foi o primeiro rei de Israel?", options: ["Davi", "Salomão", "Saul", "Samuel"], correctIndex: 2 },
-    { question: "Quem foi engolido por um grande peixe?", options: ["Jonas", "Daniel", "Elias", "José"], correctIndex: 0 },
-  ];
+  // Check if we have valid AI-generated questions - NO FALLBACK
+  const hasValidQuestions = content?.quizQuestions && content.quizQuestions.length >= 5;
   
-  const getShuffledQuestions = (sourceQuestions?: Array<{ question: string; options: string[]; correctIndex: number }>) => {
-    const source = sourceQuestions || allQuestions;
-    const shuffled = [...source].sort(() => Math.random() - 0.5);
+  const getShuffledQuestions = (sourceQuestions: Array<{ question: string; options: string[]; correctIndex: number }>) => {
+    const shuffled = [...sourceQuestions].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 5);
   };
 
   const [questions, setQuestions] = useState(() => {
-    if (content?.quizQuestions && content.quizQuestions.length > 0) {
-      return getShuffledQuestions(content.quizQuestions);
+    if (hasValidQuestions) {
+      return getShuffledQuestions(content.quizQuestions!);
     }
-    return getShuffledQuestions();
+    return []; // Empty if no AI content
   });
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
@@ -222,10 +211,8 @@ function QuizActivity({
   }, [timeLeft, quizComplete, failed]);
 
   const resetQuiz = () => {
-    if (content?.quizQuestions && content.quizQuestions.length > 0) {
-      setQuestions(getShuffledQuestions(content.quizQuestions));
-    } else {
-      setQuestions(getShuffledQuestions());
+    if (hasValidQuestions) {
+      setQuestions(getShuffledQuestions(content.quizQuestions!));
     }
     setCurrentQuestion(0);
     setCorrectAnswers(0);
@@ -236,6 +223,23 @@ function QuizActivity({
     setFailed(false);
     setTimedOutFlag(false);
   };
+  
+  // Show error state if no AI-generated questions available
+  if (!hasValidQuestions || questions.length === 0) {
+    return (
+      <div className="space-y-6 text-center" data-testid="quiz-no-content">
+        <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900">
+          <AlertCircle className="w-10 h-10 text-amber-600" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-foreground mb-2">Conteúdo em Preparação</h3>
+          <p className="text-muted-foreground">
+            As perguntas do quiz estão sendo geradas. Por favor, volte mais tarde.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAnswer = (index: number) => {
     if (selectedAnswer !== null || timedOutFlag || failed || (timeLeft !== null && timeLeft <= 0)) return;
@@ -423,9 +427,27 @@ function BibleCharacterActivity({
 }) {
   const [hasRead, setHasRead] = useState(false);
 
-  const character = content?.bibleCharacter || 'Daniel';
-  const story = content?.characterStory || 
-    'Daniel foi um jovem judeu levado cativo para a Babilônia. Ele se destacou por sua fé inabalável em Deus, mesmo enfrentando a cova dos leões. Sua história nos ensina sobre fidelidade e coragem diante das adversidades.';
+  // Check if we have valid AI-generated content - NO FALLBACK
+  const hasValidCharacter = content?.bibleCharacter && content.bibleCharacter.length > 0;
+  
+  if (!hasValidCharacter) {
+    return (
+      <div className="space-y-6 text-center" data-testid="character-no-content">
+        <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-purple-100 dark:bg-purple-900">
+          <AlertCircle className="w-10 h-10 text-purple-600" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-foreground mb-2">Conteúdo em Preparação</h3>
+          <p className="text-muted-foreground">
+            O personagem bíblico do dia está sendo gerado. Por favor, volte mais tarde.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const character = content.bibleCharacter;
+  const story = content?.characterStory || 'História sendo carregada...';
 
   return (
     <div className="space-y-6" data-testid="bible-character-activity">

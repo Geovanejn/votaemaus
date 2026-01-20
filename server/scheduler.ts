@@ -812,13 +812,36 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
   console.log('[Daily Missions Scheduler] Refreshing daily missions with AI...');
   
   try {
-    // Store the AI-generated missions for today
     const today = new Date().toISOString().split('T')[0];
     const existingContent = await storage.getDailyMissionContent(today);
     
+    // Check if content exists AND has valid AI-generated data
     if (existingContent) {
-      console.log(`[Daily Missions Scheduler] Content already generated for today (${today})`);
-      return;
+      let needsRegeneration = false;
+      
+      // Check if critical fields are empty/invalid
+      try {
+        const quizData = JSON.parse(existingContent.quizQuestions || '[]');
+        const timedQuizData = JSON.parse(existingContent.timedQuizQuestions || '[]');
+        const characterData = JSON.parse(existingContent.bibleCharacter || '{}');
+        
+        // If any critical content is missing, regenerate
+        if (!quizData.length || !timedQuizData.length || !characterData.name) {
+          console.log(`[Daily Missions Scheduler] Content for ${today} is incomplete, regenerating...`);
+          console.log(`  - Quiz: ${quizData.length} questions`);
+          console.log(`  - Timed Quiz: ${timedQuizData.length} questions`);
+          console.log(`  - Character: ${characterData.name || 'MISSING'}`);
+          needsRegeneration = true;
+        }
+      } catch (e) {
+        console.log(`[Daily Missions Scheduler] Content parsing failed, regenerating...`);
+        needsRegeneration = true;
+      }
+      
+      if (!needsRegeneration) {
+        console.log(`[Daily Missions Scheduler] Content already generated for today (${today})`);
+        return;
+      }
     }
     
     // Import AI generation functions
@@ -831,42 +854,102 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
       generateTimedQuizWithAI
     } = await import('./ai');
     
-    // Generate all content (AI with fallback) - RATE LIMITED to avoid API overload
-    console.log('[Daily Missions Scheduler] Generating all mission content with AI (rate limited)...');
+    console.log('[Daily Missions Scheduler] Generating all mission content with AI (NO FALLBACK)...');
     
-    // Helper to add delay between API calls
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const MAX_RETRIES = 3;
     
-    // Sequential calls with 1s delay to avoid rate limiting
+    // Helper to retry generation with exponential backoff
+    async function retryGenerate<T>(
+      name: string,
+      generator: () => Promise<T | null>,
+      validator: (result: T | null) => boolean
+    ): Promise<T | null> {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        console.log(`[Daily Missions Scheduler] ${name}: Attempt ${attempt}/${MAX_RETRIES}`);
+        const result = await generator();
+        if (validator(result)) {
+          console.log(`[Daily Missions Scheduler] ${name}: Success!`);
+          return result;
+        }
+        console.log(`[Daily Missions Scheduler] ${name}: Failed, waiting before retry...`);
+        await delay(5000 * attempt); // 5s, 10s, 15s delays
+      }
+      console.error(`[Daily Missions Scheduler] ${name}: All retries exhausted!`);
+      return null;
+    }
+    
+    // Generate with retries - NEVER use fallback
     const aiMissions = await generateDailyMissionsWithAI();
-    await delay(1000);
-    const quizQuestions = await generateQuizQuestionsWithAI(10);
-    await delay(1000);
+    await delay(2000);
+    
+    const quizQuestions = await retryGenerate(
+      'Quiz Questions',
+      () => generateQuizQuestionsWithAI(10),
+      (r) => Array.isArray(r) && r.length >= 5
+    );
+    await delay(2000);
+    
     const bibleFact = await generateBibleFactWithAI();
-    await delay(1000);
-    const bibleCharacter = await generateBibleCharacterWithAI();
-    await delay(1000);
+    await delay(2000);
+    
+    const bibleCharacter = await retryGenerate(
+      'Bible Character',
+      () => generateBibleCharacterWithAI(),
+      (r) => r !== null && typeof r === 'object' && 'name' in r && !!r.name
+    );
+    await delay(2000);
+    
     const verseMemory = await generateVerseMemoryWithAI();
-    await delay(1000);
-    const timedQuizQuestions = await generateTimedQuizWithAI(10);
+    await delay(2000);
+    
+    const timedQuizQuestions = await retryGenerate(
+      'Timed Quiz',
+      () => generateTimedQuizWithAI(10),
+      (r) => Array.isArray(r) && r.length >= 5
+    );
+    
+    // Check if critical content was generated successfully
+    const hasQuiz = quizQuestions && quizQuestions.length >= 5;
+    const hasTimedQuiz = timedQuizQuestions && timedQuizQuestions.length >= 5;
+    const hasCharacter = bibleCharacter && bibleCharacter.name;
+    
+    // NEVER save incomplete data - abort if any critical content is missing
+    if (!hasQuiz || !hasTimedQuiz || !hasCharacter) {
+      console.error('[Daily Missions Scheduler] CRITICAL: Failed to generate essential content!');
+      console.error(`  - Quiz: ${hasQuiz ? 'OK' : 'FAILED'}`);
+      console.error(`  - Timed Quiz: ${hasTimedQuiz ? 'OK' : 'FAILED'}`);
+      console.error(`  - Bible Character: ${hasCharacter ? 'OK' : 'FAILED'}`);
+      console.error('[Daily Missions Scheduler] NOT saving incomplete content - will retry on next schedule');
+      // Do NOT save anything - return without persisting
+      return;
+    }
+    
+    // Only save if ALL critical content was successfully generated
+    console.log('[Daily Missions Scheduler] All critical content generated successfully, saving...');
+    
+    // Delete existing incomplete content if any
+    if (existingContent) {
+      console.log('[Daily Missions Scheduler] Replacing incomplete content with new complete content...');
+    }
     
     await storage.createDailyMissionContent({
       contentDate: today,
       aiGeneratedMissions: JSON.stringify(aiMissions || []),
-      quizQuestions: JSON.stringify(quizQuestions || []),
+      quizQuestions: JSON.stringify(quizQuestions),
       bibleFact: JSON.stringify(bibleFact || {}),
-      bibleCharacter: JSON.stringify(bibleCharacter || {}),
+      bibleCharacter: JSON.stringify(bibleCharacter),
       verseMemory: JSON.stringify(verseMemory || {}),
-      timedQuizQuestions: JSON.stringify(timedQuizQuestions || []),
+      timedQuizQuestions: JSON.stringify(timedQuizQuestions),
     });
     
-    console.log(`[Daily Missions Scheduler] Generated content for ${today}:`);
+    console.log(`[Daily Missions Scheduler] Successfully saved content for ${today}:`);
     console.log(`  - AI Missions: ${aiMissions?.length || 0}`);
-    console.log(`  - Quiz questions: ${quizQuestions?.length || 0}`);
+    console.log(`  - Quiz questions: ${quizQuestions.length}`);
     console.log(`  - Bible fact: ${bibleFact?.fact ? 'Yes' : 'No'}`);
-    console.log(`  - Bible character: ${bibleCharacter?.name || 'No'}`);
+    console.log(`  - Bible character: ${bibleCharacter.name}`);
     console.log(`  - Verse memory: ${verseMemory?.reference || 'No'}`);
-    console.log(`  - Timed quiz: ${timedQuizQuestions?.length || 0} questions`);
+    console.log(`  - Timed quiz: ${timedQuizQuestions.length} questions`);
   } catch (error) {
     console.error('[Daily Missions Scheduler] Error refreshing missions:', error);
   }

@@ -1030,7 +1030,7 @@ export default function DevocionalDetailPage() {
                 <p style={{ 
                   fontSize: '0.55rem', 
                   opacity: 0.9,
-                  margin: '0 0 0.12rem 0',
+                  margin: '0 0 0.08rem 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   letterSpacing: '0.03em'
                 }}>

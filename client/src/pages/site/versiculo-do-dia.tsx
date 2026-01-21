@@ -605,18 +605,20 @@ export default function VersiculoDoDiaPage() {
     }
   }, [todayVerse, toast, recordShareMutation]);
 
-  // Function to generate and share reflection image
+  // Function to generate and share reflection image - EXACT DUPLICATE of generateAndShareImage
   const generateAndShareReflectionImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
     if (!reflectionCardRef.current) return;
 
     setGenerating(true);
     try {
-      const cardWidth = 2160;
-      const cardHeight = 3840;
-      const scale = 1;
-      const borderRadius = 80;
-      const scaleFactor = 8 * 0.75; // 6x scale (preview ~270px -> 2160px, then 75%)
+      // Use ultra high resolution for sharp export (2x story resolution)
+      const cardWidth = 2160; // 2x Full HD width for stories
+      const cardHeight = 3840; // 2x Full HD height for stories (9:16)
+      const scale = 1; // No scaling needed since we're already at full resolution
+      const borderRadius = 80; // Scaled border-radius for ultra high res
       
+      // Create off-screen container with fully transparent background
+      // This prevents blending with Dialog's light background
       const offscreenContainer = document.createElement('div');
       offscreenContainer.style.cssText = `
         position: fixed;
@@ -632,6 +634,7 @@ export default function VersiculoDoDiaPage() {
       `;
       document.body.appendChild(offscreenContainer);
       
+      // Clone the share card into the off-screen container at full resolution
       const clonedCard = reflectionCardRef.current.cloneNode(true) as HTMLElement;
       clonedCard.style.cssText = `
         width: ${cardWidth}px;
@@ -643,7 +646,10 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Scale text elements EXACTLY like generateAndShareImage
+      // Set explicit pixel sizes for ultra high-res export (25% smaller than proportional preview sizes)
+      // Preview at 270px width has these rem sizes, scaled to 2160px (8x) then reduced 25%
+      const scaleFactor = 8 * 0.75; // 6x scale
+      
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -655,7 +661,7 @@ export default function VersiculoDoDiaPage() {
         }
       });
       
-      // Scale div elements with fontSize (for reflection content text)
+      // Scale div elements with fontSize (for reflection content text that uses div)
       const divElements = clonedCard.querySelectorAll('div');
       divElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -715,6 +721,7 @@ export default function VersiculoDoDiaPage() {
       // Wait for images to load in cloned element
       await new Promise(resolve => setTimeout(resolve, 200));
       
+      // Capture from the off-screen container at full resolution
       const sourceCanvas = await html2canvas(clonedCard, {
         scale: scale,
         useCORS: true,
@@ -726,8 +733,11 @@ export default function VersiculoDoDiaPage() {
         height: cardHeight,
       });
       
+      // Remove off-screen container
       document.body.removeChild(offscreenContainer);
 
+      // Use clip-first strategy: draw mask first, then image with source-in
+      // This prevents white pixels from ever being blended into the canvas
       const srcWidth = sourceCanvas.width;
       const srcHeight = sourceCanvas.height;
       const scaledRadius = Math.round(borderRadius * scale);
@@ -743,7 +753,7 @@ export default function VersiculoDoDiaPage() {
         return;
       }
 
-      // Step 1: Draw the rounded-rect mask FIRST
+      // Step 1: Draw the rounded-rect mask FIRST (this defines what pixels can exist)
       ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.moveTo(scaledRadius, 0);
@@ -758,18 +768,20 @@ export default function VersiculoDoDiaPage() {
       ctx.closePath();
       ctx.fill();
       
-      // Step 2: Draw the image using source-in
+      // Step 2: Draw the image using source-in (only draws where mask exists)
+      // This means white edge pixels from html2canvas will NOT be painted
       ctx.globalCompositeOperation = 'source-in';
       ctx.drawImage(sourceCanvas, 0, 0);
       
-      // Step 3: Hard alpha clamp
+      // Step 3: Hard alpha clamp - force semi-transparent pixels to fully transparent
+      // This removes anti-aliased edge pixels that appear white on white backgrounds
       const imageData = ctx.getImageData(0, 0, srcWidth, srcHeight);
       const data = imageData.data;
-      const alphaThreshold = 250;
+      const alphaThreshold = 250; // Pixels with alpha < 250 become fully transparent
       
       for (let i = 3; i < data.length; i += 4) {
         if (data[i] > 0 && data[i] < alphaThreshold) {
-          data[i] = 0;
+          data[i] = 0; // Force fully transparent
         }
       }
       ctx.putImageData(imageData, 0, 0);
@@ -791,6 +803,7 @@ export default function VersiculoDoDiaPage() {
           a.click();
           URL.revokeObjectURL(url);
           toast({ title: "Imagem baixada!" });
+          // Record share for mission tracking
           recordShareMutation.mutate({ platform: 'download', versePostId: todayVerse?.id });
           setGenerating(false);
           setReflectionShareOpen(false);
@@ -822,6 +835,7 @@ export default function VersiculoDoDiaPage() {
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
             window.open(whatsappUrl, '_blank');
           }
+          // Record share for mission tracking
           recordShareMutation.mutate({ platform: 'whatsapp', versePostId: todayVerse?.id });
           setGenerating(false);
           setReflectionShareOpen(false);
@@ -848,13 +862,14 @@ export default function VersiculoDoDiaPage() {
             title: "Imagem baixada + Legenda copiada!", 
             description: "Abra o Instagram e cole a legenda ao compartilhar" 
           });
+          // Record share for mission tracking
           recordShareMutation.mutate({ platform: 'instagram', versePostId: todayVerse?.id });
           setGenerating(false);
           setReflectionShareOpen(false);
         }, 'image/png', 1.0);
       }
     } catch (error) {
-      console.error('Error generating reflection image:', error);
+      console.error('Error generating image:', error);
       toast({ title: "Erro ao gerar imagem", variant: "destructive" });
       setGenerating(false);
     }

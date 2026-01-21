@@ -349,11 +349,24 @@ export async function uploadStoryImageToR2(
   const { uploadToR2, isR2Configured, getPublicUrl } = await import('./r2-storage');
   
   if (!isR2Configured()) {
-    console.error('[StoryGenerator] R2 not configured');
-    return null;
+    console.log('[StoryGenerator] R2 not configured - saving locally for development');
+    
+    const publicDir = path.join(process.cwd(), 'public', 'temp-stories');
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+    
+    const localPath = path.join(publicDir, filename);
+    fs.writeFileSync(localPath, imageBuffer);
+    
+    const domain = process.env.REPL_SLUG 
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : `http://localhost:5000`;
+    const publicUrl = `${domain}/temp-stories/${filename}`;
+    
+    console.log('[StoryGenerator] Story image saved locally:', publicUrl);
+    return publicUrl;
   }
-  
-  const key = `instagram-stories/${filename}`;
   
   const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/jpeg', filename);
   

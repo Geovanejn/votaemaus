@@ -164,6 +164,7 @@ app.use(compression({
 }));
 
 app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
+app.use('/temp-stories', express.static(path.resolve(process.cwd(), 'public', 'temp-stories')));
 
 declare module 'http' {
   interface IncomingMessage {

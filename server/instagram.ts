@@ -1,7 +1,10 @@
 import { storage } from "./storage";
 
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || "";
-const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || "";
+const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || process.env.INSTAGRAM_ACCOUNT_ID || "";
+const INSTAGRAM_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID || "";
+const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || "";
+const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 
 interface InstagramMediaItem {
   id: string;
@@ -230,7 +233,7 @@ export async function refreshInstagramToken(): Promise<boolean> {
   }
   
   try {
-    const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.FACEBOOK_APP_ID || ''}&client_secret=${process.env.FACEBOOK_APP_SECRET || ''}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetch(url);
     
@@ -247,5 +250,183 @@ export async function refreshInstagramToken(): Promise<boolean> {
   } catch (error) {
     console.error("[Instagram] Token refresh error:", error);
     return false;
+  }
+}
+
+// ==================== INSTAGRAM STORIES PUBLISHING ====================
+
+export function isInstagramPublishingConfigured(): boolean {
+  return !!(INSTAGRAM_ACCESS_TOKEN && INSTAGRAM_ACCOUNT_ID);
+}
+
+interface StoryPublishResult {
+  success: boolean;
+  mediaId?: string;
+  error?: string;
+}
+
+/**
+ * Create a story container for an image
+ * The image URL must be publicly accessible (https://)
+ */
+async function createStoryContainer(imageUrl: string): Promise<{ containerId?: string; error?: string }> {
+  try {
+    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        image_url: imageUrl,
+        media_type: 'STORIES',
+        access_token: INSTAGRAM_ACCESS_TOKEN,
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error("[Instagram Stories] Container creation failed:", data);
+      return { error: data.error?.message || 'Failed to create story container' };
+    }
+    
+    if (data.id) {
+      console.log(`[Instagram Stories] Container created: ${data.id}`);
+      return { containerId: data.id };
+    }
+    
+    return { error: 'No container ID returned' };
+  } catch (error) {
+    console.error("[Instagram Stories] Container creation error:", error);
+    return { error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Check the status of a media container
+ */
+async function checkContainerStatus(containerId: string): Promise<'FINISHED' | 'IN_PROGRESS' | 'ERROR'> {
+  try {
+    const url = `https://graph.facebook.com/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.status_code === 'FINISHED') {
+      return 'FINISHED';
+    } else if (data.status_code === 'ERROR') {
+      console.error("[Instagram Stories] Container processing error:", data);
+      return 'ERROR';
+    }
+    
+    return 'IN_PROGRESS';
+  } catch (error) {
+    console.error("[Instagram Stories] Status check error:", error);
+    return 'ERROR';
+  }
+}
+
+/**
+ * Publish a story from a container
+ */
+async function publishStoryFromContainer(containerId: string): Promise<StoryPublishResult> {
+  try {
+    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        creation_id: containerId,
+        access_token: INSTAGRAM_ACCESS_TOKEN,
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error("[Instagram Stories] Publish failed:", data);
+      return { success: false, error: data.error?.message || 'Failed to publish story' };
+    }
+    
+    if (data.id) {
+      console.log(`[Instagram Stories] Story published! Media ID: ${data.id}`);
+      return { success: true, mediaId: data.id };
+    }
+    
+    return { success: false, error: 'No media ID returned' };
+  } catch (error) {
+    console.error("[Instagram Stories] Publish error:", error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Publish an image as Instagram Story
+ * @param imageUrl - Publicly accessible HTTPS URL of the image (JPEG format recommended)
+ * @param maxWaitTime - Maximum time to wait for container processing (default 30s)
+ */
+export async function publishInstagramStory(imageUrl: string, maxWaitTime: number = 30000): Promise<StoryPublishResult> {
+  if (!isInstagramPublishingConfigured()) {
+    console.log("[Instagram Stories] Not configured - missing access token or account ID");
+    return { success: false, error: 'Instagram publishing not configured' };
+  }
+  
+  console.log(`[Instagram Stories] Starting story publish for image: ${imageUrl.substring(0, 50)}...`);
+  
+  // Step 1: Create container
+  const containerResult = await createStoryContainer(imageUrl);
+  if (!containerResult.containerId) {
+    return { success: false, error: containerResult.error };
+  }
+  
+  // Step 2: Wait for container to be ready (images are usually instant, but we check anyway)
+  const startTime = Date.now();
+  let status: 'FINISHED' | 'IN_PROGRESS' | 'ERROR' = 'IN_PROGRESS';
+  
+  while (status === 'IN_PROGRESS' && (Date.now() - startTime) < maxWaitTime) {
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
+    status = await checkContainerStatus(containerResult.containerId);
+  }
+  
+  if (status === 'ERROR') {
+    return { success: false, error: 'Container processing failed' };
+  }
+  
+  if (status === 'IN_PROGRESS') {
+    return { success: false, error: 'Container processing timeout' };
+  }
+  
+  // Step 3: Publish the story
+  return await publishStoryFromContainer(containerResult.containerId);
+}
+
+/**
+ * Test Instagram Story publishing configuration
+ */
+export async function testInstagramStoryConfig(): Promise<{ configured: boolean; accountId?: string; error?: string }> {
+  if (!isInstagramPublishingConfigured()) {
+    return { configured: false, error: 'Missing INSTAGRAM_ACCESS_TOKEN or INSTAGRAM_ACCOUNT_ID' };
+  }
+  
+  try {
+    // Test by fetching account info
+    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { configured: false, error: data.error?.message || 'Failed to verify account' };
+    }
+    
+    console.log(`[Instagram Stories] Verified account: @${data.username} (ID: ${data.id})`);
+    return { configured: true, accountId: data.id };
+  } catch (error) {
+    return { configured: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

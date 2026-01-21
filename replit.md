@@ -29,6 +29,12 @@ The front-end uses React with a responsive design, consistent card layouts, and 
 - **Special Events System**: Events can include AI-generated lessons, collectible cards with rarity, image uploads, and countdowns.
 - **Treasury Module**: Manages member fees (Percapta, UMP), an e-commerce store, and event fees. Integrates Mercado Pago PIX, offers financial dashboards, and role-based access. Supports "Day 10 Rule" for UMP payments, full-year anticipation, and abandoned cart reminders.
 - **Daily Verse System**: Automated daily Bible verse publishing with AI-generated reflections, stock images, public page, social media sharing, and push notifications.
+- **Instagram Stories Auto-Publish**: Automated story publishing to Instagram at scheduled times:
+  - 07:05 - Daily verse story with background image
+  - 07:10 - Daily reflection story
+  - 08:05 - Birthday congratulation stories (if any birthdays)
+  - Uses server-side image generation (node-canvas + sharp) for JPEG output
+  - Requires INSTAGRAM_ACCOUNT_ID, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, INSTAGRAM_ACCESS_TOKEN
 - **E-commerce Shop (Loja)**: Features product display with categories, banners, promotional codes, and stock inventory control. Supports PIX installment payments and manual orders for external customers. Multiple image upload is available for products.
 
 ### System Design Choices

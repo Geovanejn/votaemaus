@@ -2,9 +2,11 @@ import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVerseWithLink, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
-import { syncInstagramPosts, isInstagramConfigured } from "./instagram";
+import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
+import { generateVerseStoryImage, generateReflectionStoryImage, generateBirthdayStoryImage, uploadStoryImageToR2 } from "./story-image-generator";
+import { getPublicUrl } from "./r2-storage";
 
 // Rate limiting helper for Resend (10 requests per second approved)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -2239,4 +2241,213 @@ export function initTreasurySchedulers(): void {
   console.log('[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)');
 }
 
-export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders };
+// ==================== INSTAGRAM STORIES AUTO-PUBLISH ====================
+
+async function publishVerseStoryToInstagram(): Promise<void> {
+  console.log('[Instagram Stories] Starting verse story publish at 07:05...');
+  
+  if (!isInstagramPublishingConfigured()) {
+    console.log('[Instagram Stories] Publishing not configured - skipping verse story');
+    return;
+  }
+  
+  try {
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse) {
+      console.log('[Instagram Stories] No active daily verse found - skipping');
+      return;
+    }
+    
+    const stockImage = dailyVerse.stockImageId 
+      ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
+      : null;
+    
+    const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
+    if (!backgroundUrl) {
+      console.log('[Instagram Stories] No background image for verse - skipping');
+      return;
+    }
+    
+    console.log('[Instagram Stories] Generating verse story image...');
+    const imageBuffer = await generateVerseStoryImage(
+      {
+        verse: dailyVerse.verse,
+        reference: dailyVerse.reference,
+        highlightedKeywords: dailyVerse.highlightedKeywords,
+      },
+      backgroundUrl
+    );
+    
+    const filename = `verse-story-${Date.now()}.jpg`;
+    const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
+    
+    if (!publicUrl) {
+      console.log('[Instagram Stories] Failed to upload verse story to R2');
+      return;
+    }
+    
+    console.log('[Instagram Stories] Publishing verse story to Instagram...');
+    const result = await publishInstagramStory(publicUrl);
+    
+    if (result.success) {
+      console.log(`[Instagram Stories] Verse story published! Media ID: ${result.mediaId}`);
+    } else {
+      console.error('[Instagram Stories] Failed to publish verse story:', result.error);
+    }
+  } catch (error) {
+    console.error('[Instagram Stories] Error publishing verse story:', error);
+  }
+}
+
+async function publishReflectionStoryToInstagram(): Promise<void> {
+  console.log('[Instagram Stories] Starting reflection story publish at 07:10...');
+  
+  if (!isInstagramPublishingConfigured()) {
+    console.log('[Instagram Stories] Publishing not configured - skipping reflection story');
+    return;
+  }
+  
+  try {
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse || !dailyVerse.reflection || !dailyVerse.reflectionTitle) {
+      console.log('[Instagram Stories] No active daily verse with reflection found - skipping');
+      return;
+    }
+    
+    const stockImage = dailyVerse.stockImageId 
+      ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
+      : null;
+    
+    const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
+    if (!backgroundUrl) {
+      console.log('[Instagram Stories] No background image for reflection - skipping');
+      return;
+    }
+    
+    console.log('[Instagram Stories] Generating reflection story image...');
+    const imageBuffer = await generateReflectionStoryImage(
+      {
+        reflectionTitle: dailyVerse.reflectionTitle,
+        reflection: dailyVerse.reflection,
+        reflectionKeywords: dailyVerse.reflectionKeywords,
+        reflectionReferences: dailyVerse.reflectionReferences,
+      },
+      backgroundUrl
+    );
+    
+    const filename = `reflection-story-${Date.now()}.jpg`;
+    const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
+    
+    if (!publicUrl) {
+      console.log('[Instagram Stories] Failed to upload reflection story to R2');
+      return;
+    }
+    
+    console.log('[Instagram Stories] Publishing reflection story to Instagram...');
+    const result = await publishInstagramStory(publicUrl);
+    
+    if (result.success) {
+      console.log(`[Instagram Stories] Reflection story published! Media ID: ${result.mediaId}`);
+    } else {
+      console.error('[Instagram Stories] Failed to publish reflection story:', result.error);
+    }
+  } catch (error) {
+    console.error('[Instagram Stories] Error publishing reflection story:', error);
+  }
+}
+
+async function publishBirthdayStoriesToInstagram(): Promise<void> {
+  console.log('[Instagram Stories] Starting birthday stories publish at 08:05...');
+  
+  if (!isInstagramPublishingConfigured()) {
+    console.log('[Instagram Stories] Publishing not configured - skipping birthday stories');
+    return;
+  }
+  
+  try {
+    const allMembers = await storage.getAllMembers();
+    const todayDateString = getTodayDateString();
+    
+    const birthdayMembers = allMembers.filter(member => {
+      if (!member.birthdate) return false;
+      
+      const birthdateParts = member.birthdate.split('-');
+      if (birthdateParts.length !== 3) return false;
+      
+      const month = birthdateParts[1];
+      const day = birthdateParts[2];
+      const memberDateString = `${month}-${day}`;
+      
+      return memberDateString === todayDateString;
+    });
+    
+    if (birthdayMembers.length === 0) {
+      console.log('[Instagram Stories] No birthdays today - skipping');
+      return;
+    }
+    
+    console.log(`[Instagram Stories] Found ${birthdayMembers.length} birthday(s) to publish`);
+    
+    for (const member of birthdayMembers) {
+      try {
+        const firstName = member.fullName.split(' ')[0];
+        
+        let photoUrl = member.photoUrl;
+        if (photoUrl && !photoUrl.startsWith('http')) {
+          photoUrl = getPublicUrl(photoUrl);
+        }
+        
+        console.log(`[Instagram Stories] Generating birthday story for ${firstName}...`);
+        const imageBuffer = await generateBirthdayStoryImage({
+          firstName,
+          photoUrl,
+        });
+        
+        const filename = `birthday-${firstName.toLowerCase()}-${Date.now()}.jpg`;
+        const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
+        
+        if (!publicUrl) {
+          console.log(`[Instagram Stories] Failed to upload birthday story for ${firstName}`);
+          continue;
+        }
+        
+        console.log(`[Instagram Stories] Publishing birthday story for ${firstName}...`);
+        const result = await publishInstagramStory(publicUrl);
+        
+        if (result.success) {
+          console.log(`[Instagram Stories] Birthday story for ${firstName} published! Media ID: ${result.mediaId}`);
+        } else {
+          console.error(`[Instagram Stories] Failed to publish birthday story for ${firstName}:`, result.error);
+        }
+        
+        await delay(5000);
+      } catch (error) {
+        console.error(`[Instagram Stories] Error publishing birthday story for ${member.fullName}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('[Instagram Stories] Error publishing birthday stories:', error);
+  }
+}
+
+export function initInstagramStoriesSchedulers(): void {
+  // Daily verse story at 07:05 (America/Sao_Paulo)
+  cron.schedule('5 7 * * *', publishVerseStoryToInstagram, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:05 (America/Sao_Paulo)');
+  
+  // Daily reflection story at 07:10 (America/Sao_Paulo)
+  cron.schedule('10 7 * * *', publishReflectionStoryToInstagram, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:10 (America/Sao_Paulo)');
+  
+  // Birthday stories at 08:05 (America/Sao_Paulo)
+  cron.schedule('5 8 * * *', publishBirthdayStoriesToInstagram, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)');
+}
+
+export { sendBirthdayEmails, sendStreakReminders, sendInactivityReminders, sendDailyVerse, generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders, publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram };

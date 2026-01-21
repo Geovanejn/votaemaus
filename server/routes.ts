@@ -97,7 +97,7 @@ import {
   notifyEventEnded,
   sendPushToUser
 } from "./notifications";
-import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments } from "./instagram";
+import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments, publishInstagramStory, isInstagramPublishingConfigured, testInstagramStoryConfig } from "./instagram";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
@@ -6593,6 +6593,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get birthdays error:", error);
       res.status(500).json({ message: "Erro ao buscar aniversariantes" });
+    }
+  });
+
+  // ==================== INSTAGRAM STORIES API ====================
+
+  // Test Instagram Story configuration
+  app.get("/api/admin/instagram/test-config", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const result = await testInstagramStoryConfig();
+      res.json(result);
+    } catch (error) {
+      console.error("Instagram config test error:", error);
+      res.status(500).json({ message: "Erro ao testar configuração do Instagram" });
+    }
+  });
+
+  // Test publish birthday story to Instagram
+  app.post("/api/admin/instagram/test-birthday-story", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { memberId } = req.body;
+      
+      if (!isInstagramPublishingConfigured()) {
+        return res.status(400).json({ message: "Instagram não está configurado para publicação" });
+      }
+      
+      let firstName = "Teste";
+      let photoUrl: string | null = null;
+      
+      if (memberId) {
+        const member = await storage.getUser(memberId);
+        if (member) {
+          firstName = member.fullName.split(' ')[0];
+          photoUrl = member.photoUrl ? convertImageUrls({ photoUrl: member.photoUrl }).photoUrl : null;
+        }
+      }
+      
+      console.log(`[Instagram Stories] Testing birthday story for ${firstName}...`);
+      
+      const { generateBirthdayStoryImage, uploadStoryImageToR2 } = await import('./story-image-generator');
+      
+      const imageBuffer = await generateBirthdayStoryImage({ firstName, photoUrl });
+      console.log(`[Instagram Stories] Image generated: ${imageBuffer.length} bytes`);
+      
+      const filename = `test-birthday-${firstName.toLowerCase()}-${Date.now()}.jpg`;
+      const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
+      
+      if (!publicUrl) {
+        return res.status(500).json({ message: "Falha ao fazer upload da imagem para R2" });
+      }
+      
+      console.log(`[Instagram Stories] Image uploaded to: ${publicUrl}`);
+      
+      const result = await publishInstagramStory(publicUrl);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: `Story de aniversário para ${firstName} publicado!`, 
+          mediaId: result.mediaId,
+          imageUrl: publicUrl
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          message: result.error || "Falha ao publicar story" 
+        });
+      }
+    } catch (error: any) {
+      console.error("Instagram birthday story test error:", error);
+      res.status(500).json({ message: error.message || "Erro ao publicar story de aniversário" });
+    }
+  });
+
+  // Test publish Instagram Story with a public image URL
+  app.post("/api/admin/instagram/test-story", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ message: "imageUrl é obrigatório" });
+      }
+      
+      if (!isInstagramPublishingConfigured()) {
+        return res.status(400).json({ message: "Instagram não está configurado para publicação" });
+      }
+      
+      console.log(`[Instagram Stories] Testing story publish with image: ${imageUrl}`);
+      
+      const result = await publishInstagramStory(imageUrl);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: "Story publicado com sucesso!", 
+          mediaId: result.mediaId 
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          message: result.error || "Falha ao publicar story" 
+        });
+      }
+    } catch (error) {
+      console.error("Instagram story test error:", error);
+      res.status(500).json({ message: "Erro ao publicar story de teste" });
     }
   });
 

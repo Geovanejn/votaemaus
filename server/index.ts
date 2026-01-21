@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, initMarketingReminderScheduler, initTreasurySchedulers } from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, initMarketingReminderScheduler, initTreasurySchedulers, initInstagramStoriesSchedulers } from "./scheduler";
 import { runImageMigration } from "./migrate-images-to-r2";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
@@ -266,6 +266,7 @@ app.use((req, res, next) => {
       initEventDeadlineScheduler();
       initMarketingReminderScheduler();
       initTreasurySchedulers();
+      initInstagramStoriesSchedulers();
       log("Database and schedulers initialized successfully");
     } catch (error: any) {
       console.error("[FATAL] Failed to initialize:", error.message);

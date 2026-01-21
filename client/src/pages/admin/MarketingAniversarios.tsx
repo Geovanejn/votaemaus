@@ -112,6 +112,11 @@ export default function MarketingAniversarios() {
         placeholderDiv.style.height = '1404px';
       }
       
+      const nameElement = clonedCard.querySelector('p') as HTMLElement;
+      if (nameElement) {
+        nameElement.style.bottom = '28%';
+      }
+      
       offscreenContainer.appendChild(clonedCard);
       
       if (document.fonts && document.fonts.ready) {

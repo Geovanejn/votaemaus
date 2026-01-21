@@ -443,7 +443,7 @@ export default function MarketingAniversarios() {
               bottom: '27.5%',
               left: '50%',
               transform: 'translateX(-50%)',
-              fontSize: '1.4rem',
+              fontSize: '1.8rem',
               fontWeight: 700,
               color: '#000000',
               textAlign: 'center',

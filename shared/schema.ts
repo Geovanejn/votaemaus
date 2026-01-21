@@ -761,6 +761,8 @@ export const dailyVersePosts = pgTable("daily_verse_posts", {
   reflectionReferences: text("reflection_references").array(), // Biblical references and quotes in reflection (italic)
   stockImageId: integer("stock_image_id").references(() => dailyVerseStock.id),
   imageUrl: text("image_url"), // cached image URL for the day
+  verseShareImageUrl: text("verse_share_image_url"), // URL of the shared verse image (saved when shared via WhatsApp)
+  reflectionShareImageUrl: text("reflection_share_image_url"), // URL of the shared reflection image (saved when shared via WhatsApp)
   publishedAt: timestamp("published_at").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),
@@ -796,6 +798,25 @@ export const insertDailyVerseShareSchema = createInsertSchema(dailyVerseShares).
 
 export type InsertDailyVerseShare = z.infer<typeof insertDailyVerseShareSchema>;
 export type DailyVerseShare = typeof dailyVerseShares.$inferSelect;
+
+// Birthday Share Images - store birthday images when shared via WhatsApp
+export const birthdayShareImages = pgTable("birthday_share_images", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").notNull().references(() => users.id),
+  imageUrl: text("image_url").notNull(), // URL of the shared birthday image
+  shareDate: text("share_date").notNull(), // YYYY-MM-DD format
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  memberDateIdx: index("birthday_share_images_member_date_idx").on(table.memberId, table.shareDate),
+}));
+
+export const insertBirthdayShareImageSchema = createInsertSchema(birthdayShareImages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBirthdayShareImage = z.infer<typeof insertBirthdayShareImageSchema>;
+export type BirthdayShareImage = typeof birthdayShareImages.$inferSelect;
 
 // ==================== SISTEMA DE ESTUDOS (DUOLINGO-STYLE) ====================
 

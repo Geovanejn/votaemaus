@@ -116,9 +116,9 @@ export default function MarketingDashboard() {
     },
   });
 
-  const testVerseStoryMutation = useMutation({
+  const publishVerseStoryMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/instagram/test-verse-story");
+      const res = await apiRequest("POST", "/api/admin/instagram/publish-verse-story");
       return res.json();
     },
     onSuccess: (data) => {
@@ -136,9 +136,9 @@ export default function MarketingDashboard() {
     },
   });
 
-  const testReflectionStoryMutation = useMutation({
+  const publishReflectionStoryMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/instagram/test-reflection-story");
+      const res = await apiRequest("POST", "/api/admin/instagram/publish-reflection-story");
       return res.json();
     },
     onSuccess: (data) => {
@@ -156,9 +156,9 @@ export default function MarketingDashboard() {
     },
   });
 
-  const testBirthdayStoryMutation = useMutation({
+  const publishBirthdayStoryMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/instagram/test-birthday-story");
+      const res = await apiRequest("POST", "/api/admin/instagram/publish-birthday-story");
       return res.json();
     },
     onSuccess: (data) => {
@@ -380,31 +380,22 @@ export default function MarketingDashboard() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={() => testVerseStoryMutation.mutate()}
-              disabled={testVerseStoryMutation.isPending || !isInstagramConfigured}
+              onClick={() => publishVerseStoryMutation.mutate()}
+              disabled={publishVerseStoryMutation.isPending || !isInstagramConfigured}
               variant="outline"
-              data-testid="button-test-verse-story"
+              data-testid="button-publish-verse-story"
             >
-              <BookOpen className={`h-4 w-4 mr-2 ${testVerseStoryMutation.isPending ? "animate-spin" : ""}`} />
-              {testVerseStoryMutation.isPending ? "Publicando..." : "Versículo do Dia"}
+              <BookOpen className={`h-4 w-4 mr-2 ${publishVerseStoryMutation.isPending ? "animate-spin" : ""}`} />
+              {publishVerseStoryMutation.isPending ? "Publicando..." : "Versículo do Dia"}
             </Button>
             <Button
-              onClick={() => testReflectionStoryMutation.mutate()}
-              disabled={testReflectionStoryMutation.isPending || !isInstagramConfigured}
+              onClick={() => publishReflectionStoryMutation.mutate()}
+              disabled={publishReflectionStoryMutation.isPending || !isInstagramConfigured}
               variant="outline"
-              data-testid="button-test-reflection-story"
+              data-testid="button-publish-reflection-story"
             >
-              <MessageCircle className={`h-4 w-4 mr-2 ${testReflectionStoryMutation.isPending ? "animate-spin" : ""}`} />
-              {testReflectionStoryMutation.isPending ? "Publicando..." : "Reflexão do Dia"}
-            </Button>
-            <Button
-              onClick={() => testBirthdayStoryMutation.mutate()}
-              disabled={testBirthdayStoryMutation.isPending || !isInstagramConfigured}
-              variant="outline"
-              data-testid="button-test-birthday-story"
-            >
-              <Cake className={`h-4 w-4 mr-2 ${testBirthdayStoryMutation.isPending ? "animate-spin" : ""}`} />
-              {testBirthdayStoryMutation.isPending ? "Publicando..." : "Aniversário (Teste)"}
+              <MessageCircle className={`h-4 w-4 mr-2 ${publishReflectionStoryMutation.isPending ? "animate-spin" : ""}`} />
+              {publishReflectionStoryMutation.isPending ? "Publicando..." : "Reflexão do Dia"}
             </Button>
           </div>
           {!isInstagramConfigured && (
@@ -412,8 +403,8 @@ export default function MarketingDashboard() {
               Configure as credenciais do Instagram para habilitar a publicação de Stories.
             </p>
           )}
-          <p className="text-sm text-amber-600 dark:text-amber-400">
-            Nota: Em desenvolvimento, o Instagram não consegue acessar as imagens locais. Use produção para testar a publicação real.
+          <p className="text-sm text-muted-foreground">
+            As imagens são geradas automaticamente às 07:01 (versículo/reflexão) e às 08:01 (aniversários). Para publicar aniversários, use a aba Aniversários.
           </p>
         </CardContent>
       </Card>

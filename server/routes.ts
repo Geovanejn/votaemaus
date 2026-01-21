@@ -6617,7 +6617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test publish verse story to Instagram
-  app.post("/api/admin/instagram/test-verse-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+  app.post("/api/admin/instagram/publish-verse-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
@@ -6628,45 +6628,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Nenhum versículo do dia encontrado" });
       }
       
-      let stockImage = null;
-      if (dailyVerse.stockImageId) {
-        stockImage = await storage.getDailyVerseStockById(dailyVerse.stockImageId);
+      // Use pre-generated image (saved at 07:01)
+      if (!dailyVerse.verseShareImageUrl) {
+        return res.status(400).json({ message: "Imagem do versículo ainda não foi gerada. Aguarde até às 07:01 ou gere manualmente." });
       }
       
-      console.log(`[Instagram Stories] Testing verse story...`);
+      console.log(`[Instagram Stories] Publishing verse story using saved image...`);
       
-      const { generateVerseStoryImage, uploadStoryImageToR2 } = await import('./story-image-generator');
-      
-      const verseData = {
-        verse: dailyVerse.verse,
-        reference: dailyVerse.reference,
-        highlightedKeywords: dailyVerse.highlightedKeywords
-      };
-      
-      const backgroundUrl = stockImage?.imageUrl 
-        ? convertImageUrls({ imageUrl: stockImage.imageUrl }).imageUrl 
-        : undefined;
-      
-      const imageBuffer = await generateVerseStoryImage(verseData, backgroundUrl);
-      console.log(`[Instagram Stories] Verse image generated: ${imageBuffer.length} bytes`);
-      
-      const filename = `test-verse-${Date.now()}.jpg`;
-      const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
-      
-      if (!publicUrl) {
-        return res.status(500).json({ message: "Falha ao fazer upload da imagem. R2 não configurado em desenvolvimento." });
-      }
-      
-      console.log(`[Instagram Stories] Verse image uploaded to: ${publicUrl}`);
-      
-      const result = await publishInstagramStory(publicUrl);
+      const result = await publishInstagramStory(dailyVerse.verseShareImageUrl);
       
       if (result.success) {
+        // Clear the image URL after successful publish
+        await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: null });
+        
         res.json({ 
           success: true, 
           message: `Story do versículo publicado!`, 
-          mediaId: result.mediaId,
-          imageUrl: publicUrl
+          mediaId: result.mediaId
         });
       } else {
         res.status(400).json({ 
@@ -6675,63 +6653,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      console.error("Instagram verse story test error:", error);
+      console.error("Instagram verse story publish error:", error);
       res.status(500).json({ message: error.message || "Erro ao publicar story do versículo" });
     }
   });
 
-  // Test publish reflection story to Instagram
-  app.post("/api/admin/instagram/test-reflection-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+  // Publish reflection story to Instagram (using saved image)
+  app.post("/api/admin/instagram/publish-reflection-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
       }
       
       const dailyVerse = await storage.getActiveDailyVersePost();
-      if (!dailyVerse || !dailyVerse.reflection) {
+      if (!dailyVerse) {
         return res.status(404).json({ message: "Nenhuma reflexão do dia encontrada" });
       }
       
-      let stockImage = null;
-      if (dailyVerse.stockImageId) {
-        stockImage = await storage.getDailyVerseStockById(dailyVerse.stockImageId);
+      // Use pre-generated image (saved at 07:01)
+      if (!dailyVerse.reflectionShareImageUrl) {
+        return res.status(400).json({ message: "Imagem da reflexão ainda não foi gerada. Aguarde até às 07:01 ou gere manualmente." });
       }
       
-      console.log(`[Instagram Stories] Testing reflection story...`);
+      console.log(`[Instagram Stories] Publishing reflection story using saved image...`);
       
-      const { generateReflectionStoryImage, uploadStoryImageToR2 } = await import('./story-image-generator');
-      
-      const reflectionData = {
-        reflectionTitle: dailyVerse.reflectionTitle || 'Reflexão do Dia',
-        reflection: dailyVerse.reflection,
-        reflectionKeywords: dailyVerse.reflectionKeywords,
-        reflectionReferences: dailyVerse.reflectionReferences
-      };
-      
-      const backgroundUrl = stockImage?.imageUrl 
-        ? convertImageUrls({ imageUrl: stockImage.imageUrl }).imageUrl 
-        : undefined;
-      
-      const imageBuffer = await generateReflectionStoryImage(reflectionData, backgroundUrl);
-      console.log(`[Instagram Stories] Reflection image generated: ${imageBuffer.length} bytes`);
-      
-      const filename = `test-reflection-${Date.now()}.jpg`;
-      const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
-      
-      if (!publicUrl) {
-        return res.status(500).json({ message: "Falha ao fazer upload da imagem. R2 não configurado em desenvolvimento." });
-      }
-      
-      console.log(`[Instagram Stories] Reflection image uploaded to: ${publicUrl}`);
-      
-      const result = await publishInstagramStory(publicUrl);
+      const result = await publishInstagramStory(dailyVerse.reflectionShareImageUrl);
       
       if (result.success) {
+        // Clear the image URL after successful publish
+        await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: null });
+        
         res.json({ 
           success: true, 
           message: `Story da reflexão publicado!`, 
-          mediaId: result.mediaId,
-          imageUrl: publicUrl
+          mediaId: result.mediaId
         });
       } else {
         res.status(400).json({ 
@@ -6740,13 +6695,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      console.error("Instagram reflection story test error:", error);
+      console.error("Instagram reflection story publish error:", error);
       res.status(500).json({ message: error.message || "Erro ao publicar story da reflexão" });
     }
   });
 
-  // Test publish birthday story to Instagram
-  app.post("/api/admin/instagram/test-birthday-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+  // Publish birthday story to Instagram (using saved image)
+  app.post("/api/admin/instagram/publish-birthday-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const { memberId } = req.body;
       
@@ -6754,41 +6709,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
       }
       
-      let firstName = "Teste";
-      let photoUrl: string | null = null;
-      
-      if (memberId) {
-        const member = await storage.getUserById(memberId);
-        if (member) {
-          firstName = member.fullName.split(' ')[0];
-          photoUrl = member.photoUrl ? convertImageUrls({ photoUrl: member.photoUrl }).photoUrl : null;
-        }
+      if (!memberId) {
+        return res.status(400).json({ message: "ID do membro é obrigatório" });
       }
       
-      console.log(`[Instagram Stories] Testing birthday story for ${firstName}...`);
-      
-      const { generateBirthdayStoryImage, uploadStoryImageToR2 } = await import('./story-image-generator');
-      
-      const imageBuffer = await generateBirthdayStoryImage({ firstName, photoUrl });
-      console.log(`[Instagram Stories] Image generated: ${imageBuffer.length} bytes`);
-      
-      const filename = `test-birthday-${firstName.toLowerCase()}-${Date.now()}.jpg`;
-      const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
-      
-      if (!publicUrl) {
-        return res.status(500).json({ message: "Falha ao fazer upload da imagem para R2" });
+      const member = await storage.getUserById(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Membro não encontrado" });
       }
       
-      console.log(`[Instagram Stories] Image uploaded to: ${publicUrl}`);
+      const firstName = member.fullName.split(' ')[0];
+      const todayFullDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       
-      const result = await publishInstagramStory(publicUrl);
+      // Use pre-generated image (saved at 08:01)
+      const savedImage = await storage.getBirthdayShareImage(memberId, todayFullDate);
+      if (!savedImage) {
+        return res.status(400).json({ message: `Imagem de aniversário de ${firstName} ainda não foi gerada. Aguarde até às 08:01 ou gere manualmente.` });
+      }
+      
+      console.log(`[Instagram Stories] Publishing birthday story for ${firstName} using saved image...`);
+      
+      const result = await publishInstagramStory(savedImage.imageUrl);
       
       if (result.success) {
+        // Delete the image from database after successful publish
+        await storage.deleteBirthdayShareImage(savedImage.id);
+        
         res.json({ 
           success: true, 
           message: `Story de aniversário para ${firstName} publicado!`, 
-          mediaId: result.mediaId,
-          imageUrl: publicUrl
+          mediaId: result.mediaId
         });
       } else {
         res.status(400).json({ 
@@ -6797,7 +6747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      console.error("Instagram birthday story test error:", error);
+      console.error("Instagram birthday story publish error:", error);
       res.status(500).json({ message: error.message || "Erro ao publicar story de aniversário" });
     }
   });

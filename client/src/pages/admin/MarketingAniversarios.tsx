@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import html2canvas from "html2canvas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,13 @@ import {
   Loader2,
   Calendar,
   User,
-  ArrowLeft
+  ArrowLeft,
+  Send
 } from "lucide-react";
 import { SiWhatsapp, SiInstagram } from "react-icons/si";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface BirthdayMember {
   id: number;
@@ -47,6 +49,26 @@ export default function MarketingAniversarios() {
 
   const { data: birthdays, isLoading } = useQuery<BirthdaysResponse>({
     queryKey: ["/api/admin/birthdays"],
+  });
+
+  const publishBirthdayStoryMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      const res = await apiRequest("POST", "/api/admin/instagram/publish-birthday-story", { memberId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Story Publicado",
+        description: data.message || "Story de aniversário publicado com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao publicar story de aniversário",
+        variant: "destructive",
+      });
+    },
   });
 
   const openShareDialog = (member: BirthdayMember) => {
@@ -290,14 +312,29 @@ export default function MarketingAniversarios() {
                             {formatBirthdate(member.birthdate)}
                           </p>
                         </div>
-                        <Button 
-                          size="sm"
-                          onClick={() => openShareDialog(member)}
-                          className="bg-orange-500 hover:bg-orange-600"
-                          data-testid={`button-share-birthday-${member.id}`}
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm"
+                            onClick={() => openShareDialog(member)}
+                            className="bg-orange-500 hover:bg-orange-600"
+                            data-testid={`button-share-birthday-${member.id}`}
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => publishBirthdayStoryMutation.mutate(member.id)}
+                            disabled={publishBirthdayStoryMutation.isPending}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                            data-testid={`button-publish-birthday-${member.id}`}
+                          >
+                            {publishBirthdayStoryMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <SiInstagram className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

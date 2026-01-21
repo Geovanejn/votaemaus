@@ -407,6 +407,11 @@ export interface IStorage {
   recordDailyVerseShare(userId: number, versePostId: number | null, platform: string, shareDate: string): Promise<schema.DailyVerseShare>;
   hasUserSharedDailyVerseToday(userId: number, date: string): Promise<boolean>;
   
+  // Birthday Share Images
+  saveBirthdayShareImage(memberId: number, imageUrl: string, shareDate: string): Promise<schema.BirthdayShareImage>;
+  getBirthdayShareImage(memberId: number, shareDate: string): Promise<schema.BirthdayShareImage | null>;
+  deleteBirthdayShareImage(id: number): Promise<void>;
+  
   // Current Lesson Optimized
   getCurrentLessonOptimized(userId: number): Promise<{
     lesson: { id: number; lessonNumber: number; title: string; sectionsCompleted: number; totalSections: number; status: string };
@@ -4621,6 +4626,48 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return !!share;
+  }
+
+  // ==================== BIRTHDAY SHARE IMAGES ====================
+
+  async saveBirthdayShareImage(memberId: number, imageUrl: string, shareDate: string): Promise<schema.BirthdayShareImage> {
+    // Upsert - update if exists, insert if not
+    const existing = await db.select()
+      .from(schema.birthdayShareImages)
+      .where(and(
+        eq(schema.birthdayShareImages.memberId, memberId),
+        eq(schema.birthdayShareImages.shareDate, shareDate)
+      ))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      const [updated] = await db.update(schema.birthdayShareImages)
+        .set({ imageUrl })
+        .where(eq(schema.birthdayShareImages.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    
+    const [created] = await db.insert(schema.birthdayShareImages)
+      .values({ memberId, imageUrl, shareDate })
+      .returning();
+    return created;
+  }
+
+  async getBirthdayShareImage(memberId: number, shareDate: string): Promise<schema.BirthdayShareImage | null> {
+    const [image] = await db.select()
+      .from(schema.birthdayShareImages)
+      .where(and(
+        eq(schema.birthdayShareImages.memberId, memberId),
+        eq(schema.birthdayShareImages.shareDate, shareDate)
+      ))
+      .limit(1);
+    return image || null;
+  }
+
+  async deleteBirthdayShareImage(id: number): Promise<void> {
+    await db.delete(schema.birthdayShareImages)
+      .where(eq(schema.birthdayShareImages.id, id));
   }
 
   // ==================== AUDIT LOG METHODS ====================

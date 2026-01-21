@@ -6631,18 +6631,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let imageUrl = dailyVerse.verseShareImageUrl;
       
-      // If no saved image, generate on-demand
+      // If no saved image, generate on-demand using SAME logic as scheduler
       if (!imageUrl) {
         console.log(`[Instagram Stories] No saved verse image, generating on-demand...`);
         
-        const backgroundUrl = dailyVerse.backgroundUrl || dailyVerse.imageUrl;
+        // Get background URL from stock image or daily verse (same as scheduler)
+        const stockImage = dailyVerse.stockImageId 
+          ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
+          : null;
+        const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
+        
+        if (!backgroundUrl) {
+          return res.status(400).json({ message: "Nenhuma imagem de fundo disponível" });
+        }
+        
         const verseImageBuffer = await generateVerseStoryImage(
           {
             verse: dailyVerse.verse,
             reference: dailyVerse.reference,
             highlightedKeywords: dailyVerse.highlightedKeywords,
           },
-          backgroundUrl || undefined
+          backgroundUrl
         );
         
         const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
@@ -6696,11 +6705,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let imageUrl = dailyVerse.reflectionShareImageUrl;
       
-      // If no saved image, generate on-demand
+      // If no saved image, generate on-demand using SAME logic as scheduler
       if (!imageUrl) {
         console.log(`[Instagram Stories] No saved reflection image, generating on-demand...`);
         
-        const backgroundUrl = dailyVerse.backgroundUrl || dailyVerse.imageUrl;
+        // Get background URL from stock image or daily verse (same as scheduler)
+        const stockImage = dailyVerse.stockImageId 
+          ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
+          : null;
+        const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
+        
+        if (!backgroundUrl) {
+          return res.status(400).json({ message: "Nenhuma imagem de fundo disponível" });
+        }
+        
         const reflectionImageBuffer = await generateReflectionStoryImage(
           {
             reflectionTitle: dailyVerse.reflectionTitle,
@@ -6708,7 +6726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reflectionKeywords: dailyVerse.reflectionKeywords,
             reflectionReferences: dailyVerse.reflectionReferences,
           },
-          backgroundUrl || undefined
+          backgroundUrl
         );
         
         const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
@@ -6768,23 +6786,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to use pre-generated image (saved at 08:01)
       let savedImage = await storage.getBirthdayShareImage(memberId, todayFullDate);
       let imageUrl: string | null = savedImage?.imageUrl || null;
-      let generatedOnDemand = false;
       
-      // If no saved image, generate on-demand
+      // If no saved image, generate on-demand using SAME logic as scheduler
       if (!imageUrl) {
         console.log(`[Instagram Stories] No saved birthday image for ${firstName}, generating on-demand...`);
         
-        const photoUrl = member.photoUrl ? getProxyUrl(member.photoUrl) : undefined;
-        const birthdayImageBuffer = await generateBirthdayStoryImage(
-          {
-            fullName: member.fullName,
-            photoUrl: photoUrl,
-          }
-        );
+        // Convert photo URL to public URL (same as scheduler)
+        let photoUrl = member.photoUrl;
+        if (photoUrl && !photoUrl.startsWith('http')) {
+          photoUrl = getPublicUrl(photoUrl);
+        }
+        
+        const birthdayImageBuffer = await generateBirthdayStoryImage({
+          firstName,
+          photoUrl,
+        });
         
         const birthdayFilename = `birthday-story-${memberId}-${Date.now()}.jpg`;
         imageUrl = await uploadStoryImageToR2(birthdayImageBuffer, birthdayFilename);
-        generatedOnDemand = true;
         
         if (!imageUrl) {
           return res.status(500).json({ message: "Falha ao gerar imagem de aniversário" });

@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import logoWhite from "@assets/2-1_1766464654126.png";
+const logoWhite = "/logo.png";
 
 interface DailyVersePost {
   id: number;
@@ -1282,10 +1282,10 @@ export default function VersiculoDoDiaPage() {
                 <div>
                   {todayVerse?.reflectionTitle && (
                     <p style={{ 
-                      fontSize: '1.1rem', 
+                      fontSize: '0.825rem', 
                       fontWeight: 700,
                       lineHeight: 1.4,
-                      margin: '0 0 0.7rem 0',
+                      margin: '0 0 1.4rem 0',
                       textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                     }}>
                       {todayVerse.reflectionTitle}

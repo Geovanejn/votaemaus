@@ -416,11 +416,17 @@ export default function VersiculoDoDiaPage() {
         svgIcon.remove();
       }
       
-      // Scale padding for ultra high-res
-      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
-      if (contentContainer) {
-        contentContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
-      }
+      // Scale padding for ultra high-res - find ALL containers with padding
+      const allPaddingContainers = clonedCard.querySelectorAll('div[style*="padding"]');
+      allPaddingContainers.forEach((container) => {
+        const htmlContainer = container as HTMLElement;
+        const paddingValue = htmlContainer.style.padding;
+        if (paddingValue === '1.5rem') {
+          htmlContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
+        } else if (paddingValue === '0 0.8rem' || paddingValue === '0px 0.8rem') {
+          htmlContainer.style.padding = '0 102px'; // 0.8rem * 16 * 8 = 102px
+        }
+      });
       
       // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
@@ -630,7 +636,7 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Scale text elements EXACTLY like generateAndShareImage (h3, p only)
+      // Scale text elements EXACTLY like generateAndShareImage
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -642,7 +648,7 @@ export default function VersiculoDoDiaPage() {
         }
       });
       
-      // Also scale div elements with fontSize (for reflection content)
+      // Scale div elements with fontSize (for reflection content text)
       const divElements = clonedCard.querySelectorAll('div');
       divElements.forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -667,11 +673,17 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontStyle = 'italic';
       });
       
-      // Scale padding for the main container (1.5rem * 16 * 8 = 192px)
-      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
-      if (contentContainer) {
-        contentContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
-      }
+      // Scale padding for ultra high-res - find ALL containers with padding
+      const allPaddingContainers = clonedCard.querySelectorAll('div[style*="padding"]');
+      allPaddingContainers.forEach((container) => {
+        const htmlContainer = container as HTMLElement;
+        const paddingValue = htmlContainer.style.padding;
+        if (paddingValue === '1.5rem') {
+          htmlContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
+        } else if (paddingValue === '0 0.8rem' || paddingValue === '0px 0.8rem') {
+          htmlContainer.style.padding = '0 102px'; // 0.8rem * 16 * 8 = 102px
+        }
+      });
       
       // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
@@ -681,12 +693,13 @@ export default function VersiculoDoDiaPage() {
       
       offscreenContainer.appendChild(clonedCard);
       
+      // Wait for fonts to be fully loaded (ensures bold text renders correctly)
       if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
       }
       
-      // Wait longer for images and fonts to load
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Wait for images to load in cloned element
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       const sourceCanvas = await html2canvas(clonedCard, {
         scale: scale,

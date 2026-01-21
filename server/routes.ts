@@ -6531,7 +6531,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all active members with birthdate
       const allUsers = await storage.getAllUsers();
+      console.log('[Birthdays] Total users:', allUsers.length);
+      console.log('[Birthdays] Users with birthdate:', allUsers.filter(u => u.birthdate).map(u => ({ id: u.id, name: u.fullName, birthdate: u.birthdate, activeMember: u.activeMember })));
       const activeMembers = allUsers.filter(u => u.activeMember && u.birthdate);
+      console.log('[Birthdays] Active members with birthdate:', activeMembers.length);
       
       // Filter for today's birthdays and upcoming (next 7 days)
       const birthdayMembers = activeMembers.map(user => {

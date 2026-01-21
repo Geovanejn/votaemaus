@@ -6616,9 +6616,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
       }
       
-      const dailyVerse = await storage.getLatestDailyVerse();
+      const dailyVerse = await storage.getActiveDailyVersePost();
       if (!dailyVerse) {
         return res.status(404).json({ message: "Nenhum versículo do dia encontrado" });
+      }
+      
+      let stockImage = null;
+      if (dailyVerse.stockImageId) {
+        stockImage = await storage.getDailyVerseStockById(dailyVerse.stockImageId);
       }
       
       console.log(`[Instagram Stories] Testing verse story...`);
@@ -6631,16 +6636,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         highlightedKeywords: dailyVerse.highlightedKeywords
       };
       
-      const imageUrl = dailyVerse.imageUrl ? convertImageUrls({ imageUrl: dailyVerse.imageUrl }).imageUrl : undefined;
+      const backgroundUrl = stockImage?.imageUrl 
+        ? convertImageUrls({ imageUrl: stockImage.imageUrl }).imageUrl 
+        : undefined;
       
-      const imageBuffer = await generateVerseStoryImage(verseData, imageUrl || undefined);
+      const imageBuffer = await generateVerseStoryImage(verseData, backgroundUrl);
       console.log(`[Instagram Stories] Verse image generated: ${imageBuffer.length} bytes`);
       
       const filename = `test-verse-${Date.now()}.jpg`;
       const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
       
       if (!publicUrl) {
-        return res.status(500).json({ message: "Falha ao fazer upload da imagem" });
+        return res.status(500).json({ message: "Falha ao fazer upload da imagem. R2 não configurado em desenvolvimento." });
       }
       
       console.log(`[Instagram Stories] Verse image uploaded to: ${publicUrl}`);
@@ -6673,9 +6680,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
       }
       
-      const dailyVerse = await storage.getLatestDailyVerse();
+      const dailyVerse = await storage.getActiveDailyVersePost();
       if (!dailyVerse || !dailyVerse.reflection) {
         return res.status(404).json({ message: "Nenhuma reflexão do dia encontrada" });
+      }
+      
+      let stockImage = null;
+      if (dailyVerse.stockImageId) {
+        stockImage = await storage.getDailyVerseStockById(dailyVerse.stockImageId);
       }
       
       console.log(`[Instagram Stories] Testing reflection story...`);
@@ -6689,16 +6701,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reflectionReferences: dailyVerse.reflectionReferences
       };
       
-      const imageUrl = dailyVerse.imageUrl ? convertImageUrls({ imageUrl: dailyVerse.imageUrl }).imageUrl : undefined;
+      const backgroundUrl = stockImage?.imageUrl 
+        ? convertImageUrls({ imageUrl: stockImage.imageUrl }).imageUrl 
+        : undefined;
       
-      const imageBuffer = await generateReflectionStoryImage(reflectionData, imageUrl || undefined);
+      const imageBuffer = await generateReflectionStoryImage(reflectionData, backgroundUrl);
       console.log(`[Instagram Stories] Reflection image generated: ${imageBuffer.length} bytes`);
       
       const filename = `test-reflection-${Date.now()}.jpg`;
       const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);
       
       if (!publicUrl) {
-        return res.status(500).json({ message: "Falha ao fazer upload da imagem" });
+        return res.status(500).json({ message: "Falha ao fazer upload da imagem. R2 não configurado em desenvolvimento." });
       }
       
       console.log(`[Instagram Stories] Reflection image uploaded to: ${publicUrl}`);

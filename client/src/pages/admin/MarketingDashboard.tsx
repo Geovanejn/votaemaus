@@ -373,10 +373,11 @@ export default function MarketingDashboard() {
             Publicar Stories no Instagram
           </CardTitle>
           <CardDescription>
-            Teste a publicação manual de Stories. Os Stories são publicados automaticamente: 07:05 (versículo), 07:10 (reflexão), 08:05 (aniversários)
+            Teste a publicação manual de Stories. Os Stories são publicados automaticamente: 07:05 (versículo), 07:10 (reflexão), 08:05 (aniversários).
+            Em desenvolvimento, use "Apenas Gerar" para visualizar as imagens sem publicar.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Button
               onClick={() => testVerseStoryMutation.mutate()}
@@ -407,10 +408,13 @@ export default function MarketingDashboard() {
             </Button>
           </div>
           {!isInstagramConfigured && (
-            <p className="text-sm text-muted-foreground mt-3">
+            <p className="text-sm text-muted-foreground">
               Configure as credenciais do Instagram para habilitar a publicação de Stories.
             </p>
           )}
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            Nota: Em desenvolvimento, o Instagram não consegue acessar as imagens locais. Use produção para testar a publicação real.
+          </p>
         </CardContent>
       </Card>
 

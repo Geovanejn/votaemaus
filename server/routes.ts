@@ -6519,6 +6519,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== BIRTHDAY ART API ====================
+
+  // Get members with birthdays today or upcoming (for birthday art generation)
+  app.get("/api/admin/birthdays", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
+    try {
+      const today = new Date();
+      const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+      const todayDay = String(today.getDate()).padStart(2, '0');
+      const todayMonthDay = `${todayMonth}-${todayDay}`;
+      
+      // Get all active members with birthdate
+      const allUsers = await storage.getAllUsers();
+      const activeMembers = allUsers.filter(u => u.activeMember && u.birthdate);
+      
+      // Filter for today's birthdays and upcoming (next 7 days)
+      const birthdayMembers = activeMembers.map(user => {
+        if (!user.birthdate) return null;
+        // birthdate format: YYYY-MM-DD or DD/MM/YYYY
+        let monthDay: string;
+        if (user.birthdate.includes('-')) {
+          const parts = user.birthdate.split('-');
+          monthDay = `${parts[1]}-${parts[2]}`;
+        } else if (user.birthdate.includes('/')) {
+          const parts = user.birthdate.split('/');
+          monthDay = `${parts[1]}-${parts[0]}`;
+        } else {
+          return null;
+        }
+        
+        const isToday = monthDay === todayMonthDay;
+        
+        // Calculate days until birthday (for sorting upcoming)
+        const currentYear = today.getFullYear();
+        const birthdayThisYear = new Date(`${currentYear}-${monthDay}`);
+        if (birthdayThisYear < today) {
+          birthdayThisYear.setFullYear(currentYear + 1);
+        }
+        const daysUntil = Math.ceil((birthdayThisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return {
+          id: user.id,
+          fullName: user.fullName,
+          firstName: user.fullName.split(' ')[0],
+          photoUrl: user.photoUrl,
+          birthdate: user.birthdate,
+          isToday,
+          daysUntil
+        };
+      }).filter(Boolean);
+      
+      // Sort: today's first, then by days until
+      birthdayMembers.sort((a, b) => {
+        if (a!.isToday && !b!.isToday) return -1;
+        if (!a!.isToday && b!.isToday) return 1;
+        return a!.daysUntil - b!.daysUntil;
+      });
+      
+      // Return only next 30 days
+      const upcomingBirthdays = birthdayMembers.filter(m => m && m.daysUntil <= 30);
+      
+      res.json({
+        today: upcomingBirthdays.filter(m => m && m.isToday),
+        upcoming: upcomingBirthdays.filter(m => m && !m.isToday)
+      });
+    } catch (error) {
+      console.error("Get birthdays error:", error);
+      res.status(500).json({ message: "Erro ao buscar aniversariantes" });
+    }
+  });
+
   // ==================== AUDIT LOGS API ====================
 
   // Get audit logs (admin only)

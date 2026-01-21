@@ -136,15 +136,12 @@ export default function MarketingDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button 
-            variant="outline"
-            onClick={() => triggerBirthdayEmailsMutation.mutate()}
-            disabled={triggerBirthdayEmailsMutation.isPending}
-            data-testid="button-trigger-birthday-emails"
-          >
-            <Cake className="h-4 w-4 mr-2" />
-            {triggerBirthdayEmailsMutation.isPending ? "Enviando..." : "Enviar E-mails de Aniversário"}
-          </Button>
+          <Link href="/admin/marketing/aniversarios">
+            <Button variant="outline" data-testid="button-birthday-art">
+              <Cake className="h-4 w-4 mr-2" />
+              Arte de Aniversário
+            </Button>
+          </Link>
           <Link href="/admin/marketing/eventos/novo">
             <Button data-testid="button-new-event">
               <Plus className="h-4 w-4 mr-2" />

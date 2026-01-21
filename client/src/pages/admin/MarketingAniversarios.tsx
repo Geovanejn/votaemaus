@@ -102,14 +102,14 @@ export default function MarketingAniversarios() {
 
       const memberPhoto = clonedCard.querySelector('img[data-member-photo]') as HTMLImageElement;
       if (memberPhoto) {
-        memberPhoto.style.width = '1340px';
-        memberPhoto.style.height = '1340px';
+        memberPhoto.style.width = '1469px';
+        memberPhoto.style.height = '1469px';
       }
       
       const placeholderDiv = clonedCard.querySelector('div[style*="backgroundColor"]') as HTMLElement;
       if (placeholderDiv) {
-        placeholderDiv.style.width = '1340px';
-        placeholderDiv.style.height = '1340px';
+        placeholderDiv.style.width = '1469px';
+        placeholderDiv.style.height = '1469px';
       }
       
       offscreenContainer.appendChild(clonedCard);
@@ -367,7 +367,7 @@ export default function MarketingAniversarios() {
       )}
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
+        <DialogContent className="w-[85vw] max-w-xs sm:max-w-sm mx-auto">
           <DialogHeader>
             <DialogTitle>Compartilhar Arte de Aniversário</DialogTitle>
           </DialogHeader>
@@ -391,9 +391,9 @@ export default function MarketingAniversarios() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  width: '62%',
+                  width: '68%',
                   aspectRatio: '1/1',
-                  top: '38%',
+                  top: '42%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   objectFit: 'cover',
@@ -405,9 +405,9 @@ export default function MarketingAniversarios() {
               <div
                 style={{
                   position: 'absolute',
-                  width: '62%',
+                  width: '68%',
                   aspectRatio: '1/1',
-                  top: '38%',
+                  top: '42%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   backgroundColor: '#374151',
@@ -435,16 +435,17 @@ export default function MarketingAniversarios() {
             />
             <p style={{
               position: 'absolute',
-              bottom: '8.5%',
+              bottom: '33%',
               left: '50%',
               transform: 'translateX(-50%)',
               fontSize: '1.4rem',
-              fontWeight: 600,
+              fontWeight: 700,
               color: '#000000',
               textAlign: 'center',
               zIndex: 3,
               whiteSpace: 'nowrap',
               fontFamily: "'Dancing Script', cursive",
+              textTransform: 'uppercase',
             }}>
               {selectedMember?.firstName || ''}
             </p>

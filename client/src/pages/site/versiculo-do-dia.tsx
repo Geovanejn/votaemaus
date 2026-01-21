@@ -1296,30 +1296,32 @@ export default function VersiculoDoDiaPage() {
                 padding: '0 0.8rem',
                 overflow: 'hidden'
               }}>
-                {todayVerse?.reflectionTitle && (
-                  <h3 style={{ 
-                    fontSize: '0.825rem', 
-                    fontWeight: 700, 
-                    letterSpacing: '0.05em',
-                    margin: '0 0 0.6rem 0',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                <div>
+                  {todayVerse?.reflectionTitle && (
+                    <p style={{ 
+                      fontSize: '1.1rem', 
+                      fontWeight: 700,
+                      lineHeight: 1.4,
+                      margin: '0 0 0.7rem 0',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                    }}>
+                      {todayVerse.reflectionTitle}
+                    </p>
+                  )}
+                  <div style={{ 
+                    fontSize: todayVerse?.reflection && todayVerse.reflection.length > 500 ? '0.787rem' : todayVerse?.reflection && todayVerse.reflection.length > 350 ? '0.908rem' : '1.029rem', 
+                    fontWeight: 400,
+                    lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 500 ? 1.4 : 1.5,
+                    margin: 0,
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    textAlign: 'justify'
                   }}>
-                    {todayVerse.reflectionTitle}
-                  </h3>
-                )}
-                <div style={{ 
-                  fontSize: todayVerse?.reflection && todayVerse.reflection.length > 500 ? '0.787rem' : todayVerse?.reflection && todayVerse.reflection.length > 350 ? '0.908rem' : '1.029rem', 
-                  fontWeight: 400,
-                  lineHeight: todayVerse?.reflection && todayVerse.reflection.length > 500 ? 1.4 : 1.5,
-                  margin: 0,
-                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                  textAlign: 'justify'
-                }}>
-                  {todayVerse?.reflection ? renderReflectionWithFormatting(
-                    todayVerse.reflection,
-                    todayVerse.reflectionKeywords,
-                    todayVerse.reflectionReferences
-                  ) : ''}
+                    {todayVerse?.reflection ? renderReflectionWithFormatting(
+                      todayVerse.reflection,
+                      todayVerse.reflectionKeywords,
+                      todayVerse.reflectionReferences
+                    ) : ''}
+                  </div>
                 </div>
               </div>
 

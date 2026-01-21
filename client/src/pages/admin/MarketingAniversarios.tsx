@@ -102,14 +102,14 @@ export default function MarketingAniversarios() {
 
       const memberPhoto = clonedCard.querySelector('img[data-member-photo]') as HTMLImageElement;
       if (memberPhoto) {
-        memberPhoto.style.width = '1469px';
-        memberPhoto.style.height = '1469px';
+        memberPhoto.style.width = '1166px';
+        memberPhoto.style.height = '1166px';
       }
       
       const placeholderDiv = clonedCard.querySelector('div[style*="backgroundColor"]') as HTMLElement;
       if (placeholderDiv) {
-        placeholderDiv.style.width = '1469px';
-        placeholderDiv.style.height = '1469px';
+        placeholderDiv.style.width = '1166px';
+        placeholderDiv.style.height = '1166px';
       }
       
       offscreenContainer.appendChild(clonedCard);
@@ -391,7 +391,7 @@ export default function MarketingAniversarios() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  width: '68%',
+                  width: '54%',
                   aspectRatio: '1/1',
                   top: '50%',
                   left: '50%',
@@ -405,7 +405,7 @@ export default function MarketingAniversarios() {
               <div
                 style={{
                   position: 'absolute',
-                  width: '68%',
+                  width: '54%',
                   aspectRatio: '1/1',
                   top: '50%',
                   left: '50%',
@@ -435,7 +435,7 @@ export default function MarketingAniversarios() {
             />
             <p style={{
               position: 'absolute',
-              bottom: '28%',
+              bottom: '27%',
               left: '50%',
               transform: 'translateX(-50%)',
               fontSize: '1.4rem',

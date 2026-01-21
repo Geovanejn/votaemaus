@@ -114,7 +114,7 @@ export default function MarketingAniversarios() {
       
       const nameElement = clonedCard.querySelector('p') as HTMLElement;
       if (nameElement) {
-        nameElement.style.bottom = '29%';
+        nameElement.style.bottom = '29.3%';
       }
       
       offscreenContainer.appendChild(clonedCard);

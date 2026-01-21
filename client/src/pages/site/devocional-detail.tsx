@@ -453,14 +453,40 @@ export default function DevocionalDetailPage() {
         svgIcon.remove();
       });
       
-      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
-      if (contentContainer) {
-        contentContainer.style.padding = '192px';
-      }
+      // Find and fix the verse paragraph - increase margin-bottom for spacing from reference
+      const allParagraphs = clonedCard.querySelectorAll('p');
+      allParagraphs.forEach((p) => {
+        const htmlP = p as HTMLElement;
+        // Verse paragraph has italic style and 0.7rem margin
+        if (htmlP.style.fontStyle === 'italic') {
+          // Scale margin with 2x multiplier for better spacing (0.7rem * 16 * 6 * 2 = 134.4px)
+          htmlP.style.marginBottom = '130px';
+        }
+      });
       
+      // Scale padding for ultra high-res - find ALL containers with padding
+      const allPaddingContainers = clonedCard.querySelectorAll('div[style*="padding"]');
+      allPaddingContainers.forEach((container) => {
+        const htmlContainer = container as HTMLElement;
+        const paddingValue = htmlContainer.style.padding;
+        if (paddingValue === '1.5rem') {
+          htmlContainer.style.padding = '192px'; // 1.5rem * 16 * 8 = 192px
+        } else if (paddingValue === '0 0.8rem' || paddingValue === '0px 0.8rem') {
+          htmlContainer.style.padding = '0 102px'; // 0.8rem * 16 * 8 = 102px
+        }
+      });
+      
+      // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
         logo.style.height = '442px';
+        logo.style.overflow = 'visible';
+        // Scale logo container marginBottom (0.8rem * 16 * 8 = 102px)
+        const logoContainer = logo.parentElement as HTMLElement;
+        if (logoContainer) {
+          logoContainer.style.marginBottom = '102px';
+          logoContainer.style.overflow = 'visible';
+        }
       }
       
       offscreenContainer.appendChild(clonedCard);

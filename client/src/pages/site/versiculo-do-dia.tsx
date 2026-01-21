@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const logoWhite = "/logo.png";
+import logoWhite from "@assets/2-1_1766464654126.png";
 
 interface DailyVersePost {
   id: number;

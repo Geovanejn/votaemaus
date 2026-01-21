@@ -544,6 +544,11 @@ export default function VersiculoDoDiaPage() {
             setGenerating(false);
             return;
           }
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -551,8 +556,8 @@ export default function VersiculoDoDiaPage() {
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
-            title: "Imagem baixada!", 
-            description: "Abra o Instagram e compartilhe nos Stories" 
+            title: "Imagem baixada + Legenda copiada!", 
+            description: "Abra o Instagram e cole a legenda ao compartilhar" 
           });
           // Record share for mission tracking
           recordShareMutation.mutate({ platform: 'instagram', versePostId: todayVerse?.id });
@@ -840,6 +845,11 @@ export default function VersiculoDoDiaPage() {
             setGenerating(false);
             return;
           }
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -847,8 +857,8 @@ export default function VersiculoDoDiaPage() {
           a.click();
           URL.revokeObjectURL(url);
           toast({ 
-            title: "Imagem baixada!", 
-            description: "Abra o Instagram e compartilhe nos Stories" 
+            title: "Imagem baixada + Legenda copiada!", 
+            description: "Abra o Instagram e cole a legenda ao compartilhar" 
           });
           recordShareMutation.mutate({ platform: 'instagram', versePostId: todayVerse?.id });
           setGenerating(false);

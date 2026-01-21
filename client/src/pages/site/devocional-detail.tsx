@@ -13,10 +13,10 @@ import {
   Loader2,
   Download,
   Check,
-  X,
   CheckCircle2,
   Sparkles
 } from "lucide-react";
+import { SiWhatsapp, SiInstagram } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,12 +26,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DevotionalShareCard } from "@/components/DevotionalShareCard";
 import { DevotionalComments } from "@/components/DevotionalComments";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { parseTipTapContent } from "@/lib/utils";
 import DOMPurify from "dompurify";
+
+import logoWhite from "@assets/2-1_1766464654126.png";
 
 // Configure DOMPurify to allow YouTube iframes
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
@@ -225,31 +226,9 @@ export default function DevocionalDetailPage() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [shareImageBase64, setShareImageBase64] = useState<string | null>(null);
+  const [croppedBgDataUrl, setCroppedBgDataUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-
-  const convertImageToBase64 = useCallback(async (imageUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/jpeg", 0.9));
-        } else {
-          reject(new Error("Could not get canvas context"));
-        }
-      };
-      img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = imageUrl;
-    });
-  }, []);
 
   const { data: devotional, isLoading, isError } = useQuery<DevotionalData>({
     queryKey: ['/api/site/devotionals', devotionalId],
@@ -311,218 +290,327 @@ export default function DevocionalDetailPage() {
     markAsReadMutation.mutate();
   };
 
-  const waitForImageLoad = useCallback((element: HTMLElement): Promise<void> => {
-    return new Promise((resolve) => {
-      const img = element.querySelector('img');
-      if (!img) {
-        resolve();
-        return;
-      }
-      
-      if (img.complete && img.naturalHeight !== 0) {
-        resolve();
-        return;
-      }
-      
-      const handleLoad = () => {
-        img.removeEventListener('load', handleLoad);
-        img.removeEventListener('error', handleError);
-        resolve();
-      };
-      
-      const handleError = () => {
-        img.removeEventListener('load', handleLoad);
-        img.removeEventListener('error', handleError);
-        resolve();
-      };
-      
-      img.addEventListener('load', handleLoad);
-      img.addEventListener('error', handleError);
-      
-      setTimeout(resolve, 3000);
-    });
-  }, []);
+  // Get proxy URL for background image
+  const currentImageUrl = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder') 
+    ? devotional.imageUrl 
+    : defaultDevImg;
+  
+  const proxyImageUrl = currentImageUrl.startsWith('http') && !currentImageUrl.includes(window.location.hostname)
+    ? `/api/proxy-image?url=${encodeURIComponent(currentImageUrl)}`
+    : currentImageUrl;
 
-  const generateShareImage = useCallback(async () => {
-    if (!shareCardRef.current || !devotional) return null;
-    
+  // Pre-load and crop background image to 9:16 aspect ratio (same as daily verse)
+  useEffect(() => {
+    if (!proxyImageUrl || !isShareDialogOpen) {
+      setCroppedBgDataUrl(null);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const targetAspect = 9 / 16;
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      
+      let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight;
+      
+      if (imgAspect > targetAspect) {
+        srcW = img.naturalHeight * targetAspect;
+        srcX = (img.naturalWidth - srcW) / 2;
+      } else {
+        srcH = img.naturalWidth / targetAspect;
+        srcY = (img.naturalHeight - srcH) / 2;
+      }
+      
+      const exportWidth = 2160;
+      const exportHeight = 3840;
+      const canvas = document.createElement('canvas');
+      canvas.width = exportWidth;
+      canvas.height = exportHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, exportWidth, exportHeight);
+        setCroppedBgDataUrl(canvas.toDataURL('image/png'));
+        console.log('[Devotional Share] Background image cropped at 2160x3840');
+      }
+    };
+    img.onerror = () => {
+      console.log('[Devotional Share] Failed to load background image');
+      setCroppedBgDataUrl(null);
+    };
+    img.src = proxyImageUrl;
+  }, [proxyImageUrl, isShareDialogOpen]);
+
+  // Generate and share image - EXACTLY like daily verse
+  const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
+    if (!shareCardRef.current || !devotional) return;
+
     setIsGenerating(true);
     try {
-      await waitForImageLoad(shareCardRef.current);
+      const cardWidth = 2160;
+      const cardHeight = 3840;
+      const scale = 1;
+      const borderRadius = 80;
       
-      const canvas = await html2canvas(shareCardRef.current, {
-        scale: 2,
+      const offscreenContainer = document.createElement('div');
+      offscreenContainer.style.cssText = `
+        position: fixed;
+        left: -10000px;
+        top: 0;
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        border-radius: ${borderRadius}px;
+      `;
+      document.body.appendChild(offscreenContainer);
+      
+      const clonedCard = shareCardRef.current.cloneNode(true) as HTMLElement;
+      clonedCard.style.cssText = `
+        width: ${cardWidth}px;
+        height: ${cardHeight}px;
+        border-radius: ${borderRadius}px;
+        overflow: hidden;
+        background: transparent;
+        margin: 0;
+        padding: 0;
+      `;
+      
+      const scaleFactor = 8 * 0.75; // 6x scale
+      
+      const textElements = clonedCard.querySelectorAll('h3, p');
+      textElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const currentSize = parseFloat(htmlEl.style.fontSize);
+        if (!isNaN(currentSize)) {
+          const pxSize = Math.round(currentSize * 16 * scaleFactor);
+          htmlEl.style.fontSize = `${pxSize}px`;
+        }
+      });
+      
+      const strongElements = clonedCard.querySelectorAll('strong');
+      strongElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.fontWeight = '700';
+      });
+      
+      // Scale SVG icons
+      const svgIcons = clonedCard.querySelectorAll('svg');
+      svgIcons.forEach((svgIcon) => {
+        const scaledSize = 58;
+        const parentP = svgIcon.closest('p') as HTMLElement;
+        
+        if (parentP) {
+          parentP.style.display = 'flex';
+          parentP.style.alignItems = 'center';
+          parentP.style.justifyContent = 'center';
+          parentP.style.gap = '48px';
+          parentP.style.lineHeight = `${scaledSize}px`;
+          parentP.style.overflow = 'visible';
+        }
+        
+        const wrapper = document.createElement('span');
+        wrapper.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: ${scaledSize}px;
+          height: ${scaledSize}px;
+          overflow: visible;
+          flex-shrink: 0;
+          margin-top: 47px;
+        `;
+        
+        svgIcon.setAttribute('width', `${scaledSize}`);
+        svgIcon.setAttribute('height', `${scaledSize}`);
+        svgIcon.style.width = `${scaledSize}px`;
+        svgIcon.style.height = `${scaledSize}px`;
+        svgIcon.style.flexShrink = '0';
+        svgIcon.style.display = 'block';
+        
+        const svgClone = svgIcon.cloneNode(true) as SVGElement;
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        const svgString = new XMLSerializer().serializeToString(svgClone);
+        const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
+        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+        
+        const imgElement = document.createElement('img');
+        imgElement.src = svgDataUrl;
+        imgElement.style.cssText = `
+          width: ${scaledSize}px;
+          height: ${scaledSize}px;
+          display: block;
+          flex-shrink: 0;
+        `;
+        
+        svgIcon.parentNode?.insertBefore(wrapper, svgIcon);
+        wrapper.appendChild(imgElement);
+        svgIcon.remove();
+      });
+      
+      const contentContainer = clonedCard.querySelector('div[style*="padding"]') as HTMLElement;
+      if (contentContainer) {
+        contentContainer.style.padding = '192px';
+      }
+      
+      const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
+      if (logo) {
+        logo.style.height = '442px';
+      }
+      
+      offscreenContainer.appendChild(clonedCard);
+      
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const sourceCanvas = await html2canvas(clonedCard, {
+        scale: scale,
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#111827",
+        allowTaint: false,
+        backgroundColor: null,
         logging: false,
+        imageTimeout: 15000,
+        width: cardWidth,
+        height: cardHeight,
       });
       
-      const dataUrl = canvas.toDataURL("image/png", 0.9);
-      setGeneratedImageUrl(dataUrl);
-      return dataUrl;
-    } catch (err) {
-      console.error("Error generating image:", err);
-      toast({
-        title: "Erro ao gerar imagem",
-        description: "Tente novamente ou use o compartilhamento simples.",
-        variant: "destructive",
-      });
-      return null;
-    } finally {
+      document.body.removeChild(offscreenContainer);
+
+      const srcWidth = sourceCanvas.width;
+      const srcHeight = sourceCanvas.height;
+      const scaledRadius = Math.round(borderRadius * scale);
+      
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = srcWidth;
+      finalCanvas.height = srcHeight;
+      const ctx = finalCanvas.getContext('2d');
+      
+      if (!ctx) {
+        toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+        setIsGenerating(false);
+        return;
+      }
+
+      // Draw rounded-rect mask first
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.moveTo(scaledRadius, 0);
+      ctx.lineTo(srcWidth - scaledRadius, 0);
+      ctx.arcTo(srcWidth, 0, srcWidth, scaledRadius, scaledRadius);
+      ctx.lineTo(srcWidth, srcHeight - scaledRadius);
+      ctx.arcTo(srcWidth, srcHeight, srcWidth - scaledRadius, srcHeight, scaledRadius);
+      ctx.lineTo(scaledRadius, srcHeight);
+      ctx.arcTo(0, srcHeight, 0, srcHeight - scaledRadius, scaledRadius);
+      ctx.lineTo(0, scaledRadius);
+      ctx.arcTo(0, 0, scaledRadius, 0, scaledRadius);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.drawImage(sourceCanvas, 0, 0);
+      
+      // Hard alpha clamp for clean transparency
+      const imageData = ctx.getImageData(0, 0, srcWidth, srcHeight);
+      const data = imageData.data;
+      const alphaThreshold = 250;
+      
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 0 && data[i] < alphaThreshold) {
+          data[i] = 0;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      const shareUrl = window.location.href;
+      const shareText = `📖 *${devotional.title}* - UMP Emaús\n\nLeia o devocional completo:\n${shareUrl}`;
+
+      if (platform === 'download') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setIsGenerating(false);
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `devocional-${devotional.title.toLowerCase().replace(/\s+/g, '-')}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ title: "Imagem baixada!" });
+          setIsGenerating(false);
+          setIsShareDialogOpen(false);
+        }, 'image/png', 1.0);
+      } else if (platform === 'whatsapp') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setIsGenerating(false);
+            return;
+          }
+          const file = new File([blob], `devocional-${devotional.id}.png`, { type: 'image/png' });
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            toast({ 
+              title: "Legenda copiada!", 
+              description: "Cole no campo 'Adicione uma legenda' do WhatsApp" 
+            });
+            await navigator.share({
+              files: [file],
+              title: devotional.title,
+            });
+          } else {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+          }
+          setIsGenerating(false);
+          setIsShareDialogOpen(false);
+        }, 'image/png', 1.0);
+      } else if (platform === 'instagram') {
+        finalCanvas.toBlob(async (blob) => {
+          if (!blob) {
+            toast({ title: "Erro ao gerar imagem", variant: "destructive" });
+            setIsGenerating(false);
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(shareText);
+          } catch (e) {
+            console.log('Could not copy to clipboard');
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `devocional-${devotional.title.toLowerCase().replace(/\s+/g, '-')}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          toast({ 
+            title: "Imagem baixada + Legenda copiada!", 
+            description: "Abra o Instagram e cole a legenda ao compartilhar" 
+          });
+          setIsGenerating(false);
+          setIsShareDialogOpen(false);
+        }, 'image/png', 1.0);
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({ title: "Erro ao gerar imagem", variant: "destructive" });
       setIsGenerating(false);
     }
-  }, [devotional, toast, waitForImageLoad]);
-
-  const handleOpenShareDialog = async () => {
-    setIsShareDialogOpen(true);
-    setGeneratedImageUrl(null);
-    setShareImageBase64(null);
-    
-    const currentImageUrl = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder') 
-      ? devotional.imageUrl 
-      : defaultDevImg;
-    
-    // Use proxy for external images to avoid CORS issues
-    const isExternalUrl = currentImageUrl.startsWith('http') && !currentImageUrl.includes(window.location.hostname);
-    const proxiedUrl = isExternalUrl 
-      ? `/api/proxy-image?url=${encodeURIComponent(currentImageUrl)}`
-      : currentImageUrl;
-    
-    try {
-      const base64 = await convertImageToBase64(proxiedUrl);
-      setShareImageBase64(base64);
-      setTimeout(() => {
-        generateShareImage();
-      }, 100);
-    } catch (err) {
-      console.error("Error converting image to base64:", err);
-      // Fallback: try with original URL
-      setShareImageBase64(currentImageUrl);
-      setTimeout(() => {
-        generateShareImage();
-      }, 100);
-    }
-  };
-
-  const handleDownloadImage = async () => {
-    const imageUrl = generatedImageUrl || await generateShareImage();
-    if (!imageUrl || !devotional) return;
-
-    const link = document.createElement("a");
-    link.download = `devocional-${devotional.title.toLowerCase().replace(/\s+/g, "-")}.png`;
-    link.href = imageUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Imagem baixada",
-      description: "A imagem foi salva em seus downloads.",
-    });
-  };
-
-  const handleShareWithImage = async () => {
-    if (!devotional) return;
-
-    const imageUrl = generatedImageUrl || await generateShareImage();
-    if (!imageUrl) return;
-
-    const shareText = `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\nLeia o devocional completo: ${window.location.href}`;
-
-    let clipboardSuccess = false;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareText);
-        clipboardSuccess = true;
-      }
-    } catch {
-      clipboardSuccess = false;
-    }
-
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], `devocional-${devotional.id}.png`, { type: "image/png" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: devotional.title,
-          text: shareText,
-          url: window.location.href,
-          files: [file],
-        });
-        setIsShareDialogOpen(false);
-        toast({
-          title: "Compartilhado com sucesso!",
-          description: clipboardSuccess 
-            ? "O link também foi copiado para a área de transferência." 
-            : "Imagem compartilhada.",
-        });
-      } else {
-        handleDownloadImage();
-        toast({
-          title: clipboardSuccess ? "Imagem baixada + Link copiado" : "Imagem baixada",
-          description: clipboardSuccess 
-            ? "Cole o link junto com a imagem ao compartilhar no WhatsApp." 
-            : "A imagem foi salva. Copie o link manualmente se desejar.",
-        });
-      }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        console.error("Error sharing:", err);
-        handleDownloadImage();
-        toast({
-          title: clipboardSuccess ? "Imagem baixada + Link copiado" : "Imagem baixada",
-          description: clipboardSuccess 
-            ? "Cole o link junto com a imagem ao compartilhar." 
-            : "A imagem foi salva em seus downloads.",
-        });
-      }
-    }
-  };
-
-  const handleSimpleShare = async () => {
-    if (!devotional) return;
-    
-    const shareText = `${devotional.title}\n\n"${devotional.verse}" - ${devotional.verseReference}\n\n${window.location.href}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: devotional.title,
-          text: `${devotional.verse} - ${devotional.verseReference}`,
-          url: window.location.href,
-        });
-      } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          console.log("Error sharing:", err);
-        }
-      }
-    } else {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(shareText);
-          toast({
-            title: "Link copiado",
-            description: "O link foi copiado para a área de transferência.",
-          });
-        } else {
-          toast({
-            title: "Compartilhamento não disponível",
-            description: "Copie o link manualmente da barra de endereço.",
-            variant: "destructive",
-          });
-        }
-      } catch {
-        toast({
-          title: "Erro ao copiar",
-          description: "Copie o link manualmente da barra de endereço.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+  }, [devotional, toast]);
 
   if (isLoading) {
     return (
@@ -761,7 +849,7 @@ export default function DevocionalDetailPage() {
                       )}
                       <Button 
                         variant="outline" 
-                        onClick={handleOpenShareDialog}
+                        onClick={() => setIsShareDialogOpen(true)}
                         className="gap-2"
                         data-testid="button-share-devotional"
                       >
@@ -822,95 +910,171 @@ export default function DevocionalDetailPage() {
       </section>
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-primary" />
-              Compartilhar Devocional
-            </DialogTitle>
+            <DialogTitle>Compartilhar Devocional</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            {isGenerating ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Gerando imagem...</p>
-              </div>
-            ) : generatedImageUrl ? (
-              <div className="space-y-4">
-                <div className="relative rounded-lg overflow-hidden border">
-                  <img 
-                    src={generatedImageUrl} 
-                    alt="Preview do compartilhamento"
-                    className="w-full h-auto"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <div className="bg-green-500 text-white rounded-full p-1">
-                      <Check className="h-4 w-4" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={handleShareWithImage}
-                    className="gap-2"
-                    data-testid="button-share-with-image"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Compartilhar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadImage}
-                    className="gap-2"
-                    data-testid="button-download-image"
-                  >
-                    <Download className="h-4 w-4" />
-                    Baixar
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <X className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Erro ao gerar imagem</p>
-                <Button variant="outline" onClick={generateShareImage} data-testid="button-retry-generate">
-                  Tentar novamente
-                </Button>
-              </div>
+
+          <div 
+            ref={shareCardRef}
+            style={{ 
+              width: '100%',
+              aspectRatio: '9/16',
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '10px',
+              WebkitFontSmoothing: 'antialiased',
+              textRendering: 'optimizeLegibility',
+            }}
+          >
+            {(croppedBgDataUrl || proxyImageUrl) && (
+              <img 
+                src={croppedBgDataUrl || proxyImageUrl || ''}
+                crossOrigin="anonymous"
+                alt=""
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: croppedBgDataUrl ? 'fill' : 'cover',
+                  display: 'block'
+                }}
+              />
             )}
-            
-            <div className="border-t pt-4">
-              <Button 
-                variant="ghost" 
-                onClick={handleSimpleShare}
-                className="w-full gap-2 text-muted-foreground"
-                data-testid="button-simple-share"
-              >
-                Compartilhar apenas link
-              </Button>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.3), rgba(0,0,0,0.7))'
+            }} />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              padding: '1.5rem',
+              color: 'white',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <h3 style={{ 
+                  fontSize: '0.9rem', 
+                  fontWeight: 'bold', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  margin: 0,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                }}>
+                  DEVOCIONAL
+                </h3>
+                <p style={{ 
+                  fontSize: '0.7rem', 
+                  opacity: 0.9,
+                  margin: '0.3rem 0 0 0',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                }}>
+                  UMP Emaús
+                </p>
+              </div>
+
+              <div style={{ 
+                textAlign: 'center', 
+                flex: 1, 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                justifyContent: 'center',
+                padding: '0 0.8rem'
+              }}>
+                <h3 style={{ 
+                  fontSize: '1.1rem', 
+                  fontWeight: 700, 
+                  letterSpacing: '0.02em',
+                  margin: '0 0 0.8rem 0',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                  lineHeight: 1.3
+                }}>
+                  {devotional?.title || ''}
+                </h3>
+                <div>
+                  <p style={{ 
+                    fontSize: '0.95rem', 
+                    fontStyle: 'italic', 
+                    fontWeight: 400,
+                    lineHeight: 1.4,
+                    margin: '0 0 0.7rem 0',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
+                  }}>
+                    "{devotional?.verse || ''}"
+                  </p>
+                  <p style={{ 
+                    fontSize: '0.608rem', 
+                    fontWeight: 500,
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.5)' 
+                  }}>
+                    <BookOpen style={{ width: '0.7rem', height: '0.7rem', color: '#FFA500', flexShrink: 0, verticalAlign: 'middle' }} />
+                    <span style={{ lineHeight: 1 }}>{devotional?.verseReference?.toUpperCase() || ''}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.8rem' }}>
+                <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block' }} />
+              </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 justify-center">
+            <Button
+              onClick={() => generateAndShareImage('whatsapp')}
+              disabled={isGenerating}
+              className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700"
+              data-testid="button-share-whatsapp"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiWhatsapp className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareImage('instagram')}
+              disabled={isGenerating}
+              className="flex-1 min-w-[120px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              data-testid="button-share-instagram"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <SiInstagram className="mr-2 h-4 w-4" />
+                  Instagram
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => generateAndShareImage('download')}
+              disabled={isGenerating}
+              variant="outline"
+              size="icon"
+              data-testid="button-download"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      <div 
-        style={{ 
-          position: "fixed", 
-          left: "-9999px", 
-          top: "-9999px",
-          pointerEvents: "none",
-        }}
-      >
-        <DevotionalShareCard
-          ref={shareCardRef}
-          title={devotional?.title || ""}
-          verse={devotional?.verse || ""}
-          verseReference={devotional?.verseReference || ""}
-          imageUrl={shareImageBase64 || imageUrl}
-        />
-      </div>
     </SiteLayout>
   );
 }

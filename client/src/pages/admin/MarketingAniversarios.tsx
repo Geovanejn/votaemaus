@@ -449,7 +449,7 @@ export default function MarketingAniversarios() {
               textAlign: 'center',
               zIndex: 3,
               whiteSpace: 'nowrap',
-              fontFamily: "'Lobster', cursive",
+              fontFamily: "'Dancing Script', cursive",
               textTransform: 'capitalize',
             }}>
               {selectedMember?.firstName || ''}

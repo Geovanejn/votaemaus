@@ -450,7 +450,7 @@ export default function MarketingAniversarios() {
               zIndex: 3,
               whiteSpace: 'nowrap',
               fontFamily: "'Kingsman', cursive",
-              textTransform: 'uppercase',
+              textTransform: 'capitalize',
             }}>
               {selectedMember?.firstName || ''}
             </p>

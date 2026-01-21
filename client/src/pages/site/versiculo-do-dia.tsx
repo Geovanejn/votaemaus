@@ -686,6 +686,16 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontStyle = 'italic';
       });
       
+      // Scale reflection title margin-bottom (1.54rem * 16 * 6 = 148px)
+      const allParagraphs = clonedCard.querySelectorAll('p');
+      allParagraphs.forEach((p) => {
+        const htmlP = p as HTMLElement;
+        // Reflection title has fontWeight 700 and margin with 1.54rem
+        if (htmlP.style.fontWeight === '700' && htmlP.style.margin?.includes('1.54rem')) {
+          htmlP.style.margin = '0 0 148px 0';
+        }
+      });
+      
       // Scale padding for ultra high-res - find ALL containers with padding
       const allPaddingContainers = clonedCard.querySelectorAll('div[style*="padding"]');
       allPaddingContainers.forEach((container) => {

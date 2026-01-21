@@ -1132,9 +1132,11 @@ export default function VersiculoDoDiaPage() {
                 textAlign: 'center', 
                 flex: 1, 
                 display: 'flex', 
+                flexDirection: 'column',
                 alignItems: 'center', 
                 justifyContent: 'center',
-                padding: '0 0.8rem'
+                padding: '0 0.8rem',
+                overflow: 'hidden'
               }}>
                 <div>
                   <p style={{ 

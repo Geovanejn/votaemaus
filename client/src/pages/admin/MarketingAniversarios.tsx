@@ -409,13 +409,14 @@ export default function MarketingAniversarios() {
       )}
 
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="w-[85vw] max-w-xs sm:max-w-sm mx-auto">
+        <DialogContent className="w-[85vw] max-w-xs sm:max-w-sm mx-auto" data-testid="dialog-share-birthday">
           <DialogHeader>
             <DialogTitle>Compartilhar Arte de Aniversário</DialogTitle>
           </DialogHeader>
 
           <div 
             ref={shareCardRef}
+            data-share-card="birthday"
             style={{ 
               width: '100%',
               aspectRatio: '9/16',

@@ -942,7 +942,7 @@ export default function VersiculoDoDiaPage() {
                   <Button 
                     onClick={() => setShareOpen(true)}
                     className="bg-orange-500 hover:bg-orange-600 text-white"
-                    data-testid="button-share"
+                    data-testid="button-share-verse"
                   >
                     <Share2 className="mr-2 h-4 w-4" />
                     Compartilhar Versículo
@@ -1052,13 +1052,14 @@ export default function VersiculoDoDiaPage() {
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto" data-testid="dialog-share-verse">
           <DialogHeader>
             <DialogTitle>Compartilhar Versículo</DialogTitle>
           </DialogHeader>
 
           <div 
             ref={shareCardRef}
+            data-share-card="verse"
             style={{ 
               width: '100%',
               aspectRatio: '9/16',
@@ -1211,13 +1212,14 @@ export default function VersiculoDoDiaPage() {
       </Dialog>
 
       <Dialog open={reflectionShareOpen} onOpenChange={setReflectionShareOpen}>
-        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto">
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-lg mx-auto" data-testid="dialog-share-reflection">
           <DialogHeader>
             <DialogTitle>Compartilhar Reflexão</DialogTitle>
           </DialogHeader>
 
           <div 
             ref={reflectionCardRef}
+            data-share-card="reflection"
             style={{ 
               width: '100%',
               aspectRatio: '9/16',

@@ -5,7 +5,8 @@ import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVe
 import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured, refreshInstagramToken } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
-import { generateVerseStoryImage, generateReflectionStoryImage, generateBirthdayStoryImage, uploadStoryImageToR2 } from "./story-image-generator";
+import { uploadStoryImageToR2 } from "./story-image-generator";
+import { generateVerseShareImage, generateReflectionShareImage, generateBirthdayShareImage } from "./puppeteer-image-generator";
 import { getPublicUrl } from "./r2-storage";
 
 // Rate limiting helper for Resend (10 requests per second approved)
@@ -2243,9 +2244,9 @@ export function initTreasurySchedulers(): void {
 
 // ==================== INSTAGRAM STORIES AUTO-PUBLISH ====================
 
-// Generate and save images at 07:01 (before publishing)
+// Generate and save images at 07:01 (before publishing) - Uses Puppeteer to capture EXACT same image as frontend
 async function generateAndSaveStoryImages(): Promise<void> {
-  console.log('[Instagram Stories] Generating and saving story images at 07:01...');
+  console.log('[Instagram Stories] Generating and saving story images at 07:01 using Puppeteer...');
   
   try {
     const dailyVerse = await storage.getActiveDailyVersePost();
@@ -2254,54 +2255,37 @@ async function generateAndSaveStoryImages(): Promise<void> {
       return;
     }
     
-    const stockImage = dailyVerse.stockImageId 
-      ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
-      : null;
-    
-    const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
-    if (!backgroundUrl) {
-      console.log('[Instagram Stories] No background image available - skipping');
-      return;
-    }
-    
-    // Generate verse story image
-    console.log('[Instagram Stories] Generating verse story image...');
-    const verseImageBuffer = await generateVerseStoryImage(
-      {
-        verse: dailyVerse.verse,
-        reference: dailyVerse.reference,
-        highlightedKeywords: dailyVerse.highlightedKeywords,
-      },
-      backgroundUrl
-    );
-    
-    const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
-    const versePublicUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
-    
-    if (versePublicUrl) {
-      await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: versePublicUrl });
-      console.log(`[Instagram Stories] Verse image saved: ${versePublicUrl}`);
+    // Generate verse story image using Puppeteer (same as clicking WhatsApp button)
+    console.log('[Instagram Stories] Generating verse story image via Puppeteer...');
+    try {
+      const verseImageBuffer = await generateVerseShareImage();
+      
+      const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
+      const versePublicUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
+      
+      if (versePublicUrl) {
+        await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: versePublicUrl });
+        console.log(`[Instagram Stories] Verse image saved: ${versePublicUrl}`);
+      }
+    } catch (error) {
+      console.error('[Instagram Stories] Error generating verse image:', error);
     }
     
     // Generate reflection story image if reflection exists
     if (dailyVerse.reflection && dailyVerse.reflectionTitle) {
-      console.log('[Instagram Stories] Generating reflection story image...');
-      const reflectionImageBuffer = await generateReflectionStoryImage(
-        {
-          reflectionTitle: dailyVerse.reflectionTitle,
-          reflection: dailyVerse.reflection,
-          reflectionKeywords: dailyVerse.reflectionKeywords,
-          reflectionReferences: dailyVerse.reflectionReferences,
-        },
-        backgroundUrl
-      );
-      
-      const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
-      const reflectionPublicUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
-      
-      if (reflectionPublicUrl) {
-        await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: reflectionPublicUrl });
-        console.log(`[Instagram Stories] Reflection image saved: ${reflectionPublicUrl}`);
+      console.log('[Instagram Stories] Generating reflection story image via Puppeteer...');
+      try {
+        const reflectionImageBuffer = await generateReflectionShareImage();
+        
+        const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
+        const reflectionPublicUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
+        
+        if (reflectionPublicUrl) {
+          await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: reflectionPublicUrl });
+          console.log(`[Instagram Stories] Reflection image saved: ${reflectionPublicUrl}`);
+        }
+      } catch (error) {
+        console.error('[Instagram Stories] Error generating reflection image:', error);
       }
     }
     
@@ -2311,9 +2295,9 @@ async function generateAndSaveStoryImages(): Promise<void> {
   }
 }
 
-// Generate and save birthday images at 08:01 (before publishing)
+// Generate and save birthday images at 08:01 (before publishing) - Uses Puppeteer to capture EXACT same image as frontend
 async function generateAndSaveBirthdayImages(): Promise<void> {
-  console.log('[Instagram Stories] Generating and saving birthday images at 08:01...');
+  console.log('[Instagram Stories] Generating and saving birthday images at 08:01 using Puppeteer...');
   
   try {
     const allMembers = await storage.getAllMembers();
@@ -2338,22 +2322,14 @@ async function generateAndSaveBirthdayImages(): Promise<void> {
       return;
     }
     
-    console.log(`[Instagram Stories] Generating birthday images for ${birthdayMembers.length} member(s)...`);
+    console.log(`[Instagram Stories] Generating birthday images for ${birthdayMembers.length} member(s) via Puppeteer...`);
     
     for (const member of birthdayMembers) {
       try {
         const firstName = member.fullName.split(' ')[0];
         
-        let photoUrl = member.photoUrl;
-        if (photoUrl && !photoUrl.startsWith('http')) {
-          photoUrl = getPublicUrl(photoUrl);
-        }
-        
-        console.log(`[Instagram Stories] Generating birthday image for ${firstName}...`);
-        const imageBuffer = await generateBirthdayStoryImage({
-          firstName,
-          photoUrl,
-        });
+        console.log(`[Instagram Stories] Generating birthday image for ${firstName} via Puppeteer...`);
+        const imageBuffer = await generateBirthdayShareImage(member.id);
         
         const filename = `birthday-${member.id}-${Date.now()}.jpg`;
         const publicUrl = await uploadStoryImageToR2(imageBuffer, filename);

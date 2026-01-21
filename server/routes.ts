@@ -98,7 +98,8 @@ import {
   sendPushToUser
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments, publishInstagramStory, isInstagramPublishingConfigured, testInstagramStoryConfig } from "./instagram";
-import { generateVerseStoryImage, generateReflectionStoryImage, generateBirthdayStoryImage, uploadStoryImageToR2 } from "./story-image-generator";
+import { uploadStoryImageToR2 } from "./story-image-generator";
+import { generateVerseShareImage, generateReflectionShareImage, generateBirthdayShareImage } from "./puppeteer-image-generator";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
@@ -6617,7 +6618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish verse story to Instagram (uses saved image or generates on-demand)
+  // Publish verse story to Instagram (uses saved image or generates via Puppeteer)
   app.post("/api/admin/instagram/publish-verse-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
@@ -6631,28 +6632,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let imageUrl = dailyVerse.verseShareImageUrl;
       
-      // If no saved image, generate on-demand using SAME logic as scheduler
+      // If no saved image, generate on-demand using Puppeteer (SAME as frontend WhatsApp button)
       if (!imageUrl) {
-        console.log(`[Instagram Stories] No saved verse image, generating on-demand...`);
+        console.log(`[Instagram Stories] No saved verse image, generating via Puppeteer...`);
         
-        // Get background URL from stock image or daily verse (same as scheduler)
-        const stockImage = dailyVerse.stockImageId 
-          ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
-          : null;
-        const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
-        
-        if (!backgroundUrl) {
-          return res.status(400).json({ message: "Nenhuma imagem de fundo disponível" });
-        }
-        
-        const verseImageBuffer = await generateVerseStoryImage(
-          {
-            verse: dailyVerse.verse,
-            reference: dailyVerse.reference,
-            highlightedKeywords: dailyVerse.highlightedKeywords,
-          },
-          backgroundUrl
-        );
+        const verseImageBuffer = await generateVerseShareImage();
         
         const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
         imageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
@@ -6687,7 +6671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish reflection story to Instagram (uses saved image or generates on-demand)
+  // Publish reflection story to Instagram (uses saved image or generates via Puppeteer)
   app.post("/api/admin/instagram/publish-reflection-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
@@ -6705,29 +6689,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let imageUrl = dailyVerse.reflectionShareImageUrl;
       
-      // If no saved image, generate on-demand using SAME logic as scheduler
+      // If no saved image, generate on-demand using Puppeteer (SAME as frontend WhatsApp button)
       if (!imageUrl) {
-        console.log(`[Instagram Stories] No saved reflection image, generating on-demand...`);
+        console.log(`[Instagram Stories] No saved reflection image, generating via Puppeteer...`);
         
-        // Get background URL from stock image or daily verse (same as scheduler)
-        const stockImage = dailyVerse.stockImageId 
-          ? await storage.getDailyVerseStockById(dailyVerse.stockImageId) 
-          : null;
-        const backgroundUrl = stockImage?.imageUrl || dailyVerse.imageUrl;
-        
-        if (!backgroundUrl) {
-          return res.status(400).json({ message: "Nenhuma imagem de fundo disponível" });
-        }
-        
-        const reflectionImageBuffer = await generateReflectionStoryImage(
-          {
-            reflectionTitle: dailyVerse.reflectionTitle,
-            reflection: dailyVerse.reflection,
-            reflectionKeywords: dailyVerse.reflectionKeywords,
-            reflectionReferences: dailyVerse.reflectionReferences,
-          },
-          backgroundUrl
-        );
+        const reflectionImageBuffer = await generateReflectionShareImage();
         
         const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
         imageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
@@ -6762,7 +6728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish birthday story to Instagram (uses saved image or generates on-demand)
+  // Publish birthday story to Instagram (uses saved image or generates via Puppeteer)
   app.post("/api/admin/instagram/publish-birthday-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const { memberId } = req.body;
@@ -6787,20 +6753,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let savedImage = await storage.getBirthdayShareImage(memberId, todayFullDate);
       let imageUrl: string | null = savedImage?.imageUrl || null;
       
-      // If no saved image, generate on-demand using SAME logic as scheduler
+      // If no saved image, generate on-demand using Puppeteer (SAME as frontend WhatsApp button)
       if (!imageUrl) {
-        console.log(`[Instagram Stories] No saved birthday image for ${firstName}, generating on-demand...`);
+        console.log(`[Instagram Stories] No saved birthday image for ${firstName}, generating via Puppeteer...`);
         
-        // Convert photo URL to public URL (same as scheduler)
-        let photoUrl = member.photoUrl;
-        if (photoUrl && !photoUrl.startsWith('http')) {
-          photoUrl = getPublicUrl(photoUrl);
-        }
-        
-        const birthdayImageBuffer = await generateBirthdayStoryImage({
-          firstName,
-          photoUrl,
-        });
+        const birthdayImageBuffer = await generateBirthdayShareImage(memberId);
         
         const birthdayFilename = `birthday-story-${memberId}-${Date.now()}.jpg`;
         imageUrl = await uploadStoryImageToR2(birthdayImageBuffer, birthdayFilename);

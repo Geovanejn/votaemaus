@@ -686,13 +686,13 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontStyle = 'italic';
       });
       
-      // Scale reflection title margin-bottom (1.31rem * 16 * 6 = 126px)
+      // Scale reflection title margin-bottom (1.05rem * 16 * 6 = 101px)
       const allParagraphs = clonedCard.querySelectorAll('p');
       allParagraphs.forEach((p) => {
         const htmlP = p as HTMLElement;
-        // Reflection title has fontWeight 700 and margin with 1.31rem
-        if (htmlP.style.fontWeight === '700' && htmlP.style.margin?.includes('1.31rem')) {
-          htmlP.style.margin = '0 0 126px 0';
+        // Reflection title has fontWeight 700 and margin with 1.05rem
+        if (htmlP.style.fontWeight === '700' && htmlP.style.margin?.includes('1.05rem')) {
+          htmlP.style.margin = '0 0 101px 0';
         }
       });
       
@@ -1295,7 +1295,7 @@ export default function VersiculoDoDiaPage() {
                       fontSize: '0.908rem', 
                       fontWeight: 700,
                       lineHeight: 1.4,
-                      margin: '0 0 1.31rem 0',
+                      margin: '0 0 1.05rem 0',
                       textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                     }}>
                       {todayVerse.reflectionTitle}

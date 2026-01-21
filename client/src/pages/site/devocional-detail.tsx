@@ -848,13 +848,12 @@ export default function DevocionalDetailPage() {
                         </Button>
                       )}
                       <Button 
-                        variant="outline" 
                         onClick={() => setIsShareDialogOpen(true)}
-                        className="gap-2"
+                        className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
                         data-testid="button-share-devotional"
                       >
                         <Share2 className="h-4 w-4" />
-                        Compartilhar
+                        Compartilhar Devocional
                       </Button>
                     </div>
                   </div>
@@ -966,7 +965,7 @@ export default function DevocionalDetailPage() {
                   margin: 0,
                   textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                 }}>
-                  DEVOCIONAL
+                  DEVOCIONAL DA SEMANA
                 </h3>
                 <p style={{ 
                   fontSize: '0.7rem', 

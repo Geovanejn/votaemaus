@@ -932,11 +932,11 @@ export default function VersiculoDoDiaPage() {
                   </div>
                   <Button 
                     onClick={() => setShareOpen(true)}
-                    variant="outline"
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
                     data-testid="button-share"
                   >
                     <Share2 className="mr-2 h-4 w-4" />
-                    Compartilhar
+                    Compartilhar Versículo
                   </Button>
                 </div>
 
@@ -965,7 +965,7 @@ export default function VersiculoDoDiaPage() {
                     <div className="mt-6 flex justify-center">
                       <Button 
                         onClick={() => setReflectionShareOpen(true)}
-                        variant="outline"
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
                         data-testid="button-share-reflection"
                       >
                         <Share2 className="mr-2 h-4 w-4" />

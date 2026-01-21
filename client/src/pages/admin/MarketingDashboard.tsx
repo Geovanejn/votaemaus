@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake, ArrowLeft } from "lucide-react";
+import { Calendar, Users, Plus, Download, CalendarDays, UserPlus, ArrowUpRight, FileText, Instagram, RefreshCw, Star, ExternalLink, Cake, ArrowLeft, Send, BookOpen, MessageCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -111,6 +111,66 @@ export default function MarketingDashboard() {
       toast({
         title: "Erro",
         description: "Falha ao disparar e-mails de aniversário",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testVerseStoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/instagram/test-verse-story");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Story Publicado",
+        description: data.message || "Story do versículo publicado com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao publicar story do versículo",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testReflectionStoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/instagram/test-reflection-story");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Story Publicado",
+        description: data.message || "Story da reflexão publicado com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao publicar story da reflexão",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testBirthdayStoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/instagram/test-birthday-story");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Story Publicado",
+        description: data.message || "Story de aniversário publicado com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao publicar story de aniversário",
         variant: "destructive",
       });
     },
@@ -305,6 +365,54 @@ export default function MarketingDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card data-testid="card-instagram-stories-test">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Publicar Stories no Instagram
+          </CardTitle>
+          <CardDescription>
+            Teste a publicação manual de Stories. Os Stories são publicados automaticamente: 07:05 (versículo), 07:10 (reflexão), 08:05 (aniversários)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={() => testVerseStoryMutation.mutate()}
+              disabled={testVerseStoryMutation.isPending || !isInstagramConfigured}
+              variant="outline"
+              data-testid="button-test-verse-story"
+            >
+              <BookOpen className={`h-4 w-4 mr-2 ${testVerseStoryMutation.isPending ? "animate-spin" : ""}`} />
+              {testVerseStoryMutation.isPending ? "Publicando..." : "Versículo do Dia"}
+            </Button>
+            <Button
+              onClick={() => testReflectionStoryMutation.mutate()}
+              disabled={testReflectionStoryMutation.isPending || !isInstagramConfigured}
+              variant="outline"
+              data-testid="button-test-reflection-story"
+            >
+              <MessageCircle className={`h-4 w-4 mr-2 ${testReflectionStoryMutation.isPending ? "animate-spin" : ""}`} />
+              {testReflectionStoryMutation.isPending ? "Publicando..." : "Reflexão do Dia"}
+            </Button>
+            <Button
+              onClick={() => testBirthdayStoryMutation.mutate()}
+              disabled={testBirthdayStoryMutation.isPending || !isInstagramConfigured}
+              variant="outline"
+              data-testid="button-test-birthday-story"
+            >
+              <Cake className={`h-4 w-4 mr-2 ${testBirthdayStoryMutation.isPending ? "animate-spin" : ""}`} />
+              {testBirthdayStoryMutation.isPending ? "Publicando..." : "Aniversário (Teste)"}
+            </Button>
+          </div>
+          {!isInstagramConfigured && (
+            <p className="text-sm text-muted-foreground mt-3">
+              Configure as credenciais do Instagram para habilitar a publicação de Stories.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card data-testid="card-instagram-section">
         <CardHeader>

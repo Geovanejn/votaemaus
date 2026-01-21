@@ -393,7 +393,7 @@ export default function MarketingAniversarios() {
                   position: 'absolute',
                   width: '68%',
                   aspectRatio: '1/1',
-                  top: '42%',
+                  top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   objectFit: 'cover',
@@ -407,7 +407,7 @@ export default function MarketingAniversarios() {
                   position: 'absolute',
                   width: '68%',
                   aspectRatio: '1/1',
-                  top: '42%',
+                  top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   backgroundColor: '#374151',
@@ -435,7 +435,7 @@ export default function MarketingAniversarios() {
             />
             <p style={{
               position: 'absolute',
-              bottom: '33%',
+              bottom: '28%',
               left: '50%',
               transform: 'translateX(-50%)',
               fontSize: '1.4rem',

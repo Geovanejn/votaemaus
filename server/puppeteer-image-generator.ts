@@ -40,7 +40,7 @@ function getBaseUrl(): string {
 }
 
 export async function generateVerseShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating verse share image...');
+  console.log('[Puppeteer] Generating verse share image (same as WhatsApp button)...');
   
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -60,64 +60,44 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     
     await page.waitForSelector('[data-testid="dialog-share-verse"]', { timeout: 5000 });
     
-    const imageBuffer = await page.evaluate(async () => {
-      const shareCardElement = document.querySelector('[data-share-card="verse"]') as HTMLElement;
-      if (!shareCardElement) {
-        throw new Error('Share card element not found');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const imageDataUrl = await page.evaluate(async () => {
+      const whatsappButton = document.querySelector('[data-testid="button-share-whatsapp"]') as HTMLButtonElement;
+      if (!whatsappButton) {
+        throw new Error('WhatsApp button not found');
       }
       
-      const html2canvas = (window as any).html2canvas;
-      if (!html2canvas) {
-        throw new Error('html2canvas not available');
-      }
-      
-      const cardWidth = 1080;
-      const cardHeight = 1920;
-      
-      const offscreenContainer = document.createElement('div');
-      offscreenContainer.style.cssText = `
-        position: fixed;
-        left: -10000px;
-        top: 0;
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        overflow: hidden;
-      `;
-      document.body.appendChild(offscreenContainer);
-      
-      const clonedCard = shareCardElement.cloneNode(true) as HTMLElement;
-      clonedCard.style.cssText = `
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        overflow: hidden;
-        background: transparent;
-        margin: 0;
-        padding: 0;
-      `;
-      
-      offscreenContainer.appendChild(clonedCard);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const canvas = await html2canvas(clonedCard, {
-        scale: 1,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        logging: false,
-        width: cardWidth,
-        height: cardHeight,
+      return new Promise<string>((resolve, reject) => {
+        const originalNavigator = navigator.share;
+        let capturedDataUrl: string | null = null;
+        
+        const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
+          const canvas = this;
+          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          originalToBlob.call(this, callback, type, quality);
+        };
+        
+        const checkInterval = setInterval(() => {
+          if (capturedDataUrl) {
+            clearInterval(checkInterval);
+            HTMLCanvasElement.prototype.toBlob = originalToBlob;
+            resolve(capturedDataUrl);
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          HTMLCanvasElement.prototype.toBlob = originalToBlob;
+          reject(new Error('Timeout waiting for image generation'));
+        }, 15000);
+        
+        whatsappButton.click();
       });
-      
-      document.body.removeChild(offscreenContainer);
-      
-      return canvas.toDataURL('image/jpeg', 0.95);
     });
     
-    const base64Data = imageBuffer.replace(/^data:image\/\w+;base64,/, '');
+    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
     console.log(`[Puppeteer] Verse image generated: ${buffer.length} bytes`);
@@ -129,7 +109,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
 }
 
 export async function generateReflectionShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating reflection share image...');
+  console.log('[Puppeteer] Generating reflection share image (same as WhatsApp button)...');
   
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -149,64 +129,43 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     
     await page.waitForSelector('[data-testid="dialog-share-reflection"]', { timeout: 5000 });
     
-    const imageBuffer = await page.evaluate(async () => {
-      const shareCardElement = document.querySelector('[data-share-card="reflection"]') as HTMLElement;
-      if (!shareCardElement) {
-        throw new Error('Share card element not found');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const imageDataUrl = await page.evaluate(async () => {
+      const whatsappButton = document.querySelector('[data-testid="button-share-reflection-whatsapp"]') as HTMLButtonElement;
+      if (!whatsappButton) {
+        throw new Error('WhatsApp button not found');
       }
       
-      const html2canvas = (window as any).html2canvas;
-      if (!html2canvas) {
-        throw new Error('html2canvas not available');
-      }
-      
-      const cardWidth = 1080;
-      const cardHeight = 1920;
-      
-      const offscreenContainer = document.createElement('div');
-      offscreenContainer.style.cssText = `
-        position: fixed;
-        left: -10000px;
-        top: 0;
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        overflow: hidden;
-      `;
-      document.body.appendChild(offscreenContainer);
-      
-      const clonedCard = shareCardElement.cloneNode(true) as HTMLElement;
-      clonedCard.style.cssText = `
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        overflow: hidden;
-        background: transparent;
-        margin: 0;
-        padding: 0;
-      `;
-      
-      offscreenContainer.appendChild(clonedCard);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const canvas = await html2canvas(clonedCard, {
-        scale: 1,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        logging: false,
-        width: cardWidth,
-        height: cardHeight,
+      return new Promise<string>((resolve, reject) => {
+        let capturedDataUrl: string | null = null;
+        
+        const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
+          const canvas = this;
+          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          originalToBlob.call(this, callback, type, quality);
+        };
+        
+        const checkInterval = setInterval(() => {
+          if (capturedDataUrl) {
+            clearInterval(checkInterval);
+            HTMLCanvasElement.prototype.toBlob = originalToBlob;
+            resolve(capturedDataUrl);
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          HTMLCanvasElement.prototype.toBlob = originalToBlob;
+          reject(new Error('Timeout waiting for image generation'));
+        }, 15000);
+        
+        whatsappButton.click();
       });
-      
-      document.body.removeChild(offscreenContainer);
-      
-      return canvas.toDataURL('image/jpeg', 0.95);
     });
     
-    const base64Data = imageBuffer.replace(/^data:image\/\w+;base64,/, '');
+    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
     console.log(`[Puppeteer] Reflection image generated: ${buffer.length} bytes`);
@@ -218,7 +177,7 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
 }
 
 export async function generateBirthdayShareImage(memberId: number): Promise<Buffer> {
-  console.log(`[Puppeteer] Generating birthday share image for member ${memberId}...`);
+  console.log(`[Puppeteer] Generating birthday share image for member ${memberId} (same as WhatsApp button)...`);
   
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -238,92 +197,43 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     
     await page.waitForSelector('[data-testid="dialog-share-birthday"]', { timeout: 5000 });
     
-    const imageBuffer = await page.evaluate(async () => {
-      const shareCardElement = document.querySelector('[data-share-card="birthday"]') as HTMLElement;
-      if (!shareCardElement) {
-        throw new Error('Share card element not found');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const imageDataUrl = await page.evaluate(async () => {
+      const whatsappButton = document.querySelector('[data-testid="button-share-whatsapp"]') as HTMLButtonElement;
+      if (!whatsappButton) {
+        throw new Error('WhatsApp button not found');
       }
       
-      const html2canvas = (window as any).html2canvas;
-      if (!html2canvas) {
-        throw new Error('html2canvas not available');
-      }
-      
-      const cardWidth = 2160;
-      const cardHeight = 3840;
-      
-      const offscreenContainer = document.createElement('div');
-      offscreenContainer.style.cssText = `
-        position: fixed;
-        left: -10000px;
-        top: 0;
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        overflow: hidden;
-      `;
-      document.body.appendChild(offscreenContainer);
-      
-      const clonedCard = shareCardElement.cloneNode(true) as HTMLElement;
-      clonedCard.style.cssText = `
-        width: ${cardWidth}px;
-        height: ${cardHeight}px;
-        overflow: hidden;
-        background: transparent;
-        margin: 0;
-        padding: 0;
-      `;
-      
-      const scaleFactor = 8;
-      const textElements = clonedCard.querySelectorAll('p, span');
-      textElements.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        const currentSize = parseFloat(htmlEl.style.fontSize);
-        if (!isNaN(currentSize) && currentSize > 0) {
-          const pxSize = Math.round(currentSize * 16 * scaleFactor);
-          htmlEl.style.fontSize = `${pxSize}px`;
-        }
+      return new Promise<string>((resolve, reject) => {
+        let capturedDataUrl: string | null = null;
+        
+        const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+        HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
+          const canvas = this;
+          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          originalToBlob.call(this, callback, type, quality);
+        };
+        
+        const checkInterval = setInterval(() => {
+          if (capturedDataUrl) {
+            clearInterval(checkInterval);
+            HTMLCanvasElement.prototype.toBlob = originalToBlob;
+            resolve(capturedDataUrl);
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          HTMLCanvasElement.prototype.toBlob = originalToBlob;
+          reject(new Error('Timeout waiting for image generation'));
+        }, 15000);
+        
+        whatsappButton.click();
       });
-
-      const memberPhoto = clonedCard.querySelector('img[data-member-photo]') as HTMLImageElement;
-      if (memberPhoto) {
-        memberPhoto.style.width = '1404px';
-        memberPhoto.style.height = '1404px';
-      }
-      
-      const placeholderDiv = clonedCard.querySelector('div[style*="backgroundColor"]') as HTMLElement;
-      if (placeholderDiv) {
-        placeholderDiv.style.width = '1404px';
-        placeholderDiv.style.height = '1404px';
-      }
-      
-      const nameElement = clonedCard.querySelector('p') as HTMLElement;
-      if (nameElement) {
-        nameElement.style.bottom = '29.3%';
-      }
-      
-      offscreenContainer.appendChild(clonedCard);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const canvas = await html2canvas(clonedCard, {
-        scale: 1,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
-        logging: false,
-        width: cardWidth,
-        height: cardHeight,
-      });
-      
-      document.body.removeChild(offscreenContainer);
-      
-      return canvas.toDataURL('image/jpeg', 0.95);
     });
     
-    const base64Data = imageBuffer.replace(/^data:image\/\w+;base64,/, '');
+    const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
     console.log(`[Puppeteer] Birthday image generated: ${buffer.length} bytes`);

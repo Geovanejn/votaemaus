@@ -75,7 +75,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
           const canvas = this;
-          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          capturedDataUrl = canvas.toDataURL('image/png', 1.0);
           originalToBlob.call(this, callback, type, quality);
         };
         
@@ -100,7 +100,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
-    console.log(`[Puppeteer] Verse image generated: ${buffer.length} bytes`);
+    console.log(`[Puppeteer] Verse PNG image generated: ${buffer.length} bytes (2160x3840)`);
     return buffer;
     
   } finally {
@@ -143,7 +143,7 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
           const canvas = this;
-          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          capturedDataUrl = canvas.toDataURL('image/png', 1.0);
           originalToBlob.call(this, callback, type, quality);
         };
         
@@ -168,7 +168,7 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
-    console.log(`[Puppeteer] Reflection image generated: ${buffer.length} bytes`);
+    console.log(`[Puppeteer] Reflection PNG image generated: ${buffer.length} bytes (2160x3840)`);
     return buffer;
     
   } finally {
@@ -211,7 +211,7 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
           const canvas = this;
-          capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          capturedDataUrl = canvas.toDataURL('image/png', 1.0);
           originalToBlob.call(this, callback, type, quality);
         };
         
@@ -236,7 +236,7 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     
-    console.log(`[Puppeteer] Birthday image generated: ${buffer.length} bytes`);
+    console.log(`[Puppeteer] Birthday PNG image generated: ${buffer.length} bytes (2160x3840)`);
     return buffer;
     
   } finally {

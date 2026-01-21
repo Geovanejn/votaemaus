@@ -5,8 +5,12 @@ let browserInstance: Browser | null = null;
 async function getBrowser(): Promise<Browser> {
   if (!browserInstance || !browserInstance.connected) {
     console.log('[Puppeteer] Launching browser...');
+    
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+    
     browserInstance = await puppeteer.launch({
       headless: true,
+      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -14,6 +18,7 @@ async function getBrowser(): Promise<Browser> {
         '--disable-gpu',
         '--disable-web-security',
         '--allow-file-access-from-files',
+        '--single-process',
       ],
     });
   }

@@ -98,6 +98,7 @@ import {
   sendPushToUser
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments, publishInstagramStory, isInstagramPublishingConfigured, testInstagramStoryConfig } from "./instagram";
+import { generateVerseStoryImage, generateReflectionStoryImage, generateBirthdayStoryImage, uploadStoryImageToR2 } from "./story-image-generator";
 import { getDailyVerse as fetchDailyVerseFromAPI } from "./bible-api";
 import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicUrl, getProxyUrl, logR2Status, type ImageCategory } from "./r2-storage";
 
@@ -6616,7 +6617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test publish verse story to Instagram
+  // Publish verse story to Instagram (uses saved image or generates on-demand)
   app.post("/api/admin/instagram/publish-verse-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
@@ -6628,14 +6629,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Nenhum versículo do dia encontrado" });
       }
       
-      // Use pre-generated image (saved at 07:01)
-      if (!dailyVerse.verseShareImageUrl) {
-        return res.status(400).json({ message: "Imagem do versículo ainda não foi gerada. Aguarde até às 07:01 ou gere manualmente." });
+      let imageUrl = dailyVerse.verseShareImageUrl;
+      
+      // If no saved image, generate on-demand
+      if (!imageUrl) {
+        console.log(`[Instagram Stories] No saved verse image, generating on-demand...`);
+        
+        const backgroundUrl = dailyVerse.backgroundUrl || dailyVerse.imageUrl;
+        const verseImageBuffer = await generateVerseStoryImage(
+          {
+            verse: dailyVerse.verse,
+            reference: dailyVerse.reference,
+            highlightedKeywords: dailyVerse.highlightedKeywords,
+          },
+          backgroundUrl || undefined
+        );
+        
+        const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
+        imageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
+        
+        if (!imageUrl) {
+          return res.status(500).json({ message: "Falha ao gerar imagem do versículo" });
+        }
       }
       
-      console.log(`[Instagram Stories] Publishing verse story using saved image...`);
+      console.log(`[Instagram Stories] Publishing verse story...`);
       
-      const result = await publishInstagramStory(dailyVerse.verseShareImageUrl);
+      const result = await publishInstagramStory(imageUrl);
       
       if (result.success) {
         // Clear the image URL after successful publish
@@ -6658,7 +6678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish reflection story to Instagram (using saved image)
+  // Publish reflection story to Instagram (uses saved image or generates on-demand)
   app.post("/api/admin/instagram/publish-reflection-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
@@ -6670,14 +6690,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Nenhuma reflexão do dia encontrada" });
       }
       
-      // Use pre-generated image (saved at 07:01)
-      if (!dailyVerse.reflectionShareImageUrl) {
-        return res.status(400).json({ message: "Imagem da reflexão ainda não foi gerada. Aguarde até às 07:01 ou gere manualmente." });
+      if (!dailyVerse.reflection || !dailyVerse.reflectionTitle) {
+        return res.status(400).json({ message: "Este versículo não possui reflexão" });
       }
       
-      console.log(`[Instagram Stories] Publishing reflection story using saved image...`);
+      let imageUrl = dailyVerse.reflectionShareImageUrl;
       
-      const result = await publishInstagramStory(dailyVerse.reflectionShareImageUrl);
+      // If no saved image, generate on-demand
+      if (!imageUrl) {
+        console.log(`[Instagram Stories] No saved reflection image, generating on-demand...`);
+        
+        const backgroundUrl = dailyVerse.backgroundUrl || dailyVerse.imageUrl;
+        const reflectionImageBuffer = await generateReflectionStoryImage(
+          {
+            reflectionTitle: dailyVerse.reflectionTitle,
+            reflection: dailyVerse.reflection,
+            reflectionKeywords: dailyVerse.reflectionKeywords,
+            reflectionReferences: dailyVerse.reflectionReferences,
+          },
+          backgroundUrl || undefined
+        );
+        
+        const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
+        imageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
+        
+        if (!imageUrl) {
+          return res.status(500).json({ message: "Falha ao gerar imagem da reflexão" });
+        }
+      }
+      
+      console.log(`[Instagram Stories] Publishing reflection story...`);
+      
+      const result = await publishInstagramStory(imageUrl);
       
       if (result.success) {
         // Clear the image URL after successful publish
@@ -6700,7 +6744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Publish birthday story to Instagram (using saved image)
+  // Publish birthday story to Instagram (uses saved image or generates on-demand)
   app.post("/api/admin/instagram/publish-birthday-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const { memberId } = req.body;
@@ -6721,19 +6765,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const firstName = member.fullName.split(' ')[0];
       const todayFullDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       
-      // Use pre-generated image (saved at 08:01)
-      const savedImage = await storage.getBirthdayShareImage(memberId, todayFullDate);
-      if (!savedImage) {
-        return res.status(400).json({ message: `Imagem de aniversário de ${firstName} ainda não foi gerada. Aguarde até às 08:01 ou gere manualmente.` });
+      // Try to use pre-generated image (saved at 08:01)
+      let savedImage = await storage.getBirthdayShareImage(memberId, todayFullDate);
+      let imageUrl: string | null = savedImage?.imageUrl || null;
+      let generatedOnDemand = false;
+      
+      // If no saved image, generate on-demand
+      if (!imageUrl) {
+        console.log(`[Instagram Stories] No saved birthday image for ${firstName}, generating on-demand...`);
+        
+        const photoUrl = member.photoUrl ? getProxyUrl(member.photoUrl) : undefined;
+        const birthdayImageBuffer = await generateBirthdayStoryImage(
+          {
+            fullName: member.fullName,
+            photoUrl: photoUrl,
+          }
+        );
+        
+        const birthdayFilename = `birthday-story-${memberId}-${Date.now()}.jpg`;
+        imageUrl = await uploadStoryImageToR2(birthdayImageBuffer, birthdayFilename);
+        generatedOnDemand = true;
+        
+        if (!imageUrl) {
+          return res.status(500).json({ message: "Falha ao gerar imagem de aniversário" });
+        }
       }
       
-      console.log(`[Instagram Stories] Publishing birthday story for ${firstName} using saved image...`);
+      console.log(`[Instagram Stories] Publishing birthday story for ${firstName}...`);
       
-      const result = await publishInstagramStory(savedImage.imageUrl);
+      const result = await publishInstagramStory(imageUrl);
       
       if (result.success) {
-        // Delete the image from database after successful publish
-        await storage.deleteBirthdayShareImage(savedImage.id);
+        // Delete the saved image from database after successful publish
+        if (savedImage) {
+          await storage.deleteBirthdayShareImage(savedImage.id);
+        }
         
         res.json({ 
           success: true, 

@@ -6582,9 +6582,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return only next 30 days
       const upcomingBirthdays = birthdayMembers.filter(m => m && m.daysUntil <= 30);
       
+      // Convert R2 URLs to public CDN URLs for photoUrl
+      const todayBirthdays = convertImageUrlsArray(upcomingBirthdays.filter(m => m && m.isToday) as any[]);
+      const upcomingList = convertImageUrlsArray(upcomingBirthdays.filter(m => m && !m.isToday) as any[]);
+      
       res.json({
-        today: upcomingBirthdays.filter(m => m && m.isToday),
-        upcoming: upcomingBirthdays.filter(m => m && !m.isToday)
+        today: todayBirthdays,
+        upcoming: upcomingList
       });
     } catch (error) {
       console.error("Get birthdays error:", error);

@@ -284,11 +284,11 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      // Use ultra high resolution for sharp export (4x story resolution)
-      const cardWidth = 4320; // 4x Full HD width for stories
-      const cardHeight = 7680; // 4x Full HD height for stories (9:16)
+      // Use ultra high resolution for sharp export (2x story resolution)
+      const cardWidth = 2160; // 2x Full HD width for stories
+      const cardHeight = 3840; // 2x Full HD height for stories (9:16)
       const scale = 1; // No scaling needed since we're already at full resolution
-      const borderRadius = 160; // Scaled border-radius for ultra high res
+      const borderRadius = 80; // Scaled border-radius for ultra high res
       
       // Create off-screen container with fully transparent background
       // This prevents blending with Dialog's light background
@@ -319,9 +319,9 @@ export default function VersiculoDoDiaPage() {
         padding: 0;
       `;
       
-      // Set explicit pixel sizes for ultra high-res export
-      // Preview at 270px width, scaled to 4320px (16x) then reduced 25%
-      const scaleFactor = 16 * 0.75; // 12x scale
+      // Set explicit pixel sizes for ultra high-res export (25% smaller than proportional preview sizes)
+      // Preview at 270px width has these rem sizes, scaled to 2160px (8x) then reduced 25%
+      const scaleFactor = 8 * 0.75; // 6x scale
       
       const textElements = clonedCard.querySelectorAll('h3, p');
       textElements.forEach((el) => {
@@ -348,7 +348,7 @@ export default function VersiculoDoDiaPage() {
         // Verse paragraph has italic style and 0.7rem margin
         if (htmlP.style.fontStyle === 'italic') {
           // Scale margin with 2x multiplier for better spacing (0.7rem * 16 * 6 * 2 = 134.4px)
-          htmlP.style.marginBottom = '260px';
+          htmlP.style.marginBottom = '130px';
         }
       });
       
@@ -356,7 +356,7 @@ export default function VersiculoDoDiaPage() {
       const svgIcon = clonedCard.querySelector('svg');
       if (svgIcon) {
         const parentP = svgIcon.closest('p') as HTMLElement;
-        const scaledSize = 116;
+        const scaledSize = 58;
         
         if (parentP) {
           // Force explicit flex centering on parent container
@@ -364,7 +364,7 @@ export default function VersiculoDoDiaPage() {
           parentP.style.alignItems = 'center';
           parentP.style.justifyContent = 'center';
           // Reduce gap - closer to reference
-          parentP.style.gap = '96px';
+          parentP.style.gap = '48px';
           // Set line-height to match icon size to prevent clipping
           parentP.style.lineHeight = `${scaledSize}px`;
           parentP.style.overflow = 'visible';
@@ -380,7 +380,7 @@ export default function VersiculoDoDiaPage() {
           height: ${scaledSize}px;
           overflow: visible;
           flex-shrink: 0;
-          margin-top: 94px;
+          margin-top: 47px;
         `;
         
         // Scale SVG size for high-res export
@@ -425,7 +425,7 @@ export default function VersiculoDoDiaPage() {
       // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
-        logo.style.height = '884px';
+        logo.style.height = '442px';
       }
       
       offscreenContainer.appendChild(clonedCard);
@@ -598,11 +598,11 @@ export default function VersiculoDoDiaPage() {
 
     setGenerating(true);
     try {
-      const cardWidth = 4320;
-      const cardHeight = 7680;
+      const cardWidth = 2160;
+      const cardHeight = 3840;
       const scale = 1;
-      const borderRadius = 160;
-      const scaleFactor = 16 * 0.75; // 12x scale (preview ~270px -> 4320px, then 75%)
+      const borderRadius = 80;
+      const scaleFactor = 8 * 0.75; // 6x scale (preview ~270px -> 2160px, then 75%)
       
       const offscreenContainer = document.createElement('div');
       offscreenContainer.style.cssText = `

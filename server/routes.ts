@@ -6531,10 +6531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all active members with birthdate
       const allUsers = await storage.getAllUsers();
-      console.log('[Birthdays] Total users:', allUsers.length);
-      console.log('[Birthdays] Users with birthdate:', allUsers.filter(u => u.birthdate).map(u => ({ id: u.id, name: u.fullName, birthdate: u.birthdate, activeMember: u.activeMember })));
       const activeMembers = allUsers.filter(u => u.activeMember && u.birthdate);
-      console.log('[Birthdays] Active members with birthdate:', activeMembers.length);
       
       // Filter for today's birthdays and upcoming (next 7 days)
       const birthdayMembers = activeMembers.map(user => {
@@ -6555,11 +6552,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Calculate days until birthday (for sorting upcoming)
         const currentYear = today.getFullYear();
-        const birthdayThisYear = new Date(`${currentYear}-${monthDay}`);
-        if (birthdayThisYear < today) {
+        const birthdayThisYear = new Date(`${currentYear}-${monthDay}T00:00:00`);
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        let daysUntil = Math.ceil((birthdayThisYear.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysUntil < 0) {
           birthdayThisYear.setFullYear(currentYear + 1);
+          daysUntil = Math.ceil((birthdayThisYear.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
         }
-        const daysUntil = Math.ceil((birthdayThisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         
         return {
           id: user.id,

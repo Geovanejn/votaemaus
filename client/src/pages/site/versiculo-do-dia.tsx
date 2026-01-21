@@ -432,10 +432,12 @@ export default function VersiculoDoDiaPage() {
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
         logo.style.height = '442px';
+        logo.style.overflow = 'visible';
         // Scale logo container marginBottom (0.8rem * 16 * 8 = 102px)
         const logoContainer = logo.parentElement as HTMLElement;
         if (logoContainer) {
           logoContainer.style.marginBottom = '102px';
+          logoContainer.style.overflow = 'visible';
         }
       }
       
@@ -694,10 +696,12 @@ export default function VersiculoDoDiaPage() {
       const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
       if (logo) {
         logo.style.height = '442px';
+        logo.style.overflow = 'visible';
         // Scale logo container marginBottom (0.8rem * 16 * 8 = 102px)
         const logoContainer = logo.parentElement as HTMLElement;
         if (logoContainer) {
           logoContainer.style.marginBottom = '102px';
+          logoContainer.style.overflow = 'visible';
         }
       }
       

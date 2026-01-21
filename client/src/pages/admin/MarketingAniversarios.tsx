@@ -127,7 +127,7 @@ export default function MarketingAniversarios() {
       
       document.body.removeChild(offscreenContainer);
 
-      const shareText = `🎂 Feliz Aniversário, ${selectedMember.firstName}! 🎉\n\nNossa UMP te deseja parabéns. Que Deus derrame graça e paz sobre ti.\n\n- UMP Emaús`;
+      const shareText = `Feliz Aniversário, ${selectedMember.firstName}!\n\nNossa UMP te deseja parabéns. Que Deus derrame graça e paz sobre ti.\n\n- UMP Emaús`;
 
       if (platform === 'download') {
         sourceCanvas.toBlob(async (blob) => {

@@ -102,14 +102,14 @@ export default function MarketingAniversarios() {
 
       const memberPhoto = clonedCard.querySelector('img[data-member-photo]') as HTMLImageElement;
       if (memberPhoto) {
-        memberPhoto.style.width = '1102px';
-        memberPhoto.style.height = '1102px';
+        memberPhoto.style.width = '1340px';
+        memberPhoto.style.height = '1340px';
       }
       
       const placeholderDiv = clonedCard.querySelector('div[style*="backgroundColor"]') as HTMLElement;
       if (placeholderDiv) {
-        placeholderDiv.style.width = '1102px';
-        placeholderDiv.style.height = '1102px';
+        placeholderDiv.style.width = '1340px';
+        placeholderDiv.style.height = '1340px';
       }
       
       offscreenContainer.appendChild(clonedCard);
@@ -391,9 +391,9 @@ export default function MarketingAniversarios() {
                 alt=""
                 style={{
                   position: 'absolute',
-                  width: '51%',
+                  width: '62%',
                   aspectRatio: '1/1',
-                  top: '34.5%',
+                  top: '38%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   objectFit: 'cover',
@@ -405,9 +405,9 @@ export default function MarketingAniversarios() {
               <div
                 style={{
                   position: 'absolute',
-                  width: '51%',
+                  width: '62%',
                   aspectRatio: '1/1',
-                  top: '34.5%',
+                  top: '38%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   backgroundColor: '#374151',
@@ -435,16 +435,16 @@ export default function MarketingAniversarios() {
             />
             <p style={{
               position: 'absolute',
-              bottom: '42.3%',
+              bottom: '8.5%',
               left: '50%',
               transform: 'translateX(-50%)',
-              fontSize: '1.1rem',
-              fontWeight: 700,
+              fontSize: '1.4rem',
+              fontWeight: 600,
               color: '#000000',
               textAlign: 'center',
               zIndex: 3,
               whiteSpace: 'nowrap',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Dancing Script', cursive",
             }}>
               {selectedMember?.firstName || ''}
             </p>

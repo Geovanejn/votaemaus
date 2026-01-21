@@ -667,6 +667,12 @@ export default function VersiculoDoDiaPage() {
         htmlEl.style.fontStyle = 'italic';
       });
       
+      // Scale logo for ultra high-res (4.6rem * 16 * 8 * 0.75 = 442px)
+      const logo = clonedCard.querySelector('img[alt="UMP Emaús"]') as HTMLImageElement;
+      if (logo) {
+        logo.style.height = '442px';
+      }
+      
       offscreenContainer.appendChild(clonedCard);
       
       if (document.fonts && document.fonts.ready) {

@@ -925,11 +925,7 @@ export default function VersiculoDoDiaPage() {
               </div>
 
               <CardContent className="p-6 md:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <BookOpen className="h-5 w-5" />
-                    <span>Reflexão</span>
-                  </div>
+                <div className="flex justify-center mb-6">
                   <Button 
                     onClick={() => setShareOpen(true)}
                     className="bg-orange-500 hover:bg-orange-600 text-white"
@@ -938,6 +934,11 @@ export default function VersiculoDoDiaPage() {
                     <Share2 className="mr-2 h-4 w-4" />
                     Compartilhar Versículo
                   </Button>
+                </div>
+                
+                <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                  <BookOpen className="h-5 w-5" />
+                  <span>Reflexão</span>
                 </div>
 
                 {todayVerse.reflection ? (

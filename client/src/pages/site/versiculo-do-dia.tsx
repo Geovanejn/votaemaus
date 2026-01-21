@@ -1282,10 +1282,10 @@ export default function VersiculoDoDiaPage() {
                 <div>
                   {todayVerse?.reflectionTitle && (
                     <p style={{ 
-                      fontSize: '0.825rem', 
+                      fontSize: '0.908rem', 
                       fontWeight: 700,
                       lineHeight: 1.4,
-                      margin: '0 0 1.4rem 0',
+                      margin: '0 0 1.54rem 0',
                       textShadow: '0 2px 4px rgba(0,0,0,0.5)' 
                     }}>
                       {todayVerse.reflectionTitle}

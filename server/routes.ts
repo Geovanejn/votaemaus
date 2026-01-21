@@ -6582,9 +6582,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return only next 30 days
       const upcomingBirthdays = birthdayMembers.filter(m => m && m.daysUntil <= 30);
       
-      // Convert R2 URLs to public CDN URLs for photoUrl
-      const todayBirthdays = convertImageUrlsArray(upcomingBirthdays.filter(m => m && m.isToday) as any[]);
-      const upcomingList = convertImageUrlsArray(upcomingBirthdays.filter(m => m && !m.isToday) as any[]);
+      // Convert R2 URLs to proxy URLs for CORS support (crossOrigin="anonymous" requires CORS headers)
+      const convertBirthdayPhotos = (members: any[]) => {
+        return members.map(m => ({
+          ...m,
+          photoUrl: m.photoUrl ? getProxyUrl(m.photoUrl) : null
+        }));
+      };
+      
+      const todayBirthdays = convertBirthdayPhotos(upcomingBirthdays.filter(m => m && m.isToday) as any[]);
+      const upcomingList = convertBirthdayPhotos(upcomingBirthdays.filter(m => m && !m.isToday) as any[]);
       
       res.json({
         today: todayBirthdays,
@@ -6610,7 +6617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test publish verse story to Instagram
-  app.post("/api/admin/instagram/test-verse-story", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/instagram/test-verse-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
@@ -6674,7 +6681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test publish reflection story to Instagram
-  app.post("/api/admin/instagram/test-reflection-story", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/instagram/test-reflection-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       if (!isInstagramPublishingConfigured()) {
         return res.status(400).json({ message: "Instagram não está configurado para publicação" });
@@ -6739,7 +6746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test publish birthday story to Instagram
-  app.post("/api/admin/instagram/test-birthday-story", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/admin/instagram/test-birthday-story", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
       const { memberId } = req.body;
       
@@ -6751,7 +6758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let photoUrl: string | null = null;
       
       if (memberId) {
-        const member = await storage.getUser(memberId);
+        const member = await storage.getUserById(memberId);
         if (member) {
           firstName = member.fullName.split(' ')[0];
           photoUrl = member.photoUrl ? convertImageUrls({ photoUrl: member.photoUrl }).photoUrl : null;

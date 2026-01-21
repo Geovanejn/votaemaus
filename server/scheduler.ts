@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVerseWithLink, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
-import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured } from "./instagram";
+import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured, refreshInstagramToken } from "./instagram";
 import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 import { generateVerseStoryImage, generateReflectionStoryImage, generateBirthdayStoryImage, uploadStoryImageToR2 } from "./story-image-generator";
@@ -2430,7 +2430,29 @@ async function publishBirthdayStoriesToInstagram(): Promise<void> {
   }
 }
 
+// Refresh Instagram access token (runs daily at 07:00)
+async function refreshInstagramAccessToken(): Promise<void> {
+  console.log('[Instagram Token Scheduler] Attempting to refresh access token...');
+  
+  try {
+    const result = await refreshInstagramToken();
+    if (result) {
+      console.log('[Instagram Token Scheduler] Token refreshed successfully');
+    } else {
+      console.log('[Instagram Token Scheduler] Token refresh failed or not configured');
+    }
+  } catch (error) {
+    console.error('[Instagram Token Scheduler] Error refreshing token:', error);
+  }
+}
+
 export function initInstagramStoriesSchedulers(): void {
+  // Refresh Instagram token at 07:00 (America/Sao_Paulo) - before stories are published
+  cron.schedule('0 7 * * *', refreshInstagramAccessToken, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)');
+  
   // Daily verse story at 07:05 (America/Sao_Paulo)
   cron.schedule('5 7 * * *', publishVerseStoryToInstagram, {
     timezone: 'America/Sao_Paulo'

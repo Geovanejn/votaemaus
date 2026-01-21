@@ -5562,6 +5562,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get member for birthday page (public - for Puppeteer capture)
+  app.get("/api/site/birthday-member/:id", async (req, res) => {
+    try {
+      const memberId = parseInt(req.params.id);
+      if (isNaN(memberId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const member = await storage.getUserById(memberId);
+      if (!member) {
+        return res.status(404).json({ message: "Membro não encontrado" });
+      }
+      
+      const firstName = member.fullName.split(' ')[0];
+      const convertedMember = convertImageUrls(member);
+      
+      res.json({
+        id: member.id,
+        fullName: member.fullName,
+        firstName,
+        photoUrl: convertedMember.photoUrl || null,
+      });
+    } catch (error) {
+      console.error("Get birthday member error:", error);
+      res.status(500).json({ message: "Erro ao buscar membro" });
+    }
+  });
+
   // ==================== ADMIN SITE MANAGEMENT API ====================
 
   // Force generate daily verse (admin only - for testing)

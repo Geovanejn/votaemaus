@@ -52,15 +52,20 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     const url = `${baseUrl}/versiculo-do-dia`;
     
     console.log(`[Puppeteer] Navigating to ${url}`);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await page.waitForSelector('[data-testid="button-share-verse"]', { timeout: 10000 });
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
+    console.log('[Puppeteer] Waiting for share button...');
+    await page.waitForSelector('[data-testid="button-share-verse"]', { timeout: 30000 });
+    
+    console.log('[Puppeteer] Clicking share button...');
     await page.click('[data-testid="button-share-verse"]');
     
-    await page.waitForSelector('[data-testid="dialog-share-verse"]', { timeout: 5000 });
+    console.log('[Puppeteer] Waiting for dialog...');
+    await page.waitForSelector('[data-testid="dialog-share-verse"]', { timeout: 15000 });
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     const imageDataUrl = await page.evaluate(async () => {
       const whatsappButton = document.querySelector('[data-testid="button-share-whatsapp"]') as HTMLButtonElement;
@@ -121,15 +126,20 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     const url = `${baseUrl}/versiculo-do-dia`;
     
     console.log(`[Puppeteer] Navigating to ${url}`);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await page.waitForSelector('[data-testid="button-share-reflection"]', { timeout: 10000 });
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
+    console.log('[Puppeteer] Waiting for reflection share button...');
+    await page.waitForSelector('[data-testid="button-share-reflection"]', { timeout: 30000 });
+    
+    console.log('[Puppeteer] Clicking reflection share button...');
     await page.click('[data-testid="button-share-reflection"]');
     
-    await page.waitForSelector('[data-testid="dialog-share-reflection"]', { timeout: 5000 });
+    console.log('[Puppeteer] Waiting for reflection dialog...');
+    await page.waitForSelector('[data-testid="dialog-share-reflection"]', { timeout: 15000 });
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     const imageDataUrl = await page.evaluate(async () => {
       const whatsappButton = document.querySelector('[data-testid="button-share-reflection-whatsapp"]') as HTMLButtonElement;
@@ -186,18 +196,23 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     await page.setViewport({ width: 1920, height: 1080 });
     
     const baseUrl = getBaseUrl();
-    const url = `${baseUrl}/admin/marketing/aniversarios?capture=${memberId}`;
+    const url = `${baseUrl}/aniversario/${memberId}`;
     
     console.log(`[Puppeteer] Navigating to ${url}`);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await page.waitForSelector(`[data-testid="button-share-birthday-${memberId}"]`, { timeout: 10000 });
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
+    console.log(`[Puppeteer] Waiting for birthday share button for member ${memberId}...`);
+    await page.waitForSelector(`[data-testid="button-share-birthday-${memberId}"]`, { timeout: 30000 });
+    
+    console.log('[Puppeteer] Clicking birthday share button...');
     await page.click(`[data-testid="button-share-birthday-${memberId}"]`);
     
-    await page.waitForSelector('[data-testid="dialog-share-birthday"]', { timeout: 5000 });
+    console.log('[Puppeteer] Waiting for birthday dialog...');
+    await page.waitForSelector('[data-testid="dialog-share-birthday"]', { timeout: 15000 });
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     const imageDataUrl = await page.evaluate(async () => {
       const whatsappButton = document.querySelector('[data-testid="button-share-whatsapp"]') as HTMLButtonElement;

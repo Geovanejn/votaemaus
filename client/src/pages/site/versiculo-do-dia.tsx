@@ -85,8 +85,8 @@ function formatReference(reference: string): string {
   return reference.replace(/\s*\(ARA\)\s*/gi, '').toUpperCase();
 }
 
-// Helper function to render reflection with keywords in bold and references in italic
-// Returns an array of paragraph elements, each with proper ABNT text-indent
+// Helper function to render reflection with markdown bold (**text**) and italic (*text*) support
+// Also highlights keywords and references from arrays
 function renderReflectionWithFormatting(
   reflection: string, 
   keywords: string[] | null | undefined,
@@ -95,39 +95,59 @@ function renderReflectionWithFormatting(
   // Split reflection into paragraphs (stanzas)
   const paragraphs = reflection.split(/\n\n+/);
   
-  // Combine keywords and references for matching
-  const allKeywords = keywords || [];
-  const allReferences = references || [];
+  // Combine keywords and references for matching (without markdown markers)
+  const allKeywords = (keywords || []).map(k => k.replace(/\*+/g, ''));
+  const allReferences = (references || []).map(r => r.replace(/\*+/g, ''));
   
   // Sort by length (longer first) to avoid partial matching issues
   const sortedKeywords = [...allKeywords].sort((a, b) => b.length - a.length);
   const sortedReferences = [...allReferences].sort((a, b) => b.length - a.length);
   
-  // Create combined pattern
-  const allTerms = [...sortedKeywords, ...sortedReferences];
-  
   const renderParagraphContent = (para: string) => {
-    if (allTerms.length === 0) {
-      return <>{para}</>;
-    }
+    // Parse markdown-style bold (**text**) and italic (*text*)
+    // Pattern matches **bold**, *italic*, and plain text
+    const markdownPattern = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+    const parts = para.split(markdownPattern);
     
-    const pattern = new RegExp(
-      `(${allTerms.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
-      'gi'
-    );
-    
-    const parts = para.split(pattern);
     return (
       <>
         {parts.map((part, index) => {
-          const isKeyword = sortedKeywords.some(k => k.toLowerCase() === part.toLowerCase());
-          const isReference = sortedReferences.some(r => r.toLowerCase() === part.toLowerCase());
-          
-          if (isKeyword) {
-            return <strong key={index} style={{ fontWeight: 700 }}>{part}</strong>;
-          } else if (isReference) {
-            return <em key={index} style={{ fontStyle: 'italic' }}>{part}</em>;
+          // Check for markdown bold **text**
+          if (part.startsWith('**') && part.endsWith('**')) {
+            const text = part.slice(2, -2);
+            return <strong key={index} style={{ fontWeight: 700 }}>{text}</strong>;
           }
+          // Check for markdown italic *text*
+          if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+            const text = part.slice(1, -1);
+            return <em key={index} style={{ fontStyle: 'italic' }}>{text}</em>;
+          }
+          
+          // For plain text, check if it matches keywords or references
+          if (sortedKeywords.length > 0 || sortedReferences.length > 0) {
+            const allTerms = [...sortedKeywords, ...sortedReferences];
+            const pattern = new RegExp(
+              `(${allTerms.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+              'gi'
+            );
+            const subParts = part.split(pattern);
+            return (
+              <span key={index}>
+                {subParts.map((subPart, subIndex) => {
+                  const isKeyword = sortedKeywords.some(k => k.toLowerCase() === subPart.toLowerCase());
+                  const isReference = sortedReferences.some(r => r.toLowerCase() === subPart.toLowerCase());
+                  
+                  if (isKeyword) {
+                    return <strong key={subIndex} style={{ fontWeight: 700 }}>{subPart}</strong>;
+                  } else if (isReference) {
+                    return <em key={subIndex} style={{ fontStyle: 'italic' }}>{subPart}</em>;
+                  }
+                  return <span key={subIndex}>{subPart}</span>;
+                })}
+              </span>
+            );
+          }
+          
           return <span key={index}>{part}</span>;
         })}
       </>

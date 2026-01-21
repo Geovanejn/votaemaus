@@ -1030,11 +1030,20 @@ export default function DevocionalDetailPage() {
                 <p style={{ 
                   fontSize: '0.55rem', 
                   opacity: 0.9,
+                  margin: '0 0 0.2rem 0',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                  letterSpacing: '0.03em'
+                }}>
+                  Leia a devocional em
+                </p>
+                <p style={{ 
+                  fontSize: '0.65rem', 
+                  fontWeight: 700,
                   margin: '0 0 0.5rem 0',
                   textShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   letterSpacing: '0.03em'
                 }}>
-                  Leia a devocional completa em <strong>umpemaus.com.br</strong>
+                  umpemaus.com.br
                 </p>
                 <img src={logoWhite} alt="UMP Emaús" style={{ height: '4.6rem', opacity: 0.95, display: 'block', margin: '0 auto' }} />
               </div>

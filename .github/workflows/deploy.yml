@@ -16,4 +16,4 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           # TROQUE ABAIXO PELO SEU USUARIO E SPACE REAL
-          git push https://geovane:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main
+          git push -f https://geovane:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

@@ -6,6 +6,46 @@ const INSTAGRAM_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID || "";
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || "";
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 
+// ==================== HELPER: RETRY LOGIC ====================
+
+/**
+ * Função auxiliar que tenta fazer o fetch até 3 vezes se houver erro de rede.
+ * Isso resolve o problema de "ENOTFOUND graph.facebook.com" quando o DNS oscila.
+ */
+async function fetchWithRetry(url: string, options?: RequestInit, retries: number = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      return response;
+    } catch (error: any) {
+      // Identifica erros de DNS ou Conexão
+      const errorCode = error.cause?.code;
+      const isNetworkError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN' || errorCode === 'ECONNRESET';
+      const isFetchError = error.message?.includes('fetch failed');
+
+      // Se for a última tentativa, joga o erro pra cima
+      if (i === retries - 1) {
+        console.error(`❌ [Instagram API] Falha definitiva após ${retries} tentativas:`, error.message);
+        throw error;
+      }
+
+      // Se for erro de rede, espera e tenta de novo
+      if (isNetworkError || isFetchError) {
+        const waitTime = 5000; // 5 segundos
+        console.log(`⚠️ [Instagram API] Falha de conexão (Tentativa ${i + 1}/${retries}). Retentando em ${waitTime/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      // Se for outro tipo de erro (ex: erro de programação), não retenta
+      throw error;
+    }
+  }
+  throw new Error('Unreachable code in fetchWithRetry');
+}
+
+// ==================== INTERFACES ====================
+
 interface InstagramMediaItem {
   id: string;
   caption?: string;
@@ -67,7 +107,8 @@ async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildren
     const fields = "id,media_type,media_url,thumbnail_url";
     const url = `https://graph.facebook.com/v18.0/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    // USANDO RETRY AQUI
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       console.error(`[Instagram] Failed to fetch carousel children for ${mediaId}`);
@@ -92,7 +133,8 @@ export async function fetchInstagramPosts(limit: number = 12): Promise<Instagram
     const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    // USANDO RETRY AQUI
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -208,7 +250,8 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
     const fields = "id,text,username,timestamp";
     const url = `https://graph.facebook.com/v18.0/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    // USANDO RETRY AQUI
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -235,7 +278,8 @@ export async function refreshInstagramToken(): Promise<boolean> {
   try {
     const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    // USANDO RETRY AQUI (Importante para o scheduler da manhã)
+    const response = await fetchWithRetry(url);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -273,7 +317,8 @@ async function createStoryContainer(imageUrl: string): Promise<{ containerId?: s
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
     
-    const response = await fetch(url, {
+    // USANDO RETRY AQUI (Foi aqui que deu erro no seu log)
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -311,7 +356,8 @@ async function checkContainerStatus(containerId: string): Promise<'FINISHED' | '
   try {
     const url = `https://graph.facebook.com/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    // USANDO RETRY AQUI TAMBÉM
+    const response = await fetchWithRetry(url);
     const data = await response.json();
     
     if (data.status_code === 'FINISHED') {
@@ -335,7 +381,8 @@ async function publishStoryFromContainer(containerId: string): Promise<StoryPubl
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
     
-    const response = await fetch(url, {
+    // USANDO RETRY AQUI
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -406,7 +453,7 @@ export async function publishInstagramStory(imageUrl: string, maxWaitTime: numbe
 }
 
 /**
- * Test Instagram Story publishing configuration
+ * Test Instagram Story configuration
  */
 export async function testInstagramStoryConfig(): Promise<{ configured: boolean; accountId?: string; error?: string }> {
   if (!isInstagramPublishingConfigured()) {
@@ -417,7 +464,7 @@ export async function testInstagramStoryConfig(): Promise<{ configured: boolean;
     // Test by fetching account info
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     const data = await response.json();
     
     if (!response.ok) {

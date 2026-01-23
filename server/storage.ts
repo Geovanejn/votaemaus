@@ -1721,19 +1721,29 @@ export class DatabaseStorage implements IStorage {
 
   // Bible Verses
   async getUnreadVersesForUser(userId: number): Promise<any[]> {
-    const readVerseIds = await db.select({ verseId: schema.verseReadings.verseId })
-      .from(schema.verseReadings)
-      .where(eq(schema.verseReadings.userId, userId));
-    
-    const readIds = readVerseIds.map(r => r.verseId);
-    
-    if (readIds.length === 0) {
-      return db.select().from(schema.bibleVerses);
-    }
-    
-    return db.select().from(schema.bibleVerses)
-      .where(sql`${schema.bibleVerses.id} NOT IN (${sql.join(readIds, sql`, `)})`);
-  }
+  // Usamos um LEFT JOIN para cruzar a biblioteca com os lidos pelo usuário específico
+  const unreadVerses = await db
+    .select({
+      id: schema.bibleVerses.id,
+      reference: schema.bibleVerses.reference,
+      text: schema.bibleVerses.text,
+      reflection: schema.bibleVerses.reflection,
+      category: schema.bibleVerses.category,
+    })
+    .from(schema.bibleVerses)
+    .leftJoin(
+      schema.verseReadings,
+      and(
+        eq(schema.verseReadings.verseId, schema.bibleVerses.id),
+        eq(schema.verseReadings.userId, userId) // Filtra leitura APENAS deste usuário
+      )
+    )
+    .where(isNull(schema.verseReadings.id)) // Pega apenas o que o usuário ainda não leu
+    .limit(50); // Mantém o estoque de 50 por vez
+
+  return unreadVerses;
+}
+
 
   async getTotalVersesReadByUser(userId: number): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` })
@@ -3644,92 +3654,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async readVerseAndRecoverHeart(userId: number, verseId: number): Promise<any> {
-    const [existing] = await db.select().from(schema.verseReadings)
-      .where(and(
-        eq(schema.verseReadings.userId, userId),
-        eq(schema.verseReadings.verseId, verseId)
-      ))
-      .limit(1);
-    
-    if (existing) {
-      const profile = await this.getStudyProfile(userId);
-      return { 
-        alreadyRead: true, 
-        heartRecovered: false,
-        heartsRecovered: 0,
-        versesRead: profile?.versesReadForRecovery || 0,
-        versesNeeded: 3,
-        profile
-      };
-    }
-    
-    await db.insert(schema.verseReadings)
-      .values({ userId, verseId, readAt: new Date() });
-    
+  // 1. Verifica se ESTE usuário específico já leu este versículo
+  const [existing] = await db.select().from(schema.verseReadings)
+    .where(and(
+      eq(schema.verseReadings.userId, userId),
+      eq(schema.verseReadings.verseId, verseId)
+    ))
+    .limit(1);
+  
+  if (existing) {
     const profile = await this.getStudyProfile(userId);
-    if (!profile) {
-      return { alreadyRead: false, heartRecovered: false, heartsRecovered: 0, versesRead: 0, versesNeeded: 3 };
-    }
-    
-    const newVersesCount = (profile.versesReadForRecovery || 0) + 1;
-    
-    if (newVersesCount >= 3) {
-      if (profile.hearts < profile.heartsMax) {
-        await db.update(schema.studyProfiles)
-          .set({ 
-            hearts: Math.min(profile.heartsMax, profile.hearts + 1), 
-            versesReadForRecovery: 0,
-            updatedAt: new Date() 
-          })
-          .where(eq(schema.studyProfiles.userId, userId));
-        
-        const updatedProfile = await this.getStudyProfile(userId);
-        return { 
-          alreadyRead: false, 
-          heartRecovered: true,
-          heartsRecovered: 1,
-          versesRead: 0,
-          versesNeeded: 3,
-          profile: updatedProfile
-        };
-      } else {
-        await db.update(schema.studyProfiles)
-          .set({ 
-            versesReadForRecovery: 0,
-            updatedAt: new Date() 
-          })
-          .where(eq(schema.studyProfiles.userId, userId));
-        
-        const updatedProfile = await this.getStudyProfile(userId);
-        return { 
-          alreadyRead: false, 
-          heartRecovered: false,
-          heartsRecovered: 0,
-          heartsFull: true,
-          versesRead: 0,
-          versesNeeded: 3,
-          profile: updatedProfile
-        };
-      }
-    } else {
-      await db.update(schema.studyProfiles)
-        .set({ 
-          versesReadForRecovery: newVersesCount,
-          updatedAt: new Date() 
-        })
-        .where(eq(schema.studyProfiles.userId, userId));
-      
-      const updatedProfile = await this.getStudyProfile(userId);
-      return { 
-        alreadyRead: false, 
-        heartRecovered: false,
-        heartsRecovered: 0,
-        versesRead: newVersesCount,
-        versesNeeded: 3,
-        profile: updatedProfile
-      };
-    }
+    return { 
+      alreadyRead: true, 
+      heartRecovered: false,
+      versesRead: profile?.versesReadForRecovery || 0,
+      profile
+    };
   }
+  
+  // 2. Registra a leitura vinculada ao ID do membro
+  await db.insert(schema.verseReadings)
+    .values({ userId, verseId, readAt: new Date() });
+  
+  const profile = await this.getStudyProfile(userId);
+  if (!profile) return { heartRecovered: false };
+
+  const newVersesCount = (profile.versesReadForRecovery || 0) + 1;
+  
+  // 3. Lógica de recuperar 1 coração a cada 3 versículos
+  if (newVersesCount >= 3) {
+    const newHearts = Math.min(profile.heartsMax, profile.hearts + 1);
+    const heartRecovered = newHearts > profile.hearts;
+
+    await db.update(schema.studyProfiles)
+      .set({ 
+        hearts: newHearts, 
+        versesReadForRecovery: 0,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    const updatedProfile = await this.getStudyProfile(userId);
+    return { 
+      alreadyRead: false, 
+      heartRecovered,
+      versesRead: 0,
+      profile: updatedProfile
+    };
+  } else {
+    // Apenas incrementa o contador individual
+    await db.update(schema.studyProfiles)
+      .set({ 
+        versesReadForRecovery: newVersesCount,
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.studyProfiles.userId, userId));
+    
+    const updatedProfile = await this.getStudyProfile(userId);
+    return { 
+      alreadyRead: false, 
+      heartRecovered: false,
+      versesRead: newVersesCount,
+      profile: updatedProfile
+    };
+  }
+}
 
   async getVerseRecoveryProgress(userId: number): Promise<any> {
     const profile = await this.getStudyProfile(userId);

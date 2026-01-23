@@ -1,6 +1,6 @@
 import { storage } from "./storage";
-import https from "node:https"; // Módulo nativo para o bypass
-import dns from "node:dns/promises"; // Módulo nativo para a resolução manual
+import https from "node:https";
+import dns from "node:dns/promises";
 
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || "";
 const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || process.env.INSTAGRAM_ACCOUNT_ID || "";
@@ -10,22 +10,15 @@ const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 
 // ==================== HELPER: RETRY & BYPASS LOGIC ====================
 
-/**
- * Função de fetch "blindada" que:
- * 1. Tenta o fetch normal.
- * 2. Se der erro de DNS (ENOTFOUND), resolve o IP manualmente (usando o 8.8.8.8 configurado no index.ts).
- * 3. Conecta diretamente no IP usando https.request para garantir o SNI correto.
- */
 async function fetchWithRetry(url: string, options: RequestInit = {}, retries: number = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
-      // Tenta o método padrão primeiro
+      // 1. Tenta o fetch padrão
       return await fetch(url, options);
     } catch (error: any) {
       const errorCode = error.cause?.code;
       const isNetworkError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN' || errorCode === 'ECONNRESET' || error.message?.includes('fetch failed');
 
-      // Se não for erro de rede, ou for a última tentativa, desiste
       if (!isNetworkError || i === retries - 1) {
         console.error(`❌ [Instagram API] Falha definitiva:`, error.message);
         throw error;
@@ -33,40 +26,46 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
 
       console.log(`⚠️ [Instagram API] Falha de conexão (${errorCode}). Tentando Bypass Manual (Tentativa ${i + 1}/${retries})...`);
 
-      // === TENTATIVA DE BYPASS MANUAL ===
-      // Aqui usamos o DNS do Node (que configuramos para 8.8.8.8) para achar o IP
-      // e usamos https.request para conectar direto no IP, ignorando o OS quebrado.
+      // === BYPASS MANUAL VIA IP ===
       try {
         const urlObj = new URL(url);
         
-        // 1. Resolve o IP manualmente (respeita o dns.setServers do index.ts)
+        // Usa o DNS do Node (Google 8.8.8.8) para achar o IP
         const addresses = await dns.resolve4(urlObj.hostname);
-        const ip = addresses[0]; // Pega o primeiro IP (ex: 157.240.x.x)
+        const ip = addresses[0]; 
         
-        console.log(`🔧 [Bypass] IP resolvido manualmente para ${urlObj.hostname}: ${ip}`);
+        console.log(`🔧 [Bypass] IP resolvido: ${ip} para ${urlObj.hostname}`);
 
-        // 2. Faz a requisição manual via HTTPS nativo
         return await new Promise<Response>((resolve, reject) => {
-          const req = https.request(url, {
-            ...options,
+          // AQUI ESTÁ A CORREÇÃO:
+          // Não passamos a URL string, passamos um objeto de opções.
+          // Isso força o Node a conectar no IP, sem tentar resolver DNS de novo.
+          const reqOptions = {
+            hostname: ip,           // Conecta direto no IP (ex: 31.13.66.4)
+            port: 443,
+            path: urlObj.pathname + urlObj.search,
             method: options.method || 'GET',
-            host: ip, // Conecta direto no IP
-            servername: urlObj.hostname, // Garante que o SSL/SNI funcione
             headers: {
               ...(options.headers as any),
-              'Host': urlObj.hostname // Garante que o Host header esteja certo
-            }
-          }, (res) => {
-            // Reconstrói a resposta para parecer um objeto 'Response' do fetch
+              'Host': urlObj.hostname, // O servidor precisa saber qual domínio queremos
+              'Content-Type': 'application/x-www-form-urlencoded' // Padrão do FB
+            },
+            servername: urlObj.hostname, // Essencial para o SSL (SNI) funcionar
+            rejectUnauthorized: true
+          };
+
+          const req = https.request(reqOptions, (res) => {
             const chunks: any[] = [];
             res.on('data', d => chunks.push(d));
             res.on('end', () => {
               const body = Buffer.concat(chunks).toString();
+              
+              // Simula um objeto Response do fetch
               resolve({
                 ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
                 status: res.statusCode || 500,
                 statusText: res.statusMessage || "",
-                json: async () => JSON.parse(body),
+                json: async () => JSON.parse(body || "{}"),
                 text: async () => body,
                 headers: new Headers(res.headers as any)
               } as unknown as Response);
@@ -74,8 +73,7 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
           });
 
           req.on('error', (e) => {
-            console.error("❌ [Bypass] Erro na conexão manual:", e.message);
-            // Se falhar o bypass, espera e deixa o loop tentar de novo
+            console.error("❌ [Bypass] Erro socket:", e.message);
             reject(e);
           });
           
@@ -84,8 +82,9 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
           }
           req.end();
         });
+
       } catch (bypassError: any) {
-        console.error(`⚠️ [Bypass] Falha no bypass manual: ${bypassError.message}. Aguardando 5s...`);
+        console.error(`⚠️ [Bypass] Falha total: ${bypassError.message}. Aguardando 5s...`);
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
@@ -93,7 +92,7 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
   throw new Error('Unreachable');
 }
 
-// ==================== INTERFACES ====================
+// ==================== INTERFACES & FUNÇÕES DO SISTEMA ====================
 
 interface InstagramMediaItem {
   id: string;
@@ -110,10 +109,7 @@ interface InstagramMediaItem {
 interface InstagramMediaResponse {
   data: InstagramMediaItem[];
   paging?: {
-    cursors: {
-      before: string;
-      after: string;
-    };
+    cursors: { before: string; after: string };
     next?: string;
   };
 }
@@ -173,7 +169,7 @@ async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildren
 
 export async function fetchInstagramPosts(limit: number = 12): Promise<InstagramMediaItem[]> {
   if (!isInstagramConfigured()) {
-    console.log("[Instagram] API not configured - missing access token or user ID");
+    console.log("[Instagram] API not configured");
     return [];
   }
 
@@ -203,7 +199,6 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
   console.log("[Instagram] Starting sync...");
   
   if (!isInstagramConfigured()) {
-    console.log("[Instagram] Sync skipped - API not configured");
     return { synced: 0, errors: 0 };
   }
   
@@ -211,7 +206,7 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
     const posts = await fetchInstagramPosts(12);
     
     if (posts.length === 0) {
-      console.log("[Instagram] No new posts fetched - keeping existing data");
+      console.log("[Instagram] No new posts fetched");
       return { synced: 0, errors: 0 };
     }
     
@@ -274,7 +269,6 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
         await storage.createInstagramPost(postData);
         synced++;
       } catch (error) {
-        console.error(`[Instagram] Error saving post:`, error);
         errors++;
       }
     }
@@ -288,10 +282,7 @@ export async function syncInstagramPosts(): Promise<{ synced: number; errors: nu
 }
 
 export async function fetchInstagramComments(instagramId: string, limit: number = 50): Promise<InstagramComment[]> {
-  if (!isInstagramConfigured()) {
-    console.log("[Instagram] API not configured - cannot fetch comments");
-    return [];
-  }
+  if (!isInstagramConfigured()) return [];
 
   try {
     const fields = "id,text,username,timestamp";
@@ -299,15 +290,9 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
     
     const response = await fetchWithRetry(url);
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("[Instagram] Comments API error:", response.status, errorData);
-      return [];
-    }
+    if (!response.ok) return [];
     
     const data: InstagramCommentsResponse = await response.json();
-    console.log(`[Instagram] Fetched ${data.data?.length || 0} comments for post ${instagramId}`);
-    
     return data.data || [];
   } catch (error) {
     console.error("[Instagram] Error fetching comments:", error);
@@ -316,10 +301,7 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
 }
 
 export async function refreshInstagramToken(): Promise<boolean> {
-  if (!INSTAGRAM_ACCESS_TOKEN) {
-    console.log("[Instagram] Cannot refresh - no access token configured");
-    return false;
-  }
+  if (!INSTAGRAM_ACCESS_TOKEN) return false;
   
   try {
     const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
@@ -327,14 +309,12 @@ export async function refreshInstagramToken(): Promise<boolean> {
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("[Instagram] Token refresh failed:", response.status, errorData);
+      console.error("[Instagram] Token refresh failed");
       return false;
     }
     
     const data = await response.json();
     console.log(`[Instagram] Token refreshed, expires in ${data.expires_in} seconds`);
-    
     return true;
   } catch (error) {
     console.error("[Instagram] Token refresh error:", error);
@@ -354,18 +334,12 @@ interface StoryPublishResult {
   error?: string;
 }
 
-/**
- * Create a story container for an image
- */
 async function createStoryContainer(imageUrl: string): Promise<{ containerId?: string; error?: string }> {
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
     
     const response = await fetchWithRetry(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
       body: new URLSearchParams({
         image_url: imageUrl,
         media_type: 'STORIES',
@@ -392,9 +366,6 @@ async function createStoryContainer(imageUrl: string): Promise<{ containerId?: s
   }
 }
 
-/**
- * Check the status of a media container
- */
 async function checkContainerStatus(containerId: string): Promise<'FINISHED' | 'IN_PROGRESS' | 'ERROR'> {
   try {
     const url = `https://graph.facebook.com/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
@@ -402,32 +373,21 @@ async function checkContainerStatus(containerId: string): Promise<'FINISHED' | '
     const response = await fetchWithRetry(url);
     const data = await response.json();
     
-    if (data.status_code === 'FINISHED') {
-      return 'FINISHED';
-    } else if (data.status_code === 'ERROR') {
-      console.error("[Instagram Stories] Container processing error:", data);
-      return 'ERROR';
-    }
+    if (data.status_code === 'FINISHED') return 'FINISHED';
+    if (data.status_code === 'ERROR') return 'ERROR';
     
     return 'IN_PROGRESS';
   } catch (error) {
-    console.error("[Instagram Stories] Status check error:", error);
     return 'ERROR';
   }
 }
 
-/**
- * Publish a story from a container
- */
 async function publishStoryFromContainer(containerId: string): Promise<StoryPublishResult> {
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
     
     const response = await fetchWithRetry(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
       body: new URLSearchParams({
         creation_id: containerId,
         access_token: INSTAGRAM_ACCESS_TOKEN,
@@ -438,7 +398,7 @@ async function publishStoryFromContainer(containerId: string): Promise<StoryPubl
     
     if (!response.ok) {
       console.error("[Instagram Stories] Publish failed:", data);
-      return { success: false, error: data.error?.message || 'Failed to publish story' };
+      return { success: false, error: data.error?.message };
     }
     
     if (data.id) {
@@ -448,65 +408,45 @@ async function publishStoryFromContainer(containerId: string): Promise<StoryPubl
     
     return { success: false, error: 'No media ID returned' };
   } catch (error) {
-    console.error("[Instagram Stories] Publish error:", error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-/**
- * Publish an image as Instagram Story
- */
 export async function publishInstagramStory(imageUrl: string, maxWaitTime: number = 30000): Promise<StoryPublishResult> {
   if (!isInstagramPublishingConfigured()) {
-    console.log("[Instagram Stories] Not configured - missing access token or account ID");
-    return { success: false, error: 'Instagram publishing not configured' };
+    console.log("[Instagram Stories] Not configured");
+    return { success: false, error: 'Not configured' };
   }
   
-  console.log(`[Instagram Stories] Starting story publish for image: ${imageUrl.substring(0, 50)}...`);
+  console.log(`[Instagram Stories] Starting story publish...`);
   
   const containerResult = await createStoryContainer(imageUrl);
-  if (!containerResult.containerId) {
-    return { success: false, error: containerResult.error };
-  }
+  if (!containerResult.containerId) return { success: false, error: containerResult.error };
   
   const startTime = Date.now();
-  let status: 'FINISHED' | 'IN_PROGRESS' | 'ERROR' = 'IN_PROGRESS';
+  let status = 'IN_PROGRESS';
   
   while (status === 'IN_PROGRESS' && (Date.now() - startTime) < maxWaitTime) {
     await new Promise(resolve => setTimeout(resolve, 2000));
-    status = await checkContainerStatus(containerResult.containerId);
+    status = await checkContainerStatus(containerResult.containerId!);
   }
   
-  if (status === 'ERROR') {
-    return { success: false, error: 'Container processing failed' };
-  }
+  if (status !== 'FINISHED') return { success: false, error: 'Container processing failed or timeout' };
   
-  if (status === 'IN_PROGRESS') {
-    return { success: false, error: 'Container processing timeout' };
-  }
-  
-  return await publishStoryFromContainer(containerResult.containerId);
+  return await publishStoryFromContainer(containerResult.containerId!);
 }
 
-/**
- * Test Instagram Story configuration
- */
 export async function testInstagramStoryConfig(): Promise<{ configured: boolean; accountId?: string; error?: string }> {
-  if (!isInstagramPublishingConfigured()) {
-    return { configured: false, error: 'Missing INSTAGRAM_ACCESS_TOKEN or INSTAGRAM_ACCOUNT_ID' };
-  }
+  if (!isInstagramPublishingConfigured()) return { configured: false, error: 'Missing configuration' };
   
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
-    
     const response = await fetchWithRetry(url);
     const data = await response.json();
     
-    if (!response.ok) {
-      return { configured: false, error: data.error?.message || 'Failed to verify account' };
-    }
+    if (!response.ok) return { configured: false, error: data.error?.message };
     
-    console.log(`[Instagram Stories] Verified account: @${data.username} (ID: ${data.id})`);
+    console.log(`[Instagram Stories] Verified: @${data.username}`);
     return { configured: true, accountId: data.id };
   } catch (error) {
     return { configured: false, error: error instanceof Error ? error.message : 'Unknown error' };

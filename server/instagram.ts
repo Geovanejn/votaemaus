@@ -1,4 +1,6 @@
 import { storage } from "./storage";
+import https from "node:https"; // Módulo nativo para o bypass
+import dns from "node:dns/promises"; // Módulo nativo para a resolução manual
 
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || "";
 const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || process.env.INSTAGRAM_ACCOUNT_ID || "";
@@ -6,42 +8,89 @@ const INSTAGRAM_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID || "";
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || "";
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 
-// ==================== HELPER: RETRY LOGIC ====================
+// ==================== HELPER: RETRY & BYPASS LOGIC ====================
 
 /**
- * Função auxiliar que tenta fazer o fetch até 3 vezes se houver erro de rede.
- * Isso resolve o problema de "ENOTFOUND graph.facebook.com" quando o DNS oscila.
+ * Função de fetch "blindada" que:
+ * 1. Tenta o fetch normal.
+ * 2. Se der erro de DNS (ENOTFOUND), resolve o IP manualmente (usando o 8.8.8.8 configurado no index.ts).
+ * 3. Conecta diretamente no IP usando https.request para garantir o SNI correto.
  */
-async function fetchWithRetry(url: string, options?: RequestInit, retries: number = 3): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit = {}, retries: number = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(url, options);
-      return response;
+      // Tenta o método padrão primeiro
+      return await fetch(url, options);
     } catch (error: any) {
-      // Identifica erros de DNS ou Conexão
       const errorCode = error.cause?.code;
-      const isNetworkError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN' || errorCode === 'ECONNRESET';
-      const isFetchError = error.message?.includes('fetch failed');
+      const isNetworkError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN' || errorCode === 'ECONNRESET' || error.message?.includes('fetch failed');
 
-      // Se for a última tentativa, joga o erro pra cima
-      if (i === retries - 1) {
-        console.error(`❌ [Instagram API] Falha definitiva após ${retries} tentativas:`, error.message);
+      // Se não for erro de rede, ou for a última tentativa, desiste
+      if (!isNetworkError || i === retries - 1) {
+        console.error(`❌ [Instagram API] Falha definitiva:`, error.message);
         throw error;
       }
 
-      // Se for erro de rede, espera e tenta de novo
-      if (isNetworkError || isFetchError) {
-        const waitTime = 5000; // 5 segundos
-        console.log(`⚠️ [Instagram API] Falha de conexão (Tentativa ${i + 1}/${retries}). Retentando em ${waitTime/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
+      console.log(`⚠️ [Instagram API] Falha de conexão (${errorCode}). Tentando Bypass Manual (Tentativa ${i + 1}/${retries})...`);
 
-      // Se for outro tipo de erro (ex: erro de programação), não retenta
-      throw error;
+      // === TENTATIVA DE BYPASS MANUAL ===
+      // Aqui usamos o DNS do Node (que configuramos para 8.8.8.8) para achar o IP
+      // e usamos https.request para conectar direto no IP, ignorando o OS quebrado.
+      try {
+        const urlObj = new URL(url);
+        
+        // 1. Resolve o IP manualmente (respeita o dns.setServers do index.ts)
+        const addresses = await dns.resolve4(urlObj.hostname);
+        const ip = addresses[0]; // Pega o primeiro IP (ex: 157.240.x.x)
+        
+        console.log(`🔧 [Bypass] IP resolvido manualmente para ${urlObj.hostname}: ${ip}`);
+
+        // 2. Faz a requisição manual via HTTPS nativo
+        return await new Promise<Response>((resolve, reject) => {
+          const req = https.request(url, {
+            ...options,
+            method: options.method || 'GET',
+            host: ip, // Conecta direto no IP
+            servername: urlObj.hostname, // Garante que o SSL/SNI funcione
+            headers: {
+              ...(options.headers as any),
+              'Host': urlObj.hostname // Garante que o Host header esteja certo
+            }
+          }, (res) => {
+            // Reconstrói a resposta para parecer um objeto 'Response' do fetch
+            const chunks: any[] = [];
+            res.on('data', d => chunks.push(d));
+            res.on('end', () => {
+              const body = Buffer.concat(chunks).toString();
+              resolve({
+                ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
+                status: res.statusCode || 500,
+                statusText: res.statusMessage || "",
+                json: async () => JSON.parse(body),
+                text: async () => body,
+                headers: new Headers(res.headers as any)
+              } as unknown as Response);
+            });
+          });
+
+          req.on('error', (e) => {
+            console.error("❌ [Bypass] Erro na conexão manual:", e.message);
+            // Se falhar o bypass, espera e deixa o loop tentar de novo
+            reject(e);
+          });
+          
+          if (options.body) {
+            req.write(options.body);
+          }
+          req.end();
+        });
+      } catch (bypassError: any) {
+        console.error(`⚠️ [Bypass] Falha no bypass manual: ${bypassError.message}. Aguardando 5s...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
     }
   }
-  throw new Error('Unreachable code in fetchWithRetry');
+  throw new Error('Unreachable');
 }
 
 // ==================== INTERFACES ====================
@@ -107,7 +156,6 @@ async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildren
     const fields = "id,media_type,media_url,thumbnail_url";
     const url = `https://graph.facebook.com/v18.0/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    // USANDO RETRY AQUI
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
@@ -133,7 +181,6 @@ export async function fetchInstagramPosts(limit: number = 12): Promise<Instagram
     const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    // USANDO RETRY AQUI
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
@@ -250,7 +297,6 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
     const fields = "id,text,username,timestamp";
     const url = `https://graph.facebook.com/v18.0/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    // USANDO RETRY AQUI
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
@@ -278,7 +324,6 @@ export async function refreshInstagramToken(): Promise<boolean> {
   try {
     const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    // USANDO RETRY AQUI (Importante para o scheduler da manhã)
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
@@ -311,13 +356,11 @@ interface StoryPublishResult {
 
 /**
  * Create a story container for an image
- * The image URL must be publicly accessible (https://)
  */
 async function createStoryContainer(imageUrl: string): Promise<{ containerId?: string; error?: string }> {
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
     
-    // USANDO RETRY AQUI (Foi aqui que deu erro no seu log)
     const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
@@ -356,7 +399,6 @@ async function checkContainerStatus(containerId: string): Promise<'FINISHED' | '
   try {
     const url = `https://graph.facebook.com/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
-    // USANDO RETRY AQUI TAMBÉM
     const response = await fetchWithRetry(url);
     const data = await response.json();
     
@@ -381,7 +423,6 @@ async function publishStoryFromContainer(containerId: string): Promise<StoryPubl
   try {
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
     
-    // USANDO RETRY AQUI
     const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
@@ -414,8 +455,6 @@ async function publishStoryFromContainer(containerId: string): Promise<StoryPubl
 
 /**
  * Publish an image as Instagram Story
- * @param imageUrl - Publicly accessible HTTPS URL of the image (JPEG format recommended)
- * @param maxWaitTime - Maximum time to wait for container processing (default 30s)
  */
 export async function publishInstagramStory(imageUrl: string, maxWaitTime: number = 30000): Promise<StoryPublishResult> {
   if (!isInstagramPublishingConfigured()) {
@@ -425,18 +464,16 @@ export async function publishInstagramStory(imageUrl: string, maxWaitTime: numbe
   
   console.log(`[Instagram Stories] Starting story publish for image: ${imageUrl.substring(0, 50)}...`);
   
-  // Step 1: Create container
   const containerResult = await createStoryContainer(imageUrl);
   if (!containerResult.containerId) {
     return { success: false, error: containerResult.error };
   }
   
-  // Step 2: Wait for container to be ready (images are usually instant, but we check anyway)
   const startTime = Date.now();
   let status: 'FINISHED' | 'IN_PROGRESS' | 'ERROR' = 'IN_PROGRESS';
   
   while (status === 'IN_PROGRESS' && (Date.now() - startTime) < maxWaitTime) {
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
+    await new Promise(resolve => setTimeout(resolve, 2000));
     status = await checkContainerStatus(containerResult.containerId);
   }
   
@@ -448,7 +485,6 @@ export async function publishInstagramStory(imageUrl: string, maxWaitTime: numbe
     return { success: false, error: 'Container processing timeout' };
   }
   
-  // Step 3: Publish the story
   return await publishStoryFromContainer(containerResult.containerId);
 }
 
@@ -461,7 +497,6 @@ export async function testInstagramStoryConfig(): Promise<{ configured: boolean;
   }
   
   try {
-    // Test by fetching account info
     const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);

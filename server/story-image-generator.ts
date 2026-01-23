@@ -146,7 +146,8 @@ export async function generateVerseStoryImage(
   ctx.font = '18px Arial, sans-serif';
   ctx.fillText('@umpemaus', STORY_WIDTH / 2, STORY_HEIGHT - 50);
   
-  return canvas.toBuffer('image/jpeg', { quality: 0.92 });
+  // CORREÇÃO: Mudado de jpeg para png
+  return canvas.toBuffer('image/png');
 }
 
 export async function generateReflectionStoryImage(
@@ -222,7 +223,8 @@ export async function generateReflectionStoryImage(
   ctx.font = '18px Arial, sans-serif';
   ctx.fillText('@umpemaus', STORY_WIDTH / 2, STORY_HEIGHT - 50);
   
-  return canvas.toBuffer('image/jpeg', { quality: 0.92 });
+  // CORREÇÃO: Mudado de jpeg para png
+  return canvas.toBuffer('image/png');
 }
 
 export async function generateBirthdayStoryImage(
@@ -339,7 +341,8 @@ export async function generateBirthdayStoryImage(
   const tempImage = await loadImage(tempBuffer);
   finalCtx.drawImage(tempImage, 0, 0, finalWidth, finalHeight);
   
-  return finalCanvas.toBuffer('image/jpeg', { quality: 0.92 });
+  // CORREÇÃO: Mudado de jpeg para png
+  return finalCanvas.toBuffer('image/png');
 }
 
 export async function uploadStoryImageToR2(
@@ -368,7 +371,8 @@ export async function uploadStoryImageToR2(
     return publicUrl;
   }
   
-  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/jpeg', filename);
+  // CORREÇÃO: Mudado o ContentType para image/png
+  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/png', filename);
   
   if (result) {
     const publicUrl = getPublicUrl(result);

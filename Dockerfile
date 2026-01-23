@@ -33,6 +33,7 @@ RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-EXPOSE 5000
+ENV PORT=7860
+EXPOSE 7860
 
 CMD ["npm", "start"]

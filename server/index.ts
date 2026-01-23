@@ -10,30 +10,25 @@ import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== DNS FIX (SOLUÇÃO DEFINITIVA) ====================
-import dns from 'node:dns';
+// ==================== O "DRIBLE" DO IPV6 (SOLUÇÃO UNDICI) ====================
+// O fetch do Node 18+ usa 'undici'. Aqui nós configuramos o agente global
+// para agir como um "porteiro" que só deixa passar conexões IPv4.
+// Isso resolve o conflito entre o Hugging Face e o Facebook.
+import { setGlobalDispatcher, Agent } from 'undici';
 
-try {
-  // 1. Força IPv4 (mantemos isso pois ajuda em ambientes containerizados)
-  if (dns.setDefaultResultOrder) {
-    dns.setDefaultResultOrder('ipv4first');
-  }
+const agent = new Agent({
+  connect: {
+    // A MÁGICA ESTÁ AQUI: family: 4 força o uso de IPv4
+    family: 4,
+    timeout: 30000 // 30 segundos para não desistir fácil
+  },
+  headersTimeout: 30000,
+  bodyTimeout: 30000,
+});
 
-  // 2. FORÇA O USO DE DNS EXTERNO
-  // Isso sobrescreve o DNS do Hugging Face e usa o do Google e Cloudflare
-  // para garantir que o domínio graph.facebook.com seja encontrado.
-  dns.setServers([
-    '8.8.8.8', // Google Primary
-    '1.1.1.1', // Cloudflare Primary
-    '8.8.4.4', // Google Secondary
-    '1.0.0.1'  // Cloudflare Secondary
-  ]);
-  
-  console.log("🔧 [System] DNS Override: Usando 8.8.8.8 (Google) e 1.1.1.1 (Cloudflare)");
-} catch (error) {
-  console.error("⚠️ [System] Erro ao forçar DNS:", error);
-}
-// ====================================================================
+setGlobalDispatcher(agent);
+console.log("🔧 [System] Network Agent: Forçando IPv4 via Undici Global Dispatcher");
+// ===========================================================================
 
 async function seedShopCategories() {
   try {

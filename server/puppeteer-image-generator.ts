@@ -46,6 +46,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
   const page = await browser.newPage();
   
   try {
+    // 1. Define Viewport
     await page.setViewport({ width: 1920, height: 1080 });
     
     const baseUrl = getBaseUrl();
@@ -53,6 +54,15 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     
     console.log(`[Puppeteer] Navigating to ${url}`);
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+
+    // === CORREÇÃO FUNDO TRANSPARENTE ===
+    // Injetamos CSS para garantir que o fundo do navegador seja transparente
+    // antes da biblioteca do frontend capturar a imagem.
+    await page.evaluate(() => {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+    });
+    // =====================================
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     
@@ -80,6 +90,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
           const canvas = this;
+          // Garante PNG (que suporta transparência)
           capturedDataUrl = canvas.toDataURL('image/png', 1.0);
           originalToBlob.call(this, callback, type, quality);
         };
@@ -127,6 +138,13 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     
     console.log(`[Puppeteer] Navigating to ${url}`);
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+
+    // === CORREÇÃO FUNDO TRANSPARENTE ===
+    await page.evaluate(() => {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+    });
+    // =====================================
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     
@@ -200,6 +218,13 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     
     console.log(`[Puppeteer] Navigating to ${url}`);
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+
+    // === CORREÇÃO FUNDO TRANSPARENTE ===
+    await page.evaluate(() => {
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+    });
+    // =====================================
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     

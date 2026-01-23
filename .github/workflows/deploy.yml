@@ -1,44 +1,24 @@
-name: Deploy to Hugging Face
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  sync-to-hub:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          lfs: true # Ativa o suporte a arquivos grandes/binários
-
-      - name: Install LFS
-        run: git lfs install
-
-      - name: Push to hub
+- name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Configura o Git
+          # Configura o Git
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          # 2. Registra os tipos de arquivos que o HF está rejeitando no LFS
+          # NÃO vamos mais dar 'rm -rf' na pasta. 
+          # Vamos apenas garantir que o LFS cuide dos binários.
           git lfs track "*.png"
           git lfs track "*.jpg"
           git lfs track "*.webp"
-          git lfs track "*.mp3"
           git add .gitattributes
 
-          # 3. Remove a pasta de assets temporários pesados (aquela que deu erro antes)
-          rm -rf attached_assets/
-          
-          # 4. Cria um commit limpo com os arquivos registrados no LFS
+          # Cria um commit limpo com o que REALMENTE está no GitHub agora
           git checkout --orphan latest_branch
           git add -A
-          git commit -m "Deploy com suporte a binários"
+          git commit -m "Deploy corrigido - mantendo assets"
           git branch -D main
           git branch -m main
 
-          # 5. Push forçado
+          # Envia para o Hugging Face
           git push -f https://geovane:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

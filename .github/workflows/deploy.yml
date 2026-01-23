@@ -22,16 +22,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           
-          # 1. FAXINA DE SEGURANÇA: Remove apenas o que é impossível o HF aceitar (APK e ZIP grandes)
-          rm -f attached_assets/*.apk
-          rm -f attached_assets/*.aab
-          rm -f attached_assets/*.zip
-          
-          # 2. CONFIGURAÇÃO AGRESSIVA DE LFS: 
-          # Isso diz ao Git para não tentar subir esses arquivos como código normal
-          git lfs track "attached_assets/**"
-          git lfs track "client/public/**"
-          git lfs track "public/temp-stories/**"
+          # 1. Primeiro, configuramos o LFS para extensões genéricas (sem apontar pastas vazias)
           git lfs track "*.png"
           git lfs track "*.jpg"
           git lfs track "*.webp"
@@ -40,13 +31,18 @@ jobs:
           git lfs track "*.pdf"
           git add .gitattributes
           
-          # 3. CRIA O ENVIO LIMPO
+          # 2. Agora fazemos a limpeza dos arquivos que o Hugging Face REJEITA
+          # Isso evita o erro de "no such file" porque não estamos dando track neles individualmente
+          rm -f attached_assets/*.apk
+          rm -f attached_assets/*.aab
+          rm -f attached_assets/*.zip
+          
+          # 3. Cria um histórico novo e limpo
           git checkout --orphan latest_branch
           git add -A
-          git commit -m "Deploy: Assets configurados via LFS"
+          git commit -m "Deploy: Ajuste de assets e limpeza de binários"
           git branch -D main
           git branch -m main
           
-          # 4. PUSH PARA O HUB
-          # Usamos o link direto para garantir a permissão
+          # 4. Envia para o Hugging Face
           git push -f https://Umpemaus:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

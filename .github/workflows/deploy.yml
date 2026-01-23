@@ -10,6 +10,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          lfs: true
+
+      - name: Install LFS
+        run: git lfs install
 
       - name: Push to hub
         env:
@@ -18,18 +22,31 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           
-          # 1. REMOVE APENAS OS ARQUIVOS QUE O HF NÃO ACEITA DE JEITO NENHUM
-          # O site vai continuar tendo as imagens e PDFs que você precisa
-          rm -f attached_assets/*.zip
+          # 1. FAXINA DE SEGURANÇA: Remove apenas o que é impossível o HF aceitar (APK e ZIP grandes)
           rm -f attached_assets/*.apk
           rm -f attached_assets/*.aab
+          rm -f attached_assets/*.zip
           
-          # 2. Prepara um envio limpo (sem os arquivos deletados acima)
+          # 2. CONFIGURAÇÃO AGRESSIVA DE LFS: 
+          # Isso diz ao Git para não tentar subir esses arquivos como código normal
+          git lfs track "attached_assets/**"
+          git lfs track "client/public/**"
+          git lfs track "public/temp-stories/**"
+          git lfs track "*.png"
+          git lfs track "*.jpg"
+          git lfs track "*.webp"
+          git lfs track "*.mp3"
+          git lfs track "*.mp4"
+          git lfs track "*.pdf"
+          git add .gitattributes
+          
+          # 3. CRIA O ENVIO LIMPO
           git checkout --orphan latest_branch
           git add -A
-          git commit -m "Deploy: Removendo instaladores pesados, mantendo assets do site"
+          git commit -m "Deploy: Assets configurados via LFS"
           git branch -D main
           git branch -m main
           
-          # 3. Envia para o Space
+          # 4. PUSH PARA O HUB
+          # Usamos o link direto para garantir a permissão
           git push -f https://Umpemaus:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

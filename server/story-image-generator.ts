@@ -146,7 +146,6 @@ export async function generateVerseStoryImage(
   ctx.font = '18px Arial, sans-serif';
   ctx.fillText('@umpemaus', STORY_WIDTH / 2, STORY_HEIGHT - 50);
   
-  // CORREÇÃO: Mudado de jpeg para png
   return canvas.toBuffer('image/png');
 }
 
@@ -223,7 +222,6 @@ export async function generateReflectionStoryImage(
   ctx.font = '18px Arial, sans-serif';
   ctx.fillText('@umpemaus', STORY_WIDTH / 2, STORY_HEIGHT - 50);
   
-  // CORREÇÃO: Mudado de jpeg para png
   return canvas.toBuffer('image/png');
 }
 
@@ -341,7 +339,6 @@ export async function generateBirthdayStoryImage(
   const tempImage = await loadImage(tempBuffer);
   finalCtx.drawImage(tempImage, 0, 0, finalWidth, finalHeight);
   
-  // CORREÇÃO: Mudado de jpeg para png
   return finalCanvas.toBuffer('image/png');
 }
 
@@ -351,6 +348,9 @@ export async function uploadStoryImageToR2(
 ): Promise<string | null> {
   const { uploadToR2, isR2Configured, getPublicUrl } = await import('./r2-storage');
   
+  // CORREÇÃO CRÍTICA: Força a extensão .png para garantir transparência
+  const finalFilename = filename.replace(/\.(jpg|jpeg)$/i, '.png');
+  
   if (!isR2Configured()) {
     console.log('[StoryGenerator] R2 not configured - saving locally for development');
     
@@ -359,20 +359,20 @@ export async function uploadStoryImageToR2(
       fs.mkdirSync(publicDir, { recursive: true });
     }
     
-    const localPath = path.join(publicDir, filename);
+    const localPath = path.join(publicDir, finalFilename);
     fs.writeFileSync(localPath, imageBuffer);
     
     const domain = process.env.REPL_SLUG 
       ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
       : `http://localhost:5000`;
-    const publicUrl = `${domain}/temp-stories/${filename}`;
+    const publicUrl = `${domain}/temp-stories/${finalFilename}`;
     
     console.log('[StoryGenerator] Story image saved locally:', publicUrl);
     return publicUrl;
   }
   
-  // CORREÇÃO: Mudado o ContentType para image/png
-  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/png', filename);
+  // Upload como PNG
+  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/png', finalFilename);
   
   if (result) {
     const publicUrl = getPublicUrl(result);

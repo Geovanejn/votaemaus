@@ -1,3 +1,4 @@
+---
 name: Deploy to Hugging Face
 on:
   push:
@@ -22,19 +23,25 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           
-          # Registra os binários no LFS para o HF aceitar
+          # 1. Registra TUDO que é binário no LFS para o Hugging Face não reclamar
           git lfs track "*.png"
           git lfs track "*.jpg"
           git lfs track "*.webp"
           git lfs track "*.mp3"
+          git lfs track "*.pdf"
+          git lfs track "*.mp4"
           git add .gitattributes
           
-          # Limpa o histórico pesado e prepara o envio
+          # 2. Faz o commit dessas marcações
+          git add -A
+          git commit -m "Preparando arquivos necessários via LFS" || echo "Sem mudanças"
+          
+          # 3. Limpa o histórico para o push ser leve
           git checkout --orphan latest_branch
           git add -A
-          git commit -m "Deploy corrigido"
+          git commit -m "Deploy final com todos os assets"
           git branch -D main
           git branch -m main
           
-          # Envia para o Space (confirme se o usuário é geovane ou Umpemaus no link abaixo)
-          git push -f https://geovane:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main
+          # 4. Push forçado
+          git push -f https://Umpemaus:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

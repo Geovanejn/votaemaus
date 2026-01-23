@@ -1,24 +1,40 @@
-- name: Push to hub
+name: Deploy to Hugging Face
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Install LFS
+        run: git lfs install
+
+      - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # Configura o Git
           git config user.name github-actions
           git config user.email github-actions@github.com
-
-          # NÃO vamos mais dar 'rm -rf' na pasta. 
-          # Vamos apenas garantir que o LFS cuide dos binários.
+          
+          # Registra os binários no LFS para o HF aceitar
           git lfs track "*.png"
           git lfs track "*.jpg"
           git lfs track "*.webp"
+          git lfs track "*.mp3"
           git add .gitattributes
-
-          # Cria um commit limpo com o que REALMENTE está no GitHub agora
+          
+          # Limpa o histórico pesado e prepara o envio
           git checkout --orphan latest_branch
           git add -A
-          git commit -m "Deploy corrigido - mantendo assets"
+          git commit -m "Deploy corrigido"
           git branch -D main
           git branch -m main
-
-          # Envia para o Hugging Face
+          
+          # Envia para o Space (confirme se o usuário é geovane ou Umpemaus no link abaixo)
           git push -f https://geovane:$HF_TOKEN@huggingface.co/spaces/Umpemaus/umpemaus main

@@ -1,4 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import sharp from 'sharp'; // Importação necessária para o fix das bordas
 
 let browserInstance: Browser | null = null;
 
@@ -24,40 +25,15 @@ async function getBrowser(): Promise<Browser> {
   return browserInstance;
 }
 
-async function closeBrowser(): Promise<void> {
-  if (browserInstance) {
-    await browserInstance.close();
-    browserInstance = null;
-  }
-}
-
-function getBaseUrl(): string {
-  const port = process.env.PORT || 5000;
-  return process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : `http://localhost:${port}`;
-}
-
-// Função auxiliar para forçar o fundo preto e evitar que a API do Instagram preencha com branco
-async function applyBlackBackground(page: Page) {
-  await page.evaluate(() => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-      html, body {
-        background-color: #000000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        overflow: hidden !important;
-      }
-    `;
-    document.head.appendChild(style);
-  });
+// Função para processar o buffer e remover transparência substituindo por preto
+async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
+  return await sharp(buffer)
+    .flatten({ background: '#000000' }) // O "Segredo": Transforma transparência em Preto Puro
+    .toBuffer();
 }
 
 export async function generateVerseShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating verse share image...');
+  console.log('[Puppeteer] Generating verse share image with Sharp flattening fix...');
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -67,7 +43,6 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     const url = `${baseUrl}/versiculo-do-dia`;
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
-    await applyBlackBackground(page);
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     await page.waitForSelector('[data-testid="button-share-verse"]', { timeout: 30000 });
@@ -97,14 +72,19 @@ export async function generateVerseShareImage(): Promise<Buffer> {
       });
     });
     
-    return Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const rawBuffer = Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    
+    // AQUI A MÁGICA ACONTECE:
+    // Processamos o buffer para garantir que não existam "pontas brancas"
+    return await processImageBuffer(rawBuffer);
+    
   } finally {
     await page.close();
   }
 }
 
 export async function generateReflectionShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating reflection share image...');
+  console.log('[Puppeteer] Generating reflection share image with Sharp fix...');
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -114,7 +94,6 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     const url = `${baseUrl}/versiculo-do-dia`;
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
-    await applyBlackBackground(page);
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     await page.waitForSelector('[data-testid="button-share-reflection"]', { timeout: 30000 });
@@ -144,14 +123,16 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
       });
     });
     
-    return Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const rawBuffer = Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    return await processImageBuffer(rawBuffer);
+    
   } finally {
     await page.close();
   }
 }
 
 export async function generateBirthdayShareImage(memberId: number): Promise<Buffer> {
-  console.log(`[Puppeteer] Generating birthday share image for member ${memberId}...`);
+  console.log(`[Puppeteer] Generating birthday share image for member ${memberId} with Sharp fix...`);
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -161,7 +142,6 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     const url = `${baseUrl}/aniversario/${memberId}`;
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
-    await applyBlackBackground(page);
     
     await new Promise(resolve => setTimeout(resolve, 3000));
     await page.waitForSelector(`[data-testid="button-share-birthday-${memberId}"]`, { timeout: 30000 });
@@ -191,10 +171,17 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
       });
     });
     
-    return Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const rawBuffer = Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    return await processImageBuffer(rawBuffer);
+    
   } finally {
     await page.close();
   }
+}
+
+function getBaseUrl(): string {
+  const port = process.env.PORT || 5000;
+  return process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : `http://localhost:${port}`;
 }
 
 export { closeBrowser };

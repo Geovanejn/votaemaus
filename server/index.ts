@@ -10,25 +10,29 @@ import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== O "DRIBLE" DO IPV6 (SOLUÇÃO UNDICI) ====================
-// O fetch do Node 18+ usa 'undici'. Aqui nós configuramos o agente global
-// para agir como um "porteiro" que só deixa passar conexões IPv4.
-// Isso resolve o conflito entre o Hugging Face e o Facebook.
-import { setGlobalDispatcher, Agent } from 'undici';
+// ==================== DNS FIX (VERSÃO NATIVA - SEM PACOTES EXTRAS) ====================
+// Removemos o 'undici' para evitar o erro de "Module Not Found".
+// Voltamos a usar apenas o módulo nativo DNS do Node.js.
+import dns from 'node:dns';
 
-const agent = new Agent({
-  connect: {
-    // A MÁGICA ESTÁ AQUI: family: 4 força o uso de IPv4
-    family: 4,
-    timeout: 30000 // 30 segundos para não desistir fácil
-  },
-  headersTimeout: 30000,
-  bodyTimeout: 30000,
-});
+try {
+  // 1. Força a ordem de resolução para IPv4 primeiro
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
 
-setGlobalDispatcher(agent);
-console.log("🔧 [System] Network Agent: Forçando IPv4 via Undici Global Dispatcher");
-// ===========================================================================
+  // 2. Define servidores DNS públicos e confiáveis
+  // Isso tenta sobrescrever a configuração do container do Hugging Face
+  dns.setServers([
+    '8.8.8.8', // Google
+    '1.1.1.1', // Cloudflare
+  ]);
+  
+  console.log("🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)");
+} catch (error) {
+  console.error("⚠️ [System] Aviso: Não foi possível ajustar configurações de DNS:", error);
+}
+// ====================================================================================
 
 async function seedShopCategories() {
   try {

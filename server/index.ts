@@ -11,22 +11,20 @@ import {
 import { runImageMigration } from "./migrate-images-to-r2";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
-import { seedBibleVerses } from "./services/verse-generator"; // Importando o gerador de IA
+// IMPORTANTE: Caminho corrigido para acessar a pasta scripts na raiz
+import { seedBibleVerses } from "../scripts/seed-verses"; 
 import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== DNS FIX (VERSÃO NATIVA) ====================
+// ==================== DNS FIX (NATIVO PARA HUGGING FACE) ====================
 import dns from 'node:dns';
 
 try {
   if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
   }
-  dns.setServers([
-    '8.8.8.8', // Google
-    '1.1.1.1', // Cloudflare
-  ]);
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
   console.log("🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)");
 } catch (error) {
   console.error("⚠️ [System] Aviso: Não foi possível ajustar configurações de DNS:", error);
@@ -61,7 +59,7 @@ async function seedAchievementsAndVerses() {
     const existingVerses = await storage.getAllBibleVerses();
     const verseCount = existingVerses.length;
 
-    // 1. Carga inicial manual (Fail-safe para o app não iniciar vazio)
+    // 1. CARGA INICIAL DE SEGURANÇA (Fail-safe rápido)
     if (verseCount === 0) {
       console.log("[Seed] Criando versículos bíblicos iniciais...");
       const verses = [
@@ -85,16 +83,17 @@ async function seedAchievementsAndVerses() {
       for (const verse of verses) {
         await storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
       }
-      console.log(`[Seed] ${verses.length} versículos bíblicos iniciais criados!`);
+      console.log(`[Seed] ${verses.length} versículos bíblicos de segurança criados!`);
     }
 
-    // 2. Acionar população massiva (500) via IA em background
+    // 2. IA EM BACKGROUND (Meta de 500)
+    // Se tiver menos que 500, dispara a IA sem travar o servidor
     if (verseCount < 500) {
-      console.log(`[Seed-IA] Estoque atual: ${verseCount}. Solicitando reforços ao Gemini...`);
-      seedBibleVerses(500).catch(err => console.error("[Seed-IA] Erro na geração:", err.message));
+      console.log(`[Seed-IA] Estoque atual: ${verseCount}. Acionando IA em background para atingir 500 versículos...`);
+      seedBibleVerses(500).catch(err => console.error("[Seed-IA] Erro na geração automática:", err.message));
     }
 
-    // 3. Conquistas (Achievements)
+    // 3. CONQUISTAS (LISTA COMPLETA RESTAURADA)
     const existingAchievements = await storage.getAllAchievements();
     if (existingAchievements.length === 0) {
       console.log("[Seed] Criando conquistas iniciais...");
@@ -166,20 +165,25 @@ async function seedAchievementsAndVerses() {
       console.log(`[Seed] ${achievements.length} conquistas criadas com sucesso!`);
     }
 
+    // Inicializar missões diárias
     const existingMissions = await storage.getDailyMissions();
     if (existingMissions.length === 0) {
+      console.log("[Seed] Criando missões diárias iniciais...");
       await storage.initializeDailyMissions();
-      console.log("[Seed] Missões diárias inicializadas!");
+      console.log("[Seed] Missões diárias criadas com sucesso!");
     }
   } catch (error: any) {
     console.error("[Seed] Erro ao inicializar conquistas e versículos:", error.message);
   }
 }
 
-const app = express();
+// ==================== CONFIGURAÇÃO EXPRESS ====================
 
+const app = express();
 app.set('trust proxy', 1);
 app.use(cors());
+
+// Compressão para melhorar performance
 app.use(compression({
   level: 6,
   threshold: 1024,
@@ -192,11 +196,7 @@ app.use(compression({
 app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
 app.use('/temp-stories', express.static(path.resolve(process.cwd(), 'public', 'temp-stories')));
 
-declare module 'http' {
-  interface IncomingMessage {
-    rawBody: unknown
-  }
-}
+declare module 'http' { interface IncomingMessage { rawBody: unknown } }
 
 app.use(express.json({
   limit: '50mb',
@@ -204,7 +204,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ limit: '50mb', extended: false }));
 
-// Middleware de Logs
+// Middleware de Log
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -275,10 +275,9 @@ app.use((req, res, next) => {
       initMarketingReminderScheduler();
       initTreasurySchedulers();
       initInstagramStoriesSchedulers();
-      
-      log("Database and schedulers initialized successfully");
+      log("🎉 Banco de dados e agendadores inicializados com sucesso");
     } catch (error: any) {
-      console.error("[FATAL] Failed to initialize:", error.message);
+      console.error("[FATAL] Falha na inicialização:", error.message);
       process.exit(1);
     }
   });

@@ -705,84 +705,70 @@ export function initDailyVerseScheduler(): void {
   }, 5000);
 }
 
-// Gera a chave do dia para o estoque de recuperação
 function getTodayRecoveryCategory(): string {
-  const formatter = new Intl.DateTimeFormat('en-CA', {
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   });
-  const dateStr = formatter.format(new Date()); // Retorna YYYY-MM-DD
-  return `recovery-${dateStr}`;
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year')?.value || '2025';
+  const month = parts.find(p => p.type === 'month')?.value || '01';
+  const day = parts.find(p => p.type === 'day')?.value || '01';
+  return `recovery-${year}-${month}-${day}`;
 }
 
 async function generateDailyRecoveryVerses(): Promise<void> {
-  console.log('[Recovery Verses Scheduler] Iniciando geração de versículos de recuperação...');
+  console.log('[Recovery Verses Scheduler] Generating daily recovery verses...');
   
   try {
     const todayCategory = getTodayRecoveryCategory();
     
-    // 1. Busca os versículos que já existem para HOJE
-    const allVerses = await storage.getAllBibleVerses();
-    const versesToday = allVerses.filter(v => v.category === todayCategory);
+    const existingVerses = await storage.getAllBibleVerses();
+    const alreadyGenerated = existingVerses.some(v => v.category === todayCategory);
     
-    // Se já temos 50 ou mais, não precisa gerar
-    if (versesToday.length >= 50) {
-      console.log(`[Recovery Verses Scheduler] Estoque de hoje já está cheio (${versesToday.length}/50).`);
+    if (alreadyGenerated) {
+      console.log(`[Recovery Verses Scheduler] Verses already generated for today (${todayCategory})`);
       return;
     }
-
+    
     if (!isAIConfigured()) {
-      console.log('[Recovery Verses Scheduler] AI não configurada, abortando geração.');
+      console.log('[Recovery Verses Scheduler] AI not configured, skipping verse generation');
       return;
     }
-
-    console.log(`[Recovery Verses Scheduler] Estoque atual: ${versesToday.length}. Completando até 50...`);
-
-    let currentVerses = [...versesToday];
-    let attempts = 0;
-    const maxAttempts = 3; // Limite de tentativas para evitar loop infinito em caso de erro da API
-
-    while (currentVerses.length < 50 && attempts < maxAttempts) {
-      attempts++;
-      const needed = 50 - currentVerses.length;
-      
-      // Pedimos sempre um pouco mais (needed + 10) para compensar duplicatas dentro do próprio lote da IA
-      const generatedVerses = await generateRecoveryVersesWithAI(needed + 10);
-      
-      if (!generatedVerses || generatedVerses.length === 0) break;
-
-      for (const verse of generatedVerses) {
-        if (currentVerses.length >= 50) break;
-
-        // CORREÇÃO: Verificamos se é duplicado APENAS dentro dos versículos de HOJE.
-        // Isso permite que o sistema use versículos que apareceram em meses passados.
-        const isDuplicateToday = currentVerses.some(v => v.reference === verse.reference);
-        
-        if (!isDuplicateToday) {
-          try {
-            const newVerse = await storage.createBibleVerse(
-              verse.reference,
-              verse.verse,
-              verse.reflection,
-              todayCategory
-            );
-            currentVerses.push(newVerse);
-          } catch (dbError) {
-            // Silencioso: as vezes a IA manda exatamente a mesma referência no mesmo lote
-            continue;
-          }
-        }
-      }
+    
+    const generatedVerses = await generateRecoveryVersesWithAI(30);
+    
+    if (!generatedVerses || generatedVerses.length === 0) {
+      console.log('[Recovery Verses Scheduler] AI did not generate any verses');
+      return;
     }
     
-    console.log(`[Recovery Verses Scheduler] Geração finalizada: ${currentVerses.length} versículos disponíveis para hoje.`);
+    const existingReferences = new Set(existingVerses.map(v => v.reference));
+    let addedCount = 0;
+    
+    for (const verse of generatedVerses) {
+      if (existingReferences.has(verse.reference)) {
+        console.log(`[Recovery Verses Scheduler] Skipping duplicate: ${verse.reference}`);
+        continue;
+      }
+      
+      await storage.createBibleVerse(
+        verse.reference,
+        verse.verse,
+        verse.reflection,
+        todayCategory
+      );
+      existingReferences.add(verse.reference);
+      addedCount++;
+    }
+    
+    console.log(`[Recovery Verses Scheduler] Added ${addedCount} new recovery verses for ${todayCategory}`);
   } catch (error) {
-    console.error('[Recovery Verses Scheduler] Erro crítico ao gerar versículos:', error);
+    console.error('[Recovery Verses Scheduler] Error generating recovery verses:', error);
   }
 }
-
 
 export function initRecoveryVersesScheduler(): void {
   cron.schedule('30 15 * * *', generateDailyRecoveryVerses, {

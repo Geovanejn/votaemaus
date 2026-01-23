@@ -10,15 +10,30 @@ import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== DNS FIX (SOLUÇÃO PARA O ERRO ENOTFOUND) ====================
-// Isso obriga o Container do Hugging Face a usar IPv4 para conectar no Facebook/Instagram,
-// resolvendo o problema de resolução de DNS que estava travando os Stories.
+// ==================== DNS FIX (SOLUÇÃO DEFINITIVA) ====================
 import dns from 'node:dns';
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder('ipv4first');
-  console.log("🔧 [System] DNS Resolution order set to: ipv4first");
+
+try {
+  // 1. Força IPv4 (mantemos isso pois ajuda em ambientes containerizados)
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+
+  // 2. FORÇA O USO DE DNS EXTERNO
+  // Isso sobrescreve o DNS do Hugging Face e usa o do Google e Cloudflare
+  // para garantir que o domínio graph.facebook.com seja encontrado.
+  dns.setServers([
+    '8.8.8.8', // Google Primary
+    '1.1.1.1', // Cloudflare Primary
+    '8.8.4.4', // Google Secondary
+    '1.0.0.1'  // Cloudflare Secondary
+  ]);
+  
+  console.log("🔧 [System] DNS Override: Usando 8.8.8.8 (Google) e 1.1.1.1 (Cloudflare)");
+} catch (error) {
+  console.error("⚠️ [System] Erro ao forçar DNS:", error);
 }
-// =================================================================================
+// ====================================================================
 
 async function seedShopCategories() {
   try {

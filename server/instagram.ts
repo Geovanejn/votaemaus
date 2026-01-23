@@ -37,18 +37,31 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
         console.log(`🔧 [Bypass] IP resolvido: ${ip} para ${urlObj.hostname}`);
 
         return await new Promise<Response>((resolve, reject) => {
-          // AQUI ESTÁ A CORREÇÃO:
-          // Não passamos a URL string, passamos um objeto de opções.
-          // Isso força o Node a conectar no IP, sem tentar resolver DNS de novo.
+          
+          // PREPARAÇÃO DO CORPO (CORREÇÃO DO ERRO URLSearchParams)
+          let bodyData: string | Buffer | undefined = undefined;
+          
+          if (options.body) {
+            if (options.body instanceof URLSearchParams) {
+              bodyData = options.body.toString();
+            } else if (typeof options.body === 'string') {
+              bodyData = options.body;
+            } else {
+              bodyData = String(options.body);
+            }
+          }
+
           const reqOptions = {
-            hostname: ip,           // Conecta direto no IP (ex: 31.13.66.4)
+            hostname: ip,           // Conecta direto no IP
             port: 443,
             path: urlObj.pathname + urlObj.search,
             method: options.method || 'GET',
             headers: {
               ...(options.headers as any),
               'Host': urlObj.hostname, // O servidor precisa saber qual domínio queremos
-              'Content-Type': 'application/x-www-form-urlencoded' // Padrão do FB
+              'Content-Type': 'application/x-www-form-urlencoded',
+              // Importante calcular o tamanho para evitar erros no Facebook
+              ...(bodyData ? { 'Content-Length': Buffer.byteLength(bodyData) } : {})
             },
             servername: urlObj.hostname, // Essencial para o SSL (SNI) funcionar
             rejectUnauthorized: true
@@ -77,8 +90,8 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
             reject(e);
           });
           
-          if (options.body) {
-            req.write(options.body);
+          if (bodyData) {
+            req.write(bodyData);
           }
           req.end();
         });

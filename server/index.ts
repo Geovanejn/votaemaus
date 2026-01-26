@@ -1,38 +1,36 @@
-Import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, initMarketingReminderScheduler, initTreasurySchedulers, initInstagramStoriesSchedulers } from "./scheduler";
+import { 
+  initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, 
+  initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, 
+  initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, 
+  initMarketingReminderScheduler, initTreasurySchedulers, initInstagramStoriesSchedulers 
+} from "./scheduler";
 import { runImageMigration } from "./migrate-images-to-r2";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
+// IMPORTANTE: Caminho corrigido para acessar a pasta scripts na raiz
+import { seedBibleVerses } from "../scripts/seed-verses"; 
 import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== DNS FIX (VERSÃO NATIVA - SEM PACOTES EXTRAS) ====================
-// Removemos o 'undici' para evitar o erro de "Module Not Found".
-// Voltamos a usar apenas o módulo nativo DNS do Node.js.
+// ==================== DNS FIX (NATIVO PARA HUGGING FACE) ====================
 import dns from 'node:dns';
 
 try {
-  // 1. Força a ordem de resolução para IPv4 primeiro
   if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
   }
-
-  // 2. Define servidores DNS públicos e confiáveis
-  // Isso tenta sobrescrever a configuração do container do Hugging Face
-  dns.setServers([
-    '8.8.8.8', // Google
-    '1.1.1.1', // Cloudflare
-  ]);
-  
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
   console.log("🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)");
 } catch (error) {
   console.error("⚠️ [System] Aviso: Não foi possível ajustar configurações de DNS:", error);
 }
-// ====================================================================================
+
+// ==================== SEEDERS ====================
 
 async function seedShopCategories() {
   try {
@@ -59,7 +57,10 @@ async function seedShopCategories() {
 async function seedAchievementsAndVerses() {
   try {
     const existingVerses = await storage.getAllBibleVerses();
-    if (existingVerses.length === 0) {
+    const verseCount = existingVerses.length;
+
+    // 1. CARGA INICIAL DE SEGURANÇA (Fail-safe rápido)
+    if (verseCount === 0) {
       console.log("[Seed] Criando versículos bíblicos iniciais...");
       const verses = [
         { reference: "João 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reflection: "O amor de Deus é tão grande que Ele sacrificou Seu próprio Filho por nós.", category: "amor" },
@@ -82,9 +83,17 @@ async function seedAchievementsAndVerses() {
       for (const verse of verses) {
         await storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
       }
-      console.log(`[Seed] ${verses.length} versículos bíblicos criados com sucesso!`);
+      console.log(`[Seed] ${verses.length} versículos bíblicos de segurança criados!`);
     }
 
+    // 2. IA EM BACKGROUND (Meta de 500)
+    // Se tiver menos que 500, dispara a IA sem travar o servidor
+    if (verseCount < 500) {
+      console.log(`[Seed-IA] Estoque atual: ${verseCount}. Acionando IA em background para atingir 500 versículos...`);
+      seedBibleVerses(500).catch(err => console.error("[Seed-IA] Erro na geração automática:", err.message));
+    }
+
+    // 3. CONQUISTAS (LISTA COMPLETA RESTAURADA)
     const existingAchievements = await storage.getAllAchievements();
     if (existingAchievements.length === 0) {
       console.log("[Seed] Criando conquistas iniciais...");
@@ -168,21 +177,18 @@ async function seedAchievementsAndVerses() {
   }
 }
 
+// ==================== CONFIGURAÇÃO EXPRESS ====================
+
 const app = express();
-
 app.set('trust proxy', 1);
-
 app.use(cors());
 
-// HTTP compression (gzip/brotli) - reduces JSON payload size significantly
+// Compressão para melhorar performance
 app.use(compression({
-  level: 6, // Balanced compression level (1-9)
-  threshold: 1024, // Only compress responses > 1KB
+  level: 6,
+  threshold: 1024,
   filter: (req, res) => {
-    // Compress JSON and text responses
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
+    if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);
   }
 }));
@@ -190,19 +196,15 @@ app.use(compression({
 app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
 app.use('/temp-stories', express.static(path.resolve(process.cwd(), 'public', 'temp-stories')));
 
-declare module 'http' {
-  interface IncomingMessage {
-    rawBody: unknown
-  }
-}
+declare module 'http' { interface IncomingMessage { rawBody: unknown } }
+
 app.use(express.json({
   limit: '50mb',
-  verify: (req, _res, buf) => {
-    req.rawBody = buf;
-  }
+  verify: (req: any, _res, buf) => { req.rawBody = buf; }
 }));
 app.use(express.urlencoded({ limit: '50mb', extended: false }));
 
+// Middleware de Log
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -218,51 +220,34 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      log(logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine);
     }
   });
 
   next();
 });
 
+// ==================== INICIALIZAÇÃO ====================
+
 (async () => {
   const server = await registerRoutes(app);
-  
-  // Initialize WebSocket server
   initializeWebSocket(server);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
+    res.status(status).json({ message: err.message || "Internal Server Error" });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   
-  // START SERVER FIRST - Critical for Render port detection
   server.listen({
     port,
     host: "0.0.0.0",
@@ -270,16 +255,14 @@ app.use((req, res, next) => {
   }, async () => {
     log(`serving on port ${port}`);
     
-    // Initialize database and seeders AFTER server starts
-    // Server will shut down if initialization fails
     try {
       await initializeDatabase();
       await seedShopCategories();
       await seedAchievementsAndVerses();
       
-      // Migrate existing Base64 images to R2 (runs once per deploy)
-      runImageMigration().catch(err => console.error("[Migration] Background migration error:", err));
+      runImageMigration().catch(err => console.error("[Migration] Erro em background:", err));
       
+      // Schedulers
       initBirthdayScheduler();
       initDeoGlorySchedulers();
       initDailyVerseScheduler();
@@ -292,10 +275,9 @@ app.use((req, res, next) => {
       initMarketingReminderScheduler();
       initTreasurySchedulers();
       initInstagramStoriesSchedulers();
-      log("Database and schedulers initialized successfully");
+      log("🎉 Banco de dados e agendadores inicializados com sucesso");
     } catch (error: any) {
-      console.error("[FATAL] Failed to initialize:", error.message);
-      console.error("[FATAL] Shutting down server");
+      console.error("[FATAL] Falha na inicialização:", error.message);
       process.exit(1);
     }
   });

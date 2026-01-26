@@ -2,34 +2,37 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
-import { 
-  initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, 
-  initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, 
-  initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, 
-  initMarketingReminderScheduler, initTreasurySchedulers, initInstagramStoriesSchedulers 
-} from "./scheduler";
+import { initBirthdayScheduler, initDeoGlorySchedulers, initDailyVerseScheduler, initRecoveryVersesScheduler, initInstagramScheduler, initDailyMissionsScheduler, initWeeklyGoalScheduler, initEventScheduler, initEventDeadlineScheduler, initMarketingReminderScheduler, initTreasurySchedulers, initInstagramStoriesSchedulers } from "./scheduler";
 import { runImageMigration } from "./migrate-images-to-r2";
 import { initializeWebSocket } from "./websocket";
 import { storage } from "./storage";
-import { seedBibleVerses } from "./services/verse-generator"; // Importação do novo serviço
 import cors from "cors";
 import compression from "compression";
 import path from "path";
 
-// ==================== DNS FIX (VERSÃO NATIVA) ====================
+// ==================== DNS FIX (VERSÃO NATIVA - SEM PACOTES EXTRAS) ====================
+// Removemos o 'undici' para evitar o erro de "Module Not Found".
+// Voltamos a usar apenas o módulo nativo DNS do Node.js.
 import dns from 'node:dns';
 
 try {
+  // 1. Força a ordem de resolução para IPv4 primeiro
   if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
   }
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
+
+  // 2. Define servidores DNS públicos e confiáveis
+  // Isso tenta sobrescrever a configuração do container do Hugging Face
+  dns.setServers([
+    '8.8.8.8', // Google
+    '1.1.1.1', // Cloudflare
+  ]);
+  
   console.log("🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)");
 } catch (error) {
   console.error("⚠️ [System] Aviso: Não foi possível ajustar configurações de DNS:", error);
 }
-
-// ==================== SEEDERS ====================
+// ====================================================================================
 
 async function seedShopCategories() {
   try {
@@ -56,12 +59,9 @@ async function seedShopCategories() {
 async function seedAchievementsAndVerses() {
   try {
     const existingVerses = await storage.getAllBibleVerses();
-    const verseCount = existingVerses.length;
-
-    // 1. Carga inicial rápida (Garante o funcionamento imediato do app)
-    if (verseCount === 0) {
-      console.log("[Seed] Criando versículos bíblicos iniciais de segurança...");
-      const initialVerses = [
+    if (existingVerses.length === 0) {
+      console.log("[Seed] Criando versículos bíblicos iniciais...");
+      const verses = [
         { reference: "João 3:16", text: "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.", reflection: "O amor de Deus é tão grande que Ele sacrificou Seu próprio Filho por nós.", category: "amor" },
         { reference: "Salmos 23:1", text: "O Senhor é o meu pastor; nada me faltará.", reflection: "Deus cuida de nós como um pastor cuida de suas ovelhas.", category: "provisão" },
         { reference: "Filipenses 4:13", text: "Posso todas as coisas naquele que me fortalece.", reflection: "Cristo nos dá força para enfrentar qualquer situação.", category: "força" },
@@ -69,7 +69,7 @@ async function seedAchievementsAndVerses() {
         { reference: "Isaías 41:10", text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.", reflection: "Deus está sempre conosco para nos fortalecer.", category: "força" },
         { reference: "Romanos 8:28", text: "E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito.", reflection: "Deus transforma todas as situações para o nosso bem.", category: "esperança" },
         { reference: "Salmos 46:1", text: "Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.", reflection: "Podemos confiar em Deus em todos os momentos.", category: "proteção" },
-        { reference: "Mateus 11:28", text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vou aliviarei.", reflection: "Jesus oferece descanso para nossas almas.", category: "descanso" },
+        { reference: "Mateus 11:28", text: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", reflection: "Jesus oferece descanso para nossas almas.", category: "descanso" },
         { reference: "Provérbios 3:5-6", text: "Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas.", reflection: "Confiar em Deus nos guia pelo caminho certo.", category: "sabedoria" },
         { reference: "1 Coríntios 10:13", text: "Não veio sobre vós tentação, senão humana; mas fiel é Deus, que não vos deixará tentar acima do que podeis, antes com a tentação dará também o escape, para que a possais suportar.", reflection: "Deus sempre nos dá um caminho de saída nas tentações.", category: "força" },
         { reference: "Salmos 119:105", text: "Lâmpada para os meus pés é a tua palavra, e luz para o meu caminho.", reflection: "A Palavra de Deus ilumina nossa vida.", category: "sabedoria" },
@@ -79,146 +79,35 @@ async function seedAchievementsAndVerses() {
         { reference: "Gálatas 5:22-23", text: "Mas o fruto do Espírito é: amor, gozo, paz, longanimidade, benignidade, bondade, fé, mansidão, temperança. Contra estas coisas não há lei.", reflection: "O Espírito Santo produz frutos em nossa vida.", category: "espírito" }
       ];
 
-      for (const verse of initialVerses) {
+      for (const verse of verses) {
         await storage.createBibleVerse(verse.reference, verse.text, verse.reflection, verse.category);
       }
-      console.log(`[Seed] ${initialVerses.length} versículos de segurança criados!`);
+      console.log(`[Seed] ${verses.length} versículos bíblicos criados com sucesso!`);
     }
 
-    // 2. População em background via IA para atingir a meta de 500
-    if (verseCount < 500) {
-      console.log(`[Seed-IA] Estoque atual: ${verseCount}. Solicitando reforços ao Gemini...`);
-      // Não usamos 'await' para permitir que o servidor termine o boot
-      seedBibleVerses(500).catch(err => console.error("[Seed-IA] Erro na geração:", err.message));
-    }
-
-    // 3. Conquistas e Missões
     const existingAchievements = await storage.getAllAchievements();
     if (existingAchievements.length === 0) {
       console.log("[Seed] Criando conquistas iniciais...");
       const achievements = [
-        // Mantive sua lista original de conquistas aqui por brevidade...
+        // LIÇÕES (12 conquistas)
         { code: "first_lesson", name: "Primeiro Passo", description: "Complete sua primeira lição", icon: "trophy", xpReward: 50, category: "lessons", requirement: JSON.stringify({ lessons: 1 }) },
-        // ... (Adicione os outros itens da sua lista original conforme necessário)
-      ];
-
-      for (const achievement of achievements) {
-        await storage.createAchievement(achievement);
-      }
-      console.log(`[Seed] Conquistas criadas!`);
-    }
-
-    const existingMissions = await storage.getDailyMissions();
-    if (existingMissions.length === 0) {
-      await storage.initializeDailyMissions();
-      console.log("[Seed] Missões diárias inicializadas!");
-    }
-  } catch (error: any) {
-    console.error("[Seed] Erro ao inicializar conquistas e versículos:", error.message);
-  }
-}
-
-// ==================== APP CONFIG ====================
-
-const app = express();
-app.set('trust proxy', 1);
-app.use(cors());
-app.use(compression({
-  level: 6,
-  threshold: 1024,
-  filter: (req, res) => {
-    if (req.headers['x-no-compression']) return false;
-    return compression.filter(req, res);
-  }
-}));
-
-app.use('/attached_assets', express.static(path.resolve(process.cwd(), 'attached_assets')));
-app.use('/temp-stories', express.static(path.resolve(process.cwd(), 'public', 'temp-stories')));
-
-app.use(express.json({
-  limit: '50mb',
-  verify: (req: any, _res, buf) => { req.rawBody = buf; }
-}));
-app.use(express.urlencoded({ limit: '50mb', extended: false }));
-
-// Logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      log(logLine.length > 80 ? logLine.slice(0, 79) + "…" : logLine);
-    }
-  });
-  next();
-});
-
-// ==================== BOOTSTRAP ====================
-
-(async () => {
-  const server = await registerRoutes(app);
-  initializeWebSocket(server);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    res.status(status).json({ message: err.message || "Internal Server Error" });
-    throw err;
-  });
-
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  const port = parseInt(process.env.PORT || '5000', 10);
-  
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, async () => {
-    log(`serving on port ${port}`);
-    
-    try {
-      await initializeDatabase();
-      
-      // Rodar sementes e inicializações
-      await seedShopCategories();
-      await seedAchievementsAndVerses();
-      
-      runImageMigration().catch(err => console.error("[Migration] Erro em background:", err));
-      
-      // Schedulers
-      initBirthdayScheduler();
-      initDeoGlorySchedulers();
-      initDailyVerseScheduler();
-      initRecoveryVersesScheduler();
-      initInstagramScheduler();
-      initDailyMissionsScheduler();
-      initWeeklyGoalScheduler();
-      initEventScheduler();
-      initEventDeadlineScheduler();
-      initMarketingReminderScheduler();
-      initTreasurySchedulers();
-      initInstagramStoriesSchedulers();
-      
-      log("Database and schedulers initialized successfully");
-    } catch (error: any) {
-      console.error("[FATAL] Failed to initialize:", error.message);
-      process.exit(1);
-    }
-  });
-})();
+        { code: "lessons_3", name: "Começando Bem", description: "Complete 3 lições", icon: "book", xpReward: 40, category: "lessons", requirement: JSON.stringify({ lessons: 3 }) },
+        { code: "lessons_5", name: "Estudante Dedicado", description: "Complete 5 lições", icon: "book-open", xpReward: 75, category: "lessons", requirement: JSON.stringify({ lessons: 5 }) },
+        { code: "lessons_10", name: "Discípulo Fiel", description: "Complete 10 lições", icon: "book-marked", xpReward: 150, category: "lessons", requirement: JSON.stringify({ lessons: 10 }) },
+        { code: "lessons_15", name: "Estudioso", description: "Complete 15 lições", icon: "bookmark", xpReward: 200, category: "lessons", requirement: JSON.stringify({ lessons: 15 }) },
+        { code: "lessons_25", name: "Mestre da Palavra", description: "Complete 25 lições", icon: "graduation-cap", xpReward: 300, category: "lessons", requirement: JSON.stringify({ lessons: 25 }) },
+        { code: "lessons_50", name: "Erudito Bíblico", description: "Complete 50 lições", icon: "library", xpReward: 500, category: "lessons", requirement: JSON.stringify({ lessons: 50 }) },
+        { code: "lessons_75", name: "Teólogo", description: "Complete 75 lições", icon: "scroll", xpReward: 750, category: "lessons", requirement: JSON.stringify({ lessons: 75 }) },
+        { code: "lessons_100", name: "Centurião da Palavra", description: "Complete 100 lições", icon: "shield", xpReward: 1000, category: "lessons", requirement: JSON.stringify({ lessons: 100 }) },
+        { code: "lessons_150", name: "Apóstolo do Estudo", description: "Complete 150 lições", icon: "crown", xpReward: 1500, category: "lessons", requirement: JSON.stringify({ lessons: 150 }) },
+        { code: "lessons_200", name: "Doutor das Escrituras", description: "Complete 200 lições", icon: "sparkles", xpReward: 2000, category: "lessons", requirement: JSON.stringify({ lessons: 200 }) },
+        { code: "lessons_365", name: "Um Ano de Estudos", description: "Complete 365 lições", icon: "calendar", xpReward: 3650, category: "lessons", requirement: JSON.stringify({ lessons: 365 }) },
+        
+        // OFENSIVA/STREAK (15 conquistas)
+        { code: "streak_3", name: "Constante", description: "Mantenha uma sequência de 3 dias", icon: "flame", xpReward: 30, category: "streak", requirement: JSON.stringify({ streak: 3 }) },
+        { code: "streak_5", name: "Comprometido", description: "Mantenha uma sequência de 5 dias", icon: "flame", xpReward: 50, category: "streak", requirement: JSON.stringify({ streak: 5 }) },
+        { code: "streak_7", name: "Dedicado", description: "Mantenha uma sequência de 7 dias", icon: "flame", xpReward: 100, category: "streak", requirement: JSON.stringify({ streak: 7 }) },
+        { code: "streak_14", name: "Perseverante", description: "Mantenha uma sequência de 14 dias", icon: "flame", xpReward: 200, category: "streak", requirement: JSON.stringify({ streak: 14 }) },
         { code: "streak_21", name: "Formador de Hábito", description: "Mantenha uma sequência de 21 dias", icon: "flame", xpReward: 300, category: "streak", requirement: JSON.stringify({ streak: 21 }) },
         { code: "streak_30", name: "Imbatível", description: "Mantenha uma sequência de 30 dias", icon: "flame", xpReward: 500, category: "streak", requirement: JSON.stringify({ streak: 30 }) },
         { code: "streak_45", name: "Quarentena Espiritual", description: "Mantenha uma sequência de 45 dias", icon: "flame", xpReward: 700, category: "streak", requirement: JSON.stringify({ streak: 45 }) },

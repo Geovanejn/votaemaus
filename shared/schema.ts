@@ -7,10 +7,7 @@ import crypto from "crypto";
 // ==================== UTILS ====================
 
 export function getGravatarUrl(email: string): string {
-  const hash = crypto
-    .createHash("md5")
-    .update(email.toLowerCase().trim())
-    .digest("hex");
+  const hash = crypto.createHash("md5").update(email.toLowerCase().trim()).digest("hex");
   return `https://www.gravatar.com/avatar/${hash}?d=mp&s=200`;
 }
 
@@ -48,45 +45,7 @@ export const verificationCodes = pgTable("verification_codes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Auth schemas para o front-end
-export const requestCodeSchema = z.object({
-  email: z.string().email("Email inválido"),
-  isPasswordReset: z.boolean().optional(),
-});
-export type RequestCodeData = z.infer<typeof requestCodeSchema>;
-
-export const verifyCodeSchema = z.object({
-  email: z.string().email("Email inválido"),
-  code: z.string().length(6, "Código deve ter 6 dígitos"),
-});
-export type VerifyCodeData = z.infer<typeof verifyCodeSchema>;
-
-export const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-});
-export type LoginData = z.infer<typeof loginSchema>;
-
-export const registerSchema = loginSchema.extend({
-  fullName: z.string().min(2, "Nome completo é obrigatório"),
-});
-export type RegisterData = z.infer<typeof registerSchema>;
-
-export const setPasswordSchema = z.object({
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  confirmPassword: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
-export type SetPasswordData = z.infer<typeof setPasswordSchema>;
-
-export type AuthResponse = {
-  user: Omit<typeof users.$inferSelect, "password">;
-  token: string;
-};
-
-// ==================== SISTEMA DE ELEIÇÕES (VOTAEMAUS) ====================
+// ==================== SISTEMA DE VOTAÇÃO (VOTAEMAUS) ====================
 
 export const positions = pgTable("positions", {
   id: serial("id").primaryKey(),
@@ -101,15 +60,6 @@ export const elections = pgTable("elections", {
   closedAt: timestamp("closed_at"),
 });
 
-export const electionWinners = pgTable("election_winners", {
-  id: serial("id").primaryKey(),
-  electionId: integer("election_id").notNull().references(() => elections.id),
-  positionId: integer("position_id").notNull().references(() => positions.id),
-  candidateId: integer("candidate_id").notNull().references(() => candidates.id),
-  wonAtScrutiny: integer("won_at_scrutiny").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export const electionPositions = pgTable("election_positions", {
   id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
@@ -119,16 +69,6 @@ export const electionPositions = pgTable("election_positions", {
   currentScrutiny: integer("current_scrutiny").notNull().default(1),
   openedAt: timestamp("opened_at"),
   closedAt: timestamp("closed_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const electionAttendance = pgTable("election_attendance", {
-  id: serial("id").primaryKey(),
-  electionId: integer("election_id").notNull().references(() => elections.id),
-  electionPositionId: integer("election_position_id").references(() => electionPositions.id),
-  memberId: integer("member_id").notNull().references(() => users.id),
-  isPresent: boolean("is_present").notNull().default(false),
-  markedAt: timestamp("marked_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -153,6 +93,25 @@ export const votes = pgTable("votes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const electionWinners = pgTable("election_winners", {
+  id: serial("id").primaryKey(),
+  electionId: integer("election_id").notNull().references(() => elections.id),
+  positionId: integer("position_id").notNull().references(() => positions.id),
+  candidateId: integer("candidate_id").notNull().references(() => candidates.id),
+  wonAtScrutiny: integer("won_at_scrutiny").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const electionAttendance = pgTable("election_attendance", {
+  id: serial("id").primaryKey(),
+  electionId: integer("election_id").notNull().references(() => elections.id),
+  electionPositionId: integer("election_position_id").references(() => electionPositions.id),
+  memberId: integer("member_id").notNull().references(() => users.id),
+  isPresent: boolean("is_present").notNull().default(false),
+  markedAt: timestamp("marked_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const pdfVerifications = pgTable("pdf_verifications", {
   id: serial("id").primaryKey(),
   electionId: integer("election_id").notNull().references(() => elections.id),
@@ -161,7 +120,7 @@ export const pdfVerifications = pgTable("pdf_verifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// ==================== CONTEÚDO E SOCIAL ====================
+// ==================== CONTEÚDO DO SITE ====================
 
 export const devotionals = pgTable("devotionals", {
   id: serial("id").primaryKey(),
@@ -173,15 +132,12 @@ export const devotionals = pgTable("devotionals", {
   summary: text("summary"),
   prayer: text("prayer"),
   imageUrl: text("image_url"),
-  mobileCropData: text("mobile_crop_data"),
   author: text("author"),
   youtubeUrl: text("youtube_url"),
   instagramUrl: text("instagram_url"),
   audioUrl: text("audio_url"),
   publishedAt: timestamp("published_at").notNull().defaultNow(),
-  scheduledAt: timestamp("scheduled_at"),
   isPublished: boolean("is_published").notNull().default(true),
-  isFeatured: boolean("is_featured").notNull().default(false),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -191,19 +147,13 @@ export const siteEvents = pgTable("site_events", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  shortDescription: text("short_description"),
   imageUrl: text("image_url"),
   startDate: text("start_date").notNull(),
   endDate: text("end_date"),
-  time: text("time"),
   location: text("location"),
-  locationUrl: text("location_url"),
   category: text("category").notNull().default("geral"),
   isPublished: boolean("is_published").notNull().default(true),
-  isFeatured: boolean("is_featured").notNull().default(false),
-  createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const prayerRequests = pgTable("prayer_requests", {
@@ -213,16 +163,7 @@ export const prayerRequests = pgTable("prayer_requests", {
   category: text("category").notNull().default("outros"),
   request: text("request").notNull(),
   status: text("status").notNull().default("pending"),
-  notes: text("notes"),
   prayedBy: integer("prayed_by").references(() => users.id),
-  prayedAt: timestamp("prayed_at"),
-  isModerated: boolean("is_moderated").notNull().default(false),
-  moderatedBy: integer("moderated_by").references(() => users.id),
-  moderatedAt: timestamp("moderated_at"),
-  isApproved: boolean("is_approved").notNull().default(false),
-  approvedAt: timestamp("approved_at"),
-  approvedBy: integer("approved_by").references(() => users.id),
-  inPrayerCount: integer("in_prayer_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -232,12 +173,9 @@ export const instagramPosts = pgTable("instagram_posts", {
   instagramId: text("instagram_id"),
   caption: text("caption"),
   imageUrl: text("image_url").notNull(),
-  videoUrl: text("video_url"),
-  mediaType: text("media_type").default("IMAGE"),
   permalink: text("permalink"),
   postedAt: timestamp("posted_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ==================== SISTEMA DE ESTUDOS (DEOGLORY) ====================
@@ -252,8 +190,7 @@ export const studyProfiles = pgTable("study_profiles", {
   hearts: integer("hearts").notNull().default(5),
   heartsMax: integer("hearts_max").notNull().default(5),
   crystals: integer("crystals").notNull().default(0),
-  lastActivityDate: text("last_activity_date"),
-  dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
+  lastLessonDate: text("last_lesson_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -263,11 +200,9 @@ export const seasons = pgTable("seasons", {
   title: text("title").notNull(),
   subtitle: text("subtitle"),
   description: text("description"),
-  status: text("status").notNull().default("draft"),
+  status: text("status").notNull().default("draft"), // draft, published, archived
   isLocked: boolean("is_locked").notNull().default(false),
   totalLessons: integer("total_lessons").notNull().default(0),
-  startsAt: timestamp("starts_at"),
-  endsAt: timestamp("ends_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -278,49 +213,34 @@ export const studyLessons = pgTable("study_lessons", {
   orderIndex: integer("order_index").notNull(),
   title: text("title").notNull(),
   xpReward: integer("xp_reward").notNull().default(10),
-  type: text("type").notNull().default("study"),
   isLocked: boolean("is_locked").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const studyUnits = pgTable("study_units", {
   id: serial("id").primaryKey(),
   lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
   orderIndex: integer("order_index").notNull(),
-  type: text("type").notNull(),
+  type: text("type").notNull(), // text, quiz, verse
   content: text("content").notNull(),
   xpValue: integer("xp_value").notNull().default(2),
-  stage: text("stage").notNull().default("estude"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const bibleVerses = pgTable("bible_verses", {
   id: serial("id").primaryKey(),
-  reference: text("reference").notNull().unique(), // <--- ADICIONADO .UNIQUE() PARA O SEED
+  reference: text("reference").notNull().unique(), // <--- CRÍTICO PARA O SEED
   text: text("text").notNull(),
   reflection: text("reflection"),
   category: text("category"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const userLessonProgress = pgTable("user_lesson_progress", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  lessonId: integer("lesson_id").notNull().references(() => studyLessons.id),
-  status: text("status").notNull().default("locked"),
-  xpEarned: integer("xp_earned").notNull().default(0),
-  completedAt: timestamp("completed_at"),
-}, (table) => ({
-  uniqueUserLesson: unique().on(table.userId, table.lessonId),
-}));
-
 export const verseReadings = pgTable("verse_readings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   verseId: integer("verse_id").notNull().references(() => bibleVerses.id),
   readAt: timestamp("read_at").notNull().defaultNow(),
-  heartsRecovered: integer("hearts_recovered").notNull().default(1),
 });
 
 export const achievements = pgTable("achievements", {
@@ -338,7 +258,9 @@ export const userAchievements = pgTable("user_achievements", {
   userId: integer("user_id").notNull().references(() => users.id),
   achievementId: integer("achievement_id").notNull().references(() => achievements.id),
   unlockedAt: timestamp("unlocked_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  uniqueUserAchievement: unique().on(table.userId, table.achievementId),
+}));
 
 export const dailyMissions = pgTable("daily_missions", {
   id: serial("id").primaryKey(),
@@ -353,11 +275,12 @@ export const userDailyMissions = pgTable("user_daily_missions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   missionId: integer("mission_id").notNull().references(() => dailyMissions.id),
-  assignedDate: text("assigned_date").notNull(),
+  assignedDate: text("assigned_date").notNull(), // YYYY-MM-DD
   completed: boolean("completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
-  xpAwarded: integer("xp_awarded").notNull().default(0),
-});
+}, (table) => ({
+  uniqueUserMissionDate: unique().on(table.userId, table.missionId, table.assignedDate),
+}));
 
 // ==================== TESOURARIA E LOJA ====================
 
@@ -402,14 +325,6 @@ export const shopOrders = pgTable("shop_orders", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const shopOrderItems = pgTable("shop_order_items", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => shopOrders.id),
-  itemId: integer("item_id").notNull().references(() => shopItems.id),
-  quantity: integer("quantity").notNull(),
-  unitPrice: integer("unit_price").notNull(),
-});
-
 // ==================== INFRAESTRUTURA ====================
 
 export const notifications = pgTable("notifications", {
@@ -447,7 +362,4 @@ export type StudyProfile = typeof studyProfiles.$inferSelect;
 export const insertTreasuryEntrySchema = createInsertSchema(treasuryEntries).omit({ id: true, createdAt: true });
 export type TreasuryEntry = typeof treasuryEntries.$inferSelect;
 
-export type AuthResponseData = {
-  user: Omit<User, "password">;
-  token: string;
-};
+// [Adicione outros tipos conforme necessário para o seu frontend]

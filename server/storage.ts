@@ -1721,48 +1721,30 @@ export class DatabaseStorage implements IStorage {
 
   // Bible Verses
   async getUnreadVersesForUser(userId: number): Promise<any[]> {
-    // 1) Verifica o estoque global total
-    const totalStock = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.bibleVerses);
+  // 1. Verifica o estoque global total
+  const totalStock = await db.select({ count: sql<number>`count(*)` }).from(schema.bibleVerses);
+  const count = Number(totalStock[0]?.count || 0);
 
-    const count = Number(totalStock[0]?.count ?? 0);
-
-    // 2) Se o estoque estiver baixo (menos de 100), chama a reposição automática
-    if (count < 100) {
-      // sem await para não travar o usuário
-      void this.replenishVerses(50);
-    }
-
-    // 3) Retorna os versículos não lidos para o usuário
-    // Ajuste os nomes das tabelas/colunas conforme seu schema real:
-    // - schema.userBibleVerses: tabela de vínculo (userId, verseId, readingId, etc.)
-    // - schema.userBibleVerses.verseId -> referencia schema.bibleVerses.id
-    // - readingId null = ainda não foi lido/associado a uma leitura
-    return await db
-      .select({
-        id: schema.bibleVerses.id,
-        reference: schema.bibleVerses.reference,
-        text: schema.bibleVerses.text,
-        // se quiser: createdAt: schema.bibleVerses.createdAt,
-      })
-      .from(schema.bibleVerses)
-      .leftJoin(
-        schema.userBibleVerses,
-        and(
-          eq(schema.userBibleVerses.verseId, schema.bibleVerses.id),
-          eq(schema.userBibleVerses.userId, userId)
-        )
-      )
-      .where(isNull(schema.userBibleVerses.readingId))
-      .limit(50);
+  // 2. Se o estoque estiver baixo (menos de 100), chama a reposição automática
+  if (count < 100) {
+    // Chame aqui uma função (sem dar await para não travar o usuário) 
+    // que pede para a IA gerar mais 50 versículos.
+    this.replenishVerses(50); 
   }
 
-  // Função de apoio para reposição
-  private async replenishVerses(amount: number): Promise<void> {
-    console.log(`⚠️ Estoque baixo! Gerando mais ${amount} versículos via IA...`);
-    // Lógica de integração com a API da IA aqui...
-  }
+  // 3. Retorna os versículos para o usuário (sua lógica de unread com o JOIN que fizemos)
+  return await db
+    .select(...)
+    .from(schema.bibleVerses)
+    .leftJoin(...)
+    .where(and(eq(userId), isNull(readingId)))
+    .limit(50);
+}
+
+// Função de apoio para reposição
+private async replenishVerses(amount: number) {
+   console.log(`⚠️ Estoque baixo! Gerando mais ${amount} versículos via IA...`);
+   // Lógica de integração com a API da IA aqui...
 }
 
   async getTotalVersesReadByUser(userId: number): Promise<number> {

@@ -274,29 +274,4 @@ app.use((req, res, next) => {
     // Server will shut down if initialization fails
     try {
       await initializeDatabase();
-      await seedShopCategories();
-      await seedAchievementsAndVerses();
-      
-      // Migrate existing Base64 images to R2 (runs once per deploy)
-      runImageMigration().catch(err => console.error("[Migration] Background migration error:", err));
-      
-      initBirthdayScheduler();
-      initDeoGlorySchedulers();
-      initDailyVerseScheduler();
-      initRecoveryVersesScheduler();
-      initInstagramScheduler();
-      initDailyMissionsScheduler();
-      initWeeklyGoalScheduler();
-      initEventScheduler();
-      initEventDeadlineScheduler();
-      initMarketingReminderScheduler();
-      initTreasurySchedulers();
-      initInstagramStoriesSchedulers();
-      log("Database and schedulers initialized successfully");
-    } catch (error: any) {
-      console.error("[FATAL] Failed to initialize:", error.message);
-      console.error("[FATAL] Shutting down server");
-      process.exit(1);
-    }
-  });
-})();
+      awa

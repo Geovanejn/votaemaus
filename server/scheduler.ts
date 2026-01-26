@@ -1,6 +1,5 @@
 import cron from "node-cron";
 import { storage } from "./storage";
-import { uploadToR2 } from "./services/r2-storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVerseWithLink, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured, refreshInstagramToken } from "./instagram";

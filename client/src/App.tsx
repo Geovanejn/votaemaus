@@ -34,6 +34,7 @@ const MembroPage = lazy(() => import("@/pages/site/membro"));
 const PoliticaPrivacidadePage = lazy(() => import("@/pages/site/politica-privacidade"));
 const VersiculoDoDiaPage = lazy(() => import("@/pages/site/versiculo-do-dia"));
 const FormPage = lazy(() => import("@/pages/FormPage"));
+const MemberForms = lazy(() => import("@/pages/MemberForms"));
 const AniversarioPage = lazy(() => import("@/pages/site/AniversarioPage"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -369,6 +370,7 @@ function Router() {
         <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
         <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
         <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+        <Route path="/formularios" component={MemberForms} />
         <Route path="/forms/:id" component={FormPage} />
         <Route path="/demo/cards" component={DemoCardsPage} />
         <Route path="/login">

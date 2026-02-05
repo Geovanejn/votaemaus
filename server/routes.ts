@@ -15514,7 +15514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Não é possível editar formulário publicado/fechado" });
       }
 
-      const { questionText, questionType, isRequired, sortOrder } = req.body;
+      const { questionText, questionType, isRequired, sortOrder, options } = req.body;
       if (!questionText || !questionType) {
         return res.status(400).json({ message: "Texto e tipo da pergunta são obrigatórios" });
       }
@@ -15530,7 +15530,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isRequired: isRequired ?? true,
         sortOrder: sortOrder ?? (maxOrder + 1),
       });
-      res.json(question);
+
+      // Create options if provided (for radio, checkbox, select types)
+      const createdOptions = [];
+      if (options && Array.isArray(options) && options.length > 0) {
+        for (let i = 0; i < options.length; i++) {
+          const optionText = options[i];
+          if (optionText && optionText.trim()) {
+            const opt = await storage.createFormOption({
+              questionId: question.id,
+              optionText: optionText.trim(),
+              sortOrder: i,
+            });
+            createdOptions.push(opt);
+          }
+        }
+      }
+
+      res.json({ ...question, options: createdOptions });
     } catch (error) {
       console.error("Create question error:", error);
       res.status(500).json({ message: "Erro ao criar pergunta" });

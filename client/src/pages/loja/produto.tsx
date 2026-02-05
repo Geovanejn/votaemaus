@@ -43,11 +43,17 @@ export default function LojaProdutoPage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
 
-  const { data: items, isLoading } = useQuery<ShopItemWithDetails[]>({
+  // Fetch all items for related products
+  const { data: items } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
   });
 
-  const product = items?.find(item => item.id === productId);
+  // Fetch specific product with colors and color images
+  const { data: product, isLoading } = useQuery<ShopItemWithDetails>({
+    queryKey: ["/api/shop/items", productId],
+    enabled: !!productId,
+  });
+
   const relatedProducts = items?.filter(item => item.id !== productId && item.isAvailable).slice(0, 4) || [];
 
   const addToCartMutation = useMutation({

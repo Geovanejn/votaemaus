@@ -2477,6 +2477,8 @@ export const shopCartItems = pgTable("shop_cart_items", {
   quantity: integer("quantity").notNull().default(1),
   gender: text("gender"),
   size: text("size"),
+  color: text("color"),
+  colorId: integer("color_id"),
   addedAt: timestamp("added_at").defaultNow(),
 });
 
@@ -2522,6 +2524,8 @@ export const shopOrderItems = pgTable("shop_order_items", {
   quantity: integer("quantity").notNull(),
   gender: text("gender"),
   size: text("size"),
+  color: text("color"),
+  colorId: integer("color_id"),
   unitPrice: integer("unit_price").notNull(),
 }, (table) => ({
   orderIdIdx: index("shop_order_items_order_id_idx").on(table.orderId),
@@ -2588,6 +2592,95 @@ export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
 export type PromoCode = typeof promoCodes.$inferSelect;
 
 // =====================================================
+// CORES DOS ITENS DA LOJA
+// =====================================================
+
+// Cores disponíveis para cada item
+export const shopItemColors = pgTable("shop_item_colors", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  hexCode: text("hex_code").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isAvailable: boolean("is_available").notNull().default(true),
+}, (table) => ({
+  itemIdIdx: index("shop_item_colors_item_id_idx").on(table.itemId),
+}));
+
+export const insertShopItemColorSchema = createInsertSchema(shopItemColors).omit({
+  id: true,
+});
+
+export type InsertShopItemColor = z.infer<typeof insertShopItemColorSchema>;
+export type ShopItemColor = typeof shopItemColors.$inferSelect;
+
+// Imagens específicas por cor do item
+export const shopItemColorImages = pgTable("shop_item_color_images", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  colorId: integer("color_id").notNull().references(() => shopItemColors.id, { onDelete: "cascade" }),
+  gender: text("gender").notNull(),
+  imageData: text("image_data").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+}, (table) => ({
+  itemIdIdx: index("shop_item_color_images_item_id_idx").on(table.itemId),
+  colorIdIdx: index("shop_item_color_images_color_id_idx").on(table.colorId),
+}));
+
+export const insertShopItemColorImageSchema = createInsertSchema(shopItemColorImages).omit({
+  id: true,
+});
+
+export type InsertShopItemColorImage = z.infer<typeof insertShopItemColorImageSchema>;
+export type ShopItemColorImage = typeof shopItemColorImages.$inferSelect;
+
+// =====================================================
+// DESCONTOS POR COMBINAÇÃO DE ITENS
+// =====================================================
+
+// Combo de desconto (regra principal)
+export const shopComboDiscounts = pgTable("shop_combo_discounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  discountValue: integer("discount_value").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertShopComboDiscountSchema = createInsertSchema(shopComboDiscounts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShopComboDiscount = z.infer<typeof insertShopComboDiscountSchema>;
+export type ShopComboDiscount = typeof shopComboDiscounts.$inferSelect;
+
+// Itens que fazem parte do combo
+export const shopComboDiscountItems = pgTable("shop_combo_discount_items", {
+  id: serial("id").primaryKey(),
+  comboId: integer("combo_id").notNull().references(() => shopComboDiscounts.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  sortOrder: integer("sort_order").notNull().default(0),
+}, (table) => ({
+  comboIdIdx: index("shop_combo_discount_items_combo_id_idx").on(table.comboId),
+  itemIdIdx: index("shop_combo_discount_items_item_id_idx").on(table.itemId),
+}));
+
+export const insertShopComboDiscountItemSchema = createInsertSchema(shopComboDiscountItems).omit({
+  id: true,
+});
+
+export type InsertShopComboDiscountItem = z.infer<typeof insertShopComboDiscountItemSchema>;
+export type ShopComboDiscountItem = typeof shopComboDiscountItems.$inferSelect;
+
+// Tipo composto para combo com itens
+export type ShopComboDiscountWithItems = ShopComboDiscount & {
+  items: (ShopComboDiscountItem & { item: ShopItem })[];
+};
+
+// =====================================================
 // EVENTOS COM TAXA
 // =====================================================
 
@@ -2635,6 +2728,8 @@ export type ShopItemWithDetails = ShopItem & {
   images: ShopItemImage[];
   sizes: ShopItemSize[];
   sizeCharts: ShopItemSizeChart[];
+  colors: ShopItemColor[];
+  colorImages: ShopItemColorImage[];
 };
 
 export type ShopOrderWithItems = ShopOrder & {

@@ -156,6 +156,8 @@ export default function LojaCarrinhoPage() {
       cartItemId: c.id,
       gender: c.gender || "unissex",
       size: c.size || undefined,
+      color: c.color || undefined,
+      colorId: c.colorId || undefined,
     }));
     
     checkoutMutation.mutate({ 
@@ -267,8 +269,9 @@ export default function LojaCarrinhoPage() {
                         {cartItem.item.name}
                       </h3>
                       <div className="text-xs text-gray-500 space-y-0.5 mt-1">
-                        {cartItem.size && <p>Size: <span className="text-black">{cartItem.size}</span></p>}
-                        {cartItem.gender && <p>Color: <span className="text-black">{cartItem.gender === "masculino" ? "Green" : cartItem.gender === "feminino" ? "Blue" : "Default"}</span></p>}
+                        {cartItem.size && <p data-testid={`text-size-${cartItem.id}`}>Tamanho: <span className="text-black">{cartItem.size}</span></p>}
+                        {cartItem.gender && <p data-testid={`text-gender-${cartItem.id}`}>Gênero: <span className="text-black">{cartItem.gender === "masculino" ? "Masculino" : cartItem.gender === "feminino" ? "Feminino" : "Unissex"}</span></p>}
+                        {cartItem.color && <p data-testid={`text-color-${cartItem.id}`}>Cor: <span className="text-black">{cartItem.color}</span></p>}
                       </div>
                     </div>
                     <button

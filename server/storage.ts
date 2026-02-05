@@ -95,6 +95,15 @@ import type {
   InsertEventConfirmation,
   PromoCode,
   InsertPromoCode,
+  ShopItemColor,
+  InsertShopItemColor,
+  ShopItemColorImage,
+  InsertShopItemColorImage,
+  ShopComboDiscount,
+  InsertShopComboDiscount,
+  ShopComboDiscountItem,
+  InsertShopComboDiscountItem,
+  ShopComboDiscountWithItems,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -628,6 +637,31 @@ export interface IStorage {
   updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode | null>;
   deletePromoCode(id: number): Promise<void>;
   incrementPromoCodeUsage(id: number): Promise<void>;
+  
+  // Shop Item Colors Methods
+  getShopItemColors(itemId: number): Promise<ShopItemColor[]>;
+  getShopItemColorsByItemIds(itemIds: number[]): Promise<Map<number, ShopItemColor[]>>;
+  createShopItemColor(data: InsertShopItemColor): Promise<ShopItemColor>;
+  updateShopItemColor(id: number, data: Partial<InsertShopItemColor>): Promise<ShopItemColor | null>;
+  deleteShopItemColor(id: number): Promise<void>;
+  
+  // Shop Item Color Images Methods
+  getShopItemColorImages(itemId: number): Promise<ShopItemColorImage[]>;
+  getShopItemColorImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemColorImage[]>>;
+  getShopItemColorImagesByColorId(colorId: number): Promise<ShopItemColorImage[]>;
+  createShopItemColorImage(data: InsertShopItemColorImage): Promise<ShopItemColorImage>;
+  updateShopItemColorImage(id: number, data: Partial<InsertShopItemColorImage>): Promise<ShopItemColorImage | null>;
+  deleteShopItemColorImage(id: number): Promise<void>;
+  deleteShopItemColorImagesByColor(colorId: number): Promise<void>;
+  
+  // Shop Combo Discounts Methods
+  getShopComboDiscounts(): Promise<ShopComboDiscountWithItems[]>;
+  getShopComboDiscountById(id: number): Promise<ShopComboDiscountWithItems | null>;
+  getActiveShopComboDiscounts(): Promise<ShopComboDiscountWithItems[]>;
+  createShopComboDiscount(data: InsertShopComboDiscount, itemIds: number[]): Promise<ShopComboDiscount>;
+  updateShopComboDiscount(id: number, data: Partial<InsertShopComboDiscount>, itemIds?: number[]): Promise<ShopComboDiscount | null>;
+  deleteShopComboDiscount(id: number): Promise<void>;
+  calculateComboDiscounts(cartItemIds: number[]): Promise<{ discount: number; appliedCombos: { id: number; name: string; discountValue: number }[] }>;
   
   // Scheduler Reminders Methods (for persistence across restarts)
   hasSentSchedulerReminder(reminderKey: string): Promise<boolean>;
@@ -8733,6 +8767,252 @@ export class DatabaseStorage implements IStorage {
     await db.update(schema.promoCodes)
       .set({ usedCount: sql`${schema.promoCodes.usedCount} + 1` })
       .where(eq(schema.promoCodes.id, id));
+  }
+
+  // ==================== SHOP ITEM COLORS METHODS ====================
+
+  async getShopItemColors(itemId: number): Promise<ShopItemColor[]> {
+    return db.select()
+      .from(schema.shopItemColors)
+      .where(eq(schema.shopItemColors.itemId, itemId))
+      .orderBy(asc(schema.shopItemColors.sortOrder));
+  }
+
+  async getShopItemColorsByItemIds(itemIds: number[]): Promise<Map<number, ShopItemColor[]>> {
+    if (itemIds.length === 0) return new Map();
+    const colors = await db.select()
+      .from(schema.shopItemColors)
+      .where(inArray(schema.shopItemColors.itemId, itemIds))
+      .orderBy(asc(schema.shopItemColors.sortOrder));
+    const map = new Map<number, ShopItemColor[]>();
+    for (const color of colors) {
+      if (!map.has(color.itemId)) map.set(color.itemId, []);
+      map.get(color.itemId)!.push(color);
+    }
+    return map;
+  }
+
+  async createShopItemColor(data: InsertShopItemColor): Promise<ShopItemColor> {
+    const [color] = await db.insert(schema.shopItemColors).values(data).returning();
+    return color;
+  }
+
+  async updateShopItemColor(id: number, data: Partial<InsertShopItemColor>): Promise<ShopItemColor | null> {
+    const [updated] = await db.update(schema.shopItemColors)
+      .set(data)
+      .where(eq(schema.shopItemColors.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteShopItemColor(id: number): Promise<void> {
+    await db.delete(schema.shopItemColors).where(eq(schema.shopItemColors.id, id));
+  }
+
+  // ==================== SHOP ITEM COLOR IMAGES METHODS ====================
+
+  async getShopItemColorImages(itemId: number): Promise<ShopItemColorImage[]> {
+    return db.select()
+      .from(schema.shopItemColorImages)
+      .where(eq(schema.shopItemColorImages.itemId, itemId))
+      .orderBy(asc(schema.shopItemColorImages.sortOrder));
+  }
+
+  async getShopItemColorImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemColorImage[]>> {
+    if (itemIds.length === 0) return new Map();
+    const images = await db.select()
+      .from(schema.shopItemColorImages)
+      .where(inArray(schema.shopItemColorImages.itemId, itemIds))
+      .orderBy(asc(schema.shopItemColorImages.sortOrder));
+    const map = new Map<number, ShopItemColorImage[]>();
+    for (const img of images) {
+      if (!map.has(img.itemId)) map.set(img.itemId, []);
+      map.get(img.itemId)!.push(img);
+    }
+    return map;
+  }
+
+  async getShopItemColorImagesByColorId(colorId: number): Promise<ShopItemColorImage[]> {
+    return db.select()
+      .from(schema.shopItemColorImages)
+      .where(eq(schema.shopItemColorImages.colorId, colorId))
+      .orderBy(asc(schema.shopItemColorImages.sortOrder));
+  }
+
+  async createShopItemColorImage(data: InsertShopItemColorImage): Promise<ShopItemColorImage> {
+    const [image] = await db.insert(schema.shopItemColorImages).values(data).returning();
+    return image;
+  }
+
+  async updateShopItemColorImage(id: number, data: Partial<InsertShopItemColorImage>): Promise<ShopItemColorImage | null> {
+    const [updated] = await db.update(schema.shopItemColorImages)
+      .set(data)
+      .where(eq(schema.shopItemColorImages.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async deleteShopItemColorImage(id: number): Promise<void> {
+    await db.delete(schema.shopItemColorImages).where(eq(schema.shopItemColorImages.id, id));
+  }
+
+  async deleteShopItemColorImagesByColor(colorId: number): Promise<void> {
+    await db.delete(schema.shopItemColorImages).where(eq(schema.shopItemColorImages.colorId, colorId));
+  }
+
+  // ==================== SHOP COMBO DISCOUNTS METHODS ====================
+
+  async getShopComboDiscounts(): Promise<ShopComboDiscountWithItems[]> {
+    const combos = await db.select()
+      .from(schema.shopComboDiscounts)
+      .orderBy(desc(schema.shopComboDiscounts.createdAt));
+    
+    const result: ShopComboDiscountWithItems[] = [];
+    for (const combo of combos) {
+      const comboItems = await db.select()
+        .from(schema.shopComboDiscountItems)
+        .innerJoin(schema.shopItems, eq(schema.shopComboDiscountItems.itemId, schema.shopItems.id))
+        .where(eq(schema.shopComboDiscountItems.comboId, combo.id))
+        .orderBy(asc(schema.shopComboDiscountItems.sortOrder));
+      
+      result.push({
+        ...combo,
+        items: comboItems.map(ci => ({
+          ...ci.shop_combo_discount_items,
+          item: ci.shop_items,
+        })),
+      });
+    }
+    return result;
+  }
+
+  async getShopComboDiscountById(id: number): Promise<ShopComboDiscountWithItems | null> {
+    const [combo] = await db.select()
+      .from(schema.shopComboDiscounts)
+      .where(eq(schema.shopComboDiscounts.id, id))
+      .limit(1);
+    
+    if (!combo) return null;
+    
+    const comboItems = await db.select()
+      .from(schema.shopComboDiscountItems)
+      .innerJoin(schema.shopItems, eq(schema.shopComboDiscountItems.itemId, schema.shopItems.id))
+      .where(eq(schema.shopComboDiscountItems.comboId, combo.id))
+      .orderBy(asc(schema.shopComboDiscountItems.sortOrder));
+    
+    return {
+      ...combo,
+      items: comboItems.map(ci => ({
+        ...ci.shop_combo_discount_items,
+        item: ci.shop_items,
+      })),
+    };
+  }
+
+  async getActiveShopComboDiscounts(): Promise<ShopComboDiscountWithItems[]> {
+    const now = new Date();
+    const combos = await db.select()
+      .from(schema.shopComboDiscounts)
+      .where(
+        and(
+          eq(schema.shopComboDiscounts.isActive, true),
+          or(
+            isNull(schema.shopComboDiscounts.startDate),
+            lte(schema.shopComboDiscounts.startDate, now)
+          ),
+          or(
+            isNull(schema.shopComboDiscounts.endDate),
+            gte(schema.shopComboDiscounts.endDate, now)
+          )
+        )
+      );
+    
+    const result: ShopComboDiscountWithItems[] = [];
+    for (const combo of combos) {
+      const comboItems = await db.select()
+        .from(schema.shopComboDiscountItems)
+        .innerJoin(schema.shopItems, eq(schema.shopComboDiscountItems.itemId, schema.shopItems.id))
+        .where(eq(schema.shopComboDiscountItems.comboId, combo.id))
+        .orderBy(asc(schema.shopComboDiscountItems.sortOrder));
+      
+      result.push({
+        ...combo,
+        items: comboItems.map(ci => ({
+          ...ci.shop_combo_discount_items,
+          item: ci.shop_items,
+        })),
+      });
+    }
+    return result;
+  }
+
+  async createShopComboDiscount(data: InsertShopComboDiscount, itemIds: number[]): Promise<ShopComboDiscount> {
+    const [combo] = await db.insert(schema.shopComboDiscounts).values(data).returning();
+    
+    if (itemIds.length > 0) {
+      const itemsToInsert = itemIds.map((itemId, index) => ({
+        comboId: combo.id,
+        itemId,
+        sortOrder: index,
+      }));
+      await db.insert(schema.shopComboDiscountItems).values(itemsToInsert);
+    }
+    
+    return combo;
+  }
+
+  async updateShopComboDiscount(id: number, data: Partial<InsertShopComboDiscount>, itemIds?: number[]): Promise<ShopComboDiscount | null> {
+    const [updated] = await db.update(schema.shopComboDiscounts)
+      .set(data)
+      .where(eq(schema.shopComboDiscounts.id, id))
+      .returning();
+    
+    if (!updated) return null;
+    
+    if (itemIds !== undefined) {
+      await db.delete(schema.shopComboDiscountItems)
+        .where(eq(schema.shopComboDiscountItems.comboId, id));
+      
+      if (itemIds.length > 0) {
+        const itemsToInsert = itemIds.map((itemId, index) => ({
+          comboId: id,
+          itemId,
+          sortOrder: index,
+        }));
+        await db.insert(schema.shopComboDiscountItems).values(itemsToInsert);
+      }
+    }
+    
+    return updated;
+  }
+
+  async deleteShopComboDiscount(id: number): Promise<void> {
+    await db.delete(schema.shopComboDiscounts).where(eq(schema.shopComboDiscounts.id, id));
+  }
+
+  async calculateComboDiscounts(cartItemIds: number[]): Promise<{ discount: number; appliedCombos: { id: number; name: string; discountValue: number }[] }> {
+    if (cartItemIds.length === 0) return { discount: 0, appliedCombos: [] };
+    
+    const activeCombos = await this.getActiveShopComboDiscounts();
+    let totalDiscount = 0;
+    const appliedCombos: { id: number; name: string; discountValue: number }[] = [];
+    const cartItemSet = new Set(cartItemIds);
+    
+    for (const combo of activeCombos) {
+      const comboItemIds = combo.items.map(i => i.itemId);
+      const allItemsInCart = comboItemIds.every(id => cartItemSet.has(id));
+      
+      if (allItemsInCart) {
+        totalDiscount += combo.discountValue;
+        appliedCombos.push({
+          id: combo.id,
+          name: combo.name,
+          discountValue: combo.discountValue,
+        });
+      }
+    }
+    
+    return { discount: totalDiscount, appliedCombos };
   }
 
   // Sent Event Notifications - persists notification cache in database

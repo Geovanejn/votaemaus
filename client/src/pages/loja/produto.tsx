@@ -10,12 +10,14 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { ShopHeader } from "@/components/shop/ShopHeader";
 import useEmblaCarousel from "embla-carousel-react";
-import type { ShopItem, ShopItemImage, ShopItemSize, ShopItemSizeChart } from "@shared/schema";
+import type { ShopItem, ShopItemImage, ShopItemSize, ShopItemSizeChart, ShopItemColor, ShopItemColorImage } from "@shared/schema";
 
 interface ShopItemWithDetails extends ShopItem {
   images: ShopItemImage[];
   sizes: ShopItemSize[];
   sizeCharts?: ShopItemSizeChart[];
+  colors?: ShopItemColor[];
+  colorImages?: ShopItemColorImage[];
   category?: { id: number; name: string };
 }
 
@@ -36,6 +38,7 @@ export default function LojaProdutoPage() {
   
   const [selectedGender, setSelectedGender] = useState<string>("unissex");
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<ShopItemColor | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
@@ -48,7 +51,7 @@ export default function LojaProdutoPage() {
   const relatedProducts = items?.filter(item => item.id !== productId && item.isAvailable).slice(0, 4) || [];
 
   const addToCartMutation = useMutation({
-    mutationFn: async (data: { itemId: number; quantity: number; size?: string; gender?: string }) => {
+    mutationFn: async (data: { itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number }) => {
       return apiRequest("POST", "/api/shop/cart", data);
     },
     onSuccess: () => {
@@ -60,10 +63,33 @@ export default function LojaProdutoPage() {
     },
   });
 
-  const currentImages = product?.images?.filter((img: ShopItemImage) => {
-    if (product.genderType === "unissex") return true;
-    return img.gender === selectedGender || img.gender === "unissex";
-  }) || [];
+  const availableColors = product?.colors?.filter(c => c.isAvailable) || [];
+
+  const currentImages = (() => {
+    if (!product) return [];
+    
+    if (selectedColor && product.colorImages) {
+      const colorSpecificImages = product.colorImages.filter((img: ShopItemColorImage) => {
+        if (img.colorId !== selectedColor.id) return false;
+        if (product.genderType === "unissex") return true;
+        return img.gender === selectedGender || img.gender === "unissex";
+      });
+      if (colorSpecificImages.length > 0) {
+        return colorSpecificImages.map(img => ({
+          id: img.id,
+          itemId: img.itemId,
+          gender: img.gender,
+          imageData: img.imageData,
+          sortOrder: img.sortOrder,
+        }));
+      }
+    }
+    
+    return product.images?.filter((img: ShopItemImage) => {
+      if (product.genderType === "unissex") return true;
+      return img.gender === selectedGender || img.gender === "unissex";
+    }) || [];
+  })();
 
   const availableSizes = product?.sizes?.filter(s => {
     if (product.genderType === "unissex") return true;
@@ -99,11 +125,17 @@ export default function LojaProdutoPage() {
       toast({ title: "Selecione um tamanho", description: "Escolha o tamanho antes de adicionar.", variant: "destructive" });
       return;
     }
+    if (availableColors.length > 0 && !selectedColor) {
+      toast({ title: "Selecione uma cor", description: "Escolha a cor antes de adicionar.", variant: "destructive" });
+      return;
+    }
     addToCartMutation.mutate({
       itemId: product.id,
       quantity,
       size: selectedSize || undefined,
       gender: selectedGender,
+      color: selectedColor?.name || undefined,
+      colorId: selectedColor?.id || undefined,
     });
   };
 
@@ -252,6 +284,36 @@ export default function LojaProdutoPage() {
           </div>
         )}
 
+        {/* Color Selection */}
+        {availableColors.length > 0 && product.isAvailable && (
+          <div className="space-y-2 pt-4">
+            <p className="text-sm font-medium text-black">Cor:</p>
+            <div className="flex flex-wrap gap-2">
+              {availableColors.map((colorItem) => (
+                <button
+                  key={colorItem.id}
+                  onClick={() => {
+                    setSelectedColor(colorItem);
+                    if (emblaApi) emblaApi.scrollTo(0);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
+                    selectedColor?.id === colorItem.id
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-gray-300 hover:border-black"
+                  }`}
+                  data-testid={`button-color-${colorItem.id}`}
+                >
+                  <span
+                    className="w-4 h-4 rounded-full border border-gray-400"
+                    style={{ backgroundColor: colorItem.hexCode }}
+                  />
+                  {colorItem.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Gender Selection - Show for browsing even if product unavailable */}
         {product.genderType !== "unissex" && (
           <div className="space-y-2">
@@ -306,7 +368,7 @@ export default function LojaProdutoPage() {
             <Button
               className="flex-1 h-12 text-base font-bold bg-yellow-400 text-black hover:bg-yellow-500"
               onClick={addToCart}
-              disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize)}
+              disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize) || (availableColors.length > 0 && !selectedColor)}
               data-testid="button-add-to-cart"
             >
               {addToCartMutation.isPending ? "ADICIONANDO..." : "COMPRAR"}

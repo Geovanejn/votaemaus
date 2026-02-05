@@ -10822,6 +10822,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SHOP ITEM COLORS ROUTES ====================
+
+  // Get colors for an item
+  app.get("/api/admin/shop/items/:id/colors", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const colors = await storage.getShopItemColors(itemId);
+      res.json(colors);
+    } catch (error) {
+      console.error("Get shop item colors error:", error);
+      res.status(500).json({ message: "Erro ao buscar cores do item" });
+    }
+  });
+
+  // Create color for an item
+  app.post("/api/admin/shop/items/:id/colors", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const { name, hexCode, sortOrder, isAvailable } = req.body;
+      
+      const color = await storage.createShopItemColor({
+        itemId,
+        name,
+        hexCode,
+        sortOrder: sortOrder || 0,
+        isAvailable: isAvailable !== false,
+      });
+      
+      res.status(201).json(color);
+    } catch (error) {
+      console.error("Create shop item color error:", error);
+      res.status(500).json({ message: "Erro ao criar cor do item" });
+    }
+  });
+
+  // Update color
+  app.patch("/api/admin/shop/colors/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateShopItemColor(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Cor não encontrada" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update shop item color error:", error);
+      res.status(500).json({ message: "Erro ao atualizar cor do item" });
+    }
+  });
+
+  // Delete color
+  app.delete("/api/admin/shop/colors/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteShopItemColor(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete shop item color error:", error);
+      res.status(500).json({ message: "Erro ao deletar cor do item" });
+    }
+  });
+
+  // ==================== SHOP ITEM COLOR IMAGES ROUTES ====================
+
+  // Get color images for an item
+  app.get("/api/admin/shop/items/:id/color-images", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const images = await storage.getShopItemColorImages(itemId);
+      res.json(images);
+    } catch (error) {
+      console.error("Get shop item color images error:", error);
+      res.status(500).json({ message: "Erro ao buscar imagens por cor" });
+    }
+  });
+
+  // Upload images for a specific color
+  app.post("/api/admin/shop/colors/:colorId/images", authenticateToken, requireMarketing, imageUpload.array("images", 10), async (req: AuthRequest, res) => {
+    try {
+      const colorId = parseInt(req.params.colorId);
+      const { itemId, gender } = req.body;
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "Nenhuma imagem enviada" });
+      }
+      
+      const existingImages = await storage.getShopItemColorImagesByColorId(colorId);
+      let currentSortOrder = existingImages.length;
+      
+      const createdImages = [];
+      for (const file of files) {
+        const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        
+        const image = await storage.createShopItemColorImage({
+          itemId: parseInt(itemId),
+          colorId,
+          gender: gender || 'unisex',
+          imageData: base64Data,
+          sortOrder: currentSortOrder++,
+        });
+        createdImages.push(image);
+      }
+      
+      res.status(201).json(createdImages);
+    } catch (error) {
+      console.error("Upload color images error:", error);
+      res.status(500).json({ message: "Erro ao fazer upload de imagens da cor" });
+    }
+  });
+
+  // Delete color image
+  app.delete("/api/admin/shop/color-images/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteShopItemColorImage(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete color image error:", error);
+      res.status(500).json({ message: "Erro ao deletar imagem da cor" });
+    }
+  });
+
+  // ==================== SHOP COMBO DISCOUNTS ROUTES ====================
+
+  // Get all combo discounts
+  app.get("/api/admin/shop/combo-discounts", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const combos = await storage.getShopComboDiscounts();
+      res.json(combos);
+    } catch (error) {
+      console.error("Get combo discounts error:", error);
+      res.status(500).json({ message: "Erro ao buscar descontos combo" });
+    }
+  });
+
+  // Get combo discount by id
+  app.get("/api/admin/shop/combo-discounts/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const combo = await storage.getShopComboDiscountById(id);
+      if (!combo) {
+        return res.status(404).json({ message: "Desconto combo não encontrado" });
+      }
+      res.json(combo);
+    } catch (error) {
+      console.error("Get combo discount error:", error);
+      res.status(500).json({ message: "Erro ao buscar desconto combo" });
+    }
+  });
+
+  // Create combo discount
+  app.post("/api/admin/shop/combo-discounts", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { name, discountValue, isActive, startDate, endDate, itemIds } = req.body;
+      
+      if (!name || discountValue === undefined || !itemIds || itemIds.length < 2) {
+        return res.status(400).json({ message: "Nome, valor de desconto e pelo menos 2 itens são obrigatórios" });
+      }
+      
+      const combo = await storage.createShopComboDiscount({
+        name,
+        discountValue,
+        isActive: isActive !== false,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+      }, itemIds);
+      
+      res.status(201).json(combo);
+    } catch (error) {
+      console.error("Create combo discount error:", error);
+      res.status(500).json({ message: "Erro ao criar desconto combo" });
+    }
+  });
+
+  // Update combo discount
+  app.patch("/api/admin/shop/combo-discounts/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, discountValue, isActive, startDate, endDate, itemIds } = req.body;
+      
+      const updated = await storage.updateShopComboDiscount(id, {
+        name,
+        discountValue,
+        isActive,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      }, itemIds);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Desconto combo não encontrado" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update combo discount error:", error);
+      res.status(500).json({ message: "Erro ao atualizar desconto combo" });
+    }
+  });
+
+  // Delete combo discount
+  app.delete("/api/admin/shop/combo-discounts/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteShopComboDiscount(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete combo discount error:", error);
+      res.status(500).json({ message: "Erro ao deletar desconto combo" });
+    }
+  });
+
+  // Calculate combo discounts for cart (public endpoint for cart calculation)
+  app.post("/api/shop/calculate-combo-discounts", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { itemIds } = req.body;
+      if (!itemIds || !Array.isArray(itemIds)) {
+        return res.status(400).json({ message: "itemIds é obrigatório" });
+      }
+      
+      const result = await storage.calculateComboDiscounts(itemIds);
+      res.json(result);
+    } catch (error) {
+      console.error("Calculate combo discounts error:", error);
+      res.status(500).json({ message: "Erro ao calcular descontos combo" });
+    }
+  });
+
   // ==================== SHOP ROUTES - MEMBER ====================
 
   // In-memory cache for shop images (avoids repeated database queries and image processing)
@@ -11132,13 +11360,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      const [images, sizes, sizeCharts] = await Promise.all([
+      const [images, sizes, sizeCharts, colors, colorImages] = await Promise.all([
         storage.getShopItemImages(id),
         storage.getShopItemSizes(id),
-        storage.getShopItemSizeCharts(id)
+        storage.getShopItemSizeCharts(id),
+        storage.getShopItemColors(id),
+        storage.getShopItemColorImages(id)
       ]);
       
-      res.json({ ...item, images, sizes, sizeCharts });
+      res.json({ ...item, images, sizes, sizeCharts, colors, colorImages });
     } catch (error) {
       console.error("Get shop item error:", error);
       res.status(500).json({ message: "Erro ao buscar item" });
@@ -11188,7 +11418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Adicionar ao carrinho
   app.post("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { itemId, quantity, gender, size } = req.body;
+      const { itemId, quantity, gender, size, color, colorId } = req.body;
       
       if (!itemId || !quantity) {
         return res.status(400).json({ message: "Item e quantidade obrigatórios" });
@@ -11205,6 +11435,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quantity: Number(quantity),
         gender: gender || null,
         size: size || null,
+        color: color || null,
+        colorId: colorId ? Number(colorId) : null,
       });
       
       res.json(cartItem);
@@ -11347,7 +11579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let discountAmount = 0;
       let promoCodeId: number | null = null;
       let maxAllowedInstallments = 1;
-      const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string; categoryId?: number | null }[] = [];
+      const orderItems: { itemId: number; quantity: number; unitPrice: number; gender?: string; size?: string; color?: string; colorId?: number; categoryId?: number | null }[] = [];
       
       // Get cart items for the user to map cartItemId to product data
       const userCart = await storage.getCartItems(req.user!.id);
@@ -11385,6 +11617,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           unitPrice: item.price,
           gender: requestItem.gender || cartEntry.gender,
           size: requestItem.size || cartEntry.size,
+          color: requestItem.color || cartEntry.color,
+          colorId: requestItem.colorId || cartEntry.colorId,
           categoryId: item.categoryId,
         });
         

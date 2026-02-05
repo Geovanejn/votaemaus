@@ -114,6 +114,24 @@ interface PromoCode {
   category?: ShopCategory | null;
 }
 
+interface ShopItemColor {
+  id: number;
+  itemId: number;
+  name: string;
+  hexCode: string;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+interface ShopItemColorImage {
+  id: number;
+  itemId: number;
+  colorId: number;
+  gender: string;
+  imageData: string;
+  sortOrder: number;
+}
+
 const itemFormSchema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   description: z.string().optional(),
@@ -178,12 +196,19 @@ export default function LojaAdmin() {
   const [categoryImageChanged, setCategoryImageChanged] = useState(false);
   const categoryImageInputRef = useRef<HTMLInputElement>(null);
   const [managingItem, setManagingItem] = useState<ShopItemAdmin | null>(null);
-  const [manageTab, setManageTab] = useState<"images" | "sizes">("images");
+  const [manageTab, setManageTab] = useState<"images" | "sizes" | "colors">("images");
   const [uploadingGender, setUploadingGender] = useState<string>("unissex");
   const [newSizeGender, setNewSizeGender] = useState<string>("unissex");
   const [newSizeName, setNewSizeName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const colorImageInputRef = useRef<HTMLInputElement>(null);
+  
+  // Color management state
+  const [newColorName, setNewColorName] = useState("");
+  const [newColorHex, setNewColorHex] = useState("#000000");
+  const [uploadingColorId, setUploadingColorId] = useState<number | null>(null);
+  const [colorUploadGender, setColorUploadGender] = useState<Record<number, string>>({});
   
   // Size chart modal state
   const [sizeChartModal, setSizeChartModal] = useState<{
@@ -741,6 +766,105 @@ export default function LojaAdmin() {
     },
     onError: () => {
       toast({ title: "Erro", description: "Nao foi possivel salvar as dimensoes.", variant: "destructive" });
+    },
+  });
+
+  // Color queries and mutations
+  const { data: itemColors = [], isLoading: isLoadingColors, error: colorsError } = useQuery<ShopItemColor[]>({
+    queryKey: ["/api/admin/shop/items", managingItem?.id, "colors"],
+    enabled: !!managingItem,
+  });
+
+  // Color images query
+  const { data: colorImages = [] } = useQuery<ShopItemColorImage[]>({
+    queryKey: ["/api/admin/shop/items", managingItem?.id, "color-images"],
+    queryFn: async () => {
+      if (!managingItem) return [];
+      const response = await fetch(`/api/admin/shop/items/${managingItem.id}/color-images`, { credentials: "include" });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!managingItem,
+  });
+
+  const createColorMutation = useMutation({
+    mutationFn: async (data: { itemId: number; name: string; hexCode: string }) => {
+      return apiRequest("POST", `/api/admin/shop/items/${data.itemId}/colors`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem?.id, "colors"] });
+      setNewColorName("");
+      setNewColorHex("#000000");
+      toast({ title: "Cor criada", description: "A cor foi adicionada com sucesso." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível criar a cor.", variant: "destructive" });
+    },
+  });
+
+  const updateColorMutation = useMutation({
+    mutationFn: async (data: { id: number; isAvailable?: boolean }) => {
+      return apiRequest("PATCH", `/api/admin/shop/colors/${data.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem?.id, "colors"] });
+      toast({ title: "Cor atualizada", description: "A cor foi atualizada com sucesso." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível atualizar a cor.", variant: "destructive" });
+    },
+  });
+
+  const deleteColorMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/colors/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem?.id, "colors"] });
+      toast({ title: "Cor removida", description: "A cor foi removida com sucesso." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível remover a cor.", variant: "destructive" });
+    },
+  });
+
+  const uploadColorImageMutation = useMutation({
+    mutationFn: async (data: { itemId: number; colorId: number; files: File[]; gender: string }) => {
+      const formData = new FormData();
+      formData.append("itemId", data.itemId.toString());
+      formData.append("gender", data.gender);
+      data.files.forEach((file) => formData.append("images", file));
+      
+      const response = await fetch(`/api/admin/shop/colors/${data.colorId}/images`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Upload failed");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem?.id, "color-images"] });
+      setUploadingColorId(null);
+      toast({ title: "Imagens enviadas", description: "As imagens da cor foram enviadas com sucesso." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível enviar as imagens.", variant: "destructive" });
+    },
+  });
+
+  const deleteColorImageMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/color-images/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem?.id, "color-images"] });
+      toast({ title: "Imagem removida", description: "A imagem da cor foi removida com sucesso." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível remover a imagem.", variant: "destructive" });
     },
   });
 
@@ -1478,8 +1602,8 @@ export default function LojaAdmin() {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes")}>
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes" | "colors")}>
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="images" className="gap-2">
                 <ImagePlus className="h-4 w-4" />
                 Imagens
@@ -1487,6 +1611,10 @@ export default function LojaAdmin() {
               <TabsTrigger value="sizes" className="gap-2" disabled={!managingItem?.hasSize}>
                 <Ruler className="h-4 w-4" />
                 Tamanhos
+              </TabsTrigger>
+              <TabsTrigger value="colors" className="gap-2">
+                <Tag className="h-4 w-4" />
+                Cores
               </TabsTrigger>
             </TabsList>
 
@@ -1764,6 +1892,201 @@ export default function LojaAdmin() {
                     </div>
                   );
                 })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="colors" className="space-y-4 mt-4">
+              <div className="space-y-4">
+                {/* Add new color form */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Nome da cor (ex: Preto, Branco)"
+                    value={newColorName}
+                    onChange={(e) => setNewColorName(e.target.value)}
+                    className="flex-1"
+                    data-testid="input-new-color-name"
+                  />
+                  <Input
+                    type="color"
+                    value={newColorHex}
+                    onChange={(e) => setNewColorHex(e.target.value)}
+                    className="w-16 h-10 p-1 cursor-pointer"
+                    data-testid="input-new-color-hex"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (managingItem && newColorName.trim()) {
+                        createColorMutation.mutate({
+                          itemId: managingItem.id,
+                          name: newColorName.trim(),
+                          hexCode: newColorHex,
+                        });
+                      }
+                    }}
+                    disabled={!newColorName.trim() || createColorMutation.isPending}
+                    size="sm"
+                    data-testid="button-add-color"
+                  >
+                    {createColorMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {/* Loading and error states */}
+                {isLoadingColors && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="ml-2">Carregando cores...</span>
+                  </div>
+                )}
+
+                {colorsError && (
+                  <div className="text-center py-4 text-destructive">
+                    Erro ao carregar cores. Tente novamente.
+                  </div>
+                )}
+
+                {/* Color list */}
+                {!isLoadingColors && !colorsError && (
+                  <div className="space-y-4">
+                    {itemColors.map((color) => (
+                      <div key={color.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full border"
+                              style={{ backgroundColor: color.hexCode }}
+                            />
+                            <span className="font-medium">{color.name}</span>
+                            <Badge variant={color.isAvailable ? "default" : "secondary"}>
+                              {color.isAvailable ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                updateColorMutation.mutate({
+                                  id: color.id,
+                                  isAvailable: !color.isAvailable,
+                                });
+                              }}
+                              disabled={updateColorMutation.isPending}
+                              data-testid={`button-toggle-color-${color.id}`}
+                            >
+                              {color.isAvailable ? "Desativar" : "Ativar"}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteColorMutation.mutate(color.id)}
+                              disabled={deleteColorMutation.isPending}
+                              data-testid={`button-delete-color-${color.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Color image upload with gender selection */}
+                        <div className="flex items-center gap-2 pt-2 border-t">
+                          <Select
+                            value={colorUploadGender[color.id] || "unissex"}
+                            onValueChange={(value) => setColorUploadGender(prev => ({ ...prev, [color.id]: value }))}
+                          >
+                            <SelectTrigger className="w-32" data-testid={`select-gender-color-${color.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unissex">Unissex</SelectItem>
+                              <SelectItem value="masculino">Masculino</SelectItem>
+                              <SelectItem value="feminino">Feminino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setUploadingColorId(color.id);
+                              colorImageInputRef.current?.click();
+                            }}
+                            disabled={uploadColorImageMutation.isPending}
+                            data-testid={`button-add-color-images-${color.id}`}
+                          >
+                            <ImagePlus className="h-4 w-4 mr-2" />
+                            Adicionar Imagens
+                          </Button>
+                        </div>
+
+                        {/* Color images grid */}
+                        {colorImages.filter(img => img.colorId === color.id).length > 0 && (
+                          <div className="pt-3 border-t">
+                            <p className="text-xs text-muted-foreground mb-2">Imagens desta cor:</p>
+                            <div className="grid grid-cols-4 gap-2">
+                              {colorImages
+                                .filter(img => img.colorId === color.id)
+                                .map((img) => (
+                                  <div key={img.id} className="relative group">
+                                    <img
+                                      src={img.imageData.startsWith('data:') ? img.imageData : `data:image/jpeg;base64,${img.imageData}`}
+                                      alt={`${color.name} - ${img.gender}`}
+                                      className="w-full aspect-square object-cover rounded border"
+                                    />
+                                    <div className="absolute inset-0 bg-black/50 invisible group-hover:visible flex items-center justify-center rounded">
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => deleteColorImageMutation.mutate(img.id)}
+                                        disabled={deleteColorImageMutation.isPending}
+                                        data-testid={`button-delete-color-image-${img.id}`}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <Badge className="absolute bottom-1 left-1 text-xs" variant="secondary">
+                                      {img.gender === "masculino" ? "M" : img.gender === "feminino" ? "F" : "U"}
+                                    </Badge>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {itemColors.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Nenhuma cor cadastrada para este item
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  ref={colorImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0 && managingItem && uploadingColorId) {
+                      const gender = colorUploadGender[uploadingColorId] || "unissex";
+                      uploadColorImageMutation.mutate({
+                        itemId: managingItem.id,
+                        colorId: uploadingColorId,
+                        files,
+                        gender,
+                      });
+                    }
+                    if (colorImageInputRef.current) {
+                      colorImageInputRef.current.value = "";
+                    }
+                  }}
+                />
               </div>
             </TabsContent>
           </Tabs>

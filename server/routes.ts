@@ -11677,7 +11677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let comboDiscountAmount = 0;
       const itemIds = orderItems.map(oi => oi.itemId);
       if (itemIds.length >= 2) {
-        const combos = await storage.getActiveComboDiscounts();
+        const combos = await storage.getActiveShopComboDiscounts();
         const now = new Date();
         
         for (const combo of combos) {

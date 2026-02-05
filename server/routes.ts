@@ -15635,7 +15635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== FORM OPTIONS ROUTES ====================
 
   // Criar opção (admin/estatística)
-  app.post("/api/admin/questions/:questionId/options", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+  app.post("/api/admin/forms/:formId/questions/:questionId/options", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
     try {
       const questionId = parseInt(req.params.questionId);
       const { optionText, sortOrder } = req.body;

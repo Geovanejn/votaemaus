@@ -287,12 +287,7 @@ export default function EstatisticaDashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          toast({
-                            title: "Em desenvolvimento",
-                            description: "O editor de formularios sera implementado em breve.",
-                          });
-                        }}
+                        onClick={() => setLocation(`/admin/estatistica/forms/${form.id}`)}
                         data-testid={`button-edit-form-${form.id}`}
                       >
                         <Eye className="h-4 w-4 mr-1" />

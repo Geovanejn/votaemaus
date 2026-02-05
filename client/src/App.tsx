@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { UnifiedNotificationPrompt } from "@/components/unified-notification-prompt";
+import { PendingFormsPopup } from "@/components/PendingFormsPopup";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -32,6 +33,7 @@ const OracaoPage = lazy(() => import("@/pages/site/oracao"));
 const MembroPage = lazy(() => import("@/pages/site/membro"));
 const PoliticaPrivacidadePage = lazy(() => import("@/pages/site/politica-privacidade"));
 const VersiculoDoDiaPage = lazy(() => import("@/pages/site/versiculo-do-dia"));
+const FormPage = lazy(() => import("@/pages/FormPage"));
 const AniversarioPage = lazy(() => import("@/pages/site/AniversarioPage"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -46,6 +48,8 @@ const MarketingDashboard = lazy(() => import("@/pages/admin/MarketingDashboard")
 const MarketingEventos = lazy(() => import("@/pages/admin/MarketingEventos"));
 const MarketingEventoEditor = lazy(() => import("@/pages/admin/MarketingEventoEditor"));
 const EstatisticaDashboard = lazy(() => import("@/pages/admin/EstatisticaDashboard"));
+const FormEditor = lazy(() => import("@/pages/admin/FormEditor"));
+const FormResponses = lazy(() => import("@/pages/admin/FormResponses"));
 const MarketingDiretoria = lazy(() => import("@/pages/admin/MarketingDiretoria"));
 const MarketingDiretoriaEditor = lazy(() => import("@/pages/admin/MarketingDiretoriaEditor"));
 const MarketingQuemSomos = lazy(() => import("@/pages/admin/MarketingQuemSomos"));
@@ -348,6 +352,8 @@ function Router() {
         <Route path="/admin/loja" component={LojaAdmin} />
         <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
         <Route path="/admin/estatistica" component={EstatisticaDashboard} />
+        <Route path="/admin/estatistica/forms/:id" component={FormEditor} />
+        <Route path="/admin/estatistica/forms/:id/respostas" component={FormResponses} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />
@@ -361,6 +367,7 @@ function Router() {
         <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
         <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
         <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+        <Route path="/forms/:id" component={FormPage} />
         <Route path="/demo/cards" component={DemoCardsPage} />
         <Route path="/login">
           <Redirect to="/membro" />
@@ -383,6 +390,7 @@ function App() {
             <ScrollToTop />
             <Toaster />
             <UnifiedNotificationPrompt />
+            <PendingFormsPopup />
             <Router />
           </TooltipProvider>
         </AuthProvider>

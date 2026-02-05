@@ -718,6 +718,7 @@ export interface IStorage {
   createFormAnswer(data: InsertFormAnswer): Promise<FormAnswer>;
   updateFormAnswer(id: number, data: Partial<InsertFormAnswer>): Promise<FormAnswer | null>;
   getFormAnswersByResponse(responseId: number): Promise<FormAnswer[]>;
+  getFormAnswerByQuestionAndResponse(responseId: number, questionId: number): Promise<FormAnswer | null>;
   
   // Form Analytics
   getFormAnalytics(formId: number): Promise<{ questionId: number; optionCounts: Record<number, number>; textAnswers: string[] }[]>;
@@ -9364,6 +9365,15 @@ export class DatabaseStorage implements IStorage {
 
   async getFormAnswersByResponse(responseId: number): Promise<FormAnswer[]> {
     return db.select().from(schema.formAnswers).where(eq(schema.formAnswers.responseId, responseId));
+  }
+
+  async getFormAnswerByQuestionAndResponse(responseId: number, questionId: number): Promise<FormAnswer | null> {
+    const [answer] = await db.select().from(schema.formAnswers)
+      .where(and(
+        eq(schema.formAnswers.responseId, responseId),
+        eq(schema.formAnswers.questionId, questionId)
+      ));
+    return answer || null;
   }
 
   // Form Analytics

@@ -15916,6 +15916,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Verificar se usuário já respondeu (membro)
+  app.get("/api/forms/:id/check", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const hasResponded = await storage.hasUserRespondedForm(formId, userId);
+      res.json({ hasResponded });
+    } catch (error) {
+      console.error("Check form response error:", error);
+      res.status(500).json({ message: "Erro ao verificar resposta" });
+    }
+  });
+
+  // Responder formulário de uma vez (membro)
+  app.post("/api/forms/:id/respond", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const { answers } = req.body;
+
+      if (!answers || !Array.isArray(answers)) {
+        return res.status(400).json({ message: "Respostas sao obrigatorias" });
+      }
+
+      const form = await storage.getFormWithQuestions(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulario nao encontrado" });
+      }
+      if (form.status !== "published") {
+        return res.status(403).json({ message: "Formulario nao esta disponivel" });
+      }
+
+      // Check if already responded
+      const existingResponse = await storage.getFormResponseByUser(formId, userId);
+      if (existingResponse?.isComplete) {
+        return res.status(400).json({ message: "Voce ja respondeu este formulario" });
+      }
+
+      // Validate required questions
+      const requiredQuestionIds = form.questions
+        .filter(q => q.isRequired)
+        .map(q => q.id);
+
+      const answeredQuestionIds = new Set(answers.map((a: any) => a.questionId));
+      const missingRequired = requiredQuestionIds.filter(id => !answeredQuestionIds.has(id));
+
+      if (missingRequired.length > 0) {
+        return res.status(400).json({
+          message: "Perguntas obrigatorias nao respondidas",
+          missingQuestions: missingRequired,
+        });
+      }
+
+      // Create response
+      let response = existingResponse;
+      if (!response) {
+        try {
+          response = await storage.createFormResponse({
+            formId,
+            userId,
+            isComplete: false,
+          });
+        } catch (createError: any) {
+          if (createError?.code === "23505") {
+            response = await storage.getFormResponseByUser(formId, userId);
+            if (response?.isComplete) {
+              return res.status(400).json({ message: "Voce ja respondeu este formulario" });
+            }
+          } else {
+            throw createError;
+          }
+        }
+      }
+
+      if (!response) {
+        return res.status(500).json({ message: "Erro ao criar resposta" });
+      }
+
+      // Save all answers
+      for (const answer of answers) {
+        const question = form.questions.find(q => q.id === answer.questionId);
+        if (!question) continue;
+
+        // Check if answer already exists
+        const existingAnswer = await storage.getFormAnswerByQuestionAndResponse(response.id, answer.questionId);
+        if (existingAnswer) {
+          await storage.updateFormAnswer(existingAnswer.id, {
+            answerText: answer.answerText || null,
+            selectedOptionIds: answer.selectedOptionIds || null,
+          });
+        } else {
+          await storage.createFormAnswer({
+            responseId: response.id,
+            questionId: answer.questionId,
+            answerText: answer.answerText || null,
+            selectedOptionIds: answer.selectedOptionIds || null,
+          });
+        }
+      }
+
+      // Mark as complete
+      await storage.updateFormResponse(response.id, {
+        isComplete: true,
+        submittedAt: new Date(),
+      });
+
+      res.json({ message: "Resposta enviada com sucesso" });
+    } catch (error) {
+      console.error("Respond to form error:", error);
+      res.status(500).json({ message: "Erro ao enviar resposta" });
+    }
+  });
+
   // ==================== FORM ANALYSIS (AI) ROUTES ====================
 
   // Gerar análise com IA (admin/estatística)

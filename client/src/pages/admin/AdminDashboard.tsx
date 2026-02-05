@@ -14,7 +14,8 @@ import {
   Wallet,
   ShoppingBag,
   Store,
-  Home
+  Home,
+  ClipboardList,
 } from "lucide-react";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -213,10 +214,26 @@ const adminPanels = [
     ],
     forSecretaria: "espiritualidade",
   },
+  {
+    id: "estatistica",
+    title: "Painel Estatistica",
+    subtitle: "Formularios e Pesquisas",
+    description: "Crie formularios, colete dados dos membros e gere analises com IA.",
+    icon: ClipboardList,
+    color: "from-violet-500 to-purple-600",
+    buttonColor: "bg-violet-600 hover:bg-violet-700",
+    href: "/admin/estatistica",
+    features: [
+      "Criar formularios personalizados",
+      "Coletar respostas dos membros",
+      "Gerar analises com IA",
+    ],
+    forSecretaria: "estatistica",
+  },
 ];
 
 export default function AdminDashboard() {
-  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel, hasTreasuryPanel } = useAuth();
+  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel, hasTreasuryPanel, hasEstatisticaPanel } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
@@ -229,6 +246,7 @@ export default function AdminDashboard() {
     if (panel.forAdmin && isAdmin) return true;
     if (panel.forSecretaria === "espiritualidade" && hasEspiritualidadePanel) return true;
     if (panel.forSecretaria === "marketing" && hasMarketingPanel) return true;
+    if (panel.forSecretaria === "estatistica" && hasEstatisticaPanel) return true;
     if (panel.forTreasurer && hasTreasuryPanel) return true;
     if (panel.forMarketing && hasMarketingPanel) return true;
     return false;

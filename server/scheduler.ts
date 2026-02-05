@@ -2517,6 +2517,5 @@ export {
   processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, 
   processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, 
   processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders, 
-  publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram, 
-  generateAndSaveStoryImages, generateAndSaveBirthdayImages 
+  publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram
 };

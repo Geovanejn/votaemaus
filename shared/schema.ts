@@ -2788,3 +2788,138 @@ export const sentSchedulerReminders = pgTable("sent_scheduler_reminders", {
 }));
 
 export type SentSchedulerReminder = typeof sentSchedulerReminders.$inferSelect;
+
+// ==================== SISTEMA DE FORMULÁRIOS (ESTATÍSTICA) ====================
+
+// Formulários
+export const forms = pgTable("forms", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"), // draft, published, closed, blocked
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  publishedAt: timestamp("published_at"),
+  closedAt: timestamp("closed_at"),
+}, (table) => ({
+  statusIdx: index("forms_status_idx").on(table.status),
+  createdByIdx: index("forms_created_by_idx").on(table.createdBy),
+}));
+
+export const insertFormSchema = createInsertSchema(forms).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertForm = z.infer<typeof insertFormSchema>;
+export type Form = typeof forms.$inferSelect;
+
+// Perguntas do formulário
+export const formQuestions = pgTable("form_questions", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  questionText: text("question_text").notNull(),
+  questionType: text("question_type").notNull(), // text, textarea, radio, checkbox, select
+  isRequired: boolean("is_required").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  description: text("description"),
+}, (table) => ({
+  formIdIdx: index("form_questions_form_id_idx").on(table.formId),
+  orderIdx: index("form_questions_order_idx").on(table.formId, table.sortOrder),
+}));
+
+export const insertFormQuestionSchema = createInsertSchema(formQuestions).omit({
+  id: true,
+});
+
+export type InsertFormQuestion = z.infer<typeof insertFormQuestionSchema>;
+export type FormQuestion = typeof formQuestions.$inferSelect;
+
+// Opções para perguntas de múltipla escolha (radio, checkbox, select)
+export const formOptions = pgTable("form_options", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull().references(() => formQuestions.id, { onDelete: "cascade" }),
+  optionText: text("option_text").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+}, (table) => ({
+  questionIdIdx: index("form_options_question_id_idx").on(table.questionId),
+}));
+
+export const insertFormOptionSchema = createInsertSchema(formOptions).omit({
+  id: true,
+});
+
+export type InsertFormOption = z.infer<typeof insertFormOptionSchema>;
+export type FormOption = typeof formOptions.$inferSelect;
+
+// Respostas de formulários (uma por usuário por formulário)
+export const formResponses = pgTable("form_responses", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  isComplete: boolean("is_complete").notNull().default(false),
+}, (table) => ({
+  formUserUnique: unique("form_responses_form_user_unique").on(table.formId, table.userId),
+  formIdIdx: index("form_responses_form_id_idx").on(table.formId),
+  userIdIdx: index("form_responses_user_id_idx").on(table.userId),
+}));
+
+export const insertFormResponseSchema = createInsertSchema(formResponses).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
+export type FormResponse = typeof formResponses.$inferSelect;
+
+// Respostas individuais por pergunta
+export const formAnswers = pgTable("form_answers", {
+  id: serial("id").primaryKey(),
+  responseId: integer("response_id").notNull().references(() => formResponses.id, { onDelete: "cascade" }),
+  questionId: integer("question_id").notNull().references(() => formQuestions.id, { onDelete: "cascade" }),
+  answerText: text("answer_text"), // Para text/textarea
+  selectedOptionIds: integer("selected_option_ids").array(), // Para radio/checkbox/select
+}, (table) => ({
+  responseIdIdx: index("form_answers_response_id_idx").on(table.responseId),
+  questionIdIdx: index("form_answers_question_id_idx").on(table.questionId),
+}));
+
+export const insertFormAnswerSchema = createInsertSchema(formAnswers).omit({
+  id: true,
+});
+
+export type InsertFormAnswer = z.infer<typeof insertFormAnswerSchema>;
+export type FormAnswer = typeof formAnswers.$inferSelect;
+
+// Análises geradas por IA
+export const formAnalyses = pgTable("form_analyses", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  formIds: integer("form_ids").array().notNull(), // Pode analisar múltiplos formulários
+  analysisText: text("analysis_text").notNull(),
+  pdfUrl: text("pdf_url"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  createdByIdx: index("form_analyses_created_by_idx").on(table.createdBy),
+}));
+
+export const insertFormAnalysisSchema = createInsertSchema(formAnalyses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFormAnalysis = z.infer<typeof insertFormAnalysisSchema>;
+export type FormAnalysis = typeof formAnalyses.$inferSelect;
+
+// Tipos compostos para uso no frontend
+export type FormWithQuestions = Form & {
+  questions: (FormQuestion & { options: FormOption[] })[];
+  responseCount: number;
+};
+
+export type FormResponseWithAnswers = FormResponse & {
+  user: { id: number; fullName: string; email: string };
+  answers: (FormAnswer & { question: FormQuestion; selectedOptions?: FormOption[] })[];
+};

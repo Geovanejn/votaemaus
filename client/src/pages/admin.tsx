@@ -1960,6 +1960,7 @@ export default function AdminPage() {
                 <SelectContent>
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
+                  <SelectItem value="estatistica">Estatística</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="tesouraria">Tesouraria</SelectItem>
                 </SelectContent>
@@ -2092,6 +2093,7 @@ export default function AdminPage() {
                 <SelectContent>
                   <SelectItem value="none">Nenhuma</SelectItem>
                   <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
+                  <SelectItem value="estatistica">Estatística</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="tesouraria">Tesouraria</SelectItem>
                 </SelectContent>

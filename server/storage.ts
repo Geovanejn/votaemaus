@@ -104,6 +104,20 @@ import type {
   ShopComboDiscountItem,
   InsertShopComboDiscountItem,
   ShopComboDiscountWithItems,
+  Form,
+  InsertForm,
+  FormQuestion,
+  InsertFormQuestion,
+  FormOption,
+  InsertFormOption,
+  FormResponse,
+  InsertFormResponse,
+  FormAnswer,
+  InsertFormAnswer,
+  FormAnalysis,
+  InsertFormAnalysis,
+  FormWithQuestions,
+  FormResponseWithAnswers,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -667,6 +681,56 @@ export interface IStorage {
   hasSentSchedulerReminder(reminderKey: string): Promise<boolean>;
   markSchedulerReminderSent(reminderKey: string, reminderType: string, relatedId?: number): Promise<void>;
   cleanOldSchedulerReminders(maxAgeHours: number): Promise<number>;
+  
+  // Forms (Estatística) Methods
+  getForms(): Promise<Form[]>;
+  getFormById(id: number): Promise<Form | null>;
+  getFormWithQuestions(id: number): Promise<FormWithQuestions | null>;
+  getPublishedForms(): Promise<Form[]>;
+  createForm(data: InsertForm): Promise<Form>;
+  updateForm(id: number, data: Partial<InsertForm>): Promise<Form | null>;
+  deleteForm(id: number): Promise<void>;
+  publishForm(id: number): Promise<Form | null>;
+  closeForm(id: number): Promise<Form | null>;
+  blockForm(id: number): Promise<Form | null>;
+  
+  // Form Questions
+  getFormQuestions(formId: number): Promise<(FormQuestion & { options: FormOption[] })[]>;
+  createFormQuestion(data: InsertFormQuestion): Promise<FormQuestion>;
+  updateFormQuestion(id: number, data: Partial<InsertFormQuestion>): Promise<FormQuestion | null>;
+  deleteFormQuestion(id: number): Promise<void>;
+  reorderFormQuestions(formId: number, questionIds: number[]): Promise<void>;
+  
+  // Form Options
+  createFormOption(data: InsertFormOption): Promise<FormOption>;
+  updateFormOption(id: number, data: Partial<InsertFormOption>): Promise<FormOption | null>;
+  deleteFormOption(id: number): Promise<void>;
+  
+  // Form Responses
+  getFormResponses(formId: number): Promise<FormResponseWithAnswers[]>;
+  getFormResponseByUser(formId: number, userId: number): Promise<FormResponse | null>;
+  hasUserRespondedForm(formId: number, userId: number): Promise<boolean>;
+  createFormResponse(data: InsertFormResponse): Promise<FormResponse>;
+  updateFormResponse(id: number, data: Partial<InsertFormResponse>): Promise<FormResponse | null>;
+  getFormResponseCount(formId: number): Promise<number>;
+  
+  // Form Answers
+  createFormAnswer(data: InsertFormAnswer): Promise<FormAnswer>;
+  updateFormAnswer(id: number, data: Partial<InsertFormAnswer>): Promise<FormAnswer | null>;
+  getFormAnswersByResponse(responseId: number): Promise<FormAnswer[]>;
+  
+  // Form Analytics
+  getFormAnalytics(formId: number): Promise<{ questionId: number; optionCounts: Record<number, number>; textAnswers: string[] }[]>;
+  
+  // Form Analyses (AI)
+  getFormAnalyses(): Promise<FormAnalysis[]>;
+  getFormAnalysisById(id: number): Promise<FormAnalysis | null>;
+  createFormAnalysis(data: InsertFormAnalysis): Promise<FormAnalysis>;
+  updateFormAnalysis(id: number, data: Partial<InsertFormAnalysis>): Promise<FormAnalysis | null>;
+  deleteFormAnalysis(id: number): Promise<void>;
+  
+  // Pending Forms (for popup)
+  getPendingFormsForUser(userId: number): Promise<Form[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -9106,6 +9170,276 @@ export class DatabaseStorage implements IStorage {
       .delete(schema.anonymousPushSubscriptions)
       .where(eq(schema.anonymousPushSubscriptions.id, anonymousSubscriptionId));
     console.log(`[Push Storage] Anonymous subscription ${anonymousSubscriptionId} deleted, link complete for user ${userId}`);
+  }
+
+  // ==================== FORMS (ESTATÍSTICA) METHODS ====================
+  
+  async getForms(): Promise<Form[]> {
+    return db.select().from(schema.forms).orderBy(desc(schema.forms.createdAt));
+  }
+
+  async getFormById(id: number): Promise<Form | null> {
+    const [form] = await db.select().from(schema.forms).where(eq(schema.forms.id, id)).limit(1);
+    return form || null;
+  }
+
+  async getFormWithQuestions(id: number): Promise<FormWithQuestions | null> {
+    const form = await this.getFormById(id);
+    if (!form) return null;
+
+    const questions = await this.getFormQuestions(id);
+    const responseCount = await this.getFormResponseCount(id);
+
+    return { ...form, questions, responseCount };
+  }
+
+  async getPublishedForms(): Promise<Form[]> {
+    return db.select().from(schema.forms)
+      .where(eq(schema.forms.status, "published"))
+      .orderBy(desc(schema.forms.publishedAt));
+  }
+
+  async createForm(data: InsertForm): Promise<Form> {
+    const [form] = await db.insert(schema.forms).values(data).returning();
+    return form;
+  }
+
+  async updateForm(id: number, data: Partial<InsertForm>): Promise<Form | null> {
+    const [updated] = await db.update(schema.forms).set(data).where(eq(schema.forms.id, id)).returning();
+    return updated || null;
+  }
+
+  async deleteForm(id: number): Promise<void> {
+    await db.delete(schema.forms).where(eq(schema.forms.id, id));
+  }
+
+  async publishForm(id: number): Promise<Form | null> {
+    const [updated] = await db.update(schema.forms)
+      .set({ status: "published", publishedAt: new Date() })
+      .where(eq(schema.forms.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async closeForm(id: number): Promise<Form | null> {
+    const [updated] = await db.update(schema.forms)
+      .set({ status: "closed", closedAt: new Date() })
+      .where(eq(schema.forms.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  async blockForm(id: number): Promise<Form | null> {
+    const [updated] = await db.update(schema.forms)
+      .set({ status: "blocked" })
+      .where(eq(schema.forms.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  // Form Questions
+  async getFormQuestions(formId: number): Promise<(FormQuestion & { options: FormOption[] })[]> {
+    const questions = await db.select().from(schema.formQuestions)
+      .where(eq(schema.formQuestions.formId, formId))
+      .orderBy(asc(schema.formQuestions.sortOrder));
+
+    const result: (FormQuestion & { options: FormOption[] })[] = [];
+    for (const question of questions) {
+      const options = await db.select().from(schema.formOptions)
+        .where(eq(schema.formOptions.questionId, question.id))
+        .orderBy(asc(schema.formOptions.sortOrder));
+      result.push({ ...question, options });
+    }
+    return result;
+  }
+
+  async createFormQuestion(data: InsertFormQuestion): Promise<FormQuestion> {
+    const [question] = await db.insert(schema.formQuestions).values(data).returning();
+    return question;
+  }
+
+  async updateFormQuestion(id: number, data: Partial<InsertFormQuestion>): Promise<FormQuestion | null> {
+    const [updated] = await db.update(schema.formQuestions).set(data).where(eq(schema.formQuestions.id, id)).returning();
+    return updated || null;
+  }
+
+  async deleteFormQuestion(id: number): Promise<void> {
+    await db.delete(schema.formQuestions).where(eq(schema.formQuestions.id, id));
+  }
+
+  async reorderFormQuestions(formId: number, questionIds: number[]): Promise<void> {
+    for (let i = 0; i < questionIds.length; i++) {
+      await db.update(schema.formQuestions)
+        .set({ sortOrder: i })
+        .where(and(eq(schema.formQuestions.id, questionIds[i]), eq(schema.formQuestions.formId, formId)));
+    }
+  }
+
+  // Form Options
+  async createFormOption(data: InsertFormOption): Promise<FormOption> {
+    const [option] = await db.insert(schema.formOptions).values(data).returning();
+    return option;
+  }
+
+  async updateFormOption(id: number, data: Partial<InsertFormOption>): Promise<FormOption | null> {
+    const [updated] = await db.update(schema.formOptions).set(data).where(eq(schema.formOptions.id, id)).returning();
+    return updated || null;
+  }
+
+  async deleteFormOption(id: number): Promise<void> {
+    await db.delete(schema.formOptions).where(eq(schema.formOptions.id, id));
+  }
+
+  // Form Responses
+  async getFormResponses(formId: number): Promise<FormResponseWithAnswers[]> {
+    const responses = await db.select().from(schema.formResponses)
+      .where(eq(schema.formResponses.formId, formId))
+      .orderBy(desc(schema.formResponses.submittedAt));
+
+    const result: FormResponseWithAnswers[] = [];
+    for (const response of responses) {
+      const user = await this.getUserById(response.userId);
+      const answers = await db.select().from(schema.formAnswers)
+        .where(eq(schema.formAnswers.responseId, response.id));
+
+      const answersWithDetails: (FormAnswer & { question: FormQuestion; selectedOptions?: FormOption[] })[] = [];
+      for (const answer of answers) {
+        const [question] = await db.select().from(schema.formQuestions).where(eq(schema.formQuestions.id, answer.questionId));
+        let selectedOptions: FormOption[] | undefined;
+        if (answer.selectedOptionIds && answer.selectedOptionIds.length > 0) {
+          selectedOptions = await db.select().from(schema.formOptions)
+            .where(inArray(schema.formOptions.id, answer.selectedOptionIds));
+        }
+        answersWithDetails.push({ ...answer, question, selectedOptions });
+      }
+
+      result.push({
+        ...response,
+        user: user ? { id: user.id, fullName: user.fullName, email: user.email } : { id: 0, fullName: "Usuário não encontrado", email: "" },
+        answers: answersWithDetails,
+      });
+    }
+    return result;
+  }
+
+  async getFormResponseByUser(formId: number, userId: number): Promise<FormResponse | null> {
+    const [response] = await db.select().from(schema.formResponses)
+      .where(and(eq(schema.formResponses.formId, formId), eq(schema.formResponses.userId, userId)))
+      .limit(1);
+    return response || null;
+  }
+
+  async hasUserRespondedForm(formId: number, userId: number): Promise<boolean> {
+    const response = await this.getFormResponseByUser(formId, userId);
+    return response?.isComplete === true;
+  }
+
+  async createFormResponse(data: InsertFormResponse): Promise<FormResponse> {
+    const [response] = await db.insert(schema.formResponses).values(data).returning();
+    return response;
+  }
+
+  async updateFormResponse(id: number, data: Partial<InsertFormResponse>): Promise<FormResponse | null> {
+    const [updated] = await db.update(schema.formResponses).set(data).where(eq(schema.formResponses.id, id)).returning();
+    return updated || null;
+  }
+
+  async getFormResponseCount(formId: number): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.formResponses)
+      .where(and(eq(schema.formResponses.formId, formId), eq(schema.formResponses.isComplete, true)));
+    return Number(result[0]?.count) || 0;
+  }
+
+  // Form Answers
+  async createFormAnswer(data: InsertFormAnswer): Promise<FormAnswer> {
+    const [answer] = await db.insert(schema.formAnswers).values(data).returning();
+    return answer;
+  }
+
+  async updateFormAnswer(id: number, data: Partial<InsertFormAnswer>): Promise<FormAnswer | null> {
+    const [updated] = await db.update(schema.formAnswers).set(data).where(eq(schema.formAnswers.id, id)).returning();
+    return updated || null;
+  }
+
+  async getFormAnswersByResponse(responseId: number): Promise<FormAnswer[]> {
+    return db.select().from(schema.formAnswers).where(eq(schema.formAnswers.responseId, responseId));
+  }
+
+  // Form Analytics
+  async getFormAnalytics(formId: number): Promise<{ questionId: number; optionCounts: Record<number, number>; textAnswers: string[] }[]> {
+    const questions = await db.select().from(schema.formQuestions).where(eq(schema.formQuestions.formId, formId));
+    const result: { questionId: number; optionCounts: Record<number, number>; textAnswers: string[] }[] = [];
+
+    for (const question of questions) {
+      const answers = await db.select({
+        answerText: schema.formAnswers.answerText,
+        selectedOptionIds: schema.formAnswers.selectedOptionIds,
+      }).from(schema.formAnswers)
+        .innerJoin(schema.formResponses, eq(schema.formAnswers.responseId, schema.formResponses.id))
+        .where(and(
+          eq(schema.formAnswers.questionId, question.id),
+          eq(schema.formResponses.isComplete, true)
+        ));
+
+      const optionCounts: Record<number, number> = {};
+      const textAnswers: string[] = [];
+
+      for (const answer of answers) {
+        if (answer.answerText) {
+          textAnswers.push(answer.answerText);
+        }
+        if (answer.selectedOptionIds) {
+          for (const optionId of answer.selectedOptionIds) {
+            optionCounts[optionId] = (optionCounts[optionId] || 0) + 1;
+          }
+        }
+      }
+
+      result.push({ questionId: question.id, optionCounts, textAnswers });
+    }
+
+    return result;
+  }
+
+  // Form Analyses (AI)
+  async getFormAnalyses(): Promise<FormAnalysis[]> {
+    return db.select().from(schema.formAnalyses).orderBy(desc(schema.formAnalyses.createdAt));
+  }
+
+  async getFormAnalysisById(id: number): Promise<FormAnalysis | null> {
+    const [analysis] = await db.select().from(schema.formAnalyses).where(eq(schema.formAnalyses.id, id)).limit(1);
+    return analysis || null;
+  }
+
+  async createFormAnalysis(data: InsertFormAnalysis): Promise<FormAnalysis> {
+    const [analysis] = await db.insert(schema.formAnalyses).values(data).returning();
+    return analysis;
+  }
+
+  async updateFormAnalysis(id: number, data: Partial<InsertFormAnalysis>): Promise<FormAnalysis | null> {
+    const [updated] = await db.update(schema.formAnalyses).set(data).where(eq(schema.formAnalyses.id, id)).returning();
+    return updated || null;
+  }
+
+  async deleteFormAnalysis(id: number): Promise<void> {
+    await db.delete(schema.formAnalyses).where(eq(schema.formAnalyses.id, id));
+  }
+
+  // Pending Forms (for popup)
+  async getPendingFormsForUser(userId: number): Promise<Form[]> {
+    // Get published forms that the user hasn't responded to
+    const publishedForms = await db.select().from(schema.forms)
+      .where(eq(schema.forms.status, "published"));
+
+    const pendingForms: Form[] = [];
+    for (const form of publishedForms) {
+      const hasResponded = await this.hasUserRespondedForm(form.id, userId);
+      if (!hasResponded) {
+        pendingForms.push(form);
+      }
+    }
+    return pendingForms;
   }
 }
 

@@ -10909,18 +10909,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Nenhuma imagem enviada" });
       }
       
+      if (files.length > 10) {
+        return res.status(400).json({ message: "Máximo de 10 imagens por upload" });
+      }
+      
       const existingImages = await storage.getShopItemColorImagesByColorId(colorId);
       let currentSortOrder = existingImages.length;
       
       const createdImages = [];
       for (const file of files) {
-        const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        // Process image with sharp (same as normal images)
+        const processedImage = await sharp(file.buffer)
+          .rotate() // Auto-rotate based on EXIF orientation
+          .jpeg({ quality: 95 })
+          .toBuffer();
+        
+        let imageDataUrl: string;
+        
+        // Upload to R2 if configured, otherwise use Base64
+        if (isR2Configured()) {
+          const r2Url = await uploadToR2(processedImage, 'image/jpeg', 'shop');
+          imageDataUrl = r2Url;
+        } else {
+          imageDataUrl = `data:image/jpeg;base64,${processedImage.toString("base64")}`;
+        }
         
         const image = await storage.createShopItemColorImage({
           itemId: parseInt(itemId),
           colorId,
-          gender: gender || 'unisex',
-          imageData: base64Data,
+          gender: gender || 'unissex',
+          imageData: imageDataUrl,
           sortOrder: currentSortOrder++,
         });
         createdImages.push(image);

@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag, Check, X, Loader2, CreditCard } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, Tag, Check, X, Loader2, CreditCard, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -20,6 +21,15 @@ interface PromoValidation {
   discountType?: "percentage" | "fixed";
   discountValue?: number;
   appliedItems?: number;
+}
+
+interface ComboDiscountResult {
+  discount: number;
+  appliedCombos: Array<{
+    id: number;
+    name: string;
+    discountValue: number;
+  }>;
 }
 
 function formatCurrency(value: number) {
@@ -54,6 +64,23 @@ export default function LojaCarrinhoPage() {
   const { data: pixStatus } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/pix/status"],
     enabled: !!user,
+  });
+
+  // Get unique item IDs from cart for combo discount calculation
+  const cartItemIds = useMemo(() => {
+    if (!cartItems || cartItems.length === 0) return [];
+    return [...new Set(cartItems.map(c => c.item.id))];
+  }, [cartItems]);
+
+  // Calculate combo discounts based on items in cart
+  const { data: comboDiscountResult } = useQuery<ComboDiscountResult>({
+    queryKey: ["/api/shop/calculate-combo-discounts", cartItemIds],
+    queryFn: async () => {
+      if (cartItemIds.length < 2) return { discount: 0, appliedCombos: [] };
+      const res = await apiRequest("POST", "/api/shop/calculate-combo-discounts", { itemIds: cartItemIds });
+      return res.json();
+    },
+    enabled: !!user && cartItemIds.length >= 2,
   });
 
   const updateQuantityMutation = useMutation({
@@ -124,8 +151,10 @@ export default function LojaCarrinhoPage() {
   });
 
   const subtotal = cartItems?.reduce((sum, item) => sum + (item.item.price * item.quantity), 0) || 0;
-  const discount = appliedPromo?.discount || 0;
-  const total = Math.max(0, subtotal - discount);
+  const promoDiscount = appliedPromo?.discount || 0;
+  const comboDiscount = comboDiscountResult?.discount || 0;
+  const totalDiscount = promoDiscount + comboDiscount;
+  const total = Math.max(0, subtotal - totalDiscount);
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   const maxAllowedInstallments = useMemo(() => {
@@ -327,9 +356,22 @@ export default function LojaCarrinhoPage() {
                 <div className="flex justify-between text-green-600">
                   <span className="flex items-center gap-1">
                     <Check className="h-3 w-3" />
-                    Desconto ({promoCode})
+                    Cupom ({promoCode})
                   </span>
-                  <span data-testid="text-discount">-{formatCurrency(appliedPromo.discount)}</span>
+                  <span data-testid="text-promo-discount">-{formatCurrency(appliedPromo.discount)}</span>
+                </div>
+              )}
+              {comboDiscountResult && comboDiscountResult.appliedCombos.length > 0 && (
+                <div className="space-y-2">
+                  {comboDiscountResult.appliedCombos.map((combo) => (
+                    <div key={combo.id} className="flex justify-between text-green-600">
+                      <span className="flex items-center gap-1">
+                        <Layers className="h-3 w-3" />
+                        {combo.name}
+                      </span>
+                      <span data-testid={`text-combo-discount-${combo.id}`}>-{formatCurrency(combo.discountValue)}</span>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="border-t border-gray-100 pt-3 flex justify-between">

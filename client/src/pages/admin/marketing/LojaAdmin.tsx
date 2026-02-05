@@ -36,7 +36,9 @@ import {
   Calendar,
   Hash,
   ShoppingBag,
-  Send
+  Send,
+  Layers,
+  Check
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -130,6 +132,29 @@ interface ShopItemColorImage {
   gender: string;
   imageData: string;
   sortOrder: number;
+}
+
+interface ComboDiscountItem {
+  id: number;
+  itemId: number;
+  sortOrder: number;
+  item: {
+    id: number;
+    name: string;
+    price: number;
+  };
+}
+
+interface ComboDiscount {
+  id: number;
+  name: string;
+  description: string | null;
+  discountValue: number;
+  isActive: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  items: ComboDiscountItem[];
 }
 
 const itemFormSchema = z.object({
@@ -236,6 +261,19 @@ export default function LojaAdmin() {
     isActive: true,
     maxUses: "",
   });
+  
+  // Combo discount states
+  const [isComboOpen, setIsComboOpen] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<ComboDiscount | null>(null);
+  const [comboForm, setComboForm] = useState({
+    name: "",
+    description: "",
+    discountValue: "",
+    isActive: true,
+    startDate: "",
+    endDate: "",
+    selectedItemIds: [] as number[],
+  });
 
   const hasAccess = hasMarketingPanel;
 
@@ -251,6 +289,11 @@ export default function LojaAdmin() {
 
   const { data: promoCodes, isLoading: isLoadingPromos } = useQuery<PromoCode[]>({
     queryKey: ["/api/admin/shop/promo-codes"],
+    enabled: hasAccess,
+  });
+
+  const { data: comboDiscounts, isLoading: isLoadingCombos } = useQuery<ComboDiscount[]>({
+    queryKey: ["/api/admin/shop/combo-discounts"],
     enabled: hasAccess,
   });
 
@@ -550,6 +593,116 @@ export default function LojaAdmin() {
       isActive: true,
       maxUses: "",
     });
+  };
+
+  // Combo discount mutations
+  const createComboMutation = useMutation({
+    mutationFn: async (data: { name: string; description?: string; discountValue: number; isActive: boolean; startDate?: string; endDate?: string; itemIds: number[] }) => {
+      return apiRequest("POST", "/api/admin/shop/combo-discounts", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/combo-discounts"] });
+      setIsComboOpen(false);
+      resetComboForm();
+      toast({ title: "Combo criado", description: "O desconto por combo foi criado com sucesso." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível criar o combo.", variant: "destructive" });
+    },
+  });
+
+  const updateComboMutation = useMutation({
+    mutationFn: async ({ id, ...data }: { id: number; name?: string; description?: string; discountValue?: number; isActive?: boolean; startDate?: string | null; endDate?: string | null; itemIds?: number[] }) => {
+      return apiRequest("PATCH", `/api/admin/shop/combo-discounts/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/combo-discounts"] });
+      setEditingCombo(null);
+      resetComboForm();
+      toast({ title: "Combo atualizado", description: "As alterações foram salvas." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível atualizar o combo.", variant: "destructive" });
+    },
+  });
+
+  const deleteComboMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/combo-discounts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/combo-discounts"] });
+      toast({ title: "Combo excluído", description: "O desconto por combo foi removido." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível excluir o combo.", variant: "destructive" });
+    },
+  });
+
+  const resetComboForm = () => {
+    setComboForm({
+      name: "",
+      description: "",
+      discountValue: "",
+      isActive: true,
+      startDate: "",
+      endDate: "",
+      selectedItemIds: [],
+    });
+  };
+
+  const openEditCombo = (combo: ComboDiscount) => {
+    setEditingCombo(combo);
+    setComboForm({
+      name: combo.name,
+      description: combo.description || "",
+      discountValue: formatCurrencyInput(combo.discountValue),
+      isActive: combo.isActive,
+      startDate: combo.startDate ? combo.startDate.split("T")[0] : "",
+      endDate: combo.endDate ? combo.endDate.split("T")[0] : "",
+      selectedItemIds: combo.items.map(i => i.itemId),
+    });
+  };
+
+  const handleComboSubmit = () => {
+    if (!comboForm.name.trim()) {
+      toast({ title: "Erro", description: "Nome do combo é obrigatório.", variant: "destructive" });
+      return;
+    }
+    if (comboForm.selectedItemIds.length < 2) {
+      toast({ title: "Erro", description: "Selecione pelo menos 2 itens para o combo.", variant: "destructive" });
+      return;
+    }
+    const discountValue = parseCurrencyInput(comboForm.discountValue);
+    if (discountValue <= 0) {
+      toast({ title: "Erro", description: "Valor do desconto deve ser maior que zero.", variant: "destructive" });
+      return;
+    }
+
+    const payload = {
+      name: comboForm.name.trim(),
+      description: comboForm.description.trim() || undefined,
+      discountValue,
+      isActive: comboForm.isActive,
+      startDate: comboForm.startDate || undefined,
+      endDate: comboForm.endDate || undefined,
+      itemIds: comboForm.selectedItemIds,
+    };
+
+    if (editingCombo) {
+      updateComboMutation.mutate({ id: editingCombo.id, ...payload });
+    } else {
+      createComboMutation.mutate(payload);
+    }
+  };
+
+  const toggleComboItem = (itemId: number) => {
+    setComboForm(prev => ({
+      ...prev,
+      selectedItemIds: prev.selectedItemIds.includes(itemId)
+        ? prev.selectedItemIds.filter(id => id !== itemId)
+        : [...prev.selectedItemIds, itemId],
+    }));
   };
 
   const resetCategoryForm = () => {
@@ -1365,6 +1518,228 @@ export default function LojaAdmin() {
           )}
         </div>
       </section>
+
+      {/* Combo Discounts Section */}
+      <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                <Layers className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Descontos por Combo</h2>
+                <p className="text-sm text-muted-foreground">Desconto automático ao combinar itens</p>
+              </div>
+            </div>
+            <Button onClick={() => setIsComboOpen(true)} className="gap-2" data-testid="button-add-combo">
+              <Plus className="h-4 w-4" />
+              Novo Combo
+            </Button>
+          </div>
+
+          {isLoadingCombos ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-40" />
+              ))}
+            </div>
+          ) : !comboDiscounts?.length ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Layers className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-medium mb-1">Nenhum combo cadastrado</h3>
+                <p className="text-sm text-muted-foreground">Crie combos para oferecer descontos quando itens específicos são selecionados juntos</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {comboDiscounts.map((combo) => {
+                const now = new Date();
+                const isExpired = combo.endDate ? new Date(combo.endDate) < now : false;
+                const isNotStarted = combo.startDate ? new Date(combo.startDate) > now : false;
+                return (
+                  <Card key={combo.id} className={!combo.isActive || isExpired ? "opacity-60" : ""}>
+                    <CardContent className="py-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{combo.name}</span>
+                          {!combo.isActive && <Badge variant="secondary">Inativo</Badge>}
+                          {isExpired && <Badge variant="destructive">Expirado</Badge>}
+                          {isNotStarted && <Badge variant="outline">Futuro</Badge>}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEditCombo(combo)} data-testid={`button-edit-combo-${combo.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => { if (confirm("Excluir este combo?")) deleteComboMutation.mutate(combo.id); }}
+                            data-testid={`button-delete-combo-${combo.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-green-600 font-medium">
+                            {formatCurrency(combo.discountValue)} de desconto
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex flex-wrap gap-1">
+                            {combo.items.map((item, idx) => (
+                              <Badge key={item.id} variant="outline" className="text-xs">
+                                {item.item.name}
+                                {idx < combo.items.length - 1 && <span className="ml-1 text-muted-foreground">+</span>}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        {(combo.startDate || combo.endDate) && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              {combo.startDate ? new Date(combo.startDate).toLocaleDateString("pt-BR") : "Início"} - {combo.endDate ? new Date(combo.endDate).toLocaleDateString("pt-BR") : "Sem fim"}
+                            </span>
+                          </div>
+                        )}
+                        {combo.description && (
+                          <p className="text-muted-foreground text-xs mt-2">{combo.description}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Combo Discount Dialog */}
+      <Dialog open={isComboOpen || !!editingCombo} onOpenChange={(open) => { if (!open) { setIsComboOpen(false); setEditingCombo(null); resetComboForm(); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCombo ? "Editar Combo" : "Novo Combo de Desconto"}</DialogTitle>
+            <DialogDescription>
+              {editingCombo ? "Atualize as informações do combo" : "Crie um desconto automático quando os itens selecionados estiverem no carrinho"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="combo-name">Nome do Combo</Label>
+              <Input
+                id="combo-name"
+                placeholder="Ex: Kit Completo"
+                value={comboForm.name}
+                onChange={(e) => setComboForm({ ...comboForm, name: e.target.value })}
+                data-testid="input-combo-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="combo-description">Descrição (opcional)</Label>
+              <Textarea
+                id="combo-description"
+                placeholder="Descrição do combo"
+                value={comboForm.description}
+                onChange={(e) => setComboForm({ ...comboForm, description: e.target.value })}
+                data-testid="input-combo-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="combo-discount">Valor do Desconto (R$)</Label>
+              <Input
+                id="combo-discount"
+                placeholder="Ex: 10,00"
+                value={comboForm.discountValue}
+                onChange={(e) => setComboForm({ ...comboForm, discountValue: e.target.value })}
+                data-testid="input-combo-discount"
+              />
+              <p className="text-xs text-muted-foreground">Valor fixo que será descontado quando todos os itens do combo estiverem no carrinho</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="combo-start">Data Início (opcional)</Label>
+                <Input
+                  id="combo-start"
+                  type="date"
+                  value={comboForm.startDate}
+                  onChange={(e) => setComboForm({ ...comboForm, startDate: e.target.value })}
+                  data-testid="input-combo-start"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="combo-end">Data Fim (opcional)</Label>
+                <Input
+                  id="combo-end"
+                  type="date"
+                  value={comboForm.endDate}
+                  onChange={(e) => setComboForm({ ...comboForm, endDate: e.target.value })}
+                  data-testid="input-combo-end"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="combo-active"
+                checked={comboForm.isActive}
+                onCheckedChange={(checked) => setComboForm({ ...comboForm, isActive: checked })}
+                data-testid="switch-combo-active"
+              />
+              <Label htmlFor="combo-active">Combo Ativo</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Selecione os Itens do Combo</Label>
+              <p className="text-xs text-muted-foreground mb-2">Selecione pelo menos 2 itens. O desconto será aplicado quando todos estiverem no carrinho.</p>
+              <div className="border rounded-md max-h-48 overflow-y-auto">
+                {items?.filter(i => i.isPublished).map((item) => {
+                  const isSelected = comboForm.selectedItemIds.includes(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-3 p-3 cursor-pointer hover-elevate border-b last:border-b-0 ${isSelected ? "bg-primary/10" : ""}`}
+                      onClick={() => toggleComboItem(item.id)}
+                      data-testid={`combo-item-${item.id}`}
+                    >
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center ${isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <span className="flex-1">{item.name}</span>
+                      <span className="text-sm text-muted-foreground">{formatCurrency(item.price)}</span>
+                    </div>
+                  );
+                })}
+                {!items?.filter(i => i.isPublished).length && (
+                  <p className="p-4 text-center text-muted-foreground text-sm">Nenhum item publicado disponível</p>
+                )}
+              </div>
+              {comboForm.selectedItemIds.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {comboForm.selectedItemIds.length} item(s) selecionado(s)
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsComboOpen(false); setEditingCombo(null); resetComboForm(); }} data-testid="button-cancel-combo">
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleComboSubmit} 
+              disabled={createComboMutation.isPending || updateComboMutation.isPending}
+              data-testid="button-save-combo"
+            >
+              {(createComboMutation.isPending || updateComboMutation.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingCombo ? "Salvar Alterações" : "Criar Combo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isPromoOpen || !!editingPromo} onOpenChange={(open) => { if (!open) { setIsPromoOpen(false); setEditingPromo(null); resetPromoForm(); } }}>
         <DialogContent className="max-w-md">

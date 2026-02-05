@@ -68,6 +68,8 @@ interface OrderItem {
   quantity: number;
   gender: string | null;
   size: string | null;
+  color: string | null;
+  colorId: number | null;
   unitPrice: number;
   product: OrderItemProduct | null;
 }
@@ -77,7 +79,11 @@ interface ShopOrder {
   orderCode: string;
   userId: number;
   totalAmount: number;
-  discountAmount?: number;
+  subtotalAmount?: number | null;
+  promoDiscount?: number | null;
+  promoCode?: string | null;
+  comboDiscount?: number | null;
+  comboNames?: string | null;
   observation: string | null;
   paymentStatus: string;
   orderStatus: string;
@@ -601,6 +607,11 @@ export default function PedidosAdminPage() {
                               Tam: {item.size}
                             </Badge>
                           )}
+                          {item.color && (
+                            <Badge variant="outline" className="text-xs">
+                              Cor: {item.color}
+                            </Badge>
+                          )}
                           <Badge variant="secondary" className="text-xs">
                             Qtd: {item.quantity}
                           </Badge>
@@ -626,10 +637,22 @@ export default function PedidosAdminPage() {
               )}
 
               <div className="space-y-2 pt-2 border-t">
-                {detailsOrder.discountAmount && detailsOrder.discountAmount > 0 && (
+                {detailsOrder.subtotalAmount && detailsOrder.subtotalAmount !== detailsOrder.totalAmount && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(detailsOrder.subtotalAmount)}</span>
+                  </div>
+                )}
+                {detailsOrder.promoDiscount && detailsOrder.promoDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Desconto aplicado:</span>
-                    <span>-{formatCurrency(detailsOrder.discountAmount)}</span>
+                    <span>Cupom {detailsOrder.promoCode && `(${detailsOrder.promoCode})`}:</span>
+                    <span>-{formatCurrency(detailsOrder.promoDiscount)}</span>
+                  </div>
+                )}
+                {detailsOrder.comboDiscount && detailsOrder.comboDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Combo {detailsOrder.comboNames && `(${detailsOrder.comboNames})`}:</span>
+                    <span>-{formatCurrency(detailsOrder.comboDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center">

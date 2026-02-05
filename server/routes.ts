@@ -11699,6 +11699,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalDiscount = discountAmount + comboDiscountAmount;
       const finalAmount = Math.max(0, totalAmount - totalDiscount);
       
+      // Collect combo names for display
+      const appliedComboNames: string[] = [];
+      if (itemIds.length >= 2) {
+        const combos = await storage.getActiveShopComboDiscounts();
+        const now = new Date();
+        for (const combo of combos) {
+          if (combo.startDate && now < new Date(combo.startDate)) continue;
+          if (combo.endDate && now > new Date(combo.endDate)) continue;
+          const comboItemIds = combo.items.map(i => i.itemId);
+          if (comboItemIds.every(id => itemIds.includes(id))) {
+            appliedComboNames.push(combo.name);
+          }
+        }
+      }
+      
       console.log(`[Shop Checkout] Order totals:`, {
         totalAmount,
         totalAmountReais: totalAmount / 100,
@@ -11706,6 +11721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         promoDiscountReais: discountAmount / 100,
         comboDiscount: comboDiscountAmount,
         comboDiscountReais: comboDiscountAmount / 100,
+        comboNames: appliedComboNames,
         totalDiscount,
         totalDiscountReais: totalDiscount / 100,
         finalAmount,
@@ -11725,7 +11741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderCode,
         userId: req.user!.id,
         totalAmount: finalAmount,
-        observation: observation ? (discountAmount > 0 ? `${observation} [Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : observation) : (discountAmount > 0 ? `[Cupom aplicado: -R$${(discountAmount/100).toFixed(2)}]` : null),
+        subtotalAmount: totalAmount,
+        promoDiscount: discountAmount,
+        promoCode: promoCodeStr || null,
+        comboDiscount: comboDiscountAmount,
+        comboNames: appliedComboNames.length > 0 ? appliedComboNames.join(", ") : null,
+        observation: observation || null,
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
         installmentCount,

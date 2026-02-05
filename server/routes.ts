@@ -11673,13 +11673,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const finalAmount = Math.max(0, totalAmount - discountAmount);
+      // Calculate combo discounts
+      let comboDiscountAmount = 0;
+      const itemIds = orderItems.map(oi => oi.itemId);
+      if (itemIds.length >= 2) {
+        const combos = await storage.getActiveComboDiscounts();
+        const now = new Date();
+        
+        for (const combo of combos) {
+          // Check if combo is within valid date range
+          if (combo.startDate && now < new Date(combo.startDate)) continue;
+          if (combo.endDate && now > new Date(combo.endDate)) continue;
+          
+          // Check if all items in the combo are in the order
+          const comboItemIds = combo.items.map(i => i.itemId);
+          const allItemsPresent = comboItemIds.every(id => itemIds.includes(id));
+          
+          if (allItemsPresent) {
+            comboDiscountAmount += combo.discountValue;
+            console.log(`[Shop Checkout] Combo discount applied: ${combo.name} = R$${combo.discountValue / 100}`);
+          }
+        }
+      }
+      
+      const totalDiscount = discountAmount + comboDiscountAmount;
+      const finalAmount = Math.max(0, totalAmount - totalDiscount);
       
       console.log(`[Shop Checkout] Order totals:`, {
         totalAmount,
         totalAmountReais: totalAmount / 100,
-        discountAmount,
-        discountAmountReais: discountAmount / 100,
+        promoDiscount: discountAmount,
+        promoDiscountReais: discountAmount / 100,
+        comboDiscount: comboDiscountAmount,
+        comboDiscountReais: comboDiscountAmount / 100,
+        totalDiscount,
+        totalDiscountReais: totalDiscount / 100,
         finalAmount,
         finalAmountReais: finalAmount / 100,
       });

@@ -45,6 +45,7 @@ const EspiritualidadeComentarios = lazy(() => import("@/pages/admin/Espiritualid
 const MarketingDashboard = lazy(() => import("@/pages/admin/MarketingDashboard"));
 const MarketingEventos = lazy(() => import("@/pages/admin/MarketingEventos"));
 const MarketingEventoEditor = lazy(() => import("@/pages/admin/MarketingEventoEditor"));
+const EstatisticaDashboard = lazy(() => import("@/pages/admin/EstatisticaDashboard"));
 const MarketingDiretoria = lazy(() => import("@/pages/admin/MarketingDiretoria"));
 const MarketingDiretoriaEditor = lazy(() => import("@/pages/admin/MarketingDiretoriaEditor"));
 const MarketingQuemSomos = lazy(() => import("@/pages/admin/MarketingQuemSomos"));
@@ -215,6 +216,7 @@ function Router() {
           <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
           <Route path="/admin/loja" component={LojaAdmin} />
           <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
+          <Route path="/admin/estatistica" component={EstatisticaDashboard} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />
@@ -345,6 +347,7 @@ function Router() {
         <Route path="/admin/tesouraria/emprestimos" component={TesourariaEmprestimos} />
         <Route path="/admin/loja" component={LojaAdmin} />
         <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
+        <Route path="/admin/estatistica" component={EstatisticaDashboard} />
         {/* Site Institucional - Public Routes */}
         <Route path="/" component={SiteHomePage} />
         <Route path="/devocionais" component={DevocionaisPage} />

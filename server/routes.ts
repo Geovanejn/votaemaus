@@ -100,7 +100,8 @@ import {
   notifyNewLessonToAll,
   notifyNewStudyEvent,
   notifyEventEnded,
-  sendPushToUser
+  sendPushToUser,
+  notifyFormPublished
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments, publishInstagramStory, isInstagramPublishingConfigured, testInstagramStoryConfig } from "./instagram";
 import { uploadStoryImageToR2 } from "./story-image-generator";
@@ -15453,8 +15454,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const published = await storage.publishForm(formId);
       
-      // TODO: Send push notifications to all members
-      // This will be implemented in a later phase
+      // Send push notifications to all members (async, don't wait)
+      notifyFormPublished(formId, form.title, form.description)
+        .catch(err => console.error("Form notification error:", err));
       
       res.json(published);
     } catch (error) {

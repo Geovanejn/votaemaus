@@ -1341,3 +1341,43 @@ export async function notifyMarketingEventReminder(
   const anonymousResult = await sendPushToAllAnonymousVisitors(payload);
   console.log(`[Notifications] Marketing event reminder anonymous push: ${anonymousResult.sent} sent`);
 }
+
+// Notify all members about a new form published
+export async function notifyFormPublished(
+  formId: number,
+  title: string,
+  description?: string | null
+): Promise<void> {
+  console.log(`[Notifications] notifyFormPublished STARTED for form ${formId}: "${title}"`);
+  
+  const payload: NotificationPayload = {
+    title: "Novo Formulario",
+    body: description 
+      ? `"${title}" - ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`
+      : `"${title}" esta disponivel. Responda agora!`,
+    url: `/forms/${formId}`,
+    tag: `form-${formId}`,
+    icon: "/logo.png",
+  };
+
+  // Send push notifications to ALL members (active or not, as specified)
+  const pushResult = await sendPushToAllMembersIncludingInactive(payload);
+  console.log(`[Notifications] Form push: ${pushResult.sent} sent, ${pushResult.failed} failed`);
+
+  // Create in-app notifications for all members
+  const allMembers = await storage.getAllMembers();
+  for (const member of allMembers) {
+    try {
+      await createInAppNotification(
+        member.id,
+        "new_form",
+        payload.title,
+        payload.body,
+        { formId, url: payload.url }
+      );
+    } catch (error) {
+      console.error(`[Notifications] Failed to create form in-app for user ${member.id}:`, error);
+    }
+  }
+  console.log(`[Notifications] Form in-app notifications created for ${allMembers.length} members`);
+}

@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useLocation } from "wouter";
-import { ClipboardList, Plus, FileText, BarChart2, Users, Clock, CheckCircle, XCircle, Lock, ArrowLeft, Eye, Trash2 } from "lucide-react";
+import { ClipboardList, Plus, FileText, BarChart2, Users, Clock, CheckCircle, XCircle, Lock, ArrowLeft, Eye, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -56,10 +57,46 @@ export default function EstatisticaDashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFormTitle, setNewFormTitle] = useState("");
   const [newFormDescription, setNewFormDescription] = useState("");
+  const [selectedFormsForAnalysis, setSelectedFormsForAnalysis] = useState<number[]>([]);
+  const [isCombinedAnalysisOpen, setIsCombinedAnalysisOpen] = useState(false);
+  const [generatingCombined, setGeneratingCombined] = useState(false);
 
   const { data: forms, isLoading } = useQuery<Form[]>({
     queryKey: ["/api/admin/forms"],
   });
+
+  const formsWithResponses = forms?.filter(f => f.responseCount > 0 && (f.status === "published" || f.status === "closed")) || [];
+
+  const generateCombinedAnalysisMutation = useMutation({
+    mutationFn: async (formIds: number[]) => {
+      setGeneratingCombined(true);
+      const res = await apiRequest("POST", "/api/admin/forms/generate-combined-analysis", { formIds });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Analise combinada gerada com sucesso!" });
+      setSelectedFormsForAnalysis([]);
+      setIsCombinedAnalysisOpen(false);
+      setGeneratingCombined(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/form-analyses"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erro ao gerar analise combinada", 
+        description: error?.message || "Tente novamente",
+        variant: "destructive" 
+      });
+      setGeneratingCombined(false);
+    },
+  });
+
+  const toggleFormSelection = (formId: number) => {
+    setSelectedFormsForAnalysis(prev => 
+      prev.includes(formId) 
+        ? prev.filter(id => id !== formId)
+        : [...prev, formId]
+    );
+  };
 
   const createFormMutation = useMutation({
     mutationFn: async () => {
@@ -118,24 +155,102 @@ export default function EstatisticaDashboard() {
   } : null;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           <Button variant="ghost" size="icon" onClick={() => setLocation("/admin")} data-testid="button-back-admin">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Estatística</h1>
-            <p className="text-muted-foreground">Gerencie formulários e pesquisas</p>
+            <h1 className="text-xl md:text-2xl font-bold">Estatistica</h1>
+            <p className="text-sm text-muted-foreground">Gerencie formularios e pesquisas</p>
           </div>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-new-form">
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Formulário
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Dialog open={isCombinedAnalysisOpen} onOpenChange={setIsCombinedAnalysisOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={formsWithResponses.length < 2}
+                data-testid="button-combined-analysis"
+              >
+                <Sparkles className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Analise Combinada</span>
+                <span className="sm:hidden">Combinar</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Analise Combinada com IA</DialogTitle>
+                <DialogDescription>
+                  Selecione 2 ou mais formularios para gerar uma analise integrada comparando resultados.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-4">
+                {formsWithResponses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum formulario com respostas disponiveis.
+                  </p>
+                ) : (
+                  formsWithResponses.map((form) => (
+                    <div 
+                      key={form.id}
+                      className="flex items-center space-x-3 p-3 border rounded-lg hover-elevate cursor-pointer"
+                      onClick={() => toggleFormSelection(form.id)}
+                    >
+                      <Checkbox
+                        id={`form-${form.id}`}
+                        checked={selectedFormsForAnalysis.includes(form.id)}
+                        onCheckedChange={() => toggleFormSelection(form.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <label 
+                          htmlFor={`form-${form.id}`} 
+                          className="font-medium text-sm cursor-pointer block truncate"
+                        >
+                          {form.title}
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          {form.responseCount} respostas
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
+                <Button variant="outline" onClick={() => setIsCombinedAnalysisOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => generateCombinedAnalysisMutation.mutate(selectedFormsForAnalysis)}
+                  disabled={selectedFormsForAnalysis.length < 2 || generatingCombined}
+                  data-testid="button-generate-combined"
+                >
+                  {generatingCombined ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Gerar Analise ({selectedFormsForAnalysis.length})
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" data-testid="button-new-form">
+                <Plus className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Novo Formulario</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Novo Formulário</DialogTitle>
@@ -179,6 +294,7 @@ export default function EstatisticaDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

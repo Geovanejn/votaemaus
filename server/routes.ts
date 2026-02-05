@@ -75,7 +75,9 @@ import {
   generateLessonFromPDFExact,
   AIProvider,
   randomizeMultipleChoiceAnswer,
-  generateFormAnalysis
+  generateFormAnalysis,
+  generateCombinedFormAnalysis,
+  FormDataForAnalysis
 } from "./ai";
 import multer from "multer";
 import sharp from "sharp";
@@ -16117,6 +16119,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Generate analysis error:", error);
       res.status(500).json({ message: "Erro ao gerar análise" });
+    }
+  });
+
+  // Gerar análise combinada de múltiplos formulários (admin/estatística)
+  app.post("/api/admin/forms/generate-combined-analysis", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const { formIds } = req.body;
+      
+      if (!formIds || !Array.isArray(formIds) || formIds.length < 2) {
+        return res.status(400).json({ message: "Selecione pelo menos 2 formulários para análise combinada" });
+      }
+
+      if (!isAIConfigured()) {
+        return res.status(503).json({ message: "IA não configurada. Adicione a chave GEMINI_API_KEY." });
+      }
+
+      const formsData: FormDataForAnalysis[] = [];
+      const formTitles: string[] = [];
+
+      for (const formId of formIds) {
+        const form = await storage.getFormWithQuestions(formId);
+        if (!form) {
+          return res.status(404).json({ message: `Formulário ${formId} não encontrado` });
+        }
+
+        if (form.status !== "published" && form.status !== "closed") {
+          return res.status(400).json({ message: `Formulário "${form.title}" precisa estar publicado ou fechado` });
+        }
+
+        if (form.responseCount === 0) {
+          return res.status(400).json({ message: `Formulário "${form.title}" não tem respostas` });
+        }
+
+        const analytics = await storage.getFormAnalytics(formId);
+        
+        formsData.push({
+          formTitle: form.title,
+          formDescription: form.description,
+          questions: form.questions.map(q => ({
+            id: q.id,
+            questionText: q.questionText,
+            questionType: q.questionType,
+            options: q.options.map(o => ({ id: o.id, optionText: o.optionText })),
+          })),
+          analytics,
+          totalResponses: form.responseCount,
+        });
+
+        formTitles.push(form.title);
+      }
+
+      const analysisResult = await generateCombinedFormAnalysis(formsData);
+
+      if (!analysisResult) {
+        return res.status(500).json({ message: "Erro ao gerar análise combinada com IA. Tente novamente." });
+      }
+
+      // Format analysis as readable text
+      let analysisText = `RESUMO EXECUTIVO\n\n${analysisResult.summary}\n\n`;
+      analysisText += `PRINCIPAIS INSIGHTS\n\n`;
+      analysisResult.insights.forEach((insight: string, i: number) => {
+        analysisText += `${i + 1}. ${insight}\n`;
+      });
+      analysisText += `\nRECOMENDACOES ESTRATEGICAS\n\n`;
+      analysisResult.recommendations.forEach((rec: string, i: number) => {
+        analysisText += `${i + 1}. ${rec}\n`;
+      });
+
+      // Save analysis to database
+      const analysis = await storage.createFormAnalysis({
+        formIds: formIds,
+        title: `Analise Combinada: ${formTitles.join(" + ")}`,
+        analysisText,
+        createdBy: req.user!.id,
+      });
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Generate combined analysis error:", error);
+      res.status(500).json({ message: "Erro ao gerar análise combinada" });
     }
   });
 

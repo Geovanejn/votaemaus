@@ -328,7 +328,7 @@ export default function FormPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background border-b z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
           <div className="flex items-center justify-between mb-2">
             <Button
               variant="ghost"
@@ -347,7 +347,7 @@ export default function FormPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="container mx-auto px-3 md:px-4 py-6 md:py-8 max-w-2xl">
         {currentQuestionIndex === 0 && (
           <Card className="mb-6">
             <CardHeader>

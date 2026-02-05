@@ -210,9 +210,9 @@ export default function FormResponses() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -221,46 +221,48 @@ export default function FormResponses() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold">Respostas: {form.title}</h1>
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-xl font-bold truncate">Respostas: {form.title}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {totalResponses} resposta{totalResponses !== 1 ? "s" : ""} coletada{totalResponses !== 1 ? "s" : ""}
+                  {totalResponses} resposta{totalResponses !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => generateAnalysisMutation.mutate()}
-                disabled={generatingAnalysis || totalResponses === 0}
-                data-testid="button-generate-analysis"
-              >
-                {generatingAnalysis ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                Gerar Analise com IA
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateAnalysisMutation.mutate()}
+              disabled={generatingAnalysis || totalResponses === 0}
+              data-testid="button-generate-analysis"
+              className="w-full sm:w-auto"
+            >
+              {generatingAnalysis ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              <span className="hidden sm:inline">Gerar Analise com IA</span>
+              <span className="sm:hidden">Analisar com IA</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="charts" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="charts" data-testid="tab-charts">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Graficos
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-6">
+        <Tabs defaultValue="charts" className="space-y-4 md:space-y-6">
+          <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex">
+            <TabsTrigger value="charts" data-testid="tab-charts" className="text-xs sm:text-sm">
+              <BarChart3 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Graficos</span>
             </TabsTrigger>
-            <TabsTrigger value="responses" data-testid="tab-responses">
-              <Users className="h-4 w-4 mr-2" />
-              Respostas Individuais
+            <TabsTrigger value="responses" data-testid="tab-responses" className="text-xs sm:text-sm">
+              <Users className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Respostas</span>
             </TabsTrigger>
-            <TabsTrigger value="analyses" data-testid="tab-analyses">
-              <FileText className="h-4 w-4 mr-2" />
-              Analises ({formAnalyses.length})
+            <TabsTrigger value="analyses" data-testid="tab-analyses" className="text-xs sm:text-sm">
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Analises</span>
+              <span className="ml-1">({formAnalyses.length})</span>
             </TabsTrigger>
           </TabsList>
 

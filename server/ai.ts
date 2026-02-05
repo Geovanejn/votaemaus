@@ -3327,6 +3327,23 @@ export interface FormAnalysisResult {
   }[];
 }
 
+export interface FormDataForAnalysis {
+  formTitle: string;
+  formDescription: string | null;
+  questions: {
+    id: number;
+    questionText: string;
+    questionType: string;
+    options: { id: number; optionText: string }[];
+  }[];
+  analytics: {
+    questionId: number;
+    optionCounts: Record<number, number>;
+    textAnswers: string[];
+  }[];
+  totalResponses: number;
+}
+
 export async function generateFormAnalysis(
   formTitle: string,
   formDescription: string | null,
@@ -3343,76 +3360,138 @@ export async function generateFormAnalysis(
   }[],
   totalResponses: number
 ): Promise<FormAnalysisResult | null> {
-  const systemPrompt = `Você é um analista de dados especializado em pesquisas e formulários para organizações religiosas.
-Sua tarefa é analisar os resultados de um formulário de pesquisa e fornecer insights valiosos.
-Seja objetivo, prático e focado em ações concretas que a liderança pode tomar.
-Use linguagem acessível e evite jargões técnicos.`;
+  return generateFormAnalysisInternal([{
+    formTitle,
+    formDescription,
+    questions,
+    analytics,
+    totalResponses
+  }]);
+}
 
-  // Build context about the form and its results
-  let formContext = `# Formulário: ${formTitle}\n`;
-  if (formDescription) {
-    formContext += `Descrição: ${formDescription}\n`;
-  }
-  formContext += `Total de respostas: ${totalResponses}\n\n`;
+export async function generateCombinedFormAnalysis(
+  formsData: FormDataForAnalysis[]
+): Promise<FormAnalysisResult | null> {
+  return generateFormAnalysisInternal(formsData);
+}
 
-  formContext += `# Resultados por Pergunta:\n\n`;
+async function generateFormAnalysisInternal(
+  formsData: FormDataForAnalysis[]
+): Promise<FormAnalysisResult | null> {
+  const isCombined = formsData.length > 1;
+  const totalAllResponses = formsData.reduce((sum, f) => sum + f.totalResponses, 0);
 
-  for (const question of questions) {
-    const questionAnalytics = analytics.find(a => a.questionId === question.id);
-    formContext += `## Pergunta: "${question.questionText}" (${question.questionType})\n`;
+  const systemPrompt = `Você é um Cientista de Dados Sênior especializado em análise comportamental e pesquisas quantitativas/qualitativas para organizações religiosas e comunitárias.
 
-    if (question.questionType === "text") {
-      const textAnswers = questionAnalytics?.textAnswers || [];
-      formContext += `Respostas abertas (${textAnswers.length}):\n`;
-      textAnswers.slice(0, 20).forEach((answer, i) => {
-        formContext += `  - "${answer}"\n`;
-      });
-      if (textAnswers.length > 20) {
-        formContext += `  ... e mais ${textAnswers.length - 20} respostas\n`;
-      }
-    } else {
-      formContext += `Opções e votos:\n`;
-      for (const option of question.options) {
-        const count = questionAnalytics?.optionCounts[option.id] || 0;
-        const percentage = totalResponses > 0 ? ((count / totalResponses) * 100).toFixed(1) : "0.0";
-        formContext += `  - "${option.optionText}": ${count} votos (${percentage}%)\n`;
-      }
+SUA METODOLOGIA DE ANÁLISE:
+1. ANÁLISE DESCRITIVA: Examine distribuições, frequências, médias e desvios
+2. ANÁLISE DE PADRÕES: Identifique correlações entre perguntas, grupos de respondentes com comportamento similar
+3. ANÁLISE DE SENTIMENTO: Para respostas abertas, identifique tom, palavras-chave recorrentes, temas emergentes
+4. ANÁLISE COMPARATIVA: ${isCombined ? 'Compare resultados entre os diferentes formulários, identifique tendências temporais ou contextuais' : 'Compare grupos de respostas quando possível'}
+5. HIPÓTESES: Formule hipóteses sobre o "porquê" dos padrões observados
+
+DIRETRIZES:
+- Faça PERGUNTAS aos dados: "Por que essa opção foi mais escolhida?", "O que explica essa distribuição?"
+- Busque padrões NÃO ÓBVIOS: correlações inesperadas, minorias significativas, ausências reveladoras
+- Identifique SEGMENTOS: grupos com comportamentos distintos
+- Considere VIESES: respostas socialmente desejáveis, tendência ao meio, não-respostas
+- Priorize INSIGHTS ACIONÁVEIS: descobertas que podem gerar mudanças práticas
+- Use linguagem acessível mas fundamentada em dados`;
+
+  // Build context about all forms
+  let formContext = isCombined 
+    ? `# ANÁLISE COMBINADA DE ${formsData.length} FORMULÁRIOS\nTotal geral de respostas: ${totalAllResponses}\n\n`
+    : '';
+
+  for (const formData of formsData) {
+    formContext += `${isCombined ? '---\n' : ''}# Formulário: ${formData.formTitle}\n`;
+    if (formData.formDescription) {
+      formContext += `Descrição: ${formData.formDescription}\n`;
     }
-    formContext += `\n`;
+    formContext += `Respostas coletadas: ${formData.totalResponses}\n\n`;
+
+    formContext += `## Resultados Detalhados:\n\n`;
+
+    for (const question of formData.questions) {
+      const questionAnalytics = formData.analytics.find(a => a.questionId === question.id);
+      formContext += `### "${question.questionText}" (${question.questionType})\n`;
+
+      if (question.questionType === "text" || question.questionType === "textarea") {
+        const textAnswers = questionAnalytics?.textAnswers || [];
+        formContext += `Respostas textuais (${textAnswers.length} de ${formData.totalResponses}):\n`;
+        textAnswers.slice(0, 30).forEach((answer) => {
+          formContext += `  • "${answer}"\n`;
+        });
+        if (textAnswers.length > 30) {
+          formContext += `  [... mais ${textAnswers.length - 30} respostas]\n`;
+        }
+      } else {
+        formContext += `Distribuição de respostas:\n`;
+        let totalVotes = 0;
+        for (const option of question.options) {
+          const count = questionAnalytics?.optionCounts[option.id] || 0;
+          totalVotes += count;
+        }
+        for (const option of question.options) {
+          const count = questionAnalytics?.optionCounts[option.id] || 0;
+          const percentage = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : "0.0";
+          const bar = '█'.repeat(Math.round(parseFloat(percentage) / 5));
+          formContext += `  ${bar} ${option.optionText}: ${count} (${percentage}%)\n`;
+        }
+      }
+      formContext += `\n`;
+    }
   }
 
-  const userPrompt = `Analise os resultados do formulário abaixo e forneça:
-1. Um resumo executivo de 2-3 parágrafos com os principais achados
-2. Lista de 3-5 insights importantes (descobertas não óbvias)
-3. Lista de 3-5 recomendações práticas para a liderança
+  const userPrompt = `Realize uma ANÁLISE CIENTÍFICA APROFUNDADA dos dados abaixo. ${isCombined ? 'Compare e relacione os diferentes formulários.' : ''}
 
 ${formContext}
 
-Responda APENAS em JSON válido seguindo este formato:
+ESTRUTURE SUA ANÁLISE:
+
+1. RESUMO EXECUTIVO (3-4 parágrafos):
+   - Principais descobertas quantitativas
+   - Padrões comportamentais identificados
+   - Conclusões-chave para tomada de decisão
+
+2. INSIGHTS PROFUNDOS (5-8 descobertas):
+   - Padrões de escolha e preferência
+   - Correlações entre diferentes perguntas
+   - Comportamentos de grupos específicos
+   - Anomalias ou outliers significativos
+   - Tendências emergentes
+   - Temas recorrentes em respostas abertas
+
+3. RECOMENDAÇÕES ESTRATÉGICAS (5-8 ações):
+   - Ações imediatas baseadas nos dados
+   - Melhorias para próximos eventos/formulários
+   - Áreas que requerem investigação adicional
+   - Oportunidades identificadas
+   - Riscos ou preocupações a endereçar
+
+Responda APENAS em JSON válido:
 {
-  "summary": "Resumo executivo aqui...",
+  "summary": "Resumo executivo completo aqui...",
   "insights": [
-    "Insight 1",
-    "Insight 2",
-    "Insight 3"
+    "Insight detalhado 1 com dados específicos",
+    "Insight detalhado 2 com dados específicos"
   ],
   "recommendations": [
-    "Recomendação 1",
-    "Recomendação 2",
-    "Recomendação 3"
+    "Recomendação estratégica 1 com justificativa",
+    "Recomendação estratégica 2 com justificativa"
   ]
 }`;
 
-  // Try each key (1-5)
+  // Try each key (1-5) with model fallback
   for (let keyNum = 1; keyNum <= 5; keyNum++) {
     try {
-      console.log(`[Form Analysis] Trying key ${keyNum}...`);
+      console.log(`[Form Analysis] Trying key ${keyNum} (models: gemini-3-flash-preview → gemini-2.5-flash → gemini-2.5-lite)...`);
       const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed.summary && parsed.insights && parsed.recommendations) {
-          console.log(`[Form Analysis] Successfully generated analysis (key ${keyNum})`);
+          console.log(`[Form Analysis] Successfully generated ${isCombined ? 'combined ' : ''}analysis (key ${keyNum})`);
           return parsed as FormAnalysisResult;
         }
       }

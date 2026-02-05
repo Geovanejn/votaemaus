@@ -31,7 +31,9 @@ import {
   Sparkles,
   Loader2,
   Eye,
+  FileDown,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import type { FormWithQuestions, FormResponseWithAnswers, FormAnalysis } from "@shared/schema";
 
 type AnalyticsData = {
@@ -64,7 +66,7 @@ export default function FormResponses() {
   });
 
   const { data: analyses } = useQuery<FormAnalysis[]>({
-    queryKey: ["/api/admin/forms/analyses"],
+    queryKey: ["/api/admin/form-analyses"],
     enabled: formId > 0,
   });
 
@@ -75,7 +77,7 @@ export default function FormResponses() {
     },
     onSuccess: async (response) => {
       const data = await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/forms/analyses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/form-analyses"] });
       toast({ title: "Analise gerada com sucesso!" });
       setGeneratingAnalysis(false);
     },
@@ -84,6 +86,40 @@ export default function FormResponses() {
       setGeneratingAnalysis(false);
     },
   });
+
+  const downloadAnalysisAsPDF = (analysis: FormAnalysis) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let yPosition = 20;
+
+    doc.setFontSize(16);
+    doc.text(analysis.title, margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const dateText = analysis.createdAt
+      ? `Gerado em: ${new Date(analysis.createdAt).toLocaleDateString("pt-BR")}`
+      : "";
+    doc.text(dateText, margin, yPosition);
+    yPosition += 15;
+
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    const lines = doc.splitTextToSize(analysis.analysisText || "", maxWidth);
+    for (const line of lines) {
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, margin, yPosition);
+      yPosition += 6;
+    }
+
+    doc.save(`${analysis.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+  };
 
   const isLoading = formLoading || responsesLoading || analyticsLoading;
 
@@ -108,7 +144,7 @@ export default function FormResponses() {
 
   const totalResponses = responses?.length || 0;
   const questionMap = new Map(form.questions.map(q => [q.id, q]));
-  const formAnalyses = analyses?.filter(a => a.formIds.includes(formId)) || [];
+  const formAnalyses = analyses?.filter(a => a.formIds?.includes(formId)) || [];
 
   const getOptionLabel = (questionId: number, optionId: number): string => {
     const question = questionMap.get(questionId);
@@ -342,16 +378,17 @@ export default function FormResponses() {
                           {analysis.analysisText}
                         </div>
                       </div>
-                      {analysis.pdfUrl && (
-                        <div className="mt-4">
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={analysis.pdfUrl} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4 mr-2" />
-                              Baixar PDF
-                            </a>
-                          </Button>
-                        </div>
-                      )}
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadAnalysisAsPDF(analysis)}
+                          data-testid={`button-download-analysis-${analysis.id}`}
+                        >
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Baixar PDF
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

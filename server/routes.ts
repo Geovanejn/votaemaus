@@ -16077,14 +16077,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Erro ao gerar análise com IA. Tente novamente." });
       }
 
+      // Format analysis as readable text
+      let analysisText = `RESUMO EXECUTIVO\n\n${analysisResult.summary}\n\n`;
+      analysisText += `PRINCIPAIS INSIGHTS\n\n`;
+      analysisResult.insights.forEach((insight: string, i: number) => {
+        analysisText += `${i + 1}. ${insight}\n`;
+      });
+      analysisText += `\nRECOMENDACOES\n\n`;
+      analysisResult.recommendations.forEach((rec: string, i: number) => {
+        analysisText += `${i + 1}. ${rec}\n`;
+      });
+
       // Save analysis to database
       const analysis = await storage.createFormAnalysis({
-        formId,
-        title: `Análise - ${form.title}`,
-        summary: analysisResult.summary,
-        insights: analysisResult.insights,
-        recommendations: analysisResult.recommendations,
-        generatedBy: req.user!.id,
+        formIds: [formId],
+        title: `Analise - ${form.title}`,
+        analysisText,
+        createdBy: req.user!.id,
       });
 
       res.json(analysis);
@@ -16115,7 +16124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get the form details for context
-      const form = await storage.getFormWithQuestions(analysis.formId);
+      const form = analysis.formIds.length > 0 ? await storage.getFormWithQuestions(analysis.formIds[0]) : null;
 
       res.json({ analysis, form });
     } catch (error) {
@@ -16128,13 +16137,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/admin/form-analyses/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
     try {
       const analysisId = parseInt(req.params.id);
-      const { title, summary, insights, recommendations } = req.body;
+      const { title, analysisText } = req.body;
       
       const analysis = await storage.updateFormAnalysis(analysisId, {
         title,
-        summary,
-        insights,
-        recommendations,
+        analysisText,
       });
 
       if (!analysis) {

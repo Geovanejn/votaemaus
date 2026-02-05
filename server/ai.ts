@@ -3312,3 +3312,122 @@ Formato JSON (OBRIGATÓRIO):
   console.error("[Timed Quiz] FAILED - All keys exhausted, returning null (NO FALLBACK)");
   return null;
 }
+
+// ==================== FORM ANALYSIS (ESTATÍSTICA) ====================
+
+export interface FormAnalysisResult {
+  summary: string;
+  insights: string[];
+  recommendations: string[];
+  charts?: {
+    questionId: number;
+    chartType: "pie" | "bar" | "horizontal-bar";
+    title: string;
+    description?: string;
+  }[];
+}
+
+export async function generateFormAnalysis(
+  formTitle: string,
+  formDescription: string | null,
+  questions: {
+    id: number;
+    questionText: string;
+    questionType: string;
+    options: { id: number; optionText: string }[];
+  }[],
+  analytics: {
+    questionId: number;
+    optionCounts: Record<number, number>;
+    textAnswers: string[];
+  }[],
+  totalResponses: number
+): Promise<FormAnalysisResult | null> {
+  const systemPrompt = `Você é um analista de dados especializado em pesquisas e formulários para organizações religiosas.
+Sua tarefa é analisar os resultados de um formulário de pesquisa e fornecer insights valiosos.
+Seja objetivo, prático e focado em ações concretas que a liderança pode tomar.
+Use linguagem acessível e evite jargões técnicos.`;
+
+  // Build context about the form and its results
+  let formContext = `# Formulário: ${formTitle}\n`;
+  if (formDescription) {
+    formContext += `Descrição: ${formDescription}\n`;
+  }
+  formContext += `Total de respostas: ${totalResponses}\n\n`;
+
+  formContext += `# Resultados por Pergunta:\n\n`;
+
+  for (const question of questions) {
+    const questionAnalytics = analytics.find(a => a.questionId === question.id);
+    formContext += `## Pergunta: "${question.questionText}" (${question.questionType})\n`;
+
+    if (question.questionType === "text") {
+      const textAnswers = questionAnalytics?.textAnswers || [];
+      formContext += `Respostas abertas (${textAnswers.length}):\n`;
+      textAnswers.slice(0, 20).forEach((answer, i) => {
+        formContext += `  - "${answer}"\n`;
+      });
+      if (textAnswers.length > 20) {
+        formContext += `  ... e mais ${textAnswers.length - 20} respostas\n`;
+      }
+    } else {
+      formContext += `Opções e votos:\n`;
+      for (const option of question.options) {
+        const count = questionAnalytics?.optionCounts[option.id] || 0;
+        const percentage = totalResponses > 0 ? ((count / totalResponses) * 100).toFixed(1) : "0.0";
+        formContext += `  - "${option.optionText}": ${count} votos (${percentage}%)\n`;
+      }
+    }
+    formContext += `\n`;
+  }
+
+  const userPrompt = `Analise os resultados do formulário abaixo e forneça:
+1. Um resumo executivo de 2-3 parágrafos com os principais achados
+2. Lista de 3-5 insights importantes (descobertas não óbvias)
+3. Lista de 3-5 recomendações práticas para a liderança
+
+${formContext}
+
+Responda APENAS em JSON válido seguindo este formato:
+{
+  "summary": "Resumo executivo aqui...",
+  "insights": [
+    "Insight 1",
+    "Insight 2",
+    "Insight 3"
+  ],
+  "recommendations": [
+    "Recomendação 1",
+    "Recomendação 2",
+    "Recomendação 3"
+  ]
+}`;
+
+  // Try each key (1-5)
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      console.log(`[Form Analysis] Trying key ${keyNum}...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.summary && parsed.insights && parsed.recommendations) {
+          console.log(`[Form Analysis] Successfully generated analysis (key ${keyNum})`);
+          return parsed as FormAnalysisResult;
+        }
+      }
+      console.log(`[Form Analysis] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Form Analysis] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Form Analysis] Key ${keyNum} error:`, error?.message);
+        continue;
+      }
+    }
+  }
+
+  console.error("[Form Analysis] FAILED - All keys exhausted");
+  return null;
+}

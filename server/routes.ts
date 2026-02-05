@@ -47,6 +47,10 @@ import {
   updateStudyEventSchema,
   updateStudyEventLessonSchema,
   updateCollectibleCardSchema,
+  // Form schemas for validation
+  insertFormSchema,
+  insertFormQuestionSchema,
+  insertFormOptionSchema,
 } from "@shared/schema";
 import { z, ZodError } from "zod";
 
@@ -70,7 +74,8 @@ import {
   isAIConfigured,
   generateLessonFromPDFExact,
   AIProvider,
-  randomizeMultipleChoiceAnswer
+  randomizeMultipleChoiceAnswer,
+  generateFormAnalysis
 } from "./ai";
 import multer from "multer";
 import sharp from "sharp";
@@ -15325,6 +15330,717 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Create event fee PIX error:", error);
       res.status(500).json({ message: "Erro ao gerar PIX da taxa" });
+    }
+  });
+
+  // ==================== FORMS (ESTATÍSTICA) ROUTES ====================
+  
+  // Middleware para verificar acesso à área de estatística
+  const requireEstatistica = (req: AuthRequest, res: Response, next: NextFunction) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Não autenticado" });
+    }
+    if (user.isAdmin || user.secretariat === "estatistica") {
+      return next();
+    }
+    return res.status(403).json({ message: "Acesso restrito à Secretaria de Estatística" });
+  };
+
+  // Listar todos os formulários (admin/estatística)
+  app.get("/api/admin/forms", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const forms = await storage.getForms();
+      // Add response count to each form
+      const formsWithCount = await Promise.all(forms.map(async (form) => ({
+        ...form,
+        responseCount: await storage.getFormResponseCount(form.id),
+      })));
+      res.json(formsWithCount);
+    } catch (error) {
+      console.error("Get forms error:", error);
+      res.status(500).json({ message: "Erro ao buscar formulários" });
+    }
+  });
+
+  // Obter um formulário com perguntas (admin/estatística)
+  app.get("/api/admin/forms/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormWithQuestions(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      res.json(form);
+    } catch (error) {
+      console.error("Get form error:", error);
+      res.status(500).json({ message: "Erro ao buscar formulário" });
+    }
+  });
+
+  // Criar formulário (admin/estatística)
+  app.post("/api/admin/forms", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const { title, description } = req.body;
+      if (!title) {
+        return res.status(400).json({ message: "Título é obrigatório" });
+      }
+      const form = await storage.createForm({
+        title,
+        description: description || null,
+        status: "draft",
+        createdBy: req.user!.id,
+      });
+      res.json(form);
+    } catch (error) {
+      console.error("Create form error:", error);
+      res.status(500).json({ message: "Erro ao criar formulário" });
+    }
+  });
+
+  // Atualizar formulário (admin/estatística)
+  app.patch("/api/admin/forms/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const { title, description } = req.body;
+      const form = await storage.updateForm(formId, { title, description });
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      res.json(form);
+    } catch (error) {
+      console.error("Update form error:", error);
+      res.status(500).json({ message: "Erro ao atualizar formulário" });
+    }
+  });
+
+  // Deletar formulário (admin/estatística)
+  app.delete("/api/admin/forms/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status === "published") {
+        return res.status(400).json({ message: "Não é possível deletar formulário publicado. Feche-o primeiro." });
+      }
+      await storage.deleteForm(formId);
+      res.json({ message: "Formulário deletado com sucesso" });
+    } catch (error) {
+      console.error("Delete form error:", error);
+      res.status(500).json({ message: "Erro ao deletar formulário" });
+    }
+  });
+
+  // Publicar formulário (admin/estatística)
+  app.post("/api/admin/forms/:id/publish", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "draft") {
+        return res.status(400).json({ message: "Apenas formulários em rascunho podem ser publicados" });
+      }
+      
+      // Check if form has questions
+      const questions = await storage.getFormQuestions(formId);
+      if (questions.length === 0) {
+        return res.status(400).json({ message: "Formulário precisa ter pelo menos uma pergunta" });
+      }
+
+      const published = await storage.publishForm(formId);
+      
+      // TODO: Send push notifications to all members
+      // This will be implemented in a later phase
+      
+      res.json(published);
+    } catch (error) {
+      console.error("Publish form error:", error);
+      res.status(500).json({ message: "Erro ao publicar formulário" });
+    }
+  });
+
+  // Fechar formulário (admin/estatística)
+  app.post("/api/admin/forms/:id/close", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "published") {
+        return res.status(400).json({ message: "Apenas formulários publicados podem ser fechados" });
+      }
+      const closed = await storage.closeForm(formId);
+      res.json(closed);
+    } catch (error) {
+      console.error("Close form error:", error);
+      res.status(500).json({ message: "Erro ao fechar formulário" });
+    }
+  });
+
+  // Bloquear formulário (admin/estatística)
+  app.post("/api/admin/forms/:id/block", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      const blocked = await storage.blockForm(formId);
+      res.json(blocked);
+    } catch (error) {
+      console.error("Block form error:", error);
+      res.status(500).json({ message: "Erro ao bloquear formulário" });
+    }
+  });
+
+  // ==================== FORM QUESTIONS ROUTES ====================
+
+  // Criar pergunta (admin/estatística)
+  app.post("/api/admin/forms/:formId/questions", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "draft") {
+        return res.status(400).json({ message: "Não é possível editar formulário publicado/fechado" });
+      }
+
+      const { questionText, questionType, isRequired, sortOrder } = req.body;
+      if (!questionText || !questionType) {
+        return res.status(400).json({ message: "Texto e tipo da pergunta são obrigatórios" });
+      }
+
+      // Get current max sort order
+      const questions = await storage.getFormQuestions(formId);
+      const maxOrder = questions.length > 0 ? Math.max(...questions.map(q => q.sortOrder)) : -1;
+
+      const question = await storage.createFormQuestion({
+        formId,
+        questionText,
+        questionType,
+        isRequired: isRequired ?? true,
+        sortOrder: sortOrder ?? (maxOrder + 1),
+      });
+      res.json(question);
+    } catch (error) {
+      console.error("Create question error:", error);
+      res.status(500).json({ message: "Erro ao criar pergunta" });
+    }
+  });
+
+  // Atualizar pergunta (admin/estatística)
+  app.patch("/api/admin/forms/:formId/questions/:questionId", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const questionId = parseInt(req.params.questionId);
+      
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "draft") {
+        return res.status(400).json({ message: "Não é possível editar formulário publicado/fechado" });
+      }
+
+      const { questionText, questionType, isRequired, sortOrder } = req.body;
+      const question = await storage.updateFormQuestion(questionId, {
+        questionText,
+        questionType,
+        isRequired,
+        sortOrder,
+      });
+      if (!question) {
+        return res.status(404).json({ message: "Pergunta não encontrada" });
+      }
+      res.json(question);
+    } catch (error) {
+      console.error("Update question error:", error);
+      res.status(500).json({ message: "Erro ao atualizar pergunta" });
+    }
+  });
+
+  // Deletar pergunta (admin/estatística)
+  app.delete("/api/admin/forms/:formId/questions/:questionId", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const questionId = parseInt(req.params.questionId);
+      
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "draft") {
+        return res.status(400).json({ message: "Não é possível editar formulário publicado/fechado" });
+      }
+
+      await storage.deleteFormQuestion(questionId);
+      res.json({ message: "Pergunta deletada com sucesso" });
+    } catch (error) {
+      console.error("Delete question error:", error);
+      res.status(500).json({ message: "Erro ao deletar pergunta" });
+    }
+  });
+
+  // Reordenar perguntas (admin/estatística)
+  app.post("/api/admin/forms/:formId/questions/reorder", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "draft") {
+        return res.status(400).json({ message: "Não é possível editar formulário publicado/fechado" });
+      }
+
+      const { questionIds } = req.body;
+      if (!Array.isArray(questionIds)) {
+        return res.status(400).json({ message: "questionIds deve ser um array" });
+      }
+
+      await storage.reorderFormQuestions(formId, questionIds);
+      res.json({ message: "Perguntas reordenadas com sucesso" });
+    } catch (error) {
+      console.error("Reorder questions error:", error);
+      res.status(500).json({ message: "Erro ao reordenar perguntas" });
+    }
+  });
+
+  // ==================== FORM OPTIONS ROUTES ====================
+
+  // Criar opção (admin/estatística)
+  app.post("/api/admin/questions/:questionId/options", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const questionId = parseInt(req.params.questionId);
+      const { optionText, sortOrder } = req.body;
+      
+      if (!optionText) {
+        return res.status(400).json({ message: "Texto da opção é obrigatório" });
+      }
+
+      const option = await storage.createFormOption({
+        questionId,
+        optionText,
+        sortOrder: sortOrder ?? 0,
+      });
+      res.json(option);
+    } catch (error) {
+      console.error("Create option error:", error);
+      res.status(500).json({ message: "Erro ao criar opção" });
+    }
+  });
+
+  // Atualizar opção (admin/estatística)
+  app.patch("/api/admin/options/:optionId", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const optionId = parseInt(req.params.optionId);
+      const { optionText, sortOrder } = req.body;
+      
+      const option = await storage.updateFormOption(optionId, { optionText, sortOrder });
+      if (!option) {
+        return res.status(404).json({ message: "Opção não encontrada" });
+      }
+      res.json(option);
+    } catch (error) {
+      console.error("Update option error:", error);
+      res.status(500).json({ message: "Erro ao atualizar opção" });
+    }
+  });
+
+  // Deletar opção (admin/estatística)
+  app.delete("/api/admin/options/:optionId", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const optionId = parseInt(req.params.optionId);
+      await storage.deleteFormOption(optionId);
+      res.json({ message: "Opção deletada com sucesso" });
+    } catch (error) {
+      console.error("Delete option error:", error);
+      res.status(500).json({ message: "Erro ao deletar opção" });
+    }
+  });
+
+  // ==================== FORM RESPONSES ROUTES (Admin) ====================
+
+  // Obter respostas de um formulário (admin/estatística)
+  app.get("/api/admin/forms/:id/responses", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const responses = await storage.getFormResponses(formId);
+      res.json(responses);
+    } catch (error) {
+      console.error("Get responses error:", error);
+      res.status(500).json({ message: "Erro ao buscar respostas" });
+    }
+  });
+
+  // Obter analytics de um formulário (admin/estatística)
+  app.get("/api/admin/forms/:id/analytics", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getFormWithQuestions(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      
+      const analytics = await storage.getFormAnalytics(formId);
+      res.json({
+        form,
+        analytics,
+        totalResponses: form.responseCount,
+      });
+    } catch (error) {
+      console.error("Get analytics error:", error);
+      res.status(500).json({ message: "Erro ao buscar analytics" });
+    }
+  });
+
+  // ==================== FORM RESPONSES ROUTES (Member) ====================
+
+  // Obter formulários publicados para responder (membro)
+  app.get("/api/forms/available", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const publishedForms = await storage.getPublishedForms();
+      
+      // Add hasResponded flag to each form
+      const formsWithStatus = await Promise.all(publishedForms.map(async (form) => ({
+        ...form,
+        hasResponded: await storage.hasUserRespondedForm(form.id, userId),
+      })));
+      
+      res.json(formsWithStatus);
+    } catch (error) {
+      console.error("Get available forms error:", error);
+      res.status(500).json({ message: "Erro ao buscar formulários" });
+    }
+  });
+
+  // Obter formulários pendentes para popup (membro)
+  app.get("/api/forms/pending", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const pendingForms = await storage.getPendingFormsForUser(userId);
+      res.json(pendingForms);
+    } catch (error) {
+      console.error("Get pending forms error:", error);
+      res.status(500).json({ message: "Erro ao buscar formulários pendentes" });
+    }
+  });
+
+  // Obter formulário para responder (membro)
+  app.get("/api/forms/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const form = await storage.getFormWithQuestions(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      
+      if (form.status !== "published") {
+        return res.status(403).json({ message: "Formulário não está disponível para respostas" });
+      }
+
+      const hasResponded = await storage.hasUserRespondedForm(formId, userId);
+      
+      res.json({
+        ...form,
+        hasResponded,
+      });
+    } catch (error) {
+      console.error("Get form error:", error);
+      res.status(500).json({ message: "Erro ao buscar formulário" });
+    }
+  });
+
+  // Iniciar resposta a um formulário (membro)
+  app.post("/api/forms/:id/start", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const form = await storage.getFormById(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+      if (form.status !== "published") {
+        return res.status(403).json({ message: "Formulário não está disponível para respostas" });
+      }
+
+      // Check if already has a response
+      let response = await storage.getFormResponseByUser(formId, userId);
+      if (response?.isComplete) {
+        return res.status(400).json({ message: "Você já respondeu este formulário" });
+      }
+
+      // Create or return existing incomplete response
+      if (!response) {
+        try {
+          response = await storage.createFormResponse({
+            formId,
+            userId,
+            isComplete: false,
+          });
+        } catch (createError: any) {
+          // Handle unique constraint violation (formId + userId)
+          if (createError?.code === "23505") {
+            // Race condition: response was created by concurrent request
+            response = await storage.getFormResponseByUser(formId, userId);
+            if (response?.isComplete) {
+              return res.status(400).json({ message: "Você já respondeu este formulário" });
+            }
+          } else {
+            throw createError;
+          }
+        }
+      }
+
+      res.json(response);
+    } catch (error) {
+      console.error("Start response error:", error);
+      res.status(500).json({ message: "Erro ao iniciar resposta" });
+    }
+  });
+
+  // Salvar resposta de uma pergunta (membro)
+  app.post("/api/forms/:formId/answer", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const userId = req.user!.id;
+      const { questionId, answerText, selectedOptionIds } = req.body;
+
+      if (!questionId) {
+        return res.status(400).json({ message: "questionId é obrigatório" });
+      }
+
+      const form = await storage.getFormById(formId);
+      if (!form || form.status !== "published") {
+        return res.status(403).json({ message: "Formulário não está disponível" });
+      }
+
+      // Get or create response
+      let response = await storage.getFormResponseByUser(formId, userId);
+      if (!response) {
+        response = await storage.createFormResponse({
+          formId,
+          userId,
+          isComplete: false,
+        });
+      }
+      if (response.isComplete) {
+        return res.status(400).json({ message: "Resposta já foi finalizada" });
+      }
+
+      // Check if answer already exists for this question
+      const existingAnswers = await storage.getFormAnswersByResponse(response.id);
+      const existingAnswer = existingAnswers.find(a => a.questionId === questionId);
+
+      if (existingAnswer) {
+        // Update existing answer
+        await storage.updateFormAnswer(existingAnswer.id, {
+          answerText,
+          selectedOptionIds,
+        });
+      } else {
+        // Create new answer
+        await storage.createFormAnswer({
+          responseId: response.id,
+          questionId,
+          answerText,
+          selectedOptionIds,
+        });
+      }
+
+      res.json({ message: "Resposta salva" });
+    } catch (error) {
+      console.error("Save answer error:", error);
+      res.status(500).json({ message: "Erro ao salvar resposta" });
+    }
+  });
+
+  // Finalizar resposta do formulário (membro)
+  app.post("/api/forms/:formId/submit", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.formId);
+      const userId = req.user!.id;
+
+      const form = await storage.getFormById(formId);
+      if (!form || form.status !== "published") {
+        return res.status(403).json({ message: "Formulário não está disponível" });
+      }
+
+      const response = await storage.getFormResponseByUser(formId, userId);
+      if (!response) {
+        return res.status(400).json({ message: "Nenhuma resposta iniciada" });
+      }
+      if (response.isComplete) {
+        return res.status(400).json({ message: "Resposta já foi finalizada" });
+      }
+
+      // Validate all required questions are answered
+      const questions = await storage.getFormQuestions(formId);
+      const answers = await storage.getFormAnswersByResponse(response.id);
+      const answeredQuestionIds = new Set(answers.map(a => a.questionId));
+
+      const missingRequired = questions.filter(
+        q => q.isRequired && !answeredQuestionIds.has(q.id)
+      );
+
+      if (missingRequired.length > 0) {
+        return res.status(400).json({
+          message: "Perguntas obrigatórias não respondidas",
+          missingQuestions: missingRequired.map(q => q.id),
+        });
+      }
+
+      // Mark as complete
+      await storage.updateFormResponse(response.id, {
+        isComplete: true,
+        submittedAt: new Date(),
+      });
+
+      res.json({ message: "Formulário enviado com sucesso" });
+    } catch (error) {
+      console.error("Submit form error:", error);
+      res.status(500).json({ message: "Erro ao enviar formulário" });
+    }
+  });
+
+  // ==================== FORM ANALYSIS (AI) ROUTES ====================
+
+  // Gerar análise com IA (admin/estatística)
+  app.post("/api/admin/forms/:id/generate-analysis", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      
+      if (!isAIConfigured()) {
+        return res.status(503).json({ message: "IA não configurada. Adicione a chave GEMINI_API_KEY." });
+      }
+
+      const form = await storage.getFormWithQuestions(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Formulário não encontrado" });
+      }
+
+      if (form.status !== "published" && form.status !== "closed") {
+        return res.status(400).json({ message: "Formulário precisa estar publicado ou fechado para análise" });
+      }
+
+      const analytics = await storage.getFormAnalytics(formId);
+      const totalResponses = form.responseCount;
+
+      if (totalResponses === 0) {
+        return res.status(400).json({ message: "Nenhuma resposta para analisar" });
+      }
+
+      // Prepare questions with options for AI
+      const questionsForAI = form.questions.map(q => ({
+        id: q.id,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        options: q.options.map(o => ({ id: o.id, optionText: o.optionText })),
+      }));
+
+      const analysisResult = await generateFormAnalysis(
+        form.title,
+        form.description,
+        questionsForAI,
+        analytics,
+        totalResponses
+      );
+
+      if (!analysisResult) {
+        return res.status(500).json({ message: "Erro ao gerar análise com IA. Tente novamente." });
+      }
+
+      // Save analysis to database
+      const analysis = await storage.createFormAnalysis({
+        formId,
+        title: `Análise - ${form.title}`,
+        summary: analysisResult.summary,
+        insights: analysisResult.insights,
+        recommendations: analysisResult.recommendations,
+        generatedBy: req.user!.id,
+      });
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Generate analysis error:", error);
+      res.status(500).json({ message: "Erro ao gerar análise" });
+    }
+  });
+
+  // Listar análises (admin/estatística)
+  app.get("/api/admin/form-analyses", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const analyses = await storage.getFormAnalyses();
+      res.json(analyses);
+    } catch (error) {
+      console.error("Get analyses error:", error);
+      res.status(500).json({ message: "Erro ao buscar análises" });
+    }
+  });
+
+  // Obter uma análise (admin/estatística)
+  app.get("/api/admin/form-analyses/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      const analysis = await storage.getFormAnalysisById(analysisId);
+      if (!analysis) {
+        return res.status(404).json({ message: "Análise não encontrada" });
+      }
+
+      // Get the form details for context
+      const form = await storage.getFormWithQuestions(analysis.formId);
+
+      res.json({ analysis, form });
+    } catch (error) {
+      console.error("Get analysis error:", error);
+      res.status(500).json({ message: "Erro ao buscar análise" });
+    }
+  });
+
+  // Atualizar análise (admin/estatística)
+  app.patch("/api/admin/form-analyses/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      const { title, summary, insights, recommendations } = req.body;
+      
+      const analysis = await storage.updateFormAnalysis(analysisId, {
+        title,
+        summary,
+        insights,
+        recommendations,
+      });
+
+      if (!analysis) {
+        return res.status(404).json({ message: "Análise não encontrada" });
+      }
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Update analysis error:", error);
+      res.status(500).json({ message: "Erro ao atualizar análise" });
+    }
+  });
+
+  // Deletar análise (admin/estatística)
+  app.delete("/api/admin/form-analyses/:id", authenticateToken, requireEstatistica, async (req: AuthRequest, res) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      await storage.deleteFormAnalysis(analysisId);
+      res.json({ message: "Análise deletada com sucesso" });
+    } catch (error) {
+      console.error("Delete analysis error:", error);
+      res.status(500).json({ message: "Erro ao deletar análise" });
     }
   });
 

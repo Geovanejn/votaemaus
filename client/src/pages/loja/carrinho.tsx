@@ -72,16 +72,31 @@ export default function LojaCarrinhoPage() {
     return [...new Set(cartItems.map(c => c.item.id))];
   }, [cartItems]);
 
-  // Calculate combo discounts based on items in cart
-  const { data: comboDiscountResult } = useQuery<ComboDiscountResult>({
-    queryKey: ["/api/shop/calculate-combo-discounts", cartItemIds],
-    queryFn: async () => {
-      if (cartItemIds.length < 2) return { discount: 0, appliedCombos: [] };
-      const res = await apiRequest("POST", "/api/shop/calculate-combo-discounts", { itemIds: cartItemIds });
+  // Calculate combo discounts based on items in cart using mutation
+  const [comboDiscountResult, setComboDiscountResult] = useState<ComboDiscountResult>({ discount: 0, appliedCombos: [] });
+  
+  const calculateCombosMutation = useMutation({
+    mutationFn: async (itemIds: number[]) => {
+      if (itemIds.length < 2) return { discount: 0, appliedCombos: [] };
+      const res = await apiRequest("POST", "/api/shop/calculate-combo-discounts", { itemIds });
       return res.json();
     },
-    enabled: !!user && cartItemIds.length >= 2,
+    onSuccess: (data: ComboDiscountResult) => {
+      setComboDiscountResult(data);
+    },
+    onError: () => {
+      setComboDiscountResult({ discount: 0, appliedCombos: [] });
+    },
   });
+
+  // Recalculate combos when cart items change
+  useEffect(() => {
+    if (cartItemIds.length >= 2) {
+      calculateCombosMutation.mutate(cartItemIds);
+    } else {
+      setComboDiscountResult({ discount: 0, appliedCombos: [] });
+    }
+  }, [cartItemIds.join(",")]);
 
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {

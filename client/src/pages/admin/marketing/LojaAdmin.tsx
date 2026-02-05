@@ -780,7 +780,15 @@ export default function LojaAdmin() {
     queryKey: ["/api/admin/shop/items", managingItem?.id, "color-images"],
     queryFn: async () => {
       if (!managingItem) return [];
-      const response = await fetch(`/api/admin/shop/items/${managingItem.id}/color-images`, { credentials: "include" });
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const response = await fetch(`/api/admin/shop/items/${managingItem.id}/color-images`, { 
+        credentials: "include",
+        headers 
+      });
       if (!response.ok) return [];
       return response.json();
     },
@@ -835,12 +843,22 @@ export default function LojaAdmin() {
       formData.append("gender", data.gender);
       data.files.forEach((file) => formData.append("images", file));
       
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/admin/shop/colors/${data.colorId}/images`, {
         method: "POST",
         body: formData,
+        headers,
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(error.message || "Upload failed");
+      }
       return response.json();
     },
     onSuccess: () => {

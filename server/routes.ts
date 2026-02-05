@@ -15342,7 +15342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(401).json({ message: "Não autenticado" });
     }
-    if (user.isAdmin || user.secretariat === "estatistica") {
+    if (user.isAdmin || user.secretaria === "estatistica") {
       return next();
     }
     return res.status(403).json({ message: "Acesso restrito à Secretaria de Estatística" });

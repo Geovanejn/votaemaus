@@ -36,11 +36,17 @@ import {
 import { jsPDF } from "jspdf";
 import type { FormWithQuestions, FormResponseWithAnswers, FormAnalysis } from "@shared/schema";
 
-type AnalyticsData = {
+type QuestionAnalytics = {
   questionId: number;
   optionCounts: Record<number, number>;
   textAnswers: string[];
-}[];
+};
+
+type AnalyticsResponse = {
+  form: FormWithQuestions;
+  analytics: QuestionAnalytics[];
+  totalResponses: number;
+};
 
 export default function FormResponses() {
   const { id } = useParams<{ id: string }>();
@@ -60,10 +66,12 @@ export default function FormResponses() {
     enabled: formId > 0,
   });
 
-  const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery<AnalyticsResponse>({
     queryKey: ["/api/admin/forms", formId, "analytics"],
     enabled: formId > 0,
   });
+
+  const analytics = analyticsData?.analytics;
 
   const { data: analyses } = useQuery<FormAnalysis[]>({
     queryKey: ["/api/admin/form-analyses"],

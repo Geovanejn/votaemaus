@@ -221,6 +221,8 @@ function Router() {
           <Route path="/admin/loja" component={LojaAdmin} />
           <Route path="/admin/tesouraria/relatorios" component={TesourariaRelatorios} />
           <Route path="/admin/estatistica" component={EstatisticaDashboard} />
+          <Route path="/admin/estatistica/forms/:id" component={FormEditor} />
+          <Route path="/admin/estatistica/forms/:id/respostas" component={FormResponses} />
           <Route path="/vote" component={VotePage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/study" component={StudyHomePage} />

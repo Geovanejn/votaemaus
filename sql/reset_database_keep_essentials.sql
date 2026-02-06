@@ -27,7 +27,8 @@
 -- LIMPA TUDO o restante (progresso, pedidos, pagamentos,
 -- eleições, estudos, notificações, formulários, etc.)
 -- ============================================================
--- Ordem de DELETE respeita foreign keys (filhos primeiro).
+-- Usa DELETE FROM na ordem topológica correta
+-- (tabelas filhas antes das tabelas pai).
 -- ============================================================
 
 -- ==================== FORMULÁRIOS ====================
@@ -54,7 +55,7 @@ DELETE FROM shop_order_items;
 DELETE FROM shop_orders;
 DELETE FROM shop_cart_items;
 
--- ==================== TESOURARIA ====================
+-- ==================== TESOURARIA (pagamentos → entries → loans) ====================
 DELETE FROM member_percapta_payments;
 DELETE FROM member_ump_payments;
 DELETE FROM treasury_entries;
@@ -64,31 +65,15 @@ DELETE FROM treasury_loans;
 DELETE FROM treasury_expense_categories;
 DELETE FROM treasury_settings;
 
--- ==================== CARDS CONQUISTADOS ====================
-DELETE FROM user_cards;
-
--- ==================== EVENTOS ESPECIAIS ====================
-DELETE FROM study_event_participants;
-DELETE FROM user_event_progress;
-DELETE FROM study_event_lessons;
-DELETE FROM study_events;
-
--- ==================== CARDS COLECIONÁVEIS ====================
-DELETE FROM collectible_cards;
-
 -- ==================== INTERAÇÃO ENTRE MEMBROS ====================
 DELETE FROM member_encouragements;
 DELETE FROM achievement_likes;
 DELETE FROM user_online_status;
 
--- ==================== PRÁTICA SEMANAL ====================
-DELETE FROM practice_questions;
-DELETE FROM weekly_practice;
-
 -- ==================== AUDIT ====================
 DELETE FROM audit_logs;
 
--- ==================== PUSH / NOTIFICAÇÕES ====================
+-- ==================== PUSH ====================
 DELETE FROM anonymous_push_subscriptions;
 DELETE FROM push_subscriptions;
 
@@ -97,19 +82,19 @@ DELETE FROM daily_mission_content;
 DELETE FROM user_daily_missions;
 DELETE FROM daily_missions;
 
--- ==================== RANKING / LEADERBOARD ====================
+-- ==================== RANKING ====================
 DELETE FROM leaderboard_entries;
 
--- ==================== CONQUISTAS ====================
-DELETE FROM achievement_xp;
-DELETE FROM user_achievements;
-DELETE FROM achievements;
-
--- ==================== ATIVIDADES / XP ====================
+-- ==================== XP / ATIVIDADES ====================
 DELETE FROM daily_activity;
 DELETE FROM xp_transactions;
 DELETE FROM daily_mission_xp;
 DELETE FROM weekly_practice_bonus;
+DELETE FROM achievement_xp;
+
+-- ==================== CONQUISTAS (achievements refs → seasons) ====================
+DELETE FROM user_achievements;
+DELETE FROM achievements;
 
 -- ==================== LEITURAS ====================
 DELETE FROM verse_readings;
@@ -119,14 +104,26 @@ DELETE FROM devotional_readings;
 DELETE FROM user_unit_progress;
 DELETE FROM user_lesson_progress;
 
+-- ==================== PRÁTICA SEMANAL (refs → study_weeks) ====================
+DELETE FROM practice_questions;
+DELETE FROM weekly_practice;
+
+-- ==================== CONTEÚDO DE ESTUDO ====================
+-- study_units → study_lessons → (study_weeks E seasons)
+DELETE FROM study_units;
+DELETE FROM study_lessons;
+DELETE FROM study_weeks;
+
 -- ==================== METAS SEMANAIS ====================
 DELETE FROM weekly_goal_progress;
 
--- ==================== TEMPORADAS - PROGRESSO ====================
+-- ==================== TEMPORADAS - PROGRESSO (refs → seasons) ====================
 DELETE FROM season_rankings;
 DELETE FROM user_season_progress;
 DELETE FROM user_final_challenge_progress;
 DELETE FROM season_final_challenges;
+
+-- ==================== TEMPORADAS (após todas as dependências) ====================
 DELETE FROM seasons;
 
 -- ==================== MARCOS DE OFENSIVA ====================
@@ -138,13 +135,19 @@ DELETE FROM crystal_transactions;
 -- ==================== PERFIS DE ESTUDO ====================
 DELETE FROM study_profiles;
 
--- ==================== CONTEÚDO DE ESTUDO ====================
-DELETE FROM bible_verses;
-DELETE FROM study_units;
-DELETE FROM study_lessons;
-DELETE FROM study_weeks;
+-- ==================== CARDS CONQUISTADOS (refs → collectible_cards) ====================
+DELETE FROM user_cards;
 
--- ==================== COMPARTILHAMENTOS (limpa, mas mantém posts/stock) ====================
+-- ==================== EVENTOS ESPECIAIS (refs → collectible_cards) ====================
+DELETE FROM study_event_participants;
+DELETE FROM user_event_progress;
+DELETE FROM study_event_lessons;
+DELETE FROM study_events;
+
+-- ==================== CARDS COLECIONÁVEIS (após seasons, events, user_cards) ====================
+DELETE FROM collectible_cards;
+
+-- ==================== VERSÍCULOS - COMPARTILHAMENTOS ====================
 DELETE FROM birthday_share_images;
 DELETE FROM daily_verse_shares;
 -- daily_verse_posts: PRESERVADO
@@ -167,16 +170,21 @@ DELETE FROM pdf_verifications;
 DELETE FROM verification_codes;
 DELETE FROM votes;
 DELETE FROM election_attendance;
-DELETE FROM election_positions;
 DELETE FROM election_winners;
+DELETE FROM election_positions;
 DELETE FROM candidates;
 DELETE FROM elections;
 DELETE FROM positions;
 
--- ==================== USUÁRIOS: PRESERVADO ====================
+-- ==================== DADOS PRESERVADOS ====================
 -- users: PRESERVADO
-
--- ==================== LOJA - PRODUTOS: PRESERVADO ====================
+-- devotionals: PRESERVADO
+-- devotional_comments: PRESERVADO
+-- daily_verse_posts: PRESERVADO
+-- daily_verse_stock: PRESERVADO
+-- site_content: PRESERVADO
+-- banners: PRESERVADO
+-- board_members: PRESERVADO
 -- shop_categories: PRESERVADO
 -- shop_items: PRESERVADO
 -- shop_item_images: PRESERVADO

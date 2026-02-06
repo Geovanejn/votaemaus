@@ -7,7 +7,8 @@
 -- ATENÇÃO: Este script REMOVE TODOS OS DADOS de todas
 -- as tabelas. Use com extremo cuidado!
 -- A estrutura das tabelas é mantida.
--- Ordem de DELETE respeita foreign keys (filhos primeiro).
+-- Usa DELETE FROM na ordem topológica correta
+-- (tabelas filhas antes das tabelas pai).
 -- =====================================================
 
 -- ==================== FORMULÁRIOS ====================
@@ -34,7 +35,17 @@ DELETE FROM shop_order_items;
 DELETE FROM shop_orders;
 DELETE FROM shop_cart_items;
 
--- ==================== LOJA - COMBOS ====================
+-- ==================== TESOURARIA (pagamentos → entries → loans) ====================
+DELETE FROM member_percapta_payments;
+DELETE FROM member_ump_payments;
+DELETE FROM treasury_entries;
+DELETE FROM treasury_receipts;
+DELETE FROM treasury_loan_installments;
+DELETE FROM treasury_loans;
+DELETE FROM treasury_expense_categories;
+DELETE FROM treasury_settings;
+
+-- ==================== LOJA - COMBOS / PROMOS ====================
 DELETE FROM shop_combo_discount_items;
 DELETE FROM shop_combo_discounts;
 DELETE FROM promo_codes;
@@ -48,38 +59,15 @@ DELETE FROM shop_item_images;
 DELETE FROM shop_items;
 DELETE FROM shop_categories;
 
--- ==================== TESOURARIA ====================
-DELETE FROM member_percapta_payments;
-DELETE FROM member_ump_payments;
-DELETE FROM treasury_entries;
-DELETE FROM treasury_receipts;
-DELETE FROM treasury_loan_installments;
-DELETE FROM treasury_loans;
-DELETE FROM treasury_expense_categories;
-DELETE FROM treasury_settings;
-
--- ==================== CARDS CONQUISTADOS ====================
-DELETE FROM user_cards;
-
--- ==================== EVENTOS ESPECIAIS ====================
-DELETE FROM study_event_participants;
-DELETE FROM user_event_progress;
-DELETE FROM study_event_lessons;
-DELETE FROM study_events;
-
 -- ==================== INTERAÇÃO ENTRE MEMBROS ====================
 DELETE FROM member_encouragements;
 DELETE FROM achievement_likes;
 DELETE FROM user_online_status;
 
--- ==================== PRÁTICA SEMANAL ====================
-DELETE FROM practice_questions;
-DELETE FROM weekly_practice;
-
 -- ==================== AUDIT ====================
 DELETE FROM audit_logs;
 
--- ==================== PUSH / NOTIFICAÇÕES ====================
+-- ==================== PUSH ====================
 DELETE FROM anonymous_push_subscriptions;
 DELETE FROM push_subscriptions;
 
@@ -88,32 +76,42 @@ DELETE FROM daily_mission_content;
 DELETE FROM user_daily_missions;
 DELETE FROM daily_missions;
 
--- ==================== RANKING / LEADERBOARD ====================
+-- ==================== RANKING ====================
 DELETE FROM leaderboard_entries;
 
--- ==================== CONQUISTAS ====================
-DELETE FROM achievement_xp;
-DELETE FROM user_achievements;
-DELETE FROM achievements;
-
--- ==================== ATIVIDADES / XP ====================
+-- ==================== XP / ATIVIDADES ====================
 DELETE FROM daily_activity;
 DELETE FROM xp_transactions;
 DELETE FROM daily_mission_xp;
 DELETE FROM weekly_practice_bonus;
+DELETE FROM achievement_xp;
+
+-- ==================== CONQUISTAS (refs → achievements → seasons) ====================
+DELETE FROM user_achievements;
+DELETE FROM achievements;
 
 -- ==================== LEITURAS ====================
 DELETE FROM verse_readings;
 DELETE FROM devotional_readings;
 
--- ==================== PROGRESSO DE ESTUDO ====================
+-- ==================== PROGRESSO DE ESTUDO (refs → study_units/lessons) ====================
 DELETE FROM user_unit_progress;
 DELETE FROM user_lesson_progress;
+
+-- ==================== PRÁTICA SEMANAL (refs → study_weeks) ====================
+DELETE FROM practice_questions;
+DELETE FROM weekly_practice;
+
+-- ==================== CONTEÚDO DE ESTUDO ====================
+-- study_units → study_lessons → study_weeks → seasons
+DELETE FROM study_units;
+DELETE FROM study_lessons;
+DELETE FROM study_weeks;
 
 -- ==================== METAS SEMANAIS ====================
 DELETE FROM weekly_goal_progress;
 
--- ==================== TEMPORADAS - PROGRESSO ====================
+-- ==================== TEMPORADAS - PROGRESSO (refs → seasons) ====================
 DELETE FROM season_rankings;
 DELETE FROM user_season_progress;
 DELETE FROM user_final_challenge_progress;
@@ -128,11 +126,14 @@ DELETE FROM crystal_transactions;
 -- ==================== PERFIS DE ESTUDO ====================
 DELETE FROM study_profiles;
 
--- ==================== CONTEÚDO DE ESTUDO ====================
-DELETE FROM bible_verses;
-DELETE FROM study_units;
-DELETE FROM study_lessons;
-DELETE FROM study_weeks;
+-- ==================== CARDS CONQUISTADOS (refs → collectible_cards) ====================
+DELETE FROM user_cards;
+
+-- ==================== EVENTOS ESPECIAIS (refs → collectible_cards) ====================
+DELETE FROM study_event_participants;
+DELETE FROM user_event_progress;
+DELETE FROM study_event_lessons;
+DELETE FROM study_events;
 
 -- ==================== VERSÍCULOS DO DIA ====================
 DELETE FROM birthday_share_images;
@@ -157,23 +158,25 @@ DELETE FROM pdf_verifications;
 DELETE FROM verification_codes;
 DELETE FROM votes;
 DELETE FROM election_attendance;
-DELETE FROM election_positions;
 DELETE FROM election_winners;
+DELETE FROM election_positions;
 DELETE FROM candidates;
 DELETE FROM elections;
 DELETE FROM positions;
 
--- ==================== CARDS COLECIONÁVEIS (após seasons e study_events) ====================
-DELETE FROM collectible_cards;
-
--- ==================== TEMPORADAS (após season_rankings, season_final_challenges, study_lessons) ====================
+-- ==================== TEMPORADAS (refs → collectible_cards) ====================
+-- Deletar APÓS study_lessons, study_weeks, achievements,
+-- season_rankings, season_final_challenges, user_season_progress
 DELETE FROM seasons;
 
--- ==================== USUÁRIOS (por último, é referenciado por muitas tabelas) ====================
+-- ==================== CARDS COLECIONÁVEIS ====================
+-- Deletar APÓS seasons, study_events, user_cards
+DELETE FROM collectible_cards;
+
+-- ==================== USUÁRIOS (por último) ====================
 DELETE FROM users;
 
 -- ==================== RESETAR SEQUENCES ====================
--- Reinicia os contadores de auto-incremento para 1
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 ALTER SEQUENCE positions_id_seq RESTART WITH 1;
 ALTER SEQUENCE elections_id_seq RESTART WITH 1;

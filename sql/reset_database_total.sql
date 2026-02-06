@@ -1,179 +1,283 @@
 -- =====================================================
 -- SQL PARA LIMPEZA TOTAL DO BANCO DE DADOS
--- UMP Emaús - Neon PostgreSQL
+-- UMP Emaús - Compatível com Neon PostgreSQL
 -- Gerado em: Fevereiro 2026
 -- =====================================================
 -- 
 -- ATENÇÃO: Este script REMOVE TODOS OS DADOS de todas
 -- as tabelas. Use com extremo cuidado!
 -- A estrutura das tabelas é mantida.
+-- Ordem de DELETE respeita foreign keys (filhos primeiro).
 -- =====================================================
 
--- Desabilitar verificação de FK temporariamente
-SET session_replication_role = 'replica';
-
 -- ==================== FORMULÁRIOS ====================
-TRUNCATE TABLE form_analyses CASCADE;
-TRUNCATE TABLE form_answers CASCADE;
-TRUNCATE TABLE form_responses CASCADE;
-TRUNCATE TABLE form_options CASCADE;
-TRUNCATE TABLE form_questions CASCADE;
-TRUNCATE TABLE forms CASCADE;
+DELETE FROM form_analyses;
+DELETE FROM form_answers;
+DELETE FROM form_responses;
+DELETE FROM form_options;
+DELETE FROM form_questions;
+DELETE FROM forms;
 
 -- ==================== SCHEDULER / NOTIFICAÇÕES ====================
-TRUNCATE TABLE sent_scheduler_reminders CASCADE;
-TRUNCATE TABLE sent_event_notifications CASCADE;
-TRUNCATE TABLE treasury_notifications_log CASCADE;
-TRUNCATE TABLE notifications CASCADE;
+DELETE FROM sent_scheduler_reminders;
+DELETE FROM sent_event_notifications;
+DELETE FROM treasury_notifications_log;
+DELETE FROM notifications;
 
 -- ==================== EVENTOS COM TAXA ====================
-TRUNCATE TABLE event_confirmations CASCADE;
-TRUNCATE TABLE event_fees CASCADE;
+DELETE FROM event_confirmations;
+DELETE FROM event_fees;
 
 -- ==================== LOJA - PEDIDOS ====================
-TRUNCATE TABLE shop_installments CASCADE;
-TRUNCATE TABLE shop_order_items CASCADE;
-TRUNCATE TABLE shop_orders CASCADE;
-TRUNCATE TABLE shop_cart_items CASCADE;
+DELETE FROM shop_installments;
+DELETE FROM shop_order_items;
+DELETE FROM shop_orders;
+DELETE FROM shop_cart_items;
 
 -- ==================== LOJA - COMBOS ====================
-TRUNCATE TABLE shop_combo_discount_items CASCADE;
-TRUNCATE TABLE shop_combo_discounts CASCADE;
-TRUNCATE TABLE promo_codes CASCADE;
+DELETE FROM shop_combo_discount_items;
+DELETE FROM shop_combo_discounts;
+DELETE FROM promo_codes;
 
 -- ==================== LOJA - PRODUTOS ====================
-TRUNCATE TABLE shop_item_color_images CASCADE;
-TRUNCATE TABLE shop_item_colors CASCADE;
-TRUNCATE TABLE shop_item_size_charts CASCADE;
-TRUNCATE TABLE shop_item_sizes CASCADE;
-TRUNCATE TABLE shop_item_images CASCADE;
-TRUNCATE TABLE shop_items CASCADE;
-TRUNCATE TABLE shop_categories CASCADE;
+DELETE FROM shop_item_color_images;
+DELETE FROM shop_item_colors;
+DELETE FROM shop_item_size_charts;
+DELETE FROM shop_item_sizes;
+DELETE FROM shop_item_images;
+DELETE FROM shop_items;
+DELETE FROM shop_categories;
 
 -- ==================== TESOURARIA ====================
-TRUNCATE TABLE member_percapta_payments CASCADE;
-TRUNCATE TABLE member_ump_payments CASCADE;
-TRUNCATE TABLE treasury_entries CASCADE;
-TRUNCATE TABLE treasury_receipts CASCADE;
-TRUNCATE TABLE treasury_loan_installments CASCADE;
-TRUNCATE TABLE treasury_loans CASCADE;
-TRUNCATE TABLE treasury_expense_categories CASCADE;
-TRUNCATE TABLE treasury_settings CASCADE;
+DELETE FROM member_percapta_payments;
+DELETE FROM member_ump_payments;
+DELETE FROM treasury_entries;
+DELETE FROM treasury_receipts;
+DELETE FROM treasury_loan_installments;
+DELETE FROM treasury_loans;
+DELETE FROM treasury_expense_categories;
+DELETE FROM treasury_settings;
 
--- ==================== CARDS / EVENTOS ESPECIAIS ====================
-TRUNCATE TABLE user_cards CASCADE;
-TRUNCATE TABLE study_event_participants CASCADE;
-TRUNCATE TABLE user_event_progress CASCADE;
-TRUNCATE TABLE study_event_lessons CASCADE;
-TRUNCATE TABLE study_events CASCADE;
-TRUNCATE TABLE collectible_cards CASCADE;
+-- ==================== CARDS CONQUISTADOS ====================
+DELETE FROM user_cards;
+
+-- ==================== EVENTOS ESPECIAIS ====================
+DELETE FROM study_event_participants;
+DELETE FROM user_event_progress;
+DELETE FROM study_event_lessons;
+DELETE FROM study_events;
 
 -- ==================== INTERAÇÃO ENTRE MEMBROS ====================
-TRUNCATE TABLE member_encouragements CASCADE;
-TRUNCATE TABLE achievement_likes CASCADE;
-TRUNCATE TABLE user_online_status CASCADE;
+DELETE FROM member_encouragements;
+DELETE FROM achievement_likes;
+DELETE FROM user_online_status;
 
 -- ==================== PRÁTICA SEMANAL ====================
-TRUNCATE TABLE practice_questions CASCADE;
-TRUNCATE TABLE weekly_practice CASCADE;
+DELETE FROM practice_questions;
+DELETE FROM weekly_practice;
 
 -- ==================== AUDIT ====================
-TRUNCATE TABLE audit_logs CASCADE;
+DELETE FROM audit_logs;
 
 -- ==================== PUSH / NOTIFICAÇÕES ====================
-TRUNCATE TABLE anonymous_push_subscriptions CASCADE;
-TRUNCATE TABLE push_subscriptions CASCADE;
+DELETE FROM anonymous_push_subscriptions;
+DELETE FROM push_subscriptions;
 
 -- ==================== MISSÕES DIÁRIAS ====================
-TRUNCATE TABLE daily_mission_content CASCADE;
-TRUNCATE TABLE user_daily_missions CASCADE;
-TRUNCATE TABLE daily_missions CASCADE;
+DELETE FROM daily_mission_content;
+DELETE FROM user_daily_missions;
+DELETE FROM daily_missions;
 
 -- ==================== RANKING / LEADERBOARD ====================
-TRUNCATE TABLE leaderboard_entries CASCADE;
+DELETE FROM leaderboard_entries;
 
 -- ==================== CONQUISTAS ====================
-TRUNCATE TABLE user_achievements CASCADE;
-TRUNCATE TABLE achievements CASCADE;
+DELETE FROM achievement_xp;
+DELETE FROM user_achievements;
+DELETE FROM achievements;
 
 -- ==================== ATIVIDADES / XP ====================
-TRUNCATE TABLE daily_activity CASCADE;
-TRUNCATE TABLE xp_transactions CASCADE;
-TRUNCATE TABLE daily_mission_xp CASCADE;
-TRUNCATE TABLE achievement_xp CASCADE;
-TRUNCATE TABLE weekly_practice_bonus CASCADE;
+DELETE FROM daily_activity;
+DELETE FROM xp_transactions;
+DELETE FROM daily_mission_xp;
+DELETE FROM weekly_practice_bonus;
 
 -- ==================== LEITURAS ====================
-TRUNCATE TABLE verse_readings CASCADE;
-TRUNCATE TABLE devotional_readings CASCADE;
+DELETE FROM verse_readings;
+DELETE FROM devotional_readings;
 
 -- ==================== PROGRESSO DE ESTUDO ====================
-TRUNCATE TABLE user_unit_progress CASCADE;
-TRUNCATE TABLE user_lesson_progress CASCADE;
-
--- ==================== CONTEÚDO DE ESTUDO ====================
-TRUNCATE TABLE bible_verses CASCADE;
-TRUNCATE TABLE study_units CASCADE;
-TRUNCATE TABLE study_lessons CASCADE;
-TRUNCATE TABLE study_weeks CASCADE;
+DELETE FROM user_unit_progress;
+DELETE FROM user_lesson_progress;
 
 -- ==================== METAS SEMANAIS ====================
-TRUNCATE TABLE weekly_goal_progress CASCADE;
+DELETE FROM weekly_goal_progress;
 
--- ==================== TEMPORADAS ====================
-TRUNCATE TABLE season_rankings CASCADE;
-TRUNCATE TABLE user_season_progress CASCADE;
-TRUNCATE TABLE user_final_challenge_progress CASCADE;
-TRUNCATE TABLE season_final_challenges CASCADE;
+-- ==================== TEMPORADAS - PROGRESSO ====================
+DELETE FROM season_rankings;
+DELETE FROM user_season_progress;
+DELETE FROM user_final_challenge_progress;
+DELETE FROM season_final_challenges;
 
 -- ==================== MARCOS DE OFENSIVA ====================
-TRUNCATE TABLE user_streak_milestones CASCADE;
-TRUNCATE TABLE streak_milestones CASCADE;
-TRUNCATE TABLE streak_freeze_history CASCADE;
-TRUNCATE TABLE crystal_transactions CASCADE;
+DELETE FROM user_streak_milestones;
+DELETE FROM streak_milestones;
+DELETE FROM streak_freeze_history;
+DELETE FROM crystal_transactions;
 
 -- ==================== PERFIS DE ESTUDO ====================
-TRUNCATE TABLE study_profiles CASCADE;
+DELETE FROM study_profiles;
+
+-- ==================== CONTEÚDO DE ESTUDO ====================
+DELETE FROM bible_verses;
+DELETE FROM study_units;
+DELETE FROM study_lessons;
+DELETE FROM study_weeks;
 
 -- ==================== VERSÍCULOS DO DIA ====================
-TRUNCATE TABLE birthday_share_images CASCADE;
-TRUNCATE TABLE daily_verse_shares CASCADE;
-TRUNCATE TABLE daily_verse_posts CASCADE;
-TRUNCATE TABLE daily_verse_stock CASCADE;
+DELETE FROM birthday_share_images;
+DELETE FROM daily_verse_shares;
+DELETE FROM daily_verse_posts;
+DELETE FROM daily_verse_stock;
 
 -- ==================== SITE ====================
-TRUNCATE TABLE site_content CASCADE;
-TRUNCATE TABLE board_members CASCADE;
-TRUNCATE TABLE banners CASCADE;
-TRUNCATE TABLE devotional_comments CASCADE;
-TRUNCATE TABLE prayer_reactions CASCADE;
-TRUNCATE TABLE prayer_requests CASCADE;
-TRUNCATE TABLE banner_highlights CASCADE;
-TRUNCATE TABLE instagram_posts CASCADE;
-TRUNCATE TABLE site_events CASCADE;
-TRUNCATE TABLE devotionals CASCADE;
+DELETE FROM devotional_comments;
+DELETE FROM prayer_reactions;
+DELETE FROM prayer_requests;
+DELETE FROM banner_highlights;
+DELETE FROM instagram_posts;
+DELETE FROM site_events;
+DELETE FROM devotionals;
+DELETE FROM site_content;
+DELETE FROM board_members;
+DELETE FROM banners;
 
 -- ==================== ELEIÇÕES ====================
-TRUNCATE TABLE pdf_verifications CASCADE;
-TRUNCATE TABLE verification_codes CASCADE;
-TRUNCATE TABLE votes CASCADE;
-TRUNCATE TABLE election_attendance CASCADE;
-TRUNCATE TABLE election_positions CASCADE;
-TRUNCATE TABLE election_winners CASCADE;
-TRUNCATE TABLE candidates CASCADE;
-TRUNCATE TABLE elections CASCADE;
-TRUNCATE TABLE positions CASCADE;
+DELETE FROM pdf_verifications;
+DELETE FROM verification_codes;
+DELETE FROM votes;
+DELETE FROM election_attendance;
+DELETE FROM election_positions;
+DELETE FROM election_winners;
+DELETE FROM candidates;
+DELETE FROM elections;
+DELETE FROM positions;
 
--- ==================== TEMPORADAS (depende de collectible_cards) ====================
-TRUNCATE TABLE seasons CASCADE;
+-- ==================== CARDS COLECIONÁVEIS (após seasons e study_events) ====================
+DELETE FROM collectible_cards;
 
--- ==================== USUÁRIOS ====================
-TRUNCATE TABLE users CASCADE;
+-- ==================== TEMPORADAS (após season_rankings, season_final_challenges, study_lessons) ====================
+DELETE FROM seasons;
 
--- Reabilitar verificação de FK
-SET session_replication_role = 'origin';
+-- ==================== USUÁRIOS (por último, é referenciado por muitas tabelas) ====================
+DELETE FROM users;
+
+-- ==================== RESETAR SEQUENCES ====================
+-- Reinicia os contadores de auto-incremento para 1
+ALTER SEQUENCE users_id_seq RESTART WITH 1;
+ALTER SEQUENCE positions_id_seq RESTART WITH 1;
+ALTER SEQUENCE elections_id_seq RESTART WITH 1;
+ALTER SEQUENCE candidates_id_seq RESTART WITH 1;
+ALTER SEQUENCE election_winners_id_seq RESTART WITH 1;
+ALTER SEQUENCE election_positions_id_seq RESTART WITH 1;
+ALTER SEQUENCE election_attendance_id_seq RESTART WITH 1;
+ALTER SEQUENCE votes_id_seq RESTART WITH 1;
+ALTER SEQUENCE verification_codes_id_seq RESTART WITH 1;
+ALTER SEQUENCE pdf_verifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE devotionals_id_seq RESTART WITH 1;
+ALTER SEQUENCE site_events_id_seq RESTART WITH 1;
+ALTER SEQUENCE instagram_posts_id_seq RESTART WITH 1;
+ALTER SEQUENCE banner_highlights_id_seq RESTART WITH 1;
+ALTER SEQUENCE prayer_requests_id_seq RESTART WITH 1;
+ALTER SEQUENCE prayer_reactions_id_seq RESTART WITH 1;
+ALTER SEQUENCE devotional_comments_id_seq RESTART WITH 1;
+ALTER SEQUENCE banners_id_seq RESTART WITH 1;
+ALTER SEQUENCE board_members_id_seq RESTART WITH 1;
+ALTER SEQUENCE site_content_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_verse_stock_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_verse_posts_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_verse_shares_id_seq RESTART WITH 1;
+ALTER SEQUENCE birthday_share_images_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_profiles_id_seq RESTART WITH 1;
+ALTER SEQUENCE crystal_transactions_id_seq RESTART WITH 1;
+ALTER SEQUENCE streak_freeze_history_id_seq RESTART WITH 1;
+ALTER SEQUENCE streak_milestones_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_streak_milestones_id_seq RESTART WITH 1;
+ALTER SEQUENCE seasons_id_seq RESTART WITH 1;
+ALTER SEQUENCE season_final_challenges_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_final_challenge_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_season_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE season_rankings_id_seq RESTART WITH 1;
+ALTER SEQUENCE weekly_goal_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE weekly_practice_bonus_id_seq RESTART WITH 1;
+ALTER SEQUENCE achievement_xp_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_mission_xp_id_seq RESTART WITH 1;
+ALTER SEQUENCE devotional_readings_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_weeks_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_lessons_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_units_id_seq RESTART WITH 1;
+ALTER SEQUENCE bible_verses_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_lesson_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_unit_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE verse_readings_id_seq RESTART WITH 1;
+ALTER SEQUENCE xp_transactions_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_activity_id_seq RESTART WITH 1;
+ALTER SEQUENCE achievements_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_achievements_id_seq RESTART WITH 1;
+ALTER SEQUENCE leaderboard_entries_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_missions_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_daily_missions_id_seq RESTART WITH 1;
+ALTER SEQUENCE daily_mission_content_id_seq RESTART WITH 1;
+ALTER SEQUENCE push_subscriptions_id_seq RESTART WITH 1;
+ALTER SEQUENCE anonymous_push_subscriptions_id_seq RESTART WITH 1;
+ALTER SEQUENCE notifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE audit_logs_id_seq RESTART WITH 1;
+ALTER SEQUENCE weekly_practice_id_seq RESTART WITH 1;
+ALTER SEQUENCE practice_questions_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_online_status_id_seq RESTART WITH 1;
+ALTER SEQUENCE achievement_likes_id_seq RESTART WITH 1;
+ALTER SEQUENCE member_encouragements_id_seq RESTART WITH 1;
+ALTER SEQUENCE collectible_cards_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_events_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_event_lessons_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_event_progress_id_seq RESTART WITH 1;
+ALTER SEQUENCE study_event_participants_id_seq RESTART WITH 1;
+ALTER SEQUENCE user_cards_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_settings_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_expense_categories_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_loans_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_loan_installments_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_entries_id_seq RESTART WITH 1;
+ALTER SEQUENCE member_ump_payments_id_seq RESTART WITH 1;
+ALTER SEQUENCE member_percapta_payments_id_seq RESTART WITH 1;
+ALTER SEQUENCE treasury_notifications_log_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_categories_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_items_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_item_images_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_item_sizes_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_item_size_charts_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_cart_items_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_order_items_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_installments_id_seq RESTART WITH 1;
+ALTER SEQUENCE promo_codes_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_item_colors_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_item_color_images_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_combo_discounts_id_seq RESTART WITH 1;
+ALTER SEQUENCE shop_combo_discount_items_id_seq RESTART WITH 1;
+ALTER SEQUENCE event_fees_id_seq RESTART WITH 1;
+ALTER SEQUENCE event_confirmations_id_seq RESTART WITH 1;
+ALTER SEQUENCE sent_event_notifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE sent_scheduler_reminders_id_seq RESTART WITH 1;
+ALTER SEQUENCE forms_id_seq RESTART WITH 1;
+ALTER SEQUENCE form_questions_id_seq RESTART WITH 1;
+ALTER SEQUENCE form_options_id_seq RESTART WITH 1;
+ALTER SEQUENCE form_responses_id_seq RESTART WITH 1;
+ALTER SEQUENCE form_answers_id_seq RESTART WITH 1;
+ALTER SEQUENCE form_analyses_id_seq RESTART WITH 1;
 
 -- =====================================================
 -- LIMPEZA TOTAL CONCLUÍDA
 -- Todas as tabelas foram esvaziadas.
+-- Todos os contadores de ID foram reiniciados.
 -- =====================================================

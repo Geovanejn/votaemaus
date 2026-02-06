@@ -1,176 +1,13 @@
 -- ============================================================
 -- SQL PARA RESET PARCIAL DO BANCO DE DADOS - UMP EMAÚS
--- Neon PostgreSQL
+-- Compatível com Neon PostgreSQL
 -- Gerado em: Fevereiro 2026
 -- ============================================================
 -- 
 -- PRESERVA:
---   - Membros (users)
---   - Devocionais (devotionals)
---   - Comentários de devocionais (devotional_comments)
---   - Versículos do dia (daily_verse_posts, daily_verse_stock)
---   - Conteúdo do site (site_content) - quem somos, localização, etc
---   - Banners do carrossel (banners)
---   - Diretoria (board_members)
---   - Categorias da loja (shop_categories)
---   - Produtos da loja (shop_items)
---   - Imagens dos produtos (shop_item_images)
---   - Tamanhos dos produtos (shop_item_sizes)
---   - Tabela de medidas (shop_item_size_charts)
---   - Cores dos produtos (shop_item_colors)
---   - Imagens por cor (shop_item_color_images)
---   - Combos de desconto (shop_combo_discounts, shop_combo_discount_items)
---   - Códigos promocionais (promo_codes)
---
--- LIMPA TUDO o restante (progresso, pedidos, pagamentos,
--- eleições, estudos, notificações, formulários, etc.)
--- ============================================================
-
--- Desabilitar verificação de FK temporariamente
-SET session_replication_role = 'replica';
-
--- ==================== FORMULÁRIOS ====================
-TRUNCATE TABLE form_analyses CASCADE;
-TRUNCATE TABLE form_answers CASCADE;
-TRUNCATE TABLE form_responses CASCADE;
-TRUNCATE TABLE form_options CASCADE;
-TRUNCATE TABLE form_questions CASCADE;
-TRUNCATE TABLE forms CASCADE;
-
--- ==================== SCHEDULER / NOTIFICAÇÕES ====================
-TRUNCATE TABLE sent_scheduler_reminders CASCADE;
-TRUNCATE TABLE sent_event_notifications CASCADE;
-TRUNCATE TABLE treasury_notifications_log CASCADE;
-TRUNCATE TABLE notifications CASCADE;
-
--- ==================== EVENTOS COM TAXA ====================
-TRUNCATE TABLE event_confirmations CASCADE;
-TRUNCATE TABLE event_fees CASCADE;
-
--- ==================== LOJA - PEDIDOS (limpa pedidos, mantém produtos) ====================
-TRUNCATE TABLE shop_installments CASCADE;
-TRUNCATE TABLE shop_order_items CASCADE;
-TRUNCATE TABLE shop_orders CASCADE;
-TRUNCATE TABLE shop_cart_items CASCADE;
-
--- ==================== TESOURARIA ====================
-TRUNCATE TABLE member_percapta_payments CASCADE;
-TRUNCATE TABLE member_ump_payments CASCADE;
-TRUNCATE TABLE treasury_entries CASCADE;
-TRUNCATE TABLE treasury_receipts CASCADE;
-TRUNCATE TABLE treasury_loan_installments CASCADE;
-TRUNCATE TABLE treasury_loans CASCADE;
-TRUNCATE TABLE treasury_expense_categories CASCADE;
-TRUNCATE TABLE treasury_settings CASCADE;
-
--- ==================== CARDS / EVENTOS ESPECIAIS ====================
-TRUNCATE TABLE user_cards CASCADE;
-TRUNCATE TABLE study_event_participants CASCADE;
-TRUNCATE TABLE user_event_progress CASCADE;
-TRUNCATE TABLE study_event_lessons CASCADE;
-TRUNCATE TABLE study_events CASCADE;
-TRUNCATE TABLE collectible_cards CASCADE;
-
--- ==================== INTERAÇÃO ENTRE MEMBROS ====================
-TRUNCATE TABLE member_encouragements CASCADE;
-TRUNCATE TABLE achievement_likes CASCADE;
-TRUNCATE TABLE user_online_status CASCADE;
-
--- ==================== PRÁTICA SEMANAL ====================
-TRUNCATE TABLE practice_questions CASCADE;
-TRUNCATE TABLE weekly_practice CASCADE;
-
--- ==================== AUDIT ====================
-TRUNCATE TABLE audit_logs CASCADE;
-
--- ==================== PUSH / NOTIFICAÇÕES ====================
-TRUNCATE TABLE anonymous_push_subscriptions CASCADE;
-TRUNCATE TABLE push_subscriptions CASCADE;
-
--- ==================== MISSÕES DIÁRIAS ====================
-TRUNCATE TABLE daily_mission_content CASCADE;
-TRUNCATE TABLE user_daily_missions CASCADE;
-TRUNCATE TABLE daily_missions CASCADE;
-
--- ==================== RANKING / LEADERBOARD ====================
-TRUNCATE TABLE leaderboard_entries CASCADE;
-
--- ==================== CONQUISTAS ====================
-TRUNCATE TABLE user_achievements CASCADE;
-TRUNCATE TABLE achievements CASCADE;
-
--- ==================== ATIVIDADES / XP ====================
-TRUNCATE TABLE daily_activity CASCADE;
-TRUNCATE TABLE xp_transactions CASCADE;
-TRUNCATE TABLE daily_mission_xp CASCADE;
-TRUNCATE TABLE achievement_xp CASCADE;
-TRUNCATE TABLE weekly_practice_bonus CASCADE;
-
--- ==================== LEITURAS ====================
-TRUNCATE TABLE verse_readings CASCADE;
-TRUNCATE TABLE devotional_readings CASCADE;
-
--- ==================== PROGRESSO DE ESTUDO ====================
-TRUNCATE TABLE user_unit_progress CASCADE;
-TRUNCATE TABLE user_lesson_progress CASCADE;
-
--- ==================== CONTEÚDO DE ESTUDO ====================
-TRUNCATE TABLE bible_verses CASCADE;
-TRUNCATE TABLE study_units CASCADE;
-TRUNCATE TABLE study_lessons CASCADE;
-TRUNCATE TABLE study_weeks CASCADE;
-
--- ==================== METAS SEMANAIS ====================
-TRUNCATE TABLE weekly_goal_progress CASCADE;
-
--- ==================== TEMPORADAS ====================
-TRUNCATE TABLE season_rankings CASCADE;
-TRUNCATE TABLE user_season_progress CASCADE;
-TRUNCATE TABLE user_final_challenge_progress CASCADE;
-TRUNCATE TABLE season_final_challenges CASCADE;
-TRUNCATE TABLE seasons CASCADE;
-
--- ==================== MARCOS DE OFENSIVA ====================
-TRUNCATE TABLE user_streak_milestones CASCADE;
-TRUNCATE TABLE streak_milestones CASCADE;
-TRUNCATE TABLE streak_freeze_history CASCADE;
-TRUNCATE TABLE crystal_transactions CASCADE;
-
--- ==================== PERFIS DE ESTUDO ====================
-TRUNCATE TABLE study_profiles CASCADE;
-
--- ==================== COMPARTILHAMENTOS (limpa, mas mantém posts/stock) ====================
-TRUNCATE TABLE birthday_share_images CASCADE;
-TRUNCATE TABLE daily_verse_shares CASCADE;
-
--- ==================== SITE - LIMPA SELETIVAMENTE ====================
-TRUNCATE TABLE prayer_reactions CASCADE;
-TRUNCATE TABLE prayer_requests CASCADE;
-TRUNCATE TABLE banner_highlights CASCADE;
-TRUNCATE TABLE instagram_posts CASCADE;
-TRUNCATE TABLE site_events CASCADE;
-
--- ==================== ELEIÇÕES ====================
-TRUNCATE TABLE pdf_verifications CASCADE;
-TRUNCATE TABLE verification_codes CASCADE;
-TRUNCATE TABLE votes CASCADE;
-TRUNCATE TABLE election_attendance CASCADE;
-TRUNCATE TABLE election_positions CASCADE;
-TRUNCATE TABLE election_winners CASCADE;
-TRUNCATE TABLE candidates CASCADE;
-TRUNCATE TABLE elections CASCADE;
-TRUNCATE TABLE positions CASCADE;
-
--- Reabilitar verificação de FK
-SET session_replication_role = 'origin';
-
--- ============================================================
--- RESET PARCIAL CONCLUÍDO
--- 
--- DADOS PRESERVADOS:
 --   ✓ users (membros)
 --   ✓ devotionals (devocionais)
---   ✓ devotional_comments (comentários)
+--   ✓ devotional_comments (comentários de devocionais)
 --   ✓ daily_verse_posts (versículos do dia)
 --   ✓ daily_verse_stock (imagens dos versículos)
 --   ✓ site_content (quem somos, localização, etc)
@@ -186,4 +23,171 @@ SET session_replication_role = 'origin';
 --   ✓ shop_combo_discounts (combos de desconto)
 --   ✓ shop_combo_discount_items (itens dos combos)
 --   ✓ promo_codes (códigos promocionais)
+--
+-- LIMPA TUDO o restante (progresso, pedidos, pagamentos,
+-- eleições, estudos, notificações, formulários, etc.)
+-- ============================================================
+-- Ordem de DELETE respeita foreign keys (filhos primeiro).
+-- ============================================================
+
+-- ==================== FORMULÁRIOS ====================
+DELETE FROM form_analyses;
+DELETE FROM form_answers;
+DELETE FROM form_responses;
+DELETE FROM form_options;
+DELETE FROM form_questions;
+DELETE FROM forms;
+
+-- ==================== SCHEDULER / NOTIFICAÇÕES ====================
+DELETE FROM sent_scheduler_reminders;
+DELETE FROM sent_event_notifications;
+DELETE FROM treasury_notifications_log;
+DELETE FROM notifications;
+
+-- ==================== EVENTOS COM TAXA ====================
+DELETE FROM event_confirmations;
+DELETE FROM event_fees;
+
+-- ==================== LOJA - PEDIDOS (limpa pedidos, mantém produtos) ====================
+DELETE FROM shop_installments;
+DELETE FROM shop_order_items;
+DELETE FROM shop_orders;
+DELETE FROM shop_cart_items;
+
+-- ==================== TESOURARIA ====================
+DELETE FROM member_percapta_payments;
+DELETE FROM member_ump_payments;
+DELETE FROM treasury_entries;
+DELETE FROM treasury_receipts;
+DELETE FROM treasury_loan_installments;
+DELETE FROM treasury_loans;
+DELETE FROM treasury_expense_categories;
+DELETE FROM treasury_settings;
+
+-- ==================== CARDS CONQUISTADOS ====================
+DELETE FROM user_cards;
+
+-- ==================== EVENTOS ESPECIAIS ====================
+DELETE FROM study_event_participants;
+DELETE FROM user_event_progress;
+DELETE FROM study_event_lessons;
+DELETE FROM study_events;
+
+-- ==================== CARDS COLECIONÁVEIS ====================
+DELETE FROM collectible_cards;
+
+-- ==================== INTERAÇÃO ENTRE MEMBROS ====================
+DELETE FROM member_encouragements;
+DELETE FROM achievement_likes;
+DELETE FROM user_online_status;
+
+-- ==================== PRÁTICA SEMANAL ====================
+DELETE FROM practice_questions;
+DELETE FROM weekly_practice;
+
+-- ==================== AUDIT ====================
+DELETE FROM audit_logs;
+
+-- ==================== PUSH / NOTIFICAÇÕES ====================
+DELETE FROM anonymous_push_subscriptions;
+DELETE FROM push_subscriptions;
+
+-- ==================== MISSÕES DIÁRIAS ====================
+DELETE FROM daily_mission_content;
+DELETE FROM user_daily_missions;
+DELETE FROM daily_missions;
+
+-- ==================== RANKING / LEADERBOARD ====================
+DELETE FROM leaderboard_entries;
+
+-- ==================== CONQUISTAS ====================
+DELETE FROM achievement_xp;
+DELETE FROM user_achievements;
+DELETE FROM achievements;
+
+-- ==================== ATIVIDADES / XP ====================
+DELETE FROM daily_activity;
+DELETE FROM xp_transactions;
+DELETE FROM daily_mission_xp;
+DELETE FROM weekly_practice_bonus;
+
+-- ==================== LEITURAS ====================
+DELETE FROM verse_readings;
+DELETE FROM devotional_readings;
+
+-- ==================== PROGRESSO DE ESTUDO ====================
+DELETE FROM user_unit_progress;
+DELETE FROM user_lesson_progress;
+
+-- ==================== METAS SEMANAIS ====================
+DELETE FROM weekly_goal_progress;
+
+-- ==================== TEMPORADAS - PROGRESSO ====================
+DELETE FROM season_rankings;
+DELETE FROM user_season_progress;
+DELETE FROM user_final_challenge_progress;
+DELETE FROM season_final_challenges;
+DELETE FROM seasons;
+
+-- ==================== MARCOS DE OFENSIVA ====================
+DELETE FROM user_streak_milestones;
+DELETE FROM streak_milestones;
+DELETE FROM streak_freeze_history;
+DELETE FROM crystal_transactions;
+
+-- ==================== PERFIS DE ESTUDO ====================
+DELETE FROM study_profiles;
+
+-- ==================== CONTEÚDO DE ESTUDO ====================
+DELETE FROM bible_verses;
+DELETE FROM study_units;
+DELETE FROM study_lessons;
+DELETE FROM study_weeks;
+
+-- ==================== COMPARTILHAMENTOS (limpa, mas mantém posts/stock) ====================
+DELETE FROM birthday_share_images;
+DELETE FROM daily_verse_shares;
+-- daily_verse_posts: PRESERVADO
+-- daily_verse_stock: PRESERVADO
+
+-- ==================== SITE - LIMPA SELETIVAMENTE ====================
+DELETE FROM prayer_reactions;
+DELETE FROM prayer_requests;
+DELETE FROM banner_highlights;
+DELETE FROM instagram_posts;
+DELETE FROM site_events;
+-- devotionals: PRESERVADO
+-- devotional_comments: PRESERVADO
+-- site_content: PRESERVADO
+-- banners: PRESERVADO
+-- board_members: PRESERVADO
+
+-- ==================== ELEIÇÕES ====================
+DELETE FROM pdf_verifications;
+DELETE FROM verification_codes;
+DELETE FROM votes;
+DELETE FROM election_attendance;
+DELETE FROM election_positions;
+DELETE FROM election_winners;
+DELETE FROM candidates;
+DELETE FROM elections;
+DELETE FROM positions;
+
+-- ==================== USUÁRIOS: PRESERVADO ====================
+-- users: PRESERVADO
+
+-- ==================== LOJA - PRODUTOS: PRESERVADO ====================
+-- shop_categories: PRESERVADO
+-- shop_items: PRESERVADO
+-- shop_item_images: PRESERVADO
+-- shop_item_sizes: PRESERVADO
+-- shop_item_size_charts: PRESERVADO
+-- shop_item_colors: PRESERVADO
+-- shop_item_color_images: PRESERVADO
+-- shop_combo_discounts: PRESERVADO
+-- shop_combo_discount_items: PRESERVADO
+-- promo_codes: PRESERVADO
+
+-- ============================================================
+-- RESET PARCIAL CONCLUÍDO
 -- ============================================================

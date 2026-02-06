@@ -1,6 +1,8 @@
 -- =====================================================
 -- SQL COMPLETO - SCHEMA UMP EMAÚS
 -- Todas as tabelas e colunas para Neon PostgreSQL
+-- Gerado em: Fevereiro 2026
+-- Total: 102 tabelas
 -- =====================================================
 
 -- ==================== USERS ====================
@@ -35,12 +37,23 @@ CREATE TABLE IF NOT EXISTS elections (
   closed_at TIMESTAMP
 );
 
+-- ==================== CANDIDATES ====================
+CREATE TABLE IF NOT EXISTS candidates (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  position_id INTEGER NOT NULL REFERENCES positions(id),
+  election_id INTEGER NOT NULL REFERENCES elections(id),
+  UNIQUE(user_id, position_id, election_id)
+);
+
 -- ==================== ELECTION WINNERS ====================
 CREATE TABLE IF NOT EXISTS election_winners (
   id SERIAL PRIMARY KEY,
   election_id INTEGER NOT NULL REFERENCES elections(id),
   position_id INTEGER NOT NULL REFERENCES positions(id),
-  candidate_id INTEGER NOT NULL,
+  candidate_id INTEGER NOT NULL REFERENCES candidates(id),
   won_at_scrutiny INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -68,22 +81,6 @@ CREATE TABLE IF NOT EXISTS election_attendance (
   marked_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
--- ==================== CANDIDATES ====================
-CREATE TABLE IF NOT EXISTS candidates (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  user_id INTEGER NOT NULL REFERENCES users(id),
-  position_id INTEGER NOT NULL REFERENCES positions(id),
-  election_id INTEGER NOT NULL REFERENCES elections(id),
-  UNIQUE(user_id, position_id, election_id)
-);
-
--- Add FK to election_winners after candidates exists
-ALTER TABLE election_winners DROP CONSTRAINT IF EXISTS election_winners_candidate_id_fkey;
-ALTER TABLE election_winners ADD CONSTRAINT election_winners_candidate_id_fkey 
-  FOREIGN KEY (candidate_id) REFERENCES candidates(id);
 
 -- ==================== VOTES ====================
 CREATE TABLE IF NOT EXISTS votes (
@@ -289,28 +286,59 @@ CREATE TABLE IF NOT EXISTS site_content (
   UNIQUE(page, section)
 );
 
--- ==================== SEASONS ====================
-CREATE TABLE IF NOT EXISTS seasons (
+-- ==================== DAILY VERSE STOCK ====================
+CREATE TABLE IF NOT EXISTS daily_verse_stock (
   id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  subtitle TEXT,
+  image_url TEXT NOT NULL,
+  category TEXT NOT NULL,
   description TEXT,
-  cover_image_url TEXT,
-  pdf_url TEXT,
-  ai_extracted_title TEXT,
-  status TEXT NOT NULL DEFAULT 'draft',
-  is_locked BOOLEAN NOT NULL DEFAULT FALSE,
-  is_ended BOOLEAN NOT NULL DEFAULT FALSE,
-  ended_at TIMESTAMP,
-  total_lessons INTEGER NOT NULL DEFAULT 0,
-  published_at TIMESTAMP,
-  starts_at TIMESTAMP,
-  ends_at TIMESTAMP,
-  created_by INTEGER REFERENCES users(id),
-  ai_metadata TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  order_index INTEGER NOT NULL,
+  last_used_at TIMESTAMP,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- ==================== DAILY VERSE POSTS ====================
+CREATE TABLE IF NOT EXISTS daily_verse_posts (
+  id SERIAL PRIMARY KEY,
+  verse TEXT NOT NULL,
+  reference TEXT NOT NULL,
+  reflection TEXT,
+  reflection_title TEXT,
+  highlighted_keywords TEXT[],
+  reflection_keywords TEXT[],
+  reflection_references TEXT[],
+  stock_image_id INTEGER REFERENCES daily_verse_stock(id),
+  image_url TEXT,
+  verse_share_image_url TEXT,
+  reflection_share_image_url TEXT,
+  published_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS daily_verse_posts_published_idx ON daily_verse_posts(published_at);
+
+-- ==================== DAILY VERSE SHARES ====================
+CREATE TABLE IF NOT EXISTS daily_verse_shares (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  verse_post_id INTEGER REFERENCES daily_verse_posts(id),
+  shared_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  platform TEXT NOT NULL,
+  share_date TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS daily_verse_shares_user_date_idx ON daily_verse_shares(user_id, share_date);
+
+-- ==================== BIRTHDAY SHARE IMAGES ====================
+CREATE TABLE IF NOT EXISTS birthday_share_images (
+  id SERIAL PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES users(id),
+  image_url TEXT NOT NULL,
+  share_date TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS birthday_share_images_member_date_idx ON birthday_share_images(member_id, share_date);
 
 -- ==================== STUDY PROFILES ====================
 CREATE TABLE IF NOT EXISTS study_profiles (
@@ -326,7 +354,7 @@ CREATE TABLE IF NOT EXISTS study_profiles (
   last_activity_date TEXT,
   daily_goal_minutes INTEGER NOT NULL DEFAULT 10,
   timezone TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
-  weekly_lessons_goal INTEGER NOT NULL DEFAULT 1,
+  weekly_lessons_goal INTEGER NOT NULL DEFAULT 10,
   weekly_verses_goal INTEGER NOT NULL DEFAULT 7,
   weekly_missions_goal INTEGER NOT NULL DEFAULT 3,
   weekly_devotionals_goal INTEGER NOT NULL DEFAULT 1,
@@ -388,6 +416,30 @@ CREATE TABLE IF NOT EXISTS user_streak_milestones (
   crystals_awarded INTEGER NOT NULL,
   xp_awarded INTEGER NOT NULL DEFAULT 0,
   UNIQUE(user_id, milestone_id)
+);
+
+-- ==================== SEASONS ====================
+CREATE TABLE IF NOT EXISTS seasons (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  description TEXT,
+  cover_image_url TEXT,
+  pdf_url TEXT,
+  ai_extracted_title TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+  is_ended BOOLEAN NOT NULL DEFAULT FALSE,
+  ended_at TIMESTAMP,
+  total_lessons INTEGER NOT NULL DEFAULT 0,
+  published_at TIMESTAMP,
+  starts_at TIMESTAMP,
+  ends_at TIMESTAMP,
+  created_by INTEGER REFERENCES users(id),
+  ai_metadata TEXT,
+  card_id INTEGER REFERENCES collectible_cards(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- ==================== SEASON FINAL CHALLENGES ====================
@@ -488,21 +540,6 @@ CREATE TABLE IF NOT EXISTS weekly_practice_bonus (
   UNIQUE(user_id, week_key)
 );
 
--- ==================== ACHIEVEMENTS ====================
-CREATE TABLE IF NOT EXISTS achievements (
-  id SERIAL PRIMARY KEY,
-  code TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  description TEXT,
-  icon TEXT,
-  custom_icon_url TEXT,
-  xp_reward INTEGER NOT NULL DEFAULT 0,
-  category TEXT NOT NULL,
-  requirement TEXT,
-  is_secret BOOLEAN NOT NULL DEFAULT FALSE,
-  season_id INTEGER REFERENCES seasons(id)
-);
-
 -- ==================== ACHIEVEMENT XP ====================
 CREATE TABLE IF NOT EXISTS achievement_xp (
   id SERIAL PRIMARY KEY,
@@ -534,7 +571,7 @@ CREATE TABLE IF NOT EXISTS devotional_readings (
   UNIQUE(user_id, devotional_id)
 );
 
--- ==================== STUDY WEEKS (LEGACY) ====================
+-- ==================== STUDY WEEKS ====================
 CREATE TABLE IF NOT EXISTS study_weeks (
   id SERIAL PRIMARY KEY,
   week_number INTEGER NOT NULL,
@@ -663,6 +700,21 @@ CREATE TABLE IF NOT EXISTS daily_activity (
   xp_earned INTEGER NOT NULL DEFAULT 0,
   streak_maintained BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE(user_id, activity_date)
+);
+
+-- ==================== ACHIEVEMENTS ====================
+CREATE TABLE IF NOT EXISTS achievements (
+  id SERIAL PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  custom_icon_url TEXT,
+  xp_reward INTEGER NOT NULL DEFAULT 0,
+  category TEXT NOT NULL,
+  requirement TEXT,
+  is_secret BOOLEAN NOT NULL DEFAULT FALSE,
+  season_id INTEGER REFERENCES seasons(id)
 );
 
 -- ==================== USER ACHIEVEMENTS ====================
@@ -893,6 +945,15 @@ CREATE TABLE IF NOT EXISTS user_event_progress (
   UNIQUE(user_id, lesson_id)
 );
 
+-- ==================== STUDY EVENT PARTICIPANTS ====================
+CREATE TABLE IF NOT EXISTS study_event_participants (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  event_id INTEGER NOT NULL REFERENCES study_events(id) ON DELETE CASCADE,
+  participated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, event_id)
+);
+
 -- ==================== USER CARDS ====================
 CREATE TABLE IF NOT EXISTS user_cards (
   id SERIAL PRIMARY KEY,
@@ -951,6 +1012,14 @@ CREATE TABLE IF NOT EXISTS treasury_loan_installments (
   status TEXT NOT NULL DEFAULT 'pending',
   paid_at TIMESTAMP,
   entry_id INTEGER
+);
+
+-- ==================== TREASURY RECEIPTS ====================
+CREATE TABLE IF NOT EXISTS treasury_receipts (
+  id TEXT PRIMARY KEY,
+  mime_type TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- ==================== TREASURY ENTRIES ====================
@@ -1021,6 +1090,7 @@ CREATE TABLE IF NOT EXISTS treasury_notifications_log (
 CREATE TABLE IF NOT EXISTS shop_categories (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
+  image_data TEXT,
   is_default BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -1037,8 +1107,12 @@ CREATE TABLE IF NOT EXISTS shop_items (
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
   is_pre_order BOOLEAN NOT NULL DEFAULT FALSE,
   is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  is_published BOOLEAN NOT NULL DEFAULT FALSE,
   featured_order INTEGER DEFAULT 0,
   banner_image_data TEXT,
+  allow_installments BOOLEAN NOT NULL DEFAULT FALSE,
+  max_installments INTEGER DEFAULT 1,
+  stock_quantity INTEGER,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -1051,6 +1125,7 @@ CREATE TABLE IF NOT EXISTS shop_item_images (
   image_data TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS shop_item_images_item_id_idx ON shop_item_images(item_id);
 
 -- ==================== SHOP ITEM SIZES ====================
 CREATE TABLE IF NOT EXISTS shop_item_sizes (
@@ -1081,6 +1156,8 @@ CREATE TABLE IF NOT EXISTS shop_cart_items (
   quantity INTEGER NOT NULL DEFAULT 1,
   gender TEXT,
   size TEXT,
+  color TEXT,
+  color_id INTEGER,
   added_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -1090,10 +1167,16 @@ CREATE TABLE IF NOT EXISTS shop_orders (
   order_code TEXT NOT NULL UNIQUE,
   user_id INTEGER NOT NULL REFERENCES users(id),
   total_amount INTEGER NOT NULL,
+  subtotal_amount INTEGER,
+  promo_discount INTEGER DEFAULT 0,
+  promo_code TEXT,
+  combo_discount INTEGER DEFAULT 0,
+  combo_names TEXT,
   observation TEXT,
   payment_status TEXT NOT NULL DEFAULT 'pending',
   order_status TEXT NOT NULL DEFAULT 'awaiting_payment',
   entry_id INTEGER REFERENCES treasury_entries(id),
+  installment_count INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT NOW(),
   paid_at TIMESTAMP
 );
@@ -1108,8 +1191,31 @@ CREATE TABLE IF NOT EXISTS shop_order_items (
   quantity INTEGER NOT NULL,
   gender TEXT,
   size TEXT,
+  color TEXT,
+  color_id INTEGER,
   unit_price INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS shop_order_items_order_id_idx ON shop_order_items(order_id);
+CREATE INDEX IF NOT EXISTS shop_order_items_item_id_idx ON shop_order_items(item_id);
+
+-- ==================== SHOP INSTALLMENTS ====================
+CREATE TABLE IF NOT EXISTS shop_installments (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,
+  installment_number INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  due_date TIMESTAMP NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  payment_id TEXT,
+  pix_code TEXT,
+  pix_qr_code_base64 TEXT,
+  pix_expires_at TIMESTAMP,
+  paid_at TIMESTAMP,
+  entry_id INTEGER REFERENCES treasury_entries(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS shop_installments_order_id_idx ON shop_installments(order_id);
+CREATE INDEX IF NOT EXISTS shop_installments_due_date_idx ON shop_installments(due_date);
 
 -- ==================== PROMO CODES ====================
 CREATE TABLE IF NOT EXISTS promo_codes (
@@ -1125,6 +1231,50 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   used_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- ==================== SHOP ITEM COLORS ====================
+CREATE TABLE IF NOT EXISTS shop_item_colors (
+  id SERIAL PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES shop_items(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  hex_code TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_available BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS shop_item_colors_item_id_idx ON shop_item_colors(item_id);
+
+-- ==================== SHOP ITEM COLOR IMAGES ====================
+CREATE TABLE IF NOT EXISTS shop_item_color_images (
+  id SERIAL PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES shop_items(id) ON DELETE CASCADE,
+  color_id INTEGER NOT NULL REFERENCES shop_item_colors(id) ON DELETE CASCADE,
+  gender TEXT NOT NULL,
+  image_data TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS shop_item_color_images_item_id_idx ON shop_item_color_images(item_id);
+CREATE INDEX IF NOT EXISTS shop_item_color_images_color_id_idx ON shop_item_color_images(color_id);
+
+-- ==================== SHOP COMBO DISCOUNTS ====================
+CREATE TABLE IF NOT EXISTS shop_combo_discounts (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  discount_value INTEGER NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  start_date TIMESTAMP,
+  end_date TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ==================== SHOP COMBO DISCOUNT ITEMS ====================
+CREATE TABLE IF NOT EXISTS shop_combo_discount_items (
+  id SERIAL PRIMARY KEY,
+  combo_id INTEGER NOT NULL REFERENCES shop_combo_discounts(id) ON DELETE CASCADE,
+  item_id INTEGER NOT NULL REFERENCES shop_items(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS shop_combo_discount_items_combo_id_idx ON shop_combo_discount_items(combo_id);
+CREATE INDEX IF NOT EXISTS shop_combo_discount_items_item_id_idx ON shop_combo_discount_items(item_id);
 
 -- ==================== EVENT FEES ====================
 CREATE TABLE IF NOT EXISTS event_fees (
@@ -1169,6 +1319,77 @@ CREATE TABLE IF NOT EXISTS sent_scheduler_reminders (
 CREATE INDEX IF NOT EXISTS sent_scheduler_reminders_key_idx ON sent_scheduler_reminders(reminder_key);
 CREATE INDEX IF NOT EXISTS sent_scheduler_reminders_type_idx ON sent_scheduler_reminders(reminder_type);
 
+-- ==================== FORMS ====================
+CREATE TABLE IF NOT EXISTS forms (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  published_at TIMESTAMP,
+  closed_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS forms_status_idx ON forms(status);
+CREATE INDEX IF NOT EXISTS forms_created_by_idx ON forms(created_by);
+
+-- ==================== FORM QUESTIONS ====================
+CREATE TABLE IF NOT EXISTS form_questions (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+  question_text TEXT NOT NULL,
+  question_type TEXT NOT NULL,
+  is_required BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  description TEXT
+);
+CREATE INDEX IF NOT EXISTS form_questions_form_id_idx ON form_questions(form_id);
+CREATE INDEX IF NOT EXISTS form_questions_order_idx ON form_questions(form_id, sort_order);
+
+-- ==================== FORM OPTIONS ====================
+CREATE TABLE IF NOT EXISTS form_options (
+  id SERIAL PRIMARY KEY,
+  question_id INTEGER NOT NULL REFERENCES form_questions(id) ON DELETE CASCADE,
+  option_text TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS form_options_question_id_idx ON form_options(question_id);
+
+-- ==================== FORM RESPONSES ====================
+CREATE TABLE IF NOT EXISTS form_responses (
+  id SERIAL PRIMARY KEY,
+  form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  submitted_at TIMESTAMP DEFAULT NOW(),
+  is_complete BOOLEAN NOT NULL DEFAULT FALSE,
+  CONSTRAINT form_responses_form_user_unique UNIQUE(form_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS form_responses_form_id_idx ON form_responses(form_id);
+CREATE INDEX IF NOT EXISTS form_responses_user_id_idx ON form_responses(user_id);
+
+-- ==================== FORM ANSWERS ====================
+CREATE TABLE IF NOT EXISTS form_answers (
+  id SERIAL PRIMARY KEY,
+  response_id INTEGER NOT NULL REFERENCES form_responses(id) ON DELETE CASCADE,
+  question_id INTEGER NOT NULL REFERENCES form_questions(id) ON DELETE CASCADE,
+  answer_text TEXT,
+  selected_option_ids INTEGER[]
+);
+CREATE INDEX IF NOT EXISTS form_answers_response_id_idx ON form_answers(response_id);
+CREATE INDEX IF NOT EXISTS form_answers_question_id_idx ON form_answers(question_id);
+
+-- ==================== FORM ANALYSES ====================
+CREATE TABLE IF NOT EXISTS form_analyses (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  form_ids INTEGER[] NOT NULL,
+  analysis_text TEXT NOT NULL,
+  pdf_url TEXT,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS form_analyses_created_by_idx ON form_analyses(created_by);
+
 -- =====================================================
--- FIM DO SCHEMA
+-- FIM DO SCHEMA - 102 TABELAS
 -- =====================================================

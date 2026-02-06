@@ -1,30 +1,13 @@
--- ============================================================
--- SQL PARA RESET PARCIAL DO BANCO DE DADOS - UMP EMAÚS
--- Neon PostgreSQL
+-- =====================================================
+-- SQL PARA LIMPEZA TOTAL DO BANCO DE DADOS
+-- UMP Emaús - Neon PostgreSQL
 -- Gerado em: Fevereiro 2026
--- ============================================================
+-- =====================================================
 -- 
--- PRESERVA:
---   - Membros (users)
---   - Devocionais (devotionals)
---   - Comentários de devocionais (devotional_comments)
---   - Versículos do dia (daily_verse_posts, daily_verse_stock)
---   - Conteúdo do site (site_content) - quem somos, localização, etc
---   - Banners do carrossel (banners)
---   - Diretoria (board_members)
---   - Categorias da loja (shop_categories)
---   - Produtos da loja (shop_items)
---   - Imagens dos produtos (shop_item_images)
---   - Tamanhos dos produtos (shop_item_sizes)
---   - Tabela de medidas (shop_item_size_charts)
---   - Cores dos produtos (shop_item_colors)
---   - Imagens por cor (shop_item_color_images)
---   - Combos de desconto (shop_combo_discounts, shop_combo_discount_items)
---   - Códigos promocionais (promo_codes)
---
--- LIMPA TUDO o restante (progresso, pedidos, pagamentos,
--- eleições, estudos, notificações, formulários, etc.)
--- ============================================================
+-- ATENÇÃO: Este script REMOVE TODOS OS DADOS de todas
+-- as tabelas. Use com extremo cuidado!
+-- A estrutura das tabelas é mantida.
+-- =====================================================
 
 -- Desabilitar verificação de FK temporariamente
 SET session_replication_role = 'replica';
@@ -47,11 +30,25 @@ TRUNCATE TABLE notifications CASCADE;
 TRUNCATE TABLE event_confirmations CASCADE;
 TRUNCATE TABLE event_fees CASCADE;
 
--- ==================== LOJA - PEDIDOS (limpa pedidos, mantém produtos) ====================
+-- ==================== LOJA - PEDIDOS ====================
 TRUNCATE TABLE shop_installments CASCADE;
 TRUNCATE TABLE shop_order_items CASCADE;
 TRUNCATE TABLE shop_orders CASCADE;
 TRUNCATE TABLE shop_cart_items CASCADE;
+
+-- ==================== LOJA - COMBOS ====================
+TRUNCATE TABLE shop_combo_discount_items CASCADE;
+TRUNCATE TABLE shop_combo_discounts CASCADE;
+TRUNCATE TABLE promo_codes CASCADE;
+
+-- ==================== LOJA - PRODUTOS ====================
+TRUNCATE TABLE shop_item_color_images CASCADE;
+TRUNCATE TABLE shop_item_colors CASCADE;
+TRUNCATE TABLE shop_item_size_charts CASCADE;
+TRUNCATE TABLE shop_item_sizes CASCADE;
+TRUNCATE TABLE shop_item_images CASCADE;
+TRUNCATE TABLE shop_items CASCADE;
+TRUNCATE TABLE shop_categories CASCADE;
 
 -- ==================== TESOURARIA ====================
 TRUNCATE TABLE member_percapta_payments CASCADE;
@@ -128,7 +125,6 @@ TRUNCATE TABLE season_rankings CASCADE;
 TRUNCATE TABLE user_season_progress CASCADE;
 TRUNCATE TABLE user_final_challenge_progress CASCADE;
 TRUNCATE TABLE season_final_challenges CASCADE;
-TRUNCATE TABLE seasons CASCADE;
 
 -- ==================== MARCOS DE OFENSIVA ====================
 TRUNCATE TABLE user_streak_milestones CASCADE;
@@ -139,16 +135,23 @@ TRUNCATE TABLE crystal_transactions CASCADE;
 -- ==================== PERFIS DE ESTUDO ====================
 TRUNCATE TABLE study_profiles CASCADE;
 
--- ==================== COMPARTILHAMENTOS (limpa, mas mantém posts/stock) ====================
+-- ==================== VERSÍCULOS DO DIA ====================
 TRUNCATE TABLE birthday_share_images CASCADE;
 TRUNCATE TABLE daily_verse_shares CASCADE;
+TRUNCATE TABLE daily_verse_posts CASCADE;
+TRUNCATE TABLE daily_verse_stock CASCADE;
 
--- ==================== SITE - LIMPA SELETIVAMENTE ====================
+-- ==================== SITE ====================
+TRUNCATE TABLE site_content CASCADE;
+TRUNCATE TABLE board_members CASCADE;
+TRUNCATE TABLE banners CASCADE;
+TRUNCATE TABLE devotional_comments CASCADE;
 TRUNCATE TABLE prayer_reactions CASCADE;
 TRUNCATE TABLE prayer_requests CASCADE;
 TRUNCATE TABLE banner_highlights CASCADE;
 TRUNCATE TABLE instagram_posts CASCADE;
 TRUNCATE TABLE site_events CASCADE;
+TRUNCATE TABLE devotionals CASCADE;
 
 -- ==================== ELEIÇÕES ====================
 TRUNCATE TABLE pdf_verifications CASCADE;
@@ -161,29 +164,16 @@ TRUNCATE TABLE candidates CASCADE;
 TRUNCATE TABLE elections CASCADE;
 TRUNCATE TABLE positions CASCADE;
 
+-- ==================== TEMPORADAS (depende de collectible_cards) ====================
+TRUNCATE TABLE seasons CASCADE;
+
+-- ==================== USUÁRIOS ====================
+TRUNCATE TABLE users CASCADE;
+
 -- Reabilitar verificação de FK
 SET session_replication_role = 'origin';
 
--- ============================================================
--- RESET PARCIAL CONCLUÍDO
--- 
--- DADOS PRESERVADOS:
---   ✓ users (membros)
---   ✓ devotionals (devocionais)
---   ✓ devotional_comments (comentários)
---   ✓ daily_verse_posts (versículos do dia)
---   ✓ daily_verse_stock (imagens dos versículos)
---   ✓ site_content (quem somos, localização, etc)
---   ✓ banners (imagens de banner/carrossel)
---   ✓ board_members (diretoria)
---   ✓ shop_categories (categorias da loja)
---   ✓ shop_items (produtos)
---   ✓ shop_item_images (imagens dos produtos)
---   ✓ shop_item_sizes (tamanhos)
---   ✓ shop_item_size_charts (tabela de medidas)
---   ✓ shop_item_colors (cores)
---   ✓ shop_item_color_images (imagens por cor)
---   ✓ shop_combo_discounts (combos de desconto)
---   ✓ shop_combo_discount_items (itens dos combos)
---   ✓ promo_codes (códigos promocionais)
--- ============================================================
+-- =====================================================
+-- LIMPEZA TOTAL CONCLUÍDA
+-- Todas as tabelas foram esvaziadas.
+-- =====================================================

@@ -10322,7 +10322,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const allItems = Array.from(orderItemsMap.values()).flat();
       const itemProductIds = Array.from(new Set(allItems.map(i => i.itemId)));
-      const products = await storage.getShopItemsByIds(itemProductIds);
+      const hasColorItems = allItems.some(i => i.colorId);
+      
+      const [products, imagesMap, colorImagesMap] = await Promise.all([
+        storage.getShopItemsByIds(itemProductIds),
+        storage.getShopItemImagesByItemIdsLight(itemProductIds),
+        hasColorItems ? storage.getShopItemColorImagesByItemIds(itemProductIds) : Promise.resolve(new Map()),
+      ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
       const ordersWithDetails = orders.map(order => {
@@ -10331,6 +10337,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const itemsWithProduct = items.map(item => {
           const product = productsMap.get(item.itemId);
+          const images = product ? (imagesMap.get(product.id) || []) : [];
+          const firstImageId = images[0]?.id || null;
+          
+          let firstImage: string | null = firstImageId ? `/api/shop/images/item/${firstImageId}` : null;
+          if (item.colorId && product) {
+            const allColorImages = colorImagesMap.get(product.id) || [];
+            const matchingColorImg = allColorImages.find(
+              ci => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
+            ) || allColorImages.find(ci => ci.colorId === item.colorId);
+            if (matchingColorImg) {
+              firstImage = `/api/shop/images/color/${matchingColorImg.id}`;
+            }
+          }
+          
           return { 
             ...item, 
             unitPrice: item.unitPrice,
@@ -10338,6 +10358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: product.id,
               name: product.name,
               price: product.price,
+              firstImage,
             } : null 
           };
         });

@@ -59,6 +59,7 @@ interface OrderItemProduct {
   id: number;
   name: string;
   price: number;
+  firstImage?: string | null;
 }
 
 interface OrderItem {
@@ -593,7 +594,22 @@ export default function PedidosAdminPage() {
                 </CardHeader>
                 <CardContent className="py-2 space-y-2">
                   {detailsOrder.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-start p-3 bg-muted/50 rounded-md border">
+                    <div key={item.id} className="flex gap-3 items-start p-3 bg-muted/50 rounded-md border">
+                      <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        {item.product?.firstImage ? (
+                          <img
+                            src={item.product.firstImage}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 flex justify-between items-start gap-2">
                       <div className="space-y-1">
                         <p className="font-medium text-sm">{item.product?.name || "Produto nao encontrado"}</p>
                         <div className="flex flex-wrap gap-2 text-xs">
@@ -620,6 +636,7 @@ export default function PedidosAdminPage() {
                       <span className="text-sm font-medium whitespace-nowrap">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
+                      </div>
                     </div>
                   ))}
                 </CardContent>

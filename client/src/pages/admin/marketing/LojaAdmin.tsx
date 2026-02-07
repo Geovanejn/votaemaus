@@ -2425,7 +2425,7 @@ export default function LojaAdmin() {
                                 .map((img) => (
                                   <div key={img.id} className="relative group">
                                     <img
-                                      src={img.imageData.startsWith('data:') ? img.imageData : `data:image/jpeg;base64,${img.imageData}`}
+                                      src={img.imageData.startsWith('data:') || img.imageData.startsWith('http') || img.imageData.startsWith('/api/') ? img.imageData : `data:image/jpeg;base64,${img.imageData}`}
                                       alt={`${color.name} - ${img.gender}`}
                                       className="w-full aspect-square object-cover rounded border"
                                     />

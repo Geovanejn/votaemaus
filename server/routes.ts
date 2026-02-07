@@ -10898,7 +10898,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/shop/items/:id/color-images", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const itemId = parseInt(req.params.id);
-      const images = await storage.getShopItemColorImages(itemId);
+      const rawImages = await storage.getShopItemColorImages(itemId);
+      const images = rawImages.map(img => ({
+        ...img,
+        imageData: getOptimalImageUrl(img.imageData, `/api/shop/images/color/${img.id}`),
+      }));
       res.json(images);
     } catch (error) {
       console.error("Get shop item color images error:", error);
@@ -10949,7 +10953,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageData: imageDataUrl,
           sortOrder: currentSortOrder++,
         });
-        createdImages.push(image);
+        createdImages.push({
+          ...image,
+          imageData: getOptimalImageUrl(image.imageData, `/api/shop/images/color/${image.id}`),
+        });
       }
       
       res.status(201).json(createdImages);
@@ -11218,6 +11225,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(optimizedBuffer);
     } catch (error) {
       console.error("Get item image error:", error);
+      res.status(500).json({ message: "Erro ao buscar imagem" });
+    }
+  });
+
+  // Proxy de imagem de cor (lazy loading) com compressão WebP
+  app.get("/api/shop/images/color/:imageId", async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.imageId);
+      if (isNaN(imageId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const cacheKey = `color:${imageId}`;
+      const cached = getFromShopCache(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/webp',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Length': cached.length,
+        });
+        return res.send(cached);
+      }
+      
+      const colorImageResult = await storage.getShopItemColorImageById(imageId);
+      const imageData = colorImageResult?.imageData || null;
+      if (!imageData) {
+        return res.status(404).json({ message: "Imagem não encontrada" });
+      }
+      
+      const buffer = await resolveImageBuffer(imageData);
+      if (!buffer) {
+        return res.status(400).json({ message: "Formato de imagem inválido" });
+      }
+      
+      const optimizedBuffer = await sharp(buffer)
+        .resize({ width: 2000, withoutEnlargement: true })
+        .webp({ quality: 90 })
+        .toBuffer();
+      
+      setInShopCache(cacheKey, optimizedBuffer);
+      
+      res.set({
+        'Content-Type': 'image/webp',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Length': optimizedBuffer.length,
+      });
+      res.send(optimizedBuffer);
+    } catch (error) {
+      console.error("Get color image error:", error);
       res.status(500).json({ message: "Erro ao buscar imagem" });
     }
   });

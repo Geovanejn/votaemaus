@@ -663,6 +663,7 @@ export interface IStorage {
   getShopItemColorImages(itemId: number): Promise<ShopItemColorImage[]>;
   getShopItemColorImagesByItemIds(itemIds: number[]): Promise<Map<number, ShopItemColorImage[]>>;
   getShopItemColorImagesByColorId(colorId: number): Promise<ShopItemColorImage[]>;
+  getShopItemColorImageById(id: number): Promise<ShopItemColorImage | null>;
   createShopItemColorImage(data: InsertShopItemColorImage): Promise<ShopItemColorImage>;
   updateShopItemColorImage(id: number, data: Partial<InsertShopItemColorImage>): Promise<ShopItemColorImage | null>;
   deleteShopItemColorImage(id: number): Promise<void>;
@@ -8903,6 +8904,14 @@ export class DatabaseStorage implements IStorage {
       .from(schema.shopItemColorImages)
       .where(eq(schema.shopItemColorImages.colorId, colorId))
       .orderBy(asc(schema.shopItemColorImages.sortOrder));
+  }
+
+  async getShopItemColorImageById(id: number): Promise<ShopItemColorImage | null> {
+    const [image] = await db.select()
+      .from(schema.shopItemColorImages)
+      .where(eq(schema.shopItemColorImages.id, id))
+      .limit(1);
+    return image || null;
   }
 
   async createShopItemColorImage(data: InsertShopItemColorImage): Promise<ShopItemColorImage> {

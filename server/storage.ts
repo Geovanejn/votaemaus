@@ -2426,7 +2426,7 @@ export class DatabaseStorage implements IStorage {
   async getPublishedStudyWeeks(): Promise<any[]> {
     return db.select().from(schema.studyWeeks)
       .where(eq(schema.studyWeeks.status, 'published'))
-      .orderBy(desc(schema.studyWeeks.year), desc(schema.studyWeeks.weekNumber));
+      .orderBy(asc(schema.studyWeeks.year), asc(schema.studyWeeks.weekNumber));
   }
 
   // OPTIMIZED: Bulk fetch weeks with lessons - LIGHTWEIGHT payload for listing
@@ -2442,7 +2442,8 @@ export class DatabaseStorage implements IStorage {
       title: schema.studyWeeks.title,
       status: schema.studyWeeks.status,
     }).from(schema.studyWeeks)
-      .where(inArray(schema.studyWeeks.id, weekIds));
+      .where(inArray(schema.studyWeeks.id, weekIds))
+      .orderBy(asc(schema.studyWeeks.year), asc(schema.studyWeeks.weekNumber));
     
     if (weeks.length === 0) return [];
     

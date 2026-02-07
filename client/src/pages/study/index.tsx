@@ -390,7 +390,7 @@ export default function StudyHomePage() {
     enabled: isAuthenticated && !!profile,
   });
 
-  const sortedWeeks = weeks ? [...weeks].filter(w => w && w.id).reverse() : [];
+  const sortedWeeks = weeks ? [...weeks].filter(w => w && w.id) : [];
   const weekIds = sortedWeeks.map(w => w.id);
 
   // OPTIMIZED: Use bulk endpoint to fetch all weeks with lessons in a single request

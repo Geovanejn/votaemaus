@@ -6,6 +6,52 @@ import { hashPassword } from "./auth";
 
 // Lazy initialization - pool and db are created on first access after validation
 let pool: Pool | null = null;
+
+async function runPendingMigrations(): Promise<void> {
+  if (!pool) return;
+  
+  const migrations: { name: string; sql: string }[] = [
+    {
+      name: "add_color_to_shop_cart_items",
+      sql: `ALTER TABLE shop_cart_items ADD COLUMN IF NOT EXISTS color TEXT;`
+    },
+    {
+      name: "add_color_id_to_shop_cart_items",
+      sql: `ALTER TABLE shop_cart_items ADD COLUMN IF NOT EXISTS color_id INTEGER;`
+    },
+    {
+      name: "add_subtotal_amount_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS subtotal_amount INTEGER;`
+    },
+    {
+      name: "add_promo_discount_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_discount INTEGER DEFAULT 0;`
+    },
+    {
+      name: "add_promo_code_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_code TEXT;`
+    },
+    {
+      name: "add_combo_discount_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS combo_discount INTEGER DEFAULT 0;`
+    },
+    {
+      name: "add_combo_names_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS combo_names TEXT;`
+    },
+  ];
+
+  for (const migration of migrations) {
+    try {
+      await pool.query(migration.sql);
+    } catch (error: any) {
+      if (error.code !== '42701') {
+        console.error(`[Migration] Failed: ${migration.name}`, error.message);
+      }
+    }
+  }
+  console.log("[Migration] Schema migrations checked successfully");
+}
 let _db: NodePgDatabase<typeof schema> | null = null;
 
 // Getter for db - throws if not initialized
@@ -135,6 +181,7 @@ export async function initializeDatabase(): Promise<void> {
     // Tables are created via Drizzle migration (migrations/0000_seasons_schema.sql)
     // No need to create tables here - Drizzle handles schema sync
     
+    await runPendingMigrations();
     await createDefaultPositions();
     await seedAdminUser();
     

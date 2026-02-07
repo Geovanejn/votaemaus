@@ -11422,6 +11422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sizeCharts: sizeChartsMap.get(item.id) || []
       }));
       
+      itemsWithDetails.sort((a, b) => {
+        const aOutOfStock = a.stockQuantity !== null && a.stockQuantity <= 0;
+        const bOutOfStock = b.stockQuantity !== null && b.stockQuantity <= 0;
+        if (aOutOfStock && !bOutOfStock) return 1;
+        if (!aOutOfStock && bOutOfStock) return -1;
+        return 0;
+      });
+      
       res.json(itemsWithDetails);
     } catch (error) {
       console.error("Get shop items error:", error);

@@ -40,6 +40,7 @@ function formatCurrency(value: number) {
 }
 
 interface CartItemWithDetails extends ShopCartItem {
+  colorImage?: string | null;
   item: ShopItem & { 
     images?: Array<{ id: number; imageData: string; gender: string }>;
     allowInstallments?: boolean;
@@ -284,7 +285,8 @@ export default function LojaCarrinhoPage() {
         <div className="px-4 space-y-4 pb-6">
           {/* Cart Items */}
           {cartItems.map((cartItem) => {
-            const image = cartItem.item.images?.find(img => img.gender === cartItem.gender || img.gender === "unissex");
+            const generalImage = cartItem.item.images?.find(img => img.gender === cartItem.gender || img.gender === "unissex");
+            const displayImage = cartItem.colorImage || generalImage?.imageData || null;
             
             return (
               <motion.div
@@ -296,8 +298,8 @@ export default function LojaCarrinhoPage() {
               >
                 {/* Product Image */}
                 <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                  {image ? (
-                    <img src={image.imageData} alt={cartItem.item.name} className="w-full h-full object-cover" />
+                  {displayImage ? (
+                    <img src={displayImage} alt={cartItem.item.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ShoppingCart className="h-8 w-8 text-gray-300" />

@@ -11486,9 +11486,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const itemIds = Array.from(new Set(cartItems.map(c => c.itemId)));
-      const [items, imagesMap] = await Promise.all([
+      const hasColorItems = cartItems.some(c => c.colorId);
+      
+      const [items, imagesMap, colorImagesMap] = await Promise.all([
         storage.getShopItemsByIds(itemIds),
-        storage.getShopItemImagesByItemIds(itemIds)
+        storage.getShopItemImagesByItemIds(itemIds),
+        hasColorItems ? storage.getShopItemColorImagesByItemIds(itemIds) : Promise.resolve(new Map()),
       ]);
       const itemsMap = new Map(items.map((item: any) => [item.id, item]));
       
@@ -11496,13 +11499,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const item = itemsMap.get(cartItem.itemId);
         if (!item) return { ...cartItem, item: null };
         const rawImages = imagesMap.get(item.id) || [];
-        // Convert image data to proxy URLs for proper display
         const imagesWithUrls = rawImages.map(img => ({
           ...img,
           imageData: `/api/shop/images/item/${img.id}`,
         }));
+        
+        let colorImage: string | null = null;
+        if (cartItem.colorId) {
+          const allColorImages = colorImagesMap.get(item.id) || [];
+          const matchingColorImg = allColorImages.find(
+            ci => ci.colorId === cartItem.colorId && (ci.gender === cartItem.gender || ci.gender === "unissex")
+          ) || allColorImages.find(ci => ci.colorId === cartItem.colorId);
+          if (matchingColorImg) {
+            colorImage = `/api/shop/images/color/${matchingColorImg.id}`;
+          }
+        }
+        
         return { 
           ...cartItem, 
+          colorImage,
           item: { 
             ...item, 
             images: imagesWithUrls,
@@ -11905,11 +11920,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const allItems = Array.from(orderItemsMap.values()).flat();
       const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
+      const hasColorItems = allItems.some(i => i.colorId);
       
-      // Usar versão otimizada que traz apenas id, name, price
-      const [products, imagesMap] = await Promise.all([
+      const [products, imagesMap, colorImagesMap] = await Promise.all([
         storage.getShopItemsByIdsLight(productIds),
         storage.getShopItemImagesByItemIdsLight(productIds),
+        hasColorItems ? storage.getShopItemColorImagesByItemIds(productIds) : Promise.resolve(new Map()),
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
@@ -11920,13 +11936,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const product = productsMap.get(item.itemId);
           const images = product ? (imagesMap.get(product.id) || []) : [];
           const firstImageId = images[0]?.id || null;
+          
+          let firstImage: string | null = firstImageId ? `/api/shop/images/item/${firstImageId}` : null;
+          if (item.colorId && product) {
+            const allColorImages = colorImagesMap.get(product.id) || [];
+            const matchingColorImg = allColorImages.find(
+              ci => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
+            ) || allColorImages.find(ci => ci.colorId === item.colorId);
+            if (matchingColorImg) {
+              firstImage = `/api/shop/images/color/${matchingColorImg.id}`;
+            }
+          }
+          
           return { 
             ...item, 
             product: product ? { 
               id: product.id,
               name: product.name,
               price: product.price,
-              firstImage: firstImageId ? `/api/shop/images/item/${firstImageId}` : null,
+              firstImage,
             } : null 
           };
         });

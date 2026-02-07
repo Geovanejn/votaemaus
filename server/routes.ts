@@ -114,13 +114,17 @@ import { uploadToR2, isR2Configured, getFromR2, isR2Url, isBase64Url, getPublicU
 // ==================== IMAGE URL CONVERSION HELPER ====================
 // Converts r2:// URLs to PUBLIC URLs for direct CDN access (fast, no server proxy)
 // This dramatically improves performance by bypassing the server for image delivery
-function convertImageUrls<T>(obj: T): T {
-  if (!obj || typeof obj !== 'object') return obj;
+function convertImageUrls<T>(obj: T, depth: number = 0): T {
+  if (!obj || typeof obj !== 'object' || depth > 5) return obj;
   
   // Handle arrays - convert each item
   if (Array.isArray(obj)) {
-    return obj.map(item => convertImageUrls(item)) as T;
+    return obj.map(item => convertImageUrls(item, depth + 1)) as T;
   }
+  
+  // Only process plain objects
+  const proto = Object.getPrototypeOf(obj);
+  if (proto !== Object.prototype && proto !== null) return obj;
   
   // Comprehensive list of all image fields in the application
   const imageFields = [
@@ -145,19 +149,12 @@ function convertImageUrls<T>(obj: T): T {
     }
   }
   
-  // Handle nested 'card' object specifically (for user cards API)
-  if (result.card && typeof result.card === 'object') {
-    result.card = convertImageUrls(result.card);
-  }
-  
-  // Handle nested 'season' object specifically
-  if (result.season && typeof result.season === 'object') {
-    result.season = convertImageUrls(result.season);
-  }
-  
-  // Handle nested 'event' object specifically
-  if (result.event && typeof result.event === 'object') {
-    result.event = convertImageUrls(result.event);
+  for (const key of Object.keys(result)) {
+    if (imageFields.includes(key)) continue;
+    const val = result[key];
+    if (val && typeof val === 'object' && !(val instanceof Date)) {
+      result[key] = convertImageUrls(val, depth + 1);
+    }
   }
   
   return result as T;
@@ -5151,7 +5148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const highlights = await storage.getSiteHighlights();
       const bannerHighlights = await storage.getBannerHighlights();
-      res.json({ ...highlights, bannerHighlights });
+      const converted = convertImageUrls({ ...highlights, bannerHighlights });
+      res.json(converted);
     } catch (error) {
       console.error("Get site highlights error:", error);
       res.status(500).json({ message: "Erro ao buscar destaques do site" });
@@ -11423,8 +11421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       
       itemsWithDetails.sort((a, b) => {
-        const aOutOfStock = a.stockQuantity !== null && a.stockQuantity <= 0;
-        const bOutOfStock = b.stockQuantity !== null && b.stockQuantity <= 0;
+        const aOutOfStock = !a.isAvailable || (a.stockQuantity !== null && a.stockQuantity <= 0);
+        const bOutOfStock = !b.isAvailable || (b.stockQuantity !== null && b.stockQuantity <= 0);
         if (aOutOfStock && !bOutOfStock) return 1;
         if (!aOutOfStock && bOutOfStock) return -1;
         return 0;

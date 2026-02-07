@@ -11386,7 +11386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      const [images, sizes, sizeCharts, colors, colorImages] = await Promise.all([
+      const [rawImages, sizes, sizeCharts, colors, rawColorImages] = await Promise.all([
         storage.getShopItemImages(id),
         storage.getShopItemSizes(id),
         storage.getShopItemSizeCharts(id),
@@ -11394,7 +11394,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getShopItemColorImages(id)
       ]);
       
-      res.json({ ...item, images, sizes, sizeCharts, colors, colorImages });
+      const images = rawImages.map(img => ({
+        ...img,
+        imageData: getOptimalImageUrl(img.imageData, `/api/shop/images/item/${img.id}`),
+      }));
+      
+      const colorImages = rawColorImages.map(img => ({
+        ...img,
+        imageData: getOptimalImageUrl(img.imageData, `/api/shop/images/item/${img.id}`),
+      }));
+      
+      const bannerImageData = item.bannerImageData 
+        ? getOptimalImageUrl(item.bannerImageData, `/api/shop/images/banner/${item.id}`)
+        : null;
+      
+      res.json({ ...item, bannerImageData, images, sizes, sizeCharts, colors, colorImages });
     } catch (error) {
       console.error("Get shop item error:", error);
       res.status(500).json({ message: "Erro ao buscar item" });

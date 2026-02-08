@@ -40,12 +40,31 @@ interface Member {
   email: string;
 }
 
+interface ShopProductColor {
+  id: number;
+  itemId: number;
+  name: string;
+  hexCode: string;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+interface ShopProductSize {
+  id: number;
+  itemId: number;
+  gender: string;
+  size: string;
+  sortOrder: number;
+}
+
 interface ShopProduct {
   id: number;
   name: string;
   price: number;
-  sizes?: string | null;
-  hasGenderOption?: boolean;
+  genderType: string;
+  hasSize: boolean;
+  sizes?: ShopProductSize[] | null;
+  colors?: ShopProductColor[] | null;
 }
 
 interface OrderUser {
@@ -151,6 +170,8 @@ export default function PedidosAdminPage() {
     quantity: number;
     size: string;
     gender: string;
+    color: string;
+    colorId: number;
   }>>([]);
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
 
@@ -175,7 +196,7 @@ export default function PedidosAdminPage() {
     mutationFn: async (data: {
       memberId?: number;
       manualName?: string;
-      items: Array<{ itemId: number; quantity: number; size?: string; gender?: string }>;
+      items: Array<{ itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number }>;
       installmentCount: number;
     }) => {
       const response = await apiRequest("POST", "/api/admin/shop/orders/manual", data);
@@ -789,7 +810,7 @@ export default function PedidosAdminPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "" }])}
+                  onClick={() => setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "", color: "", colorId: 0 }])}
                   className="gap-1"
                   data-testid="button-add-item"
                 >
@@ -807,7 +828,14 @@ export default function PedidosAdminPage() {
               <div className="space-y-3">
                 {manualOrderItems.map((item, index) => {
                   const selectedProduct = products?.find(p => p.id === item.itemId);
-                  const availableSizes = selectedProduct?.sizes ? selectedProduct.sizes.split(',').map(s => s.trim()) : [];
+                  const hasGender = selectedProduct?.genderType === "both";
+                  const selectedGender = item.gender || (selectedProduct?.genderType === "masculino" ? "masculino" : selectedProduct?.genderType === "feminino" ? "feminino" : "");
+                  const availableSizes = selectedProduct?.sizes
+                    ? [...new Set(selectedProduct.sizes
+                        .filter(s => !selectedGender || s.gender === selectedGender || selectedProduct.genderType !== "both")
+                        .map(s => s.size))]
+                    : [];
+                  const availableColors = selectedProduct?.colors || [];
                   
                   return (
                     <div key={index} className="flex flex-wrap gap-2 items-end p-3 border rounded-md bg-muted/30">
@@ -817,7 +845,7 @@ export default function PedidosAdminPage() {
                           value={item.itemId ? item.itemId.toString() : ""}
                           onValueChange={(value) => {
                             const newItems = [...manualOrderItems];
-                            newItems[index] = { ...item, itemId: parseInt(value), size: "", gender: "" };
+                            newItems[index] = { ...item, itemId: parseInt(value), size: "", gender: "", color: "", colorId: 0 };
                             setManualOrderItems(newItems);
                           }}
                         >
@@ -849,6 +877,28 @@ export default function PedidosAdminPage() {
                         />
                       </div>
 
+                      {hasGender && (
+                        <div className="w-28 space-y-1">
+                          <Label className="text-xs">Modelo</Label>
+                          <Select
+                            value={item.gender}
+                            onValueChange={(value) => {
+                              const newItems = [...manualOrderItems];
+                              newItems[index] = { ...item, gender: value, size: "" };
+                              setManualOrderItems(newItems);
+                            }}
+                          >
+                            <SelectTrigger data-testid={`select-gender-${index}`}>
+                              <SelectValue placeholder="Modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="masculino">Masculino</SelectItem>
+                              <SelectItem value="feminino">Feminino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
                       {availableSizes.length > 0 && (
                         <div className="w-24 space-y-1">
                           <Label className="text-xs">Tamanho</Label>
@@ -872,23 +922,37 @@ export default function PedidosAdminPage() {
                         </div>
                       )}
 
-                      {selectedProduct?.hasGenderOption && (
-                        <div className="w-28 space-y-1">
-                          <Label className="text-xs">Modelo</Label>
+                      {availableColors.length > 0 && (
+                        <div className="w-32 space-y-1">
+                          <Label className="text-xs">Cor</Label>
                           <Select
-                            value={item.gender}
+                            value={item.colorId ? item.colorId.toString() : ""}
                             onValueChange={(value) => {
                               const newItems = [...manualOrderItems];
-                              newItems[index] = { ...item, gender: value };
+                              const selectedColor = availableColors.find(c => c.id === parseInt(value));
+                              newItems[index] = { 
+                                ...item, 
+                                colorId: parseInt(value), 
+                                color: selectedColor?.name || "" 
+                              };
                               setManualOrderItems(newItems);
                             }}
                           >
-                            <SelectTrigger data-testid={`select-gender-${index}`}>
-                              <SelectValue placeholder="Modelo" />
+                            <SelectTrigger data-testid={`select-color-${index}`}>
+                              <SelectValue placeholder="Cor" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="masculino">Masculino</SelectItem>
-                              <SelectItem value="feminino">Feminino</SelectItem>
+                              {availableColors.map(color => (
+                                <SelectItem key={color.id} value={color.id.toString()}>
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full border border-border" 
+                                      style={{ backgroundColor: color.hexCode }}
+                                    />
+                                    {color.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -984,7 +1048,14 @@ export default function PedidosAdminPage() {
                 createManualOrderMutation.mutate({
                   memberId: manualOrderMemberId ? parseInt(manualOrderMemberId) : undefined,
                   manualName: manualOrderName || undefined,
-                  items: manualOrderItems.filter(i => i.itemId > 0),
+                  items: manualOrderItems.filter(i => i.itemId > 0).map(i => ({
+                    itemId: i.itemId,
+                    quantity: i.quantity,
+                    size: i.size || undefined,
+                    gender: i.gender || undefined,
+                    color: i.color || undefined,
+                    colorId: i.colorId || undefined,
+                  })),
                   installmentCount: parseInt(manualOrderInstallments),
                 });
               }}

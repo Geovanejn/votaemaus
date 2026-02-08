@@ -9797,9 +9797,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categoryMap = new Map(categories.map(c => [c.id, c]));
       const itemIds = items.map(item => item.id);
       
-      const [imagesMap, sizesMap] = await Promise.all([
+      const [imagesMap, sizesMap, colorsMap] = await Promise.all([
         storage.getShopItemImagesByItemIdsLight(itemIds),
-        storage.getShopItemSizesByItemIds(itemIds)
+        storage.getShopItemSizesByItemIds(itemIds),
+        storage.getShopItemColorsByItemIds(itemIds)
       ]);
       
       // Get items that have banner images
@@ -9817,6 +9818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             imageData: `/api/shop/images/item/${img.id}`, // Maintain backward compatibility
           })),
           sizes: sizesMap.get(item.id) || [],
+          colors: (colorsMap.get(item.id) || []).filter(c => c.isAvailable),
           hasBanner,
           bannerImageData: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
           bannerImageUrl: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
@@ -10564,6 +10566,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       quantity: z.number().min(1).default(1),
       size: z.string().optional(),
       gender: z.string().optional(),
+      color: z.string().optional(),
+      colorId: z.number().optional(),
     })).min(1, "Pelo menos um item e obrigatorio"),
     installmentCount: z.number().min(1).max(12).default(1),
   }).refine(data => data.memberId || data.manualName, {
@@ -10588,6 +10592,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quantity: number;
         size: string | null;
         gender: string | null;
+        color: string | null;
+        colorId: number | null;
         unitPrice: number;
       }> = [];
       
@@ -10597,13 +10603,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: `Produto ${item.itemId} nao encontrado` });
         }
         
-        // Validate size if product has sizes
-        if (shopItem.sizes && shopItem.sizes.length > 0 && !item.size) {
-          return res.status(400).json({ message: `Tamanho obrigatorio para ${shopItem.name}` });
-        }
-        
-        // Validate gender if product requires it
-        if (shopItem.hasGenderOption && !item.gender) {
+        // Validate gender if product requires it (genderType "both" means user must choose)
+        if (shopItem.genderType === "both" && !item.gender) {
           return res.status(400).json({ message: `Modelo (M/F) obrigatorio para ${shopItem.name}` });
         }
         
@@ -10616,6 +10617,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity,
           size: item.size || null,
           gender: item.gender || null,
+          color: item.color || null,
+          colorId: item.colorId || null,
           unitPrice,
         });
       }
@@ -10667,6 +10670,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: oi.quantity,
           gender: oi.gender,
           size: oi.size,
+          color: oi.color,
+          colorId: oi.colorId,
           unitPrice: oi.unitPrice,
         });
       }

@@ -11879,6 +11879,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quantity: oi.quantity,
         gender: oi.gender || null,
         size: oi.size || null,
+        color: oi.color || null,
+        colorId: oi.colorId || null,
         unitPrice: oi.unitPrice,
       }));
       await storage.createShopOrderItemsBatch(orderItemsData);

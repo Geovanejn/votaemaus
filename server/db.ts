@@ -39,6 +39,14 @@ async function runPendingMigrations(): Promise<void> {
       name: "add_combo_names_to_shop_orders",
       sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS combo_names TEXT;`
     },
+    {
+      name: "add_color_to_shop_order_items",
+      sql: `ALTER TABLE shop_order_items ADD COLUMN IF NOT EXISTS color TEXT;`
+    },
+    {
+      name: "add_color_id_to_shop_order_items",
+      sql: `ALTER TABLE shop_order_items ADD COLUMN IF NOT EXISTS color_id INTEGER;`
+    },
   ];
 
   for (const migration of migrations) {

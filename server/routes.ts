@@ -4881,6 +4881,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== NOTIFICATION ENDPOINTS ====================
 
+  // Public endpoint to get VAPID public key (needed for push subscription)
+  app.get("/api/push/vapid-key", (req, res) => {
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '';
+    if (!vapidPublicKey) {
+      return res.status(404).json({ message: "VAPID key not configured" });
+    }
+    res.json({ publicKey: vapidPublicKey });
+  });
+
+  // Check if current user has an active push subscription on the server
+  app.get("/api/push/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+      res.json({ 
+        hasSubscription: subscriptions.length > 0,
+        count: subscriptions.length 
+      });
+    } catch (error) {
+      console.error("[Push] Status check error:", error);
+      res.status(500).json({ message: "Erro ao verificar status push" });
+    }
+  });
+
   // OPTIMIZED: Diagnostic endpoint to check push notification status (admin only) - batch query
   app.get("/api/admin/push-status", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

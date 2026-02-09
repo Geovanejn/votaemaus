@@ -4,9 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { apiRequest } from '@/lib/queryClient';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 const DISMISSED_KEY = 'visitor_notification_dismissed';
 const SUBSCRIBED_KEY = 'visitor_notification_subscribed';
+
+let cachedVapidKey: string | null = null;
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) { cachedVapidKey = envKey; return envKey; }
+  try {
+    const resp = await fetch('/api/push/vapid-key');
+    if (resp.ok) { const d = await resp.json(); if (d.publicKey) { cachedVapidKey = d.publicKey; return d.publicKey; } }
+  } catch (e) { console.error('[Push] Failed to fetch VAPID key:', e); }
+  return '';
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -34,7 +45,7 @@ export function VisitorNotificationPrompt({ className }: VisitorNotificationProm
   const [isSupported, setIsSupported] = useState(false);
 
   useEffect(() => {
-    const checkVisibility = () => {
+    const checkVisibility = async () => {
       const isLoggedIn = !!localStorage.getItem('token');
       if (isLoggedIn) {
         setIsVisible(false);
@@ -42,17 +53,18 @@ export function VisitorNotificationPrompt({ className }: VisitorNotificationProm
       }
       
       const isDismissed = localStorage.getItem(DISMISSED_KEY) === 'true';
-      const isSubscribed = localStorage.getItem(SUBSCRIBED_KEY) === 'true';
+      const isSubscribedLocal = localStorage.getItem(SUBSCRIBED_KEY) === 'true';
       
+      const vapidKey = await getVapidPublicKey();
       const supported = 
         'serviceWorker' in navigator && 
         'PushManager' in window && 
         'Notification' in window &&
-        VAPID_PUBLIC_KEY;
+        vapidKey;
       
       setIsSupported(!!supported);
       
-      if (isDismissed || isSubscribed || !supported) {
+      if (isDismissed || isSubscribedLocal || !supported) {
         setIsVisible(false);
         return;
       }
@@ -93,9 +105,11 @@ export function VisitorNotificationPrompt({ className }: VisitorNotificationProm
       let subscription = await registration.pushManager.getSubscription();
       
       if (!subscription) {
+        const vapidKey = await getVapidPublicKey();
+        if (!vapidKey) throw new Error('VAPID key not available');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
       }
       

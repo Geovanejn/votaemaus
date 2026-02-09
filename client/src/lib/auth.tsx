@@ -20,7 +20,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SESSION_DURATION = 96 * 60 * 60 * 1000; // 96 hours (4 days) - must match JWT expiration in server/auth.ts
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -31,6 +30,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+async function getVapidKey(): Promise<string> {
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) return envKey;
+  
+  try {
+    const resp = await fetch('/api/push/vapid-key');
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.publicKey || '';
+    }
+  } catch (e) {
+    console.error('[Push Sync] Failed to fetch VAPID key:', e);
+  }
+  return '';
 }
 
 async function ensurePushSubscriptionSynced(authToken: string): Promise<void> {
@@ -45,22 +60,42 @@ async function ensurePushSubscriptionSynced(authToken: string): Promise<void> {
       return;
     }
 
-    if (!VAPID_PUBLIC_KEY) {
-      console.log('[Push Sync] VAPID key not configured');
+    const vapidKey = await getVapidKey();
+    if (!vapidKey) {
+      console.log('[Push Sync] VAPID key not available from env or server');
       return;
     }
 
-    console.log('[Push Sync] Ensuring push subscription is synced...');
+    let serverHasSub = false;
+    try {
+      const statusResp = await fetch('/api/push/status', {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (statusResp.ok) {
+        const statusData = await statusResp.json();
+        serverHasSub = statusData.hasSubscription === true;
+      }
+    } catch (e) {
+      console.warn('[Push Sync] Could not check server status, will sync anyway');
+    }
+
+    if (serverHasSub) {
+      console.log('[Push Sync] Server already has subscription, skipping sync');
+      localStorage.setItem('push_last_sync', Date.now().toString());
+      return;
+    }
+
+    console.log('[Push Sync] Server missing subscription, syncing...');
     
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
-      console.log('[Push Sync] No existing subscription, creating new one...');
+      console.log('[Push Sync] No browser subscription, creating new one...');
       try {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
       } catch (subError) {
         console.error('[Push Sync] Failed to create subscription:', subError);
@@ -123,15 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
         
-        // Auto-sync push subscription for existing sessions
-        const lastSync = localStorage.getItem('push_last_sync');
-        const syncAge = lastSync ? Date.now() - parseInt(lastSync) : Infinity;
-        const ONE_HOUR = 60 * 60 * 1000;
-        
-        if (syncAge > ONE_HOUR) {
-          console.log('[Push Sync] Session restored, triggering auto-sync (last sync > 1h ago)');
-          setTimeout(() => ensurePushSubscriptionSynced(storedToken), 2000);
-        }
+        console.log('[Push Sync] Session restored, triggering auto-sync');
+        setTimeout(() => ensurePushSubscriptionSynced(storedToken), 2000);
       } else {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -164,7 +192,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [token]);
 
-  // Auto-sync push subscription when tab becomes visible again
   useEffect(() => {
     if (!token) return;
 
@@ -172,10 +199,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'visible') {
         const lastSync = localStorage.getItem('push_last_sync');
         const syncAge = lastSync ? Date.now() - parseInt(lastSync) : Infinity;
-        const ONE_HOUR = 60 * 60 * 1000;
+        const FIFTEEN_MIN = 15 * 60 * 1000;
         
-        if (syncAge > ONE_HOUR) {
-          console.log('[Push Sync] Tab visible, triggering auto-sync (last sync > 1h ago)');
+        if (syncAge > FIFTEEN_MIN) {
+          console.log('[Push Sync] Tab visible, triggering auto-sync');
           ensurePushSubscriptionSynced(token);
         }
       }

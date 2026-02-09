@@ -11,10 +11,21 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/lib/auth';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 const NOTIFICATION_DISMISSED_KEY = 'unified_notification_dismissed';
 const NOTIFICATION_SUBSCRIBED_KEY = 'unified_notification_subscribed';
 const ANONYMOUS_SUB_ID_KEY = 'anonymous_push_subscription_id';
+
+let cachedVapidKey: string | null = null;
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) { cachedVapidKey = envKey; return envKey; }
+  try {
+    const resp = await fetch('/api/push/vapid-key');
+    if (resp.ok) { const d = await resp.json(); if (d.publicKey) { cachedVapidKey = d.publicKey; return d.publicKey; } }
+  } catch (e) { console.error('[Push] Failed to fetch VAPID key:', e); }
+  return '';
+}
 
 // Browser detection utilities
 function detectBrowser(): { name: string; isBrave: boolean; isIOS: boolean; isSafari: boolean; isFirefox: boolean; isChrome: boolean; isEdge: boolean } {
@@ -160,11 +171,12 @@ export function UnifiedNotificationPrompt() {
       setBrowserInfo(browser);
       console.log('[UnifiedNotification] Detected browser:', browser.name, browser);
       
+      const vapidKey = await getVapidPublicKey();
       const supported = 
         'serviceWorker' in navigator && 
         'PushManager' in window && 
         'Notification' in window &&
-        VAPID_PUBLIC_KEY;
+        vapidKey;
       
       setIsSupported(!!supported);
       
@@ -294,9 +306,13 @@ export function UnifiedNotificationPrompt() {
       
       if (!subscription) {
         console.log('[UnifiedNotification] Creating new subscription...');
+        const vapidKey = await getVapidPublicKey();
+        if (!vapidKey) {
+          throw new Error('VAPID key not available');
+        }
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
         console.log('[UnifiedNotification] New subscription created');
       }

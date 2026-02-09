@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 type PermissionState = 'default' | 'granted' | 'denied';
 
@@ -13,7 +12,6 @@ interface PushNotificationState {
   browserInfo: { name: string; isBrave: boolean; requiresSetup: boolean } | null;
 }
 
-// Detect browser for better error messages
 function detectBrowserInfo(): { name: string; isBrave: boolean; requiresSetup: boolean } {
   const ua = navigator.userAgent;
   const isBrave = !!(navigator as any).brave?.isBrave;
@@ -30,7 +28,6 @@ function detectBrowserInfo(): { name: string; isBrave: boolean; requiresSetup: b
   else if (isFirefox) name = 'Firefox';
   else if (isSafari) name = 'Safari';
   
-  // Brave requires special setup for push notifications
   const requiresSetup = isBrave || isIOS;
   
   return { name, isBrave, requiresSetup };
@@ -58,9 +55,35 @@ function getSubscriptionError(error: any, browserInfo: ReturnType<typeof detectB
   return `Erro ao ativar notificações no ${browserInfo.name}. Verifique as permissões do navegador.`;
 }
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 const VISITOR_SUBSCRIBED_KEY = 'visitor_notification_subscribed';
 const VISITOR_DISMISSED_KEY = 'visitor_notification_dismissed';
+
+let cachedVapidKey: string | null = null;
+
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+  
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) {
+    cachedVapidKey = envKey;
+    return envKey;
+  }
+  
+  try {
+    const response = await fetch('/api/push/vapid-key');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.publicKey) {
+        cachedVapidKey = data.publicKey;
+        return data.publicKey;
+      }
+    }
+  } catch (e) {
+    console.error('[Push] Failed to fetch VAPID key from server:', e);
+  }
+  
+  return '';
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -78,6 +101,21 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+async function checkServerSubscriptionStatus(token: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/push/status', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.hasSubscription === true;
+    }
+  } catch (e) {
+    console.error('[Push] Failed to check server subscription status:', e);
+  }
+  return false;
+}
+
 export function usePushNotifications() {
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
@@ -88,86 +126,129 @@ export function usePushNotifications() {
     error: null,
     browserInfo: null,
   });
+  const syncInProgress = useRef(false);
 
   useEffect(() => {
     const checkSupportAndSync = async () => {
-      const browserInfo = detectBrowserInfo();
-      const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-      
-      if (!isSupported) {
-        setState(prev => ({ ...prev, isSupported: false, browserInfo }));
-        return;
-      }
-
-      const permission = Notification.permission as PermissionState;
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        localStorage.removeItem(VISITOR_SUBSCRIBED_KEY);
-        localStorage.removeItem(VISITOR_DISMISSED_KEY);
-      }
-      
-      let isSubscribed = false;
-      let isSubscribedOnServer = false;
+      if (syncInProgress.current) return;
+      syncInProgress.current = true;
       
       try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        isSubscribed = subscription !== null;
+        const browserInfo = detectBrowserInfo();
+        const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
         
-        console.log('[Push] Subscription status:', isSubscribed ? 'Subscribed' : 'Not subscribed');
-
-        if (subscription && permission === 'granted' && token) {
-          const subscriptionJson = subscription.toJSON();
-          
-          if (subscriptionJson.keys?.p256dh && subscriptionJson.keys?.auth) {
-            try {
-              console.log('[Push] Syncing subscription with server...');
-              const response = await fetch('/api/notifications/subscribe', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  endpoint: subscription.endpoint,
-                  p256dh: subscriptionJson.keys.p256dh,
-                  auth: subscriptionJson.keys.auth,
-                }),
-              });
-              
-              if (response.ok) {
-                isSubscribedOnServer = true;
-                console.log('[Push] Subscription synced with server successfully');
-              } else {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('[Push] Server sync failed:', response.status, errorData);
-              }
-            } catch (syncError) {
-              console.error('[Push] Error syncing subscription:', syncError);
-            }
-          } else {
-            console.warn('[Push] Subscription keys missing from JSON');
-          }
+        if (!isSupported) {
+          setState(prev => ({ ...prev, isSupported: false, browserInfo }));
+          return;
         }
-      } catch (error) {
-        console.error('[Push] Error checking subscription:', error);
-      }
 
-      setState(prev => ({
-        ...prev,
-        isSupported: true,
-        permission,
-        isSubscribed: isSubscribedOnServer || (isSubscribed && !token),
-        isSubscribedOnServer,
-        browserInfo,
-      }));
+        const permission = Notification.permission as PermissionState;
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          localStorage.removeItem(VISITOR_SUBSCRIBED_KEY);
+          localStorage.removeItem(VISITOR_DISMISSED_KEY);
+        }
+        
+        let isSubscribed = false;
+        let isSubscribedOnServer = false;
+        
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          isSubscribed = subscription !== null;
+          
+          console.log('[Push] Browser subscription:', isSubscribed ? 'exists' : 'none');
+
+          if (permission === 'granted' && token) {
+            const serverHasSub = await checkServerSubscriptionStatus(token);
+            console.log('[Push] Server subscription status:', serverHasSub);
+            
+            if (!serverHasSub) {
+              console.log('[Push] Server missing subscription, attempting to register...');
+              
+              const vapidKey = await getVapidPublicKey();
+              if (!vapidKey) {
+                console.error('[Push] No VAPID key available');
+                setState(prev => ({ ...prev, isSupported: true, permission, isSubscribed: false, isSubscribedOnServer: false, browserInfo }));
+                return;
+              }
+              
+              if (!subscription) {
+                console.log('[Push] No browser subscription, creating new one...');
+                try {
+                  const newSub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+                  });
+                  const subJson = newSub.toJSON();
+                  if (subJson.keys?.p256dh && subJson.keys?.auth) {
+                    const resp = await fetch('/api/notifications/subscribe', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        endpoint: newSub.endpoint,
+                        p256dh: subJson.keys.p256dh,
+                        auth: subJson.keys.auth,
+                      }),
+                    });
+                    if (resp.ok) {
+                      isSubscribedOnServer = true;
+                      isSubscribed = true;
+                      console.log('[Push] New subscription created and synced to server');
+                    }
+                  }
+                } catch (subErr) {
+                  console.error('[Push] Failed to create new subscription:', subErr);
+                }
+              } else {
+                const subJson = subscription.toJSON();
+                if (subJson.keys?.p256dh && subJson.keys?.auth) {
+                  console.log('[Push] Syncing existing browser subscription to server...');
+                  const resp = await fetch('/api/notifications/subscribe', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      endpoint: subscription.endpoint,
+                      p256dh: subJson.keys.p256dh,
+                      auth: subJson.keys.auth,
+                    }),
+                  });
+                  if (resp.ok) {
+                    isSubscribedOnServer = true;
+                    console.log('[Push] Existing subscription synced to server');
+                  }
+                }
+              }
+            } else {
+              isSubscribedOnServer = true;
+            }
+          }
+        } catch (error) {
+          console.error('[Push] Error during sync:', error);
+        }
+
+        setState(prev => ({
+          ...prev,
+          isSupported: true,
+          permission,
+          isSubscribed: isSubscribedOnServer || (isSubscribed && !token),
+          isSubscribedOnServer,
+          browserInfo,
+        }));
+      } finally {
+        syncInProgress.current = false;
+      }
     };
 
-    // Always sync on app load (user accessing the system)
     checkSupportAndSync();
     
-    // Revalidate when tab becomes visible (user returns to app after being away)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('[Push] Tab visible, revalidating subscription');
@@ -177,7 +258,6 @@ export function usePushNotifications() {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Listen for service worker updates to re-sync
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('[Push] Service worker updated, re-syncing subscription');
@@ -239,6 +319,17 @@ export function usePushNotifications() {
         return false;
       }
 
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) {
+        console.error('[Push] VAPID public key not available');
+        setState(prev => ({ 
+          ...prev, 
+          isLoading: false,
+          error: 'Push notifications not configured on server' 
+        }));
+        return false;
+      }
+
       console.log('[Push] Requesting Service Worker ready...');
       const registration = await navigator.serviceWorker.ready;
       
@@ -246,33 +337,67 @@ export function usePushNotifications() {
       let subscription = await registration.pushManager.getSubscription();
       
       if (!subscription) {
-        if (!VAPID_PUBLIC_KEY) {
-          console.error('[Push] VAPID public key not configured in environment');
-          setState(prev => ({ 
-            ...prev, 
-            isLoading: false,
-            error: 'Push notifications not configured on server' 
-          }));
-          return false;
-        }
-
-        console.log('[Push] Creating new subscription with key:', VAPID_PUBLIC_KEY.substring(0, 10) + '...');
+        console.log('[Push] Creating new subscription...');
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
       }
 
       console.log('[Push] Subscription obtained, sending to server...');
       const subscriptionJson = subscription.toJSON();
+      const token = localStorage.getItem('token');
       
-      const response = await apiRequest('POST', '/api/notifications/subscribe', {
-        endpoint: subscription.endpoint,
-        p256dh: subscriptionJson.keys?.p256dh || '',
-        auth: subscriptionJson.keys?.auth || '',
-      });
+      if (token) {
+        const anonSubId = localStorage.getItem('anonymous_push_subscription_id');
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        };
+        if (anonSubId) {
+          headers['x-anonymous-subscription-id'] = anonSubId;
+        }
+        
+        const response = await fetch('/api/notifications/subscribe', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            p256dh: subscriptionJson.keys?.p256dh || '',
+            auth: subscriptionJson.keys?.auth || '',
+          }),
+        });
+        
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Server subscription failed');
+        }
+        
+        if (anonSubId) {
+          localStorage.removeItem('anonymous_push_subscription_id');
+        }
+      } else {
+        const response = await fetch('/api/notifications/subscribe-anonymous', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            p256dh: subscriptionJson.keys?.p256dh || '',
+            auth: subscriptionJson.keys?.auth || '',
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.id) {
+            localStorage.setItem('anonymous_push_subscription_id', data.id.toString());
+          }
+        }
+      }
 
-      console.log('[Push] Server response received');
+      console.log('[Push] Server response received - subscription saved');
+      localStorage.setItem('push_last_sync', Date.now().toString());
+      
       setState(prev => ({ 
         ...prev, 
         isSubscribed: true, 
@@ -309,11 +434,19 @@ export function usePushNotifications() {
       if (subscription) {
         await subscription.unsubscribe();
         
-        await apiRequest('POST', '/api/notifications/unsubscribe', {
-          endpoint: subscription.endpoint,
+        const token = localStorage.getItem('token');
+        await fetch('/api/notifications/unsubscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
         });
       }
 
+      localStorage.removeItem('push_last_sync');
+      
       setState(prev => ({ 
         ...prev, 
         isSubscribed: false, 

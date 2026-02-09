@@ -2,20 +2,29 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 export function NotificationToggle() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
+    isSubscribedOnServer,
+    isLoading: hookLoading,
+    subscribe,
+    error: hookError,
+  } = usePushNotifications();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if ("Notification" in window) {
-      setPermission(Notification.permission);
+    if (hookError) {
+      console.error('[NotificationToggle] Hook error:', hookError);
     }
-  }, []);
+  }, [hookError]);
 
-  const requestPermission = async () => {
-    if (!("Notification" in window)) {
+  const handleActivate = async () => {
+    if (!isSupported) {
       toast({
         title: "Não suportado",
         description: "Seu navegador não suporta notificações push.",
@@ -24,7 +33,7 @@ export function NotificationToggle() {
       return;
     }
 
-    if (Notification.permission === "denied") {
+    if (permission === "denied") {
       toast({
         title: "Permissão Negada",
         description: "As notificações foram bloqueadas nas configurações do seu navegador. Para ativar, clique no ícone de cadeado na barra de endereços (ao lado da URL) e altere a permissão de Notificações para 'Permitir'.",
@@ -35,66 +44,24 @@ export function NotificationToggle() {
 
     setLoading(true);
     try {
-      console.log('[Push] Requesting permission via toggle...');
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      
-      if (result === "granted") {
-        console.log('[Push] Permission granted, checking service worker...');
-        const registration = await navigator.serviceWorker.ready;
-        console.log('[Push] Service worker ready, checking subscription...');
-        let subscription = await registration.pushManager.getSubscription();
-        
-        if (!subscription) {
-          console.log('[Push] No subscription found, creating new one...');
-          const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-          if (!VAPID_PUBLIC_KEY) {
-            throw new Error('VAPID public key not configured');
-          }
-          
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-          });
-        }
-        
-        console.log('[Push] Sending subscription to server...');
-        const subscriptionJson = subscription.toJSON();
-        const token = localStorage.getItem('token');
-        
-        const response = await fetch('/api/notifications/subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            endpoint: subscription.endpoint,
-            p256dh: subscriptionJson.keys?.p256dh,
-            auth: subscriptionJson.keys?.auth,
-          }),
+      const success = await subscribe();
+      if (success) {
+        toast({
+          title: "Sucesso!",
+          description: "Notificações ativadas com sucesso.",
         });
-        
-        if (response.ok) {
-          toast({
-            title: "Sucesso!",
-            description: "Notificações ativadas com sucesso.",
-          });
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('[Push] Server subscription failed:', response.status, errorData);
-          toast({
-            title: "Erro",
-            description: "Não foi possível registrar as notificações no servidor.",
-            variant: "destructive",
-          });
-        }
+      } else {
+        toast({
+          title: "Erro",
+          description: hookError || "Não foi possível ativar as notificações. Tente novamente.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error("Error requesting notification permission:", error);
+      console.error("[NotificationToggle] Error:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao ativar as notificações.",
+        description: "Ocorreu um erro ao ativar as notificações. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -102,25 +69,12 @@ export function NotificationToggle() {
     }
   };
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
+  const isActive = isSubscribed && isSubscribedOnServer;
+  const isProcessing = loading || hookLoading;
 
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-
-  return outputArray;
-}
-
-  if (permission === "granted") {
+  if (isActive) {
     return (
-      <Button variant="outline" size="sm" className="w-full gap-2 text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700" disabled>
+      <Button variant="outline" size="sm" className="w-full gap-2 text-green-600 border-green-200 bg-green-50" disabled data-testid="button-notifications-active">
         <Bell className="h-4 w-4" />
         Notificações Ativas
       </Button>
@@ -132,15 +86,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
       variant="outline" 
       size="sm" 
       className="w-full gap-2 hover-elevate" 
-      onClick={requestPermission}
-      disabled={loading}
+      onClick={handleActivate}
+      disabled={isProcessing}
+      data-testid="button-activate-notifications-toggle"
     >
-      {loading ? (
+      {isProcessing ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <BellOff className="h-4 w-4" />
       )}
-      Ativar Notificações
+      {permission === 'granted' && !isSubscribedOnServer ? 'Reativar Notificações' : 'Ativar Notificações'}
     </Button>
   );
 }

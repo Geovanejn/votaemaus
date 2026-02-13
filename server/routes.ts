@@ -14074,9 +14074,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allOrders = await storage.getShopOrders();
       const now = new Date();
       
-      // Filter pending orders only
       const pendingOrders = allOrders.filter(o => 
-        o.paymentStatus !== 'paid' && o.paymentStatus !== 'cancelled'
+        o.paymentStatus !== 'paid' && o.paymentStatus !== 'cancelled' && o.orderStatus !== 'cancelled'
       );
       
       if (pendingOrders.length === 0) {

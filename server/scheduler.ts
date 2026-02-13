@@ -1942,6 +1942,7 @@ async function processShopInstallmentReminders(): Promise<void> {
       
       const order = await storage.getShopOrderById(installment.orderId);
       if (!order) continue;
+      if (order.orderStatus === 'cancelled') continue;
       
       const dueDate = new Date(installment.dueDate);
       const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());

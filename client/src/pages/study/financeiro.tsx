@@ -939,15 +939,29 @@ export default function FinanceiroPage() {
                                   {formatDate(order.createdAt)}
                                 </p>
                               </div>
-                              <div className="text-right">
+                              <div className="text-right space-y-1">
                                 <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
                                 <Badge 
-                                  variant={order.paymentStatus === "paid" ? "default" : "secondary"}
+                                  variant={order.paymentStatus === "paid" ? "default" : 
+                                           order.paymentStatus === "cancelled" || order.paymentStatus === "expired" ? "destructive" : "secondary"}
                                   className={`text-xs ${order.paymentStatus === "paid" ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                                 >
                                   {order.paymentStatus === "paid" ? "Pago" : 
-                                   order.paymentStatus === "partial" ? "Parcial" : "Pendente"}
+                                   order.paymentStatus === "partial" ? "Parcial" :
+                                   order.paymentStatus === "cancelled" ? "Cancelado" :
+                                   order.paymentStatus === "expired" ? "Expirado" : "Pendente"}
                                 </Badge>
+                                {order.orderStatus && order.orderStatus !== "awaiting_payment" && order.paymentStatus !== "cancelled" && order.paymentStatus !== "expired" && (
+                                  <Badge 
+                                    variant="outline"
+                                    className="text-xs ml-1"
+                                  >
+                                    {order.orderStatus === "paid" ? "Pago" :
+                                     order.orderStatus === "installment_payment" ? "Parcelado" :
+                                     order.orderStatus === "producing" ? "Produzindo" :
+                                     order.orderStatus === "ready" ? "Pronto" : order.orderStatus}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                             
@@ -961,70 +975,79 @@ export default function FinanceiroPage() {
                               ))}
                             </div>
 
-                            {/* Installments */}
-                            {order.hasInstallments && order.installments.length > 0 ? (
-                              <div className="space-y-2 mt-3 pt-2 border-t">
-                                <p className="text-xs font-medium text-muted-foreground">Parcelas:</p>
-                                {order.installments.map((inst) => (
-                                  <div 
-                                    key={inst.id}
-                                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 text-sm border-b last:border-0"
-                                    data-testid={`installment-${inst.id}`}
-                                  >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="text-xs font-medium">
-                                        {inst.installmentNumber}ª parcela
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        Venc: {formatDate(inst.dueDate)}
-                                      </span>
-                                      <span className="text-sm font-medium">
-                                        {formatCurrency(inst.amount)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {inst.status === "paid" ? (
-                                        <Badge className="text-xs bg-green-600 hover:bg-green-700 text-white">
-                                          <CheckCircle className="h-3 w-3 mr-1" />
-                                          Pago
-                                        </Badge>
-                                      ) : (
-                                        <>
-                                          <Badge variant="secondary" className="text-xs">
-                                            <Clock className="h-3 w-3 mr-1" />
-                                            Pendente
-                                          </Badge>
-                                          {pixStatus?.configured && (
-                                            <Button
-                                              size="sm"
-                                              onClick={() => handlePayInstallment(inst.id)}
-                                              disabled={payingInstallmentId === inst.id}
-                                              className="gap-1"
-                                              data-testid={`button-pay-installment-${inst.id}`}
-                                            >
-                                              {payingInstallmentId === inst.id ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                              ) : (
-                                                <QrCode className="h-3 w-3" />
+                            {/* Installments - hide for cancelled/expired orders */}
+                            {order.paymentStatus !== "cancelled" && order.paymentStatus !== "expired" && (
+                              <>
+                                {order.hasInstallments && order.installments.length > 0 ? (
+                                  <div className="space-y-2 mt-3 pt-2 border-t">
+                                    <p className="text-xs font-medium text-muted-foreground">Parcelas:</p>
+                                    {order.installments.map((inst) => (
+                                      <div 
+                                        key={inst.id}
+                                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 text-sm border-b last:border-0"
+                                        data-testid={`installment-${inst.id}`}
+                                      >
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="text-xs font-medium">
+                                            {inst.installmentNumber}ª parcela
+                                          </span>
+                                          <span className="text-xs text-muted-foreground">
+                                            Venc: {formatDate(inst.dueDate)}
+                                          </span>
+                                          <span className="text-sm font-medium">
+                                            {formatCurrency(inst.amount)}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {inst.status === "paid" ? (
+                                            <Badge className="text-xs bg-green-600 hover:bg-green-700 text-white">
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                              Pago
+                                            </Badge>
+                                          ) : inst.status === "cancelled" ? (
+                                            <Badge variant="destructive" className="text-xs">
+                                              <AlertCircle className="h-3 w-3 mr-1" />
+                                              Cancelado
+                                            </Badge>
+                                          ) : (
+                                            <>
+                                              <Badge variant="secondary" className="text-xs">
+                                                <Clock className="h-3 w-3 mr-1" />
+                                                Pendente
+                                              </Badge>
+                                              {pixStatus?.configured && (
+                                                <Button
+                                                  size="sm"
+                                                  onClick={() => handlePayInstallment(inst.id)}
+                                                  disabled={payingInstallmentId === inst.id}
+                                                  className="gap-1"
+                                                  data-testid={`button-pay-installment-${inst.id}`}
+                                                >
+                                                  {payingInstallmentId === inst.id ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                  ) : (
+                                                    <QrCode className="h-3 w-3" />
+                                                  )}
+                                                  PIX
+                                                </Button>
                                               )}
-                                              PIX
-                                            </Button>
+                                            </>
                                           )}
-                                        </>
-                                      )}
-                                    </div>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            ) : order.paymentStatus !== "paid" && pixStatus?.configured && (
-                              <div className="mt-2 pt-2 border-t">
-                                <Link href={`/loja/pedidos`}>
-                                  <Button size="sm" className="gap-1 w-full">
-                                    <QrCode className="h-3 w-3" />
-                                    Ver Pedido para Pagar
-                                  </Button>
-                                </Link>
-                              </div>
+                                ) : order.paymentStatus !== "paid" && pixStatus?.configured && (
+                                  <div className="mt-2 pt-2 border-t">
+                                    <Link href={`/loja/pedidos`}>
+                                      <Button size="sm" className="gap-1 w-full">
+                                        <QrCode className="h-3 w-3" />
+                                        Ver Pedido para Pagar
+                                      </Button>
+                                    </Link>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         ))}

@@ -10442,8 +10442,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pedido não encontrado" });
       }
       
-      if (orderStatus === "cancelled" && currentOrder.orderStatus === "installment_payment") {
-        return res.status(400).json({ message: "Não é possível cancelar pedido com pagamento parcelado em andamento" });
+      if (orderStatus === "cancelled") {
+        const installments = await storage.getShopInstallmentsByOrderId(id);
+        const hasPaidInstallments = installments.some((inst: { status: string }) => inst.status === "paid");
+        if (hasPaidInstallments) {
+          return res.status(400).json({ message: "Não é possível cancelar pedido que possui parcelas pagas" });
+        }
       }
       
       // Security: Prevent changing from paid/producing/ready/delivered to awaiting_payment
@@ -10517,10 +10521,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (orderStatus === "cancelled") {
         for (const orderId of orderIds) {
           const currentOrder = await storage.getShopOrderById(orderId);
-          if (currentOrder && currentOrder.orderStatus === "installment_payment") {
-            return res.status(400).json({ 
-              message: `Pedido ${currentOrder.orderCode} tem pagamento parcelado em andamento e não pode ser cancelado` 
-            });
+          if (currentOrder) {
+            const installments = await storage.getShopInstallmentsByOrderId(orderId);
+            const hasPaidInstallments = installments.some((inst: { status: string }) => inst.status === "paid");
+            if (hasPaidInstallments) {
+              return res.status(400).json({ 
+                message: `Pedido ${currentOrder.orderCode} possui parcelas pagas e não pode ser cancelado` 
+              });
+            }
           }
         }
       }
@@ -11961,6 +11969,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.clearCart(req.user!.id);
       
+      const user = await storage.getUserById(req.user!.id);
+      const userName = user?.name || 'Membro';
+      notifyMarketingAndTreasurer(
+        '🛒 Novo Pedido Realizado',
+        `${userName} fez o pedido ${order.orderCode} no valor de R$ ${(finalAmount / 100).toFixed(2)}${installmentCount > 1 ? ` (${installmentCount}x)` : ''}`,
+        { orderId: order.id, orderCode: order.orderCode }
+      );
+      
       res.json({ ...order, originalAmount: totalAmount, discountAmount, installmentCount });
     } catch (error) {
       console.error("Checkout error:", error);
@@ -12088,15 +12104,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pedido não encontrado" });
       }
       
-      if (order.paymentStatus !== "pending") {
+      if (order.paymentStatus === "paid") {
         return res.status(400).json({ message: "Não é possível cancelar pedido já pago" });
       }
       
-      if (order.orderStatus === "installment_payment") {
-        return res.status(400).json({ message: "Não é possível cancelar pedido com pagamento parcelado em andamento" });
+      const installments = await storage.getShopInstallmentsByOrderId(id);
+      const hasPaidInstallments = installments.some((inst: { status: string }) => inst.status === "paid");
+      if (hasPaidInstallments) {
+        return res.status(400).json({ message: "Não é possível cancelar pedido que possui parcelas pagas" });
       }
       
-      await storage.updateShopOrder(id, { orderStatus: "cancelled" });
+      await storage.updateShopOrder(id, { orderStatus: "cancelled", paymentStatus: "cancelled" });
       res.json({ success: true });
     } catch (error) {
       console.error("Cancel order error:", error);
@@ -14752,6 +14770,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     });
                     
                     console.log(`[Webhook] Installment ${installment.id} paid for order ${order.id}`);
+                    
+                    const instUser = await storage.getUserById(order.userId);
+                    notifyMarketingAndTreasurer(
+                      '💳 Parcela Paga',
+                      `${instUser?.name || 'Membro'} pagou parcela ${installment.installmentNumber} do pedido ${order.orderCode} - R$ ${(installment.amount / 100).toFixed(2)}`,
+                      { orderId: order.id, installmentId: installment.id }
+                    );
                   }
                 }
               }
@@ -14881,6 +14906,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
                 
                 console.log(`[Webhook Type-based] Installment ${installment.id} paid for order ${order.id}`);
+                
+                const instUser2 = await storage.getUserById(order.userId);
+                notifyMarketingAndTreasurer(
+                  '💳 Parcela Paga',
+                  `${instUser2?.name || 'Membro'} pagou parcela ${installment.installmentNumber} do pedido ${order.orderCode} - R$ ${(installment.amount / 100).toFixed(2)}`,
+                  { orderId: order.id, installmentId: installment.id }
+                );
               }
             }
           }
@@ -14895,6 +14927,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to process payment completion
+  async function notifyMarketingAndTreasurer(title: string, body: string, data?: Record<string, any>) {
+    try {
+      const [marketingUsers, treasurer] = await Promise.all([
+        storage.getUsersBySecretaria("marketing"),
+        storage.getTreasurer(),
+      ]);
+      
+      const notifyUserIds = new Set<number>();
+      for (const u of marketingUsers) notifyUserIds.add(u.id);
+      if (treasurer) notifyUserIds.add(treasurer.id);
+      
+      for (const userId of notifyUserIds) {
+        await storage.createNotification({
+          userId,
+          type: 'admin_alert',
+          title,
+          body,
+          data: data ? JSON.stringify(data) : undefined,
+        });
+        await sendPushToUser(userId, {
+          title,
+          body,
+          url: '/admin/marketing/pedidos',
+          tag: `admin-alert-${Date.now()}`,
+          icon: '/logo.png',
+        });
+      }
+      console.log(`[Notify] Sent "${title}" to ${notifyUserIds.size} marketing/treasurer users`);
+    } catch (error) {
+      console.error("[Notify] Error notifying marketing/treasurer:", error);
+    }
+  }
+
+  async function notifyTreasurer(title: string, body: string, url: string, data?: Record<string, any>) {
+    try {
+      const treasurer = await storage.getTreasurer();
+      if (!treasurer) return;
+      
+      await storage.createNotification({
+        userId: treasurer.id,
+        type: 'admin_alert',
+        title,
+        body,
+        data: data ? JSON.stringify(data) : undefined,
+      });
+      await sendPushToUser(treasurer.id, {
+        title,
+        body,
+        url,
+        tag: `treasurer-alert-${Date.now()}`,
+        icon: '/logo.png',
+      });
+      console.log(`[Notify] Sent "${title}" to treasurer ${treasurer.id}`);
+    } catch (error) {
+      console.error("[Notify] Error notifying treasurer:", error);
+    }
+  }
+
   async function processPaymentCompletion(entry: any) {
     try {
       const now = new Date();
@@ -14958,6 +15048,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           icon: '/logo.png',
         });
         console.log(`[Payment] UMP payment notification sent to user ${entry.userId}`);
+        
+        const umpUser = await storage.getUserById(entry.userId);
+        notifyTreasurer(
+          '💰 Taxa UMP Paga',
+          `${umpUser?.name || 'Membro'} pagou taxa UMP (${monthsText}/${entry.referenceYear}) - R$ ${(entry.amount / 100).toFixed(2)}`,
+          '/admin/tesouraria',
+          { entryId: entry.id, category: 'taxa_ump', userId: entry.userId }
+        );
       }
 
       // Handle Percapta payment
@@ -14987,6 +15085,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           icon: '/logo.png',
         });
         console.log(`[Payment] Percapta payment notification sent to user ${entry.userId}`);
+        
+        const percaptaUser = await storage.getUserById(entry.userId);
+        notifyTreasurer(
+          '💰 Taxa Percapta Paga',
+          `${percaptaUser?.name || 'Membro'} pagou taxa Percapta ${entry.referenceYear} - R$ ${(entry.amount / 100).toFixed(2)}`,
+          '/admin/tesouraria',
+          { entryId: entry.id, category: 'taxa_percapta', userId: entry.userId }
+        );
       }
 
       // Handle shop order
@@ -15022,6 +15128,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tag: `order-paid-${order.id}`,
             icon: '/logo.png',
           });
+          
+          const orderUser = await storage.getUserById(order.userId);
+          notifyMarketingAndTreasurer(
+            '✅ Pedido Pago Integralmente',
+            `${orderUser?.name || 'Membro'} pagou o pedido ${order.orderCode} - R$ ${(order.totalAmount / 100).toFixed(2)}`,
+            { orderId: order.id, orderCode: order.orderCode }
+          );
         }
       }
 

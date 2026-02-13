@@ -110,6 +110,7 @@ const installmentStatusLabels: Record<string, { label: string; variant: "default
   pending: { label: "Pendente", variant: "secondary" },
   paid: { label: "Paga", variant: "default", className: "bg-green-600 hover:bg-green-700 text-white" },
   overdue: { label: "Atrasada", variant: "destructive" },
+  cancelled: { label: "Cancelado", variant: "destructive" },
 };
 
 export default function MeusPedidosPage() {
@@ -375,6 +376,11 @@ export default function MeusPedidosPage() {
                           {formatCurrency(order.totalAmount)}
                         </p>
                       </div>
+                      {order.orderStatus !== "awaiting_payment" && order.paymentStatus !== "cancelled" && (
+                        <Badge variant={orderStatusLabels[order.orderStatus]?.variant || "secondary"}>
+                          {orderStatusLabels[order.orderStatus]?.label || order.orderStatus}
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -492,7 +498,7 @@ export default function MeusPedidosPage() {
                               )}
                             </div>
 
-                            {inst.status === "pending" && pixStatus?.configured && (
+                            {inst.status === "pending" && pixStatus?.configured && selectedOrder.paymentStatus !== "cancelled" && selectedOrder.orderStatus !== "cancelled" && (
                               <div className="flex flex-wrap gap-2 mt-1">
                                 {needsNewPix ? (
                                   <Button

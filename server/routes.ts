@@ -9349,7 +9349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      res.json(eventsWithCounts);
+      res.json(convertImageUrlsArray(eventsWithCounts));
     } catch (error) {
       console.error("Get active events error:", error);
       res.status(500).json({ message: "Erro ao buscar eventos" });
@@ -9374,7 +9374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getUserEventProgress(req.user!.id, id),
         storage.getStudyEventLessonsLightweight(id), // OPTIMIZED: excludes content/questions
       ]);
-      res.json({ event, lessons, progress });
+      res.json({ event: convertImageUrls(event), lessons, progress });
     } catch (error) {
       console.error("Get event details error:", error);
       res.status(500).json({ message: "Erro ao buscar detalhes do evento" });

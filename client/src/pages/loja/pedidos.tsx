@@ -62,7 +62,7 @@ interface Order {
   userId: number;
   totalAmount: number;
   paymentStatus: "pending" | "paid" | "cancelled" | "refunded";
-  orderStatus: "awaiting_payment" | "paid" | "producing" | "ready" | "cancelled";
+  orderStatus: "awaiting_payment" | "installment_payment" | "paid" | "producing" | "ready" | "cancelled";
   pixCode: string | null;
   pixQrCode: string | null;
   pixExpiresAt: string | null;
@@ -98,6 +98,7 @@ const paymentStatusLabels: Record<string, { label: string; variant: "default" | 
 
 const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
+  installment_payment: { label: "Pagamento Parcelado", variant: "outline" },
   paid: { label: "Pago", variant: "default" },
   producing: { label: "Em Produção", variant: "outline" },
   ready: { label: "Pronto para Retirada", variant: "default" },

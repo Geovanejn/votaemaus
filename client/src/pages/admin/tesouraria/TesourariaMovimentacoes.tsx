@@ -114,6 +114,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 
 const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
+  installment_payment: { label: "Pagamento Parcelado", variant: "outline" },
   paid: { label: "Pago", variant: "default" },
   producing: { label: "Em Producao", variant: "outline" },
   ready: { label: "Pronto", variant: "default" },

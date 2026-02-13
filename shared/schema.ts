@@ -2170,7 +2170,7 @@ export type TreasuryExpenseCategoryType = "percapta" | "loan" | "events" | "mark
 export type PaymentStatus = "pending" | "paid" | "expired" | "cancelled";
 
 // Status do pedido
-export type OrderStatus = "awaiting_payment" | "paid" | "producing" | "ready";
+export type OrderStatus = "awaiting_payment" | "installment_payment" | "paid" | "producing" | "ready";
 
 // Métodos de pagamento
 export type PaymentMethod = "pix" | "cash" | "manual";

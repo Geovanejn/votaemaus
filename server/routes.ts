@@ -10431,7 +10431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status obrigatório" });
       }
       
-      const validStatuses = ["awaiting_payment", "paid", "producing", "ready", "delivered", "cancelled"];
+      const validStatuses = ["awaiting_payment", "installment_payment", "paid", "producing", "ready", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         return res.status(400).json({ message: "Status inválido" });
       }
@@ -10440,6 +10440,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentOrder = await storage.getShopOrderById(id);
       if (!currentOrder) {
         return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      if (orderStatus === "cancelled" && currentOrder.orderStatus === "installment_payment") {
+        return res.status(400).json({ message: "Não é possível cancelar pedido com pagamento parcelado em andamento" });
       }
       
       // Security: Prevent changing from paid/producing/ready/delivered to awaiting_payment
@@ -10505,9 +10509,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status obrigatório" });
       }
       
-      const validStatuses = ["awaiting_payment", "paid", "producing", "ready", "delivered", "cancelled"];
+      const validStatuses = ["awaiting_payment", "installment_payment", "paid", "producing", "ready", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         return res.status(400).json({ message: "Status inválido" });
+      }
+      
+      if (orderStatus === "cancelled") {
+        for (const orderId of orderIds) {
+          const currentOrder = await storage.getShopOrderById(orderId);
+          if (currentOrder && currentOrder.orderStatus === "installment_payment") {
+            return res.status(400).json({ 
+              message: `Pedido ${currentOrder.orderCode} tem pagamento parcelado em andamento e não pode ser cancelado` 
+            });
+          }
+        }
       }
       
       // Security: For bulk updates, if target is awaiting_payment, check all orders
@@ -12077,11 +12092,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Não é possível cancelar pedido já pago" });
       }
       
+      if (order.orderStatus === "installment_payment") {
+        return res.status(400).json({ message: "Não é possível cancelar pedido com pagamento parcelado em andamento" });
+      }
+      
       await storage.updateShopOrder(id, { orderStatus: "cancelled" });
       res.json({ success: true });
     } catch (error) {
       console.error("Cancel order error:", error);
       res.status(500).json({ message: "Erro ao cancelar pedido" });
+    }
+  });
+
+  app.post("/api/admin/fix-cancelled-installment-orders", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const allOrders = await storage.getShopOrders();
+      const cancelledOrders = allOrders.filter(o => o.orderStatus === 'cancelled');
+      
+      let fixedCount = 0;
+      const fixedOrders: string[] = [];
+      
+      for (const order of cancelledOrders) {
+        const installments = await storage.getShopInstallments(order.id);
+        if (installments.length === 0) continue;
+        
+        const paidInstallments = installments.filter(i => i.status === 'paid');
+        if (paidInstallments.length === 0) continue;
+        
+        const allPaid = installments.every(i => i.status === 'paid');
+        
+        if (allPaid) {
+          await storage.updateShopOrder(order.id, {
+            orderStatus: 'paid',
+            paymentStatus: 'paid',
+            paidAt: paidInstallments[paidInstallments.length - 1].paidAt || new Date(),
+          });
+        } else {
+          await storage.updateShopOrder(order.id, {
+            orderStatus: 'installment_payment',
+            paymentStatus: 'pending',
+          });
+        }
+        
+        fixedCount++;
+        fixedOrders.push(order.orderCode);
+        console.log(`[Fix] Restored cancelled order ${order.orderCode} with ${paidInstallments.length}/${installments.length} paid installments`);
+      }
+      
+      res.json({ 
+        message: `${fixedCount} pedido(s) corrigido(s)`,
+        fixedOrders,
+      });
+    } catch (error) {
+      console.error("Fix cancelled installment orders error:", error);
+      res.status(500).json({ message: "Erro ao corrigir pedidos" });
     }
   });
 
@@ -13966,7 +14030,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updated = await storage.updateShopInstallment(id, updates);
       
-      // Check if all installments are paid to update order status
       if (status === 'paid') {
         const order = await storage.getShopOrderById(installment.orderId);
         if (order) {
@@ -13976,7 +14039,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (allPaid) {
             await storage.updateShopOrder(order.id, { 
               paymentStatus: 'paid',
+              orderStatus: 'paid',
               paidAt: new Date(),
+            });
+          } else {
+            await storage.updateShopOrder(order.id, { 
+              orderStatus: 'installment_payment',
             });
           }
         }
@@ -14640,7 +14708,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       entryId: entryId,
                     });
                     
-                    // Check if all installments are paid (re-fetch to get fresh status)
                     const allInstallments = await storage.getShopInstallmentsByOrderId(installment.orderId);
                     const allPaid = allInstallments.every((inst: { status: string }) => 
                       inst.status === "paid"
@@ -14652,9 +14719,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         orderStatus: "paid",
                         paidAt: new Date(),
                       });
+                    } else {
+                      await storage.updateShopOrder(installment.orderId, {
+                        orderStatus: "installment_payment",
+                      });
                     }
                     
-                    // Send notification
                     await storage.createNotification({
                       userId: order.userId,
                       type: 'payment_confirmed',
@@ -14777,6 +14847,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     paymentStatus: "paid",
                     orderStatus: "paid",
                     paidAt: new Date(),
+                  });
+                } else {
+                  await storage.updateShopOrder(installment.orderId, {
+                    orderStatus: "installment_payment",
                   });
                 }
                 

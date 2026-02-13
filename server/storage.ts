@@ -240,6 +240,7 @@ export interface IStorage {
   clearAllDevotionals(): Promise<void>;
   
   getUpcomingEvents(limit?: number): Promise<any[]>;
+  getAllPublishedEvents(limit?: number): Promise<any[]>;
   getAllSiteEvents(): Promise<any[]>;
   createSiteEvent(data: { title: string; description?: string; imageUrl?: string; startDate: string; endDate?: string; time?: string; location?: string; isPublished?: boolean }): Promise<any>;
   clearAllSiteEvents(): Promise<void>;
@@ -2000,6 +2001,41 @@ export class DatabaseStorage implements IStorage {
         gte(schema.siteEvents.startDate, today)
       ))
       .orderBy(asc(schema.siteEvents.startDate));
+    
+    if (limit) {
+      return query.limit(limit);
+    }
+    return query;
+  }
+
+  async getAllPublishedEvents(limit?: number): Promise<any[]> {
+    let query = db.select({
+      id: schema.siteEvents.id,
+      title: schema.siteEvents.title,
+      description: schema.siteEvents.description,
+      shortDescription: schema.siteEvents.shortDescription,
+      imageUrl: schema.siteEvents.imageUrl,
+      startDate: schema.siteEvents.startDate,
+      endDate: schema.siteEvents.endDate,
+      time: schema.siteEvents.time,
+      location: schema.siteEvents.location,
+      locationUrl: schema.siteEvents.locationUrl,
+      price: schema.siteEvents.price,
+      registrationUrl: schema.siteEvents.registrationUrl,
+      category: schema.siteEvents.category,
+      isPublished: schema.siteEvents.isPublished,
+      isFeatured: schema.siteEvents.isFeatured,
+      isAllDay: schema.siteEvents.isAllDay,
+      createdBy: schema.siteEvents.createdBy,
+      createdAt: schema.siteEvents.createdAt,
+      updatedAt: schema.siteEvents.updatedAt,
+      feeAmount: schema.eventFees.feeAmount,
+      feeDeadline: schema.eventFees.deadline,
+    })
+      .from(schema.siteEvents)
+      .leftJoin(schema.eventFees, eq(schema.siteEvents.id, schema.eventFees.eventId))
+      .where(eq(schema.siteEvents.isPublished, true))
+      .orderBy(desc(schema.siteEvents.startDate));
     
     if (limit) {
       return query.limit(limit);

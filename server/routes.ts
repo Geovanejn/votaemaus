@@ -5270,8 +5270,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get upcoming events
   app.get("/api/site/events", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 10;
-      const events = await storage.getUpcomingEvents(limit);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const events = await storage.getAllPublishedEvents(limit);
       res.json(convertImageUrlsArray(events));
     } catch (error) {
       console.error("Get events error:", error);

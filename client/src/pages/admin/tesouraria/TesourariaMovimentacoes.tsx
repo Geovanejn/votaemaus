@@ -27,7 +27,8 @@ import {
   Copy,
   Check,
   Hand,
-  ExternalLink
+  ExternalLink,
+  Undo2
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -217,6 +218,19 @@ export default function TesourariaMovimentacoes() {
     },
     onError: () => {
       toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
+    },
+  });
+
+  const revertInstallmentMutation = useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      return apiRequest("PATCH", `/api/treasury/shop/installments/${id}`, { status: "pending" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/shop/orders"] });
+      toast({ title: "Parcela revertida para em aberto" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao reverter parcela", variant: "destructive" });
     },
   });
 
@@ -989,7 +1003,25 @@ export default function TesourariaMovimentacoes() {
                                         </div>
                                         <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
                                           <span className="font-semibold">{formatCurrency(inst.amount)}</span>
-                                          {inst.status !== "paid" && (
+                                          {inst.status === "paid" ? (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                              onClick={() => revertInstallmentMutation.mutate({ id: inst.id })}
+                                              disabled={revertInstallmentMutation.isPending}
+                                              data-testid={`button-revert-installment-${inst.id}`}
+                                            >
+                                              {revertInstallmentMutation.isPending ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <>
+                                                  <Undo2 className="h-4 w-4 sm:hidden" />
+                                                  <span className="hidden sm:inline">Desfazer</span>
+                                                </>
+                                              )}
+                                            </Button>
+                                          ) : (
                                             <div className="flex gap-1 sm:gap-2">
                                               {order.isManualOrder && (
                                                 <Button

@@ -14027,26 +14027,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (status === 'paid' && !installment.paidAt) {
         updates.paidAt = paidAt ? new Date(paidAt) : new Date();
       }
+      if (status === 'pending') {
+        updates.paidAt = null as any;
+      }
       
       const updated = await storage.updateShopInstallment(id, updates);
       
-      if (status === 'paid') {
-        const order = await storage.getShopOrderById(installment.orderId);
-        if (order) {
-          const allInstallments = await storage.getShopInstallments(order.id);
-          const allPaid = allInstallments.every(inst => inst.id === id ? true : inst.status === 'paid');
-          
-          if (allPaid) {
-            await storage.updateShopOrder(order.id, { 
-              paymentStatus: 'paid',
-              orderStatus: 'paid',
-              paidAt: new Date(),
-            });
-          } else {
-            await storage.updateShopOrder(order.id, { 
-              orderStatus: 'installment_payment',
-            });
-          }
+      const order = await storage.getShopOrderById(installment.orderId);
+      if (order) {
+        const allInstallments = await storage.getShopInstallments(order.id);
+        const currentStatuses = allInstallments.map(inst => inst.id === id ? status : inst.status);
+        const allPaid = currentStatuses.every(s => s === 'paid');
+        const anyPaid = currentStatuses.some(s => s === 'paid');
+        
+        if (allPaid) {
+          await storage.updateShopOrder(order.id, { 
+            paymentStatus: 'paid',
+            orderStatus: 'paid',
+            paidAt: new Date(),
+          });
+        } else if (anyPaid) {
+          await storage.updateShopOrder(order.id, { 
+            orderStatus: 'installment_payment',
+            paymentStatus: 'pending',
+            paidAt: null as any,
+          });
+        } else {
+          await storage.updateShopOrder(order.id, { 
+            orderStatus: 'awaiting_payment',
+            paymentStatus: 'pending',
+            paidAt: null as any,
+          });
         }
       }
       

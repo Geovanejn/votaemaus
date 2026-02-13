@@ -2244,55 +2244,74 @@ export function initTreasurySchedulers(): void {
 
 // ==================== INSTAGRAM STORIES SCHEDULERS ====================
 
-// 1. Gera e salva as imagens do versículo e reflexão (Roda às 07:01)
-export async function generateAndSaveStoryImages() {
-  console.log('[Instagram Stories] Starting daily image generation...');
+// 1. Gera e salva a imagem do versículo (Roda às 07:05)
+async function generateAndSaveVerseImage() {
+  console.log('[Instagram Stories] Starting verse image generation...');
   
   try {
     const dailyVerse = await storage.getActiveDailyVersePost();
     if (!dailyVerse) {
-      console.log('[Instagram Stories] No active daily verse found, skipping image generation.');
+      console.log('[Instagram Stories] No active daily verse found, skipping verse image generation.');
       return;
     }
 
-    if (dailyVerse.verseShareImageUrl && dailyVerse.reflectionShareImageUrl) {
-      console.log('[Instagram Stories] Images already generated for today, skipping.');
+    if (dailyVerse.verseShareImageUrl) {
+      console.log('[Instagram Stories] Verse image already generated for today, skipping.');
       return;
     }
 
-    if (!dailyVerse.verseShareImageUrl) {
-      console.log('[Instagram Stories] Generating verse image via Puppeteer...');
-      const verseImageBuffer = await generateVerseShareImage();
-      const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
-      const verseImageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
-      if (verseImageUrl) {
-        await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: verseImageUrl });
-        console.log('[Instagram Stories] Verse image generated and saved.');
-      } else {
-        console.error('[Instagram Stories] Failed to upload verse image to R2.');
-      }
+    console.log('[Instagram Stories] Generating verse image via Puppeteer...');
+    const verseImageBuffer = await generateVerseShareImage();
+    const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
+    const verseImageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
+    if (verseImageUrl) {
+      await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: verseImageUrl });
+      console.log('[Instagram Stories] Verse image generated and saved.');
+    } else {
+      console.error('[Instagram Stories] Failed to upload verse image to R2.');
     }
-
-    if (!dailyVerse.reflectionShareImageUrl && dailyVerse.reflection && dailyVerse.reflectionTitle) {
-      console.log('[Instagram Stories] Generating reflection image via Puppeteer...');
-      const reflectionImageBuffer = await generateReflectionShareImage();
-      const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
-      const reflectionImageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
-      if (reflectionImageUrl) {
-        await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: reflectionImageUrl });
-        console.log('[Instagram Stories] Reflection image generated and saved.');
-      } else {
-        console.error('[Instagram Stories] Failed to upload reflection image to R2.');
-      }
-    }
-
-    console.log('[Instagram Stories] Daily image generation completed.');
   } catch (error) {
-    console.error('[Instagram Stories] Error generating daily story images:', error);
+    console.error('[Instagram Stories] Error generating verse image:', error);
   }
 }
 
-// 2. Publica o Story do Versículo (Roda às 07:05)
+// 2. Gera e salva a imagem da reflexão (Roda às 07:08)
+async function generateAndSaveReflectionImage() {
+  console.log('[Instagram Stories] Starting reflection image generation...');
+  
+  try {
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse) {
+      console.log('[Instagram Stories] No active daily verse found, skipping reflection image generation.');
+      return;
+    }
+
+    if (dailyVerse.reflectionShareImageUrl) {
+      console.log('[Instagram Stories] Reflection image already generated for today, skipping.');
+      return;
+    }
+
+    if (!dailyVerse.reflection || !dailyVerse.reflectionTitle) {
+      console.log('[Instagram Stories] Daily verse has no reflection content, skipping image generation.');
+      return;
+    }
+
+    console.log('[Instagram Stories] Generating reflection image via Puppeteer...');
+    const reflectionImageBuffer = await generateReflectionShareImage();
+    const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
+    const reflectionImageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
+    if (reflectionImageUrl) {
+      await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: reflectionImageUrl });
+      console.log('[Instagram Stories] Reflection image generated and saved.');
+    } else {
+      console.error('[Instagram Stories] Failed to upload reflection image to R2.');
+    }
+  } catch (error) {
+    console.error('[Instagram Stories] Error generating reflection image:', error);
+  }
+}
+
+// 3. Publica o Story do Versículo (Roda às 07:10)
 async function publishVerseStoryToInstagram() {
   console.log('[Instagram Stories] Attempting to publish verse story...');
 
@@ -2334,7 +2353,7 @@ async function publishVerseStoryToInstagram() {
   }
 }
 
-// 3. Publica o Story da Reflexão (Roda às 07:10)
+// 4. Publica o Story da Reflexão (Roda às 07:15)
 async function publishReflectionStoryToInstagram() {
   console.log('[Instagram Stories] Attempting to publish reflection story...');
 
@@ -2382,7 +2401,7 @@ async function publishReflectionStoryToInstagram() {
 }
 
 // 4. Gera imagens de aniversário (Roda às 08:01)
-export async function generateAndSaveBirthdayImages() {
+async function generateAndSaveBirthdayImages() {
   console.log('[Instagram Stories] Checking for birthdays to generate images...');
 
   try {
@@ -2538,23 +2557,29 @@ export function initInstagramStoriesSchedulers(): void {
   });
   console.log('[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)');
   
-  // Generate and save verse/reflection images at 07:01 (America/Sao_Paulo)
-  cron.schedule('1 7 * * *', generateAndSaveStoryImages, {
+  // Generate verse image at 07:05 (America/Sao_Paulo)
+  cron.schedule('5 7 * * *', generateAndSaveVerseImage, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Instagram Stories Scheduler] Image generation initialized - will run daily at 07:01 (America/Sao_Paulo)');
+  console.log('[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)');
   
-  // Daily verse story at 07:05 (America/Sao_Paulo)
-  cron.schedule('5 7 * * *', publishVerseStoryToInstagram, {
+  // Generate reflection image at 07:08 (America/Sao_Paulo)
+  cron.schedule('8 7 * * *', generateAndSaveReflectionImage, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:05 (America/Sao_Paulo)');
+  console.log('[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)');
   
-  // Daily reflection story at 07:10 (America/Sao_Paulo)
-  cron.schedule('10 7 * * *', publishReflectionStoryToInstagram, {
+  // Publish verse story at 07:10 (America/Sao_Paulo)
+  cron.schedule('10 7 * * *', publishVerseStoryToInstagram, {
     timezone: 'America/Sao_Paulo'
   });
-  console.log('[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:10 (America/Sao_Paulo)');
+  console.log('[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)');
+  
+  // Publish reflection story at 07:15 (America/Sao_Paulo)
+  cron.schedule('15 7 * * *', publishReflectionStoryToInstagram, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)');
   
   // Generate and save birthday images at 08:01 (America/Sao_Paulo)
   cron.schedule('1 8 * * *', generateAndSaveBirthdayImages, {
@@ -2576,5 +2601,6 @@ export {
   processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, 
   processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, 
   processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders, 
-  publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram
+  publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram,
+  generateAndSaveVerseImage, generateAndSaveReflectionImage, generateAndSaveBirthdayImages
 };

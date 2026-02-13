@@ -438,17 +438,29 @@ export default function AgendaPage() {
     staleTime: 30000,
   });
 
-  const processedEvents = (eventsData || []).map((event, index) => ({
-    ...event,
-    date: parseEventDate(event.startDate),
-    categoryLabel: getCategoryLabel(event.category),
-    categoryColor: getCategoryColor(event.category),
-    organizer: 'UMP Emaus',
-    image: event.imageUrl && !event.imageUrl.includes('placeholder') 
-      ? event.imageUrl 
-      : fallbackImages[index % fallbackImages.length],
-    confirmationCount: allConfirmationCounts?.[event.id] || { members: 0, visitors: 0 },
-  }));
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const processedEvents = (eventsData || []).map((event, index) => {
+    const eventDate = parseEventDate(event.startDate);
+    const endDate = event.endDate ? parseEventDate(event.endDate) : eventDate;
+    const isPast = endDate < todayStart;
+    return {
+      ...event,
+      date: eventDate,
+      isPast,
+      categoryLabel: getCategoryLabel(event.category),
+      categoryColor: getCategoryColor(event.category),
+      organizer: 'UMP Emaus',
+      image: event.imageUrl && !event.imageUrl.includes('placeholder') 
+        ? event.imageUrl 
+        : fallbackImages[index % fallbackImages.length],
+      confirmationCount: allConfirmationCounts?.[event.id] || { members: 0, visitors: 0 },
+    };
+  });
+
+  const upcomingEvents = processedEvents.filter(e => !e.isPast).sort((a, b) => a.date.getTime() - b.date.getTime());
+  const pastEvents = processedEvents.filter(e => e.isPast).sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const eventDates = processedEvents.map(e => e.date.toDateString());
 
@@ -458,9 +470,9 @@ export default function AgendaPage() {
       )
     : processedEvents;
 
-  const sortedEvents = [...(viewMode === "list" ? processedEvents : filteredEvents)].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
-  );
+  const sortedEvents = viewMode === "calendar" 
+    ? [...filteredEvents].sort((a, b) => a.date.getTime() - b.date.getTime())
+    : null;
 
   const formatDate = (date: Date) => {
     return {
@@ -468,6 +480,134 @@ export default function AgendaPage() {
       month: date.toLocaleString("pt-BR", { month: "short" }).toUpperCase().replace(".", ""),
       weekday: date.toLocaleString("pt-BR", { weekday: "short" }).toUpperCase().replace(".", ""),
     };
+  };
+
+  const renderEventCard = (event: typeof processedEvents[0]) => {
+    const dateInfo = formatDate(event.date);
+    return (
+      <StaggerItem key={event.id}>
+        <motion.div
+          whileHover={{ x: 4 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card 
+            className={`overflow-hidden hover-elevate cursor-pointer ${event.isPast ? 'opacity-70' : ''}`}
+            onClick={() => setSelectedEvent(event)}
+            data-testid={`card-event-${event.id}`}
+          >
+            <CardContent className="p-0">
+              <div className="flex flex-col md:flex-row">
+                <div className={`relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden ${event.isPast ? 'grayscale' : ''}`}>
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${event.image})` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center md:justify-start md:pl-4">
+                    <div className="text-center text-white">
+                      <span className="text-xs font-semibold text-primary block">
+                        {dateInfo.month}
+                      </span>
+                      <span className="text-4xl font-bold block">
+                        {dateInfo.day}
+                      </span>
+                      <span className="text-xs text-gray-300 block">
+                        {dateInfo.weekday}
+                      </span>
+                    </div>
+                  </div>
+                  {event.isPast && (
+                    <div className="absolute top-2 right-2 bg-gray-800/90 text-gray-300 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Encerrado
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 flex-1">
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span 
+                          className={`w-2 h-2 rounded-full ${event.categoryColor}`} 
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {event.categoryLabel}
+                        </span>
+                        {event.isPast && (
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                            Evento Encerrado
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-semibold" data-testid={`event-title-${event.id}`}>
+                        {event.title}
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {event.description}
+                  </p>
+                  
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    {event.time && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-primary" />
+                        {event.time}
+                      </span>
+                    )}
+                    {event.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        {event.location}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-primary" />
+                      {event.organizer}
+                      {event.confirmationCount.members > 0 && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-1">
+                          {event.confirmationCount.members + event.confirmationCount.visitors} confirmado(s)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {!event.isPast && (
+                    <div className="mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const response = await fetch(`/api/site/events/${event.id}/google-calendar-url`);
+                            const data = await response.json();
+                            if (data.url) {
+                              window.open(data.url, "_blank");
+                            }
+                          } catch (error) {
+                            console.error("Error getting Google Calendar URL:", error);
+                          }
+                        }}
+                        data-testid={`button-add-to-calendar-${event.id}`}
+                      >
+                        <SiGooglecalendar className="h-4 w-4 mr-1" />
+                        Adicionar ao Google Agenda
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </StaggerItem>
+    );
+  };
+
+  const isEventPast = (event: EventData) => {
+    const endDate = event.endDate ? parseEventDate(event.endDate) : parseEventDate(event.startDate);
+    return endDate < todayStart;
   };
 
   return (
@@ -558,128 +698,47 @@ export default function AgendaPage() {
           ) : (
             <div className="grid lg:grid-cols-3 gap-8">
               <div className={viewMode === "calendar" ? "lg:col-span-2" : "lg:col-span-3"}>
-                {sortedEvents.length === 0 ? (
-                  <div className="text-center py-12">
-                    <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Nenhum evento encontrado</h3>
-                    <p className="text-muted-foreground">
-                      {viewMode === "calendar" && selectedDate
-                        ? "Não há eventos nesta data"
-                        : "Não há eventos programados"}
-                    </p>
-                  </div>
+                {viewMode === "calendar" && sortedEvents ? (
+                  sortedEvents.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Nenhum evento encontrado</h3>
+                      <p className="text-muted-foreground">
+                        {selectedDate ? "Nao ha eventos nesta data" : "Nao ha eventos programados"}
+                      </p>
+                    </div>
+                  ) : (
+                    <StaggerContainer className="space-y-4">
+                      {sortedEvents.map((event) => renderEventCard(event))}
+                    </StaggerContainer>
+                  )
                 ) : (
-                  <StaggerContainer className="space-y-4">
-                    {sortedEvents.map((event) => {
-                      const dateInfo = formatDate(event.date);
-                      return (
-                        <StaggerItem key={event.id}>
-                          <motion.div
-                            whileHover={{ x: 4 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <Card 
-                              className="overflow-hidden hover-elevate cursor-pointer"
-                              onClick={() => setSelectedEvent(event)}
-                              data-testid={`card-event-${event.id}`}
-                            >
-                              <CardContent className="p-0">
-                                <div className="flex flex-col md:flex-row">
-                                  <div className="relative md:w-48 md:min-h-[200px] h-32 md:h-auto overflow-hidden">
-                                    <div 
-                                      className="absolute inset-0 bg-cover bg-center"
-                                      style={{ backgroundImage: `url(${event.image})` }}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-transparent" />
-                                    <div className="absolute inset-0 flex items-center justify-center md:justify-start md:pl-4">
-                                      <div className="text-center text-white">
-                                        <span className="text-xs font-semibold text-primary block">
-                                          {dateInfo.month}
-                                        </span>
-                                        <span className="text-4xl font-bold block">
-                                          {dateInfo.day}
-                                        </span>
-                                        <span className="text-xs text-gray-300 block">
-                                          {dateInfo.weekday}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="p-5 flex-1">
-                                    <div className="flex items-start justify-between gap-4 mb-2">
-                                      <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span 
-                                            className={`w-2 h-2 rounded-full ${event.categoryColor}`} 
-                                          />
-                                          <span className="text-xs text-muted-foreground">
-                                            {event.categoryLabel}
-                                          </span>
-                                        </div>
-                                        <h3 className="text-lg font-semibold" data-testid={`event-title-${event.id}`}>
-                                          {event.title}
-                                        </h3>
-                                      </div>
-                                    </div>
-                                    
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                      {event.description}
-                                    </p>
-                                    
-                                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                      {event.time && (
-                                        <span className="flex items-center gap-1">
-                                          <Clock className="h-4 w-4 text-primary" />
-                                          {event.time}
-                                        </span>
-                                      )}
-                                      {event.location && (
-                                        <span className="flex items-center gap-1">
-                                          <MapPin className="h-4 w-4 text-primary" />
-                                          {event.location}
-                                        </span>
-                                      )}
-                                      <span className="flex items-center gap-1">
-                                        <Users className="h-4 w-4 text-primary" />
-                                        {event.organizer}
-                                        {event.confirmationCount.members > 0 && (
-                                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-1">
-                                            {event.confirmationCount.members + event.confirmationCount.visitors} confirmado(s)
-                                          </span>
-                                        )}
-                                      </span>
-                                    </div>
-                                    <div className="mt-4">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          try {
-                                            const response = await fetch(`/api/site/events/${event.id}/google-calendar-url`);
-                                            const data = await response.json();
-                                            if (data.url) {
-                                              window.open(data.url, "_blank");
-                                            }
-                                          } catch (error) {
-                                            console.error("Error getting Google Calendar URL:", error);
-                                          }
-                                        }}
-                                        data-testid={`button-add-to-calendar-${event.id}`}
-                                      >
-                                        <SiGooglecalendar className="h-4 w-4 mr-1" />
-                                        Adicionar ao Google Agenda
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </motion.div>
-                        </StaggerItem>
-                      );
-                    })}
-                  </StaggerContainer>
+                  <div className="space-y-8">
+                    {upcomingEvents.length > 0 && (
+                      <StaggerContainer className="space-y-4">
+                        {upcomingEvents.map((event) => renderEventCard(event))}
+                      </StaggerContainer>
+                    )}
+
+                    {upcomingEvents.length === 0 && (
+                      <div className="text-center py-8">
+                        <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Nenhum evento futuro</h3>
+                        <p className="text-muted-foreground">
+                          Novos eventos serao adicionados em breve.
+                        </p>
+                      </div>
+                    )}
+
+                    {pastEvents.length > 0 && (
+                      <div>
+                        <h2 className="text-2xl font-bold mb-4 text-muted-foreground">Eventos Encerrados</h2>
+                        <StaggerContainer className="space-y-4">
+                          {pastEvents.map((event) => renderEventCard(event))}
+                        </StaggerContainer>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -727,7 +786,14 @@ export default function AgendaPage() {
           {selectedEvent && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-xl">{selectedEvent.title}</DialogTitle>
+                <DialogTitle className="text-xl flex items-center gap-2">
+                  {selectedEvent.title}
+                  {isEventPast(selectedEvent) && (
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full font-normal">
+                      Evento Encerrado
+                    </span>
+                  )}
+                </DialogTitle>
               </DialogHeader>
               
               <div className="space-y-4">
@@ -834,8 +900,8 @@ export default function AgendaPage() {
                   </div>
                 )}
 
-                {/* Confirmation Section for logged in users */}
-                {user && (
+                {/* Confirmation Section for logged in users - only for upcoming events */}
+                {user && !isEventPast(selectedEvent) && (
                   <div className="pt-3 pb-1 border-t">
                     {/* Show fee info if event has fee */}
                     {confirmationData?.fee && (
@@ -918,8 +984,8 @@ export default function AgendaPage() {
                   </div>
                 )}
                 
-                {/* Show login prompt for non-logged users */}
-                {!user && (
+                {/* Show login prompt for non-logged users - only for upcoming events */}
+                {!user && !isEventPast(selectedEvent) && (
                   <div className="pt-3 pb-1 border-t">
                     <p className="text-sm text-muted-foreground">
                       Faca login para confirmar sua presenca neste evento.
@@ -928,25 +994,27 @@ export default function AgendaPage() {
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                  <Button
-                    variant="default"
-                    className="flex-1 sm:flex-none"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`/api/site/events/${selectedEvent.id}/google-calendar-url`);
-                        const data = await response.json();
-                        if (data.url) {
-                          window.open(data.url, "_blank");
+                  {!isEventPast(selectedEvent) && (
+                    <Button
+                      variant="default"
+                      className="flex-1 sm:flex-none"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/site/events/${selectedEvent.id}/google-calendar-url`);
+                          const data = await response.json();
+                          if (data.url) {
+                            window.open(data.url, "_blank");
+                          }
+                        } catch (error) {
+                          console.error("Error getting Google Calendar URL:", error);
                         }
-                      } catch (error) {
-                        console.error("Error getting Google Calendar URL:", error);
-                      }
-                    }}
-                    data-testid="modal-button-add-to-calendar"
-                  >
-                    <SiGooglecalendar className="h-4 w-4 mr-2" />
-                    Adicionar ao Google Agenda
-                  </Button>
+                      }}
+                      data-testid="modal-button-add-to-calendar"
+                    >
+                      <SiGooglecalendar className="h-4 w-4 mr-2" />
+                      Adicionar ao Google Agenda
+                    </Button>
+                  )}
                   <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setSelectedEvent(null)}>
                     Fechar
                   </Button>

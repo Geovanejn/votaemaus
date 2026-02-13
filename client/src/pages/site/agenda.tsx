@@ -16,7 +16,9 @@ import {
   ExternalLink,
   CheckCircle2,
   UserCheck,
-  Banknote
+  Banknote,
+  Download,
+  CalendarPlus
 } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
 import { SiteLayout } from "@/components/site/SiteLayout";
@@ -212,6 +214,8 @@ export default function AgendaPage() {
     entryId?: number;
   } | null>(null);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [showCalendarSync, setShowCalendarSync] = useState(false);
+  const [calendarSyncLoading, setCalendarSyncLoading] = useState(false);
   const [pixPaymentConfirmed, setPixPaymentConfirmed] = useState(false);
   
   // PIX payment polling - check status every 5 seconds while modal is open
@@ -645,22 +649,11 @@ export default function AgendaPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/api/site/events/google-calendar-subscribe");
-                    const data = await response.json();
-                    if (data.url) {
-                      window.open(data.url, "_blank");
-                    }
-                  } catch (error) {
-                    console.error("Error getting Google Calendar URL:", error);
-                    window.open("/api/site/events/calendar.ics", "_blank");
-                  }
-                }}
+                onClick={() => setShowCalendarSync(true)}
                 data-testid="button-sync-google-calendar"
               >
-                <SiGooglecalendar className="h-4 w-4 mr-1" />
-                Sincronizar com Google Agenda
+                <CalendarPlus className="h-4 w-4 mr-1" />
+                Adicionar ao Google Agenda
               </Button>
               <Button
                 variant={viewMode === "list" ? "default" : "outline"}
@@ -1109,6 +1102,92 @@ export default function AgendaPage() {
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={showCalendarSync} onOpenChange={setShowCalendarSync}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SiGooglecalendar className="h-5 w-5 text-primary" />
+              Adicionar Eventos ao Google Agenda
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Escolha como deseja adicionar todos os eventos da UMP Emaús ao seu Google Agenda:
+            </p>
+
+            <div className="space-y-3">
+              <button
+                className="w-full flex items-start gap-3 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-left"
+                onClick={async () => {
+                  setCalendarSyncLoading(true);
+                  try {
+                    const response = await fetch("/api/site/events/google-calendar-subscribe");
+                    const data = await response.json();
+                    if (data.url) {
+                      window.open(data.url, "_blank");
+                      toast({
+                        title: "Google Agenda aberto",
+                        description: "Confirme a inscrição no seu Google Agenda para sincronizar todos os eventos automaticamente.",
+                      });
+                      setShowCalendarSync(false);
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Erro",
+                      description: "Não foi possível gerar o link. Tente baixar o arquivo abaixo.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setCalendarSyncLoading(false);
+                  }
+                }}
+                disabled={calendarSyncLoading}
+                data-testid="button-subscribe-google-calendar"
+              >
+                <div className="flex-shrink-0 mt-0.5">
+                  <CalendarPlus className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Inscrever-se no calendário</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sincroniza automaticamente — novos eventos aparecem no seu Google Agenda sem precisar adicionar de novo.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                className="w-full flex items-start gap-3 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-left"
+                onClick={() => {
+                  window.open("/api/site/events/calendar.ics", "_blank");
+                  toast({
+                    title: "Arquivo baixado",
+                    description: "Abra o arquivo .ics para importar todos os eventos no seu Google Agenda.",
+                  });
+                  setShowCalendarSync(false);
+                }}
+                data-testid="button-download-ics"
+              >
+                <div className="flex-shrink-0 mt-0.5">
+                  <Download className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Baixar arquivo .ics</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Baixa um arquivo com todos os eventos para importar manualmente no Google Agenda ou outro app de calendário.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center pt-2">
+              {upcomingEvents.length > 0 
+                ? `${upcomingEvents.length} evento${upcomingEvents.length > 1 ? 's' : ''} será${upcomingEvents.length > 1 ? 'ão' : ''} adicionado${upcomingEvents.length > 1 ? 's' : ''}`
+                : 'Nenhum evento próximo disponível'}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </SiteLayout>
   );
 }

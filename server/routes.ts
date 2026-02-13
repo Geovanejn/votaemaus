@@ -6236,7 +6236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/site/events/calendar.ics", async (req, res) => {
     try {
       const ical = await import("ical-generator");
-      const events = await storage.getUpcomingEvents();
+      const events = await storage.getAllPublishedEvents(100);
       
       const calendar = ical.default({
         name: "UMP Emaus - Eventos",

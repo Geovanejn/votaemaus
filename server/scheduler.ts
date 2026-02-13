@@ -7,7 +7,6 @@ import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured 
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 import { uploadStoryImageToR2 } from "./story-image-generator";
 import { generateVerseShareImage, generateReflectionShareImage, generateBirthdayShareImage } from "./puppeteer-image-generator";
-import { getPublicUrl } from "./r2-storage";
 
 // Rate limiting helper for Resend (10 requests per second approved)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -2245,80 +2244,88 @@ export function initTreasurySchedulers(): void {
 
 // ==================== INSTAGRAM STORIES SCHEDULERS ====================
 
-// Substitua a função generateAndSaveStoryImages inteira por esta:
+// 1. Gera e salva as imagens do versículo e reflexão (Roda às 07:01)
 export async function generateAndSaveStoryImages() {
   console.log('[Instagram Stories] Starting daily image generation...');
   
   try {
-    // 1. Definição da data correta (Formato YYYY-MM-DD)
-    const today = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(new Date());
-
-    // 2. CORREÇÃO DO ERRO 1: Passar a DATA (today), não o versículo, para verificar existência
-    const existingImage = await storage.getDailyStoryImage(today);
-    
-    if (existingImage) {
-      console.log(`[Instagram Stories] Image already exists for date ${today}, skipping generation.`);
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse) {
+      console.log('[Instagram Stories] No active daily verse found, skipping image generation.');
       return;
     }
 
-    // 3. Buscar o versículo do dia
-    const verseData = await generateDailyVerseWithAI(); // ou sua lógica de buscar versículo
-    if (!verseData) {
-      console.error('[Instagram Stories] Failed to get verse data');
+    if (dailyVerse.verseShareImageUrl && dailyVerse.reflectionShareImageUrl) {
+      console.log('[Instagram Stories] Images already generated for today, skipping.');
       return;
     }
 
-    // 4. Gerar a imagem (Puppeteer)
-    console.log('[Instagram Stories] Generating image with Puppeteer...');
-    const imageBuffer = await generateVerseShareImage(
-      verseData.verse,
-      verseData.reference,
-      'story' // formato
-    );
+    if (!dailyVerse.verseShareImageUrl) {
+      console.log('[Instagram Stories] Generating verse image via Puppeteer...');
+      const verseImageBuffer = await generateVerseShareImage();
+      const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
+      const verseImageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
+      if (verseImageUrl) {
+        await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: verseImageUrl });
+        console.log('[Instagram Stories] Verse image generated and saved.');
+      } else {
+        console.error('[Instagram Stories] Failed to upload verse image to R2.');
+      }
+    }
 
-    // 5. Upload para o R2
-    console.log('[Instagram Stories] Uploading to R2...');
-    const fileName = `daily-verse-${today}-${Date.now()}.png`;
-    await uploadStoryImageToR2(imageBuffer, fileName, 'image/png');
-    const publicUrl = getPublicUrl(fileName);
+    if (!dailyVerse.reflectionShareImageUrl && dailyVerse.reflection && dailyVerse.reflectionTitle) {
+      console.log('[Instagram Stories] Generating reflection image via Puppeteer...');
+      const reflectionImageBuffer = await generateReflectionShareImage();
+      const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
+      const reflectionImageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
+      if (reflectionImageUrl) {
+        await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: reflectionImageUrl });
+        console.log('[Instagram Stories] Reflection image generated and saved.');
+      } else {
+        console.error('[Instagram Stories] Failed to upload reflection image to R2.');
+      }
+    }
 
-    // 6. Salvar no banco
-    await storage.saveDailyStoryImage({
-      date: today,
-      imageUrl: publicUrl,
-      verse: verseData.verse,
-      reference: verseData.reference
-    });
-
-    console.log('[Instagram Stories] Daily verse image generated and saved successfully.');
-
+    console.log('[Instagram Stories] Daily image generation completed.');
   } catch (error) {
-    console.error('[Instagram Stories] Error generating/publishing daily stories:', error);
+    console.error('[Instagram Stories] Error generating daily story images:', error);
   }
 }
+
 // 2. Publica o Story do Versículo (Roda às 07:05)
 async function publishVerseStoryToInstagram() {
-  const todayKey = new Date().toISOString().split('T')[0];
-  console.log(`[Instagram Stories] Attempting to publish verse story for ${todayKey}...`);
+  console.log('[Instagram Stories] Attempting to publish verse story...');
 
   try {
-    const savedImage = await storage.getDailyStoryImage('verse', todayKey);
-    
-    if (!savedImage) {
-      console.log('[Instagram Stories] No pre-generated verse image found.');
+    if (!isInstagramPublishingConfigured()) {
+      console.log('[Instagram Stories] Instagram publishing not configured, skipping verse story.');
       return;
     }
 
-    const result = await publishInstagramStory(savedImage.imageUrl);
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse) {
+      console.log('[Instagram Stories] No active daily verse found.');
+      return;
+    }
+
+    let imageUrl = dailyVerse.verseShareImageUrl;
+
+    if (!imageUrl) {
+      console.log('[Instagram Stories] No saved verse image, generating on-demand...');
+      const verseImageBuffer = await generateVerseShareImage();
+      const verseFilename = `verse-story-${dailyVerse.id}-${Date.now()}.jpg`;
+      imageUrl = await uploadStoryImageToR2(verseImageBuffer, verseFilename);
+      if (!imageUrl) {
+        console.error('[Instagram Stories] Failed to generate verse image.');
+        return;
+      }
+    }
+
+    const result = await publishInstagramStory(imageUrl);
     
     if (result.success) {
       console.log(`[Instagram Stories] Verse story published! Media ID: ${result.mediaId}`);
-      // Opcional: deletar do banco após uso, ou manter como histórico
+      await storage.updateDailyVersePost(dailyVerse.id, { verseShareImageUrl: null });
     } else {
       console.error('[Instagram Stories] Failed to publish verse story:', result.error);
     }
@@ -2329,21 +2336,43 @@ async function publishVerseStoryToInstagram() {
 
 // 3. Publica o Story da Reflexão (Roda às 07:10)
 async function publishReflectionStoryToInstagram() {
-  const todayKey = new Date().toISOString().split('T')[0];
-  console.log(`[Instagram Stories] Attempting to publish reflection story for ${todayKey}...`);
+  console.log('[Instagram Stories] Attempting to publish reflection story...');
 
   try {
-    const savedImage = await storage.getDailyStoryImage('reflection', todayKey);
-    
-    if (!savedImage) {
-      console.log('[Instagram Stories] No pre-generated reflection image found.');
+    if (!isInstagramPublishingConfigured()) {
+      console.log('[Instagram Stories] Instagram publishing not configured, skipping reflection story.');
       return;
     }
 
-    const result = await publishInstagramStory(savedImage.imageUrl);
+    const dailyVerse = await storage.getActiveDailyVersePost();
+    if (!dailyVerse) {
+      console.log('[Instagram Stories] No active daily verse found.');
+      return;
+    }
+
+    if (!dailyVerse.reflection || !dailyVerse.reflectionTitle) {
+      console.log('[Instagram Stories] Daily verse has no reflection, skipping.');
+      return;
+    }
+
+    let imageUrl = dailyVerse.reflectionShareImageUrl;
+
+    if (!imageUrl) {
+      console.log('[Instagram Stories] No saved reflection image, generating on-demand...');
+      const reflectionImageBuffer = await generateReflectionShareImage();
+      const reflectionFilename = `reflection-story-${dailyVerse.id}-${Date.now()}.jpg`;
+      imageUrl = await uploadStoryImageToR2(reflectionImageBuffer, reflectionFilename);
+      if (!imageUrl) {
+        console.error('[Instagram Stories] Failed to generate reflection image.');
+        return;
+      }
+    }
+
+    const result = await publishInstagramStory(imageUrl);
     
     if (result.success) {
       console.log(`[Instagram Stories] Reflection story published! Media ID: ${result.mediaId}`);
+      await storage.updateDailyVersePost(dailyVerse.id, { reflectionShareImageUrl: null });
     } else {
       console.error('[Instagram Stories] Failed to publish reflection story:', result.error);
     }
@@ -2352,23 +2381,30 @@ async function publishReflectionStoryToInstagram() {
   }
 }
 
-// Substitua a função generateAndSaveBirthdayImages inteira por esta:
+// 4. Gera imagens de aniversário (Roda às 08:01)
 export async function generateAndSaveBirthdayImages() {
   console.log('[Instagram Stories] Checking for birthdays to generate images...');
 
   try {
-    const todayParts = getTodayBrazilParts();
-    const birthdayMembers = await storage.getMembersByBirthday(todayParts.day, todayParts.month);
+    const allMembers = await storage.getAllMembers();
+    const todayDateString = getTodayDateString();
 
-    // 7. CORREÇÃO DO ERRO 2: Verificação de lista vazia para evitar erro de sintaxe SQL
-    if (!birthdayMembers || birthdayMembers.length === 0) {
-      console.log('[Birthday Scheduler] No birthdays today');
+    const birthdayMembers = allMembers.filter(member => {
+      if (!member.birthdate) return false;
+      const birthdateParts = member.birthdate.split('-');
+      if (birthdateParts.length !== 3) return false;
+      const month = birthdateParts[1];
+      const day = birthdateParts[2];
+      return `${month}-${day}` === todayDateString;
+    });
+
+    if (birthdayMembers.length === 0) {
+      console.log('[Instagram Stories] No birthdays today for image generation.');
       return;
     }
 
-    console.log(`[Birthday Scheduler] Found ${birthdayMembers.length} birthday(s) today.`);
+    console.log(`[Instagram Stories] Found ${birthdayMembers.length} birthday(s) today.`);
     
-    // Formato da data para salvar
     const todayStr = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
@@ -2378,75 +2414,97 @@ export async function generateAndSaveBirthdayImages() {
 
     for (const member of birthdayMembers) {
       try {
-        // Verifica se já gerou imagem para este membro hoje
         const existing = await storage.getBirthdayShareImage(member.id, todayStr);
-        if (existing) continue;
+        if (existing) {
+          console.log(`[Instagram Stories] Birthday image already exists for ${member.fullName}, skipping.`);
+          continue;
+        }
 
-        console.log(`[Birthday Scheduler] Generating image for ${member.fullName}...`);
+        console.log(`[Instagram Stories] Generating birthday image for ${member.fullName}...`);
         
-        // Gera a imagem
-        const imageBuffer = await generateBirthdayShareImage(member.fullName, member.photoUrl || undefined);
+        const imageBuffer = await generateBirthdayShareImage(member.id);
         
-        // Upload R2
-        const fileName = `birthday-${member.id}-${todayStr}.png`;
-        await uploadStoryImageToR2(imageBuffer, fileName, 'image/png');
-        const publicUrl = getPublicUrl(fileName);
-
-        // Salva no banco
-        await storage.saveBirthdayShareImage(member.id, publicUrl, todayStr);
-        console.log(`[Birthday Scheduler] Image saved for ${member.fullName}`);
+        const fileName = `birthday-story-${member.id}-${Date.now()}.jpg`;
+        const imageUrl = await uploadStoryImageToR2(imageBuffer, fileName);
         
+        if (imageUrl) {
+          await storage.saveBirthdayShareImage(member.id, imageUrl, todayStr);
+          console.log(`[Instagram Stories] Birthday image saved for ${member.fullName}`);
+        } else {
+          console.error(`[Instagram Stories] Failed to upload birthday image for ${member.fullName}`);
+        }
       } catch (err) {
-        console.error(`[Birthday Scheduler] Failed to process for ${member.fullName}:`, err);
+        console.error(`[Instagram Stories] Failed to generate image for ${member.fullName}:`, err);
       }
     }
-
   } catch (error) {
-    console.error('[Instagram Stories] Error in birthday image generation process:', error);
+    console.error('[Instagram Stories] Error in birthday image generation:', error);
   }
 }
 
 // 5. Publica os Stories de Aniversariantes (Roda às 08:05)
 async function publishBirthdayStoriesToInstagram() {
   console.log('[Instagram Stories] Starting birthday stories publication...');
-  const today = new Date();
-  const todayFullDate = today.toISOString().split('T')[0];
-  const currentDay = today.getDate();
-  const currentMonth = today.getMonth() + 1;
 
   try {
-    const members = await storage.getMembersByBirthday(currentDay, currentMonth);
+    if (!isInstagramPublishingConfigured()) {
+      console.log('[Instagram Stories] Instagram publishing not configured, skipping birthday stories.');
+      return;
+    }
 
-    if (members.length === 0) {
+    const allMembers = await storage.getAllMembers();
+    const todayDateString = getTodayDateString();
+    const todayFullDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+
+    const birthdayMembers = allMembers.filter(member => {
+      if (!member.birthdate) return false;
+      const birthdateParts = member.birthdate.split('-');
+      if (birthdateParts.length !== 3) return false;
+      const month = birthdateParts[1];
+      const day = birthdateParts[2];
+      return `${month}-${day}` === todayDateString;
+    });
+
+    if (birthdayMembers.length === 0) {
       console.log('[Instagram Stories] No birthdays today to publish.');
       return;
     }
 
-    for (const member of members) {
+    for (const member of birthdayMembers) {
       try {
         const firstName = member.fullName.split(' ')[0];
         
-        // Use pre-generated image from DB
-        const savedImage = await storage.getBirthdayShareImage(member.id, todayFullDate);
+        let savedImage = await storage.getBirthdayShareImage(member.id, todayFullDate);
+        let imageUrl: string | null = savedImage?.imageUrl || null;
         
-        if (!savedImage) {
-          console.log(`[Instagram Stories] No pre-generated birthday image for ${firstName} - skipping`);
-          continue;
+        if (!imageUrl) {
+          console.log(`[Instagram Stories] No pre-generated birthday image for ${firstName}, generating on-demand...`);
+          const birthdayImageBuffer = await generateBirthdayShareImage(member.id);
+          const birthdayFilename = `birthday-story-${member.id}-${Date.now()}.jpg`;
+          imageUrl = await uploadStoryImageToR2(birthdayImageBuffer, birthdayFilename);
+          if (!imageUrl) {
+            console.error(`[Instagram Stories] Failed to generate birthday image for ${firstName}`);
+            continue;
+          }
         }
         
-        console.log(`[Instagram Stories] Publishing birthday story for ${firstName} using saved image...`);
-        const result = await publishInstagramStory(savedImage.imageUrl);
+        console.log(`[Instagram Stories] Publishing birthday story for ${firstName}...`);
+        const result = await publishInstagramStory(imageUrl);
         
         if (result.success) {
           console.log(`[Instagram Stories] Birthday story for ${firstName} published! Media ID: ${result.mediaId}`);
-          // Delete the image from database metadata (optional: could also delete from R2 here)
-          await storage.deleteBirthdayShareImage(savedImage.id);
-          console.log(`[Instagram Stories] Birthday image marked as published for ${firstName}`);
+          if (savedImage) {
+            await storage.deleteBirthdayShareImage(savedImage.id);
+          }
         } else {
           console.error(`[Instagram Stories] Failed to publish birthday story for ${firstName}:`, result.error);
         }
         
-        // Delay entre postagens para evitar bloqueio da API
         await new Promise(resolve => setTimeout(resolve, 5000));
       } catch (error) {
         console.error(`[Instagram Stories] Error publishing birthday story for ${member.fullName}:`, error);

@@ -9884,9 +9884,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowInstallments: allowInstallments ?? false,
         maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
         stockQuantity: stockQuantity === null || stockQuantity === '' || stockQuantity === undefined ? null : Number(stockQuantity),
-        isKit: isKit ?? false,
+        isKit: Boolean(isKit) && isKit !== 'false' && isKit !== '0',
       });
       
+      console.log(`Shop item created: ${item.id}, isKit: ${item.isKit}`);
       res.json(item);
     } catch (error) {
       console.error("Create shop item error:", error);
@@ -9919,7 +9920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (allowInstallments !== undefined) updates.allowInstallments = allowInstallments;
       if (maxInstallments !== undefined) updates.maxInstallments = Number(maxInstallments);
       if (stockQuantity !== undefined) updates.stockQuantity = stockQuantity === null || stockQuantity === '' ? null : Number(stockQuantity);
-      if (isKit !== undefined) updates.isKit = isKit;
+      if (isKit !== undefined) updates.isKit = Boolean(isKit) && isKit !== 'false' && isKit !== '0';
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {
@@ -11508,6 +11509,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Reorder kit components error:", error);
       res.status(500).json({ message: "Erro ao reordenar componentes do kit" });
+    }
+  });
+
+  app.post("/api/admin/shop/items/:id/copy-from", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const targetItemId = parseInt(req.params.id);
+      if (isNaN(targetItemId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const targetItem = await storage.getShopItemById(targetItemId);
+      if (!targetItem) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      if (!targetItem.isKit) {
+        return res.status(400).json({ message: "Item não é um kit" });
+      }
+
+      const { sourceItemIds, copySizes, copyColors } = req.body;
+      const sourceIds: number[] = Array.isArray(sourceItemIds) ? sourceItemIds.map(Number) : [Number(sourceItemIds)];
+
+      if (sourceIds.some(isNaN) || sourceIds.length === 0) {
+        return res.status(400).json({ message: "sourceItemIds inválidos" });
+      }
+
+      const results: { sizesAdded: number; colorsAdded: number } = { sizesAdded: 0, colorsAdded: 0 };
+
+      if (copySizes) {
+        const existingSizes = await storage.getShopItemSizes(targetItemId);
+        const existingSizeKeys = new Set(existingSizes.map(s => `${s.gender}-${s.size}`));
+        let sortOffset = existingSizes.length;
+
+        for (const sourceId of sourceIds) {
+          const sourceSizes = await storage.getShopItemSizes(sourceId);
+          for (const size of sourceSizes) {
+            const key = `${size.gender}-${size.size}`;
+            if (!existingSizeKeys.has(key)) {
+              existingSizeKeys.add(key);
+              await storage.createShopItemSize({
+                itemId: targetItemId,
+                gender: size.gender,
+                size: size.size,
+                sortOrder: sortOffset + results.sizesAdded,
+              });
+              results.sizesAdded++;
+            }
+          }
+        }
+      }
+
+      if (copyColors) {
+        const existingColors = await storage.getShopItemColors(targetItemId);
+        const existingColorNames = new Set(existingColors.map(c => c.name.toLowerCase()));
+        let sortOffset = existingColors.length;
+
+        for (const sourceId of sourceIds) {
+          const sourceColors = await storage.getShopItemColors(sourceId);
+          for (const color of sourceColors) {
+            if (!existingColorNames.has(color.name.toLowerCase())) {
+              existingColorNames.add(color.name.toLowerCase());
+              await storage.createShopItemColor({
+                itemId: targetItemId,
+                name: color.name,
+                hexCode: color.hexCode,
+                sortOrder: sortOffset + results.colorsAdded,
+                isAvailable: true,
+              });
+              results.colorsAdded++;
+            }
+          }
+        }
+      }
+
+      res.json({ success: true, ...results });
+    } catch (error) {
+      console.error("Copy sizes/colors error:", error);
+      res.status(500).json({ message: "Erro ao copiar tamanhos/cores" });
     }
   });
 

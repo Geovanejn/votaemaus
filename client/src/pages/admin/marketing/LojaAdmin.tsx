@@ -38,7 +38,9 @@ import {
   ShoppingBag,
   Send,
   Layers,
-  Check
+  Check,
+  Copy,
+  Palette
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -258,10 +260,47 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
     },
   });
 
+  const copySizesColorsMutation = useMutation({
+    mutationFn: async (data: { sourceItemIds: number[]; copySizes: boolean; copyColors: boolean }) => {
+      const res = await apiRequest("POST", `/api/admin/shop/items/${managingItem.id}/copy-from`, {
+        sourceItemIds: data.sourceItemIds,
+        copySizes: data.copySizes,
+        copyColors: data.copyColors,
+      });
+      return res.json();
+    },
+    onSuccess: (data: { sizesAdded: number; colorsAdded: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "sizes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "colors"] });
+      const parts = [];
+      if (data.sizesAdded > 0) parts.push(`${data.sizesAdded} tamanho(s)`);
+      if (data.colorsAdded > 0) parts.push(`${data.colorsAdded} cor(es)`);
+      if (parts.length > 0) {
+        toast({ title: "Copiado com sucesso", description: `${parts.join(" e ")} adicionado(s) ao kit.` });
+      } else {
+        toast({ title: "Nada para copiar", description: "Todos os tamanhos e cores já existem no kit." });
+      }
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível copiar tamanhos/cores.", variant: "destructive" });
+    },
+  });
+
   const existingComponentIds = kitComponents?.map(c => c.componentItemId) || [];
   const availableItems = allItems.filter(
     item => item.id !== managingItem.id && !existingComponentIds.includes(item.id)
   );
+
+  const handleCopyAll = () => {
+    if (!kitComponents?.length) return;
+    const allSourceIds = kitComponents.map(c => c.componentItemId);
+    copySizesColorsMutation.mutate({
+      sourceItemIds: allSourceIds,
+      copySizes: true,
+      copyColors: true,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -313,7 +352,26 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Componentes do Kit</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm font-medium">Componentes do Kit</Label>
+          {kitComponents && kitComponents.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-xs"
+              onClick={handleCopyAll}
+              disabled={copySizesColorsMutation.isPending}
+              data-testid="button-copy-all-sizes-colors"
+            >
+              {copySizesColorsMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              Copiar tamanhos e cores de todos
+            </Button>
+          )}
+        </div>
         {isLoadingComponents ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
@@ -343,6 +401,38 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
                   <Badge variant="secondary" className="text-xs">
                     Qtd: {component.quantity}
                   </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs"
+                    onClick={() => copySizesColorsMutation.mutate({
+                      sourceItemIds: [component.componentItemId],
+                      copySizes: true,
+                      copyColors: false,
+                    })}
+                    disabled={copySizesColorsMutation.isPending}
+                    title="Copiar tamanhos deste componente para o kit"
+                    data-testid={`button-copy-sizes-${component.id}`}
+                  >
+                    <Ruler className="h-3 w-3" />
+                    Tam
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs"
+                    onClick={() => copySizesColorsMutation.mutate({
+                      sourceItemIds: [component.componentItemId],
+                      copySizes: false,
+                      copyColors: true,
+                    })}
+                    disabled={copySizesColorsMutation.isPending}
+                    title="Copiar cores deste componente para o kit"
+                    data-testid={`button-copy-colors-${component.id}`}
+                  >
+                    <Palette className="h-3 w-3" />
+                    Cores
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -1212,9 +1302,11 @@ export default function LojaAdmin() {
     const maxInstallments = data.allowInstallments ? (data.maxInstallments ?? 3) : 1;
     const payload = {
       ...data,
+      isKit: Boolean(data.isKit),
       featuredOrder,
       maxInstallments,
     };
+    console.log("[LojaAdmin] Submitting item, isKit:", payload.isKit);
     if (editingItem) {
       updateMutation.mutate({ ...payload, id: editingItem.id });
     } else {

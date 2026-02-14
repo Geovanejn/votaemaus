@@ -211,7 +211,7 @@ export default function PedidosAdminPage() {
 
   const manualItemIds = manualOrderItems.filter(i => i.itemId > 0).map(i => i.itemId);
   const { data: comboDiscounts } = useQuery<{
-    totalDiscount: number;
+    discount: number;
     appliedCombos: Array<{ name: string; discountValue: number; items: number[] }>;
   }>({
     queryKey: ["/api/shop/calculate-combo-discounts", manualItemIds],
@@ -1197,7 +1197,7 @@ export default function PedidosAdminPage() {
                 const product = products?.find(p => p.id === item.itemId);
                 return sum + (product?.price || 0) * item.quantity;
               }, 0);
-              const comboDisc = comboDiscounts?.totalDiscount || 0;
+              const comboDisc = comboDiscounts?.discount || 0;
               const promoDisc = promoCodeValidation?.discountAmount || 0;
               const totalDiscount = comboDisc + promoDisc;
               const finalTotal = Math.max(0, subtotal - totalDiscount);

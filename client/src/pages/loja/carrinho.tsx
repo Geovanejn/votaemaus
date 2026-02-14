@@ -46,6 +46,19 @@ interface CartItemWithDetails extends ShopCartItem {
     allowInstallments?: boolean;
     maxInstallments?: number | null;
   };
+  kitSelections?: Array<{
+    id: number;
+    componentId: number;
+    size?: string | null;
+    color?: string | null;
+    colorId?: number | null;
+    component?: {
+      id: number;
+      componentItemId: number;
+      quantity: number;
+      componentItem?: { id: number; name: string };
+    };
+  }>;
 }
 
 export default function LojaCarrinhoPage() {
@@ -318,6 +331,18 @@ export default function LojaCarrinhoPage() {
                         {cartItem.size && <p data-testid={`text-size-${cartItem.id}`}>Tamanho: <span className="text-black">{cartItem.size}</span></p>}
                         {cartItem.gender && <p data-testid={`text-gender-${cartItem.id}`}>Gênero: <span className="text-black">{cartItem.gender === "masculino" ? "Masculino" : cartItem.gender === "feminino" ? "Feminino" : "Unissex"}</span></p>}
                         {cartItem.color && <p data-testid={`text-color-${cartItem.id}`}>Cor: <span className="text-black">{cartItem.color}</span></p>}
+                        {cartItem.kitSelections && cartItem.kitSelections.length > 0 && (
+                          <div className="mt-1 pt-1 border-t border-gray-100">
+                            <p className="text-xs font-medium text-gray-600 mb-0.5">Itens do Kit:</p>
+                            {cartItem.kitSelections.map((sel, idx) => (
+                              <p key={idx} className="text-xs text-gray-500">
+                                {sel.component?.quantity || 1}x {sel.component?.componentItem?.name || "Item"}
+                                {sel.size && <span className="text-black"> - {sel.size}</span>}
+                                {sel.color && <span className="text-black"> / {sel.color}</span>}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <button

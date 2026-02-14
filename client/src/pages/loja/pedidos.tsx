@@ -31,6 +31,14 @@ interface OrderItemProduct {
   firstImage: string | null;
 }
 
+interface OrderItemKitSelection {
+  id: number;
+  componentName: string;
+  quantity: number;
+  size: string | null;
+  color: string | null;
+}
+
 interface OrderItem {
   id: number;
   orderId: number;
@@ -40,6 +48,7 @@ interface OrderItem {
   size: string | null;
   unitPrice: number;
   product: OrderItemProduct | null;
+  kitSelections?: OrderItemKitSelection[];
 }
 
 interface Installment {
@@ -438,6 +447,17 @@ export default function MeusPedidosPage() {
                           {item.quantity}x {formatCurrency(item.unitPrice)}
                           {item.size && ` - ${item.size}`}
                         </p>
+                        {item.kitSelections && item.kitSelections.length > 0 && (
+                          <div className="mt-1 space-y-0.5">
+                            {item.kitSelections.map((sel) => (
+                              <p key={sel.id} className="text-xs text-muted-foreground">
+                                {sel.quantity}x {sel.componentName}
+                                {sel.size && <span className="text-foreground"> - {sel.size}</span>}
+                                {sel.color && <span className="text-foreground"> / {sel.color}</span>}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <span className="text-xs sm:text-sm font-medium flex-shrink-0">
                         {formatCurrency(item.unitPrice * item.quantity)}

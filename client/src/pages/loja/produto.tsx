@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
-import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Package, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,16 @@ interface ShopItemWithDetails extends ShopItem {
   colors?: ShopItemColor[];
   colorImages?: ShopItemColorImage[];
   category?: { id: number; name: string };
+  kitComponents?: Array<{
+    id: number;
+    kitItemId: number;
+    componentItemId: number;
+    quantity: number;
+    sortOrder: number;
+    componentItem: { id: number; name: string; hasSize: boolean; genderType: string };
+    sizes: Array<{ id: number; size: string; gender?: string }>;
+    colors: Array<{ id: number; name: string; hexCode: string; isAvailable: boolean }>;
+  }>;
 }
 
 function formatCurrency(value: number) {
@@ -42,13 +52,12 @@ export default function LojaProdutoPage() {
   const [quantity, setQuantity] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
+  const [kitSelections, setKitSelections] = useState<Record<number, { size?: string; color?: string; colorId?: number }>>({});
 
-  // Fetch all items for related products
   const { data: items } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
   });
 
-  // Fetch specific product with colors and color images
   const { data: product, isLoading } = useQuery<ShopItemWithDetails>({
     queryKey: ["/api/shop/items", productId],
     enabled: !!productId,
@@ -56,8 +65,10 @@ export default function LojaProdutoPage() {
 
   const relatedProducts = items?.filter(item => item.id !== productId && item.isAvailable).slice(0, 4) || [];
 
+  const isKit = product?.isKit && product?.kitComponents && product.kitComponents.length > 0;
+
   const addToCartMutation = useMutation({
-    mutationFn: async (data: { itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number }) => {
+    mutationFn: async (data: { itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number; kitSelections?: Array<{ componentId: number; size?: string; color?: string; colorId?: number }> }) => {
       return apiRequest("POST", "/api/shop/cart", data);
     },
     onSuccess: () => {
@@ -122,11 +133,47 @@ export default function LojaProdutoPage() {
     return () => { emblaApi.off("select", onSelect); };
   }, [emblaApi, onSelect]);
 
+  const kitButtonDisabled = (() => {
+    if (!isKit || !product?.kitComponents) return false;
+    return product.kitComponents.some(comp => {
+      if (comp.componentItem.hasSize && comp.sizes.length > 0 && !kitSelections[comp.id]?.size) return true;
+      const compAvailableColors = comp.colors.filter(c => c.isAvailable);
+      if (compAvailableColors.length > 0 && !kitSelections[comp.id]?.colorId) return true;
+      return false;
+    });
+  })();
+
   const addToCart = () => {
     if (!product || !user) {
       toast({ title: "Faça login", description: "Entre na sua conta para adicionar ao carrinho.", variant: "destructive" });
       return;
     }
+
+    if (isKit && product.kitComponents) {
+      for (const comp of product.kitComponents) {
+        if (comp.componentItem.hasSize && comp.sizes.length > 0 && !kitSelections[comp.id]?.size) {
+          toast({ title: "Selecione o tamanho", description: `Selecione o tamanho da ${comp.componentItem.name}`, variant: "destructive" });
+          return;
+        }
+        const compAvailableColors = comp.colors.filter(c => c.isAvailable);
+        if (compAvailableColors.length > 0 && !kitSelections[comp.id]?.colorId) {
+          toast({ title: "Selecione a cor", description: `Selecione a cor da ${comp.componentItem.name}`, variant: "destructive" });
+          return;
+        }
+      }
+      addToCartMutation.mutate({
+        itemId: product.id,
+        quantity,
+        kitSelections: product.kitComponents.map(comp => ({
+          componentId: comp.id,
+          size: kitSelections[comp.id]?.size || undefined,
+          color: kitSelections[comp.id]?.color || undefined,
+          colorId: kitSelections[comp.id]?.colorId || undefined,
+        })),
+      });
+      return;
+    }
+
     if (product.hasSize && !selectedSize) {
       toast({ title: "Selecione um tamanho", description: "Escolha o tamanho antes de adicionar.", variant: "destructive" });
       return;
@@ -173,6 +220,8 @@ export default function LojaProdutoPage() {
       </div>
     );
   }
+
+  const hasKitSizes = isKit && product.kitComponents?.some(comp => comp.componentItem.hasSize && comp.sizes.length > 0);
 
   return (
     <div className="min-h-screen bg-white">
@@ -225,7 +274,13 @@ export default function LojaProdutoPage() {
       {/* Product Info */}
       <div className="p-4 space-y-4">
         {/* Badges */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {isKit && (
+            <Badge className="bg-violet-600 text-white text-xs px-3 py-1" data-testid="badge-kit">
+              <Package className="w-3 h-3 mr-1" />
+              KIT
+            </Badge>
+          )}
           {!product.isAvailable && (
             <Badge className="bg-red-600 text-white text-xs px-3 py-1" data-testid="badge-sold-out">
               ESGOTADO
@@ -267,57 +322,135 @@ export default function LojaProdutoPage() {
           </p>
         </div>
 
-        {/* Size Selection */}
-        {product.hasSize && availableSizes.length > 0 && product.isAvailable && (
-          <div className="space-y-2 pt-4">
-            <p className="text-sm font-medium text-black">Tamanho:</p>
-            <div className="flex flex-wrap gap-2">
-              {availableSizes.map((sizeItem) => (
-                <button
-                  key={sizeItem.id}
-                  onClick={() => setSelectedSize(sizeItem.size)}
-                  className={`px-4 py-2 border text-sm font-medium transition-all ${
-                    selectedSize === sizeItem.size
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-black border-gray-300 hover:border-black"
-                  }`}
-                  data-testid={`button-size-${sizeItem.size}`}
-                >
-                  {sizeItem.size}
-                </button>
-              ))}
-            </div>
+        {/* Kit Component Selectors */}
+        {isKit && product.kitComponents && product.isAvailable ? (
+          <div className="space-y-4 pt-4">
+            <p className="text-sm font-bold text-black">Selecione as opções do kit:</p>
+            {product.kitComponents
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((comp) => {
+                const compAvailableColors = comp.colors.filter(c => c.isAvailable);
+                const hasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
+                const hasColors = compAvailableColors.length > 0;
+                if (!hasSizes && !hasColors) return null;
+                return (
+                  <div key={comp.id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`kit-component-${comp.id}`}>
+                    <div className="bg-gray-50 px-4 py-2.5">
+                      <p className="text-sm font-bold text-black">{comp.componentItem.name}</p>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {hasSizes && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-gray-500">Tamanho:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {comp.sizes.map((sizeItem) => (
+                              <button
+                                key={sizeItem.id}
+                                onClick={() => setKitSelections(prev => ({
+                                  ...prev,
+                                  [comp.id]: { ...prev[comp.id], size: sizeItem.size }
+                                }))}
+                                className={`px-4 py-2 border text-sm font-medium transition-all ${
+                                  kitSelections[comp.id]?.size === sizeItem.size
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-gray-300 hover:border-black"
+                                }`}
+                                data-testid={`button-kit-size-${comp.id}-${sizeItem.size}`}
+                              >
+                                {sizeItem.size}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {hasColors && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-gray-500">Cor:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {compAvailableColors.map((colorItem) => (
+                              <button
+                                key={colorItem.id}
+                                onClick={() => setKitSelections(prev => ({
+                                  ...prev,
+                                  [comp.id]: { ...prev[comp.id], color: colorItem.name, colorId: colorItem.id }
+                                }))}
+                                className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
+                                  kitSelections[comp.id]?.colorId === colorItem.id
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-gray-300 hover:border-black"
+                                }`}
+                                data-testid={`button-kit-color-${comp.id}-${colorItem.id}`}
+                              >
+                                <span
+                                  className="w-4 h-4 rounded-full border border-gray-400"
+                                  style={{ backgroundColor: colorItem.hexCode }}
+                                />
+                                {colorItem.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
-        )}
+        ) : (
+          <>
+            {/* Size Selection */}
+            {product.hasSize && availableSizes.length > 0 && product.isAvailable && (
+              <div className="space-y-2 pt-4">
+                <p className="text-sm font-medium text-black">Tamanho:</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableSizes.map((sizeItem) => (
+                    <button
+                      key={sizeItem.id}
+                      onClick={() => setSelectedSize(sizeItem.size)}
+                      className={`px-4 py-2 border text-sm font-medium transition-all ${
+                        selectedSize === sizeItem.size
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black border-gray-300 hover:border-black"
+                      }`}
+                      data-testid={`button-size-${sizeItem.size}`}
+                    >
+                      {sizeItem.size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* Color Selection */}
-        {availableColors.length > 0 && product.isAvailable && (
-          <div className="space-y-2 pt-4">
-            <p className="text-sm font-medium text-black">Cor:</p>
-            <div className="flex flex-wrap gap-2">
-              {availableColors.map((colorItem) => (
-                <button
-                  key={colorItem.id}
-                  onClick={() => {
-                    setSelectedColor(colorItem);
-                    if (emblaApi) emblaApi.scrollTo(0);
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
-                    selectedColor?.id === colorItem.id
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-black border-gray-300 hover:border-black"
-                  }`}
-                  data-testid={`button-color-${colorItem.id}`}
-                >
-                  <span
-                    className="w-4 h-4 rounded-full border border-gray-400"
-                    style={{ backgroundColor: colorItem.hexCode }}
-                  />
-                  {colorItem.name}
-                </button>
-              ))}
-            </div>
-          </div>
+            {/* Color Selection */}
+            {availableColors.length > 0 && product.isAvailable && (
+              <div className="space-y-2 pt-4">
+                <p className="text-sm font-medium text-black">Cor:</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableColors.map((colorItem) => (
+                    <button
+                      key={colorItem.id}
+                      onClick={() => {
+                        setSelectedColor(colorItem);
+                        if (emblaApi) emblaApi.scrollTo(0);
+                      }}
+                      className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
+                        selectedColor?.id === colorItem.id
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-black border-gray-300 hover:border-black"
+                      }`}
+                      data-testid={`button-color-${colorItem.id}`}
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border border-gray-400"
+                        style={{ backgroundColor: colorItem.hexCode }}
+                      />
+                      {colorItem.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Gender Selection - Show for browsing even if product unavailable */}
@@ -374,7 +507,10 @@ export default function LojaProdutoPage() {
             <Button
               className="flex-1 h-12 text-base font-bold bg-yellow-400 text-black hover:bg-yellow-500"
               onClick={addToCart}
-              disabled={addToCartMutation.isPending || (product.hasSize && !selectedSize) || (availableColors.length > 0 && !selectedColor)}
+              disabled={
+                addToCartMutation.isPending ||
+                (isKit ? kitButtonDisabled : ((product.hasSize && !selectedSize) || (availableColors.length > 0 && !selectedColor)))
+              }
               data-testid="button-add-to-cart"
             >
               {addToCartMutation.isPending ? "ADICIONANDO..." : "COMPRAR"}
@@ -407,7 +543,7 @@ export default function LojaProdutoPage() {
             >
               Ficha Técnica
             </button>
-            {product.hasSize && (
+            {(product.hasSize || hasKitSizes) && (
               <button
                 onClick={() => setActiveTab("sizes")}
                 className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all ${
@@ -430,6 +566,21 @@ export default function LojaProdutoPage() {
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {product.description || "Produto de alta qualidade da UMP Emaus. Confeccionado com materiais premium para garantir conforto e durabilidade."}
                 </p>
+                {isKit && product.kitComponents && product.kitComponents.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-bold text-black mb-2">Este kit contém:</h4>
+                    <ul className="space-y-1.5">
+                      {product.kitComponents
+                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                        .map((comp) => (
+                          <li key={comp.id} className="flex items-center gap-2 text-sm text-gray-700" data-testid={`kit-content-${comp.id}`}>
+                            <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <span>{comp.quantity}x {comp.componentItem.name}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -451,38 +602,80 @@ export default function LojaProdutoPage() {
                     <span className="w-1/3 text-sm text-gray-500">Marca</span>
                     <span className="flex-1 text-sm text-black">UMP Emaus</span>
                   </div>
+                  {isKit && (
+                    <div className="flex py-3 bg-gray-50">
+                      <span className="w-1/3 text-sm text-gray-500 pl-2">Tipo</span>
+                      <span className="flex-1 text-sm text-black">Kit ({product.kitComponents?.length} itens)</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {activeTab === "sizes" && product.hasSize && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-black">Tabela de Medidas (cm)</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-2 px-3 text-left font-medium text-gray-600">Tamanho</th>
-                        <th className="py-2 px-3 text-center font-medium text-gray-600">Largura</th>
-                        <th className="py-2 px-3 text-center font-medium text-gray-600">Comprimento</th>
-                        <th className="py-2 px-3 text-center font-medium text-gray-600">Manga</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {availableSizes.map((size) => {
-                        const chart = product.sizeCharts?.find(c => c.size === size.size && c.gender === size.gender);
-                        return (
-                          <tr key={size.id}>
-                            <td className="py-2 px-3 font-medium text-black">{size.size}</td>
-                            <td className="py-2 px-3 text-center text-gray-600">{chart?.width || "-"}</td>
-                            <td className="py-2 px-3 text-center text-gray-600">{chart?.length || "-"}</td>
-                            <td className="py-2 px-3 text-center text-gray-600">{chart?.sleeve || "-"}</td>
+            {activeTab === "sizes" && (
+              <div className="space-y-6">
+                {isKit && product.kitComponents ? (
+                  product.kitComponents
+                    .filter(comp => comp.componentItem.hasSize && comp.sizes.length > 0)
+                    .sort((a, b) => a.sortOrder - b.sortOrder)
+                    .map((comp) => (
+                      <div key={comp.id} data-testid={`kit-sizes-${comp.id}`}>
+                        <h3 className="text-lg font-bold text-black mb-2">{comp.componentItem.name}</h3>
+                        <p className="text-xs text-gray-500 mb-2">Tabela de Medidas (cm)</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="py-2 px-3 text-left font-medium text-gray-600">Tamanho</th>
+                                <th className="py-2 px-3 text-center font-medium text-gray-600">Largura</th>
+                                <th className="py-2 px-3 text-center font-medium text-gray-600">Comprimento</th>
+                                <th className="py-2 px-3 text-center font-medium text-gray-600">Manga</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {comp.sizes.map((size) => (
+                                <tr key={size.id}>
+                                  <td className="py-2 px-3 font-medium text-black">{size.size}</td>
+                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
+                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
+                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))
+                ) : product.hasSize ? (
+                  <div>
+                    <h3 className="text-lg font-bold text-black">Tabela de Medidas (cm)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="py-2 px-3 text-left font-medium text-gray-600">Tamanho</th>
+                            <th className="py-2 px-3 text-center font-medium text-gray-600">Largura</th>
+                            <th className="py-2 px-3 text-center font-medium text-gray-600">Comprimento</th>
+                            <th className="py-2 px-3 text-center font-medium text-gray-600">Manga</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {availableSizes.map((size) => {
+                            const chart = product.sizeCharts?.find(c => c.size === size.size && c.gender === size.gender);
+                            return (
+                              <tr key={size.id}>
+                                <td className="py-2 px-3 font-medium text-black">{size.size}</td>
+                                <td className="py-2 px-3 text-center text-gray-600">{chart?.width || "-"}</td>
+                                <td className="py-2 px-3 text-center text-gray-600">{chart?.length || "-"}</td>
+                                <td className="py-2 px-3 text-center text-gray-600">{chart?.sleeve || "-"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

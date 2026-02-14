@@ -9821,10 +9821,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categoryMap = new Map(categories.map(c => [c.id, c]));
       const itemIds = items.map(item => item.id);
       
-      const [imagesMap, sizesMap, colorsMap] = await Promise.all([
+      const kitItemIds = items.filter(i => i.isKit).map(i => i.id);
+      
+      const [imagesMap, sizesMap, colorsMap, kitComponentsMap] = await Promise.all([
         storage.getShopItemImagesByItemIdsLight(itemIds),
         storage.getShopItemSizesByItemIds(itemIds),
-        storage.getShopItemColorsByItemIds(itemIds)
+        storage.getShopItemColorsByItemIds(itemIds),
+        kitItemIds.length > 0 ? storage.getKitComponentsByKitIds(kitItemIds) : Promise.resolve(new Map()),
       ]);
       
       // Get items that have banner images
@@ -9833,19 +9836,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const itemsWithDetails = items.map(item => {
         const hasBanner = hasBannerMap.get(item.id) || false;
+        const kitComponents = item.isKit ? (kitComponentsMap.get(item.id) || []) : [];
         return {
           ...item,
           category: categoryMap.get(item.categoryId) || null,
           images: (imagesMap.get(item.id) || []).map(img => ({
             ...img,
             imageUrl: `/api/shop/images/item/${img.id}`,
-            imageData: `/api/shop/images/item/${img.id}`, // Maintain backward compatibility
+            imageData: `/api/shop/images/item/${img.id}`,
           })),
           sizes: sizesMap.get(item.id) || [],
           colors: (colorsMap.get(item.id) || []).filter(c => c.isAvailable),
           hasBanner,
           bannerImageData: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
           bannerImageUrl: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
+          kitComponentsCount: kitComponents.length,
+          kitComponents: item.isKit ? kitComponents : undefined,
         };
       });
       
@@ -9859,7 +9865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar item da loja (admin)
   app.post("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments, stockQuantity } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments, stockQuantity, isKit } = req.body;
       
       if (!name || price === undefined || !categoryId || !genderType) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
@@ -9878,6 +9884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowInstallments: allowInstallments ?? false,
         maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
         stockQuantity: stockQuantity === null || stockQuantity === '' || stockQuantity === undefined ? null : Number(stockQuantity),
+        isKit: isKit ?? false,
       });
       
       res.json(item);
@@ -9895,7 +9902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments, stockQuantity } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments, stockQuantity, isKit } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
@@ -9912,6 +9919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (allowInstallments !== undefined) updates.allowInstallments = allowInstallments;
       if (maxInstallments !== undefined) updates.maxInstallments = Number(maxInstallments);
       if (stockQuantity !== undefined) updates.stockQuantity = stockQuantity === null || stockQuantity === '' ? null : Number(stockQuantity);
+      if (isKit !== undefined) updates.isKit = isKit;
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {
@@ -10040,6 +10048,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "ID inválido" });
+      }
+      
+      const referencingKits = await storage.getKitsContainingComponent(id);
+      if (referencingKits && referencingKits.length > 0) {
+        const kitNames = referencingKits.map((k: any) => k.name).join(", ");
+        return res.status(400).json({ message: `Este produto é componente dos kits: ${kitNames}. Remova-o dos kits antes de excluí-lo.` });
       }
       
       await storage.deleteShopItem(id);
@@ -10349,11 +10363,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allItems = Array.from(orderItemsMap.values()).flat();
       const itemProductIds = Array.from(new Set(allItems.map(i => i.itemId)));
       const hasColorItems = allItems.some(i => i.colorId);
+      const allOrderItemIds = allItems.map(i => i.id);
       
-      const [products, imagesMap, colorImagesMap] = await Promise.all([
+      const [products, imagesMap, colorImagesMap, kitSelectionsMap] = await Promise.all([
         storage.getShopItemsByIds(itemProductIds),
         storage.getShopItemImagesByItemIdsLight(itemProductIds),
         hasColorItems ? storage.getShopItemColorImagesByItemIds(itemProductIds) : Promise.resolve(new Map()),
+        allOrderItemIds.length > 0 ? storage.getOrderItemKitSelectionsByOrderItemIds(allOrderItemIds) : Promise.resolve(new Map()),
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
@@ -10377,14 +10393,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
+          const kitSelections = kitSelectionsMap.get(item.id) || [];
+          
           return { 
             ...item, 
             unitPrice: item.unitPrice,
+            kitSelections: kitSelections.length > 0 ? kitSelections : undefined,
             product: product ? {
               id: product.id,
               name: product.name,
               price: product.price,
               firstImage,
+              isKit: product.isKit,
             } : null 
           };
         });
@@ -10615,6 +10635,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       gender: z.string().optional(),
       color: z.string().optional(),
       colorId: z.number().optional(),
+      kitSelections: z.array(z.object({
+        componentId: z.number(),
+        size: z.string().optional(),
+        color: z.string().optional(),
+        colorId: z.number().optional(),
+      })).optional(),
     })).min(1, "Pelo menos um item e obrigatorio"),
     installmentCount: z.number().min(1).max(12).default(1),
     promoCode: z.string().optional(),
@@ -10654,6 +10680,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (shopItem.genderType === "both" && !item.gender) {
           return res.status(400).json({ message: `Modelo (M/F) obrigatorio para ${shopItem.name}` });
+        }
+        
+        if (shopItem.isKit) {
+          const kitComponents = await storage.getKitComponents(shopItem.id);
+          if (kitComponents.length > 0 && (!item.kitSelections || item.kitSelections.length === 0)) {
+            return res.status(400).json({ message: `Selecoes de componentes obrigatorias para o kit ${shopItem.name}` });
+          }
         }
         
         const quantity = item.quantity || 1;
@@ -10775,9 +10808,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         installmentCount: installmentCount || 1,
       });
       
-      // Create order items
-      for (const oi of validatedItems) {
-        await storage.createShopOrderItem({
+      // Create order items and kit selections
+      for (let idx = 0; idx < validatedItems.length; idx++) {
+        const oi = validatedItems[idx];
+        const orderItem = await storage.createShopOrderItem({
           orderId: order.id,
           itemId: oi.itemId,
           quantity: oi.quantity,
@@ -10787,6 +10821,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           colorId: oi.colorId,
           unitPrice: oi.unitPrice,
         });
+        
+        const originalItem = items[idx];
+        if (originalItem?.kitSelections && Array.isArray(originalItem.kitSelections)) {
+          const shopItem = await storage.getShopItemById(oi.itemId);
+          if (shopItem?.isKit) {
+            const kitComponents = await storage.getKitComponents(oi.itemId);
+            for (const sel of originalItem.kitSelections) {
+              const comp = kitComponents.find((c: any) => c.id === sel.componentId);
+              await storage.createOrderItemKitSelection({
+                orderItemId: orderItem.id,
+                componentId: sel.componentId,
+                componentItemId: comp?.componentItem?.id || 0,
+                componentName: comp?.componentItem?.name || 'Componente',
+                quantity: comp?.quantity || 1,
+                size: sel.size || null,
+                color: sel.color || null,
+                colorId: sel.colorId || null,
+              });
+            }
+          }
+        }
       }
       
       // Increment promo code usage
@@ -10859,6 +10914,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       gender: z.string().optional(),
       color: z.string().optional(),
       colorId: z.number().optional(),
+      kitSelections: z.array(z.object({
+        componentId: z.number(),
+        size: z.string().optional(),
+        color: z.string().optional(),
+        colorId: z.number().optional(),
+      })).optional(),
     })).min(1, "Pelo menos um item é obrigatório"),
     installmentCount: z.number().min(1).max(12).default(1),
     promoCode: z.string().optional(),
@@ -10919,6 +10980,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         if (shopItem.genderType === "both" && !item.gender) {
           return res.status(400).json({ message: `Modelo (M/F) obrigatório para ${shopItem.name}` });
+        }
+        if (shopItem.isKit) {
+          const kitComponents = await storage.getKitComponents(shopItem.id);
+          if (kitComponents.length > 0 && (!item.kitSelections || item.kitSelections.length === 0)) {
+            return res.status(400).json({ message: `Seleções de componentes obrigatórias para o kit ${shopItem.name}` });
+          }
         }
         const quantity = item.quantity || 1;
         const unitPrice = shopItem.price;
@@ -10999,13 +11066,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Delete existing items and installments
+      // Delete existing order item kit selections, then items and installments
+      const existingOrderItems = await storage.getShopOrderItems(orderId);
+      for (const eoi of existingOrderItems) {
+        await storage.deleteOrderItemKitSelections(eoi.id);
+      }
       await storage.deleteShopOrderItemsByOrderId(orderId);
       await storage.deleteShopInstallmentsByOrderId(orderId);
 
-      // Create new order items
-      for (const oi of validatedItems) {
-        await storage.createShopOrderItem({
+      // Create new order items with kit selections
+      for (let idx = 0; idx < validatedItems.length; idx++) {
+        const oi = validatedItems[idx];
+        const orderItem = await storage.createShopOrderItem({
           orderId,
           itemId: oi.itemId,
           quantity: oi.quantity,
@@ -11015,6 +11087,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           colorId: oi.colorId,
           unitPrice: oi.unitPrice,
         });
+        
+        const originalItem = items[idx];
+        if (originalItem?.kitSelections && Array.isArray(originalItem.kitSelections)) {
+          const shopItem = await storage.getShopItemById(oi.itemId);
+          if (shopItem?.isKit) {
+            const kitComponents = await storage.getKitComponents(oi.itemId);
+            for (const sel of originalItem.kitSelections) {
+              const comp = kitComponents.find((c: any) => c.id === sel.componentId);
+              await storage.createOrderItemKitSelection({
+                orderItemId: orderItem.id,
+                componentId: sel.componentId,
+                componentItemId: comp?.componentItem?.id || 0,
+                componentName: comp?.componentItem?.name || 'Componente',
+                quantity: comp?.quantity || 1,
+                size: sel.size || null,
+                color: sel.color || null,
+                colorId: sel.colorId || null,
+              });
+            }
+          }
+        }
       }
 
       // Increment new promo code usage
@@ -11341,6 +11434,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete color image error:", error);
       res.status(500).json({ message: "Erro ao deletar imagem da cor" });
+    }
+  });
+
+  // ==================== SHOP KIT COMPONENTS ROUTES ====================
+
+  app.get("/api/admin/shop/items/:id/kit-components", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const components = await storage.getKitComponents(itemId);
+      res.json(components);
+    } catch (error) {
+      console.error("Get kit components error:", error);
+      res.status(500).json({ message: "Erro ao buscar componentes do kit" });
+    }
+  });
+
+  app.post("/api/admin/shop/items/:id/kit-components", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const item = await storage.getShopItemById(itemId);
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      if (!item.isKit) {
+        return res.status(400).json({ message: "Item não é um kit" });
+      }
+
+      const { componentItemId, quantity, sortOrder } = req.body;
+      if (!componentItemId) {
+        return res.status(400).json({ message: "componentItemId é obrigatório" });
+      }
+
+      const component = await storage.createKitComponent({
+        kitItemId: itemId,
+        componentItemId: Number(componentItemId),
+        quantity: Number(quantity) || 1,
+        sortOrder: Number(sortOrder) || 0,
+      });
+
+      res.status(201).json(component);
+    } catch (error) {
+      console.error("Create kit component error:", error);
+      res.status(500).json({ message: "Erro ao adicionar componente ao kit" });
+    }
+  });
+
+  app.delete("/api/admin/shop/items/:id/kit-components/:componentId", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const componentId = parseInt(req.params.componentId);
+      await storage.deleteKitComponent(componentId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete kit component error:", error);
+      res.status(500).json({ message: "Erro ao remover componente do kit" });
+    }
+  });
+
+  app.patch("/api/admin/shop/items/:id/kit-components/reorder", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!orderedIds || !Array.isArray(orderedIds)) {
+        return res.status(400).json({ message: "orderedIds é obrigatório" });
+      }
+
+      await Promise.all(
+        orderedIds.map((id: number, index: number) =>
+          storage.updateKitComponentOrder(id, index)
+        )
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reorder kit components error:", error);
+      res.status(500).json({ message: "Erro ao reordenar componentes do kit" });
     }
   });
 
@@ -11816,12 +11983,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
-      const [rawImages, sizes, sizeCharts, colors, rawColorImages] = await Promise.all([
+      const [rawImages, sizes, sizeCharts, colors, rawColorImages, kitComponents] = await Promise.all([
         storage.getShopItemImages(id),
         storage.getShopItemSizes(id),
         storage.getShopItemSizeCharts(id),
         storage.getShopItemColors(id),
-        storage.getShopItemColorImages(id)
+        storage.getShopItemColorImages(id),
+        item.isKit ? storage.getKitComponents(id) : Promise.resolve([]),
       ]);
       
       const images = rawImages.map(img => ({
@@ -11838,7 +12006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? getOptimalImageUrl(item.bannerImageData, `/api/shop/images/banner/${item.id}`)
         : null;
       
-      res.json({ ...item, bannerImageData, images, sizes, sizeCharts, colors, colorImages });
+      res.json({ ...item, bannerImageData, images, sizes, sizeCharts, colors, colorImages, kitComponents: item.isKit ? kitComponents : undefined });
     } catch (error) {
       console.error("Get shop item error:", error);
       res.status(500).json({ message: "Erro ao buscar item" });
@@ -11856,10 +12024,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemIds = Array.from(new Set(cartItems.map(c => c.itemId)));
       const hasColorItems = cartItems.some(c => c.colorId);
       
-      const [items, imagesMap, colorImagesMap] = await Promise.all([
+      const cartItemIds = cartItems.map(c => c.id);
+      
+      const [items, imagesMap, colorImagesMap, kitSelectionsMap] = await Promise.all([
         storage.getShopItemsByIds(itemIds),
         storage.getShopItemImagesByItemIds(itemIds),
         hasColorItems ? storage.getShopItemColorImagesByItemIds(itemIds) : Promise.resolve(new Map()),
+        storage.getCartItemKitSelectionsByCartIds(cartItemIds),
       ]);
       const itemsMap = new Map(items.map((item: any) => [item.id, item]));
       
@@ -11883,9 +12054,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        const kitSelections = kitSelectionsMap.get(cartItem.id) || [];
+        
         return { 
           ...cartItem, 
           colorImage,
+          kitSelections: kitSelections.length > 0 ? kitSelections : undefined,
           item: { 
             ...item, 
             images: imagesWithUrls,
@@ -11903,7 +12077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Adicionar ao carrinho
   app.post("/api/shop/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { itemId, quantity, gender, size, color, colorId } = req.body;
+      const { itemId, quantity, gender, size, color, colorId, kitSelections } = req.body;
       
       if (!itemId || !quantity) {
         return res.status(400).json({ message: "Item e quantidade obrigatórios" });
@@ -11912,6 +12086,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.getShopItemById(itemId);
       if (!item || !item.isAvailable) {
         return res.status(404).json({ message: "Item não disponível" });
+      }
+      
+      if (item.isKit && (!kitSelections || !Array.isArray(kitSelections) || kitSelections.length === 0)) {
+        return res.status(400).json({ message: "Seleções do kit são obrigatórias" });
       }
       
       const cartItem = await storage.addToCart({
@@ -11923,6 +12101,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         color: color || null,
         colorId: colorId ? Number(colorId) : null,
       });
+      
+      if (item.isKit && kitSelections && Array.isArray(kitSelections)) {
+        for (const sel of kitSelections) {
+          await storage.createCartItemKitSelection({
+            cartItemId: cartItem.id,
+            componentId: Number(sel.componentId),
+            size: sel.size || null,
+            color: sel.color || null,
+            colorId: sel.colorId ? Number(sel.colorId) : null,
+          });
+        }
+      }
       
       res.json(cartItem);
     } catch (error) {
@@ -12239,7 +12429,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         colorId: oi.colorId || null,
         unitPrice: oi.unitPrice,
       }));
-      await storage.createShopOrderItemsBatch(orderItemsData);
+      const createdOrderItems = await storage.createShopOrderItemsBatch(orderItemsData);
+      
+      // Copy kit selections from cart to order items
+      for (let i = 0; i < items.length; i++) {
+        const requestItem = items[i];
+        const cartEntry = cartMap.get(requestItem.cartItemId);
+        if (!cartEntry) continue;
+        
+        const product = await storage.getShopItemById(cartEntry.itemId);
+        if (!product || !product.isKit) continue;
+        
+        const cartKitSelections = await storage.getCartItemKitSelections(cartEntry.id);
+        if (cartKitSelections.length === 0) continue;
+        
+        const orderItem = createdOrderItems[i];
+        if (!orderItem) continue;
+        
+        for (const sel of cartKitSelections) {
+          const kitComponent = await storage.getKitComponents(product.id).then(
+            comps => comps.find((c: any) => c.id === sel.componentId)
+          );
+          
+          await storage.createOrderItemKitSelection({
+            orderItemId: orderItem.id,
+            componentId: sel.componentId,
+            componentItemId: kitComponent?.componentItem?.id || 0,
+            componentName: kitComponent?.componentItem?.name || 'Componente',
+            quantity: kitComponent?.quantity || 1,
+            size: sel.size || null,
+            color: sel.color || null,
+            colorId: sel.colorId || null,
+          });
+        }
+      }
       
       // Increment promo code usage
       if (promoCodeId) {
@@ -12308,11 +12531,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allItems = Array.from(orderItemsMap.values()).flat();
       const productIds = Array.from(new Set(allItems.map(i => i.itemId)));
       const hasColorItems = allItems.some(i => i.colorId);
+      const allOrderItemIds = allItems.map(i => i.id);
       
-      const [products, imagesMap, colorImagesMap] = await Promise.all([
+      const [products, imagesMap, colorImagesMap, kitSelectionsMap] = await Promise.all([
         storage.getShopItemsByIdsLight(productIds),
         storage.getShopItemImagesByItemIdsLight(productIds),
         hasColorItems ? storage.getShopItemColorImagesByItemIds(productIds) : Promise.resolve(new Map()),
+        allOrderItemIds.length > 0 ? storage.getOrderItemKitSelectionsByOrderItemIds(allOrderItemIds) : Promise.resolve(new Map()),
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
@@ -12335,13 +12560,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
+          const kitSelections = kitSelectionsMap.get(item.id) || [];
+          
           return { 
             ...item, 
+            kitSelections: kitSelections.length > 0 ? kitSelections : undefined,
             product: product ? { 
               id: product.id,
               name: product.name,
               price: product.price,
               firstImage,
+              isKit: product.isKit,
             } : null 
           };
         });

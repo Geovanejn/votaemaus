@@ -104,6 +104,12 @@ import type {
   ShopComboDiscountItem,
   InsertShopComboDiscountItem,
   ShopComboDiscountWithItems,
+  ShopKitComponent,
+  InsertShopKitComponent,
+  ShopCartItemKitSelection,
+  InsertShopCartItemKitSelection,
+  ShopOrderItemKitSelection,
+  InsertShopOrderItemKitSelection,
   Form,
   InsertForm,
   FormQuestion,
@@ -682,6 +688,27 @@ export interface IStorage {
   deleteShopComboDiscount(id: number): Promise<void>;
   calculateComboDiscounts(cartItemIds: number[]): Promise<{ discount: number; appliedCombos: { id: number; name: string; discountValue: number }[] }>;
   
+  // Shop Kit Components Methods
+  getKitComponents(kitItemId: number): Promise<any[]>;
+  getKitComponentsByKitIds(kitItemIds: number[]): Promise<Map<number, any[]>>;
+  getKitsContainingComponent(componentItemId: number): Promise<any[]>;
+  createKitComponent(data: InsertShopKitComponent): Promise<ShopKitComponent>;
+  deleteKitComponent(id: number): Promise<void>;
+  deleteKitComponentsByKit(kitItemId: number): Promise<void>;
+  updateKitComponentOrder(id: number, sortOrder: number): Promise<void>;
+
+  // Cart Kit Selections Methods
+  getCartItemKitSelections(cartItemId: number): Promise<ShopCartItemKitSelection[]>;
+  getCartItemKitSelectionsByCartIds(cartItemIds: number[]): Promise<Map<number, ShopCartItemKitSelection[]>>;
+  createCartItemKitSelection(data: InsertShopCartItemKitSelection): Promise<ShopCartItemKitSelection>;
+  deleteCartItemKitSelections(cartItemId: number): Promise<void>;
+
+  // Order Kit Selections Methods
+  getOrderItemKitSelections(orderItemId: number): Promise<ShopOrderItemKitSelection[]>;
+  getOrderItemKitSelectionsByOrderItemIds(orderItemIds: number[]): Promise<Map<number, ShopOrderItemKitSelection[]>>;
+  createOrderItemKitSelection(data: InsertShopOrderItemKitSelection): Promise<ShopOrderItemKitSelection>;
+  deleteOrderItemKitSelections(orderItemId: number): Promise<void>;
+
   // Scheduler Reminders Methods (for persistence across restarts)
   hasSentSchedulerReminder(reminderKey: string): Promise<boolean>;
   markSchedulerReminderSent(reminderKey: string, reminderType: string, relatedId?: number): Promise<void>;
@@ -8988,6 +9015,191 @@ export class DatabaseStorage implements IStorage {
 
   async deleteShopItemColorImagesByColor(colorId: number): Promise<void> {
     await db.delete(schema.shopItemColorImages).where(eq(schema.shopItemColorImages.colorId, colorId));
+  }
+
+  // ==================== SHOP KIT COMPONENTS METHODS ====================
+
+  async getKitComponents(kitItemId: number): Promise<any[]> {
+    const components = await db.select()
+      .from(schema.shopKitComponents)
+      .innerJoin(schema.shopItems, eq(schema.shopKitComponents.componentItemId, schema.shopItems.id))
+      .where(eq(schema.shopKitComponents.kitItemId, kitItemId))
+      .orderBy(asc(schema.shopKitComponents.sortOrder));
+
+    const componentItemIds = components.map(c => c.shop_items.id);
+    let sizesMap = new Map<number, any[]>();
+    let colorsMap = new Map<number, any[]>();
+
+    if (componentItemIds.length > 0) {
+      const [sizes, colors] = await Promise.all([
+        db.select().from(schema.shopItemSizes).where(inArray(schema.shopItemSizes.itemId, componentItemIds)),
+        db.select().from(schema.shopItemColors).where(and(inArray(schema.shopItemColors.itemId, componentItemIds), eq(schema.shopItemColors.isAvailable, true))),
+      ]);
+      for (const s of sizes) {
+        if (!sizesMap.has(s.itemId)) sizesMap.set(s.itemId, []);
+        sizesMap.get(s.itemId)!.push(s);
+      }
+      for (const c of colors) {
+        if (!colorsMap.has(c.itemId)) colorsMap.set(c.itemId, []);
+        colorsMap.get(c.itemId)!.push(c);
+      }
+    }
+
+    return components.map(c => ({
+      ...c.shop_kit_components,
+      componentItem: {
+        id: c.shop_items.id,
+        name: c.shop_items.name,
+        price: c.shop_items.price,
+        hasSize: c.shop_items.hasSize,
+        genderType: c.shop_items.genderType,
+      },
+      sizes: sizesMap.get(c.shop_items.id) || [],
+      colors: colorsMap.get(c.shop_items.id) || [],
+    }));
+  }
+
+  async getKitsContainingComponent(componentItemId: number): Promise<any[]> {
+    const results = await db.select({
+      id: schema.shopItems.id,
+      name: schema.shopItems.name,
+    })
+      .from(schema.shopKitComponents)
+      .innerJoin(schema.shopItems, eq(schema.shopKitComponents.kitItemId, schema.shopItems.id))
+      .where(eq(schema.shopKitComponents.componentItemId, componentItemId));
+    return results;
+  }
+
+  async getKitComponentsByKitIds(kitItemIds: number[]): Promise<Map<number, any[]>> {
+    const result = new Map<number, any[]>();
+    if (kitItemIds.length === 0) return result;
+
+    const components = await db.select()
+      .from(schema.shopKitComponents)
+      .innerJoin(schema.shopItems, eq(schema.shopKitComponents.componentItemId, schema.shopItems.id))
+      .where(inArray(schema.shopKitComponents.kitItemId, kitItemIds))
+      .orderBy(asc(schema.shopKitComponents.sortOrder));
+
+    const componentItemIds = Array.from(new Set(components.map(c => c.shop_items.id)));
+    let sizesMap = new Map<number, any[]>();
+    let colorsMap = new Map<number, any[]>();
+
+    if (componentItemIds.length > 0) {
+      const [sizes, colors] = await Promise.all([
+        db.select().from(schema.shopItemSizes).where(inArray(schema.shopItemSizes.itemId, componentItemIds)),
+        db.select().from(schema.shopItemColors).where(and(inArray(schema.shopItemColors.itemId, componentItemIds), eq(schema.shopItemColors.isAvailable, true))),
+      ]);
+      for (const s of sizes) {
+        if (!sizesMap.has(s.itemId)) sizesMap.set(s.itemId, []);
+        sizesMap.get(s.itemId)!.push(s);
+      }
+      for (const c of colors) {
+        if (!colorsMap.has(c.itemId)) colorsMap.set(c.itemId, []);
+        colorsMap.get(c.itemId)!.push(c);
+      }
+    }
+
+    for (const c of components) {
+      const kitId = c.shop_kit_components.kitItemId;
+      if (!result.has(kitId)) result.set(kitId, []);
+      result.get(kitId)!.push({
+        ...c.shop_kit_components,
+        componentItem: {
+          id: c.shop_items.id,
+          name: c.shop_items.name,
+          price: c.shop_items.price,
+          hasSize: c.shop_items.hasSize,
+          genderType: c.shop_items.genderType,
+        },
+        sizes: sizesMap.get(c.shop_items.id) || [],
+        colors: colorsMap.get(c.shop_items.id) || [],
+      });
+    }
+
+    return result;
+  }
+
+  async createKitComponent(data: InsertShopKitComponent): Promise<ShopKitComponent> {
+    const [component] = await db.insert(schema.shopKitComponents).values(data).returning();
+    return component;
+  }
+
+  async deleteKitComponent(id: number): Promise<void> {
+    await db.delete(schema.shopKitComponents).where(eq(schema.shopKitComponents.id, id));
+  }
+
+  async deleteKitComponentsByKit(kitItemId: number): Promise<void> {
+    await db.delete(schema.shopKitComponents).where(eq(schema.shopKitComponents.kitItemId, kitItemId));
+  }
+
+  async updateKitComponentOrder(id: number, sortOrder: number): Promise<void> {
+    await db.update(schema.shopKitComponents)
+      .set({ sortOrder })
+      .where(eq(schema.shopKitComponents.id, id));
+  }
+
+  // ==================== CART KIT SELECTIONS METHODS ====================
+
+  async getCartItemKitSelections(cartItemId: number): Promise<ShopCartItemKitSelection[]> {
+    return db.select()
+      .from(schema.shopCartItemKitSelections)
+      .where(eq(schema.shopCartItemKitSelections.cartItemId, cartItemId));
+  }
+
+  async getCartItemKitSelectionsByCartIds(cartItemIds: number[]): Promise<Map<number, ShopCartItemKitSelection[]>> {
+    const result = new Map<number, ShopCartItemKitSelection[]>();
+    if (cartItemIds.length === 0) return result;
+
+    const selections = await db.select()
+      .from(schema.shopCartItemKitSelections)
+      .where(inArray(schema.shopCartItemKitSelections.cartItemId, cartItemIds));
+
+    for (const s of selections) {
+      if (!result.has(s.cartItemId)) result.set(s.cartItemId, []);
+      result.get(s.cartItemId)!.push(s);
+    }
+    return result;
+  }
+
+  async createCartItemKitSelection(data: InsertShopCartItemKitSelection): Promise<ShopCartItemKitSelection> {
+    const [selection] = await db.insert(schema.shopCartItemKitSelections).values(data).returning();
+    return selection;
+  }
+
+  async deleteCartItemKitSelections(cartItemId: number): Promise<void> {
+    await db.delete(schema.shopCartItemKitSelections).where(eq(schema.shopCartItemKitSelections.cartItemId, cartItemId));
+  }
+
+  // ==================== ORDER KIT SELECTIONS METHODS ====================
+
+  async getOrderItemKitSelections(orderItemId: number): Promise<ShopOrderItemKitSelection[]> {
+    return db.select()
+      .from(schema.shopOrderItemKitSelections)
+      .where(eq(schema.shopOrderItemKitSelections.orderItemId, orderItemId));
+  }
+
+  async getOrderItemKitSelectionsByOrderItemIds(orderItemIds: number[]): Promise<Map<number, ShopOrderItemKitSelection[]>> {
+    const result = new Map<number, ShopOrderItemKitSelection[]>();
+    if (orderItemIds.length === 0) return result;
+
+    const selections = await db.select()
+      .from(schema.shopOrderItemKitSelections)
+      .where(inArray(schema.shopOrderItemKitSelections.orderItemId, orderItemIds));
+
+    for (const s of selections) {
+      if (!result.has(s.orderItemId)) result.set(s.orderItemId, []);
+      result.get(s.orderItemId)!.push(s);
+    }
+    return result;
+  }
+
+  async createOrderItemKitSelection(data: InsertShopOrderItemKitSelection): Promise<ShopOrderItemKitSelection> {
+    const [selection] = await db.insert(schema.shopOrderItemKitSelections).values(data).returning();
+    return selection;
+  }
+
+  async deleteOrderItemKitSelections(orderItemId: number): Promise<void> {
+    await db.delete(schema.shopOrderItemKitSelections).where(eq(schema.shopOrderItemKitSelections.orderItemId, orderItemId));
   }
 
   // ==================== SHOP COMBO DISCOUNTS METHODS ====================

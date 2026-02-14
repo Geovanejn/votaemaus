@@ -2403,6 +2403,7 @@ export const shopItems = pgTable("shop_items", {
   allowInstallments: boolean("allow_installments").notNull().default(false),
   maxInstallments: integer("max_installments").default(1),
   stockQuantity: integer("stock_quantity"),
+  isKit: boolean("is_kit").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2684,6 +2685,67 @@ export type ShopComboDiscountItem = typeof shopComboDiscountItems.$inferSelect;
 export type ShopComboDiscountWithItems = ShopComboDiscount & {
   items: (ShopComboDiscountItem & { item: ShopItem })[];
 };
+
+// =====================================================
+// KITS - COMPOSIÇÃO DE PRODUTOS
+// =====================================================
+
+export const shopKitComponents = pgTable("shop_kit_components", {
+  id: serial("id").primaryKey(),
+  kitItemId: integer("kit_item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  componentItemId: integer("component_item_id").notNull().references(() => shopItems.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull().default(1),
+  sortOrder: integer("sort_order").notNull().default(0),
+}, (table) => ({
+  kitItemIdIdx: index("shop_kit_components_kit_item_id_idx").on(table.kitItemId),
+  componentItemIdIdx: index("shop_kit_components_component_item_id_idx").on(table.componentItemId),
+}));
+
+export const insertShopKitComponentSchema = createInsertSchema(shopKitComponents).omit({
+  id: true,
+});
+
+export type InsertShopKitComponent = z.infer<typeof insertShopKitComponentSchema>;
+export type ShopKitComponent = typeof shopKitComponents.$inferSelect;
+
+export const shopCartItemKitSelections = pgTable("shop_cart_item_kit_selections", {
+  id: serial("id").primaryKey(),
+  cartItemId: integer("cart_item_id").notNull().references(() => shopCartItems.id, { onDelete: "cascade" }),
+  componentId: integer("component_id").notNull().references(() => shopKitComponents.id, { onDelete: "cascade" }),
+  size: text("size"),
+  color: text("color"),
+  colorId: integer("color_id"),
+}, (table) => ({
+  cartItemIdIdx: index("shop_cart_kit_selections_cart_item_id_idx").on(table.cartItemId),
+}));
+
+export const insertShopCartItemKitSelectionSchema = createInsertSchema(shopCartItemKitSelections).omit({
+  id: true,
+});
+
+export type InsertShopCartItemKitSelection = z.infer<typeof insertShopCartItemKitSelectionSchema>;
+export type ShopCartItemKitSelection = typeof shopCartItemKitSelections.$inferSelect;
+
+export const shopOrderItemKitSelections = pgTable("shop_order_item_kit_selections", {
+  id: serial("id").primaryKey(),
+  orderItemId: integer("order_item_id").notNull().references(() => shopOrderItems.id, { onDelete: "cascade" }),
+  componentId: integer("component_id").notNull().references(() => shopKitComponents.id, { onDelete: "cascade" }),
+  componentItemId: integer("component_item_id").notNull().references(() => shopItems.id),
+  componentName: text("component_name").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  size: text("size"),
+  color: text("color"),
+  colorId: integer("color_id"),
+}, (table) => ({
+  orderItemIdIdx: index("shop_order_kit_selections_order_item_id_idx").on(table.orderItemId),
+}));
+
+export const insertShopOrderItemKitSelectionSchema = createInsertSchema(shopOrderItemKitSelections).omit({
+  id: true,
+});
+
+export type InsertShopOrderItemKitSelection = z.infer<typeof insertShopOrderItemKitSelectionSchema>;
+export type ShopOrderItemKitSelection = typeof shopOrderItemKitSelections.$inferSelect;
 
 // =====================================================
 // EVENTOS COM TAXA

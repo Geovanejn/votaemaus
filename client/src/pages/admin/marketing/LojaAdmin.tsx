@@ -97,6 +97,7 @@ interface ShopItemAdmin {
   allowInstallments: boolean;
   maxInstallments: number | null;
   stockQuantity: number | null;
+  isKit: boolean;
   category?: ShopCategory;
   images?: ShopItemImage[];
   sizes?: ShopItemSize[];
@@ -171,6 +172,7 @@ const itemFormSchema = z.object({
   allowInstallments: z.boolean(),
   maxInstallments: z.number().min(1).max(12).optional(),
   stockQuantity: z.number().min(0).nullable().optional(),
+  isKit: z.boolean(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -206,6 +208,160 @@ function getGendersForType(genderType: string): string[] {
   return [genderType];
 }
 
+interface KitComponent {
+  id: number;
+  kitItemId: number;
+  componentItemId: number;
+  quantity: number;
+  componentItem: {
+    id: number;
+    name: string;
+    price: number;
+  };
+}
+
+function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAdmin; allItems: ShopItemAdmin[] }) {
+  const { toast } = useToast();
+  const [selectedComponentId, setSelectedComponentId] = useState<string>("");
+  const [componentQuantity, setComponentQuantity] = useState<number>(1);
+
+  const { data: kitComponents, isLoading: isLoadingComponents } = useQuery<KitComponent[]>({
+    queryKey: ["/api/admin/shop/items", managingItem.id, "kit-components"],
+    enabled: !!managingItem.id,
+  });
+
+  const addComponentMutation = useMutation({
+    mutationFn: async (data: { componentItemId: number; quantity: number }) => {
+      return apiRequest("POST", `/api/admin/shop/items/${managingItem.id}/kit-components`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "kit-components"] });
+      setSelectedComponentId("");
+      setComponentQuantity(1);
+      toast({ title: "Componente adicionado", description: "O item foi adicionado ao kit." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível adicionar o componente.", variant: "destructive" });
+    },
+  });
+
+  const removeComponentMutation = useMutation({
+    mutationFn: async (componentId: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/items/${managingItem.id}/kit-components/${componentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "kit-components"] });
+      toast({ title: "Componente removido", description: "O item foi removido do kit." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível remover o componente.", variant: "destructive" });
+    },
+  });
+
+  const existingComponentIds = kitComponents?.map(c => c.componentItemId) || [];
+  const availableItems = allItems.filter(
+    item => item.id !== managingItem.id && !existingComponentIds.includes(item.id)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
+        <Label className="text-sm font-medium">Adicionar Componente</Label>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
+              <SelectTrigger data-testid="select-kit-component">
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableItems.map((item) => (
+                  <SelectItem key={item.id} value={item.id.toString()}>
+                    {item.name} - {formatCurrency(item.price)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-20">
+            <Input
+              type="number"
+              min="1"
+              value={componentQuantity}
+              onChange={(e) => setComponentQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              data-testid="input-kit-quantity"
+            />
+          </div>
+          <Button
+            onClick={() => {
+              if (selectedComponentId) {
+                addComponentMutation.mutate({
+                  componentItemId: parseInt(selectedComponentId),
+                  quantity: componentQuantity,
+                });
+              }
+            }}
+            disabled={!selectedComponentId || addComponentMutation.isPending}
+            data-testid="button-add-kit-component"
+          >
+            {addComponentMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Adicionar"
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Componentes do Kit</Label>
+        {isLoadingComponents ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-12" />
+            ))}
+          </div>
+        ) : !kitComponents?.length ? (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            Nenhum componente adicionado
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {kitComponents.map((component) => (
+              <div
+                key={component.id}
+                className="flex items-center justify-between gap-2 p-3 rounded-md border"
+                data-testid={`kit-component-${component.id}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{component.componentItem.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatCurrency(component.componentItem.price)} × {component.quantity}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    Qtd: {component.quantity}
+                  </Badge>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeComponentMutation.mutate(component.id)}
+                    disabled={removeComponentMutation.isPending}
+                    data-testid={`button-remove-kit-component-${component.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LojaAdmin() {
   const { hasMarketingPanel } = useAuth();
   const [, setLocation] = useLocation();
@@ -221,7 +377,7 @@ export default function LojaAdmin() {
   const [categoryImageChanged, setCategoryImageChanged] = useState(false);
   const categoryImageInputRef = useRef<HTMLInputElement>(null);
   const [managingItem, setManagingItem] = useState<ShopItemAdmin | null>(null);
-  const [manageTab, setManageTab] = useState<"images" | "sizes" | "colors">("images");
+  const [manageTab, setManageTab] = useState<"images" | "sizes" | "colors" | "kit">("images");
   const [uploadingGender, setUploadingGender] = useState<string>("unissex");
   const [newSizeGender, setNewSizeGender] = useState<string>("unissex");
   const [newSizeName, setNewSizeName] = useState("");
@@ -361,6 +517,7 @@ export default function LojaAdmin() {
       allowInstallments: false,
       maxInstallments: 3,
       stockQuantity: null,
+      isKit: false,
     },
   });
 
@@ -380,6 +537,7 @@ export default function LojaAdmin() {
         allowInstallments: editingItem.allowInstallments ?? false,
         maxInstallments: editingItem.maxInstallments ?? 3,
         stockQuantity: editingItem.stockQuantity ?? null,
+        isKit: editingItem.isKit ?? false,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -397,6 +555,7 @@ export default function LojaAdmin() {
         allowInstallments: false,
         maxInstallments: 3,
         stockQuantity: null,
+        isKit: false,
       });
       setPriceDisplay("");
     }
@@ -1325,9 +1484,17 @@ export default function LojaAdmin() {
                   </div>
                   <CardContent className="p-4 space-y-3">
                     <div>
-                      <h3 className="font-medium truncate" data-testid={`text-item-name-${item.id}`}>
-                        {item.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium truncate" data-testid={`text-item-name-${item.id}`}>
+                          {item.name}
+                        </h3>
+                        {item.isKit && (
+                          <Badge variant="secondary" className="text-xs gap-1" data-testid={`badge-kit-${item.id}`}>
+                            <Package className="h-3 w-3" />
+                            Kit
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {item.category?.name} - {getGenderLabel(item.genderType)}
                       </p>
@@ -1995,8 +2162,8 @@ export default function LojaAdmin() {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes" | "colors")}>
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes" | "colors" | "kit")}>
+            <TabsList className={`grid w-full ${managingItem?.isKit ? "grid-cols-4" : "grid-cols-3"}`}>
               <TabsTrigger value="images" className="gap-2">
                 <ImagePlus className="h-4 w-4" />
                 Imagens
@@ -2009,6 +2176,12 @@ export default function LojaAdmin() {
                 <Tag className="h-4 w-4" />
                 Cores
               </TabsTrigger>
+              {managingItem?.isKit && (
+                <TabsTrigger value="kit" className="gap-2">
+                  <Package className="h-4 w-4" />
+                  Kit
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="images" className="space-y-6 mt-4">
@@ -2482,6 +2655,15 @@ export default function LojaAdmin() {
                 />
               </div>
             </TabsContent>
+
+            {managingItem?.isKit && (
+              <TabsContent value="kit" className="space-y-4 mt-4">
+                <KitComponentsTab
+                  managingItem={managingItem}
+                  allItems={items || []}
+                />
+              </TabsContent>
+            )}
           </Tabs>
 
           <DialogFooter>
@@ -2829,6 +3011,32 @@ export default function LojaAdmin() {
                       <FormDescription className="text-xs">
                         Deixe vazio para nao controlar estoque. Quando chegar a 0, o item sera marcado como esgotado automaticamente.
                       </FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isKit"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-3 border-purple-500/30 bg-purple-500/5">
+                      <div>
+                        <FormLabel className="text-purple-600 dark:text-purple-400">É um Kit</FormLabel>
+                        <FormDescription className="text-xs">
+                          Kit é composto por múltiplos produtos
+                        </FormDescription>
+                        {field.value && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Após salvar, use o botão 'Gerenciar' para adicionar componentes do kit.
+                          </p>
+                        )}
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-is-kit"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

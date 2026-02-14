@@ -66,8 +66,26 @@ interface ShopProduct {
   price: number;
   genderType: string;
   hasSize: boolean;
+  isKit: boolean;
   sizes?: ShopProductSize[] | null;
   colors?: ShopProductColor[] | null;
+}
+
+interface KitComponentData {
+  id: number;
+  kitItemId: number;
+  componentItemId: number;
+  quantity: number;
+  sortOrder: number;
+  componentItem: {
+    id: number;
+    name: string;
+    price: number;
+    hasSize: boolean;
+    genderType: string;
+  };
+  sizes: Array<{ id: number; itemId: number; gender: string; size: string; sortOrder: number }>;
+  colors: Array<{ id: number; itemId: number; name: string; hexCode: string; sortOrder: number; isAvailable: boolean }>;
 }
 
 interface OrderUser {
@@ -178,7 +196,9 @@ export default function PedidosAdminPage() {
     gender: string;
     color: string;
     colorId: number;
+    kitSelections: Array<{ componentId: number; componentName: string; size: string; color: string; colorId: number }>;
   }>>([]);
+  const [kitComponentsCache, setKitComponentsCache] = useState<Record<number, KitComponentData[]>>({});
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
   const [manualOrderPromoCode, setManualOrderPromoCode] = useState("");
   const [promoCodeValidation, setPromoCodeValidation] = useState<{
@@ -316,14 +336,36 @@ export default function PedidosAdminPage() {
     setEditingOrderId(order.id);
     setManualOrderMemberId(order.manualCustomerName ? "" : order.userId.toString());
     setManualOrderName(order.manualCustomerName || "");
-    setManualOrderItems(order.items.map(item => ({
+    const itemsWithKit = order.items.map(item => ({
       itemId: item.itemId,
       quantity: item.quantity,
       size: item.size || "",
       gender: item.gender || "",
       color: item.color || "",
       colorId: item.colorId || 0,
-    })));
+      kitSelections: ((item as any).kitSelections || []).map((sel: any) => ({
+        componentId: sel.componentId,
+        componentName: sel.componentName || "",
+        size: sel.size || "",
+        color: sel.color || "",
+        colorId: sel.colorId || 0,
+      })),
+    }));
+    setManualOrderItems(itemsWithKit);
+    const kitItemIds = itemsWithKit.filter(i => {
+      const prod = products?.find(p => p.id === i.itemId);
+      return prod?.isKit;
+    }).map(i => i.itemId);
+    for (const kitId of kitItemIds) {
+      if (!kitComponentsCache[kitId]) {
+        apiRequest("GET", `/api/admin/shop/items/${kitId}/kit-components`)
+          .then(res => res.json())
+          .then(components => {
+            setKitComponentsCache(prev => ({ ...prev, [kitId]: components }));
+          })
+          .catch(() => {});
+      }
+    }
     setManualOrderInstallments((order.installmentCount || 1).toString());
     setManualOrderPromoCode(order.promoCode || "");
     setPromoCodeValidation(null);
@@ -779,6 +821,18 @@ export default function PedidosAdminPage() {
                             Qtd: {item.quantity}
                           </Badge>
                         </div>
+                        {item.kitSelections && item.kitSelections.length > 0 && (
+                          <div className="mt-1 pt-1 border-t border-border/50 space-y-0.5">
+                            <p className="text-xs font-medium text-muted-foreground">Itens do Kit:</p>
+                            {item.kitSelections.map((sel: any, idx: number) => (
+                              <p key={sel.id || sel.componentId || idx} className="text-xs text-muted-foreground">
+                                {sel.quantity || 1}x {sel.componentName || "Componente"}
+                                {sel.size && <span className="font-medium"> - {sel.size}</span>}
+                                {sel.color && <span className="font-medium"> / {sel.color}</span>}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <span className="text-sm font-medium whitespace-nowrap">
                         {formatCurrency(item.unitPrice * item.quantity)}
@@ -962,7 +1016,7 @@ export default function PedidosAdminPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "", color: "", colorId: 0 }]);
+                    setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "", color: "", colorId: 0, kitSelections: [] }]);
                     setPromoCodeValidation(null);
                   }}
                   className="gap-1"
@@ -997,11 +1051,45 @@ export default function PedidosAdminPage() {
                         <Label className="text-xs">Produto</Label>
                         <Select
                           value={item.itemId ? item.itemId.toString() : ""}
-                          onValueChange={(value) => {
+                          onValueChange={async (value) => {
+                            const newItemId = parseInt(value);
+                            const selectedProd = products?.find(p => p.id === newItemId);
                             const newItems = [...manualOrderItems];
-                            newItems[index] = { ...item, itemId: parseInt(value), size: "", gender: "", color: "", colorId: 0 };
+                            newItems[index] = { ...item, itemId: newItemId, size: "", gender: "", color: "", colorId: 0, kitSelections: [] };
                             setManualOrderItems(newItems);
                             setPromoCodeValidation(null);
+                            if (selectedProd?.isKit && !kitComponentsCache[newItemId]) {
+                              try {
+                                const res = await apiRequest("GET", `/api/admin/shop/items/${newItemId}/kit-components`);
+                                const components = await res.json();
+                                setKitComponentsCache(prev => ({ ...prev, [newItemId]: components }));
+                                const updatedItems = [...newItems];
+                                updatedItems[index] = {
+                                  ...updatedItems[index],
+                                  kitSelections: components.map((c: KitComponentData) => ({
+                                    componentId: c.id,
+                                    componentName: c.componentItem.name,
+                                    size: "",
+                                    color: "",
+                                    colorId: 0,
+                                  })),
+                                };
+                                setManualOrderItems(updatedItems);
+                              } catch {}
+                            } else if (selectedProd?.isKit && kitComponentsCache[newItemId]) {
+                              const components = kitComponentsCache[newItemId];
+                              newItems[index] = {
+                                ...newItems[index],
+                                kitSelections: components.map((c: KitComponentData) => ({
+                                  componentId: c.id,
+                                  componentName: c.componentItem.name,
+                                  size: "",
+                                  color: "",
+                                  colorId: 0,
+                                })),
+                              };
+                              setManualOrderItems(newItems);
+                            }
                           }}
                         >
                           <SelectTrigger data-testid={`select-item-${index}`}>
@@ -1033,7 +1121,7 @@ export default function PedidosAdminPage() {
                         />
                       </div>
 
-                      {hasGender && (
+                      {!selectedProduct?.isKit && hasGender && (
                         <div className="w-28 space-y-1">
                           <Label className="text-xs">Modelo</Label>
                           <Select
@@ -1055,7 +1143,7 @@ export default function PedidosAdminPage() {
                         </div>
                       )}
 
-                      {availableSizes.length > 0 && (
+                      {!selectedProduct?.isKit && availableSizes.length > 0 && (
                         <div className="w-24 space-y-1">
                           <Label className="text-xs">Tamanho</Label>
                           <Select
@@ -1078,7 +1166,7 @@ export default function PedidosAdminPage() {
                         </div>
                       )}
 
-                      {availableColors.length > 0 && (
+                      {!selectedProduct?.isKit && availableColors.length > 0 && (
                         <div className="w-32 space-y-1">
                           <Label className="text-xs">Cor</Label>
                           <Select
@@ -1128,6 +1216,96 @@ export default function PedidosAdminPage() {
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+
+                      {selectedProduct?.isKit && kitComponentsCache[item.itemId] && (
+                        <div className="w-full mt-2 p-3 border border-dashed border-border rounded-md bg-muted/50 space-y-3" data-testid={`kit-components-section-${index}`}>
+                          <p className="text-xs font-semibold text-muted-foreground">Componentes do Kit</p>
+                          {kitComponentsCache[item.itemId].map((comp) => {
+                            const kitSel = item.kitSelections.find(ks => ks.componentId === comp.id);
+                            const compColors = comp.colors.filter((c: any) => c.isAvailable);
+                            const compHasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
+                            const compHasColors = compColors.length > 0;
+                            if (!compHasSizes && !compHasColors) {
+                              return (
+                                <div key={comp.id} className="flex items-center gap-2" data-testid={`kit-comp-${index}-${comp.id}`}>
+                                  <Badge variant="secondary" className="text-xs">{comp.quantity}x</Badge>
+                                  <span className="text-sm">{comp.componentItem.name}</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={comp.id} className="space-y-1" data-testid={`kit-comp-${index}-${comp.id}`}>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary" className="text-xs">{comp.quantity}x</Badge>
+                                  <span className="text-sm font-medium">{comp.componentItem.name}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pl-6">
+                                  {compHasSizes && (
+                                    <div className="w-24 space-y-1">
+                                      <Label className="text-xs">Tamanho</Label>
+                                      <Select
+                                        value={kitSel?.size || ""}
+                                        onValueChange={(value) => {
+                                          const newItems = [...manualOrderItems];
+                                          const newSelections = [...newItems[index].kitSelections];
+                                          const selIdx = newSelections.findIndex(ks => ks.componentId === comp.id);
+                                          if (selIdx >= 0) {
+                                            newSelections[selIdx] = { ...newSelections[selIdx], size: value };
+                                          }
+                                          newItems[index] = { ...newItems[index], kitSelections: newSelections };
+                                          setManualOrderItems(newItems);
+                                        }}
+                                      >
+                                        <SelectTrigger data-testid={`select-kit-size-${index}-${comp.id}`}>
+                                          <SelectValue placeholder="Tam" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {[...new Set(comp.sizes.map((s: any) => s.size))].map((size: any) => (
+                                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                  {compHasColors && (
+                                    <div className="w-32 space-y-1">
+                                      <Label className="text-xs">Cor</Label>
+                                      <Select
+                                        value={kitSel?.colorId ? kitSel.colorId.toString() : ""}
+                                        onValueChange={(value) => {
+                                          const newItems = [...manualOrderItems];
+                                          const newSelections = [...newItems[index].kitSelections];
+                                          const selIdx = newSelections.findIndex(ks => ks.componentId === comp.id);
+                                          const selColor = compColors.find((c: any) => c.id === parseInt(value));
+                                          if (selIdx >= 0) {
+                                            newSelections[selIdx] = { ...newSelections[selIdx], colorId: parseInt(value), color: selColor?.name || "" };
+                                          }
+                                          newItems[index] = { ...newItems[index], kitSelections: newSelections };
+                                          setManualOrderItems(newItems);
+                                        }}
+                                      >
+                                        <SelectTrigger data-testid={`select-kit-color-${index}-${comp.id}`}>
+                                          <SelectValue placeholder="Cor" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {compColors.map((color: any) => (
+                                            <SelectItem key={color.id} value={color.id.toString()}>
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: color.hexCode }} />
+                                                {color.name}
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1292,6 +1470,12 @@ export default function PedidosAdminPage() {
                   gender: i.gender || undefined,
                   color: i.color || undefined,
                   colorId: i.colorId || undefined,
+                  kitSelections: i.kitSelections?.length > 0 ? i.kitSelections.map(ks => ({
+                    componentId: ks.componentId,
+                    size: ks.size || undefined,
+                    color: ks.color || undefined,
+                    colorId: ks.colorId || undefined,
+                  })) : undefined,
                 }));
                 const promoCode = promoCodeValidation ? manualOrderPromoCode.trim() : (editingOrderId && manualOrderPromoCode.trim() ? manualOrderPromoCode.trim() : undefined);
                 const installmentCount = parseInt(manualOrderInstallments);

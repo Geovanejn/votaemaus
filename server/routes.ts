@@ -10850,6 +10850,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Editar pedido manual (admin/marketing) - somente se aguardando pagamento e nenhuma parcela paga
+  const editManualOrderSchema = z.object({
+    items: z.array(z.object({
+      itemId: z.number(),
+      quantity: z.number().min(1).default(1),
+      size: z.string().optional(),
+      gender: z.string().optional(),
+      color: z.string().optional(),
+      colorId: z.number().optional(),
+    })).min(1, "Pelo menos um item é obrigatório"),
+    installmentCount: z.number().min(1).max(12).default(1),
+    promoCode: z.string().optional(),
+  });
+
+  app.put("/api/admin/shop/orders/:orderId/edit", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      const order = await storage.getShopOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      const isManual = order.observation?.includes('Pedido manual') || order.observation?.includes('Pedido criado manualmente');
+      if (!isManual) {
+        return res.status(400).json({ message: "Apenas pedidos manuais podem ser editados" });
+      }
+
+      if (order.orderStatus !== "awaiting_payment" && order.orderStatus !== "installment_payment") {
+        return res.status(400).json({ message: "Pedido só pode ser editado se estiver aguardando pagamento" });
+      }
+
+      const installments = await storage.getShopInstallments(orderId);
+      const hasPaidInstallment = installments.some(i => i.status === "paid");
+      if (hasPaidInstallment) {
+        return res.status(400).json({ message: "Pedido não pode ser editado pois já possui parcela(s) paga(s)" });
+      }
+
+      if (order.paymentStatus === "paid") {
+        return res.status(400).json({ message: "Pedido já foi pago e não pode ser editado" });
+      }
+
+      const parseResult = editManualOrderSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          message: parseResult.error.errors[0]?.message || "Dados inválidos" 
+        });
+      }
+
+      const { items, installmentCount, promoCode: promoCodeStr } = parseResult.data;
+
+      let totalAmount = 0;
+      const validatedItems: Array<{
+        itemId: number;
+        quantity: number;
+        size: string | null;
+        gender: string | null;
+        color: string | null;
+        colorId: number | null;
+        unitPrice: number;
+        categoryId: number | null;
+      }> = [];
+
+      for (const item of items) {
+        const shopItem = await storage.getShopItemById(item.itemId);
+        if (!shopItem) {
+          return res.status(400).json({ message: `Produto ${item.itemId} não encontrado` });
+        }
+        if (shopItem.genderType === "both" && !item.gender) {
+          return res.status(400).json({ message: `Modelo (M/F) obrigatório para ${shopItem.name}` });
+        }
+        const quantity = item.quantity || 1;
+        const unitPrice = shopItem.price;
+        totalAmount += unitPrice * quantity;
+        validatedItems.push({
+          itemId: item.itemId,
+          quantity,
+          size: item.size || null,
+          gender: item.gender || null,
+          color: item.color || null,
+          colorId: item.colorId || null,
+          unitPrice,
+          categoryId: shopItem.categoryId || null,
+        });
+      }
+
+      let discountAmount = 0;
+      let promoCodeId: number | null = null;
+      let validatedPromoCode: string | null = null;
+      if (promoCodeStr) {
+        const promoCode = await storage.getPromoCodeByCode(promoCodeStr);
+        if (!promoCode) {
+          return res.status(400).json({ message: "Cupom promocional não encontrado" });
+        }
+        if (!promoCode.isActive) {
+          return res.status(400).json({ message: "Cupom promocional inativo" });
+        }
+        const now = new Date();
+        if (now < new Date(promoCode.startDate)) {
+          return res.status(400).json({ message: "Cupom promocional ainda não está ativo" });
+        }
+        if (now > new Date(promoCode.endDate)) {
+          return res.status(400).json({ message: "Cupom promocional expirado" });
+        }
+        if (promoCode.maxUses && promoCode.usedCount >= promoCode.maxUses) {
+          return res.status(400).json({ message: "Cupom promocional atingiu o limite de usos" });
+        }
+        let applicableAmount = 0;
+        for (const oi of validatedItems) {
+          if (promoCode.categoryId === null || oi.categoryId === promoCode.categoryId) {
+            applicableAmount += oi.unitPrice * oi.quantity;
+          }
+        }
+        if (promoCode.discountType === "percentage") {
+          discountAmount = Math.floor(applicableAmount * (promoCode.discountValue / 100));
+        } else {
+          discountAmount = Math.min(promoCode.discountValue, applicableAmount);
+        }
+        promoCodeId = promoCode.id;
+        validatedPromoCode = promoCode.code;
+      }
+
+      let comboDiscountAmount = 0;
+      const appliedComboNames: string[] = [];
+      const itemIds = validatedItems.map(vi => vi.itemId);
+      if (itemIds.length >= 2) {
+        const combos = await storage.getActiveShopComboDiscounts();
+        const now = new Date();
+        for (const combo of combos) {
+          if (combo.startDate && now < new Date(combo.startDate)) continue;
+          if (combo.endDate && now > new Date(combo.endDate)) continue;
+          const comboItemIds = combo.items.map(i => i.itemId);
+          if (comboItemIds.every(id => itemIds.includes(id))) {
+            comboDiscountAmount += combo.discountValue;
+            appliedComboNames.push(combo.name);
+          }
+        }
+      }
+
+      const totalDiscount = discountAmount + comboDiscountAmount;
+      const finalAmount = Math.max(0, totalAmount - totalDiscount);
+
+      // Revert old promo code usage if it changed
+      if (order.promoCode && order.promoCode !== validatedPromoCode) {
+        const oldPromo = await storage.getPromoCodeByCode(order.promoCode);
+        if (oldPromo) {
+          await storage.decrementPromoCodeUsage(oldPromo.id);
+        }
+      }
+
+      // Delete existing items and installments
+      await storage.deleteShopOrderItemsByOrderId(orderId);
+      await storage.deleteShopInstallmentsByOrderId(orderId);
+
+      // Create new order items
+      for (const oi of validatedItems) {
+        await storage.createShopOrderItem({
+          orderId,
+          itemId: oi.itemId,
+          quantity: oi.quantity,
+          gender: oi.gender,
+          size: oi.size,
+          color: oi.color,
+          colorId: oi.colorId,
+          unitPrice: oi.unitPrice,
+        });
+      }
+
+      // Increment new promo code usage
+      if (promoCodeId && validatedPromoCode !== order.promoCode) {
+        await storage.incrementPromoCodeUsage(promoCodeId);
+      }
+
+      // Create new installments if applicable
+      const finalInstallmentCount = installmentCount || 1;
+      if (finalInstallmentCount > 1) {
+        const installmentAmount = Math.floor(finalAmount / finalInstallmentCount);
+        const remainder = finalAmount - (installmentAmount * finalInstallmentCount);
+        for (let i = 1; i <= finalInstallmentCount; i++) {
+          const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
+          const dueDate = new Date();
+          dueDate.setMonth(dueDate.getMonth() + i);
+          dueDate.setDate(10);
+          await storage.createShopInstallment({
+            orderId,
+            installmentNumber: i,
+            amount,
+            dueDate,
+            status: 'pending',
+          });
+        }
+      }
+
+      // Update the order
+      const updatedOrder = await storage.updateShopOrder(orderId, {
+        totalAmount: finalAmount,
+        subtotalAmount: totalAmount,
+        promoDiscount: discountAmount,
+        promoCode: validatedPromoCode,
+        comboDiscount: comboDiscountAmount,
+        comboNames: appliedComboNames.length > 0 ? appliedComboNames.join(", ") : null,
+        installmentCount: finalInstallmentCount,
+        orderStatus: finalInstallmentCount > 1 ? "installment_payment" : "awaiting_payment",
+      });
+
+      // Update treasury entry if exists
+      if (order.entryId) {
+        await storage.updateTreasuryEntry(order.entryId, {
+          amount: finalAmount,
+        });
+      }
+
+      console.log(`[Shop] Manual order ${order.orderCode} edited by ${req.user!.fullName}`);
+
+      res.json({
+        success: true,
+        order: updatedOrder,
+        message: `Pedido ${order.orderCode} atualizado com sucesso!`
+      });
+    } catch (error) {
+      console.error("Edit manual order error:", error);
+      res.status(500).json({ message: "Erro ao editar pedido manual" });
+    }
+  });
+
   // ==================== SHOP INSTALLMENTS - ADMIN ====================
 
   // Listar parcelas de um pedido

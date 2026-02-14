@@ -632,6 +632,7 @@ export interface IStorage {
   getShopOrderItemsByOrderIds(orderIds: number[]): Promise<Map<number, ShopOrderItem[]>>;
   createShopOrderItem(data: InsertShopOrderItem): Promise<ShopOrderItem>;
   createShopOrderItemsBatch(items: InsertShopOrderItem[]): Promise<ShopOrderItem[]>;
+  deleteShopOrderItemsByOrderId(orderId: number): Promise<void>;
   
   // Shop Installments Methods
   getShopInstallments(orderId: number): Promise<ShopInstallment[]>;
@@ -643,6 +644,7 @@ export interface IStorage {
   createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment>;
   createShopInstallmentsBatch(installments: InsertShopInstallment[]): Promise<ShopInstallment[]>;
   updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
+  deleteShopInstallmentsByOrderId(orderId: number): Promise<void>;
   
   // Promo Codes Methods
   getPromoCodes(): Promise<PromoCode[]>;
@@ -652,6 +654,7 @@ export interface IStorage {
   updatePromoCode(id: number, data: Partial<InsertPromoCode>): Promise<PromoCode | null>;
   deletePromoCode(id: number): Promise<void>;
   incrementPromoCodeUsage(id: number): Promise<void>;
+  decrementPromoCodeUsage(id: number): Promise<void>;
   
   // Shop Item Colors Methods
   getShopItemColors(itemId: number): Promise<ShopItemColor[]>;
@@ -8084,6 +8087,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async deleteShopOrderItemsByOrderId(orderId: number): Promise<void> {
+    await db.delete(schema.shopOrderItems)
+      .where(eq(schema.shopOrderItems.orderId, orderId));
+  }
+
   // ==================== SHOP INSTALLMENTS METHODS ====================
 
   async getShopInstallments(orderId: number): Promise<ShopInstallment[]> {
@@ -8165,6 +8173,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.shopInstallments.id, id))
       .returning();
     return installment || null;
+  }
+
+  async deleteShopInstallmentsByOrderId(orderId: number): Promise<void> {
+    await db.delete(schema.shopInstallments)
+      .where(eq(schema.shopInstallments.orderId, orderId));
   }
 
   // ==================== TREASURY SETTINGS METHODS ====================
@@ -8869,6 +8882,12 @@ export class DatabaseStorage implements IStorage {
   async incrementPromoCodeUsage(id: number): Promise<void> {
     await db.update(schema.promoCodes)
       .set({ usedCount: sql`${schema.promoCodes.usedCount} + 1` })
+      .where(eq(schema.promoCodes.id, id));
+  }
+
+  async decrementPromoCodeUsage(id: number): Promise<void> {
+    await db.update(schema.promoCodes)
+      .set({ usedCount: sql`GREATEST(0, ${schema.promoCodes.usedCount} - 1)` })
       .where(eq(schema.promoCodes.id, id));
   }
 

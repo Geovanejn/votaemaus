@@ -28,7 +28,8 @@ import {
   Plus,
   Trash2,
   Tag,
-  Percent
+  Percent,
+  Pencil
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +110,7 @@ interface ShopOrder {
   observation: string | null;
   paymentStatus: string;
   orderStatus: string;
+  installmentCount?: number | null;
   createdAt: string;
   paidAt: string | null;
   user: OrderUser | null;
@@ -166,6 +168,7 @@ export default function PedidosAdminPage() {
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [newBulkStatus, setNewBulkStatus] = useState("");
   const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [manualOrderMemberId, setManualOrderMemberId] = useState<string>("");
   const [manualOrderName, setManualOrderName] = useState("");
   const [manualOrderItems, setManualOrderItems] = useState<Array<{
@@ -198,12 +201,12 @@ export default function PedidosAdminPage() {
 
   const { data: members } = useQuery<Member[]>({
     queryKey: ["/api/admin/shop/members"],
-    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen),
   });
 
   const { data: products } = useQuery<ShopProduct[]>({
     queryKey: ["/api/admin/shop/items"],
-    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen),
   });
 
   const manualItemIds = manualOrderItems.filter(i => i.itemId > 0).map(i => i.itemId);
@@ -273,6 +276,60 @@ export default function PedidosAdminPage() {
       toast({ title: "Erro ao criar pedido", variant: "destructive" });
     },
   });
+
+  const editManualOrderMutation = useMutation({
+    mutationFn: async (data: {
+      orderId: number;
+      items: Array<{ itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number }>;
+      installmentCount: number;
+      promoCode?: string;
+    }) => {
+      const { orderId, ...body } = data;
+      const response = await apiRequest("PUT", `/api/admin/shop/orders/${orderId}/edit`, body);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders"] });
+      setManualOrderDialogOpen(false);
+      setEditingOrderId(null);
+      setManualOrderItems([]);
+      setManualOrderInstallments("1");
+      setManualOrderPromoCode("");
+      setPromoCodeValidation(null);
+      setPromoCodeError("");
+      toast({ title: data.message || "Pedido atualizado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || "Erro ao atualizar pedido", variant: "destructive" });
+    },
+  });
+
+  const isOrderEditable = (order: ShopOrder): boolean => {
+    const isManual = order.observation?.includes('Pedido manual') || order.observation?.includes('Pedido criado manualmente');
+    if (!isManual) return false;
+    if (order.orderStatus !== "awaiting_payment" && order.orderStatus !== "installment_payment") return false;
+    if (order.paymentStatus === "paid") return false;
+    return true;
+  };
+
+  const openEditOrderDialog = (order: ShopOrder) => {
+    setEditingOrderId(order.id);
+    setManualOrderMemberId(order.manualCustomerName ? "" : order.userId.toString());
+    setManualOrderName(order.manualCustomerName || "");
+    setManualOrderItems(order.items.map(item => ({
+      itemId: item.itemId,
+      quantity: item.quantity,
+      size: item.size || "",
+      gender: item.gender || "",
+      color: item.color || "",
+      colorId: item.colorId || 0,
+    })));
+    setManualOrderInstallments((order.installmentCount || 1).toString());
+    setManualOrderPromoCode(order.promoCode || "");
+    setPromoCodeValidation(null);
+    setPromoCodeError("");
+    setManualOrderDialogOpen(true);
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, orderStatus }: { orderId: number; orderStatus: string }) => {
@@ -557,6 +614,17 @@ export default function PedidosAdminPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            {isOrderEditable(order) && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEditOrderDialog(order)}
+                                data-testid={`button-edit-order-${order.id}`}
+                                title="Editar pedido"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Select
                               value={order.orderStatus}
                               onValueChange={(value) => updateStatusMutation.mutate({ orderId: order.id, orderStatus: value })}
@@ -781,7 +849,20 @@ export default function PedidosAdminPage() {
             </div>
           )}
           
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            {detailsOrder && isOrderEditable(detailsOrder) && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  openEditOrderDialog(detailsOrder);
+                  setDetailsOrder(null);
+                }}
+                data-testid="button-edit-from-details"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar Pedido
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setDetailsOrder(null)}>
               Fechar
             </Button>
@@ -813,16 +894,27 @@ export default function PedidosAdminPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={manualOrderDialogOpen} onOpenChange={setManualOrderDialogOpen}>
+      <Dialog open={manualOrderDialogOpen} onOpenChange={(open) => {
+        setManualOrderDialogOpen(open);
+        if (!open) setEditingOrderId(null);
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Criar Pedido Manual</DialogTitle>
+            <DialogTitle>{editingOrderId ? "Editar Pedido Manual" : "Criar Pedido Manual"}</DialogTitle>
             <DialogDescription>
-              Crie um pedido para um membro ou cliente externo
+              {editingOrderId ? "Altere os itens do pedido manual" : "Crie um pedido para um membro ou cliente externo"}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
+            {editingOrderId ? (
+              <div className="p-3 bg-muted rounded-md">
+                <Label className="text-xs text-muted-foreground">Cliente</Label>
+                <p className="font-medium text-sm mt-1">
+                  {manualOrderName ? `${manualOrderName} (externo)` : members?.find(m => m.id.toString() === manualOrderMemberId)?.fullName || "Cliente"}
+                </p>
+              </div>
+            ) : (
             <div className="space-y-2">
               <Label>Cliente</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -860,6 +952,7 @@ export default function PedidosAdminPage() {
                 </div>
               </div>
             </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -1174,6 +1267,7 @@ export default function PedidosAdminPage() {
               variant="outline" 
               onClick={() => {
                 setManualOrderDialogOpen(false);
+                setEditingOrderId(null);
                 setManualOrderMemberId("");
                 setManualOrderName("");
                 setManualOrderItems([]);
@@ -1191,30 +1285,43 @@ export default function PedidosAdminPage() {
                   toast({ title: "Adicione pelo menos um item", variant: "destructive" });
                   return;
                 }
-                if (!manualOrderMemberId && !manualOrderName) {
-                  toast({ title: "Selecione um membro ou informe um nome", variant: "destructive" });
-                  return;
+                const validItems = manualOrderItems.filter(i => i.itemId > 0).map(i => ({
+                  itemId: i.itemId,
+                  quantity: i.quantity,
+                  size: i.size || undefined,
+                  gender: i.gender || undefined,
+                  color: i.color || undefined,
+                  colorId: i.colorId || undefined,
+                }));
+                const promoCode = promoCodeValidation ? manualOrderPromoCode.trim() : (editingOrderId && manualOrderPromoCode.trim() ? manualOrderPromoCode.trim() : undefined);
+                const installmentCount = parseInt(manualOrderInstallments);
+
+                if (editingOrderId) {
+                  editManualOrderMutation.mutate({
+                    orderId: editingOrderId,
+                    items: validItems,
+                    installmentCount,
+                    promoCode,
+                  });
+                } else {
+                  if (!manualOrderMemberId && !manualOrderName) {
+                    toast({ title: "Selecione um membro ou informe um nome", variant: "destructive" });
+                    return;
+                  }
+                  createManualOrderMutation.mutate({
+                    memberId: manualOrderMemberId ? parseInt(manualOrderMemberId) : undefined,
+                    manualName: manualOrderName || undefined,
+                    promoCode,
+                    items: validItems,
+                    installmentCount,
+                  });
                 }
-                createManualOrderMutation.mutate({
-                  memberId: manualOrderMemberId ? parseInt(manualOrderMemberId) : undefined,
-                  manualName: manualOrderName || undefined,
-                  promoCode: promoCodeValidation ? manualOrderPromoCode.trim() : undefined,
-                  items: manualOrderItems.filter(i => i.itemId > 0).map(i => ({
-                    itemId: i.itemId,
-                    quantity: i.quantity,
-                    size: i.size || undefined,
-                    gender: i.gender || undefined,
-                    color: i.color || undefined,
-                    colorId: i.colorId || undefined,
-                  })),
-                  installmentCount: parseInt(manualOrderInstallments),
-                });
               }}
-              disabled={createManualOrderMutation.isPending || manualOrderItems.length === 0}
+              disabled={(editingOrderId ? editManualOrderMutation.isPending : createManualOrderMutation.isPending) || manualOrderItems.length === 0}
               data-testid="button-submit-manual-order"
             >
-              {createManualOrderMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Criar Pedido
+              {(editingOrderId ? editManualOrderMutation.isPending : createManualOrderMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {editingOrderId ? "Salvar Alterações" : "Criar Pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>

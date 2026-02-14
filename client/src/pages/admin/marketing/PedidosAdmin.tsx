@@ -29,7 +29,8 @@ import {
   Trash2,
   Tag,
   Percent,
-  Pencil
+  Pencil,
+  FileText
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +103,15 @@ interface OrderItemProduct {
   firstImage?: string | null;
 }
 
+interface KitSelectionData {
+  id: number;
+  componentId: number;
+  componentName: string;
+  quantity: number;
+  size: string | null;
+  color: string | null;
+}
+
 interface OrderItem {
   id: number;
   orderId: number;
@@ -113,6 +123,7 @@ interface OrderItem {
   colorId: number | null;
   unitPrice: number;
   product: OrderItemProduct | null;
+  kitSelections?: KitSelectionData[];
 }
 
 interface ShopOrder {
@@ -172,6 +183,234 @@ function formatDate(date: string): string {
 
 function getStatusInfo(status: string) {
   return ORDER_STATUSES.find(s => s.value === status) || ORDER_STATUSES[0];
+}
+
+async function generateProductionPDF(selectedOrdersList: ShopOrder[]) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF("portrait", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("RELATÓRIO DE PRODUÇÃO", pageWidth / 2, 20, { align: "center" });
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`UMP Emaús - Gerado em ${today}`, pageWidth / 2, 27, { align: "center" });
+  doc.text(`${selectedOrdersList.length} pedido(s) selecionado(s)`, pageWidth / 2, 32, { align: "center" });
+
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.5);
+  doc.line(margin, 35, pageWidth - margin, 35);
+
+  let yPos = 42;
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("SEÇÃO 1 - DETALHAMENTO POR PEDIDO", margin, yPos);
+  yPos += 8;
+
+  for (const order of selectedOrdersList) {
+    if (yPos > 260) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    const statusInfo = getStatusInfo(order.orderStatus);
+    const paymentLabel = order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "partial" ? "Parcial" : "Pendente";
+    const customerName = getCustomerName(order);
+
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, yPos - 5, contentWidth, 8, "F");
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Pedido #${order.orderCode}`, margin + 2, yPos);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${customerName} | ${statusInfo.label} | Pgto: ${paymentLabel}`, margin + 2, yPos + 5);
+    yPos += 12;
+
+    const tableData: string[][] = [];
+    for (const item of order.items) {
+      const productName = item.product?.name || "Produto";
+      const gender = item.gender === "male" ? "Masc" : item.gender === "female" ? "Fem" : item.gender === "unissex" ? "Uni" : "-";
+      const size = item.size || "-";
+      const color = item.color || "-";
+
+      if (item.kitSelections && item.kitSelections.length > 0) {
+        tableData.push([productName + " (Kit)", gender, "-", "-", String(item.quantity)]);
+        for (const sel of item.kitSelections) {
+          tableData.push([`  → ${sel.componentName}`, "-", sel.size || "-", sel.color || "-", String((sel.quantity || 1) * item.quantity)]);
+        }
+      } else {
+        tableData.push([productName, gender, size, color, String(item.quantity)]);
+      }
+    }
+
+    if (tableData.length === 0) {
+      tableData.push(["Sem itens", "-", "-", "-", "0"]);
+    }
+
+    autoTable(doc, {
+      startY: yPos,
+      margin: { left: margin, right: margin },
+      head: [["Produto", "Modelo", "Tamanho", "Cor", "Qtd"]],
+      body: tableData,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: contentWidth * 0.4 },
+        1: { cellWidth: contentWidth * 0.12, halign: "center" },
+        2: { cellWidth: contentWidth * 0.16, halign: "center" },
+        3: { cellWidth: contentWidth * 0.18, halign: "center" },
+        4: { cellWidth: contentWidth * 0.14, halign: "center" },
+      },
+      theme: "grid",
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 8;
+  }
+
+  doc.addPage();
+  yPos = 20;
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("SEÇÃO 2 - RESUMO PARA PRODUÇÃO", margin, yPos);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  yPos += 6;
+  doc.text("Itens agrupados por produto, cor e tamanho com quantidades totais", margin, yPos);
+  yPos += 8;
+
+  const aggregated = new Map<string, {
+    productName: string;
+    color: string;
+    size: string;
+    gender: string;
+    quantity: number;
+    orderCodes: string[];
+  }>();
+
+  for (const order of selectedOrdersList) {
+    for (const item of order.items) {
+      if (item.kitSelections && item.kitSelections.length > 0) {
+        for (const sel of item.kitSelections) {
+          const key = `${sel.componentName}||${sel.color || "-"}||${sel.size || "-"}||-`;
+          const existing = aggregated.get(key);
+          if (existing) {
+            existing.quantity += (sel.quantity || 1) * item.quantity;
+            if (!existing.orderCodes.includes(order.orderCode)) {
+              existing.orderCodes.push(order.orderCode);
+            }
+          } else {
+            aggregated.set(key, {
+              productName: sel.componentName,
+              color: sel.color || "-",
+              size: sel.size || "-",
+              gender: "-",
+              quantity: (sel.quantity || 1) * item.quantity,
+              orderCodes: [order.orderCode],
+            });
+          }
+        }
+      } else {
+        const productName = item.product?.name || "Produto";
+        const color = item.color || "-";
+        const size = item.size || "-";
+        const gender = item.gender === "male" ? "Masc" : item.gender === "female" ? "Fem" : item.gender === "unissex" ? "Uni" : "-";
+        const key = `${productName}||${color}||${size}||${gender}`;
+        const existing = aggregated.get(key);
+        if (existing) {
+          existing.quantity += item.quantity;
+          if (!existing.orderCodes.includes(order.orderCode)) {
+            existing.orderCodes.push(order.orderCode);
+          }
+        } else {
+          aggregated.set(key, { productName, color, size, gender, quantity: item.quantity, orderCodes: [order.orderCode] });
+        }
+      }
+    }
+  }
+
+  const sortedItems = Array.from(aggregated.values()).sort((a, b) => {
+    if (a.productName !== b.productName) return a.productName.localeCompare(b.productName);
+    if (a.color !== b.color) return a.color.localeCompare(b.color);
+    return a.size.localeCompare(b.size);
+  });
+
+  let currentProduct = "";
+  const summaryTableData: string[][] = [];
+  let productTotalQty = 0;
+
+  for (let i = 0; i < sortedItems.length; i++) {
+    const item = sortedItems[i];
+    const nextItem = sortedItems[i + 1];
+
+    if (item.productName !== currentProduct) {
+      currentProduct = item.productName;
+      productTotalQty = 0;
+    }
+
+    productTotalQty += item.quantity;
+    summaryTableData.push([
+      item.productName,
+      item.gender,
+      item.size,
+      item.color,
+      String(item.quantity),
+      item.orderCodes.join(", "),
+    ]);
+
+    if (!nextItem || nextItem.productName !== currentProduct) {
+      summaryTableData.push([`SUBTOTAL: ${currentProduct}`, "", "", "", String(productTotalQty), ""]);
+    }
+  }
+
+  const grandTotal = sortedItems.reduce((sum, item) => sum + item.quantity, 0);
+  summaryTableData.push(["TOTAL GERAL", "", "", "", String(grandTotal), ""]);
+
+  autoTable(doc, {
+    startY: yPos,
+    margin: { left: margin, right: margin },
+    head: [["Produto", "Modelo", "Tamanho", "Cor", "Qtd", "Pedidos"]],
+    body: summaryTableData,
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: contentWidth * 0.28 },
+      1: { cellWidth: contentWidth * 0.1, halign: "center" },
+      2: { cellWidth: contentWidth * 0.12, halign: "center" },
+      3: { cellWidth: contentWidth * 0.15, halign: "center" },
+      4: { cellWidth: contentWidth * 0.1, halign: "center" },
+      5: { cellWidth: contentWidth * 0.25 },
+    },
+    theme: "grid",
+    didParseCell: function (data: any) {
+      const rowText = data.row.raw?.[0] || "";
+      if (typeof rowText === "string" && (rowText.startsWith("SUBTOTAL:") || rowText === "TOTAL GERAL")) {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fillColor = rowText === "TOTAL GERAL" ? [40, 40, 40] : [220, 220, 220];
+        if (rowText === "TOTAL GERAL") {
+          data.cell.styles.textColor = [255, 255, 255];
+        }
+      }
+    },
+  });
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+  }
+
+  doc.save(`producao_${new Date().toISOString().split("T")[0]}.pdf`);
 }
 
 export default function PedidosAdminPage() {
@@ -547,6 +786,20 @@ export default function PedidosAdminPage() {
                         <RefreshCw className="h-4 w-4 mr-2" />
                       )}
                       Aplicar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        if (!orders) return;
+                        const selected = orders.filter(o => selectedOrders.includes(o.id));
+                        if (selected.length === 0) return;
+                        generateProductionPDF(selected);
+                        toast({ title: "PDF de produção gerado!", description: `${selected.length} pedido(s) incluído(s)` });
+                      }}
+                      data-testid="button-production-pdf"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Produção
                     </Button>
                     <Button
                       variant="ghost"

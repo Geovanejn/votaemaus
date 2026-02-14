@@ -47,6 +47,48 @@ async function runPendingMigrations(): Promise<void> {
       name: "add_color_id_to_shop_order_items",
       sql: `ALTER TABLE shop_order_items ADD COLUMN IF NOT EXISTS color_id INTEGER;`
     },
+    {
+      name: "add_is_kit_to_shop_items",
+      sql: `ALTER TABLE shop_items ADD COLUMN IF NOT EXISTS is_kit BOOLEAN NOT NULL DEFAULT false;`
+    },
+    {
+      name: "create_shop_kit_components",
+      sql: `CREATE TABLE IF NOT EXISTS shop_kit_components (
+        id SERIAL PRIMARY KEY,
+        kit_item_id INTEGER NOT NULL REFERENCES shop_items(id) ON DELETE CASCADE,
+        component_item_id INTEGER NOT NULL REFERENCES shop_items(id) ON DELETE CASCADE,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );`
+    },
+    {
+      name: "create_shop_cart_item_kit_selections",
+      sql: `CREATE TABLE IF NOT EXISTS shop_cart_item_kit_selections (
+        id SERIAL PRIMARY KEY,
+        cart_item_id INTEGER NOT NULL REFERENCES shop_cart_items(id) ON DELETE CASCADE,
+        component_id INTEGER NOT NULL REFERENCES shop_kit_components(id) ON DELETE CASCADE,
+        component_item_id INTEGER NOT NULL,
+        component_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        size TEXT,
+        color TEXT,
+        color_id INTEGER
+      );`
+    },
+    {
+      name: "create_shop_order_item_kit_selections",
+      sql: `CREATE TABLE IF NOT EXISTS shop_order_item_kit_selections (
+        id SERIAL PRIMARY KEY,
+        order_item_id INTEGER NOT NULL REFERENCES shop_order_items(id) ON DELETE CASCADE,
+        component_id INTEGER NOT NULL REFERENCES shop_kit_components(id) ON DELETE CASCADE,
+        component_item_id INTEGER NOT NULL,
+        component_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        size TEXT,
+        color TEXT,
+        color_id INTEGER
+      );`
+    },
   ];
 
   for (const migration of migrations) {

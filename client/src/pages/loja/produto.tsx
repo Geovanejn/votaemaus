@@ -25,7 +25,7 @@ interface ShopItemWithDetails extends ShopItem {
     componentItemId: number;
     quantity: number;
     sortOrder: number;
-    componentItem: { id: number; name: string; hasSize: boolean; genderType: string };
+    componentItem: { id: number; name: string; hasSize: boolean; genderType: string; isPublished?: boolean };
     sizes: Array<{ id: number; size: string; gender?: string }>;
     colors: Array<{ id: number; name: string; hexCode: string; isAvailable: boolean }>;
     sizeCharts?: Array<{ id: number; size: string; gender: string; width?: string; length?: string; sleeve?: string }>;

@@ -218,6 +218,9 @@ interface KitComponent {
     id: number;
     name: string;
     price: number;
+    hasSize?: boolean;
+    genderType?: string;
+    isPublished?: boolean;
   };
 }
 
@@ -225,6 +228,10 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
   const { toast } = useToast();
   const [selectedComponentId, setSelectedComponentId] = useState<string>("");
   const [componentQuantity, setComponentQuantity] = useState<number>(1);
+  const [addMode, setAddMode] = useState<"existing" | "custom">("existing");
+  const [customName, setCustomName] = useState("");
+  const [customQuantity, setCustomQuantity] = useState<number>(1);
+  const [customHasSize, setCustomHasSize] = useState(true);
 
   const { data: kitComponents, isLoading: isLoadingComponents } = useQuery<KitComponent[]>({
     queryKey: ["/api/admin/shop/items", managingItem.id, "kit-components"],
@@ -243,6 +250,22 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
     },
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível adicionar o componente.", variant: "destructive" });
+    },
+  });
+
+  const addCustomComponentMutation = useMutation({
+    mutationFn: async (data: { name: string; quantity: number; hasSize: boolean; genderType: string }) => {
+      return apiRequest("POST", `/api/admin/shop/items/${managingItem.id}/kit-components/custom`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/items", managingItem.id, "kit-components"] });
+      setCustomName("");
+      setCustomQuantity(1);
+      setCustomHasSize(true);
+      toast({ title: "Componente criado", description: "O componente personalizado foi adicionado ao kit." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível criar o componente.", variant: "destructive" });
     },
   });
 
@@ -304,50 +327,128 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
   return (
     <div className="space-y-4">
       <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
-        <Label className="text-sm font-medium">Adicionar Componente</Label>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
-              <SelectTrigger data-testid="select-kit-component">
-                <SelectValue placeholder="Selecione um produto" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableItems.map((item) => (
-                  <SelectItem key={item.id} value={item.id.toString()}>
-                    {item.name} - {formatCurrency(item.price)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Adicionar Componente</Label>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant={addMode === "existing" ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setAddMode("existing")}
+              data-testid="button-mode-existing"
+            >
+              Produto existente
+            </Button>
+            <Button
+              size="sm"
+              variant={addMode === "custom" ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setAddMode("custom")}
+              data-testid="button-mode-custom"
+            >
+              Novo componente
+            </Button>
           </div>
-          <div className="w-20">
-            <Input
-              type="number"
-              min="1"
-              value={componentQuantity}
-              onChange={(e) => setComponentQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              data-testid="input-kit-quantity"
-            />
-          </div>
-          <Button
-            onClick={() => {
-              if (selectedComponentId) {
-                addComponentMutation.mutate({
-                  componentItemId: parseInt(selectedComponentId),
-                  quantity: componentQuantity,
-                });
-              }
-            }}
-            disabled={!selectedComponentId || addComponentMutation.isPending}
-            data-testid="button-add-kit-component"
-          >
-            {addComponentMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Adicionar"
-            )}
-          </Button>
         </div>
+
+        {addMode === "existing" ? (
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
+                <SelectTrigger data-testid="select-kit-component">
+                  <SelectValue placeholder="Selecione um produto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id.toString()}>
+                      {item.name} - {formatCurrency(item.price)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-20">
+              <Input
+                type="number"
+                min="1"
+                value={componentQuantity}
+                onChange={(e) => setComponentQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                data-testid="input-kit-quantity"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                if (selectedComponentId) {
+                  addComponentMutation.mutate({
+                    componentItemId: parseInt(selectedComponentId),
+                    quantity: componentQuantity,
+                  });
+                }
+              }}
+              disabled={!selectedComponentId || addComponentMutation.isPending}
+              data-testid="button-add-kit-component"
+            >
+              {addComponentMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Adicionar"
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  placeholder="Nome do componente (ex: Camiseta, Boné...)"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  data-testid="input-custom-component-name"
+                />
+              </div>
+              <div className="w-20">
+                <Input
+                  type="number"
+                  min="1"
+                  value={customQuantity}
+                  onChange={(e) => setCustomQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  data-testid="input-custom-quantity"
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  if (customName.trim()) {
+                    addCustomComponentMutation.mutate({
+                      name: customName.trim(),
+                      quantity: customQuantity,
+                      hasSize: customHasSize,
+                      genderType: managingItem.genderType || "unissex",
+                    });
+                  }
+                }}
+                disabled={!customName.trim() || addCustomComponentMutation.isPending}
+                data-testid="button-add-custom-component"
+              >
+                {addCustomComponentMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Criar"
+                )}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={customHasSize}
+                onCheckedChange={setCustomHasSize}
+                data-testid="switch-custom-has-size"
+              />
+              <Label className="text-xs text-muted-foreground">Tem tamanhos (P, M, G...)</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cria um componente exclusivo para este kit. Tamanhos e cores podem ser adicionados depois na aba correspondente.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -391,9 +492,16 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
                 data-testid={`kit-component-${component.id}`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{component.componentItem.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-sm truncate">{component.componentItem.name}</p>
+                    {!component.componentItem.isPublished && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-600">
+                        exclusivo
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatCurrency(component.componentItem.price)} × {component.quantity}
+                    {component.componentItem.price > 0 ? `${formatCurrency(component.componentItem.price)} × ` : ""}{component.quantity}x
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

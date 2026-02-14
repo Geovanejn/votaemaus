@@ -11485,6 +11485,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/shop/items/:id/kit-components/custom", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+      const item = await storage.getShopItemById(itemId);
+      if (!item) {
+        return res.status(404).json({ message: "Item não encontrado" });
+      }
+      const category = await storage.getShopCategoryById(item.categoryId);
+      const isKit = item.isKit || (category ? category.name.toLowerCase().includes('kit') : false);
+      if (!isKit) {
+        return res.status(400).json({ message: "Item não é um kit" });
+      }
+
+      const { name, quantity, hasSize, genderType } = req.body;
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        return res.status(400).json({ message: "Nome é obrigatório" });
+      }
+      const validGenderTypes = ["unissex", "masculino", "feminino", "masculino_feminino"];
+      const safeGenderType = validGenderTypes.includes(genderType) ? genderType : (item.genderType || "unissex");
+      const safeQuantity = Math.max(1, Number(quantity) || 1);
+
+      const hiddenItem = await storage.createShopItem({
+        name: name.trim(),
+        description: null,
+        price: 0,
+        categoryId: item.categoryId,
+        genderType: safeGenderType,
+        hasSize: typeof hasSize === 'boolean' ? hasSize : true,
+        isAvailable: false,
+        isPreOrder: false,
+        isPublished: false,
+        isFeatured: false,
+        allowInstallments: false,
+        maxInstallments: 1,
+        stockQuantity: null,
+        isKit: false,
+      });
+
+      const component = await storage.createKitComponent({
+        kitItemId: itemId,
+        componentItemId: hiddenItem.id,
+        quantity: safeQuantity,
+        sortOrder: 0,
+      });
+
+      res.status(201).json(component);
+    } catch (error) {
+      console.error("Create custom kit component error:", error);
+      res.status(500).json({ message: "Erro ao criar componente personalizado" });
+    }
+  });
+
   app.delete("/api/admin/shop/items/:id/kit-components/:componentId", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
       const componentId = parseInt(req.params.componentId);

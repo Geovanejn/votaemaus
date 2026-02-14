@@ -9029,11 +9029,13 @@ export class DatabaseStorage implements IStorage {
     const componentItemIds = components.map(c => c.shop_items.id);
     let sizesMap = new Map<number, any[]>();
     let colorsMap = new Map<number, any[]>();
+    let sizeChartsMap = new Map<number, any[]>();
 
     if (componentItemIds.length > 0) {
-      const [sizes, colors] = await Promise.all([
+      const [sizes, colors, sizeCharts] = await Promise.all([
         db.select().from(schema.shopItemSizes).where(inArray(schema.shopItemSizes.itemId, componentItemIds)),
         db.select().from(schema.shopItemColors).where(and(inArray(schema.shopItemColors.itemId, componentItemIds), eq(schema.shopItemColors.isAvailable, true))),
+        db.select().from(schema.shopItemSizeCharts).where(inArray(schema.shopItemSizeCharts.itemId, componentItemIds)),
       ]);
       for (const s of sizes) {
         if (!sizesMap.has(s.itemId)) sizesMap.set(s.itemId, []);
@@ -9042,6 +9044,10 @@ export class DatabaseStorage implements IStorage {
       for (const c of colors) {
         if (!colorsMap.has(c.itemId)) colorsMap.set(c.itemId, []);
         colorsMap.get(c.itemId)!.push(c);
+      }
+      for (const sc of sizeCharts) {
+        if (!sizeChartsMap.has(sc.itemId)) sizeChartsMap.set(sc.itemId, []);
+        sizeChartsMap.get(sc.itemId)!.push(sc);
       }
     }
 
@@ -9056,6 +9062,7 @@ export class DatabaseStorage implements IStorage {
       },
       sizes: sizesMap.get(c.shop_items.id) || [],
       colors: colorsMap.get(c.shop_items.id) || [],
+      sizeCharts: sizeChartsMap.get(c.shop_items.id) || [],
     }));
   }
 
@@ -9083,11 +9090,13 @@ export class DatabaseStorage implements IStorage {
     const componentItemIds = Array.from(new Set(components.map(c => c.shop_items.id)));
     let sizesMap = new Map<number, any[]>();
     let colorsMap = new Map<number, any[]>();
+    let sizeChartsMap = new Map<number, any[]>();
 
     if (componentItemIds.length > 0) {
-      const [sizes, colors] = await Promise.all([
+      const [sizes, colors, sizeCharts] = await Promise.all([
         db.select().from(schema.shopItemSizes).where(inArray(schema.shopItemSizes.itemId, componentItemIds)),
         db.select().from(schema.shopItemColors).where(and(inArray(schema.shopItemColors.itemId, componentItemIds), eq(schema.shopItemColors.isAvailable, true))),
+        db.select().from(schema.shopItemSizeCharts).where(inArray(schema.shopItemSizeCharts.itemId, componentItemIds)),
       ]);
       for (const s of sizes) {
         if (!sizesMap.has(s.itemId)) sizesMap.set(s.itemId, []);
@@ -9096,6 +9105,10 @@ export class DatabaseStorage implements IStorage {
       for (const c of colors) {
         if (!colorsMap.has(c.itemId)) colorsMap.set(c.itemId, []);
         colorsMap.get(c.itemId)!.push(c);
+      }
+      for (const sc of sizeCharts) {
+        if (!sizeChartsMap.has(sc.itemId)) sizeChartsMap.set(sc.itemId, []);
+        sizeChartsMap.get(sc.itemId)!.push(sc);
       }
     }
 
@@ -9113,6 +9126,7 @@ export class DatabaseStorage implements IStorage {
         },
         sizes: sizesMap.get(c.shop_items.id) || [],
         colors: colorsMap.get(c.shop_items.id) || [],
+        sizeCharts: sizeChartsMap.get(c.shop_items.id) || [],
       });
     }
 

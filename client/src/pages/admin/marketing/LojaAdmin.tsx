@@ -451,6 +451,38 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
   );
 }
 
+function KitComponentSizesDisplay({ managingItemId }: { managingItemId: number }) {
+  const { data: kitComponents } = useQuery<any[]>({
+    queryKey: ["/api/admin/shop/items", managingItemId, "kit-components"],
+    enabled: !!managingItemId,
+  });
+
+  const componentsWithSizes = kitComponents?.filter(c => c.componentItem.hasSize && c.sizes.length > 0) || [];
+
+  if (componentsWithSizes.length === 0) return null;
+
+  return (
+    <div className="space-y-3 pt-4 border-t">
+      <Label className="text-sm font-medium text-purple-600 dark:text-purple-400">
+        <Package className="h-4 w-4 inline mr-1" />
+        Tamanhos dos Componentes do Kit
+      </Label>
+      {componentsWithSizes.map((comp: any) => (
+        <div key={comp.id} className="p-3 rounded-md border border-purple-500/20 bg-purple-500/5 space-y-1">
+          <p className="text-sm font-medium">{comp.componentItem.name}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {comp.sizes.map((size: any) => (
+              <Badge key={size.id} variant="outline" className="text-xs">
+                {size.size}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function LojaAdmin() {
   const { hasMarketingPanel } = useAuth();
   const [, setLocation] = useLocation();
@@ -2545,6 +2577,10 @@ export default function LojaAdmin() {
                   );
                 })}
               </div>
+
+              {managingItem?.category?.name?.toLowerCase().includes('kit') && (
+                <KitComponentSizesDisplay managingItemId={managingItem.id} />
+              )}
             </TabsContent>
 
             <TabsContent value="colors" className="space-y-4 mt-4">

@@ -28,6 +28,7 @@ interface ShopItemWithDetails extends ShopItem {
     componentItem: { id: number; name: string; hasSize: boolean; genderType: string };
     sizes: Array<{ id: number; size: string; gender?: string }>;
     colors: Array<{ id: number; name: string; hexCode: string; isAvailable: boolean }>;
+    sizeCharts?: Array<{ id: number; size: string; gender: string; width?: string; length?: string; sleeve?: string }>;
   }>;
 }
 
@@ -633,14 +634,17 @@ export default function LojaProdutoPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                              {comp.sizes.map((size) => (
-                                <tr key={size.id}>
-                                  <td className="py-2 px-3 font-medium text-black">{size.size}</td>
-                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
-                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
-                                  <td className="py-2 px-3 text-center text-gray-600">-</td>
-                                </tr>
-                              ))}
+                              {comp.sizes.map((size: any) => {
+                                const chart = comp.sizeCharts?.find((c: any) => c.size === size.size && c.gender === size.gender);
+                                return (
+                                  <tr key={size.id}>
+                                    <td className="py-2 px-3 font-medium text-black">{size.size}</td>
+                                    <td className="py-2 px-3 text-center text-gray-600">{chart?.width || "-"}</td>
+                                    <td className="py-2 px-3 text-center text-gray-600">{chart?.length || "-"}</td>
+                                    <td className="py-2 px-3 text-center text-gray-600">{chart?.sleeve || "-"}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

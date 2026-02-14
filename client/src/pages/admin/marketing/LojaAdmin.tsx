@@ -174,7 +174,6 @@ const itemFormSchema = z.object({
   allowInstallments: z.boolean(),
   maxInstallments: z.number().min(1).max(12).optional(),
   stockQuantity: z.number().min(0).nullable().optional(),
-  isKit: z.boolean(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -607,7 +606,6 @@ export default function LojaAdmin() {
       allowInstallments: false,
       maxInstallments: 3,
       stockQuantity: null,
-      isKit: false,
     },
   });
 
@@ -627,7 +625,6 @@ export default function LojaAdmin() {
         allowInstallments: editingItem.allowInstallments ?? false,
         maxInstallments: editingItem.maxInstallments ?? 3,
         stockQuantity: editingItem.stockQuantity ?? null,
-        isKit: editingItem.isKit ?? false,
       });
       setPriceDisplay(formatCurrencyInput(editingItem.price));
     } else {
@@ -645,7 +642,6 @@ export default function LojaAdmin() {
         allowInstallments: false,
         maxInstallments: 3,
         stockQuantity: null,
-        isKit: false,
       });
       setPriceDisplay("");
     }
@@ -1302,11 +1298,9 @@ export default function LojaAdmin() {
     const maxInstallments = data.allowInstallments ? (data.maxInstallments ?? 3) : 1;
     const payload = {
       ...data,
-      isKit: Boolean(data.isKit),
       featuredOrder,
       maxInstallments,
     };
-    console.log("[LojaAdmin] Submitting item, isKit:", payload.isKit);
     if (editingItem) {
       updateMutation.mutate({ ...payload, id: editingItem.id });
     } else {
@@ -1580,7 +1574,7 @@ export default function LojaAdmin() {
                         <h3 className="font-medium truncate" data-testid={`text-item-name-${item.id}`}>
                           {item.name}
                         </h3>
-                        {item.isKit && (
+                        {item.category?.name?.toLowerCase().includes('kit') && (
                           <Badge variant="secondary" className="text-xs gap-1" data-testid={`badge-kit-${item.id}`}>
                             <Package className="h-3 w-3" />
                             Kit
@@ -2255,7 +2249,7 @@ export default function LojaAdmin() {
           </DialogHeader>
 
           <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes" | "colors" | "kit")}>
-            <TabsList className={`grid w-full ${managingItem?.isKit ? "grid-cols-4" : "grid-cols-3"}`}>
+            <TabsList className={`grid w-full ${managingItem?.category?.name?.toLowerCase().includes('kit') ? "grid-cols-4" : "grid-cols-3"}`}>
               <TabsTrigger value="images" className="gap-2">
                 <ImagePlus className="h-4 w-4" />
                 Imagens
@@ -2268,7 +2262,7 @@ export default function LojaAdmin() {
                 <Tag className="h-4 w-4" />
                 Cores
               </TabsTrigger>
-              {managingItem?.isKit && (
+              {managingItem?.category?.name?.toLowerCase().includes('kit') && (
                 <TabsTrigger value="kit" className="gap-2">
                   <Package className="h-4 w-4" />
                   Kit
@@ -2748,7 +2742,7 @@ export default function LojaAdmin() {
               </div>
             </TabsContent>
 
-            {managingItem?.isKit && (
+            {managingItem?.category?.name?.toLowerCase().includes('kit') && (
               <TabsContent value="kit" className="space-y-4 mt-4">
                 <KitComponentsTab
                   managingItem={managingItem}
@@ -3103,32 +3097,6 @@ export default function LojaAdmin() {
                       <FormDescription className="text-xs">
                         Deixe vazio para nao controlar estoque. Quando chegar a 0, o item sera marcado como esgotado automaticamente.
                       </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="isKit"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-md border p-3 border-purple-500/30 bg-purple-500/5">
-                      <div>
-                        <FormLabel className="text-purple-600 dark:text-purple-400">É um Kit</FormLabel>
-                        <FormDescription className="text-xs">
-                          Kit é composto por múltiplos produtos
-                        </FormDescription>
-                        {field.value && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Após salvar, use o botão 'Gerenciar' para adicionar componentes do kit.
-                          </p>
-                        )}
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="switch-is-kit"
-                        />
-                      </FormControl>
                     </FormItem>
                   )}
                 />

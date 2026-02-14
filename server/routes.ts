@@ -9865,11 +9865,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Criar item da loja (admin)
   app.post("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments, stockQuantity, isKit } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, allowInstallments, maxInstallments, stockQuantity } = req.body;
       
       if (!name || price === undefined || !categoryId || !genderType) {
         return res.status(400).json({ message: "Campos obrigatórios faltando" });
       }
+      
+      const category = await storage.getShopCategoryById(Number(categoryId));
+      const autoIsKit = category ? category.name.toLowerCase().includes('kit') : false;
       
       const item = await storage.createShopItem({
         name,
@@ -9884,10 +9887,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allowInstallments: allowInstallments ?? false,
         maxInstallments: allowInstallments ? (Number(maxInstallments) || 3) : 1,
         stockQuantity: stockQuantity === null || stockQuantity === '' || stockQuantity === undefined ? null : Number(stockQuantity),
-        isKit: Boolean(isKit) && isKit !== 'false' && isKit !== '0',
+        isKit: autoIsKit,
       });
-      
-      console.log(`Shop item created: ${item.id}, isKit: ${item.isKit}`);
       res.json(item);
     } catch (error) {
       console.error("Create shop item error:", error);
@@ -9903,13 +9904,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID inválido" });
       }
       
-      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments, stockQuantity, isKit } = req.body;
+      const { name, description, price, categoryId, genderType, hasSize, isAvailable, isPreOrder, isFeatured, featuredOrder, bannerImageData, allowInstallments, maxInstallments, stockQuantity } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
       if (description !== undefined) updates.description = description;
       if (price !== undefined) updates.price = Number(price);
-      if (categoryId !== undefined) updates.categoryId = Number(categoryId);
+      if (categoryId !== undefined) {
+        updates.categoryId = Number(categoryId);
+        const category = await storage.getShopCategoryById(Number(categoryId));
+        updates.isKit = category ? category.name.toLowerCase().includes('kit') : false;
+      }
       if (genderType !== undefined) updates.genderType = genderType;
       if (hasSize !== undefined) updates.hasSize = hasSize;
       if (isAvailable !== undefined) updates.isAvailable = isAvailable;
@@ -9920,7 +9925,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (allowInstallments !== undefined) updates.allowInstallments = allowInstallments;
       if (maxInstallments !== undefined) updates.maxInstallments = Number(maxInstallments);
       if (stockQuantity !== undefined) updates.stockQuantity = stockQuantity === null || stockQuantity === '' ? null : Number(stockQuantity);
-      if (isKit !== undefined) updates.isKit = Boolean(isKit) && isKit !== 'false' && isKit !== '0';
       
       const item = await storage.updateShopItem(id, updates);
       if (!item) {

@@ -26,7 +26,9 @@ import {
   Eye,
   Filter,
   Plus,
-  Trash2
+  Trash2,
+  Tag,
+  Percent
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -175,6 +177,17 @@ export default function PedidosAdminPage() {
     colorId: number;
   }>>([]);
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
+  const [manualOrderPromoCode, setManualOrderPromoCode] = useState("");
+  const [promoCodeValidation, setPromoCodeValidation] = useState<{
+    valid: boolean;
+    discountAmount: number;
+    discountType: string;
+    discountValue: number;
+    code: string;
+    categoryName?: string;
+  } | null>(null);
+  const [promoCodeLoading, setPromoCodeLoading] = useState(false);
+  const [promoCodeError, setPromoCodeError] = useState("");
 
   const isMarketing = user?.secretaria === "marketing";
   
@@ -193,12 +206,53 @@ export default function PedidosAdminPage() {
     enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
   });
 
+  const manualItemIds = manualOrderItems.filter(i => i.itemId > 0).map(i => i.itemId);
+  const { data: comboDiscounts } = useQuery<{
+    totalDiscount: number;
+    appliedCombos: Array<{ name: string; discountValue: number; items: number[] }>;
+  }>({
+    queryKey: ["/api/shop/calculate-combo-discounts", manualItemIds],
+    queryFn: async () => {
+      const response = await apiRequest("POST", "/api/shop/calculate-combo-discounts", { itemIds: manualItemIds });
+      return await response.json();
+    },
+    enabled: isAuthenticated && manualOrderDialogOpen && manualItemIds.length >= 2,
+  });
+
+  const validatePromoCode = async () => {
+    if (!manualOrderPromoCode.trim()) return;
+    setPromoCodeLoading(true);
+    setPromoCodeError("");
+    setPromoCodeValidation(null);
+    try {
+      const cartItems = manualOrderItems.filter(i => i.itemId > 0).map(i => ({
+        itemId: i.itemId,
+        quantity: i.quantity,
+      }));
+      const response = await apiRequest("POST", "/api/shop/validate-promo", {
+        code: manualOrderPromoCode.trim(),
+        items: cartItems,
+      });
+      const data = await response.json();
+      if (data.valid) {
+        setPromoCodeValidation(data);
+      } else {
+        setPromoCodeError(data.message || "Cupom inválido");
+      }
+    } catch {
+      setPromoCodeError("Cupom inválido ou expirado");
+    } finally {
+      setPromoCodeLoading(false);
+    }
+  };
+
   const createManualOrderMutation = useMutation({
     mutationFn: async (data: {
       memberId?: number;
       manualName?: string;
       items: Array<{ itemId: number; quantity: number; size?: string; gender?: string; color?: string; colorId?: number }>;
       installmentCount: number;
+      promoCode?: string;
     }) => {
       const response = await apiRequest("POST", "/api/admin/shop/orders/manual", data);
       return await response.json();
@@ -210,6 +264,9 @@ export default function PedidosAdminPage() {
       setManualOrderName("");
       setManualOrderItems([]);
       setManualOrderInstallments("1");
+      setManualOrderPromoCode("");
+      setPromoCodeValidation(null);
+      setPromoCodeError("");
       toast({ title: data.message || "Pedido criado com sucesso!" });
     },
     onError: () => {
@@ -811,7 +868,10 @@ export default function PedidosAdminPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "", color: "", colorId: 0 }])}
+                  onClick={() => {
+                    setManualOrderItems([...manualOrderItems, { itemId: 0, quantity: 1, size: "", gender: "", color: "", colorId: 0 }]);
+                    setPromoCodeValidation(null);
+                  }}
                   className="gap-1"
                   data-testid="button-add-item"
                 >
@@ -848,6 +908,7 @@ export default function PedidosAdminPage() {
                             const newItems = [...manualOrderItems];
                             newItems[index] = { ...item, itemId: parseInt(value), size: "", gender: "", color: "", colorId: 0 };
                             setManualOrderItems(newItems);
+                            setPromoCodeValidation(null);
                           }}
                         >
                           <SelectTrigger data-testid={`select-item-${index}`}>
@@ -873,6 +934,7 @@ export default function PedidosAdminPage() {
                             const newItems = [...manualOrderItems];
                             newItems[index] = { ...item, quantity: parseInt(e.target.value) || 1 };
                             setManualOrderItems(newItems);
+                            setPromoCodeValidation(null);
                           }}
                           data-testid={`input-quantity-${index}`}
                         />
@@ -966,6 +1028,7 @@ export default function PedidosAdminPage() {
                         onClick={() => {
                           const newItems = manualOrderItems.filter((_, i) => i !== index);
                           setManualOrderItems(newItems);
+                          setPromoCodeValidation(null);
                         }}
                         className="text-destructive"
                         data-testid={`button-remove-item-${index}`}
@@ -976,6 +1039,48 @@ export default function PedidosAdminPage() {
                   );
                 })}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cupom Promocional</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Digite o código do cupom"
+                  value={manualOrderPromoCode}
+                  onChange={(e) => {
+                    setManualOrderPromoCode(e.target.value.toUpperCase());
+                    setPromoCodeValidation(null);
+                    setPromoCodeError("");
+                  }}
+                  data-testid="input-promo-code"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={validatePromoCode}
+                  disabled={!manualOrderPromoCode.trim() || promoCodeLoading || manualOrderItems.length === 0}
+                  data-testid="button-validate-promo"
+                >
+                  {promoCodeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
+                </Button>
+              </div>
+              {promoCodeValidation && (
+                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <CheckCircle className="h-3 w-3" />
+                  <span>
+                    Cupom "{promoCodeValidation.code}" aplicado: 
+                    {promoCodeValidation.discountType === "percentage" 
+                      ? ` ${promoCodeValidation.discountValue}% de desconto`
+                      : ` ${formatCurrency(promoCodeValidation.discountValue)} de desconto`}
+                    {promoCodeValidation.categoryName && ` (${promoCodeValidation.categoryName})`}
+                  </span>
+                </div>
+              )}
+              {promoCodeError && (
+                <p className="text-sm text-destructive">{promoCodeError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -994,33 +1099,74 @@ export default function PedidosAdminPage() {
               </Select>
             </div>
 
-            {manualOrderItems.length > 0 && (
-              <div className="p-3 bg-muted rounded-md">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total</span>
-                  <span className="text-lg font-bold">
-                    {formatCurrency(
-                      manualOrderItems.reduce((sum, item) => {
-                        const product = products?.find(p => p.id === item.itemId);
-                        return sum + (product?.price || 0) * item.quantity;
-                      }, 0)
-                    )}
-                  </span>
+            {manualOrderItems.length > 0 && (() => {
+              const subtotal = manualOrderItems.reduce((sum, item) => {
+                const product = products?.find(p => p.id === item.itemId);
+                return sum + (product?.price || 0) * item.quantity;
+              }, 0);
+              const comboDisc = comboDiscounts?.totalDiscount || 0;
+              const promoDisc = promoCodeValidation?.discountAmount || 0;
+              const totalDiscount = comboDisc + promoDisc;
+              const finalTotal = Math.max(0, subtotal - totalDiscount);
+              const installments = parseInt(manualOrderInstallments);
+              
+              return (
+                <div className="p-3 bg-muted rounded-md space-y-2">
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
+                  
+                  {comboDiscounts && comboDiscounts.appliedCombos.length > 0 && (
+                    <div className="space-y-1">
+                      {comboDiscounts.appliedCombos.map((combo, i) => (
+                        <div key={i} className="flex justify-between items-center text-sm text-green-600 dark:text-green-400">
+                          <span className="flex items-center gap-1">
+                            <Percent className="h-3 w-3" />
+                            Combo: {combo.name}
+                          </span>
+                          <span>-{formatCurrency(combo.discountValue)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {promoCodeValidation && promoDisc > 0 && (
+                    <div className="flex justify-between items-center text-sm text-green-600 dark:text-green-400">
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        Cupom: {promoCodeValidation.code}
+                      </span>
+                      <span>-{formatCurrency(promoDisc)}</span>
+                    </div>
+                  )}
+                  
+                  {totalDiscount > 0 && (
+                    <div className="border-t pt-2" />
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total</span>
+                    <div className="text-right">
+                      {totalDiscount > 0 && (
+                        <span className="text-sm text-muted-foreground line-through mr-2">
+                          {formatCurrency(subtotal)}
+                        </span>
+                      )}
+                      <span className="text-lg font-bold text-primary">
+                        {formatCurrency(finalTotal)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {installments > 1 && (
+                    <p className="text-sm text-muted-foreground">
+                      {installments}x de {formatCurrency(Math.floor(finalTotal / installments))}
+                    </p>
+                  )}
                 </div>
-                {parseInt(manualOrderInstallments) > 1 && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {manualOrderInstallments}x de {formatCurrency(
-                      Math.floor(
-                        manualOrderItems.reduce((sum, item) => {
-                          const product = products?.find(p => p.id === item.itemId);
-                          return sum + (product?.price || 0) * item.quantity;
-                        }, 0) / parseInt(manualOrderInstallments)
-                      )
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           <DialogFooter className="gap-2">
@@ -1032,6 +1178,9 @@ export default function PedidosAdminPage() {
                 setManualOrderName("");
                 setManualOrderItems([]);
                 setManualOrderInstallments("1");
+                setManualOrderPromoCode("");
+                setPromoCodeValidation(null);
+                setPromoCodeError("");
               }}
             >
               Cancelar
@@ -1049,6 +1198,7 @@ export default function PedidosAdminPage() {
                 createManualOrderMutation.mutate({
                   memberId: manualOrderMemberId ? parseInt(manualOrderMemberId) : undefined,
                   manualName: manualOrderName || undefined,
+                  promoCode: promoCodeValidation ? manualOrderPromoCode.trim() : undefined,
                   items: manualOrderItems.filter(i => i.itemId > 0).map(i => ({
                     itemId: i.itemId,
                     quantity: i.quantity,

@@ -10617,6 +10617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       colorId: z.number().optional(),
     })).min(1, "Pelo menos um item e obrigatorio"),
     installmentCount: z.number().min(1).max(12).default(1),
+    promoCode: z.string().optional(),
   }).refine(data => data.memberId || data.manualName, {
     message: "Selecione um membro ou informe um nome",
   });
@@ -10630,7 +10631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { memberId, manualName, items, installmentCount } = parseResult.data;
+      const { memberId, manualName, items, installmentCount, promoCode: promoCodeStr } = parseResult.data;
       
       // Validate items and calculate total
       let totalAmount = 0;
@@ -10642,6 +10643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         color: string | null;
         colorId: number | null;
         unitPrice: number;
+        categoryId: number | null;
       }> = [];
       
       for (const item of items) {
@@ -10650,7 +10652,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: `Produto ${item.itemId} nao encontrado` });
         }
         
-        // Validate gender if product requires it (genderType "both" means user must choose)
         if (shopItem.genderType === "both" && !item.gender) {
           return res.status(400).json({ message: `Modelo (M/F) obrigatorio para ${shopItem.name}` });
         }
@@ -10667,8 +10668,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
           color: item.color || null,
           colorId: item.colorId || null,
           unitPrice,
+          categoryId: shopItem.categoryId || null,
         });
       }
+      
+      // Apply promo code if provided
+      let discountAmount = 0;
+      let promoCodeId: number | null = null;
+      let validatedPromoCode: string | null = null;
+      if (promoCodeStr) {
+        const promoCode = await storage.getPromoCodeByCode(promoCodeStr);
+        if (!promoCode) {
+          return res.status(400).json({ message: "Cupom promocional não encontrado" });
+        }
+        if (!promoCode.isActive) {
+          return res.status(400).json({ message: "Cupom promocional inativo" });
+        }
+        const now = new Date();
+        if (now < new Date(promoCode.startDate)) {
+          return res.status(400).json({ message: "Cupom promocional ainda não está ativo" });
+        }
+        if (now > new Date(promoCode.endDate)) {
+          return res.status(400).json({ message: "Cupom promocional expirado" });
+        }
+        if (promoCode.maxUses && promoCode.usedCount >= promoCode.maxUses) {
+          return res.status(400).json({ message: "Cupom promocional atingiu o limite de usos" });
+        }
+        
+        let applicableAmount = 0;
+        for (const oi of validatedItems) {
+          if (promoCode.categoryId === null || oi.categoryId === promoCode.categoryId) {
+            applicableAmount += oi.unitPrice * oi.quantity;
+          }
+        }
+        if (promoCode.discountType === "percentage") {
+          discountAmount = Math.floor(applicableAmount * (promoCode.discountValue / 100));
+        } else {
+          discountAmount = Math.min(promoCode.discountValue, applicableAmount);
+        }
+        promoCodeId = promoCode.id;
+        validatedPromoCode = promoCode.code;
+      }
+      
+      // Calculate combo discounts
+      let comboDiscountAmount = 0;
+      const appliedComboNames: string[] = [];
+      const itemIds = validatedItems.map(vi => vi.itemId);
+      if (itemIds.length >= 2) {
+        const combos = await storage.getActiveShopComboDiscounts();
+        const now = new Date();
+        for (const combo of combos) {
+          if (combo.startDate && now < new Date(combo.startDate)) continue;
+          if (combo.endDate && now > new Date(combo.endDate)) continue;
+          const comboItemIds = combo.items.map(i => i.itemId);
+          if (comboItemIds.every(id => itemIds.includes(id))) {
+            comboDiscountAmount += combo.discountValue;
+            appliedComboNames.push(combo.name);
+          }
+        }
+      }
+      
+      const totalDiscount = discountAmount + comboDiscountAmount;
+      const finalAmount = Math.max(0, totalAmount - totalDiscount);
       
       // Generate order code
       const year = new Date().getFullYear();
@@ -10702,7 +10763,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createShopOrder({
         orderCode,
         userId: orderUserId,
-        totalAmount,
+        totalAmount: finalAmount,
+        subtotalAmount: totalAmount,
+        promoDiscount: discountAmount,
+        promoCode: validatedPromoCode,
+        comboDiscount: comboDiscountAmount,
+        comboNames: appliedComboNames.length > 0 ? appliedComboNames.join(", ") : null,
         observation: manualName ? `Pedido manual - Cliente: ${manualName}` : 'Pedido criado manualmente',
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
@@ -10723,11 +10789,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Increment promo code usage
+      if (promoCodeId) {
+        await storage.incrementPromoCodeUsage(promoCodeId);
+      }
+      
       // Create installments if applicable
       const finalInstallmentCount = installmentCount || 1;
       if (finalInstallmentCount > 1) {
-        const installmentAmount = Math.floor(totalAmount / finalInstallmentCount);
-        const remainder = totalAmount - (installmentAmount * finalInstallmentCount);
+        const installmentAmount = Math.floor(finalAmount / finalInstallmentCount);
+        const remainder = finalAmount - (installmentAmount * finalInstallmentCount);
         
         for (let i = 1; i <= finalInstallmentCount; i++) {
           const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
@@ -10756,7 +10827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referenceMonth: new Date().getMonth() + 1,
           type: 'income',
           description: `Pedido ${orderCode}${manualName ? ` - Cliente: ${manualName}` : ''}`,
-          amount: totalAmount,
+          amount: finalAmount,
           paymentMethod: 'manual',
           paymentStatus: 'pending',
           orderId: order.id,
@@ -11717,17 +11788,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Código promocional atingiu o limite de usos" });
       }
       
-      // Calculate discount based on cart items
+      // Calculate discount based on cart items or provided items
       let applicableAmount = 0;
-      const userCart = await storage.getCartItems(req.user!.id);
+      const { items: providedItems } = req.body;
       
-      for (const cartItem of userCart) {
-        const product = await storage.getShopItemById(cartItem.itemId);
-        if (!product) continue;
-        
-        // Check if promo code applies to this product's category
-        if (promoCode.categoryId === null || product.categoryId === promoCode.categoryId) {
-          applicableAmount += product.price * cartItem.quantity;
+      if (providedItems && Array.isArray(providedItems) && providedItems.length > 0) {
+        for (const pi of providedItems) {
+          const product = await storage.getShopItemById(pi.itemId);
+          if (!product) continue;
+          if (promoCode.categoryId === null || product.categoryId === promoCode.categoryId) {
+            applicableAmount += product.price * (pi.quantity || 1);
+          }
+        }
+      } else {
+        const userCart = await storage.getCartItems(req.user!.id);
+        for (const cartItem of userCart) {
+          const product = await storage.getShopItemById(cartItem.itemId);
+          if (!product) continue;
+          if (promoCode.categoryId === null || product.categoryId === promoCode.categoryId) {
+            applicableAmount += product.price * cartItem.quantity;
+          }
         }
       }
       

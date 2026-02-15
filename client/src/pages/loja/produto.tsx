@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
-import { Minus, Plus, ShoppingCart, Package, Check } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Package, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,6 +54,7 @@ export default function LojaProdutoPage() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
   const [kitSelections, setKitSelections] = useState<Record<string, { size?: string; color?: string; colorId?: number }>>({});
+  const [expandedSelector, setExpandedSelector] = useState<string | null>(null);
 
   const { data: items } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
@@ -134,6 +135,56 @@ export default function LojaProdutoPage() {
     return () => { emblaApi.off("select", onSelect); };
   }, [emblaApi, onSelect]);
 
+  const isUnitComplete = useCallback((key: string, hasSizes: boolean, hasColors: boolean) => {
+    const sel = kitSelections[key];
+    if (!sel) return false;
+    if (hasSizes && !sel.size) return false;
+    if (hasColors && !sel.colorId) return false;
+    return true;
+  }, [kitSelections]);
+
+  const findNextIncompleteKey = useCallback((afterKey?: string, updatedSelections?: Record<string, { size?: string; color?: string; colorId?: number }>) => {
+    if (!isKit || !product?.kitComponents) return null;
+    const sorted = [...product.kitComponents].sort((a, b) => a.sortOrder - b.sortOrder);
+    const allKeys: Array<{ key: string; hasSizes: boolean; hasColors: boolean }> = [];
+    for (const comp of sorted) {
+      const hasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
+      const compAvailableColors = comp.colors.filter(c => c.isAvailable);
+      const hasColors = compAvailableColors.length > 0;
+      if (!hasSizes && !hasColors) continue;
+      for (let i = 0; i < comp.quantity; i++) {
+        allKeys.push({ key: `${comp.id}-${i}`, hasSizes, hasColors });
+      }
+    }
+    const checkComplete = (key: string, hasSizes: boolean, hasColors: boolean) => {
+      const sel = updatedSelections ? updatedSelections[key] : kitSelections[key];
+      if (!sel) return false;
+      if (hasSizes && !sel.size) return false;
+      if (hasColors && !sel.colorId) return false;
+      return true;
+    };
+    const startIdx = afterKey ? allKeys.findIndex(k => k.key === afterKey) + 1 : 0;
+    for (let i = startIdx; i < allKeys.length; i++) {
+      const { key, hasSizes, hasColors } = allKeys[i];
+      if (!checkComplete(key, hasSizes, hasColors)) return key;
+    }
+    return null;
+  }, [isKit, product?.kitComponents, kitSelections]);
+
+  useEffect(() => {
+    if (!product || !product.isAvailable) return;
+    if (isKit && product.kitComponents) {
+      const firstIncomplete = findNextIncompleteKey();
+      if (firstIncomplete && !expandedSelector) {
+        setExpandedSelector(firstIncomplete);
+      }
+    } else if (product.hasSize || availableColors.length > 0) {
+      if (!expandedSelector) {
+        setExpandedSelector("main");
+      }
+    }
+  }, [product?.id]);
+
   const kitButtonDisabled = (() => {
     if (!isKit || !product?.kitComponents) return false;
     return product.kitComponents.some(comp => {
@@ -148,6 +199,13 @@ export default function LojaProdutoPage() {
       }
       return false;
     });
+  })();
+
+  const mainSelectorComplete = (() => {
+    if (isKit || !product) return false;
+    const needsSize = product.hasSize && availableSizes.length > 0;
+    const needsColor = availableColors.length > 0;
+    return (!needsSize || !!selectedSize) && (!needsColor || !!selectedColor);
   })();
 
   const addToCart = () => {
@@ -342,9 +400,9 @@ export default function LojaProdutoPage() {
           </p>
         </div>
 
-        {/* Kit Component Selectors */}
+        {/* Kit Component Selectors - Accordion Style */}
         {isKit && product.kitComponents && product.isAvailable ? (
-          <div className="space-y-4 pt-4">
+          <div className="space-y-3 pt-4">
             <p className="text-sm font-bold text-black">Selecione as opções do kit:</p>
             {product.kitComponents
               .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -354,73 +412,116 @@ export default function LojaProdutoPage() {
                 const hasColors = compAvailableColors.length > 0;
                 if (!hasSizes && !hasColors) return null;
                 return (
-                  <div key={comp.id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`kit-component-${comp.id}`}>
-                    <div className="bg-gray-50 px-4 py-2.5">
-                      <p className="text-sm font-bold text-black">
-                        {comp.componentItem.name}
-                        {comp.quantity > 1 && <span className="text-gray-500 font-normal ml-1">({comp.quantity} un.)</span>}
+                  <div key={comp.id} data-testid={`kit-component-${comp.id}`}>
+                    {comp.quantity > 1 && (
+                      <p className="text-xs font-semibold text-gray-500 mb-1.5 px-1">
+                        {comp.componentItem.name} <span className="font-normal">({comp.quantity} un.)</span>
                       </p>
-                    </div>
-                    <div className="p-4 space-y-3">
+                    )}
+                    <div className="space-y-2">
                       {Array.from({ length: comp.quantity }, (_, unitIdx) => {
                         const key = `${comp.id}-${unitIdx}`;
+                        const sel = kitSelections[key];
+                        const complete = isUnitComplete(key, hasSizes, hasColors);
+                        const isExpanded = expandedSelector === key;
+                        const unitName = comp.quantity > 1 ? `${comp.componentItem.name} ${unitIdx + 1}` : comp.componentItem.name;
                         return (
-                          <div key={unitIdx} className={`space-y-3 ${comp.quantity > 1 ? "pb-3 border-b border-gray-100 last:border-b-0 last:pb-0" : ""}`}>
-                            {comp.quantity > 1 && (
-                              <p className="text-xs font-semibold text-gray-700">
-                                {comp.componentItem.name} {unitIdx + 1}
-                              </p>
-                            )}
-                            {hasSizes && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-medium text-gray-500">Tamanho:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {comp.sizes.map((sizeItem) => (
-                                    <button
-                                      key={sizeItem.id}
-                                      onClick={() => setKitSelections(prev => ({
-                                        ...prev,
-                                        [key]: { ...prev[key], size: sizeItem.size }
-                                      }))}
-                                      className={`px-4 py-2 border text-sm font-medium transition-all ${
-                                        kitSelections[key]?.size === sizeItem.size
-                                          ? "bg-black text-white border-black"
-                                          : "bg-white text-black border-gray-300 hover:border-black"
-                                      }`}
-                                      data-testid={`button-kit-size-${comp.id}-${unitIdx}-${sizeItem.size}`}
-                                    >
-                                      {sizeItem.size}
-                                    </button>
-                                  ))}
-                                </div>
+                          <div key={unitIdx} className={`border rounded-lg overflow-hidden transition-all ${complete ? "border-green-300 bg-green-50/30" : "border-gray-200"}`}>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedSelector(isExpanded ? null : key)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left"
+                              data-testid={`toggle-kit-unit-${comp.id}-${unitIdx}`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {complete ? (
+                                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </span>
+                                ) : (
+                                  <span className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300" />
+                                )}
+                                <span className="text-sm font-medium text-black truncate">{unitName}</span>
+                                {complete && !isExpanded && (
+                                  <span className="text-xs text-gray-500 truncate">
+                                    {sel?.size && <>Tam: <span className="font-medium text-gray-700">{sel.size}</span></>}
+                                    {sel?.size && sel?.color && <span className="mx-1">·</span>}
+                                    {sel?.color && <>Cor: <span className="font-medium text-gray-700">{sel.color}</span></>}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                            {hasColors && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-medium text-gray-500">Cor:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {compAvailableColors.map((colorItem) => (
-                                    <button
-                                      key={colorItem.id}
-                                      onClick={() => setKitSelections(prev => ({
-                                        ...prev,
-                                        [key]: { ...prev[key], color: colorItem.name, colorId: colorItem.id }
-                                      }))}
-                                      className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
-                                        kitSelections[key]?.colorId === colorItem.id
-                                          ? "bg-black text-white border-black"
-                                          : "bg-white text-black border-gray-300 hover:border-black"
-                                      }`}
-                                      data-testid={`button-kit-color-${comp.id}-${unitIdx}-${colorItem.id}`}
-                                    >
-                                      <span
-                                        className="w-4 h-4 rounded-full border border-gray-400"
-                                        style={{ backgroundColor: colorItem.hexCode }}
-                                      />
-                                      {colorItem.name}
-                                    </button>
-                                  ))}
-                                </div>
+                              <ChevronDown className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                            </button>
+                            {isExpanded && (
+                              <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                                {hasSizes && (
+                                  <div className="space-y-2 pt-3">
+                                    <p className="text-xs font-medium text-gray-500">Tamanho:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {comp.sizes.map((sizeItem) => (
+                                        <button
+                                          key={sizeItem.id}
+                                          onClick={() => {
+                                            const newSel = { ...kitSelections[key], size: sizeItem.size };
+                                            const updatedAll = { ...kitSelections, [key]: newSel };
+                                            setKitSelections(updatedAll);
+                                            const willBeComplete = (!hasColors || newSel.colorId) && sizeItem.size;
+                                            if (willBeComplete) {
+                                              setTimeout(() => {
+                                                const next = findNextIncompleteKey(key, updatedAll);
+                                                setExpandedSelector(next);
+                                              }, 200);
+                                            }
+                                          }}
+                                          className={`px-3 py-1.5 border text-sm font-medium rounded transition-all ${
+                                            kitSelections[key]?.size === sizeItem.size
+                                              ? "bg-black text-white border-black"
+                                              : "bg-white text-black border-gray-300 hover:border-black"
+                                          }`}
+                                          data-testid={`button-kit-size-${comp.id}-${unitIdx}-${sizeItem.size}`}
+                                        >
+                                          {sizeItem.size}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {hasColors && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-medium text-gray-500">Cor:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {compAvailableColors.map((colorItem) => (
+                                        <button
+                                          key={colorItem.id}
+                                          onClick={() => {
+                                            const newSel = { ...kitSelections[key], color: colorItem.name, colorId: colorItem.id };
+                                            const updatedAll = { ...kitSelections, [key]: newSel };
+                                            setKitSelections(updatedAll);
+                                            const willBeComplete = (!hasSizes || newSel.size) && colorItem.id;
+                                            if (willBeComplete) {
+                                              setTimeout(() => {
+                                                const next = findNextIncompleteKey(key, updatedAll);
+                                                setExpandedSelector(next);
+                                              }, 200);
+                                            }
+                                          }}
+                                          className={`flex items-center gap-1.5 px-3 py-1.5 border text-sm font-medium rounded transition-all ${
+                                            kitSelections[key]?.colorId === colorItem.id
+                                              ? "bg-black text-white border-black"
+                                              : "bg-white text-black border-gray-300 hover:border-black"
+                                          }`}
+                                          data-testid={`button-kit-color-${comp.id}-${unitIdx}-${colorItem.id}`}
+                                        >
+                                          <span
+                                            className="w-4 h-4 rounded-full border border-gray-400"
+                                            style={{ backgroundColor: colorItem.hexCode }}
+                                          />
+                                          {colorItem.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -433,55 +534,100 @@ export default function LojaProdutoPage() {
           </div>
         ) : (
           <>
-            {/* Size Selection */}
-            {product.hasSize && availableSizes.length > 0 && product.isAvailable && (
-              <div className="space-y-2 pt-4">
-                <p className="text-sm font-medium text-black">Tamanho:</p>
-                <div className="flex flex-wrap gap-2">
-                  {availableSizes.map((sizeItem) => (
-                    <button
-                      key={sizeItem.id}
-                      onClick={() => setSelectedSize(sizeItem.size)}
-                      className={`px-4 py-2 border text-sm font-medium transition-all ${
-                        selectedSize === sizeItem.size
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:border-black"
-                      }`}
-                      data-testid={`button-size-${sizeItem.size}`}
-                    >
-                      {sizeItem.size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Color Selection */}
-            {availableColors.length > 0 && product.isAvailable && (
-              <div className="space-y-2 pt-4">
-                <p className="text-sm font-medium text-black">Cor:</p>
-                <div className="flex flex-wrap gap-2">
-                  {availableColors.map((colorItem) => (
-                    <button
-                      key={colorItem.id}
-                      onClick={() => {
-                        setSelectedColor(colorItem);
-                        if (emblaApi) emblaApi.scrollTo(0);
-                      }}
-                      className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
-                        selectedColor?.id === colorItem.id
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:border-black"
-                      }`}
-                      data-testid={`button-color-${colorItem.id}`}
-                    >
-                      <span
-                        className="w-4 h-4 rounded-full border border-gray-400"
-                        style={{ backgroundColor: colorItem.hexCode }}
-                      />
-                      {colorItem.name}
-                    </button>
-                  ))}
+            {/* Non-Kit: Accordion Size/Color Selection */}
+            {product.isAvailable && (product.hasSize && availableSizes.length > 0 || availableColors.length > 0) && (
+              <div className="pt-4">
+                <div className={`border rounded-lg overflow-hidden transition-all ${mainSelectorComplete ? "border-green-300 bg-green-50/30" : "border-gray-200"}`}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedSelector(expandedSelector === "main" ? null : "main")}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                    data-testid="toggle-main-selector"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {mainSelectorComplete ? (
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </span>
+                      ) : (
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-gray-300" />
+                      )}
+                      <span className="text-sm font-medium text-black">Personalização</span>
+                      {mainSelectorComplete && expandedSelector !== "main" && (
+                        <span className="text-xs text-gray-500 truncate">
+                          {selectedSize && <>Tam: <span className="font-medium text-gray-700">{selectedSize}</span></>}
+                          {selectedSize && selectedColor && <span className="mx-1">·</span>}
+                          {selectedColor && <>Cor: <span className="font-medium text-gray-700">{selectedColor.name}</span></>}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform ${expandedSelector === "main" ? "rotate-180" : ""}`} />
+                  </button>
+                  {expandedSelector === "main" && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                      {product.hasSize && availableSizes.length > 0 && (
+                        <div className="space-y-2 pt-3">
+                          <p className="text-xs font-medium text-gray-500">Tamanho:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableSizes.map((sizeItem) => (
+                              <button
+                                key={sizeItem.id}
+                                onClick={() => {
+                                  setSelectedSize(sizeItem.size);
+                                  const needsColor = availableColors.length > 0;
+                                  const willBeComplete = sizeItem.size && (!needsColor || !!selectedColor);
+                                  if (willBeComplete) {
+                                    setTimeout(() => setExpandedSelector(null), 200);
+                                  }
+                                }}
+                                className={`px-3 py-1.5 border text-sm font-medium rounded transition-all ${
+                                  selectedSize === sizeItem.size
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-gray-300 hover:border-black"
+                                }`}
+                                data-testid={`button-size-${sizeItem.size}`}
+                              >
+                                {sizeItem.size}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {availableColors.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-gray-500">Cor:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableColors.map((colorItem) => (
+                              <button
+                                key={colorItem.id}
+                                onClick={() => {
+                                  setSelectedColor(colorItem);
+                                  if (emblaApi) emblaApi.scrollTo(0);
+                                  const needsSize = product.hasSize && availableSizes.length > 0;
+                                  const willBeComplete = colorItem.id && (!needsSize || !!selectedSize);
+                                  if (willBeComplete) {
+                                    setTimeout(() => setExpandedSelector(null), 200);
+                                  }
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 border text-sm font-medium rounded transition-all ${
+                                  selectedColor?.id === colorItem.id
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-gray-300 hover:border-black"
+                                }`}
+                                data-testid={`button-color-${colorItem.id}`}
+                              >
+                                <span
+                                  className="w-4 h-4 rounded-full border border-gray-400"
+                                  style={{ backgroundColor: colorItem.hexCode }}
+                                />
+                                {colorItem.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

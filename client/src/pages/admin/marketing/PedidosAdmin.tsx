@@ -68,6 +68,8 @@ interface ShopProduct {
   genderType: string;
   hasSize: boolean;
   isKit: boolean;
+  allowInstallments?: boolean;
+  maxInstallments?: number | null;
   sizes?: ShopProductSize[] | null;
   colors?: ShopProductColor[] | null;
   kitComponents?: KitComponentData[];
@@ -1643,21 +1645,37 @@ export default function PedidosAdminPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Parcelamento</Label>
-              <Select value={manualOrderInstallments} onValueChange={setManualOrderInstallments}>
-                <SelectTrigger data-testid="select-installments">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n === 1 ? "A vista" : `${n}x`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {(() => {
+              let maxInstallments = 1;
+              for (const orderItem of manualOrderItems) {
+                if (orderItem.itemId) {
+                  const prod = products?.find(p => p.id === orderItem.itemId);
+                  if (prod?.allowInstallments && prod.maxInstallments && prod.maxInstallments > maxInstallments) {
+                    maxInstallments = prod.maxInstallments;
+                  }
+                }
+              }
+              if (parseInt(manualOrderInstallments) > maxInstallments) {
+                setTimeout(() => setManualOrderInstallments(maxInstallments.toString()), 0);
+              }
+              return (
+                <div className="space-y-2">
+                  <Label>Parcelamento</Label>
+                  <Select value={manualOrderInstallments} onValueChange={setManualOrderInstallments}>
+                    <SelectTrigger data-testid="select-installments">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: maxInstallments }, (_, i) => i + 1).map(n => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n === 1 ? "A vista" : `${n}x`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
 
             {manualOrderItems.length > 0 && (() => {
               const subtotal = manualOrderItems.reduce((sum, item) => {

@@ -1077,13 +1077,19 @@ export default function PedidosAdminPage() {
                         {item.kitSelections && item.kitSelections.length > 0 && (
                           <div className="mt-1 pt-1 border-t border-border/50 space-y-0.5">
                             <p className="text-xs font-medium text-muted-foreground">Itens do Kit:</p>
-                            {item.kitSelections.map((sel: any, idx: number) => (
-                              <p key={sel.id || sel.componentId || idx} className="text-xs text-muted-foreground">
-                                {sel.quantity || 1}x {sel.componentName || "Componente"}
-                                {sel.size && <span className="font-medium"> - {sel.size}</span>}
-                                {sel.color && <span className="font-medium"> / {sel.color}</span>}
-                              </p>
-                            ))}
+                            {(item.kitSelections || []).map((sel: any, idx: number) => {
+                              const allSels = item.kitSelections || [];
+                              const sameCompEntries = allSels.filter((s: any) => s.componentId === sel.componentId || s.componentName === sel.componentName);
+                              const sameCompIdx = allSels.filter((s: any, i: number) => (s.componentId === sel.componentId || s.componentName === sel.componentName) && i < idx).length;
+                              const unitLabel = sameCompEntries.length > 1 ? ` ${sameCompIdx + 1}` : "";
+                              return (
+                                <p key={sel.id || idx} className="text-xs text-muted-foreground">
+                                  {sel.componentName || "Componente"}{unitLabel}
+                                  {sel.size && <span className="font-medium"> - {sel.size}</span>}
+                                  {sel.color && <span className="font-medium"> / {sel.color}</span>}
+                                </p>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1317,30 +1323,24 @@ export default function PedidosAdminPage() {
                                 const components = await res.json();
                                 setKitComponentsCache(prev => ({ ...prev, [newItemId]: components }));
                                 const updatedItems = [...newItems];
-                                updatedItems[index] = {
-                                  ...updatedItems[index],
-                                  kitSelections: components.map((c: KitComponentData) => ({
-                                    componentId: c.id,
-                                    componentName: c.componentItem.name,
-                                    size: "",
-                                    color: "",
-                                    colorId: 0,
-                                  })),
-                                };
+                                const sels: any[] = [];
+                                for (const c of components) {
+                                  for (let u = 0; u < (c.quantity || 1); u++) {
+                                    sels.push({ componentId: c.id, componentName: c.componentItem.name, size: "", color: "", colorId: 0 });
+                                  }
+                                }
+                                updatedItems[index] = { ...updatedItems[index], kitSelections: sels };
                                 setManualOrderItems(updatedItems);
                               } catch {}
                             } else if (selectedProd?.isKit && kitComponentsCache[newItemId]) {
                               const components = kitComponentsCache[newItemId];
-                              newItems[index] = {
-                                ...newItems[index],
-                                kitSelections: components.map((c: KitComponentData) => ({
-                                  componentId: c.id,
-                                  componentName: c.componentItem.name,
-                                  size: "",
-                                  color: "",
-                                  colorId: 0,
-                                })),
-                              };
+                              const sels: any[] = [];
+                              for (const c of components) {
+                                for (let u = 0; u < (c.quantity || 1); u++) {
+                                  sels.push({ componentId: c.id, componentName: c.componentItem.name, size: "", color: "", colorId: 0 });
+                                }
+                              }
+                              newItems[index] = { ...newItems[index], kitSelections: sels };
                               setManualOrderItems(newItems);
                             }
                           }}
@@ -1474,10 +1474,12 @@ export default function PedidosAdminPage() {
                         <div className="w-full mt-2 p-3 border border-dashed border-border rounded-md bg-muted/50 space-y-3" data-testid={`kit-components-section-${index}`}>
                           <p className="text-xs font-semibold text-muted-foreground">Componentes do Kit</p>
                           {kitComponentsCache[item.itemId].map((comp) => {
-                            const kitSel = item.kitSelections.find(ks => ks.componentId === comp.id);
                             const compColors = comp.colors.filter((c: any) => c.isAvailable);
                             const compHasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
                             const compHasColors = compColors.length > 0;
+                            const unitEntries = item.kitSelections
+                              .map((ks, selIdx) => ({ ks, selIdx }))
+                              .filter(({ ks }) => ks.componentId === comp.id);
                             if (!compHasSizes && !compHasColors) {
                               return (
                                 <div key={comp.id} className="flex items-center gap-2" data-testid={`kit-comp-${index}-${comp.id}`}>
@@ -1487,73 +1489,72 @@ export default function PedidosAdminPage() {
                               );
                             }
                             return (
-                              <div key={comp.id} className="space-y-1" data-testid={`kit-comp-${index}-${comp.id}`}>
+                              <div key={comp.id} className="space-y-2" data-testid={`kit-comp-${index}-${comp.id}`}>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="secondary" className="text-xs">{comp.quantity}x</Badge>
                                   <span className="text-sm font-medium">{comp.componentItem.name}</span>
                                 </div>
-                                <div className="flex flex-wrap gap-2 pl-6">
-                                  {compHasSizes && (
-                                    <div className="w-24 space-y-1">
-                                      <Label className="text-xs">Tamanho</Label>
-                                      <Select
-                                        value={kitSel?.size || ""}
-                                        onValueChange={(value) => {
-                                          const newItems = [...manualOrderItems];
-                                          const newSelections = [...newItems[index].kitSelections];
-                                          const selIdx = newSelections.findIndex(ks => ks.componentId === comp.id);
-                                          if (selIdx >= 0) {
+                                {unitEntries.map(({ ks: kitSel, selIdx }, unitIdx) => (
+                                  <div key={unitIdx} className={`flex flex-wrap gap-2 pl-6 ${comp.quantity > 1 ? "pb-2 border-b border-border/50 last:border-b-0 last:pb-0" : ""}`}>
+                                    {comp.quantity > 1 && (
+                                      <span className="text-xs text-muted-foreground w-full">{comp.componentItem.name} {unitIdx + 1}</span>
+                                    )}
+                                    {compHasSizes && (
+                                      <div className="w-24 space-y-1">
+                                        <Label className="text-xs">Tamanho</Label>
+                                        <Select
+                                          value={kitSel?.size || ""}
+                                          onValueChange={(value) => {
+                                            const newItems = [...manualOrderItems];
+                                            const newSelections = [...newItems[index].kitSelections];
                                             newSelections[selIdx] = { ...newSelections[selIdx], size: value };
-                                          }
-                                          newItems[index] = { ...newItems[index], kitSelections: newSelections };
-                                          setManualOrderItems(newItems);
-                                        }}
-                                      >
-                                        <SelectTrigger data-testid={`select-kit-size-${index}-${comp.id}`}>
-                                          <SelectValue placeholder="Tam" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {[...new Set(comp.sizes.map((s: any) => s.size))].map((size: any) => (
-                                            <SelectItem key={size} value={size}>{size}</SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  )}
-                                  {compHasColors && (
-                                    <div className="w-32 space-y-1">
-                                      <Label className="text-xs">Cor</Label>
-                                      <Select
-                                        value={kitSel?.colorId ? kitSel.colorId.toString() : ""}
-                                        onValueChange={(value) => {
-                                          const newItems = [...manualOrderItems];
-                                          const newSelections = [...newItems[index].kitSelections];
-                                          const selIdx = newSelections.findIndex(ks => ks.componentId === comp.id);
-                                          const selColor = compColors.find((c: any) => c.id === parseInt(value));
-                                          if (selIdx >= 0) {
+                                            newItems[index] = { ...newItems[index], kitSelections: newSelections };
+                                            setManualOrderItems(newItems);
+                                          }}
+                                        >
+                                          <SelectTrigger data-testid={`select-kit-size-${index}-${comp.id}-${unitIdx}`}>
+                                            <SelectValue placeholder="Tam" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {[...new Set(comp.sizes.map((s: any) => s.size))].map((size: any) => (
+                                              <SelectItem key={size} value={size}>{size}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                    {compHasColors && (
+                                      <div className="w-32 space-y-1">
+                                        <Label className="text-xs">Cor</Label>
+                                        <Select
+                                          value={kitSel?.colorId ? kitSel.colorId.toString() : ""}
+                                          onValueChange={(value) => {
+                                            const newItems = [...manualOrderItems];
+                                            const newSelections = [...newItems[index].kitSelections];
+                                            const selColor = compColors.find((c: any) => c.id === parseInt(value));
                                             newSelections[selIdx] = { ...newSelections[selIdx], colorId: parseInt(value), color: selColor?.name || "" };
-                                          }
-                                          newItems[index] = { ...newItems[index], kitSelections: newSelections };
-                                          setManualOrderItems(newItems);
-                                        }}
-                                      >
-                                        <SelectTrigger data-testid={`select-kit-color-${index}-${comp.id}`}>
-                                          <SelectValue placeholder="Cor" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {compColors.map((color: any) => (
-                                            <SelectItem key={color.id} value={color.id.toString()}>
-                                              <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: color.hexCode }} />
-                                                {color.name}
-                                              </div>
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  )}
-                                </div>
+                                            newItems[index] = { ...newItems[index], kitSelections: newSelections };
+                                            setManualOrderItems(newItems);
+                                          }}
+                                        >
+                                          <SelectTrigger data-testid={`select-kit-color-${index}-${comp.id}-${unitIdx}`}>
+                                            <SelectValue placeholder="Cor" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {compColors.map((color: any) => (
+                                              <SelectItem key={color.id} value={color.id.toString()}>
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: color.hexCode }} />
+                                                  {color.name}
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             );
                           })}

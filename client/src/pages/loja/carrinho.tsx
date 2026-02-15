@@ -334,13 +334,18 @@ export default function LojaCarrinhoPage() {
                         {cartItem.kitSelections && cartItem.kitSelections.length > 0 && (
                           <div className="mt-1 pt-1 border-t border-gray-100">
                             <p className="text-xs font-medium text-gray-600 mb-0.5">Itens do Kit:</p>
-                            {cartItem.kitSelections.map((sel, idx) => (
-                              <p key={idx} className="text-xs text-gray-500">
-                                {sel.component?.quantity || 1}x {sel.component?.componentItem?.name || "Item"}
-                                {sel.size && <span className="text-black"> - {sel.size}</span>}
-                                {sel.color && <span className="text-black"> / {sel.color}</span>}
-                              </p>
-                            ))}
+                            {cartItem.kitSelections.map((sel, idx) => {
+                              const sameCompCount = cartItem.kitSelections!.filter(s => s.componentId === sel.componentId).length;
+                              const sameCompIdx = cartItem.kitSelections!.filter((s, i) => s.componentId === sel.componentId && i < idx).length;
+                              const unitLabel = sameCompCount > 1 ? ` ${sameCompIdx + 1}` : "";
+                              return (
+                                <p key={idx} className="text-xs text-gray-500">
+                                  {sel.component?.componentItem?.name || "Item"}{unitLabel}
+                                  {sel.size && <span className="text-black"> - {sel.size}</span>}
+                                  {sel.color && <span className="text-black"> / {sel.color}</span>}
+                                </p>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

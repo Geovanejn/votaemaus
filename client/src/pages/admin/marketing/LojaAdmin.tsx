@@ -326,14 +326,14 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
-        <div className="flex items-center justify-between">
+      <div className="space-y-3 p-3 sm:p-4 rounded-lg bg-muted/50 border">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
           <Label className="text-sm font-medium">Adicionar Componente</Label>
           <div className="flex gap-1">
             <Button
               size="sm"
               variant={addMode === "existing" ? "default" : "outline"}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none"
               onClick={() => setAddMode("existing")}
               data-testid="button-mode-existing"
             >
@@ -342,7 +342,7 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
             <Button
               size="sm"
               variant={addMode === "custom" ? "default" : "outline"}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none"
               onClick={() => setAddMode("custom")}
               data-testid="button-mode-custom"
             >
@@ -352,61 +352,62 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
         </div>
 
         {addMode === "existing" ? (
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
-                <SelectTrigger data-testid="select-kit-component">
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id.toString()}>
-                      {item.name} - {formatCurrency(item.price)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
+              <SelectTrigger data-testid="select-kit-component">
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableItems.map((item) => (
+                  <SelectItem key={item.id} value={item.id.toString()}>
+                    {item.name} - {formatCurrency(item.price)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-end gap-2">
+              <div className="w-20">
+                <Label className="text-xs text-muted-foreground">Qtd</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={componentQuantity}
+                  onChange={(e) => setComponentQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  data-testid="input-kit-quantity"
+                />
+              </div>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  if (selectedComponentId) {
+                    addComponentMutation.mutate({
+                      componentItemId: parseInt(selectedComponentId),
+                      quantity: componentQuantity,
+                    });
+                  }
+                }}
+                disabled={!selectedComponentId || addComponentMutation.isPending}
+                data-testid="button-add-kit-component"
+              >
+                {addComponentMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Adicionar"
+                )}
+              </Button>
             </div>
-            <div className="w-20">
-              <Input
-                type="number"
-                min="1"
-                value={componentQuantity}
-                onChange={(e) => setComponentQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                data-testid="input-kit-quantity"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                if (selectedComponentId) {
-                  addComponentMutation.mutate({
-                    componentItemId: parseInt(selectedComponentId),
-                    quantity: componentQuantity,
-                  });
-                }
-              }}
-              disabled={!selectedComponentId || addComponentMutation.isPending}
-              data-testid="button-add-kit-component"
-            >
-              {addComponentMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Adicionar"
-              )}
-            </Button>
           </div>
         ) : (
           <div className="space-y-2">
+            <Input
+              placeholder="Nome do componente (ex: Camiseta, Boné...)"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              data-testid="input-custom-component-name"
+            />
             <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Nome do componente (ex: Camiseta, Boné...)"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  data-testid="input-custom-component-name"
-                />
-              </div>
               <div className="w-20">
+                <Label className="text-xs text-muted-foreground">Qtd</Label>
                 <Input
                   type="number"
                   min="1"
@@ -416,6 +417,7 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
                 />
               </div>
               <Button
+                className="flex-1"
                 onClick={() => {
                   if (customName.trim()) {
                     addCustomComponentMutation.mutate({
@@ -445,20 +447,20 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
               <Label className="text-xs text-muted-foreground">Tem tamanhos (P, M, G...)</Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Cria um componente exclusivo para este kit. Tamanhos e cores podem ser adicionados depois na aba correspondente.
+              Cria um componente exclusivo para este kit.
             </p>
           </div>
         )}
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
           <Label className="text-sm font-medium">Componentes do Kit</Label>
           {kitComponents && kitComponents.length > 0 && (
             <Button
               size="sm"
               variant="outline"
-              className="gap-1 text-xs"
+              className="gap-1 text-xs w-full sm:w-auto"
               onClick={handleCopyAll}
               disabled={copySizesColorsMutation.isPending}
               data-testid="button-copy-all-sizes-colors"
@@ -488,30 +490,39 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
             {kitComponents.map((component) => (
               <div
                 key={component.id}
-                className="flex items-center justify-between gap-2 p-3 rounded-md border"
+                className="p-3 rounded-md border space-y-2"
                 data-testid={`kit-component-${component.id}`}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-medium text-sm truncate">{component.componentItem.name}</p>
-                    {!component.componentItem.isPublished && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-600">
-                        exclusivo
-                      </Badge>
-                    )}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium text-sm truncate">{component.componentItem.name}</p>
+                      {!component.componentItem.isPublished && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-600 shrink-0">
+                          exclusivo
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {component.componentItem.price > 0 ? `${formatCurrency(component.componentItem.price)} × ` : ""}Qtd: {component.quantity}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {component.componentItem.price > 0 ? `${formatCurrency(component.componentItem.price)} × ` : ""}{component.quantity}x
-                  </p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0"
+                    onClick={() => removeComponentMutation.mutate(component.id)}
+                    disabled={removeComponentMutation.isPending}
+                    data-testid={`button-remove-kit-component-${component.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    Qtd: {component.quantity}
-                  </Badge>
+                <div className="flex gap-1.5 flex-wrap">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1 text-xs"
+                    className="gap-1 text-xs h-7"
                     onClick={() => copySizesColorsMutation.mutate({
                       sourceItemIds: [component.componentItemId],
                       copySizes: true,
@@ -527,7 +538,7 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1 text-xs"
+                    className="gap-1 text-xs h-7"
                     onClick={() => copySizesColorsMutation.mutate({
                       sourceItemIds: [component.componentItemId],
                       copySizes: false,
@@ -539,15 +550,6 @@ function KitComponentsTab({ managingItem, allItems }: { managingItem: ShopItemAd
                   >
                     <Palette className="h-3 w-3" />
                     Cores
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => removeComponentMutation.mutate(component.id)}
-                    disabled={removeComponentMutation.isPending}
-                    data-testid={`button-remove-kit-component-${component.id}`}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
@@ -2016,7 +2018,7 @@ export default function LojaAdmin() {
 
       {/* Combo Discount Dialog */}
       <Dialog open={isComboOpen || !!editingCombo} onOpenChange={(open) => { if (!open) { setIsComboOpen(false); setEditingCombo(null); resetComboForm(); } }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>{editingCombo ? "Editar Combo" : "Novo Combo de Desconto"}</DialogTitle>
             <DialogDescription>
@@ -2380,7 +2382,7 @@ export default function LojaAdmin() {
       </Dialog>
 
       <Dialog open={!!managingItem} onOpenChange={(open) => !open && setManagingItem(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Gerenciar: {managingItem?.name}</DialogTitle>
             <DialogDescription>
@@ -2390,21 +2392,24 @@ export default function LojaAdmin() {
 
           <Tabs value={manageTab} onValueChange={(v) => setManageTab(v as "images" | "sizes" | "colors" | "kit")}>
             <TabsList className={`grid w-full ${managingItem?.category?.name?.toLowerCase().includes('kit') ? "grid-cols-4" : "grid-cols-3"}`}>
-              <TabsTrigger value="images" className="gap-2">
-                <ImagePlus className="h-4 w-4" />
-                Imagens
+              <TabsTrigger value="images" className="gap-1 text-xs sm:text-sm px-2 sm:px-3">
+                <ImagePlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Imagens</span>
+                <span className="sm:hidden">Img</span>
               </TabsTrigger>
-              <TabsTrigger value="sizes" className="gap-2" disabled={!managingItem?.hasSize}>
-                <Ruler className="h-4 w-4" />
-                Tamanhos
+              <TabsTrigger value="sizes" className="gap-1 text-xs sm:text-sm px-2 sm:px-3" disabled={!managingItem?.hasSize}>
+                <Ruler className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Tamanhos</span>
+                <span className="sm:hidden">Tam</span>
               </TabsTrigger>
-              <TabsTrigger value="colors" className="gap-2">
-                <Tag className="h-4 w-4" />
-                Cores
+              <TabsTrigger value="colors" className="gap-1 text-xs sm:text-sm px-2 sm:px-3">
+                <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Cores</span>
+                <span className="sm:hidden">Cor</span>
               </TabsTrigger>
               {managingItem?.category?.name?.toLowerCase().includes('kit') && (
-                <TabsTrigger value="kit" className="gap-2">
-                  <Package className="h-4 w-4" />
+                <TabsTrigger value="kit" className="gap-1 text-xs sm:text-sm px-2 sm:px-3">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Kit
                 </TabsTrigger>
               )}

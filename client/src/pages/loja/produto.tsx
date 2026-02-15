@@ -53,7 +53,7 @@ export default function LojaProdutoPage() {
   const [quantity, setQuantity] = useState(1);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "sizes">("description");
-  const [kitSelections, setKitSelections] = useState<Record<number, { size?: string; color?: string; colorId?: number }>>({});
+  const [kitSelections, setKitSelections] = useState<Record<string, { size?: string; color?: string; colorId?: number }>>({});
 
   const { data: items } = useQuery<ShopItemWithDetails[]>({
     queryKey: ["/api/shop/items"],
@@ -137,9 +137,15 @@ export default function LojaProdutoPage() {
   const kitButtonDisabled = (() => {
     if (!isKit || !product?.kitComponents) return false;
     return product.kitComponents.some(comp => {
-      if (comp.componentItem.hasSize && comp.sizes.length > 0 && !kitSelections[comp.id]?.size) return true;
+      const hasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
       const compAvailableColors = comp.colors.filter(c => c.isAvailable);
-      if (compAvailableColors.length > 0 && !kitSelections[comp.id]?.colorId) return true;
+      const hasColors = compAvailableColors.length > 0;
+      if (!hasSizes && !hasColors) return false;
+      for (let i = 0; i < comp.quantity; i++) {
+        const key = `${comp.id}-${i}`;
+        if (hasSizes && !kitSelections[key]?.size) return true;
+        if (hasColors && !kitSelections[key]?.colorId) return true;
+      }
       return false;
     });
   })();
@@ -152,25 +158,38 @@ export default function LojaProdutoPage() {
 
     if (isKit && product.kitComponents) {
       for (const comp of product.kitComponents) {
-        if (comp.componentItem.hasSize && comp.sizes.length > 0 && !kitSelections[comp.id]?.size) {
-          toast({ title: "Selecione o tamanho", description: `Selecione o tamanho da ${comp.componentItem.name}`, variant: "destructive" });
-          return;
-        }
+        const hasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
         const compAvailableColors = comp.colors.filter(c => c.isAvailable);
-        if (compAvailableColors.length > 0 && !kitSelections[comp.id]?.colorId) {
-          toast({ title: "Selecione a cor", description: `Selecione a cor da ${comp.componentItem.name}`, variant: "destructive" });
-          return;
+        const hasColors = compAvailableColors.length > 0;
+        for (let i = 0; i < comp.quantity; i++) {
+          const key = `${comp.id}-${i}`;
+          const unitLabel = comp.quantity > 1 ? ` (${i + 1}/${comp.quantity})` : "";
+          if (hasSizes && !kitSelections[key]?.size) {
+            toast({ title: "Selecione o tamanho", description: `Selecione o tamanho da ${comp.componentItem.name}${unitLabel}`, variant: "destructive" });
+            return;
+          }
+          if (hasColors && !kitSelections[key]?.colorId) {
+            toast({ title: "Selecione a cor", description: `Selecione a cor da ${comp.componentItem.name}${unitLabel}`, variant: "destructive" });
+            return;
+          }
+        }
+      }
+      const kitSelectionsArray: Array<{ componentId: number; size?: string; color?: string; colorId?: number }> = [];
+      for (const comp of product.kitComponents) {
+        for (let i = 0; i < comp.quantity; i++) {
+          const key = `${comp.id}-${i}`;
+          kitSelectionsArray.push({
+            componentId: comp.id,
+            size: kitSelections[key]?.size || undefined,
+            color: kitSelections[key]?.color || undefined,
+            colorId: kitSelections[key]?.colorId || undefined,
+          });
         }
       }
       addToCartMutation.mutate({
         itemId: product.id,
         quantity,
-        kitSelections: product.kitComponents.map(comp => ({
-          componentId: comp.id,
-          size: kitSelections[comp.id]?.size || undefined,
-          color: kitSelections[comp.id]?.color || undefined,
-          colorId: kitSelections[comp.id]?.colorId || undefined,
-        })),
+        kitSelections: kitSelectionsArray,
       });
       return;
     }
@@ -337,61 +356,76 @@ export default function LojaProdutoPage() {
                 return (
                   <div key={comp.id} className="border border-gray-200 rounded-lg overflow-hidden" data-testid={`kit-component-${comp.id}`}>
                     <div className="bg-gray-50 px-4 py-2.5">
-                      <p className="text-sm font-bold text-black">{comp.componentItem.name}</p>
+                      <p className="text-sm font-bold text-black">
+                        {comp.componentItem.name}
+                        {comp.quantity > 1 && <span className="text-gray-500 font-normal ml-1">({comp.quantity} un.)</span>}
+                      </p>
                     </div>
                     <div className="p-4 space-y-3">
-                      {hasSizes && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-gray-500">Tamanho:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {comp.sizes.map((sizeItem) => (
-                              <button
-                                key={sizeItem.id}
-                                onClick={() => setKitSelections(prev => ({
-                                  ...prev,
-                                  [comp.id]: { ...prev[comp.id], size: sizeItem.size }
-                                }))}
-                                className={`px-4 py-2 border text-sm font-medium transition-all ${
-                                  kitSelections[comp.id]?.size === sizeItem.size
-                                    ? "bg-black text-white border-black"
-                                    : "bg-white text-black border-gray-300 hover:border-black"
-                                }`}
-                                data-testid={`button-kit-size-${comp.id}-${sizeItem.size}`}
-                              >
-                                {sizeItem.size}
-                              </button>
-                            ))}
+                      {Array.from({ length: comp.quantity }, (_, unitIdx) => {
+                        const key = `${comp.id}-${unitIdx}`;
+                        return (
+                          <div key={unitIdx} className={`space-y-3 ${comp.quantity > 1 ? "pb-3 border-b border-gray-100 last:border-b-0 last:pb-0" : ""}`}>
+                            {comp.quantity > 1 && (
+                              <p className="text-xs font-semibold text-gray-700">
+                                {comp.componentItem.name} {unitIdx + 1}
+                              </p>
+                            )}
+                            {hasSizes && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-gray-500">Tamanho:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {comp.sizes.map((sizeItem) => (
+                                    <button
+                                      key={sizeItem.id}
+                                      onClick={() => setKitSelections(prev => ({
+                                        ...prev,
+                                        [key]: { ...prev[key], size: sizeItem.size }
+                                      }))}
+                                      className={`px-4 py-2 border text-sm font-medium transition-all ${
+                                        kitSelections[key]?.size === sizeItem.size
+                                          ? "bg-black text-white border-black"
+                                          : "bg-white text-black border-gray-300 hover:border-black"
+                                      }`}
+                                      data-testid={`button-kit-size-${comp.id}-${unitIdx}-${sizeItem.size}`}
+                                    >
+                                      {sizeItem.size}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {hasColors && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-gray-500">Cor:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {compAvailableColors.map((colorItem) => (
+                                    <button
+                                      key={colorItem.id}
+                                      onClick={() => setKitSelections(prev => ({
+                                        ...prev,
+                                        [key]: { ...prev[key], color: colorItem.name, colorId: colorItem.id }
+                                      }))}
+                                      className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
+                                        kitSelections[key]?.colorId === colorItem.id
+                                          ? "bg-black text-white border-black"
+                                          : "bg-white text-black border-gray-300 hover:border-black"
+                                      }`}
+                                      data-testid={`button-kit-color-${comp.id}-${unitIdx}-${colorItem.id}`}
+                                    >
+                                      <span
+                                        className="w-4 h-4 rounded-full border border-gray-400"
+                                        style={{ backgroundColor: colorItem.hexCode }}
+                                      />
+                                      {colorItem.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
-                      {hasColors && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-gray-500">Cor:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {compAvailableColors.map((colorItem) => (
-                              <button
-                                key={colorItem.id}
-                                onClick={() => setKitSelections(prev => ({
-                                  ...prev,
-                                  [comp.id]: { ...prev[comp.id], color: colorItem.name, colorId: colorItem.id }
-                                }))}
-                                className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium transition-all ${
-                                  kitSelections[comp.id]?.colorId === colorItem.id
-                                    ? "bg-black text-white border-black"
-                                    : "bg-white text-black border-gray-300 hover:border-black"
-                                }`}
-                                data-testid={`button-kit-color-${comp.id}-${colorItem.id}`}
-                              >
-                                <span
-                                  className="w-4 h-4 rounded-full border border-gray-400"
-                                  style={{ backgroundColor: colorItem.hexCode }}
-                                />
-                                {colorItem.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 );

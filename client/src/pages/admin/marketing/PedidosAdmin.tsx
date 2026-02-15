@@ -70,6 +70,7 @@ interface ShopProduct {
   isKit: boolean;
   sizes?: ShopProductSize[] | null;
   colors?: ShopProductColor[] | null;
+  kitComponents?: KitComponentData[];
 }
 
 interface KitComponentData {
@@ -595,15 +596,24 @@ export default function PedidosAdminPage() {
       const prod = products?.find(p => p.id === i.itemId);
       return prod?.isKit;
     }).map(i => i.itemId);
+    const cacheUpdates: Record<number, KitComponentData[]> = {};
     for (const kitId of kitItemIds) {
       if (!kitComponentsCache[kitId]) {
-        apiRequest("GET", `/api/admin/shop/items/${kitId}/kit-components`)
-          .then(res => res.json())
-          .then(components => {
-            setKitComponentsCache(prev => ({ ...prev, [kitId]: components }));
-          })
-          .catch(() => {});
+        const prod = products?.find(p => p.id === kitId);
+        if (prod?.kitComponents && prod.kitComponents.length > 0) {
+          cacheUpdates[kitId] = prod.kitComponents;
+        } else {
+          apiRequest("GET", `/api/admin/shop/items/${kitId}/kit-components`)
+            .then(res => res.json())
+            .then(components => {
+              setKitComponentsCache(prev => ({ ...prev, [kitId]: components }));
+            })
+            .catch(() => {});
+        }
       }
+    }
+    if (Object.keys(cacheUpdates).length > 0) {
+      setKitComponentsCache(prev => ({ ...prev, ...cacheUpdates }));
     }
     setManualOrderInstallments((order.installmentCount || 1).toString());
     setManualOrderPromoCode(order.promoCode || "");
@@ -1315,34 +1325,36 @@ export default function PedidosAdminPage() {
                             const selectedProd = products?.find(p => p.id === newItemId);
                             const newItems = [...manualOrderItems];
                             newItems[index] = { ...item, itemId: newItemId, size: "", gender: "", color: "", colorId: 0, kitSelections: [] };
-                            setManualOrderItems(newItems);
                             setPromoCodeValidation(null);
-                            if (selectedProd?.isKit && !kitComponentsCache[newItemId]) {
-                              try {
-                                const res = await apiRequest("GET", `/api/admin/shop/items/${newItemId}/kit-components`);
-                                const components = await res.json();
-                                setKitComponentsCache(prev => ({ ...prev, [newItemId]: components }));
-                                const updatedItems = [...newItems];
+
+                            if (selectedProd?.isKit) {
+                              let components: KitComponentData[] | null = null;
+
+                              if (selectedProd.kitComponents && selectedProd.kitComponents.length > 0) {
+                                components = selectedProd.kitComponents;
+                                setKitComponentsCache(prev => ({ ...prev, [newItemId]: components! }));
+                              } else if (kitComponentsCache[newItemId]) {
+                                components = kitComponentsCache[newItemId];
+                              } else {
+                                try {
+                                  const res = await apiRequest("GET", `/api/admin/shop/items/${newItemId}/kit-components`);
+                                  components = await res.json();
+                                  setKitComponentsCache(prev => ({ ...prev, [newItemId]: components! }));
+                                } catch {}
+                              }
+
+                              if (components && components.length > 0) {
                                 const sels: any[] = [];
                                 for (const c of components) {
                                   for (let u = 0; u < (c.quantity || 1); u++) {
                                     sels.push({ componentId: c.id, componentName: c.componentItem.name, size: "", color: "", colorId: 0 });
                                   }
                                 }
-                                updatedItems[index] = { ...updatedItems[index], kitSelections: sels };
-                                setManualOrderItems(updatedItems);
-                              } catch {}
-                            } else if (selectedProd?.isKit && kitComponentsCache[newItemId]) {
-                              const components = kitComponentsCache[newItemId];
-                              const sels: any[] = [];
-                              for (const c of components) {
-                                for (let u = 0; u < (c.quantity || 1); u++) {
-                                  sels.push({ componentId: c.id, componentName: c.componentItem.name, size: "", color: "", colorId: 0 });
-                                }
+                                newItems[index] = { ...newItems[index], kitSelections: sels };
                               }
-                              newItems[index] = { ...newItems[index], kitSelections: sels };
-                              setManualOrderItems(newItems);
                             }
+
+                            setManualOrderItems(newItems);
                           }}
                         >
                           <SelectTrigger data-testid={`select-item-${index}`}>
@@ -1470,10 +1482,10 @@ export default function PedidosAdminPage() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
 
-                      {selectedProduct?.isKit && kitComponentsCache[item.itemId] && (
+                      {selectedProduct?.isKit && (kitComponentsCache[item.itemId] || selectedProduct.kitComponents) && (
                         <div className="w-full mt-2 p-3 border border-dashed border-border rounded-md bg-muted/50 space-y-3" data-testid={`kit-components-section-${index}`}>
                           <p className="text-xs font-semibold text-muted-foreground">Componentes do Kit</p>
-                          {kitComponentsCache[item.itemId].map((comp) => {
+                          {(kitComponentsCache[item.itemId] || selectedProduct.kitComponents || []).map((comp) => {
                             const compColors = comp.colors.filter((c: any) => c.isAvailable);
                             const compHasSizes = comp.componentItem.hasSize && comp.sizes.length > 0;
                             const compHasColors = compColors.length > 0;

@@ -101,6 +101,18 @@ async function runPendingMigrations(): Promise<void> {
     }
   }
   console.log("[Migration] Schema migrations checked successfully");
+
+  try {
+    await pool.query(`
+      UPDATE shop_items SET is_kit = true 
+      WHERE is_kit = false 
+      AND category_id IN (
+        SELECT id FROM shop_categories WHERE LOWER(name) LIKE '%kit%'
+      )
+    `);
+  } catch (error: any) {
+    // ignore if columns don't exist yet
+  }
 }
 let _db: NodePgDatabase<typeof schema> | null = null;
 

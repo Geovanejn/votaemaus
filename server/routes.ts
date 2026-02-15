@@ -9821,7 +9821,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categoryMap = new Map(categories.map(c => [c.id, c]));
       const itemIds = items.map(item => item.id);
       
-      const kitItemIds = items.filter(i => i.isKit).map(i => i.id);
+      const kitItemIds = items.filter(i => {
+        if (i.isKit) return true;
+        const cat = categoryMap.get(i.categoryId);
+        return cat ? cat.name.toLowerCase().includes('kit') : false;
+      }).map(i => i.id);
       
       const [imagesMap, sizesMap, colorsMap, kitComponentsMap] = await Promise.all([
         storage.getShopItemImagesByItemIdsLight(itemIds),
@@ -9830,16 +9834,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         kitItemIds.length > 0 ? storage.getKitComponentsByKitIds(kitItemIds) : Promise.resolve(new Map()),
       ]);
       
-      // Get items that have banner images
       const bannerCheck = await storage.getShopItemsWithBannerCheck(itemIds);
       const hasBannerMap = new Map(bannerCheck.map(b => [b.id, b.hasBanner]));
       
       const itemsWithDetails = items.map(item => {
         const hasBanner = hasBannerMap.get(item.id) || false;
-        const kitComponents = item.isKit ? (kitComponentsMap.get(item.id) || []) : [];
+        const cat = categoryMap.get(item.categoryId);
+        const effectiveIsKit = item.isKit || (cat ? cat.name.toLowerCase().includes('kit') : false);
+        const kitComponents = effectiveIsKit ? (kitComponentsMap.get(item.id) || []) : [];
         return {
           ...item,
-          category: categoryMap.get(item.categoryId) || null,
+          isKit: effectiveIsKit,
+          category: cat || null,
           images: (imagesMap.get(item.id) || []).map(img => ({
             ...img,
             imageUrl: `/api/shop/images/item/${img.id}`,
@@ -9851,7 +9857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bannerImageData: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
           bannerImageUrl: hasBanner ? `/api/shop/images/banner/${item.id}` : null,
           kitComponentsCount: kitComponents.length,
-          kitComponents: item.isKit ? kitComponents : undefined,
+          kitComponents: effectiveIsKit ? kitComponents : undefined,
         };
       });
       
@@ -10687,7 +10693,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: `Modelo (M/F) obrigatorio para ${shopItem.name}` });
         }
         
-        if (shopItem.isKit) {
+        const shopCategory = shopItem.categoryId ? await storage.getShopCategoryById(shopItem.categoryId) : null;
+        const effectiveIsKit = shopItem.isKit || (shopCategory ? shopCategory.name.toLowerCase().includes('kit') : false);
+        if (effectiveIsKit) {
           const kitComponents = await storage.getKitComponents(shopItem.id);
           if (kitComponents.length > 0 && (!item.kitSelections || item.kitSelections.length === 0)) {
             return res.status(400).json({ message: `Selecoes de componentes obrigatorias para o kit ${shopItem.name}` });
@@ -10830,7 +10838,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const originalItem = items[idx];
         if (originalItem?.kitSelections && Array.isArray(originalItem.kitSelections)) {
           const shopItem = await storage.getShopItemById(oi.itemId);
-          if (shopItem?.isKit) {
+          const shopItemCat = shopItem?.categoryId ? await storage.getShopCategoryById(shopItem.categoryId) : null;
+          const shopItemIsKit = shopItem?.isKit || (shopItemCat ? shopItemCat.name.toLowerCase().includes('kit') : false);
+          if (shopItemIsKit) {
             const kitComponents = await storage.getKitComponents(oi.itemId);
             for (const sel of originalItem.kitSelections) {
               const comp = kitComponents.find((c: any) => c.id === sel.componentId);
@@ -10986,7 +10996,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (shopItem.genderType === "both" && !item.gender) {
           return res.status(400).json({ message: `Modelo (M/F) obrigatório para ${shopItem.name}` });
         }
-        if (shopItem.isKit) {
+        const shopCat = shopItem.categoryId ? await storage.getShopCategoryById(shopItem.categoryId) : null;
+        const effectiveIsKit = shopItem.isKit || (shopCat ? shopCat.name.toLowerCase().includes('kit') : false);
+        if (effectiveIsKit) {
           const kitComponents = await storage.getKitComponents(shopItem.id);
           if (kitComponents.length > 0 && (!item.kitSelections || item.kitSelections.length === 0)) {
             return res.status(400).json({ message: `Seleções de componentes obrigatórias para o kit ${shopItem.name}` });
@@ -11096,7 +11108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const originalItem = items[idx];
         if (originalItem?.kitSelections && Array.isArray(originalItem.kitSelections)) {
           const shopItem = await storage.getShopItemById(oi.itemId);
-          if (shopItem?.isKit) {
+          const shopItemCat = shopItem?.categoryId ? await storage.getShopCategoryById(shopItem.categoryId) : null;
+          const shopItemIsKit = shopItem?.isKit || (shopItemCat ? shopItemCat.name.toLowerCase().includes('kit') : false);
+          if (shopItemIsKit) {
             const kitComponents = await storage.getKitComponents(oi.itemId);
             for (const sel of originalItem.kitSelections) {
               const comp = kitComponents.find((c: any) => c.id === sel.componentId);
@@ -12120,13 +12134,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       
+      const itemCategory = item.categoryId ? await storage.getShopCategoryById(item.categoryId) : null;
+      const effectiveIsKit = item.isKit || (itemCategory ? itemCategory.name.toLowerCase().includes('kit') : false);
+
       const [rawImages, sizes, sizeCharts, colors, rawColorImages, kitComponents] = await Promise.all([
         storage.getShopItemImages(id),
         storage.getShopItemSizes(id),
         storage.getShopItemSizeCharts(id),
         storage.getShopItemColors(id),
         storage.getShopItemColorImages(id),
-        item.isKit ? storage.getKitComponents(id) : Promise.resolve([]),
+        effectiveIsKit ? storage.getKitComponents(id) : Promise.resolve([]),
       ]);
       
       const images = rawImages.map(img => ({
@@ -12143,7 +12160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? getOptimalImageUrl(item.bannerImageData, `/api/shop/images/banner/${item.id}`)
         : null;
       
-      res.json({ ...item, bannerImageData, images, sizes, sizeCharts, colors, colorImages, kitComponents: item.isKit ? kitComponents : undefined });
+      res.json({ ...item, isKit: effectiveIsKit, bannerImageData, images, sizes, sizeCharts, colors, colorImages, kitComponents: effectiveIsKit ? kitComponents : undefined });
     } catch (error) {
       console.error("Get shop item error:", error);
       res.status(500).json({ message: "Erro ao buscar item" });

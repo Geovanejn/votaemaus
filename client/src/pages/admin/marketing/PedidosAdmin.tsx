@@ -572,7 +572,18 @@ export default function PedidosAdminPage() {
     return true;
   };
 
-  const openEditOrderDialog = (order: ShopOrder) => {
+  const generateKitSelectionsFromComponents = (components: KitComponentData[], existingSelections: any[] = []) => {
+    if (existingSelections.length > 0) return existingSelections;
+    const sels: any[] = [];
+    for (const c of components) {
+      for (let u = 0; u < (c.quantity || 1); u++) {
+        sels.push({ componentId: c.id, componentName: c.componentItem.name, size: "", color: "", colorId: 0 });
+      }
+    }
+    return sels;
+  };
+
+  const openEditOrderDialog = async (order: ShopOrder) => {
     setEditingOrderId(order.id);
     setManualOrderMemberId(order.manualCustomerName ? "" : order.userId.toString());
     setManualOrderName(order.manualCustomerName || "");
@@ -591,30 +602,42 @@ export default function PedidosAdminPage() {
         colorId: sel.colorId || 0,
       })),
     }));
-    setManualOrderItems(itemsWithKit);
-    const kitItemIds = itemsWithKit.filter(i => {
-      const prod = products?.find(p => p.id === i.itemId);
-      return prod?.isKit;
-    }).map(i => i.itemId);
+
     const cacheUpdates: Record<number, KitComponentData[]> = {};
-    for (const kitId of kitItemIds) {
-      if (!kitComponentsCache[kitId]) {
-        const prod = products?.find(p => p.id === kitId);
-        if (prod?.kitComponents && prod.kitComponents.length > 0) {
-          cacheUpdates[kitId] = prod.kitComponents;
-        } else {
-          apiRequest("GET", `/api/admin/shop/items/${kitId}/kit-components`)
-            .then(res => res.json())
-            .then(components => {
-              setKitComponentsCache(prev => ({ ...prev, [kitId]: components }));
-            })
-            .catch(() => {});
-        }
+
+    for (let i = 0; i < itemsWithKit.length; i++) {
+      const item = itemsWithKit[i];
+      const prod = products?.find(p => p.id === item.itemId);
+      if (!prod?.isKit) continue;
+
+      let components: KitComponentData[] | null = null;
+
+      if (kitComponentsCache[item.itemId]) {
+        components = kitComponentsCache[item.itemId];
+      } else if (prod.kitComponents && prod.kitComponents.length > 0) {
+        components = prod.kitComponents;
+        cacheUpdates[item.itemId] = components;
+      } else {
+        try {
+          const res = await apiRequest("GET", `/api/admin/shop/items/${item.itemId}/kit-components`);
+          components = await res.json();
+          if (components) cacheUpdates[item.itemId] = components;
+        } catch {}
+      }
+
+      if (components && components.length > 0) {
+        itemsWithKit[i] = {
+          ...item,
+          kitSelections: generateKitSelectionsFromComponents(components, item.kitSelections),
+        };
       }
     }
+
     if (Object.keys(cacheUpdates).length > 0) {
       setKitComponentsCache(prev => ({ ...prev, ...cacheUpdates }));
     }
+
+    setManualOrderItems(itemsWithKit);
     setManualOrderInstallments((order.installmentCount || 1).toString());
     setManualOrderPromoCode(order.promoCode || "");
     setPromoCodeValidation(null);

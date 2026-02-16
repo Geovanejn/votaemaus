@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -370,15 +369,15 @@ export default function PedidoCompartilhado() {
   if (error || !order) {
     return (
       <div className="dark min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center shadow-lg">
-          <CardContent className="pt-8 pb-6 space-y-4">
+        <div className="max-w-md w-full text-center shadow-lg bg-white rounded-xl border">
+          <div className="pt-8 pb-6 px-6 space-y-4">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-200" data-testid="text-error-title">Pedido não encontrado</h2>
-            <p className="text-gray-400" data-testid="text-error-message">
+            <h2 className="text-xl font-semibold text-gray-700" data-testid="text-error-title">Pedido não encontrado</h2>
+            <p className="text-gray-500" data-testid="text-error-message">
               O link que você acessou é inválido ou o pedido não existe mais.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -527,12 +526,12 @@ export default function PedidoCompartilhado() {
           )}
         </div>
 
-        <Card className={cn("overflow-hidden border shadow-sm", statusInfo.bgColor)} data-testid="card-order-status">
-          <CardContent className="pt-4 pb-4">
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden" data-testid="card-order-status">
+          <div className="pt-4 pb-4 px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StatusIcon className={cn("w-5 h-5", statusInfo.color)} />
-                <span className="font-medium text-gray-200">Status</span>
+                <span className="font-medium text-blue-600">Status</span>
               </div>
               <Badge className={cn("text-xs font-semibold px-3 py-1", statusInfo.bgColor, statusInfo.color, "border")} data-testid="badge-order-status">
                 {statusInfo.label}
@@ -541,17 +540,17 @@ export default function PedidoCompartilhado() {
             <div className="mt-2 text-xs text-gray-400">
               Criado em {formatDate(order.createdAt)}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="shadow-sm" data-testid="card-order-items">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden" data-testid="card-order-items">
+          <div className="px-4 pt-4 pb-2">
+            <h3 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
               <Package className="w-4 h-4" />
               Itens do Pedido
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             {order.items.map((item) => (
               <div key={item.id} className="flex gap-3 items-start" data-testid={`item-order-${item.id}`}>
                 {item.imageUrl ? (
@@ -562,25 +561,25 @@ export default function PedidoCompartilhado() {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-900/30 to-orange-900/30 flex items-center justify-center border border-gray-700 flex-shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center border flex-shrink-0">
                     <Package className="w-7 h-7 text-amber-300" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-gray-100">
+                  <p className="font-semibold text-sm text-gray-800">
                     {item.product?.name || "Produto"}
                   </p>
                   
                   {!item.product?.isKit && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {item.size && (
-                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Tam: {item.size}</span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Tam: {item.size}</span>
                       )}
                       {item.color && (
-                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Cor: {item.color}</span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Cor: {item.color}</span>
                       )}
                       {item.gender && item.gender !== "unissex" && (
-                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                           {item.gender === "male" ? "Masculino" : item.gender === "female" ? "Feminino" : item.gender}
                         </span>
                       )}
@@ -588,19 +587,19 @@ export default function PedidoCompartilhado() {
                   )}
 
                   {item.kitSelections && item.kitSelections.length > 0 && (
-                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-700">
+                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-200">
                       {item.kitSelections.map((ks) => (
-                        <div key={ks.id} className="text-xs text-gray-400">
-                          <span className="font-medium text-gray-200">{ks.componentName}</span>
+                        <div key={ks.id} className="text-xs text-gray-600">
+                          <span className="font-medium text-gray-700">{ks.componentName}</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {ks.size && (
-                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
                             )}
                             {ks.color && (
-                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
                             )}
                             {ks.quantity > 1 && (
-                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
                             )}
                           </div>
                         </div>
@@ -610,7 +609,7 @@ export default function PedidoCompartilhado() {
 
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-xs text-gray-400 font-medium">{item.quantity}x</span>
-                    <span className="text-sm font-bold text-gray-100">
+                    <span className="text-sm font-bold text-gray-700">
                       {formatMoney(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -620,7 +619,7 @@ export default function PedidoCompartilhado() {
 
             <div className="border-t pt-3 space-y-1.5">
               {(order.subtotalAmount != null && order.subtotalAmount > 0 && order.subtotalAmount !== order.totalAmount) && (
-                <div className="flex justify-between text-xs text-gray-400">
+                <div className="flex justify-between text-xs text-gray-500">
                   <span>Subtotal</span>
                   <span>{formatMoney(order.subtotalAmount)}</span>
                 </div>
@@ -646,38 +645,38 @@ export default function PedidoCompartilhado() {
                   </div>
                 )
               )}
-              <div className="flex justify-between font-bold text-gray-100 text-base pt-1" data-testid="text-total-amount">
+              <div className="flex justify-between font-bold text-gray-800 text-base pt-1" data-testid="text-total-amount">
                 <span>Total</span>
                 <span>{formatMoney(order.totalAmount)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {isInstallment && order.installments?.length > 0 && (
-          <Card className="shadow-sm" data-testid="card-installments">
-            <CardHeader className="pb-2 cursor-pointer" onClick={() => setShowInstallments(!showInstallments)}>
-              <CardTitle className="text-sm font-semibold text-gray-300 flex items-center justify-between">
+          <div className="bg-white rounded-xl border shadow-sm overflow-hidden" data-testid="card-installments">
+            <div className="px-4 pt-4 pb-2 cursor-pointer" onClick={() => setShowInstallments(!showInstallments)}>
+              <h3 className="text-sm font-semibold text-gray-600 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
                   Parcelas ({paidInstallments.length}/{order.installments.length} pagas)
                 </div>
                 {showInstallments ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </CardTitle>
-            </CardHeader>
+              </h3>
+            </div>
             {showInstallments && (
-              <CardContent className="space-y-2">
+              <div className="px-4 pb-4 space-y-2">
                 {order.installments.map((inst) => (
                   <div
                     key={inst.id}
                     className={cn(
                       "flex items-center justify-between p-3 rounded-xl text-sm",
-                      inst.status === "paid" ? "bg-green-900/20 border border-green-800" : "bg-gray-800 border border-gray-700"
+                      inst.status === "paid" ? "bg-green-50 border border-green-100" : "bg-gray-50 border border-gray-100"
                     )}
                     data-testid={`installment-${inst.id}`}
                   >
                     <div>
-                      <span className="font-semibold block">
+                      <span className="font-semibold block text-gray-800">
                         Parcela {inst.installmentNumber}/{order.installments.length}
                       </span>
                       <span className="text-xs text-gray-400">
@@ -685,7 +684,7 @@ export default function PedidoCompartilhado() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm">{formatMoney(inst.amount)}</span>
+                      <span className="font-bold text-sm text-gray-700">{formatMoney(inst.amount)}</span>
                       {inst.status === "paid" ? (
                         <CheckCircle className="w-5 h-5 text-green-500" />
                       ) : canPay ? (
@@ -710,9 +709,9 @@ export default function PedidoCompartilhado() {
                     </div>
                   </div>
                 ))}
-              </CardContent>
+              </div>
             )}
-          </Card>
+          </div>
         )}
 
         {canPay && !isInstallment && (

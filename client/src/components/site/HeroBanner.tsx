@@ -17,39 +17,9 @@ interface DevotionalData {
   verseReference: string;
   summary?: string;
   imageUrl?: string;
-  mobileCropData?: string | null;
+  originalImageUrl?: string | null;
 }
 
-interface MobileCropData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
-}
-
-function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
-    return { backgroundPosition: 'center', backgroundSize: 'cover' };
-  }
-  const scaleX = 10000 / cropData.width;
-  const scaleY = 10000 / cropData.height;
-  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
-  const centerX = cropData.x + cropData.width / 2;
-  const centerY = cropData.y + cropData.height / 2;
-  return {
-    backgroundSize: `${scale}%`,
-    backgroundPosition: `${centerX}% ${centerY}%`,
-  };
-}
 
 interface EventData {
   id: number;
@@ -95,7 +65,7 @@ type BannerSlide = {
   subtitle: string;
   caption: string;
   imageUrl: string;
-  mobileCropData?: MobileCropData | null;
+  mobileImageUrl?: string;
   linkUrl: string;
   linkText: string;
   secondaryLinkUrl?: string;
@@ -160,7 +130,7 @@ export function HeroBanner() {
         subtitle: `"${d.verse}"`,
         caption: d.verseReference,
         imageUrl: d.imageUrl || defaultDevotionalImg,
-        mobileCropData: parseMobileCropData(d.mobileCropData),
+        mobileImageUrl: d.originalImageUrl || d.imageUrl || defaultDevotionalImg,
         linkUrl: `/devocionais/${d.id}`,
         linkText: 'Ler Devocional',
         icon: BookOpen,
@@ -207,7 +177,7 @@ export function HeroBanner() {
         subtitle: `"${d.verse}"`,
         caption: d.verseReference,
         imageUrl: d.imageUrl || defaultDevotionalImg,
-        mobileCropData: parseMobileCropData(d.mobileCropData),
+        mobileImageUrl: d.originalImageUrl || d.imageUrl || defaultDevotionalImg,
         linkUrl: `/devocionais/${d.id}`,
         linkText: 'Ler Devocional',
         icon: BookOpen,
@@ -337,12 +307,11 @@ export function HeroBanner() {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
             style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
           />
-          {/* Mobile background - uses crop data to zoom into selected region */}
+          {/* Mobile background - uses original 4:5 image when available */}
           <div 
-            className="absolute inset-0 md:hidden bg-no-repeat"
+            className="absolute inset-0 md:hidden bg-cover bg-center bg-no-repeat"
             style={{ 
-              backgroundImage: `url(${currentSlide.imageUrl})`,
-              ...getMobileCropStyle(currentSlide.mobileCropData || null),
+              backgroundImage: `url(${currentSlide.mobileImageUrl || currentSlide.imageUrl})`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/50" />

@@ -770,7 +770,7 @@ export default function PedidoCompartilhado() {
           </div>
         )}
 
-        <div className="text-center text-xs text-gray-400 pt-1 pb-4">
+        <div className="text-center text-xs text-gray-400 pt-0 pb-4 -mt-2">
           <img 
             src={umpLogoWhite}
             alt="Logo UMP Ema\u00fas" 

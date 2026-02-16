@@ -160,6 +160,33 @@ function getCustomerName(order: ShopOrder): string {
   return order.user?.fullName || 'Cliente desconhecido';
 }
 
+function buildShareMessage(order: ShopOrder): string {
+  const name = order.manualCustomerName || order.user?.fullName || 'Cliente';
+  const firstName = name.split(' ')[0];
+  const url = `${window.location.origin}/pedido/${order.shareToken}`;
+  const totalFormatted = `R$ ${((order.totalAmount || 0) / 100).toFixed(2).replace('.', ',')}`;
+  const isInstallment = (order.installmentCount || 1) > 1;
+
+  let msg = `Olá, *${firstName}*! 👋\n\n`;
+  msg += `Seu pedido *#${order.orderCode}* da *Emaústore* foi criado com sucesso!\n\n`;
+  msg += `*Valor total:* ${totalFormatted}`;
+  if (isInstallment) {
+    msg += ` (${order.installmentCount}x de R$ ${((order.totalAmount || 0) / (order.installmentCount || 1) / 100).toFixed(2).replace('.', ',')})`;
+  }
+  msg += `\n\n`;
+  msg += `Através do link abaixo você pode:\n`;
+  msg += `✅ *Acompanhar o status* do seu pedido\n`;
+  msg += `✅ *Realizar o pagamento* via PIX\n`;
+  if (isInstallment) {
+    msg += `✅ *Pagar suas parcelas* individualmente\n`;
+  }
+  msg += `✅ *Receber notificações* de atualização\n\n`;
+  msg += `🔗 *Acesse aqui:*\n${url}\n\n`;
+  msg += `⚠️ *Importante:* Ao abrir o link, *ative as notificações* para receber avisos quando o pagamento for confirmado e quando o pedido estiver pronto!`;
+
+  return msg;
+}
+
 const ORDER_STATUSES = [
   { value: "awaiting_payment", label: "Aguardando Pagamento", icon: Clock, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
   { value: "installment_payment", label: "Pagamento Parcelado", icon: Clock, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
@@ -950,9 +977,8 @@ export default function PedidosAdminPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const url = `${window.location.origin}/pedido/${order.shareToken}`;
-                                    navigator.clipboard.writeText(url);
-                                    toast({ title: "Link copiado!" });
+                                    navigator.clipboard.writeText(buildShareMessage(order));
+                                    toast({ title: "Mensagem copiada!", description: "Cole no WhatsApp para enviar ao cliente" });
                                   }}
                                   data-testid={`button-copy-share-${order.id}`}
                                 >
@@ -1067,9 +1093,8 @@ export default function PedidosAdminPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            const url = `${window.location.origin}/pedido/${detailsOrder.shareToken}`;
-                            navigator.clipboard.writeText(url);
-                            toast({ title: "Link copiado!" });
+                            navigator.clipboard.writeText(buildShareMessage(detailsOrder));
+                            toast({ title: "Mensagem copiada!", description: "Cole no WhatsApp para enviar ao cliente" });
                           }}
                           data-testid="button-copy-share-details"
                         >

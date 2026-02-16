@@ -89,6 +89,10 @@ async function runPendingMigrations(): Promise<void> {
         color_id INTEGER
       );`
     },
+    {
+      name: "add_original_image_url_to_devotionals",
+      sql: `ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS original_image_url TEXT;`
+    },
   ];
 
   for (const migration of migrations) {

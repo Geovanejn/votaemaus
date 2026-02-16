@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import umpLogoWhite from "@assets/2-1_1766464654126.png";
+import umpLogoWhite from "@assets/ump-logo-white-cropped.png";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -770,11 +770,11 @@ export default function PedidoCompartilhado() {
           </div>
         )}
 
-        <div className="text-center text-xs text-gray-400 pt-0 pb-4 -mt-2">
+        <div className="text-center text-xs text-gray-400 pt-2 pb-4">
           <img 
             src={umpLogoWhite}
             alt="Logo UMP Ema\u00fas" 
-            className="h-[147px] w-auto mx-auto opacity-60 object-contain"
+            className="w-[200px] h-auto mx-auto opacity-60"
           />
         </div>
       </div>

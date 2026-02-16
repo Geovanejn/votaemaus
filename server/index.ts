@@ -34,6 +34,45 @@ try {
 }
 // ====================================================================================
 
+async function backfillShareTokenForManualOrders() {
+  try {
+    const { db } = await import("./db");
+    const { shopOrders } = await import("@shared/schema");
+    const { isNull, or, like, sql } = await import("drizzle-orm");
+    const { randomUUID } = await import("crypto");
+
+    const manualOrdersWithoutToken = await db
+      .select({ id: shopOrders.id, orderCode: shopOrders.orderCode })
+      .from(shopOrders)
+      .where(
+        sql`${shopOrders.shareToken} IS NULL AND (${shopOrders.observation} LIKE '%Pedido manual - Cliente:%' OR ${shopOrders.observation} LIKE '%Pedido criado manualmente%')`
+      );
+
+    if (manualOrdersWithoutToken.length === 0) {
+      console.log("[Backfill] Todos os pedidos manuais já possuem shareToken.");
+      return;
+    }
+
+    let updated = 0;
+    for (const order of manualOrdersWithoutToken) {
+      try {
+        const { eq } = await import("drizzle-orm");
+        await db
+          .update(shopOrders)
+          .set({ shareToken: randomUUID() })
+          .where(eq(shopOrders.id, order.id));
+        updated++;
+      } catch (err: any) {
+        console.error(`[Backfill] Erro ao adicionar shareToken ao pedido ${order.orderCode}:`, err.message);
+      }
+    }
+
+    console.log(`[Backfill] ${updated} pedido(s) manual(is) receberam shareToken.`);
+  } catch (error: any) {
+    console.error("[Backfill] Erro ao executar backfill de shareToken:", error.message);
+  }
+}
+
 async function backfillTreasuryForPaidOrders() {
   try {
     const { db } = await import("./db");
@@ -370,6 +409,9 @@ app.use((req, res, next) => {
       
       // Backfill: cria entradas na tesouraria para pedidos pagos sem vínculo (só cria, nunca apaga)
       await backfillTreasuryForPaidOrders();
+      
+      // Backfill: adiciona shareToken a pedidos manuais antigos (só adiciona, nunca apaga)
+      await backfillShareTokenForManualOrders();
       
       // Migrate existing Base64 images to R2 (runs once per deploy)
       runImageMigration().catch(err => console.error("[Migration] Background migration error:", err));

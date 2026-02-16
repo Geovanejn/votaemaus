@@ -495,6 +495,12 @@ function EventCard({ event }: { event: StudyEvent }) {
                   {getThemeIcon(event.title, event.theme)}
                 </div>
               </div>
+              {isActive && event.participantsCount !== undefined && event.participantsCount > 0 && (
+                <div className="absolute bottom-2 left-2 z-20 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20 shadow-lg pointer-events-none flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-white" />
+                  <span className="text-sm text-white font-medium">{event.participantsCount} {event.participantsCount === 1 ? 'participante' : 'participantes'}</span>
+                </div>
+              )}
               {isActive && daysUntilEnd <= 1 && (() => {
                 const eventEndTime = new Date(endDate);
                 eventEndTime.setHours(23, 59, 59, 999);
@@ -507,12 +513,6 @@ function EventCard({ event }: { event: StudyEvent }) {
                   </div>
                 );
               })()}
-              {isActive && event.participantsCount !== undefined && event.participantsCount > 0 && daysUntilEnd > 1 && (
-                <div className="absolute bottom-2 right-2 z-20 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20 shadow-lg pointer-events-none flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-white" />
-                  <span className="text-sm text-white font-medium">{event.participantsCount} {event.participantsCount === 1 ? 'participante' : 'participantes'}</span>
-                </div>
-              )}
             </>
           )}
         </div>

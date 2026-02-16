@@ -97,6 +97,26 @@ async function runPendingMigrations(): Promise<void> {
       name: "fix_kit_selection_quantities_to_1",
       sql: `UPDATE shop_order_item_kit_selections SET quantity = 1 WHERE quantity > 1;`
     },
+    {
+      name: "add_share_token_to_shop_orders",
+      sql: `ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS share_token TEXT UNIQUE;`
+    },
+    {
+      name: "create_order_push_subscriptions",
+      sql: `CREATE TABLE IF NOT EXISTS order_push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        share_token TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        UNIQUE(share_token, endpoint)
+      );`
+    },
+    {
+      name: "create_order_push_subs_share_token_idx",
+      sql: `CREATE INDEX IF NOT EXISTS order_push_subs_share_token_idx ON order_push_subscriptions (share_token);`
+    },
   ];
 
   for (const migration of migrations) {

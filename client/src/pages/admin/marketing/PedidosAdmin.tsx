@@ -30,7 +30,9 @@ import {
   Tag,
   Percent,
   Pencil,
-  FileText
+  FileText,
+  Share2,
+  Copy
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -143,6 +145,7 @@ interface ShopOrder {
   paymentStatus: string;
   orderStatus: string;
   installmentCount?: number | null;
+  shareToken?: string | null;
   createdAt: string;
   paidAt: string | null;
   user: OrderUser | null;
@@ -533,6 +536,12 @@ export default function PedidosAdminPage() {
       setPromoCodeValidation(null);
       setPromoCodeError("");
       toast({ title: data.message || "Pedido criado com sucesso!" });
+      if (data.shareUrl) {
+        const fullUrl = `${window.location.origin}${data.shareUrl}`;
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          toast({ title: "Link compartilhável copiado para a área de transferência!" });
+        }).catch(() => {});
+      }
     },
     onError: () => {
       toast({ title: "Erro ao criar pedido", variant: "destructive" });
@@ -933,6 +942,25 @@ export default function PedidosAdminPage() {
                                 Obs: {order.observation}
                               </p>
                             )}
+
+                            {order.shareToken && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const url = `${window.location.origin}/pedido/${order.shareToken}`;
+                                    navigator.clipboard.writeText(url);
+                                    toast({ title: "Link copiado!" });
+                                  }}
+                                  data-testid={`button-copy-share-${order.id}`}
+                                >
+                                  <Share2 className="h-3 w-3 mr-1" />
+                                  Copiar Link
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="flex flex-col gap-2">
@@ -1029,6 +1057,26 @@ export default function PedidosAdminPage() {
                   {detailsOrder.manualCustomerName && (
                     <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
                       Cliente externo - sem cadastro no sistema
+                    </div>
+                  )}
+                  {detailsOrder.shareToken && (
+                    <div className="mt-2 pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Link de pagamento:</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const url = `${window.location.origin}/pedido/${detailsOrder.shareToken}`;
+                            navigator.clipboard.writeText(url);
+                            toast({ title: "Link copiado!" });
+                          }}
+                          data-testid="button-copy-share-details"
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copiar
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>

@@ -103,6 +103,7 @@ const TesourariaTaxas = lazy(() => import("@/pages/admin/tesouraria/TesourariaTa
 const TesourariaEmprestimos = lazy(() => import("@/pages/admin/tesouraria/TesourariaEmprestimos"));
 const LojaAdmin = lazy(() => import("@/pages/admin/marketing/LojaAdmin"));
 const PedidosAdmin = lazy(() => import("@/pages/admin/marketing/PedidosAdmin"));
+const PedidoCompartilhado = lazy(() => import("@/pages/loja/pedido-compartilhado"));
 const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
 
 function PageLoader() {
@@ -167,6 +168,7 @@ function Router() {
             <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
             <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
             <Route path="/aniversario/:id" component={AniversarioPage} />
+            <Route path="/pedido/:token" component={PedidoCompartilhado} />
             <Route path="/demo/cards" component={DemoCardsPage} />
             <Route path="/login">
               <Redirect to="/membro" />
@@ -275,6 +277,7 @@ function Router() {
           <Route path="/politica-privacidade" component={PoliticaPrivacidadePage} />
           <Route path="/versiculo-do-dia" component={VersiculoDoDiaPage} />
           <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
+          <Route path="/pedido/:token" component={PedidoCompartilhado} />
           <Route path="/demo/cards" component={DemoCardsPage} />
           <Route path="/login">
             <Redirect to="/membro" />
@@ -372,6 +375,7 @@ function Router() {
         <Route path="/versiculo-do-dia/:date" component={VersiculoDoDiaPage} />
         <Route path="/formularios" component={MemberForms} />
         <Route path="/forms/:id" component={FormPage} />
+        <Route path="/pedido/:token" component={PedidoCompartilhado} />
         <Route path="/demo/cards" component={DemoCardsPage} />
         <Route path="/login">
           <Redirect to="/membro" />

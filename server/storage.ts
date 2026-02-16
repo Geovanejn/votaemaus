@@ -37,6 +37,7 @@ import type {
   InstagramPost,
   PushSubscription,
   AnonymousPushSubscription,
+  OrderPushSubscription,
   Notification,
   PrayerRequest,
   InsertPrayerRequest,
@@ -360,6 +361,11 @@ export interface IStorage {
   updateAnonymousPushSubscriptionLastUsed(subscriptionId: number): Promise<void>;
   deleteAnonymousPushSubscriptionByEndpoint(endpoint: string): Promise<void>;
   
+  // Order Push Subscription Methods (for external buyers)
+  saveOrderPushSubscription(shareToken: string, endpoint: string, p256dh: string, auth: string): Promise<{ id: number; isNew: boolean }>;
+  getOrderPushSubscriptions(shareToken: string): Promise<OrderPushSubscription[]>;
+  removeOrderPushSubscription(shareToken: string, endpoint: string): Promise<void>;
+  
   // Bible Verse Methods
   getBibleVerseById(id: number): Promise<any | null>;
   getAllBibleVerses(): Promise<any[]>;
@@ -630,6 +636,7 @@ export interface IStorage {
   getShopOrders(filters?: { userId?: number; status?: string }): Promise<ShopOrder[]>;
   getShopOrderById(id: number): Promise<ShopOrder | null>;
   getShopOrderByCode(code: string): Promise<ShopOrder | null>;
+  getShopOrderByShareToken(token: string): Promise<ShopOrder | null>;
   createShopOrder(data: InsertShopOrder): Promise<ShopOrder>;
   updateShopOrder(id: number, data: Partial<InsertShopOrder>): Promise<ShopOrder | null>;
   
@@ -6092,6 +6099,41 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.anonymousPushSubscriptions.endpoint, endpoint));
   }
 
+  // ==================== ORDER PUSH SUBSCRIPTION METHODS ====================
+
+  async saveOrderPushSubscription(shareToken: string, endpoint: string, p256dh: string, auth: string): Promise<{ id: number; isNew: boolean }> {
+    const existing = await db.select()
+      .from(schema.orderPushSubscriptions)
+      .where(and(
+        eq(schema.orderPushSubscriptions.shareToken, shareToken),
+        eq(schema.orderPushSubscriptions.endpoint, endpoint)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return { id: existing[0].id, isNew: false };
+    }
+
+    const [inserted] = await db.insert(schema.orderPushSubscriptions)
+      .values({ shareToken, endpoint, p256dh, auth })
+      .returning();
+    return { id: inserted.id, isNew: true };
+  }
+
+  async getOrderPushSubscriptions(shareToken: string): Promise<OrderPushSubscription[]> {
+    return db.select()
+      .from(schema.orderPushSubscriptions)
+      .where(eq(schema.orderPushSubscriptions.shareToken, shareToken));
+  }
+
+  async removeOrderPushSubscription(shareToken: string, endpoint: string): Promise<void> {
+    await db.delete(schema.orderPushSubscriptions)
+      .where(and(
+        eq(schema.orderPushSubscriptions.shareToken, shareToken),
+        eq(schema.orderPushSubscriptions.endpoint, endpoint)
+      ));
+  }
+
   // ==================== CRYSTAL AND STREAK FREEZE METHODS ====================
 
   async addCrystals(userId: number, amount: number, type: string, description?: string): Promise<number> {
@@ -8059,6 +8101,14 @@ export class DatabaseStorage implements IStorage {
     const [order] = await db.select()
       .from(schema.shopOrders)
       .where(eq(schema.shopOrders.orderCode, code))
+      .limit(1);
+    return order || null;
+  }
+
+  async getShopOrderByShareToken(token: string): Promise<ShopOrder | null> {
+    const [order] = await db.select()
+      .from(schema.shopOrders)
+      .where(eq(schema.shopOrders.shareToken, token))
       .limit(1);
     return order || null;
   }

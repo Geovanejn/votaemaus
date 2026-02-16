@@ -2508,11 +2508,13 @@ export const shopOrders = pgTable("shop_orders", {
   orderStatus: text("order_status").notNull().default("awaiting_payment"),
   entryId: integer("entry_id").references(() => treasuryEntries.id),
   installmentCount: integer("installment_count").default(1),
+  shareToken: text("share_token").unique(),
   createdAt: timestamp("created_at").defaultNow(),
   paidAt: timestamp("paid_at"),
 }, (table) => ({
   userIdIdx: index("shop_orders_user_id_idx").on(table.userId),
   statusIdx: index("shop_orders_status_idx").on(table.orderStatus),
+  shareTokenIdx: index("shop_orders_share_token_idx").on(table.shareToken),
 }));
 
 export const insertShopOrderSchema = createInsertSchema(shopOrders).omit({
@@ -2975,6 +2977,27 @@ export const insertFormAnalysisSchema = createInsertSchema(formAnalyses).omit({
 
 export type InsertFormAnalysis = z.infer<typeof insertFormAnalysisSchema>;
 export type FormAnalysis = typeof formAnalyses.$inferSelect;
+
+// Push subscriptions vinculadas a pedidos compartilhados (compradores externos)
+export const orderPushSubscriptions = pgTable("order_push_subscriptions", {
+  id: serial("id").primaryKey(),
+  shareToken: text("share_token").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  shareTokenIdx: index("order_push_subs_share_token_idx").on(table.shareToken),
+  uniqueTokenEndpoint: unique().on(table.shareToken, table.endpoint),
+}));
+
+export const insertOrderPushSubscriptionSchema = createInsertSchema(orderPushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOrderPushSubscription = z.infer<typeof insertOrderPushSubscriptionSchema>;
+export type OrderPushSubscription = typeof orderPushSubscriptions.$inferSelect;
 
 // Tipos compostos para uso no frontend
 export type FormWithQuestions = Form & {

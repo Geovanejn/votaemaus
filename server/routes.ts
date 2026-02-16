@@ -103,6 +103,7 @@ import {
   notifyNewStudyEvent,
   notifyEventEnded,
   sendPushToUser,
+  sendPushToOrderShare,
   notifyFormPublished
 } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, fetchInstagramComments, publishInstagramStory, isInstagramPublishingConfigured, testInstagramStoryConfig } from "./instagram";
@@ -10565,6 +10566,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Error sending order ready notification:', notifError);
         }
       }
+
+      // Notificar comprador externo via link compartilhável
+      if (order.shareToken) {
+        try {
+          const statusMessages: Record<string, string> = {
+            paid: '✅ Pagamento confirmado',
+            producing: '🔨 Em produção',
+            ready: '📦 Pronto para retirada',
+            cancelled: '❌ Cancelado',
+          };
+          const statusMsg = statusMessages[orderStatus];
+          if (statusMsg) {
+            await sendPushToOrderShare(order.shareToken, {
+              title: `${statusMsg}`,
+              body: `Pedido ${order.orderCode}: ${statusMsg.replace(/^[^\s]+\s/, '')}`,
+              url: `/pedido/${order.shareToken}`,
+              tag: `order-status-${order.id}`,
+            });
+          }
+        } catch (notifError) {
+          console.error('Error sending external order notification:', notifError);
+        }
+      }
       
       res.json(order);
     } catch (error) {
@@ -10694,6 +10718,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             } catch (notifError) {
               console.error('Error sending order ready notification:', notifError);
+            }
+          }
+
+          // Notificar comprador externo via link compartilhável (bulk)
+          if (order.shareToken) {
+            try {
+              const bulkStatusMessages: Record<string, string> = {
+                paid: '✅ Pagamento confirmado',
+                producing: '🔨 Em produção',
+                ready: '📦 Pronto para retirada',
+                cancelled: '❌ Cancelado',
+              };
+              const bulkStatusMsg = bulkStatusMessages[orderStatus];
+              if (bulkStatusMsg) {
+                await sendPushToOrderShare(order.shareToken, {
+                  title: `${bulkStatusMsg}`,
+                  body: `Pedido ${order.orderCode}: ${bulkStatusMsg.replace(/^[^\s]+\s/, '')}`,
+                  url: `/pedido/${order.shareToken}`,
+                  tag: `order-status-${order.id}`,
+                });
+              }
+            } catch (notifError) {
+              console.error('Error sending external order notification (bulk):', notifError);
             }
           }
         }
@@ -10887,6 +10934,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderUserId = systemAdmin.id;
       }
       
+      // Generate share token for external access
+      const shareToken = randomUUID();
+      
       // Create order
       const order = await storage.createShopOrder({
         orderCode,
@@ -10901,6 +10951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
         installmentCount: installmentCount || 1,
+        shareToken,
       });
       
       // Create order items and kit selections
@@ -10994,6 +11045,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         order,
+        shareToken,
+        shareUrl: `/pedido/${shareToken}`,
         message: `Pedido ${orderCode} criado com sucesso!`
       });
     } catch (error) {
@@ -14194,6 +14247,248 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== PUBLIC ROUTES (no auth required) ====================
+
+  app.get("/api/shop/orders/share/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const order = await storage.getShopOrderByShareToken(token);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      const orderItems = await storage.getShopOrderItems(order.id);
+      const itemsWithProducts = await Promise.all(
+        orderItems.map(async (item) => {
+          const product = await storage.getShopItemById(item.itemId);
+          const images = await storage.getShopItemImages(item.itemId);
+          const kitSelections = await storage.getOrderItemKitSelections(item.id);
+          const imageUrl = images[0]?.imageUrl || null;
+          const safeImageUrl = imageUrl && imageUrl.startsWith('/') ? imageUrl : (imageUrl ? `/api/shop/images/item/${images[0]?.id}` : null);
+          return {
+            id: item.id,
+            orderId: item.orderId,
+            itemId: item.itemId,
+            quantity: item.quantity,
+            gender: item.gender,
+            size: item.size,
+            color: item.color,
+            unitPrice: item.unitPrice,
+            product: product ? { id: product.id, name: product.name, price: product.price } : null,
+            imageUrl: safeImageUrl,
+            kitSelections: kitSelections.map(ks => ({
+              id: ks.id,
+              productName: ks.productName,
+              selectedColor: ks.selectedColor,
+              selectedSize: ks.selectedSize,
+            })),
+          };
+        })
+      );
+
+      const installments = await storage.getShopInstallments(order.id);
+
+      let customerName: string | null = null;
+      if (order.observation) {
+        const match = order.observation.match(/Pedido manual - Cliente: (.+)/);
+        if (match) {
+          customerName = match[1].trim();
+        }
+      }
+
+      const safeInstallments = installments.map(inst => ({
+        id: inst.id,
+        orderId: inst.orderId,
+        installmentNumber: inst.installmentNumber,
+        amount: inst.amount,
+        dueDate: inst.dueDate,
+        status: inst.status,
+        pixCode: inst.pixCode,
+        pixQrCodeBase64: inst.pixQrCodeBase64,
+        pixExpiresAt: inst.pixExpiresAt,
+      }));
+
+      res.json({
+        order: {
+          id: order.id,
+          orderCode: order.orderCode,
+          totalAmount: order.totalAmount,
+          subtotalAmount: order.subtotalAmount,
+          promoDiscount: order.promoDiscount,
+          comboDiscount: order.comboDiscount,
+          comboNames: order.comboNames,
+          promoCode: order.promoCode,
+          paymentStatus: order.paymentStatus,
+          orderStatus: order.orderStatus,
+          installmentCount: order.installmentCount,
+          shareToken: order.shareToken,
+          createdAt: order.createdAt,
+          items: itemsWithProducts,
+          installments: safeInstallments,
+          customerName,
+        },
+      });
+    } catch (error) {
+      console.error("Get shared order error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedido" });
+    }
+  });
+
+  app.post("/api/shop/orders/share/:token/generate-pix", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { installmentId } = req.body;
+
+      const order = await storage.getShopOrderByShareToken(token);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      if (!isMercadoPagoConfigured()) {
+        return res.status(503).json({ message: "Pagamento PIX não configurado" });
+      }
+
+      let customerName = "Cliente";
+      if (order.observation) {
+        const match = order.observation.match(/Pedido manual - Cliente: (.+)/);
+        if (match) {
+          customerName = match[1].trim();
+        }
+      }
+
+      if (installmentId) {
+        const installments = await storage.getShopInstallments(order.id);
+        const installment = installments.find(i => i.id === installmentId);
+
+        if (!installment) {
+          return res.status(404).json({ message: "Parcela não encontrada" });
+        }
+
+        if (installment.status === "paid") {
+          return res.status(400).json({ message: "Parcela já foi paga" });
+        }
+
+        if (installment.pixCode && installment.pixExpiresAt && new Date(installment.pixExpiresAt) > new Date()) {
+          return res.json({
+            type: "installment",
+            installmentId: installment.id,
+            installmentNumber: installment.installmentNumber,
+            amount: installment.amount / 100,
+            qrCode: installment.pixCode,
+            qrCodeBase64: installment.pixQrCodeBase64,
+            expiresAt: installment.pixExpiresAt,
+          });
+        }
+
+        const idempotencyKey = `shop-installment-${installment.id}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+        const pixResult = await createPixPayment({
+          amountCentavos: installment.amount,
+          description: `Loja Emaustore - Pedido #${order.orderCode} - Parcela ${installment.installmentNumber}`,
+          payerEmail: `pedido${order.id}@umpemaus.com.br`,
+          payerName: customerName,
+          externalReference: `shop-installment-${installment.id}`,
+        });
+
+        if (!pixResult.success) {
+          console.error("PIX payment creation failed:", pixResult.error);
+          return res.status(500).json({ message: pixResult.error || "Erro ao gerar PIX" });
+        }
+
+        await storage.updateShopInstallment(installment.id, {
+          pixCode: pixResult.qrCode,
+          pixQrCodeBase64: pixResult.qrCodeBase64,
+          pixExpiresAt: pixResult.expiresAt,
+          paymentId: pixResult.paymentId?.toString(),
+        });
+
+        return res.json({
+          type: "installment",
+          installmentId: installment.id,
+          installmentNumber: installment.installmentNumber,
+          amount: installment.amount / 100,
+          qrCode: pixResult.qrCode,
+          qrCodeBase64: pixResult.qrCodeBase64,
+          expiresAt: pixResult.expiresAt,
+        });
+      } else {
+        if (order.paymentStatus === "paid") {
+          return res.status(400).json({ message: "Pedido já foi pago" });
+        }
+
+        let entry = order.entryId ? await storage.getTreasuryEntryById(order.entryId) : null;
+
+        if (entry?.pixQrCode && entry?.pixExpiresAt && new Date(entry.pixExpiresAt) > new Date()) {
+          return res.json({
+            type: "total",
+            orderId: order.id,
+            amount: order.totalAmount / 100,
+            qrCode: entry.pixQrCode,
+            qrCodeBase64: entry.pixQrCodeBase64,
+            expiresAt: entry.pixExpiresAt,
+          });
+        }
+
+        const pixResult = await createPixPayment({
+          amountCentavos: order.totalAmount,
+          description: `Loja Emaustore - Pedido #${order.orderCode}`,
+          payerEmail: `pedido${order.id}@umpemaus.com.br`,
+          payerName: customerName,
+          externalReference: `shop-order-${order.id}`,
+        });
+
+        if (!pixResult.success) {
+          console.error("PIX payment creation failed:", pixResult.error);
+          return res.status(500).json({ message: pixResult.error || "Erro ao gerar PIX" });
+        }
+
+        if (entry) {
+          await storage.updateTreasuryEntry(entry.id, {
+            pixTransactionId: pixResult.paymentId?.toString(),
+            pixQrCode: pixResult.qrCode,
+            pixQrCodeBase64: pixResult.qrCodeBase64,
+            pixExpiresAt: pixResult.expiresAt,
+          });
+        }
+
+        return res.json({
+          type: "total",
+          orderId: order.id,
+          amount: order.totalAmount / 100,
+          qrCode: pixResult.qrCode,
+          qrCodeBase64: pixResult.qrCodeBase64,
+          expiresAt: pixResult.expiresAt,
+        });
+      }
+    } catch (error) {
+      console.error("Generate PIX for shared order error:", error);
+      res.status(500).json({ message: "Erro ao gerar PIX" });
+    }
+  });
+
+  app.post("/api/shop/orders/share/:token/subscribe-push", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { endpoint, p256dh, auth } = req.body;
+
+      if (!endpoint || !p256dh || !auth) {
+        return res.status(400).json({ message: "Campos endpoint, p256dh e auth são obrigatórios" });
+      }
+
+      const order = await storage.getShopOrderByShareToken(token);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      const result = await storage.saveOrderPushSubscription(token, endpoint, p256dh, auth);
+      res.json({ message: "Inscrito para notificações", id: result.id, isNew: result.isNew });
+    } catch (error) {
+      console.error("Subscribe push for shared order error:", error);
+      res.status(500).json({ message: "Erro ao inscrever para notificações" });
+    }
+  });
+
+  // ==================== END PUBLIC ROUTES ====================
+
   // Send manual treasury notification
   app.post("/api/treasury/notifications/send", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -16155,6 +16450,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `${orderUser?.name || 'Membro'} pagou o pedido ${order.orderCode} - R$ ${(order.totalAmount / 100).toFixed(2)}`,
             { orderId: order.id, orderCode: order.orderCode }
           );
+
+          // Notificar comprador externo via link compartilhável
+          if (order.shareToken) {
+            try {
+              await sendPushToOrderShare(order.shareToken, {
+                title: '✅ Pagamento Confirmado',
+                body: `Pedido ${order.orderCode}: pagamento confirmado com sucesso!`,
+                url: `/pedido/${order.shareToken}`,
+                tag: `order-paid-${order.id}`,
+              });
+            } catch (notifError) {
+              console.error('Error sending external order payment notification:', notifError);
+            }
+          }
         }
       }
 

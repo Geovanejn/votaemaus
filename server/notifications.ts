@@ -162,6 +162,51 @@ export async function sendPushToUser(
   }
 }
 
+export async function sendPushToOrderShare(
+  shareToken: string,
+  payload: NotificationPayload
+): Promise<number> {
+  if (!webPushConfigured) return 0;
+  try {
+    const subscriptions = await storage.getOrderPushSubscriptions(shareToken);
+    if (subscriptions.length === 0) return 0;
+
+    let successCount = 0;
+    for (const sub of subscriptions) {
+      try {
+        const pushSub = {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        };
+        await webpush.sendNotification(pushSub, JSON.stringify({
+          title: payload.title,
+          body: payload.body,
+          icon: payload.icon || "/logo.png",
+          badge: payload.badge || "/favicon.png",
+          data: { url: payload.url || "/", ...payload.data },
+          tag: payload.tag,
+        }));
+        successCount++;
+      } catch (error: any) {
+        const statusCode = error.statusCode || error.status;
+        if (statusCode === 410 || statusCode === 404 || statusCode === 401) {
+          try {
+            await storage.removeOrderPushSubscription(shareToken, sub.endpoint);
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (successCount > 0) {
+      console.log(`[Push] Sent "${payload.title}" to order share ${shareToken.substring(0, 8)}... (${successCount}/${subscriptions.length})`);
+    }
+    return successCount;
+  } catch (error) {
+    console.error(`[Push] Error in sendPushToOrderShare:`, error);
+    return 0;
+  }
+}
+
 export async function sendPushToUsers(
   userIds: number[],
   payload: NotificationPayload

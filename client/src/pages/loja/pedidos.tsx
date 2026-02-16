@@ -438,6 +438,7 @@ export default function MeusPedidosPage() {
                         <p className="text-xs text-muted-foreground">
                           {item.quantity}x {formatCurrency(item.unitPrice)}
                           {item.size && ` - ${item.size}`}
+                          {item.color && ` / ${item.color}`}
                         </p>
                         {item.kitSelections && item.kitSelections.length > 0 && (
                           <div className="mt-1 space-y-0.5">

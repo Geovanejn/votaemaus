@@ -36,13 +36,6 @@ import defaultDevImg from "@assets/stock_images/christian_prayer_spi_92875813.jp
 
 const fallbackImages = [devocionalArt1, devocionalArt2, devocionalArt3, devocionalArt4, devocionalArt5, devocionalArt6];
 
-interface MobileCropData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 interface DevotionalData {
   id: number;
   title: string;
@@ -51,34 +44,10 @@ interface DevotionalData {
   content?: string;
   summary?: string;
   imageUrl?: string;
-  mobileCropData?: string | null;
+  originalImageUrl?: string | null;
   author?: string;
   publishedAt?: string;
   isPublished?: boolean;
-}
-
-function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
-}
-
-function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
-    return { backgroundPosition: 'center', backgroundSize: 'cover' };
-  }
-  const scaleX = 10000 / cropData.width;
-  const scaleY = 10000 / cropData.height;
-  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
-  const centerX = cropData.x + cropData.width / 2;
-  const centerY = cropData.y + cropData.height / 2;
-  return {
-    backgroundSize: `${scale}%`,
-    backgroundPosition: `${centerX}% ${centerY}%`,
-  };
 }
 
 const categories = ["Todas", "Oracao", "Fe", "Amor", "Confianca", "Servico", "Paz"];
@@ -119,14 +88,17 @@ export default function DevocionaisPage() {
     retry: 2,
   });
 
-  const processedDevotionals = (devotionals || []).map((d, index) => ({
-    ...d,
-    image: d.imageUrl && !d.imageUrl.includes('placeholder') ? d.imageUrl : fallbackImages[index % fallbackImages.length],
-    mobileCrop: parseMobileCropData(d.mobileCropData),
-    category: getCategory(d.title),
-    date: formatDate(d.publishedAt),
-    isFeatured: index === 0,
-  }));
+  const processedDevotionals = (devotionals || []).map((d, index) => {
+    const image = d.imageUrl && !d.imageUrl.includes('placeholder') ? d.imageUrl : fallbackImages[index % fallbackImages.length];
+    return {
+      ...d,
+      image,
+      mobileImage: d.originalImageUrl || image,
+      category: getCategory(d.title),
+      date: formatDate(d.publishedAt),
+      isFeatured: index === 0,
+    };
+  });
 
   const featuredDevotional = processedDevotionals.find(d => d.isFeatured);
   const otherDevotionals = processedDevotionals.filter(d => !d.isFeatured);
@@ -202,18 +174,13 @@ export default function DevocionaisPage() {
                       <div className="grid md:grid-cols-3">
                         <div className="relative overflow-hidden">
                           <div 
-                            className="absolute inset-0 bg-cover bg-center"
+                            className="absolute inset-0 bg-cover bg-center hidden md:block"
                             style={{ backgroundImage: `url(${featuredDevotional.image})` }}
                           />
-                          {featuredDevotional.mobileCrop && (
-                            <div 
-                              className="absolute inset-0 md:hidden bg-no-repeat"
-                              style={{ 
-                                backgroundImage: `url(${featuredDevotional.image})`,
-                                ...getMobileCropStyle(featuredDevotional.mobileCrop)
-                              }}
-                            />
-                          )}
+                          <div 
+                            className="absolute inset-0 md:hidden bg-cover bg-center bg-no-repeat"
+                            style={{ backgroundImage: `url(${featuredDevotional.mobileImage})` }}
+                          />
                           <div className="relative bg-gradient-to-br from-gray-900/90 via-gray-800/80 to-gray-900/70 text-white p-8 flex flex-col justify-center min-h-[300px]">
                             <div className="absolute top-4 right-4">
                               <Sparkles className="h-6 w-6 text-primary/60" />
@@ -308,18 +275,13 @@ export default function DevocionaisPage() {
                             <CardContent className="p-0">
                               <div className="relative h-48 overflow-hidden">
                                 <div 
-                                  className="absolute inset-0 bg-cover bg-center"
+                                  className="absolute inset-0 bg-cover bg-center hidden md:block"
                                   style={{ backgroundImage: `url(${devotional.image})` }}
                                 />
-                                {devotional.mobileCrop && (
-                                  <div 
-                                    className="absolute inset-0 md:hidden bg-no-repeat"
-                                    style={{ 
-                                      backgroundImage: `url(${devotional.image})`,
-                                      ...getMobileCropStyle(devotional.mobileCrop)
-                                    }}
-                                  />
-                                )}
+                                <div 
+                                  className="absolute inset-0 md:hidden bg-cover bg-center bg-no-repeat"
+                                  style={{ backgroundImage: `url(${devotional.mobileImage})` }}
+                                />
                                 <div className={`absolute inset-0 bg-gradient-to-br ${categoryColors[devotional.category] || "from-gray-700 to-gray-900"} opacity-80`} />
                                 <div className="absolute inset-0 opacity-30">
                                   <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full blur-2xl" />

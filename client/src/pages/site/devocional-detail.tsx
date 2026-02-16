@@ -138,13 +138,6 @@ function InstagramEmbed({ url }: { url: string }) {
   );
 }
 
-interface MobileCropData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 interface DevotionalData {
   id: number;
   title: string;
@@ -154,37 +147,13 @@ interface DevotionalData {
   contentHtml?: string;
   summary?: string;
   imageUrl?: string;
-  mobileCropData?: string | null;
+  originalImageUrl?: string | null;
   author?: string;
   publishedAt?: string;
   isRead?: boolean;
   youtubeUrl?: string;
   instagramUrl?: string;
   audioUrl?: string;
-}
-
-function parseMobileCropData(data: string | null | undefined): MobileCropData | null {
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
-}
-
-function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
-    return { backgroundPosition: 'center', backgroundSize: 'cover' };
-  }
-  const scaleX = 10000 / cropData.width;
-  const scaleY = 10000 / cropData.height;
-  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
-  const centerX = cropData.x + cropData.width / 2;
-  const centerY = cropData.y + cropData.height / 2;
-  return {
-    backgroundSize: `${scale}%`,
-    backgroundPosition: `${centerX}% ${centerY}%`,
-  };
 }
 
 function formatDate(dateStr?: string): string {
@@ -675,8 +644,7 @@ export default function DevocionalDetailPage() {
   const imageUrl = devotional.imageUrl && !devotional.imageUrl.includes('placeholder') 
     ? devotional.imageUrl 
     : defaultDevImg;
-  const mobileCropData = parseMobileCropData(devotional.mobileCropData);
-  const mobileBackgroundStyle = getMobileCropStyle(mobileCropData);
+  const mobileImageUrl = devotional.originalImageUrl || imageUrl;
 
   const hasHtmlContent = devotional.contentHtml && devotional.contentHtml.trim().length > 0;
   const contentText = parseTipTapContent(devotional.content) || parseTipTapContent(devotional.summary) || '';
@@ -684,19 +652,18 @@ export default function DevocionalDetailPage() {
   return (
     <SiteLayout>
       <section className="relative overflow-hidden">
-        {/* Desktop background - hidden on mobile when crop is defined */}
+        {/* Desktop background */}
         <div 
-          className={`absolute inset-0 bg-cover bg-center ${mobileCropData ? 'hidden md:block' : ''}`}
+          className="absolute inset-0 bg-cover bg-center hidden md:block"
           style={{ 
             backgroundImage: `url(${imageUrl})`,
           }}
         />
-        {/* Mobile background - uses crop data to zoom into selected region */}
+        {/* Mobile background - uses original 4:5 image */}
         <div 
-          className="absolute inset-0 md:hidden bg-no-repeat"
+          className="absolute inset-0 md:hidden bg-cover bg-center bg-no-repeat"
           style={{ 
-            backgroundImage: `url(${imageUrl})`,
-            ...mobileBackgroundStyle,
+            backgroundImage: `url(${mobileImageUrl})`,
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/50" />

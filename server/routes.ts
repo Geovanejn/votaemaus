@@ -8296,7 +8296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } as any);
       
       if (isPublished) {
-        notifyNewDevotional(devotional.id, title, imageUrl).catch(err => 
+        notifyNewDevotional(devotional.id, title, originalImageUrl || imageUrl).catch(err => 
           console.error("[Notifications] Error notifying new devotional:", err)
         );
       }
@@ -8377,8 +8377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Devocional nao encontrado" });
       }
       
-      // Send push notification when devotional is published
-      notifyNewDevotional(devotional.id, devotional.title, devotional.imageUrl).catch(err => 
+      notifyNewDevotional(devotional.id, devotional.title, devotional.originalImageUrl || devotional.imageUrl).catch(err => 
         console.error("[Notifications] Error notifying new devotional:", err)
       );
       

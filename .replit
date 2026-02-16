@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -8,8 +8,8 @@ packages = ["ffmpeg", "imagemagick", "unzip", "sqlite", "poppler", "cairo", "pan
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "npm run db:push && npm run build"]
-run = ["npm", "run", "start"]
+build = ["npm", "run", "build"]
+run = ["node", "./dist/index.cjs"]
 
 [[ports]]
 localPort = 5000

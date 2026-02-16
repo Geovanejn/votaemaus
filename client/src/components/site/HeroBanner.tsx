@@ -36,13 +36,19 @@ function parseMobileCropData(data: string | null | undefined): MobileCropData | 
   }
 }
 
-function getMobileBackgroundStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData) {
-    return { backgroundPosition: 'center' };
+function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
+  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
+    return { backgroundPosition: 'center', backgroundSize: 'cover' };
   }
-  const posX = cropData.x + (cropData.width / 2);
-  const posY = cropData.y + (cropData.height / 2);
-  return { backgroundPosition: `${posX}% ${posY}%` };
+  const scaleX = 10000 / cropData.width;
+  const scaleY = 10000 / cropData.height;
+  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
+  const centerX = cropData.x + cropData.width / 2;
+  const centerY = cropData.y + cropData.height / 2;
+  return {
+    backgroundSize: `${scale}%`,
+    backgroundPosition: `${centerX}% ${centerY}%`,
+  };
 }
 
 interface EventData {
@@ -331,14 +337,12 @@ export function HeroBanner() {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
             style={{ backgroundImage: `url(${currentSlide.imageUrl})` }}
           />
-          {/* Mobile background - uses crop position if available, otherwise centered */}
+          {/* Mobile background - uses crop data to zoom into selected region */}
           <div 
-            className="absolute inset-0 md:hidden bg-cover bg-no-repeat"
+            className="absolute inset-0 md:hidden bg-no-repeat"
             style={{ 
               backgroundImage: `url(${currentSlide.imageUrl})`,
-              ...(currentSlide.mobileCropData 
-                ? getMobileBackgroundStyle(currentSlide.mobileCropData) 
-                : { backgroundPosition: 'center' })
+              ...getMobileCropStyle(currentSlide.mobileCropData || null),
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/50" />

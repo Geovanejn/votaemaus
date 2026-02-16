@@ -66,13 +66,19 @@ function parseMobileCropData(data: string | null | undefined): MobileCropData | 
   }
 }
 
-function getMobileBackgroundStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData) {
-    return { backgroundPosition: 'center' };
+function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
+  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
+    return { backgroundPosition: 'center', backgroundSize: 'cover' };
   }
-  const posX = cropData.x + (cropData.width / 2);
-  const posY = cropData.y + (cropData.height / 2);
-  return { backgroundPosition: `${posX}% ${posY}%` };
+  const scaleX = 10000 / cropData.width;
+  const scaleY = 10000 / cropData.height;
+  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
+  const centerX = cropData.x + cropData.width / 2;
+  const centerY = cropData.y + cropData.height / 2;
+  return {
+    backgroundSize: `${scale}%`,
+    backgroundPosition: `${centerX}% ${centerY}%`,
+  };
 }
 
 const categories = ["Todas", "Oracao", "Fe", "Amor", "Confianca", "Servico", "Paz"];
@@ -201,11 +207,10 @@ export default function DevocionaisPage() {
                           />
                           {featuredDevotional.mobileCrop && (
                             <div 
-                              className="absolute inset-0 md:hidden"
+                              className="absolute inset-0 md:hidden bg-no-repeat"
                               style={{ 
                                 backgroundImage: `url(${featuredDevotional.image})`,
-                                backgroundSize: 'cover',
-                                ...getMobileBackgroundStyle(featuredDevotional.mobileCrop)
+                                ...getMobileCropStyle(featuredDevotional.mobileCrop)
                               }}
                             />
                           )}
@@ -308,11 +313,10 @@ export default function DevocionaisPage() {
                                 />
                                 {devotional.mobileCrop && (
                                   <div 
-                                    className="absolute inset-0 md:hidden"
+                                    className="absolute inset-0 md:hidden bg-no-repeat"
                                     style={{ 
                                       backgroundImage: `url(${devotional.image})`,
-                                      backgroundSize: 'cover',
-                                      ...getMobileBackgroundStyle(devotional.mobileCrop)
+                                      ...getMobileCropStyle(devotional.mobileCrop)
                                     }}
                                   />
                                 )}

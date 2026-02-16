@@ -172,13 +172,19 @@ function parseMobileCropData(data: string | null | undefined): MobileCropData | 
   }
 }
 
-function getMobileBackgroundStyle(cropData: MobileCropData | null): React.CSSProperties {
-  if (!cropData) {
-    return { backgroundPosition: 'center' };
+function getMobileCropStyle(cropData: MobileCropData | null): React.CSSProperties {
+  if (!cropData || cropData.width <= 0 || cropData.height <= 0) {
+    return { backgroundPosition: 'center', backgroundSize: 'cover' };
   }
-  const posX = cropData.x + (cropData.width / 2);
-  const posY = cropData.y + (cropData.height / 2);
-  return { backgroundPosition: `${posX}% ${posY}%` };
+  const scaleX = 10000 / cropData.width;
+  const scaleY = 10000 / cropData.height;
+  const scale = Math.min(Math.max(scaleX, scaleY), 1000);
+  const centerX = cropData.x + cropData.width / 2;
+  const centerY = cropData.y + cropData.height / 2;
+  return {
+    backgroundSize: `${scale}%`,
+    backgroundPosition: `${centerX}% ${centerY}%`,
+  };
 }
 
 function formatDate(dateStr?: string): string {
@@ -670,7 +676,7 @@ export default function DevocionalDetailPage() {
     ? devotional.imageUrl 
     : defaultDevImg;
   const mobileCropData = parseMobileCropData(devotional.mobileCropData);
-  const mobileBackgroundStyle = getMobileBackgroundStyle(mobileCropData);
+  const mobileBackgroundStyle = getMobileCropStyle(mobileCropData);
 
   const hasHtmlContent = devotional.contentHtml && devotional.contentHtml.trim().length > 0;
   const contentText = parseTipTapContent(devotional.content) || parseTipTapContent(devotional.summary) || '';
@@ -685,26 +691,14 @@ export default function DevocionalDetailPage() {
             backgroundImage: `url(${imageUrl})`,
           }}
         />
-        {/* Mobile background with crop - only shown on mobile when crop is defined */}
-        {mobileCropData && (
-          <div 
-            className="absolute inset-0 md:hidden bg-cover"
-            style={{ 
-              backgroundImage: `url(${imageUrl})`,
-              backgroundSize: 'cover',
-              ...mobileBackgroundStyle
-            }}
-          />
-        )}
-        {/* Fallback for mobile when no crop is defined */}
-        {!mobileCropData && (
-          <div 
-            className="absolute inset-0 md:hidden bg-cover bg-center"
-            style={{ 
-              backgroundImage: `url(${imageUrl})`,
-            }}
-          />
-        )}
+        {/* Mobile background - uses crop data to zoom into selected region */}
+        <div 
+          className="absolute inset-0 md:hidden bg-no-repeat"
+          style={{ 
+            backgroundImage: `url(${imageUrl})`,
+            ...mobileBackgroundStyle,
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/50" />
         <div className="relative text-white py-12">
           <div className="container mx-auto px-4">

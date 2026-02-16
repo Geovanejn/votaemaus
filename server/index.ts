@@ -34,6 +34,61 @@ try {
 }
 // ====================================================================================
 
+async function backfillTreasuryForPaidOrders() {
+  try {
+    const { db } = await import("./db");
+    const { shopOrders, treasuryEntries } = await import("@shared/schema");
+    const { eq, isNull, and, or, lte } = await import("drizzle-orm");
+
+    const paidOrdersWithoutEntry = await db
+      .select()
+      .from(shopOrders)
+      .where(
+        and(
+          eq(shopOrders.orderStatus, "paid"),
+          isNull(shopOrders.entryId),
+          or(
+            isNull(shopOrders.installmentCount),
+            lte(shopOrders.installmentCount, 1)
+          )
+        )
+      );
+
+    if (paidOrdersWithoutEntry.length === 0) {
+      console.log("[Backfill] Nenhum pedido pago sem entrada na tesouraria encontrado.");
+      return;
+    }
+
+    console.log(`[Backfill] Encontrados ${paidOrdersWithoutEntry.length} pedidos pagos sem entrada na tesouraria. Criando entradas...`);
+
+    let created = 0;
+    for (const order of paidOrdersWithoutEntry) {
+      try {
+        const entry = await storage.createTreasuryEntry({
+          type: "income",
+          category: "loja",
+          description: `Pedido ${order.orderCode}`,
+          amount: order.totalAmount,
+          userId: order.userId,
+          referenceYear: order.paidAt ? new Date(order.paidAt).getFullYear() : new Date().getFullYear(),
+          paymentMethod: "manual",
+          paymentStatus: "paid",
+          paidAt: order.paidAt || new Date(),
+          orderId: order.id,
+        });
+        await storage.updateShopOrder(order.id, { entryId: entry.id });
+        created++;
+      } catch (err: any) {
+        console.error(`[Backfill] Erro ao criar entrada para pedido ${order.orderCode}:`, err.message);
+      }
+    }
+
+    console.log(`[Backfill] ${created}/${paidOrdersWithoutEntry.length} entradas na tesouraria criadas com sucesso!`);
+  } catch (error: any) {
+    console.error("[Backfill] Erro ao executar backfill de tesouraria:", error.message);
+  }
+}
+
 async function seedShopCategories() {
   try {
     const existingCategories = await storage.getShopCategories();
@@ -276,6 +331,9 @@ app.use((req, res, next) => {
       await initializeDatabase();
       await seedShopCategories();
       await seedAchievementsAndVerses();
+      
+      // Backfill: cria entradas na tesouraria para pedidos pagos sem vínculo (só cria, nunca apaga)
+      await backfillTreasuryForPaidOrders();
       
       // Migrate existing Base64 images to R2 (runs once per deploy)
       runImageMigration().catch(err => console.error("[Migration] Background migration error:", err));

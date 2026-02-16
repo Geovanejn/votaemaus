@@ -28,7 +28,8 @@ import {
   Check,
   Hand,
   ExternalLink,
-  Undo2
+  Undo2,
+  Wrench
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -250,6 +251,23 @@ export default function TesourariaMovimentacoes() {
     },
   });
 
+  const fixMemberPaymentsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/treasury/fix-member-payments", {});
+      return res.json() as Promise<{ fixed: number; errors: number; details: string[] }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/treasury/entries?year=${currentYear}`] });
+      toast({ 
+        title: "Correcao concluida",
+        description: `${data.fixed} pagamento(s) vinculado(s)${data.errors > 0 ? `, ${data.errors} erro(s)` : ""}`,
+      });
+    },
+    onError: () => {
+      toast({ title: "Erro ao corrigir pagamentos", variant: "destructive" });
+    },
+  });
+
   const generatePix = async (orderId: number, installmentId?: number) => {
     setPixLoading(true);
     setPixCopied(false);
@@ -440,13 +458,27 @@ export default function TesourariaMovimentacoes() {
                   </p>
                 </div>
               </div>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 bg-white/20" data-testid="button-new-entry">
-                    <Plus className="h-4 w-4" />
-                    Nova Movimentacao
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2 flex-wrap">
+                <Button 
+                  className="gap-2 bg-white/20" 
+                  onClick={() => fixMemberPaymentsMutation.mutate()}
+                  disabled={fixMemberPaymentsMutation.isPending}
+                  data-testid="button-fix-payments"
+                >
+                  {fixMemberPaymentsMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wrench className="h-4 w-4" />
+                  )}
+                  Vincular Pagamentos
+                </Button>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2 bg-white/20" data-testid="button-new-entry">
+                      <Plus className="h-4 w-4" />
+                      Nova Movimentacao
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Nova Movimentacao</DialogTitle>

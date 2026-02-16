@@ -590,16 +590,13 @@ export default function PedidoCompartilhado() {
                     <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-200">
                       {item.kitSelections.map((ks) => (
                         <div key={ks.id} className="text-xs text-gray-600">
-                          <span className="font-medium text-gray-700">{ks.componentName}</span>
+                          <span className="font-medium text-gray-700">{ks.quantity}x {ks.componentName}</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {ks.size && (
                               <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
                             )}
                             {ks.color && (
                               <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
-                            )}
-                            {ks.quantity > 1 && (
-                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
                             )}
                           </div>
                         </div>
@@ -608,7 +605,10 @@ export default function PedidoCompartilhado() {
                   )}
 
                   <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-xs text-gray-400 font-medium">{item.quantity}x</span>
+                    {!item.kitSelections?.length && (
+                      <span className="text-xs text-gray-400 font-medium">{item.quantity}x</span>
+                    )}
+                    {item.kitSelections?.length > 0 && <span />}
                     <span className="text-sm font-bold text-gray-700">
                       {formatMoney(item.unitPrice * item.quantity)}
                     </span>
@@ -690,8 +690,7 @@ export default function PedidoCompartilhado() {
                       ) : canPay ? (
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="rounded-lg"
+                          className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3"
                           onClick={() => generatePixMutation.mutate(inst.id)}
                           disabled={generatePixMutation.isPending}
                           data-testid={`button-pay-installment-${inst.id}`}

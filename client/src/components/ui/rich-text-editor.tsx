@@ -253,7 +253,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Escreva seu c
         <BubbleMenu
           editor={editor}
           options={{
-            placement: 'top',
+            placement: 'bottom',
             offset: 8,
           }}
           className="flex items-center gap-0.5 p-1 bg-popover border border-border rounded-lg shadow-lg z-50"

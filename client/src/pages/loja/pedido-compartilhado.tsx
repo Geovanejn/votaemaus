@@ -206,6 +206,11 @@ export default function PedidoCompartilhado() {
                 }),
               });
               if (res.ok) {
+                const data = await res.json();
+                if (data.anonymousId) {
+                  localStorage.setItem('anonymous_push_subscription_id', data.anonymousId.toString());
+                  localStorage.setItem('unified_notification_subscribed', 'true');
+                }
                 setNotificationState("subscribed");
                 return;
               }
@@ -333,9 +338,14 @@ export default function PedidoCompartilhado() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.anonymousId) {
+          localStorage.setItem('anonymous_push_subscription_id', data.anonymousId.toString());
+          localStorage.setItem('unified_notification_subscribed', 'true');
+        }
         setNotificationState("subscribed");
         setShowNotifPopup(false);
-        toast({ title: "Notificações ativadas!", description: "Você será avisado sobre atualizações do pedido." });
+        toast({ title: "Notifica\u00e7\u00f5es ativadas!", description: "Voc\u00ea ser\u00e1 avisado sobre atualiza\u00e7\u00f5es do pedido e conte\u00fados da UMP." });
       } else {
         throw new Error("Falha ao registrar");
       }
@@ -764,7 +774,7 @@ export default function PedidoCompartilhado() {
           <img 
             src={umpLogoWhite}
             alt="Logo UMP Ema\u00fas" 
-            className="h-7 w-auto mx-auto opacity-40"
+            className="h-10 w-auto mx-auto opacity-60"
           />
         </div>
       </div>

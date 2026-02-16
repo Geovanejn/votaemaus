@@ -14562,7 +14562,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await storage.saveOrderPushSubscription(token, endpoint, p256dh, auth);
-      res.json({ message: "Inscrito para notificações", id: result.id, isNew: result.isNew });
+      
+      let anonymousId: number | null = null;
+      try {
+        const anonResult = await storage.saveAnonymousPushSubscription(endpoint, p256dh, auth);
+        anonymousId = anonResult.id;
+        console.log(`[Push] Order push also registered as anonymous global subscription, id: ${anonResult.id}`);
+      } catch (anonError) {
+        console.error('[Push] Failed to save anonymous subscription alongside order push:', anonError);
+      }
+      
+      res.json({ message: "Inscrito para notifica\u00e7\u00f5es", id: result.id, isNew: result.isNew, anonymousId });
     } catch (error) {
       console.error("Subscribe push for shared order error:", error);
       res.status(500).json({ message: "Erro ao inscrever para notificações" });

@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import umpLogoWhite from "@assets/2-1_1766464654126.png";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -511,10 +512,10 @@ export default function PedidoCompartilhado() {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         <div className="text-center space-y-2 pb-1">
           <img 
-            src="/emaustore-logo-dark.png" 
-            alt="Emaústore" 
-            className="h-8 w-auto mx-auto"
-            data-testid="img-emaustore-logo"
+            src={umpLogoWhite}
+            alt="Logo UMP Ema\u00fas" 
+            className="h-10 w-auto mx-auto"
+            data-testid="img-ump-logo"
           />
           <p className="text-sm text-gray-400" data-testid="text-order-code">
             Pedido #{order.orderCode}
@@ -761,9 +762,9 @@ export default function PedidoCompartilhado() {
 
         <div className="text-center text-xs text-gray-400 pt-4 pb-6">
           <img 
-            src="/emaustore-logo-dark.png" 
-            alt="Emaústore" 
-            className="h-5 w-auto mx-auto opacity-40"
+            src={umpLogoWhite}
+            alt="Logo UMP Ema\u00fas" 
+            className="h-7 w-auto mx-auto opacity-40"
           />
         </div>
       </div>

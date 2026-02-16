@@ -1990,6 +1990,123 @@ async function processShopInstallmentReminders(): Promise<void> {
   }
 }
 
+// ==================== OVERDUE SHOP INSTALLMENTS CHECKER ====================
+
+async function processOverdueShopInstallments(): Promise<void> {
+  console.log('[Shop Scheduler] Processing overdue shop installments...');
+  
+  try {
+    const overdueInstallments = await storage.getShopInstallmentsOverdue();
+    
+    if (overdueInstallments.length === 0) {
+      console.log('[Shop Scheduler] No overdue installments found');
+      return;
+    }
+    
+    let markedCount = 0;
+    let notificationsSent = 0;
+    const notifiedUsers = new Map<number, { count: number; total: number; orderCodes: string[] }>();
+    
+    for (const installment of overdueInstallments) {
+      const order = await storage.getShopOrderById(installment.orderId);
+      if (!order || order.orderStatus === 'cancelled') continue;
+      
+      await storage.updateShopInstallment(installment.id, {
+        status: "expired",
+      });
+      markedCount++;
+      
+      const existing = notifiedUsers.get(order.userId) || { count: 0, total: 0, orderCodes: [] };
+      existing.count++;
+      existing.total += installment.amount;
+      if (!existing.orderCodes.includes(order.orderCode)) {
+        existing.orderCodes.push(order.orderCode);
+      }
+      notifiedUsers.set(order.userId, existing);
+    }
+    
+    for (const [userId, data] of Array.from(notifiedUsers)) {
+      const user = await storage.getUserById(userId);
+      const firstName = user?.fullName?.split(' ')[0] || 'Membro';
+      const totalStr = `R$ ${(data.total / 100).toFixed(2).replace('.', ',')}`;
+      const body = data.count === 1
+        ? `${firstName}, sua parcela do pedido ${data.orderCodes[0]} (${totalStr}) venceu! Regularize seu pagamento.`
+        : `${firstName}, você tem ${data.count} parcela(s) vencida(s) (${totalStr} total) nos pedidos ${data.orderCodes.join(', ')}. Regularize seu pagamento.`;
+      
+      const reminderKey = `shop-overdue-${userId}-${new Date().toISOString().slice(0, 10)}`;
+      const alreadySent = await storage.hasSentSchedulerReminder(reminderKey);
+      if (alreadySent) continue;
+      
+      await storage.createNotification({
+        userId,
+        type: 'shop_installment_overdue',
+        title: 'Parcela(s) Vencida(s) - Loja UMP',
+        body,
+        data: JSON.stringify({ orderCodes: data.orderCodes }),
+      });
+      
+      await sendPushToUser(userId, {
+        title: 'Parcela(s) Vencida(s) - Loja UMP',
+        body,
+        url: '/membro/financeiro',
+        tag: reminderKey,
+        icon: '/logo.png',
+      });
+      
+      await storage.markSchedulerReminderSent(reminderKey, 'shop_overdue', userId);
+      notificationsSent++;
+    }
+    
+    if (markedCount > 0) {
+      const adminReminderKey = `shop-overdue-admin-${new Date().toISOString().slice(0, 10)}`;
+      const adminAlreadySent = await storage.hasSentSchedulerReminder(adminReminderKey);
+      if (!adminAlreadySent) {
+        notifyMarketingAndTreasurerFromScheduler(
+          'Parcelas Vencidas na Loja',
+          `${markedCount} parcela(s) foram marcadas como vencidas. ${notifiedUsers.size} membro(s) notificado(s).`,
+          { markedCount, usersNotified: notifiedUsers.size }
+        );
+        await storage.markSchedulerReminderSent(adminReminderKey, 'shop_overdue_admin', 0);
+      }
+    }
+    
+    console.log(`[Shop Scheduler] Overdue check completed. Marked ${markedCount} installment(s), notified ${notificationsSent} user(s)`);
+  } catch (error) {
+    console.error('[Shop Scheduler] Error during overdue installment check:', error);
+  }
+}
+
+async function notifyMarketingAndTreasurerFromScheduler(title: string, body: string, data?: Record<string, any>) {
+  try {
+    const [marketingUsers, treasurer] = await Promise.all([
+      storage.getUsersBySecretaria("marketing"),
+      storage.getTreasurer(),
+    ]);
+    
+    const notifyIds = new Set<number>();
+    for (const u of marketingUsers) notifyIds.add(u.id);
+    if (treasurer) notifyIds.add(treasurer.id);
+    
+    for (const userId of notifyIds) {
+      await storage.createNotification({
+        userId,
+        type: 'admin_alert',
+        title,
+        body,
+        data: data ? JSON.stringify(data) : undefined,
+      });
+      await sendPushToUser(userId, {
+        title,
+        body,
+        url: '/admin/loja/pedidos',
+        icon: '/logo.png',
+      });
+    }
+  } catch (error) {
+    console.error('[Scheduler] Error notifying marketing/treasurer:', error);
+  }
+}
+
 // ==================== YEAR ROLLOVER SCHEDULER ====================
 
 async function processYearRollover(): Promise<void> {
@@ -2222,6 +2339,12 @@ export function initTreasurySchedulers(): void {
     timezone: 'America/Sao_Paulo'
   });
   console.log('[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)');
+  
+  // Overdue shop installments checker (daily at 09:00 - marks expired and notifies)
+  cron.schedule('0 9 * * *', processOverdueShopInstallments, {
+    timezone: 'America/Sao_Paulo'
+  });
+  console.log('[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)');
   
   // Event fee reminders (daily at 08:00 - checks 5, 3, 1 days before deadline)
   cron.schedule('0 8 * * *', processEventFeeReminders, {
@@ -2599,7 +2722,7 @@ export {
   generateDailyRecoveryVerses, runInstagramSync, refreshDailyMissionsWithAI, 
   processWeeklyGoalRewards, processEventLessonsRelease, processEventCardsDistribution, 
   processEventDeadlineNotifications, processMarketingEventReminders, processTreasuryDay5Reminder, 
-  processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, 
+  processAbandonedCartReminder, processLoanInstallmentReminders, processShopInstallmentReminders, processOverdueShopInstallments,
   processYearRollover, processMonthlyTreasurySummary, processEventFeeReminders, 
   publishVerseStoryToInstagram, publishReflectionStoryToInstagram, publishBirthdayStoriesToInstagram,
   generateAndSaveVerseImage, generateAndSaveReflectionImage, generateAndSaveBirthdayImages

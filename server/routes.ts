@@ -10535,6 +10535,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Enviar notificação quando pedido entra em produção
+      if (orderStatus === 'producing') {
+        try {
+          await storage.createNotification({
+            userId: order.userId,
+            type: 'order_producing',
+            title: 'Pedido em Produ\u00e7\u00e3o',
+            body: `Seu pedido #${order.orderCode} est\u00e1 sendo produzido! Avisaremos quando estiver pronto.`,
+            data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+          });
+          
+          await sendPushToUser(order.userId, {
+            title: 'Pedido em Produ\u00e7\u00e3o',
+            body: `Seu pedido #${order.orderCode} est\u00e1 sendo produzido!`,
+            url: '/study/meus-pedidos',
+            tag: `order-producing-${order.id}`,
+            icon: '/logo.png',
+          });
+        } catch (notifError) {
+          console.error('Error sending order producing notification:', notifError);
+        }
+      }
+      
       // Enviar notificação quando pedido está pronto para retirada
       if (orderStatus === 'ready') {
         try {
@@ -10550,14 +10573,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createNotification({
             userId: order.userId,
             type: 'order_ready',
-            title: '📦 Pedido Pronto para Retirada',
-            body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
+            title: 'Pedido Pronto para Retirada',
+            body: `Seu pedido #${order.orderCode} (${itemsText}) est\u00e1 pronto para retirada na igreja!`,
             data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
           });
           
           await sendPushToUser(order.userId, {
-            title: '📦 Pedido Pronto para Retirada',
-            body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
+            title: 'Pedido Pronto para Retirada',
+            body: `Seu pedido #${order.orderCode} est\u00e1 pronto para retirada na igreja!`,
             url: '/study/meus-pedidos',
             tag: `order-ready-${order.id}`,
             icon: '/logo.png',
@@ -10689,6 +10712,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           updatedOrders.push(order);
           
+          // Enviar notificação quando pedido entra em produção
+          if (orderStatus === 'producing') {
+            try {
+              await storage.createNotification({
+                userId: order.userId,
+                type: 'order_producing',
+                title: 'Pedido em Produ\u00e7\u00e3o',
+                body: `Seu pedido #${order.orderCode} est\u00e1 sendo produzido! Avisaremos quando estiver pronto.`,
+                data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
+              });
+              
+              await sendPushToUser(order.userId, {
+                title: 'Pedido em Produ\u00e7\u00e3o',
+                body: `Seu pedido #${order.orderCode} est\u00e1 sendo produzido!`,
+                url: '/study/meus-pedidos',
+                tag: `order-producing-${order.id}`,
+                icon: '/logo.png',
+              });
+            } catch (notifError) {
+              console.error('Error sending order producing notification:', notifError);
+            }
+          }
+          
           // Enviar notificação quando pedido está pronto para retirada
           if (orderStatus === 'ready') {
             try {
@@ -10704,14 +10750,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createNotification({
                 userId: order.userId,
                 type: 'order_ready',
-                title: '📦 Pedido Pronto para Retirada',
-                body: `Seu pedido #${order.orderCode} (${itemsText}) está pronto para retirada na igreja!`,
+                title: 'Pedido Pronto para Retirada',
+                body: `Seu pedido #${order.orderCode} (${itemsText}) est\u00e1 pronto para retirada na igreja!`,
                 data: JSON.stringify({ orderId: order.id, orderCode: order.orderCode }),
               });
               
               await sendPushToUser(order.userId, {
-                title: '📦 Pedido Pronto para Retirada',
-                body: `Seu pedido #${order.orderCode} está pronto para retirada na igreja!`,
+                title: 'Pedido Pronto para Retirada',
+                body: `Seu pedido #${order.orderCode} est\u00e1 pronto para retirada na igreja!`,
                 url: '/study/meus-pedidos',
                 tag: `order-ready-${order.id}`,
                 icon: '/logo.png',

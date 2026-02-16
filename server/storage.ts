@@ -654,6 +654,7 @@ export interface IStorage {
   getShopInstallmentById(id: number): Promise<ShopInstallment | null>;
   getShopInstallmentByPixId(pixId: string): Promise<ShopInstallment | null>;
   getShopInstallmentsDueSoon(daysAhead: number): Promise<ShopInstallment[]>;
+  getShopInstallmentsOverdue(): Promise<ShopInstallment[]>;
   createShopInstallment(data: InsertShopInstallment): Promise<ShopInstallment>;
   createShopInstallmentsBatch(installments: InsertShopInstallment[]): Promise<ShopInstallment[]>;
   updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
@@ -8224,6 +8225,19 @@ export class DatabaseStorage implements IStorage {
           eq(schema.shopInstallments.status, "pending"),
           gte(schema.shopInstallments.dueDate, now),
           lte(schema.shopInstallments.dueDate, futureDate)
+        )
+      )
+      .orderBy(asc(schema.shopInstallments.dueDate));
+  }
+
+  async getShopInstallmentsOverdue(): Promise<ShopInstallment[]> {
+    const now = new Date();
+    return db.select()
+      .from(schema.shopInstallments)
+      .where(
+        and(
+          eq(schema.shopInstallments.status, "pending"),
+          lt(schema.shopInstallments.dueDate, now)
         )
       )
       .orderBy(asc(schema.shopInstallments.dueDate));

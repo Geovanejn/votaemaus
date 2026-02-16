@@ -8450,6 +8450,41 @@ export class DatabaseStorage implements IStorage {
     return payment || null;
   }
 
+  async getTreasuryEntriesForPaymentFix(): Promise<TreasuryEntry[]> {
+    const percaptaEntries = await db.select({ entry: schema.treasuryEntries })
+      .from(schema.treasuryEntries)
+      .leftJoin(schema.memberPercaptaPayments, eq(schema.treasuryEntries.id, schema.memberPercaptaPayments.entryId))
+      .where(and(
+        eq(schema.treasuryEntries.type, "income"),
+        eq(schema.treasuryEntries.paymentStatus, "paid"),
+        sql`${schema.treasuryEntries.userId} IS NOT NULL`,
+        sql`${schema.treasuryEntries.category} IN ('percapta', 'taxa_percapta')`,
+        isNull(schema.memberPercaptaPayments.id),
+      ));
+
+    const umpEntries = await db.select({ entry: schema.treasuryEntries })
+      .from(schema.treasuryEntries)
+      .leftJoin(schema.memberUmpPayments, eq(schema.treasuryEntries.id, schema.memberUmpPayments.entryId))
+      .where(and(
+        eq(schema.treasuryEntries.type, "income"),
+        eq(schema.treasuryEntries.paymentStatus, "paid"),
+        sql`${schema.treasuryEntries.userId} IS NOT NULL`,
+        sql`${schema.treasuryEntries.category} IN ('ump', 'taxa_ump')`,
+        isNull(schema.memberUmpPayments.id),
+      ));
+
+    return [...percaptaEntries.map(r => r.entry), ...umpEntries.map(r => r.entry)];
+  }
+
+  async getMemberUmpPaymentsByYear(userId: number, year: number): Promise<MemberUmpPayment[]> {
+    return await db.select()
+      .from(schema.memberUmpPayments)
+      .where(and(
+        eq(schema.memberUmpPayments.userId, userId),
+        eq(schema.memberUmpPayments.year, year)
+      ));
+  }
+
   async createMemberUmpPayment(data: InsertMemberUmpPayment): Promise<MemberUmpPayment> {
     const [payment] = await db.insert(schema.memberUmpPayments)
       .values(data)

@@ -13226,23 +13226,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Dados incompletos" });
       }
       
+      const year = referenceYear || new Date().getFullYear();
+      const now = new Date();
+      
       const entry = await storage.createTreasuryEntry({
         type,
         category,
         description,
         amount,
         userId: userId || null,
-        referenceYear: referenceYear || new Date().getFullYear(),
+        referenceYear: year,
         referenceMonth: referenceMonth || null,
         paymentStatus: "paid",
         paymentMethod: paymentMethod || "manual",
         receiptUrl: receiptUrl || null,
+        paidAt: now,
       });
+      
+      if (type === "income" && userId) {
+        if (category === "percapta" || category === "taxa_percapta") {
+          let payment = await storage.getMemberPercaptaPayment(userId, year);
+          if (payment) {
+            await storage.updateMemberPercaptaPayment(payment.id, {
+              amount,
+              paidAt: now,
+              entryId: entry.id,
+            });
+          } else {
+            await storage.createMemberPercaptaPayment({
+              userId,
+              year,
+              amount,
+              paidAt: now,
+              entryId: entry.id,
+            });
+          }
+        } else if (category === "ump" || category === "taxa_ump") {
+          const settings = await storage.getTreasurySettings(year);
+          const monthlyAmount = settings?.umpMonthlyAmount || 0;
+          
+          if (monthlyAmount > 0) {
+            const monthsCount = Math.min(12, Math.floor(amount / monthlyAmount));
+            
+            if (monthsCount > 0) {
+              const existingPayments = await storage.getMemberUmpPaymentsByYear(userId, year);
+              const paidMonths = new Set(existingPayments.map(p => p.month));
+              
+              const monthsToPay: number[] = [];
+              for (let m = 1; m <= 12 && monthsToPay.length < monthsCount; m++) {
+                if (!paidMonths.has(m)) {
+                  monthsToPay.push(m);
+                }
+              }
+              
+              const referenceMonthsArr: number[] = [];
+              for (const month of monthsToPay) {
+                await storage.createMemberUmpPayment({
+                  userId,
+                  year,
+                  month,
+                  amount: monthlyAmount,
+                  paidAt: now,
+                  entryId: entry.id,
+                });
+                referenceMonthsArr.push(month);
+              }
+              
+              if (referenceMonthsArr.length > 0) {
+                await storage.updateTreasuryEntry(entry.id, {
+                  referenceMonths: JSON.stringify(referenceMonthsArr),
+                });
+              }
+            }
+          } else if (referenceMonth) {
+            let payment = await storage.getMemberUmpPayment(userId, year, referenceMonth);
+            if (!payment) {
+              await storage.createMemberUmpPayment({
+                userId,
+                year,
+                month: referenceMonth,
+                amount,
+                paidAt: now,
+                entryId: entry.id,
+              });
+            }
+          }
+        }
+      }
       
       res.status(201).json(entry);
     } catch (error) {
       console.error("Create treasury entry error:", error);
       res.status(500).json({ message: "Erro ao criar lançamento" });
+    }
+  });
+
+  app.post("/api/treasury/fix-member-payments", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const entries = await storage.getTreasuryEntriesForPaymentFix();
+      let fixedPercapta = 0;
+      let fixedUmp = 0;
+      const errors: string[] = [];
+
+      for (const entry of entries) {
+        if (!entry.userId) continue;
+        
+        try {
+          const year = entry.referenceYear;
+
+          if (entry.category === "percapta" || entry.category === "taxa_percapta") {
+            const existing = await storage.getMemberPercaptaPayment(entry.userId, year);
+            if (!existing) {
+              await storage.createMemberPercaptaPayment({
+                userId: entry.userId,
+                year,
+                amount: entry.amount,
+                paidAt: entry.paidAt || entry.createdAt || new Date(),
+                entryId: entry.id,
+              });
+              fixedPercapta++;
+            }
+          } else if (entry.category === "ump" || entry.category === "taxa_ump") {
+            const settings = await storage.getTreasurySettings(year);
+            const monthlyAmount = settings?.umpMonthlyAmount || 0;
+
+            if (monthlyAmount > 0) {
+              const monthsCount = Math.min(12, Math.floor(entry.amount / monthlyAmount));
+              if (monthsCount > 0) {
+                const existingPayments = await storage.getMemberUmpPaymentsByYear(entry.userId, year);
+                const paidMonths = new Set(existingPayments.map(p => p.month));
+
+                let monthsAdded = 0;
+                for (let m = 1; m <= 12 && monthsAdded < monthsCount; m++) {
+                  if (!paidMonths.has(m)) {
+                    try {
+                      await storage.createMemberUmpPayment({
+                        userId: entry.userId,
+                        year,
+                        month: m,
+                        amount: monthlyAmount,
+                        paidAt: entry.paidAt || entry.createdAt || new Date(),
+                        entryId: entry.id,
+                      });
+                      monthsAdded++;
+                      fixedUmp++;
+                    } catch (e: any) {
+                      if (!e.message?.includes('unique')) {
+                        errors.push(`UMP entry ${entry.id} month ${m}: ${e.message}`);
+                      }
+                    }
+                  }
+                }
+              }
+            } else if (entry.referenceMonth) {
+              const existing = await storage.getMemberUmpPayment(entry.userId, year, entry.referenceMonth);
+              if (!existing) {
+                try {
+                  await storage.createMemberUmpPayment({
+                    userId: entry.userId,
+                    year,
+                    month: entry.referenceMonth,
+                    amount: entry.amount,
+                    paidAt: entry.paidAt || entry.createdAt || new Date(),
+                    entryId: entry.id,
+                  });
+                  fixedUmp++;
+                } catch (e: any) {
+                  if (!e.message?.includes('unique')) {
+                    errors.push(`UMP entry ${entry.id}: ${e.message}`);
+                  }
+                }
+              }
+            }
+          }
+        } catch (e: any) {
+          errors.push(`Entry ${entry.id}: ${e.message}`);
+        }
+      }
+
+      res.json({ 
+        message: `Correção concluída: ${fixedPercapta} percapta, ${fixedUmp} UMP registros corrigidos`,
+        fixedPercapta,
+        fixedUmp,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error("Fix member payments error:", error);
+      res.status(500).json({ message: "Erro ao corrigir pagamentos" });
     }
   });
 

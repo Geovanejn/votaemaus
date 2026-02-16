@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NotificationToggle } from "@/components/NotificationToggle";
 import { Menu, X, ChevronRight, Sparkles, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { useAuth } from "@/lib/auth";
 import { useThemeContext } from "@/components/ThemeProvider";
@@ -79,6 +80,7 @@ export function SiteHeader() {
 
             <div className="flex items-center gap-2">
               {isAuthenticated && <NotificationCenter />}
+              <ThemeToggle />
               
               <Link href="/membro" className="hidden sm:block">
                 <Button variant="default" size="sm" data-testid="button-member-area">

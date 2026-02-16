@@ -356,7 +356,7 @@ export default function PedidoCompartilhado() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4" data-testid="loading-skeleton">
+      <div className="dark min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 p-4" data-testid="loading-skeleton">
         <div className="max-w-lg mx-auto space-y-4 pt-8">
           <Skeleton className="h-10 w-48 mx-auto" />
           <Skeleton className="h-40 w-full rounded-xl" />
@@ -369,12 +369,12 @@ export default function PedidoCompartilhado() {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
+      <div className="dark min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center shadow-lg">
           <CardContent className="pt-8 pb-6 space-y-4">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-700" data-testid="text-error-title">Pedido não encontrado</h2>
-            <p className="text-gray-500" data-testid="text-error-message">
+            <h2 className="text-xl font-semibold text-gray-200" data-testid="text-error-title">Pedido não encontrado</h2>
+            <p className="text-gray-400" data-testid="text-error-message">
               O link que você acessou é inválido ou o pedido não existe mais.
             </p>
           </CardContent>
@@ -391,29 +391,29 @@ export default function PedidoCompartilhado() {
   const paidInstallments = order.installments?.filter((i) => i.status === "paid") || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div className="dark min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100">
       {showNotifPopup && notificationState !== "subscribed" && notificationState !== "denied" && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowNotifPopup(false)}>
           <div 
-            className="bg-white w-full sm:w-auto sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95"
+            className="bg-gray-800 border border-gray-700 w-full sm:w-auto sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <Bell className="w-6 h-6 text-amber-600" />
+              <div className="w-12 h-12 rounded-full bg-amber-900/40 flex items-center justify-center">
+                <Bell className="w-6 h-6 text-amber-400" />
               </div>
               <button 
                 onClick={() => setShowNotifPopup(false)} 
-                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                className="p-1 rounded-full hover:bg-gray-700 transition-colors"
                 data-testid="button-close-notif-popup"
               >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
+            <h3 className="text-lg font-bold text-gray-100 mb-1">
               Ative as notificações
             </h3>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-gray-400 mb-5">
               Receba alertas quando seu pagamento for confirmado, quando o pedido entrar em produção e quando estiver pronto para retirada.
             </p>
             <Button
@@ -431,7 +431,7 @@ export default function PedidoCompartilhado() {
             </Button>
             <button 
               onClick={() => setShowNotifPopup(false)}
-              className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
+              className="w-full mt-3 text-sm text-gray-500 hover:text-gray-300 transition-colors py-2"
               data-testid="button-dismiss-notif-popup"
             >
               Agora não
@@ -443,19 +443,19 @@ export default function PedidoCompartilhado() {
       {showPixModal && pixData && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowPixModal(false)}>
           <div 
-            className="bg-white w-full sm:w-auto sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95 max-h-[90vh] overflow-y-auto"
+            className="bg-gray-800 border border-gray-700 w-full sm:w-auto sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-gray-100">
                   {pixData.type === "installment"
                     ? `Pagar Parcela ${pixData.installmentNumber}`
                     : "Pagar Pedido"}
                 </h3>
                 <button
                   onClick={() => setShowPixModal(false)}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-1 rounded-full hover:bg-gray-700 transition-colors"
                   data-testid="button-close-pix-modal"
                 >
                   <X className="w-5 h-5 text-gray-400" />
@@ -470,7 +470,7 @@ export default function PedidoCompartilhado() {
 
               {pixData.qrCodeBase64 && (
                 <div className="flex justify-center">
-                  <div className="bg-white p-3 rounded-xl border-2 border-gray-100">
+                  <div className="bg-white p-3 rounded-xl border-2 border-gray-600">
                     <img
                       src={`data:image/png;base64,${pixData.qrCodeBase64}`}
                       alt="QR Code PIX"
@@ -517,11 +517,11 @@ export default function PedidoCompartilhado() {
             className="h-8 w-auto mx-auto"
             data-testid="img-emaustore-logo"
           />
-          <p className="text-sm text-gray-500" data-testid="text-order-code">
+          <p className="text-sm text-gray-400" data-testid="text-order-code">
             Pedido #{order.orderCode}
           </p>
           {order.customerName && (
-            <p className="text-base text-gray-700 font-semibold" data-testid="text-customer-name">
+            <p className="text-base text-gray-200 font-semibold" data-testid="text-customer-name">
               {order.customerName}
             </p>
           )}
@@ -532,7 +532,7 @@ export default function PedidoCompartilhado() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <StatusIcon className={cn("w-5 h-5", statusInfo.color)} />
-                <span className="font-medium text-gray-700">Status</span>
+                <span className="font-medium text-gray-200">Status</span>
               </div>
               <Badge className={cn("text-xs font-semibold px-3 py-1", statusInfo.bgColor, statusInfo.color, "border")} data-testid="badge-order-status">
                 {statusInfo.label}
@@ -546,7 +546,7 @@ export default function PedidoCompartilhado() {
 
         <Card className="shadow-sm" data-testid="card-order-items">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
               <Package className="w-4 h-4" />
               Itens do Pedido
             </CardTitle>
@@ -562,25 +562,25 @@ export default function PedidoCompartilhado() {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center border flex-shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-900/30 to-orange-900/30 flex items-center justify-center border border-gray-700 flex-shrink-0">
                     <Package className="w-7 h-7 text-amber-300" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-gray-800">
+                  <p className="font-semibold text-sm text-gray-100">
                     {item.product?.name || "Produto"}
                   </p>
                   
                   {!item.product?.isKit && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {item.size && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Tam: {item.size}</span>
+                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Tam: {item.size}</span>
                       )}
                       {item.color && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Cor: {item.color}</span>
+                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Cor: {item.color}</span>
                       )}
                       {item.gender && item.gender !== "unissex" && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                        <span className="text-xs text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">
                           {item.gender === "male" ? "Masculino" : item.gender === "female" ? "Feminino" : item.gender}
                         </span>
                       )}
@@ -588,19 +588,19 @@ export default function PedidoCompartilhado() {
                   )}
 
                   {item.kitSelections && item.kitSelections.length > 0 && (
-                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-200">
+                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-700">
                       {item.kitSelections.map((ks) => (
-                        <div key={ks.id} className="text-xs text-gray-600">
-                          <span className="font-medium text-gray-700">{ks.componentName}</span>
+                        <div key={ks.id} className="text-xs text-gray-400">
+                          <span className="font-medium text-gray-200">{ks.componentName}</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {ks.size && (
-                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
+                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
                             )}
                             {ks.color && (
-                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
+                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
                             )}
                             {ks.quantity > 1 && (
-                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
+                              <span className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
                             )}
                           </div>
                         </div>
@@ -610,7 +610,7 @@ export default function PedidoCompartilhado() {
 
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-xs text-gray-400 font-medium">{item.quantity}x</span>
-                    <span className="text-sm font-bold text-gray-700">
+                    <span className="text-sm font-bold text-gray-100">
                       {formatMoney(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -620,7 +620,7 @@ export default function PedidoCompartilhado() {
 
             <div className="border-t pt-3 space-y-1.5">
               {(order.subtotalAmount != null && order.subtotalAmount > 0 && order.subtotalAmount !== order.totalAmount) && (
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-gray-400">
                   <span>Subtotal</span>
                   <span>{formatMoney(order.subtotalAmount)}</span>
                 </div>
@@ -646,7 +646,7 @@ export default function PedidoCompartilhado() {
                   </div>
                 )
               )}
-              <div className="flex justify-between font-bold text-gray-800 text-base pt-1" data-testid="text-total-amount">
+              <div className="flex justify-between font-bold text-gray-100 text-base pt-1" data-testid="text-total-amount">
                 <span>Total</span>
                 <span>{formatMoney(order.totalAmount)}</span>
               </div>
@@ -657,7 +657,7 @@ export default function PedidoCompartilhado() {
         {isInstallment && order.installments?.length > 0 && (
           <Card className="shadow-sm" data-testid="card-installments">
             <CardHeader className="pb-2 cursor-pointer" onClick={() => setShowInstallments(!showInstallments)}>
-              <CardTitle className="text-sm font-semibold text-gray-600 flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-gray-300 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
                   Parcelas ({paidInstallments.length}/{order.installments.length} pagas)
@@ -672,7 +672,7 @@ export default function PedidoCompartilhado() {
                     key={inst.id}
                     className={cn(
                       "flex items-center justify-between p-3 rounded-xl text-sm",
-                      inst.status === "paid" ? "bg-green-50 border border-green-100" : "bg-gray-50 border border-gray-100"
+                      inst.status === "paid" ? "bg-green-900/20 border border-green-800" : "bg-gray-800 border border-gray-700"
                     )}
                     data-testid={`installment-${inst.id}`}
                   >
@@ -719,7 +719,7 @@ export default function PedidoCompartilhado() {
           <Button
             onClick={() => generatePixMutation.mutate()}
             disabled={generatePixMutation.isPending}
-            className="w-full h-14 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-200/50"
+            className="w-full h-14 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-900/50"
             data-testid="button-generate-pix"
           >
             {generatePixMutation.isPending ? (

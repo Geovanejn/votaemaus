@@ -10501,6 +10501,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.paymentStatus = "cancelled";
       }
       
+      if (currentOrder.orderStatus === "cancelled" && orderStatus === "awaiting_payment") {
+        await storage.clearAbandonedCartReminders(id);
+        updateData.createdAt = new Date();
+        console.log(`[Admin] Order ${id} restored from cancelled to awaiting_payment - cleared abandoned cart reminders and reset createdAt`);
+      }
+      
       const order = await storage.updateShopOrder(id, updateData);
       if (!order) {
         return res.status(404).json({ message: "Pedido não encontrado" });
@@ -10677,6 +10683,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bulkUpdateData.paidAt = new Date();
         } else if (orderStatus === "cancelled") {
           bulkUpdateData.paymentStatus = "cancelled";
+        }
+        
+        if (currentBulkOrder?.orderStatus === "cancelled" && orderStatus === "awaiting_payment") {
+          await storage.clearAbandonedCartReminders(orderId);
+          bulkUpdateData.createdAt = new Date();
+          console.log(`[Admin] Bulk: Order ${orderId} restored from cancelled to awaiting_payment - cleared abandoned cart reminders`);
         }
         
         const order = await storage.updateShopOrder(orderId, bulkUpdateData);

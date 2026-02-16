@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc, asc, sql, isNull, gt, lt, gte, lte, ne, or, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, sql, isNull, gt, lt, gte, lte, ne, or, inArray, like } from "drizzle-orm";
 import { sendCongratulationsEmail } from "./email";
 import { getTodayBrazilDate } from "./utils/date";
 import * as schema from "@shared/schema";
@@ -721,6 +721,7 @@ export interface IStorage {
   hasSentSchedulerReminder(reminderKey: string): Promise<boolean>;
   markSchedulerReminderSent(reminderKey: string, reminderType: string, relatedId?: number): Promise<void>;
   cleanOldSchedulerReminders(maxAgeHours: number): Promise<number>;
+  clearAbandonedCartReminders(orderId: number): Promise<void>;
   
   // Forms (Estatística) Methods
   getForms(): Promise<Form[]>;
@@ -9517,6 +9518,16 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${schema.sentSchedulerReminders.sentAt} < ${cutoffDate}`)
       .returning({ id: schema.sentSchedulerReminders.id });
     return result.length;
+  }
+
+  async clearAbandonedCartReminders(orderId: number): Promise<void> {
+    await db.delete(schema.sentSchedulerReminders)
+      .where(
+        and(
+          like(schema.sentSchedulerReminders.reminderKey, `abandoned-cart-${orderId}-%`),
+          eq(schema.sentSchedulerReminders.reminderType, 'abandoned_cart')
+        )
+      );
   }
   async linkAnonymousSubscriptionToUser(anonymousSubscriptionId: number, userId: number): Promise<void> {
     console.log(`[Push Storage] linkAnonymousSubscriptionToUser called: anonSubId=${anonymousSubscriptionId}, userId=${userId}`);

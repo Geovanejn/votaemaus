@@ -103,7 +103,7 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
     const payment = await paymentAPI.create({
       body: paymentBody,
       requestOptions: {
-        idempotencyKey: `${params.externalReference || Date.now()}-${params.payerEmail}`,
+        idempotencyKey: `${params.externalReference || 'pix'}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       },
     });
 

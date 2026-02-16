@@ -10489,9 +10489,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Não é permitido reverter um pedido pago para aguardando pagamento" });
       }
       
-      const order = await storage.updateShopOrder(id, { orderStatus });
+      const updateData: any = { orderStatus };
+      
+      const isInstallmentOrder = currentOrder.installmentCount && currentOrder.installmentCount > 1;
+      
+      if (orderStatus === "paid" && !isInstallmentOrder) {
+        updateData.paymentStatus = "paid";
+        updateData.paidAt = new Date();
+      } else if (orderStatus === "cancelled") {
+        updateData.paymentStatus = "cancelled";
+      }
+      
+      const order = await storage.updateShopOrder(id, updateData);
       if (!order) {
         return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      if (orderStatus === "paid" && !isInstallmentOrder) {
+        if (order.entryId) {
+          await storage.updateTreasuryEntry(order.entryId, {
+            paymentStatus: "paid",
+            paidAt: new Date(),
+          });
+        } else {
+          const entry = await storage.createTreasuryEntry({
+            type: "income",
+            category: "loja",
+            description: `Pedido ${order.orderCode}`,
+            amount: order.totalAmount,
+            userId: order.userId,
+            referenceYear: new Date().getFullYear(),
+            paymentMethod: "manual",
+            paymentStatus: "paid",
+            paidAt: new Date(),
+            orderId: order.id,
+          });
+          await storage.updateShopOrder(id, { entryId: entry.id });
+        }
+      }
+      
+      if (orderStatus === "cancelled" && order.entryId) {
+        await storage.updateTreasuryEntry(order.entryId, {
+          paymentStatus: "cancelled",
+        });
       }
       
       // Enviar notificação quando pedido está pronto para retirada
@@ -10581,8 +10621,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedOrders = [];
       for (const orderId of orderIds) {
-        const order = await storage.updateShopOrder(orderId, { orderStatus });
+        const currentBulkOrder = await storage.getShopOrderById(orderId);
+        const isBulkInstallment = currentBulkOrder?.installmentCount && currentBulkOrder.installmentCount > 1;
+        
+        const bulkUpdateData: any = { orderStatus };
+        if (orderStatus === "paid" && !isBulkInstallment) {
+          bulkUpdateData.paymentStatus = "paid";
+          bulkUpdateData.paidAt = new Date();
+        } else if (orderStatus === "cancelled") {
+          bulkUpdateData.paymentStatus = "cancelled";
+        }
+        
+        const order = await storage.updateShopOrder(orderId, bulkUpdateData);
         if (order) {
+          if (orderStatus === "paid" && !isBulkInstallment) {
+            if (order.entryId) {
+              await storage.updateTreasuryEntry(order.entryId, {
+                paymentStatus: "paid",
+                paidAt: new Date(),
+              });
+            } else {
+              const entry = await storage.createTreasuryEntry({
+                type: "income",
+                category: "loja",
+                description: `Pedido ${order.orderCode}`,
+                amount: order.totalAmount,
+                userId: order.userId,
+                referenceYear: new Date().getFullYear(),
+                paymentMethod: "manual",
+                paymentStatus: "paid",
+                paidAt: new Date(),
+                orderId: order.id,
+              });
+              await storage.updateShopOrder(orderId, { entryId: entry.id });
+            }
+          }
+          
+          if (orderStatus === "cancelled" && order.entryId) {
+            await storage.updateTreasuryEntry(order.entryId, {
+              paymentStatus: "cancelled",
+            });
+          }
+          
           updatedOrders.push(order);
           
           // Enviar notificação quando pedido está pronto para retirada

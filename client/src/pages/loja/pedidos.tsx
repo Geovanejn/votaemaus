@@ -46,6 +46,7 @@ interface OrderItem {
   quantity: number;
   gender: string | null;
   size: string | null;
+  color: string | null;
   unitPrice: number;
   product: OrderItemProduct | null;
   kitSelections?: OrderItemKitSelection[];

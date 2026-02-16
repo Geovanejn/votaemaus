@@ -93,6 +93,10 @@ async function runPendingMigrations(): Promise<void> {
       name: "add_original_image_url_to_devotionals",
       sql: `ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS original_image_url TEXT;`
     },
+    {
+      name: "fix_kit_selection_quantities_to_1",
+      sql: `UPDATE shop_order_item_kit_selections SET quantity = 1 WHERE quantity > 1;`
+    },
   ];
 
   for (const migration of migrations) {

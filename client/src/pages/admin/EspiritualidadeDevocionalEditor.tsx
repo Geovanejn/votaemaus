@@ -35,6 +35,7 @@ const formSchema = z.object({
   summary: z.string().optional(),
   prayer: z.string().optional(),
   imageUrl: z.string().optional(),
+  originalImageUrl: z.string().optional(),
   mobileCropData: mobileCropDataSchema.optional(),
   author: z.string().optional(),
   youtubeUrl: z.string().optional(),
@@ -82,6 +83,7 @@ export default function EspiritualidadeDevocionalEditor() {
       summary: "",
       prayer: "",
       imageUrl: "",
+      originalImageUrl: "",
       mobileCropData: null,
       author: "",
       youtubeUrl: "",
@@ -99,6 +101,7 @@ export default function EspiritualidadeDevocionalEditor() {
       summary: devotional.summary || "",
       prayer: devotional.prayer || "",
       imageUrl: devotional.imageUrl || "",
+      originalImageUrl: devotional.originalImageUrl || "",
       mobileCropData: parseMobileCropData(devotional.mobileCropData),
       author: devotional.author || "",
       youtubeUrl: devotional.youtubeUrl || "",
@@ -525,6 +528,12 @@ export default function EspiritualidadeDevocionalEditor() {
                             onChange={(url) => {
                               field.onChange(url);
                               form.setValue("mobileCropData", null);
+                              if (!url) {
+                                form.setValue("originalImageUrl", "");
+                              }
+                            }}
+                            onOriginalUpload={(url) => {
+                              form.setValue("originalImageUrl", url);
                             }}
                             aspectRatio={IMAGE_UPLOAD_CONFIGS.devotional.aspectRatio}
                             placeholder={IMAGE_UPLOAD_CONFIGS.devotional.placeholder}
@@ -577,7 +586,7 @@ export default function EspiritualidadeDevocionalEditor() {
                   <MobileCropSelector
                     open={showMobileCrop}
                     onOpenChange={setShowMobileCrop}
-                    imageSrc={form.watch("imageUrl") || ""}
+                    imageSrc={form.watch("originalImageUrl") || form.watch("imageUrl") || ""}
                     cropData={form.watch("mobileCropData")}
                     onCropComplete={(data) => {
                       form.setValue("mobileCropData", data);

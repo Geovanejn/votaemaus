@@ -1,4 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
@@ -27,6 +28,111 @@ interface RichTextEditorProps {
   onChange: (content: string, html: string) => void
   placeholder?: string
   className?: string
+}
+
+function ToolbarButton({ 
+  onClick, 
+  active, 
+  disabled, 
+  children, 
+  testId 
+}: { 
+  onClick: () => void
+  active?: boolean
+  disabled?: boolean
+  children: React.ReactNode
+  testId?: string 
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onMouseDown={(e) => {
+        e.preventDefault()
+        onClick()
+      }}
+      disabled={disabled}
+      className={cn("h-7 w-7", active && 'bg-muted')}
+      data-testid={testId}
+    >
+      {children}
+    </Button>
+  )
+}
+
+function FormatButtons({ editor, setLink }: { editor: ReturnType<typeof useEditor>; setLink: () => void }) {
+  if (!editor) return null
+  return (
+    <>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        active={editor.isActive('bold')}
+        testId="button-bold"
+      >
+        <Bold className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        active={editor.isActive('italic')}
+        testId="button-italic"
+      >
+        <Italic className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        active={editor.isActive('underline')}
+        testId="button-underline"
+      >
+        <UnderlineIcon className="h-4 w-4" />
+      </ToolbarButton>
+      <div className="w-px h-5 bg-border mx-0.5 self-center" />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        active={editor.isActive('heading', { level: 2 })}
+        testId="button-h2"
+      >
+        <Heading2 className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        active={editor.isActive('heading', { level: 3 })}
+        testId="button-h3"
+      >
+        <Heading3 className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setParagraph().run()}
+        active={editor.isActive('paragraph')}
+        testId="button-paragraph"
+      >
+        <Type className="h-4 w-4" />
+      </ToolbarButton>
+      <div className="w-px h-5 bg-border mx-0.5 self-center" />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        active={editor.isActive('bulletList')}
+        testId="button-bullet-list"
+      >
+        <List className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        active={editor.isActive('orderedList')}
+        testId="button-ordered-list"
+      >
+        <ListOrdered className="h-4 w-4" />
+      </ToolbarButton>
+      <div className="w-px h-5 bg-border mx-0.5 self-center" />
+      <ToolbarButton
+        onClick={setLink}
+        active={editor.isActive('link')}
+        testId="button-link"
+      >
+        <LinkIcon className="h-4 w-4" />
+      </ToolbarButton>
+    </>
+  )
 }
 
 export function RichTextEditor({ content, onChange, placeholder = "Escreva seu conteúdo aqui...", className }: RichTextEditorProps) {
@@ -93,11 +199,11 @@ export function RichTextEditor({ content, onChange, placeholder = "Escreva seu c
     }
 
     if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
+      editor.chain().extendMarkRange('link').unsetLink().run()
       return
     }
 
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+    editor.chain().extendMarkRange('link').setLink({ href: url }).run()
   }, [editor])
 
   const addYoutubeVideo = useCallback(() => {
@@ -119,130 +225,42 @@ export function RichTextEditor({ content, onChange, placeholder = "Escreva seu c
   return (
     <div className={cn("border rounded-md", className)}>
       <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/50">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={cn(editor.isActive('bold') && 'bg-muted')}
-          data-testid="button-bold"
-        >
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={cn(editor.isActive('italic') && 'bg-muted')}
-          data-testid="button-italic"
-        >
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={cn(editor.isActive('underline') && 'bg-muted')}
-          data-testid="button-underline"
-        >
-          <UnderlineIcon className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-border mx-1 self-center" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={cn(editor.isActive('heading', { level: 2 }) && 'bg-muted')}
-          data-testid="button-h2"
-        >
-          <Heading2 className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={cn(editor.isActive('heading', { level: 3 }) && 'bg-muted')}
-          data-testid="button-h3"
-        >
-          <Heading3 className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          className={cn(editor.isActive('paragraph') && 'bg-muted')}
-          data-testid="button-paragraph"
-        >
-          <Type className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-border mx-1 self-center" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={cn(editor.isActive('bulletList') && 'bg-muted')}
-          data-testid="button-bullet-list"
-        >
-          <List className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={cn(editor.isActive('orderedList') && 'bg-muted')}
-          data-testid="button-ordered-list"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-border mx-1 self-center" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={setLink}
-          className={cn(editor.isActive('link') && 'bg-muted')}
-          data-testid="button-link"
-        >
-          <LinkIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        <FormatButtons editor={editor} setLink={setLink} />
+        <ToolbarButton
           onClick={addYoutubeVideo}
-          data-testid="button-youtube"
+          testId="button-youtube"
         >
           <YoutubeIcon className="h-4 w-4" />
-        </Button>
-        <div className="w-px h-6 bg-border mx-1 self-center" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        </ToolbarButton>
+        <div className="w-px h-5 bg-border mx-0.5 self-center" />
+        <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
-          data-testid="button-undo"
+          testId="button-undo"
         >
           <Undo className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
+        </ToolbarButton>
+        <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
-          data-testid="button-redo"
+          testId="button-redo"
         >
           <Redo className="h-4 w-4" />
-        </Button>
+        </ToolbarButton>
       </div>
+
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          options={{
+            placement: 'top',
+            offset: 8,
+          }}
+          className="flex items-center gap-0.5 p-1 bg-popover border border-border rounded-lg shadow-lg z-50"
+        >
+          <FormatButtons editor={editor} setLink={setLink} />
+        </BubbleMenu>
+      )}
 
       <EditorContent editor={editor} className="min-h-[200px]" />
     </div>

@@ -395,6 +395,7 @@ export const devotionals = pgTable("devotionals", {
   summary: text("summary"),
   prayer: text("prayer"),
   imageUrl: text("image_url"),
+  originalImageUrl: text("original_image_url"),
   mobileCropData: text("mobile_crop_data"),
   author: text("author"),
   // Media fields

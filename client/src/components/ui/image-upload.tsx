@@ -26,6 +26,7 @@ function getDisplayUrl(url: string): string {
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
+  onOriginalUpload?: (url: string) => void;
   aspectRatio?: number;
   placeholder?: string;
   className?: string;
@@ -36,6 +37,7 @@ interface ImageUploadProps {
 export function ImageUpload({
   value,
   onChange,
+  onOriginalUpload,
   aspectRatio = 1,
   placeholder = "Selecionar Imagem",
   className,
@@ -92,15 +94,15 @@ export function ImageUpload({
   const handleCropComplete = async (croppedImage: string) => {
     setIsUploading(true);
     try {
-      const blob = await fetch(croppedImage).then((r) => r.blob());
-      const formData = new FormData();
-      formData.append("file", blob, "image.jpg");
-
       const token = localStorage.getItem("token");
       const headers: HeadersInit = {};
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
+
+      const blob = await fetch(croppedImage).then((r) => r.blob());
+      const formData = new FormData();
+      formData.append("file", blob, "image.jpg");
 
       const response = await fetch(`/api/upload${uploadType ? `?uploadType=${uploadType}` : ''}`, {
         method: "POST",
@@ -115,6 +117,30 @@ export function ImageUpload({
 
       const data = await response.json();
       onChange(data.url);
+
+      if (onOriginalUpload && tempImageSrc) {
+        try {
+          const originalBlob = await fetch(tempImageSrc).then((r) => r.blob());
+          const originalFormData = new FormData();
+          originalFormData.append("file", originalBlob, "original.jpg");
+          const origHeaders: HeadersInit = {};
+          if (token) {
+            origHeaders["Authorization"] = `Bearer ${token}`;
+          }
+          const origResponse = await fetch(`/api/upload${uploadType ? `?uploadType=${uploadType}` : ''}`, {
+            method: "POST",
+            body: originalFormData,
+            credentials: "include",
+            headers: origHeaders,
+          });
+          if (origResponse.ok) {
+            const origData = await origResponse.json();
+            onOriginalUpload(origData.url);
+          }
+        } catch (e) {
+          console.error("Original image upload error:", e);
+        }
+      }
     } catch (error) {
       console.error("Upload error:", error);
       toast({

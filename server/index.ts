@@ -40,6 +40,45 @@ async function backfillTreasuryForPaidOrders() {
     const { shopOrders, treasuryEntries } = await import("@shared/schema");
     const { eq, isNull, and, or, lte } = await import("drizzle-orm");
 
+    // 1) Pedidos pagos COM entrada na tesouraria, mas entrada ainda pendente → atualizar para "paid"
+    const { isNotNull, ne } = await import("drizzle-orm");
+    
+    const paidOrdersWithPendingEntry = await db
+      .select()
+      .from(shopOrders)
+      .where(
+        and(
+          eq(shopOrders.orderStatus, "paid"),
+          isNotNull(shopOrders.entryId),
+          or(
+            isNull(shopOrders.installmentCount),
+            lte(shopOrders.installmentCount, 1)
+          )
+        )
+      );
+
+    let updated = 0;
+    for (const order of paidOrdersWithPendingEntry) {
+      try {
+        if (!order.entryId) continue;
+        const entry = await storage.getTreasuryEntryById(order.entryId);
+        if (entry && entry.paymentStatus !== "paid") {
+          await storage.updateTreasuryEntry(order.entryId, {
+            paymentStatus: "paid",
+            paidAt: order.paidAt || new Date(),
+          });
+          updated++;
+        }
+      } catch (err: any) {
+        console.error(`[Backfill] Erro ao atualizar entrada do pedido ${order.orderCode}:`, err.message);
+      }
+    }
+
+    if (updated > 0) {
+      console.log(`[Backfill] ${updated} entradas na tesouraria atualizadas de pendente para pago.`);
+    }
+
+    // 2) Pedidos pagos SEM entrada na tesouraria → criar nova entrada
     const paidOrdersWithoutEntry = await db
       .select()
       .from(shopOrders)
@@ -53,13 +92,6 @@ async function backfillTreasuryForPaidOrders() {
           )
         )
       );
-
-    if (paidOrdersWithoutEntry.length === 0) {
-      console.log("[Backfill] Nenhum pedido pago sem entrada na tesouraria encontrado.");
-      return;
-    }
-
-    console.log(`[Backfill] Encontrados ${paidOrdersWithoutEntry.length} pedidos pagos sem entrada na tesouraria. Criando entradas...`);
 
     let created = 0;
     for (const order of paidOrdersWithoutEntry) {
@@ -83,7 +115,11 @@ async function backfillTreasuryForPaidOrders() {
       }
     }
 
-    console.log(`[Backfill] ${created}/${paidOrdersWithoutEntry.length} entradas na tesouraria criadas com sucesso!`);
+    if (updated === 0 && created === 0) {
+      console.log("[Backfill] Nenhum pedido pago precisou de correção na tesouraria.");
+    } else if (created > 0) {
+      console.log(`[Backfill] ${created} novas entradas na tesouraria criadas.`);
+    }
   } catch (error: any) {
     console.error("[Backfill] Erro ao executar backfill de tesouraria:", error.message);
   }

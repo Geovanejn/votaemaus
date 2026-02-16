@@ -166,6 +166,11 @@ export function UnifiedNotificationPrompt() {
     const checkAndShowPrompt = async () => {
       console.log('[UnifiedNotification] Checking visibility...');
       
+      if (window.location.pathname.startsWith('/pedido/')) {
+        console.log('[UnifiedNotification] Shared order page detected, skipping global prompt');
+        return;
+      }
+      
       // Detect browser first
       const browser = detectBrowser();
       setBrowserInfo(browser);

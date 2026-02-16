@@ -10503,8 +10503,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (currentOrder.orderStatus === "cancelled" && orderStatus === "awaiting_payment") {
         await storage.clearAbandonedCartReminders(id);
-        updateData.createdAt = new Date();
-        console.log(`[Admin] Order ${id} restored from cancelled to awaiting_payment - cleared abandoned cart reminders and reset createdAt`);
+        await storage.markSchedulerReminderSent(`abandoned-cart-${id}-admin-protected`, 'abandoned_cart_protected', id);
+        console.log(`[Admin] Order ${id} restored from cancelled to awaiting_payment - protected from auto-cancel`);
       }
       
       const order = await storage.updateShopOrder(id, updateData);
@@ -10687,8 +10687,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (currentBulkOrder?.orderStatus === "cancelled" && orderStatus === "awaiting_payment") {
           await storage.clearAbandonedCartReminders(orderId);
-          bulkUpdateData.createdAt = new Date();
-          console.log(`[Admin] Bulk: Order ${orderId} restored from cancelled to awaiting_payment - cleared abandoned cart reminders`);
+          await storage.markSchedulerReminderSent(`abandoned-cart-${orderId}-admin-protected`, 'abandoned_cart_protected', orderId);
+          console.log(`[Admin] Bulk: Order ${orderId} restored from cancelled to awaiting_payment - protected from auto-cancel`);
         }
         
         const order = await storage.updateShopOrder(orderId, bulkUpdateData);

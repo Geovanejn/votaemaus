@@ -1737,6 +1737,10 @@ async function processAbandonedCartReminder(): Promise<void> {
       if (!order.createdAt) continue;
       if (order.orderStatus !== 'awaiting_payment') continue;
       
+      const adminProtectedKey = `abandoned-cart-${order.id}-admin-protected`;
+      const isAdminProtected = await storage.hasSentSchedulerReminder(adminProtectedKey);
+      if (isAdminProtected) continue;
+      
       const orderDate = new Date(order.createdAt);
       const hoursElapsed = (now - orderDate.getTime()) / (1000 * 60 * 60);
       
